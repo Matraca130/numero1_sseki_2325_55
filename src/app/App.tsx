@@ -1,0 +1,10 @@
+import React from 'react';
+// @refresh reset
+import { RouterProvider } from 'react-router';
+import { router } from '@/app/routes';
+
+export default function App() {
+  return (
+    <RouterProvider router={router} />
+  );
+}
