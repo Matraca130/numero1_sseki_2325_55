@@ -6,6 +6,7 @@
 // PARALLEL-SAFE: This file is independent. Edit freely.
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
+import { TopicDetailPanel } from './TopicDetailPanel';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { ContentTree } from '@/app/components/shared/ContentTree';
 import { PageHeader } from '@/app/components/shared/PageHeader';
@@ -29,6 +30,7 @@ export function ProfessorCurriculumPage() {
   } = useContentTree();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'content' | '3d'>('content');
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -180,8 +182,42 @@ export function ProfessorCurriculumPage() {
                   <span className="text-gray-600">{selectedTopicName}</span>
                 </div>
 
-                {/* 3D Models Panel */}
-                <TopicModelsPanel topicId={selectedTopicId} topicName={selectedTopicName} />
+                {/* Tabs */}
+                <div className="flex gap-1 mb-6 border-b border-gray-100 pb-0">
+                  <button
+                    onClick={() => setActiveTab('content')}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+                      activeTab === 'content'
+                        ? 'border-violet-600 text-violet-700 bg-violet-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <FileText size={14} />
+                    Contenido
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('3d')}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+                      activeTab === '3d'
+                        ? 'border-violet-600 text-violet-700 bg-violet-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Box size={14} />
+                    Modelos 3D
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'content' && (
+                  <TopicDetailPanel
+                    topicId={selectedTopicId}
+                    topicName={selectedTopicName}
+                  />
+                )}
+                {activeTab === '3d' && (
+                  <TopicModelsPanel topicId={selectedTopicId} topicName={selectedTopicName} />
+                )}
               </div>
             </motion.div>
           ) : (
@@ -191,7 +227,7 @@ export function ProfessorCurriculumPage() {
                   <ListTree size={28} className="text-gray-300" />
                 </div>
                 <p className="text-gray-400 text-sm">Selecciona un topico del arbol</p>
-                <p className="text-gray-300 text-xs mt-1">para ver y editar sus modelos 3D</p>
+                <p className="text-gray-300 text-xs mt-1">para ver y editar su contenido y modelos 3D</p>
               </div>
             </div>
           )}
