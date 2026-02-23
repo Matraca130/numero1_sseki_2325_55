@@ -18,6 +18,14 @@ export interface QuizQuestion {
   explanation?: string;
 }
 
+export interface Flashcard {
+  id: number;
+  question: string;
+  answer: string;
+  mastery: number;
+  image?: string;
+}
+
 export interface Model3D {
   id: string;
   name: string;
