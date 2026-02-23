@@ -2,75 +2,34 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import clsx from 'clsx';
+import { getModel3DPins, getModel3DNotes, createModel3DNote, deleteModel3DNote } from '@/app/services/models3dApi';
+import type { Model3DPin, Model3DNote } from '@/app/services/models3dApi';
+import { Loader2, StickyNote, Plus, Trash2, X, Send } from 'lucide-react';
 
-// ── Annotation Point Type ──
+// ── Annotation Point Type (from backend pins) ──
 export interface AnnotationPoint {
   id: string;
   label: string;
   description: string;
   position: [number, number, number]; // x, y, z in 3D space
   color?: string;
+  pinType?: string;
 }
 
-// ── Model Data by topic ──
+// ── Model Data by topic (procedural fallback) ──
 const MODEL_CONFIGS: Record<string, {
   buildModel: (scene: THREE.Scene) => void;
   cameraPos: [number, number, number];
-  annotations: AnnotationPoint[];
 }> = {
-  // ── Shoulder Joint ──
-  'shoulder-joint-3d': {
-    cameraPos: [4, 3, 5],
-    annotations: [
-      { id: 'a1', label: 'Cabeça do Úmero', description: 'Superfície articular esférica que se encaixa na cavidade glenoidal', position: [0, 1.8, 0], color: '#60a5fa' },
-      { id: 'a2', label: 'Cavidade Glenoidal', description: 'Concavidade rasa da escápula que recebe a cabeça do úmero', position: [-1.2, 1.2, 0.3], color: '#a78bfa' },
-      { id: 'a3', label: 'Tubérculo Maior', description: 'Inserção dos músculos supraespinal, infraespinal e redondo menor', position: [0.7, 1.5, 0.5], color: '#34d399' },
-      { id: 'a4', label: 'Diáfise do Úmero', description: 'Corpo do osso, contém o sulco do nervo radial na face posterior', position: [0.2, -0.5, 0.3], color: '#fbbf24' },
-      { id: 'a5', label: 'Acrômio', description: 'Processo da escápula que forma o teto da articulação', position: [-0.8, 2.5, 0], color: '#f472b6' },
-    ],
-    buildModel: (scene: THREE.Scene) => {
-      buildShoulderModel(scene);
-    },
-  },
-  // ── Arm Muscles ──
-  'arm-muscles-3d': {
-    cameraPos: [3, 2, 5],
-    annotations: [
-      { id: 'a1', label: 'Bíceps Braquial', description: 'Flexor principal do antebraço, duas cabeças de origem', position: [0.4, 0.5, 0.6], color: '#ef4444' },
-      { id: 'a2', label: 'Tríceps Braquial', description: 'Extensor do antebraço, três cabeças de origem', position: [-0.3, 0.3, -0.5], color: '#f97316' },
-      { id: 'a3', label: 'Deltoide', description: 'Abdução do braço, cobre a articulação do ombro', position: [0.6, 1.8, 0.3], color: '#a78bfa' },
-      { id: 'a4', label: 'Nervo Radial', description: 'Passa no sulco do nervo radial no úmero', position: [-0.2, -0.2, -0.3], color: '#fbbf24' },
-    ],
-    buildModel: (scene: THREE.Scene) => {
-      buildArmModel(scene);
-    },
-  },
-  // ── Heart ──
-  'heart-3d': {
-    cameraPos: [4, 2, 5],
-    annotations: [
-      { id: 'a1', label: 'Ventrículo Esquerdo', description: 'Câmara com parede mais espessa, bombeia sangue para a aorta', position: [0.4, -0.5, 0.5], color: '#ef4444' },
-      { id: 'a2', label: 'Átrio Direito', description: 'Recebe sangue venoso pelas veias cavas', position: [-0.5, 0.8, 0.3], color: '#3b82f6' },
-      { id: 'a3', label: 'Aorta', description: 'Principal artéria do corpo, nasce do ventrículo esquerdo', position: [0.2, 1.8, 0], color: '#ef4444' },
-      { id: 'a4', label: 'Artéria Pulmonar', description: 'Leva sangue venoso do ventrículo direito aos pulmões', position: [-0.3, 1.5, 0.4], color: '#6366f1' },
-    ],
-    buildModel: (scene: THREE.Scene) => {
-      buildHeartModel(scene);
-    },
-  },
+  'shoulder-joint-3d': { cameraPos: [4, 3, 5], buildModel: (scene) => buildShoulderModel(scene) },
+  'arm-muscles-3d': { cameraPos: [3, 2, 5], buildModel: (scene) => buildArmModel(scene) },
+  'heart-3d': { cameraPos: [4, 2, 5], buildModel: (scene) => buildHeartModel(scene) },
 };
 
 // ── Default fallback for any model ──
 const DEFAULT_CONFIG = {
   cameraPos: [4, 3, 5] as [number, number, number],
-  annotations: [
-    { id: 'a1', label: 'Ponto Superior', description: 'Região proximal da estrutura', position: [0, 2, 0] as [number, number, number], color: '#60a5fa' },
-    { id: 'a2', label: 'Corpo Central', description: 'Porção medial da estrutura anatômica', position: [0.3, 0, 0.3] as [number, number, number], color: '#34d399' },
-    { id: 'a3', label: 'Ponto Inferior', description: 'Região distal da estrutura', position: [0, -2, 0] as [number, number, number], color: '#fbbf24' },
-  ],
-  buildModel: (scene: THREE.Scene) => {
-    buildGenericBone(scene);
-  },
+  buildModel: (scene: THREE.Scene) => { buildGenericBone(scene); },
 };
 
 // ══════════════════════════════════════════════
@@ -111,13 +70,10 @@ function createCartillageMaterial() {
 
 function buildGenericBone(scene: THREE.Scene) {
   const boneMat = createBoneMaterial();
-
-  // Shaft (diaphysis) — tapered cylinder
   const shaftPoints: THREE.Vector2[] = [];
   for (let i = 0; i <= 20; i++) {
     const t = i / 20;
     const y = t * 4 - 2;
-    // Narrower in the middle, wider at ends
     const r = 0.25 + 0.15 * Math.cos(Math.PI * t);
     shaftPoints.push(new THREE.Vector2(r, y));
   }
@@ -125,23 +81,19 @@ function buildGenericBone(scene: THREE.Scene) {
   const shaft = new THREE.Mesh(shaftGeo, boneMat);
   scene.add(shaft);
 
-  // Proximal epiphysis (top ball)
   const proxGeo = new THREE.SphereGeometry(0.55, 24, 24);
   const prox = new THREE.Mesh(proxGeo, boneMat);
   prox.position.y = 2;
   scene.add(prox);
 
-  // Distal epiphysis (bottom double condyle)
   const distGeo1 = new THREE.SphereGeometry(0.4, 20, 20);
   const dist1 = new THREE.Mesh(distGeo1, boneMat);
   dist1.position.set(-0.2, -2, 0);
   scene.add(dist1);
-
   const dist2 = new THREE.Mesh(distGeo1.clone(), boneMat);
   dist2.position.set(0.2, -2, 0);
   scene.add(dist2);
 
-  // Cartilage cap on top
   const cartGeo = new THREE.SphereGeometry(0.56, 24, 24, 0, Math.PI * 2, 0, Math.PI / 3);
   const cart = new THREE.Mesh(cartGeo, createCartillageMaterial());
   cart.position.y = 2;
@@ -152,7 +104,6 @@ function buildShoulderModel(scene: THREE.Scene) {
   const boneMat = createBoneMaterial();
   const cartMat = createCartillageMaterial();
 
-  // ── Humerus (upper arm bone) ──
   const humerusPoints: THREE.Vector2[] = [];
   for (let i = 0; i <= 24; i++) {
     const t = i / 24;
@@ -165,13 +116,11 @@ function buildShoulderModel(scene: THREE.Scene) {
   humerus.position.set(0.2, -0.3, 0);
   scene.add(humerus);
 
-  // Humeral head
   const headGeo = new THREE.SphereGeometry(0.65, 24, 24);
   const head = new THREE.Mesh(headGeo, boneMat);
   head.position.set(0, 1.8, 0);
   scene.add(head);
 
-  // Cartilage on head
   const cartHead = new THREE.Mesh(
     new THREE.SphereGeometry(0.66, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2.2),
     cartMat
@@ -180,13 +129,11 @@ function buildShoulderModel(scene: THREE.Scene) {
   cartHead.rotation.x = -0.3;
   scene.add(cartHead);
 
-  // Greater tubercle
   const tubercleGeo = new THREE.SphereGeometry(0.3, 16, 16);
   const tubercle = new THREE.Mesh(tubercleGeo, boneMat);
   tubercle.position.set(0.7, 1.5, 0.3);
   scene.add(tubercle);
 
-  // ── Scapula (simplified flat shape) ──
   const scapShape = new THREE.Shape();
   scapShape.moveTo(0, 0);
   scapShape.lineTo(-0.8, 1.5);
@@ -195,14 +142,12 @@ function buildShoulderModel(scene: THREE.Scene) {
   scapShape.lineTo(0.5, 1.8);
   scapShape.lineTo(0.3, 0.5);
   scapShape.closePath();
-
   const scapGeo = new THREE.ExtrudeGeometry(scapShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 });
   const scapula = new THREE.Mesh(scapGeo, boneMat);
   scapula.position.set(-1.5, -0.5, -0.2);
   scapula.rotation.y = 0.2;
   scene.add(scapula);
 
-  // Glenoid cavity
   const glenoidGeo = new THREE.SphereGeometry(0.45, 20, 20, 0, Math.PI * 2, 0, Math.PI / 2.5);
   const glenoid = new THREE.Mesh(glenoidGeo, cartMat);
   glenoid.position.set(-0.6, 1.5, 0.1);
@@ -210,14 +155,12 @@ function buildShoulderModel(scene: THREE.Scene) {
   glenoid.rotation.x = -0.2;
   scene.add(glenoid);
 
-  // Acromion (top bar)
   const acromGeo = new THREE.BoxGeometry(1.2, 0.12, 0.4);
   const acromion = new THREE.Mesh(acromGeo, boneMat);
   acromion.position.set(-0.8, 2.5, 0);
   acromion.rotation.z = -0.15;
   scene.add(acromion);
 
-  // Clavicle
   const clavPoints: THREE.Vector2[] = [];
   for (let i = 0; i <= 16; i++) {
     const t = i / 16;
@@ -235,7 +178,6 @@ function buildArmModel(scene: THREE.Scene) {
   const muscleMat = createMuscleMaterial(0xcc5555);
   const muscleMat2 = createMuscleMaterial(0xbb4444);
 
-  // Humerus bone (center)
   const humerusPoints: THREE.Vector2[] = [];
   for (let i = 0; i <= 20; i++) {
     const t = i / 20;
@@ -247,34 +189,29 @@ function buildArmModel(scene: THREE.Scene) {
   const humerus = new THREE.Mesh(humerusGeo, boneMat);
   scene.add(humerus);
 
-  // Humeral head
   const headGeo = new THREE.SphereGeometry(0.45, 20, 20);
   const head = new THREE.Mesh(headGeo, boneMat);
   head.position.y = 2;
   scene.add(head);
 
-  // Biceps (anterior) — elongated capsule
   const bicepGeo = new THREE.CapsuleGeometry(0.28, 2.2, 12, 16);
   const bicep = new THREE.Mesh(bicepGeo, muscleMat);
   bicep.position.set(0.35, 0.3, 0.25);
   bicep.scale.set(0.9, 1, 0.7);
   scene.add(bicep);
 
-  // Triceps (posterior) — larger
   const tricepGeo = new THREE.CapsuleGeometry(0.32, 2, 12, 16);
   const tricep = new THREE.Mesh(tricepGeo, muscleMat2);
   tricep.position.set(-0.2, 0.1, -0.3);
   tricep.scale.set(0.85, 1, 0.8);
   scene.add(tricep);
 
-  // Deltoid (shoulder cap)
   const deltGeo = new THREE.SphereGeometry(0.6, 20, 20, 0, Math.PI * 1.5, 0, Math.PI / 1.8);
   const deltoid = new THREE.Mesh(deltGeo, createMuscleMaterial(0xcc6666));
   deltoid.position.set(0.3, 1.7, 0);
   deltoid.scale.set(1, 0.8, 1);
   scene.add(deltoid);
 
-  // Condyles at bottom
   const condGeo = new THREE.SphereGeometry(0.28, 16, 16);
   const cond1 = new THREE.Mesh(condGeo, boneMat);
   cond1.position.set(-0.15, -2, 0);
@@ -285,31 +222,22 @@ function buildArmModel(scene: THREE.Scene) {
 }
 
 function buildHeartModel(scene: THREE.Scene) {
-  // Simplified heart using spheres and cylinders
   const heartMat = createMuscleMaterial(0xcc3333);
   const vesselMat = createMuscleMaterial(0xaa2222);
-  const veinMat = new THREE.MeshPhysicalMaterial({
-    color: 0x4466cc,
-    roughness: 0.5,
-    metalness: 0.05,
-    clearcoat: 0.3,
-  });
+  const veinMat = new THREE.MeshPhysicalMaterial({ color: 0x4466cc, roughness: 0.5, metalness: 0.05, clearcoat: 0.3 });
 
-  // Left ventricle (bigger sphere)
   const lvGeo = new THREE.SphereGeometry(0.9, 24, 24);
   const lv = new THREE.Mesh(lvGeo, heartMat);
   lv.position.set(0.3, -0.3, 0);
   lv.scale.set(0.85, 1.1, 0.9);
   scene.add(lv);
 
-  // Right ventricle
   const rvGeo = new THREE.SphereGeometry(0.7, 24, 24);
   const rv = new THREE.Mesh(rvGeo, heartMat);
   rv.position.set(-0.4, -0.2, 0.2);
   rv.scale.set(0.8, 1, 0.85);
   scene.add(rv);
 
-  // Atria (top)
   const laGeo = new THREE.SphereGeometry(0.55, 20, 20);
   const la = new THREE.Mesh(laGeo, heartMat);
   la.position.set(0.3, 0.8, -0.1);
@@ -320,28 +248,24 @@ function buildHeartModel(scene: THREE.Scene) {
   ra.position.set(-0.45, 0.75, 0.15);
   scene.add(ra);
 
-  // Aorta (tube going up)
   const aortaGeo = new THREE.CylinderGeometry(0.18, 0.2, 1.5, 16);
   const aorta = new THREE.Mesh(aortaGeo, vesselMat);
   aorta.position.set(0.15, 1.7, -0.1);
   aorta.rotation.z = -0.15;
   scene.add(aorta);
 
-  // Aortic arch (curved top)
   const archGeo = new THREE.TorusGeometry(0.35, 0.15, 12, 16, Math.PI);
   const arch = new THREE.Mesh(archGeo, vesselMat);
   arch.position.set(0, 2.3, -0.1);
   arch.rotation.x = Math.PI / 2;
   scene.add(arch);
 
-  // Pulmonary artery
   const pulGeo = new THREE.CylinderGeometry(0.14, 0.16, 1.2, 12);
   const pulmonary = new THREE.Mesh(pulGeo, veinMat);
   pulmonary.position.set(-0.3, 1.6, 0.3);
   pulmonary.rotation.z = 0.2;
   scene.add(pulmonary);
 
-  // Apex (bottom point)
   const apexGeo = new THREE.ConeGeometry(0.4, 0.6, 16);
   const apex = new THREE.Mesh(apexGeo, heartMat);
   apex.position.set(0.1, -1.2, 0.1);
@@ -366,47 +290,88 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
   const controlsRef = useRef<OrbitControls | null>(null);
   const animFrameRef = useRef<number>(0);
 
+  // Backend data
+  const [pins, setPins] = useState<Model3DPin[]>([]);
+  const [notes, setNotes] = useState<Model3DNote[]>([]);
+  const [pinsLoading, setPinsLoading] = useState(true);
+
+  // Derived annotations from backend pins
+  const annotations: AnnotationPoint[] = pins.map(pin => ({
+    id: pin.id,
+    label: pin.label || 'Pin',
+    description: pin.description || '',
+    position: [pin.geometry.x, pin.geometry.y, pin.geometry.z],
+    color: pin.color || '#60a5fa',
+    pinType: pin.pin_type,
+  }));
+
   const [annotations2D, setAnnotations2D] = useState<{ id: string; x: number; y: number; visible: boolean; annotation: AnnotationPoint }[]>([]);
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [showNotes, setShowNotes] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
+  // Fetch pins and notes from backend
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchData() {
+      setPinsLoading(true);
+      try {
+        const [pinsRes, notesRes] = await Promise.allSettled([
+          getModel3DPins(modelId),
+          getModel3DNotes(modelId),
+        ]);
+        if (cancelled) return;
+        if (pinsRes.status === 'fulfilled') {
+          setPins(pinsRes.value?.items || []);
+        }
+        if (notesRes.status === 'fulfilled') {
+          setNotes(notesRes.value?.items || []);
+        }
+      } catch (err) {
+        console.error('[ModelViewer3D] Error fetching data:', err);
+      } finally {
+        if (!cancelled) setPinsLoading(false);
+      }
+    }
+    fetchData();
+    return () => { cancelled = true; };
+  }, [modelId]);
+
+  // Use procedural config if available, otherwise default
   const config = MODEL_CONFIGS[modelId] || DEFAULT_CONFIG;
 
   const projectAnnotations = useCallback(() => {
-    if (!cameraRef.current || !containerRef.current) return;
+    if (!cameraRef.current || !containerRef.current || annotations.length === 0) return;
     const camera = cameraRef.current;
     const rect = containerRef.current.getBoundingClientRect();
 
-    const projected = config.annotations.map(ann => {
+    const projected = annotations.map(ann => {
       const vec = new THREE.Vector3(...ann.position);
       vec.project(camera);
-
       const x = (vec.x * 0.5 + 0.5) * rect.width;
       const y = (-vec.y * 0.5 + 0.5) * rect.height;
-      const visible = vec.z < 1; // in front of camera
-
+      const visible = vec.z < 1;
       return { id: ann.id, x, y, visible, annotation: ann };
     });
 
     setAnnotations2D(projected);
-  }, [config.annotations]);
+  }, [annotations]);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
 
-    // ── Scene ──
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x111118);
     sceneRef.current = scene;
 
-    // ── Camera ──
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
     camera.position.set(...config.cameraPos);
     camera.lookAt(0, 0.5, 0);
     cameraRef.current = camera;
 
-    // ── Renderer ──
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -415,7 +380,6 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // ── Controls ──
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
@@ -426,32 +390,28 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
     controls.autoRotateSpeed = 0.8;
     controlsRef.current = controls;
 
-    // ── Lighting ──
+    // Lighting
     const ambLight = new THREE.AmbientLight(0x404060, 0.8);
     scene.add(ambLight);
-
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
     keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = false;
     scene.add(keyLight);
-
     const fillLight = new THREE.DirectionalLight(0x8888ff, 0.4);
     fillLight.position.set(-3, 2, -3);
     scene.add(fillLight);
-
     const rimLight = new THREE.DirectionalLight(0x4488ff, 0.6);
     rimLight.position.set(0, -2, -5);
     scene.add(rimLight);
 
-    // ── Ground grid ──
+    // Ground grid
     const gridHelper = new THREE.GridHelper(8, 16, 0x222233, 0x1a1a2a);
     gridHelper.position.y = -3;
     scene.add(gridHelper);
 
-    // ── Build model ──
+    // Build procedural model
     config.buildModel(scene);
 
-    // ── Animation loop ──
+    // Animation loop
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
       controls.update();
@@ -460,7 +420,7 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
     };
     animate();
 
-    // ── Resize handler ──
+    // Resize handler
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth;
@@ -480,7 +440,6 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
-      // Dispose scene
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose();
@@ -494,10 +453,43 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
     };
   }, [modelId, config, projectAnnotations]);
 
+  // Add note
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    setSavingNote(true);
+    try {
+      const created = await createModel3DNote({ model_id: modelId, note: newNote.trim() });
+      setNotes(prev => [...prev, created]);
+      setNewNote('');
+    } catch (err) {
+      console.error('[ModelViewer3D] Error adding note:', err);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  // Delete note
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteModel3DNote(noteId);
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+    } catch (err) {
+      console.error('[ModelViewer3D] Error deleting note:', err);
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       {/* Three.js canvas container */}
       <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Loading overlay for pins */}
+      {pinsLoading && (
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm text-[10px] text-gray-300">
+          <Loader2 size={12} className="animate-spin" />
+          Carregando pins...
+        </div>
+      )}
 
       {/* Annotation toggle */}
       <button
@@ -515,6 +507,26 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
           <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
         {showAnnotations ? 'Ocultar Pontos' : 'Mostrar Pontos'}
+        {annotations.length > 0 && (
+          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-500/30 text-[9px]">{annotations.length}</span>
+        )}
+      </button>
+
+      {/* Notes toggle */}
+      <button
+        onClick={() => setShowNotes(!showNotes)}
+        className={clsx(
+          "absolute top-3 left-[170px] z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border",
+          showNotes
+            ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+            : "bg-white/5 text-gray-500 border-white/10 hover:bg-white/10"
+        )}
+      >
+        <StickyNote size={12} />
+        Notas
+        {notes.length > 0 && (
+          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/30 text-[9px]">{notes.length}</span>
+        )}
       </button>
 
       {/* Annotation points */}
@@ -558,11 +570,77 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
                   <h4 className="text-xs font-bold text-white">{annotation.label}</h4>
                 </div>
                 <p className="text-[10px] text-gray-400 leading-relaxed">{annotation.description}</p>
+                {annotation.pinType && (
+                  <span className="mt-1.5 inline-block text-[8px] text-gray-500 uppercase tracking-wider">{annotation.pinType}</span>
+                )}
               </div>
             )}
           </div>
         )
       ))}
+
+      {/* Notes panel */}
+      {showNotes && (
+        <div className="absolute top-12 right-3 z-20 w-72 max-h-[60vh] bg-black/85 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
+            <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+              <StickyNote size={12} className="text-amber-400" />
+              Minhas Notas
+            </h4>
+            <button onClick={() => setShowNotes(false)} className="text-gray-500 hover:text-white transition-colors">
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
+            {notes.length === 0 && (
+              <div className="text-center py-6 text-gray-500">
+                <StickyNote size={20} className="mx-auto mb-2 opacity-40" />
+                <p className="text-[10px]">Nenhuma nota ainda.</p>
+              </div>
+            )}
+            {notes.map((note) => (
+              <div key={note.id} className="group flex items-start gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                <p className="text-[11px] text-gray-300 flex-1 leading-relaxed">{note.note}</p>
+                <button
+                  onClick={() => handleDeleteNote(note.id)}
+                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all shrink-0"
+                >
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add note */}
+          <div className="p-2 border-t border-white/10">
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddNote(); }}
+                placeholder="Escrever nota..."
+                disabled={savingNote}
+                className="flex-1 px-2.5 py-1.5 text-[11px] bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500/30 disabled:opacity-50"
+              />
+              <button
+                onClick={handleAddNote}
+                disabled={!newNote.trim() || savingNote}
+                className={clsx(
+                  "flex items-center justify-center px-2 py-1.5 rounded-lg transition-all",
+                  !newNote.trim() || savingNote
+                    ? "bg-white/5 text-gray-600 cursor-not-allowed"
+                    : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                )}
+              >
+                {savingNote ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Model name watermark */}
       <div className="absolute bottom-3 left-3 z-10">

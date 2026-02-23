@@ -410,7 +410,7 @@ export async function deleteCourse(courseId: UUID): Promise<void> {
 // ============================================================
 
 export async function getTopicSummaries(topicId: UUID): Promise<Summary[]> {
-  return request<Summary[]>(`/summaries?topic_id=${topicId}`);
+  return request<Summary[]>(`/topics/${topicId}/summaries`);
 }
 
 export async function createSummary(topicId: UUID, data: {
@@ -419,9 +419,9 @@ export async function createSummary(topicId: UUID, data: {
   content_markdown: string;
   status?: SummaryStatus;
 }): Promise<Summary> {
-  return request<Summary>(`/summaries`, {
+  return request<Summary>(`/topics/${topicId}/summaries`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, topic_id: topicId }),
+    body: JSON.stringify(data),
   });
 }
 
@@ -440,8 +440,8 @@ export async function deleteSummary(summaryId: UUID): Promise<void> {
 // CONTENT — Keywords
 // ============================================================
 
-export async function getKeywords(summaryId?: UUID): Promise<Keyword[]> {
-  const qs = summaryId ? `?summary_id=${summaryId}` : '';
+export async function getKeywords(institutionId?: UUID): Promise<Keyword[]> {
+  const qs = institutionId ? `?institution_id=${institutionId}` : '';
   return request<Keyword[]>(`/keywords${qs}`);
 }
 
@@ -617,11 +617,11 @@ export interface FlashcardCard {
 }
 
 export async function getFlashcardsBySummary(summaryId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/flashcards?summary_id=${summaryId}`);
+  return request<FlashcardCard[]>(`/summaries/${summaryId}/flashcards`);
 }
 
 export async function getFlashcardsByKeyword(keywordId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/flashcards?keyword_id=${keywordId}`);
+  return request<FlashcardCard[]>(`/keywords/${keywordId}/flashcards`);
 }
 
 export async function getFlashcard(cardId: UUID): Promise<FlashcardCard> {
