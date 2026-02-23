@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Topic, Flashcard } from '@/app/data/courses';
+import { Topic, Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
 import { ChevronLeft, ChevronRight, BookOpen, Play, GraduationCap } from 'lucide-react';
 import { sectionColors } from '@/app/design-system';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Flashcard } from '@/app/data/courses';
+import { Flashcard } from '@/app/types/content';
 
 export function SpeedometerGauge({ cards, currentIndex, sessionStats }: {
   cards: Flashcard[];

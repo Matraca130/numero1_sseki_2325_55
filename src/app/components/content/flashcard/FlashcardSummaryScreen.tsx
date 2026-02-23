@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { Trophy, Sparkles, Activity } from 'lucide-react';
 import { SmartFlashcardGenerator } from '@/app/components/ai/SmartFlashcardGenerator';
 import { getTopicKeywords, getCourseKeywords } from '@/app/services/studentApi';
-import type { KeywordCollection } from '@/app/services/keywordManager';
+import type { KeywordCollection } from '@/app/types/keywords';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 
 export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseName, topicId, topicTitle, onExit }: {

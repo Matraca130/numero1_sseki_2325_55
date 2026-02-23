@@ -1,15 +1,14 @@
 // ============================================================
 // useFlashcardEngine — Session logic + backend persistence
-// Manages: card queue, ratings, session lifecycle
-// Persists: reviews + session log via studentApi (backend)
+// NOW CONNECTED TO REAL BACKEND:
+//   - POST /study-sessions to start/close
+//   - POST /reviews per card
+//   - POST /fsrs-states to update scheduling
 // ============================================================
 
 import { useState, useCallback, useRef } from 'react';
-import type { Flashcard } from '@/app/data/courses';
-import type { FlashcardReview, StudySession } from '@/app/types/student';
-
-// Backend persistence helpers (fire-and-forget)
-import * as studentApi from '@/app/services/studentApi';
+import type { Flashcard } from '@/app/types/content';
+import * as sessionApi from '@/app/services/studySessionApi';
 
 interface UseFlashcardEngineOpts {
   studentId: string | null;
@@ -26,57 +25,108 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
 
   // Track timing per card
   const cardStartTime = useRef<number>(Date.now());
-  // Accumulate reviews for batch save
-  const pendingReviews = useRef<FlashcardReview[]>([]);
-  const sessionStartTime = useRef<string>(new Date().toISOString());
+  const sessionStartTime = useRef<number>(Date.now());
+  // Backend session ID
+  const sessionIdRef = useRef<string | null>(null);
 
   // ── Start Session ──
 
-  const startSession = useCallback((cards: Flashcard[]) => {
+  const startSession = useCallback(async (cards: Flashcard[]) => {
     if (cards.length === 0) return;
     setSessionCards(cards);
     setCurrentIndex(0);
     setSessionStats([]);
     setIsRevealed(false);
     cardStartTime.current = Date.now();
-    pendingReviews.current = [];
-    sessionStartTime.current = new Date().toISOString();
+    sessionStartTime.current = Date.now();
+
+    // Create backend session (fire-and-forget, don't block UI)
+    try {
+      const session = await sessionApi.createStudySession({
+        session_type: 'flashcard',
+        course_id: courseId || undefined,
+      });
+      sessionIdRef.current = session.id;
+      console.log(`[FlashcardEngine] Session created: ${session.id}`);
+    } catch (err) {
+      console.warn('[FlashcardEngine] Failed to create session (continuing offline):', err);
+      sessionIdRef.current = `local-${Date.now()}`;
+    }
+  }, [courseId]);
+
+  // ── Persist review + FSRS state to backend ──
+
+  const persistCardResult = useCallback(async (card: Flashcard, grade: number, responseTimeMs: number) => {
+    const sessionId = sessionIdRef.current;
+    if (!sessionId) return;
+
+    // 1. Submit review
+    try {
+      await sessionApi.submitReview({
+        session_id: sessionId,
+        item_id: card.id,
+        instrument_type: 'flashcard',
+        grade,
+        response_time_ms: responseTimeMs,
+      });
+    } catch (err) {
+      console.warn('[FlashcardEngine] Failed to submit review:', err);
+    }
+
+    // 2. Compute and upsert FSRS state
+    try {
+      // Build a minimal current state from card metadata
+      const currentState: sessionApi.FsrsState | null = card.fsrs_state
+        ? {
+            id: '',
+            flashcard_id: card.id,
+            stability: 1,
+            difficulty: 5,
+            due_at: card.due_at || new Date().toISOString(),
+            reps: 0,
+            lapses: 0,
+            state: card.fsrs_state,
+          }
+        : null;
+
+      const update = sessionApi.computeFsrsUpdate(currentState, grade);
+
+      await sessionApi.upsertFsrsState({
+        flashcard_id: card.id,
+        stability: update.stability,
+        difficulty: update.difficulty,
+        due_at: update.due_at,
+        last_review_at: new Date().toISOString(),
+        reps: update.reps,
+        lapses: update.lapses,
+        state: update.state,
+      });
+    } catch (err) {
+      console.warn('[FlashcardEngine] Failed to upsert FSRS state:', err);
+    }
   }, []);
 
-  // ── Persist reviews to backend (fire-and-forget) ──
+  // ── Close session on backend ──
 
-  const persistReviews = useCallback(async (reviews: FlashcardReview[]) => {
-    if (reviews.length === 0 || !studentId) return;
-    try {
-      await studentApi.saveReviews(reviews, studentId);
-    } catch (err) {
-      console.warn('[useFlashcardEngine] Failed to persist reviews (will retry on next session):', err);
-    }
-  }, [studentId]);
+  const closeSession = useCallback(async (stats: number[]) => {
+    const sessionId = sessionIdRef.current;
+    if (!sessionId || sessionId.startsWith('local-')) return;
 
-  const persistSessionLog = useCallback(async (stats: number[]) => {
-    if (!studentId) return;
-    const now = new Date();
-    const started = new Date(sessionStartTime.current);
-    const durationMinutes = Math.max(1, Math.round((now.getTime() - started.getTime()) / 60000));
-
-    const session: Omit<StudySession, 'studentId'> = {
-      id: `session-${Date.now()}`,
-      courseId,
-      topicId: topicId || undefined,
-      type: 'flashcards',
-      startedAt: sessionStartTime.current,
-      endedAt: now.toISOString(),
-      durationMinutes,
-      cardsReviewed: stats.length,
-    };
+    const durationSeconds = Math.round((Date.now() - sessionStartTime.current) / 1000);
+    const correctReviews = stats.filter(s => s >= 3).length;
 
     try {
-      await studentApi.logSession(session, studentId);
+      await sessionApi.closeStudySession(sessionId, {
+        ended_at: new Date().toISOString(),
+        duration_seconds: durationSeconds,
+        total_reviews: stats.length,
+        correct_reviews: correctReviews,
+      });
+      console.log(`[FlashcardEngine] Session closed: ${sessionId}`);
     } catch (err) {
-      console.warn('[useFlashcardEngine] Failed to log session:', err);
+      console.warn('[FlashcardEngine] Failed to close session:', err);
     }
-  }, [studentId, courseId, topicId]);
+  }, []);
 
   // ── Handle Rating ──
 
@@ -84,19 +134,9 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
     const responseTimeMs = Date.now() - cardStartTime.current;
     const card = sessionCards[currentIndex];
 
-    // Build review record for backend
+    // Persist to backend (fire-and-forget)
     if (card) {
-      pendingReviews.current.push({
-        cardId: card.id,
-        topicId: topicId || '',
-        courseId,
-        reviewedAt: new Date().toISOString(),
-        rating: rating as 1 | 2 | 3 | 4 | 5,
-        responseTimeMs,
-        ease: 2.5, // defaults — real SM-2 runs on backend
-        interval: 0,
-        repetitions: 0,
-      });
+      persistCardResult(card, rating, responseTimeMs);
     }
 
     setSessionStats(prev => [...prev, rating]);
@@ -105,11 +145,9 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
     const isLast = currentIndex >= sessionCards.length - 1;
 
     if (isLast) {
-      // Session complete: persist everything, then transition
-      const allReviews = [...pendingReviews.current];
+      // Session complete
       const allStats = [...sessionStats, rating];
-      persistReviews(allReviews);
-      persistSessionLog(allStats);
+      closeSession(allStats);
       setTimeout(() => onFinish(), 200);
     } else {
       setTimeout(() => {
@@ -117,7 +155,7 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
         cardStartTime.current = Date.now();
       }, 200);
     }
-  }, [sessionCards, currentIndex, courseId, topicId, sessionStats, persistReviews, persistSessionLog, onFinish]);
+  }, [sessionCards, currentIndex, sessionStats, persistCardResult, closeSession, onFinish]);
 
   // ── Restart / Exit ──
 
@@ -126,9 +164,18 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
     setSessionStats([]);
     setIsRevealed(false);
     cardStartTime.current = Date.now();
-    pendingReviews.current = [];
-    sessionStartTime.current = new Date().toISOString();
-  }, []);
+    sessionStartTime.current = Date.now();
+
+    // Create a new backend session
+    sessionApi.createStudySession({
+      session_type: 'flashcard',
+      course_id: courseId || undefined,
+    }).then(session => {
+      sessionIdRef.current = session.id;
+    }).catch(() => {
+      sessionIdRef.current = `local-${Date.now()}`;
+    });
+  }, [courseId]);
 
   return {
     isRevealed,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Section, Topic, Flashcard } from '@/app/data/courses';
+import { Section, Topic, Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
 import { ChevronLeft, ChevronRight, BookOpen, Layers, Play } from 'lucide-react';
 import { headingStyle, sectionColors } from '@/app/design-system';

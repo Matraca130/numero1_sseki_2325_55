@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flashcard } from '@/app/data/courses';
+import { Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
 import { CheckCircle, Brain, X, Eye } from 'lucide-react';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';

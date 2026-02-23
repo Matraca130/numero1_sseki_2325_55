@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Section, Flashcard } from '@/app/data/courses';
+import { Section, Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
 import { ChevronLeft, BookOpen, Zap } from 'lucide-react';
 import { AxonWatermark, AxonBrand } from '@/app/components/shared/AxonLogo';

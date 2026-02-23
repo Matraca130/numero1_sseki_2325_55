@@ -2,7 +2,7 @@ import React from 'react';
 import { AnimatePresence } from 'motion/react';
 import { useFlashcardNavigation } from '@/app/hooks/useFlashcardNavigation';
 import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
-import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { useAuth } from '@/app/context/AuthContext';
 
 // ── Extracted sub-screens ──
 import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } from './flashcard';
@@ -11,7 +11,9 @@ import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } fr
 // MAIN COMPONENT
 // ═══════════════════════════════════════════
 export function FlashcardView() {
-  const { studentId } = useStudentDataContext();
+  // Use real auth user ID (not StudentDataContext mock)
+  const { user } = useAuth();
+  const studentId = user?.id || null;
 
   const nav = useFlashcardNavigation();
 

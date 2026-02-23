@@ -20,7 +20,7 @@ import {
   KeywordCollection,
   getKeywordsNeedingCards,
   getKeywordStats,
-} from '@/app/services/keywordManager';
+} from '@/app/types/keywords';
 import {
   smartGenerateFlashcards,
   estimateFlashcardNeeds,
