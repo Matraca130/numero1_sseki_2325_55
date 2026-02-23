@@ -36,6 +36,19 @@ export { ApiError as PlatformApiError } from '@/app/services/apiConfig';
 // Use centralized request helper
 const request = realRequest;
 
+// ── CRUD factory response unwrapper ───────────────────────
+// Backend list endpoints using CRUD factory return:
+//   { data: { items: [...], total: N, limit: N, offset: N } }
+// After realRequest unwraps { data: X }, we get X = { items, ... }.
+// This helper safely extracts the array from either format.
+function extractItems<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object' && 'items' in result) {
+    return (result as { items: T[] }).items;
+  }
+  return [];
+}
+
 // ============================================================
 // INSTITUTIONS
 // ============================================================
@@ -128,43 +141,52 @@ export async function deleteInstitution(instId: UUID): Promise<{ id: UUID; is_ac
 }
 
 // ============================================================
-// MEMBERS
+// MEMBERS (Memberships — flat routes per backend spec)
+// GET    /memberships?institution_id=xxx → { data: [...] }
+// GET    /memberships/:id               → { data: { ... } }
+// POST   /memberships { user_id|email, institution_id, role, institution_plan_id? }
+// PUT    /memberships/:id { role?, institution_plan_id?, is_active? }
+// DELETE /memberships/:id               → soft-deactivate
 // ============================================================
 
 export async function getMembers(institutionId: UUID): Promise<MemberListItem[]> {
   return request<MemberListItem[]>(`/memberships?institution_id=${institutionId}`);
 }
 
+export async function getMember(memberId: UUID): Promise<MemberListItem> {
+  return request<MemberListItem>(`/memberships/${memberId}`);
+}
+
 export async function createMember(data: CreateMemberPayload): Promise<MemberListItem> {
-  return request<MemberListItem>('/members', {
+  return request<MemberListItem>('/memberships', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function changeMemberRole(memberId: UUID, role: MembershipRole): Promise<MemberListItem> {
-  return request<MemberListItem>(`/members/${memberId}/role`, {
-    method: 'PATCH',
+  return request<MemberListItem>(`/memberships/${memberId}`, {
+    method: 'PUT',
     body: JSON.stringify({ role }),
   });
 }
 
 export async function changeMemberPlan(memberId: UUID, institutionPlanId: UUID | null): Promise<MemberListItem> {
-  return request<MemberListItem>(`/members/${memberId}/plan`, {
-    method: 'PATCH',
+  return request<MemberListItem>(`/memberships/${memberId}`, {
+    method: 'PUT',
     body: JSON.stringify({ institution_plan_id: institutionPlanId }),
   });
 }
 
 export async function toggleMemberActive(memberId: UUID, isActive: boolean): Promise<MemberListItem> {
-  return request<MemberListItem>(`/members/${memberId}/toggle-active`, {
-    method: 'PATCH',
+  return request<MemberListItem>(`/memberships/${memberId}`, {
+    method: 'PUT',
     body: JSON.stringify({ is_active: isActive }),
   });
 }
 
-export async function deleteMember(memberId: UUID): Promise<{ id: UUID; deleted: boolean }> {
-  return request(`/members/${memberId}`, { method: 'DELETE' });
+export async function deleteMember(memberId: UUID): Promise<{ id: UUID; is_active: boolean }> {
+  return request(`/memberships/${memberId}`, { method: 'DELETE' });
 }
 
 // ============================================================
@@ -200,13 +222,18 @@ export async function deletePlatformPlan(id: UUID): Promise<{ id: UUID; is_activ
 
 // ============================================================
 // INSTITUTION PLANS (institutions sell to students)
+// GET  /institution-plans?institution_id=xxx → { data: { items: [...] } }
+// POST /institution-plans { institution_id, name, ... }
+// PUT  /institution-plans/:id { name?, ... }
+// DELETE /institution-plans/:id
 // ============================================================
 
 export async function getInstitutionPlans(instId: UUID, includeInactive = false): Promise<InstitutionPlan[]> {
   const params = new URLSearchParams();
   params.set('institution_id', instId);
   if (includeInactive) params.set('include_inactive', 'true');
-  return request<InstitutionPlan[]>(`/institution-plans?${params}`);
+  const result = await request<unknown>(`/institution-plans?${params}`);
+  return extractItems<InstitutionPlan>(result);
 }
 
 export async function getInstitutionPlan(id: UUID): Promise<InstitutionPlan> {
@@ -246,10 +273,21 @@ export async function setDefaultInstitutionPlan(id: UUID): Promise<InstitutionPl
 
 // ============================================================
 // SUBSCRIPTIONS
+// GET  /institution-subscriptions?institution_id=xxx → { data: { items: [...] } }
+// POST /institution-subscriptions { institution_id, plan_id, ... }
+// PUT  /institution-subscriptions/:id { plan_id?, status?, ... }
+// DELETE /institution-subscriptions/:id
 // ============================================================
 
+export async function getInstitutionSubscriptions(instId: UUID): Promise<InstitutionSubscription[]> {
+  const result = await request<unknown>(`/institution-subscriptions?institution_id=${instId}`);
+  return extractItems<InstitutionSubscription>(result);
+}
+
+/** @deprecated Use getInstitutionSubscriptions for the full list */
 export async function getInstitutionSubscription(instId: UUID): Promise<InstitutionSubscription | null> {
-  return request<InstitutionSubscription | null>(`/institution-subscriptions?institution_id=${instId}`);
+  const list = await getInstitutionSubscriptions(instId);
+  return list.find(s => s.status === 'active') ?? list[0] ?? null;
 }
 
 export async function getSubscription(id: UUID): Promise<InstitutionSubscription> {
@@ -281,23 +319,18 @@ export async function cancelSubscription(id: UUID): Promise<{ id: UUID; status: 
 }
 
 // ============================================================
-// ADMIN SCOPES
+// ADMIN SCOPES (flat routes per backend spec)
+// GET    /admin-scopes?membership_id=xxx → { data: [...] }
+// POST   /admin-scopes { membership_id, scope_type, scope_id? }
+// DELETE /admin-scopes/:id              → hard delete
 // ============================================================
 
 export async function getAdminScopes(membershipId: UUID): Promise<AdminScope[]> {
-  return request<AdminScope[]>(`/admin-scopes/membership/${membershipId}`);
+  return request<AdminScope[]>(`/admin-scopes?membership_id=${membershipId}`);
 }
 
 export async function getAdminScope(id: UUID): Promise<AdminScope> {
   return request<AdminScope>(`/admin-scopes/${id}`);
-}
-
-export async function getAllAdminScopes(): Promise<AdminScope[]> {
-  return request<AdminScope[]>('/admin-scopes');
-}
-
-export async function getInstitutionAdminScopes(instId: UUID): Promise<AdminScope[]> {
-  return request<AdminScope[]>(`/institutions/${instId}/admin-scopes`);
 }
 
 export async function createAdminScope(data: {
@@ -315,48 +348,42 @@ export async function deleteAdminScope(id: UUID): Promise<{ id: UUID; deleted: b
   return request(`/admin-scopes/${id}`, { method: 'DELETE' });
 }
 
-export async function bulkReplaceAdminScopes(
-  membershipId: UUID,
-  scopes: Array<{ scope_type: string; scope_id?: UUID }>
-): Promise<AdminScope[]> {
-  return request<AdminScope[]>(`/admin-scopes/membership/${membershipId}`, {
-    method: 'PUT',
-    body: JSON.stringify({ scopes }),
-  });
-}
-
 // ============================================================
-// ACCESS RULES
+// ACCESS RULES (flat routes per backend spec)
+// GET    /plan-access-rules?plan_id=xxx → { data: { items: [...] } }
+// POST   /plan-access-rules { plan_id, scope_type, scope_id }
+// PUT    /plan-access-rules/:id { scope_type?, scope_id? }
+// DELETE /plan-access-rules/:id → hard delete
 // ============================================================
 
 export async function getPlanAccessRules(planId: UUID): Promise<PlanAccessRule[]> {
-  return request<PlanAccessRule[]>(`/institution-plans/${planId}/access-rules`);
+  const result = await request<unknown>(`/plan-access-rules?plan_id=${planId}`);
+  return extractItems<PlanAccessRule>(result);
 }
 
-export async function createAccessRules(data: {
+export async function createAccessRule(data: {
   plan_id: UUID;
-  rules?: Array<{ scope_type: string; scope_id: UUID }>;
+  scope_type: string;
+  scope_id: UUID;
+}): Promise<PlanAccessRule> {
+  return request<PlanAccessRule>('/plan-access-rules', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAccessRule(id: UUID, data: {
   scope_type?: string;
   scope_id?: UUID;
-}): Promise<PlanAccessRule[]> {
-  return request<PlanAccessRule[]>('/plan-access-rules', {
-    method: 'POST',
+}): Promise<PlanAccessRule> {
+  return request<PlanAccessRule>(`/plan-access-rules/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteAccessRule(id: UUID): Promise<{ id: UUID; deleted: boolean }> {
   return request(`/plan-access-rules/${id}`, { method: 'DELETE' });
-}
-
-export async function bulkReplaceAccessRules(
-  planId: UUID,
-  rules: Array<{ scope_type: string; scope_id: UUID }>
-): Promise<PlanAccessRule[]> {
-  return request<PlanAccessRule[]>(`/institution-plans/${planId}/access-rules`, {
-    method: 'PUT',
-    body: JSON.stringify({ rules }),
-  });
 }
 
 export async function checkAccess(
@@ -410,7 +437,7 @@ export async function deleteCourse(courseId: UUID): Promise<void> {
 // ============================================================
 
 export async function getTopicSummaries(topicId: UUID): Promise<Summary[]> {
-  return request<Summary[]>(`/summaries?topic_id=${topicId}`);
+  return request<Summary[]>(`/topics/${topicId}/summaries`);
 }
 
 export async function createSummary(topicId: UUID, data: {
@@ -419,9 +446,9 @@ export async function createSummary(topicId: UUID, data: {
   content_markdown: string;
   status?: SummaryStatus;
 }): Promise<Summary> {
-  return request<Summary>('/summaries', {
+  return request<Summary>(`/topics/${topicId}/summaries`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, topic_id: topicId }),
+    body: JSON.stringify(data),
   });
 }
 
@@ -617,11 +644,11 @@ export interface FlashcardCard {
 }
 
 export async function getFlashcardsBySummary(summaryId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/flashcards?summary_id=${summaryId}`);
+  return request<FlashcardCard[]>(`/summaries/${summaryId}/flashcards`);
 }
 
 export async function getFlashcardsByKeyword(keywordId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/flashcards?keyword_id=${keywordId}`);
+  return request<FlashcardCard[]>(`/keywords/${keywordId}/flashcards`);
 }
 
 export async function getFlashcard(cardId: UUID): Promise<FlashcardCard> {
@@ -693,369 +720,260 @@ export async function getBktStates(options?: {
   return request(`/bkt${qs}`);
 }
 
-// Old getFsrsStates(/fsrs) removed — replaced by the typed version
-// at the bottom of this file using /fsrs-states endpoint.
-
-// ============================================================
-// DAILY ACTIVITIES — Student daily study log (upsert by date)
-// GET  /daily-activities?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=90&offset=0
-// POST /daily-activities { activity_date, reviews_count?, ... }
-// ============================================================
-
-export interface DailyActivityRecord {
-  id?: string;
-  student_id?: string;
-  activity_date: string;   // YYYY-MM-DD
-  reviews_count: number;
-  correct_count: number;
-  time_spent_seconds: number;
-  sessions_count: number;
-  created_at?: string;
-  updated_at?: string;
+export async function getFsrsStates(cardId?: UUID): Promise<any> {
+  const qs = cardId ? `?card_id=${cardId}` : '';
+  return request(`/fsrs${qs}`);
 }
 
-export async function getDailyActivities(
-  from: string,
-  to: string,
-  limit = 90,
-  offset = 0
-): Promise<DailyActivityRecord[]> {
-  const params = new URLSearchParams({ from, to, limit: String(limit), offset: String(offset) });
-  const result = await request<DailyActivityRecord[]>(`/daily-activities?${params}`);
-  return result || [];
+// ============================================================
+// STUDY SESSIONS (flat routes per backend spec)
+// POST /study-sessions { ... }
+// PATCH /study-sessions/:id { ... }
+// ============================================================
+
+export async function createStudySession(data: Record<string, any>): Promise<any> {
+  return request('/study-sessions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
-export async function upsertDailyActivity(
-  data: Partial<DailyActivityRecord> & { activity_date: string }
-): Promise<DailyActivityRecord> {
-  return request<DailyActivityRecord>('/daily-activities', {
+export async function updateStudySession(id: string, data: Record<string, any>): Promise<any> {
+  return request(`/study-sessions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+// ============================================================
+// AI GENERATIONS (immutable log)
+// GET  /ai-generations?institution_id=xxx&generation_type=xxx&limit=50&offset=0
+//      → { data: [...] } (array plano)
+// POST /ai-generations { institution_id, generation_type, ... }
+// ============================================================
+
+export interface AIGeneration {
+  id: UUID;
+  institution_id: UUID;
+  generation_type: string;
+  source_summary_id?: UUID | null;
+  source_keyword_id?: UUID | null;
+  items_generated?: number | null;
+  model_used?: string | null;
+  created_at: ISODate;
+}
+
+export async function getAIGenerations(
+  institutionId: UUID,
+  options?: { generation_type?: string; limit?: number; offset?: number }
+): Promise<AIGeneration[]> {
+  const params = new URLSearchParams();
+  params.set('institution_id', institutionId);
+  if (options?.generation_type) params.set('generation_type', options.generation_type);
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.offset) params.set('offset', String(options.offset));
+  return request<AIGeneration[]>(`/ai-generations?${params}`);
+}
+
+export async function createAIGeneration(data: {
+  institution_id: UUID;
+  generation_type: string;
+  source_summary_id?: UUID;
+  source_keyword_id?: UUID;
+  items_generated?: number;
+  model_used?: string;
+}): Promise<AIGeneration> {
+  return request<AIGeneration>('/ai-generations', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 // ============================================================
-// STUDENT STATS — Lifetime aggregate stats (upsert per student)
-// GET  /student-stats → { data: { ... } } or { data: null }
-// POST /student-stats { current_streak?, longest_streak?, ... }
+// SUMMARY DIAGNOSTICS (immutable log)
+// GET  /summary-diagnostics?summary_id=xxx&diagnostic_type=xxx
+//      → { data: [...] } (array plano)
+// POST /summary-diagnostics { summary_id, content, ... }
 // ============================================================
 
-export interface StudentStatsRecord {
-  id?: string;
-  student_id?: string;
-  current_streak: number;
-  longest_streak: number;
-  total_reviews: number;
-  total_time_seconds: number;
-  total_sessions: number;
-  last_study_date: string | null; // YYYY-MM-DD
-  created_at?: string;
-  updated_at?: string;
+export interface SummaryDiagnostic {
+  id: UUID;
+  summary_id: UUID;
+  content: string;
+  ai_generation_id?: UUID | null;
+  parent_diagnostic_id?: UUID | null;
+  diagnostic_type?: string | null;
+  structured_data?: Record<string, any> | null;
+  model_used?: string | null;
+  prompt_version?: string | null;
+  created_at: ISODate;
 }
 
-export async function getStudentStatsReal(): Promise<StudentStatsRecord | null> {
+export async function getSummaryDiagnostics(
+  summaryId: UUID,
+  diagnosticType?: string
+): Promise<SummaryDiagnostic[]> {
+  const params = new URLSearchParams();
+  params.set('summary_id', summaryId);
+  if (diagnosticType) params.set('diagnostic_type', diagnosticType);
+  return request<SummaryDiagnostic[]>(`/summary-diagnostics?${params}`);
+}
+
+export async function createSummaryDiagnostic(data: {
+  summary_id: UUID;
+  content: string;
+  ai_generation_id?: UUID;
+  parent_diagnostic_id?: UUID;
+  diagnostic_type?: string;
+  structured_data?: Record<string, any>;
+  model_used?: string;
+  prompt_version?: string;
+}): Promise<SummaryDiagnostic> {
+  return request<SummaryDiagnostic>('/summary-diagnostics', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+// ============================================================
+// STUDENT STATS & DAILY ACTIVITIES (Sessão 6 - Estudo & Estatísticas)
+// ============================================================
+export interface DailyActivityRecord {
+  id: string;
+  student_id: string;
+  date: string;
+  [key: string]: any;
+}
+
+export interface StudentStatsRecord {
+  id: string;
+  student_id: string;
+  [key: string]: any;
+}
+
+export interface BktStateRecord {
+  id: string;
+  student_id: string;
+  [key: string]: any;
+}
+
+export interface StudyPlanRecord {
+  id: string;
+  name: string;
+  institution_id: string;
+  [key: string]: any;
+}
+
+export interface StudyPlanTaskRecord {
+  id: string;
+  study_plan_id: string;
+  [key: string]: any;
+}
+
+export async function getStudentStatsReal(studentId: string): Promise<StudentStatsRecord | null> {
   try {
-    return await request<StudentStatsRecord | null>('/student-stats');
-  } catch (err: any) {
-    if (err.status === 404) return null;
-    throw err;
+    return await request<StudentStatsRecord>(`/student-stats?student_id=${studentId}`);
+  } catch {
+    return null;
   }
 }
 
-export async function upsertStudentStats(
-  data: Partial<StudentStatsRecord>
-): Promise<StudentStatsRecord> {
+export async function getDailyActivities(studentId: string): Promise<DailyActivityRecord[]> {
+  try {
+    const result = await request<any>(`/daily-activities?student_id=${studentId}`);
+    return extractItems<DailyActivityRecord>(result);
+  } catch {
+    return [];
+  }
+}
+
+export async function upsertStudentStats(data: Partial<StudentStatsRecord>): Promise<StudentStatsRecord> {
   return request<StudentStatsRecord>('/student-stats', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-// ============================================================
-// BKT STATES — Bayesian Knowledge Tracing per subtopic
-// GET  /bkt-states?subtopic_id=xxx&limit=100&offset=0
-// POST /bkt-states { subtopic_id, p_know?, ... }
-// ============================================================
-
-export interface BktStateRecord {
-  id?: string;
-  student_id?: string;
-  subtopic_id: string;
-  keyword_id?: string;
-  p_know: number;       // [0,1]
-  p_transit: number;    // [0,1]
-  p_slip: number;       // [0,1]
-  p_guess: number;      // [0,1]
-  delta: number;
-  total_attempts: number;
-  correct_attempts: number;
-  last_attempt_at: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export async function getAllBktStates(
-  subtopicId?: string,
-  limit = 200,
-  offset = 0
-): Promise<BktStateRecord[]> {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (subtopicId) params.set('subtopic_id', subtopicId);
-  const result = await request<BktStateRecord[]>(`/bkt-states?${params}`);
-  return result || [];
-}
-
-export async function upsertBktState(
-  data: Partial<BktStateRecord> & { subtopic_id: string }
-): Promise<BktStateRecord> {
-  return request<BktStateRecord>('/bkt-states', {
+export async function upsertDailyActivity(data: Partial<DailyActivityRecord>): Promise<DailyActivityRecord> {
+  return request<DailyActivityRecord>('/daily-activities', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-// ============================================================
-// STUDY PLANS — Plan management
-// GET  /study-plans?course_id=xxx&status=xxx → { data: { items: [...] } }
-// GET  /study-plans/:id → { data: { ... } }
-// POST /study-plans { name, course_id?, status? }
-// PUT  /study-plans/:id { name?, status? }
-// DELETE /study-plans/:id
-// ============================================================
+export async function getAllBktStates(studentId: string): Promise<BktStateRecord[]> {
+  try {
+    const result = await request<any>(`/bkt-states?student_id=${studentId}`);
+    return extractItems<BktStateRecord>(result);
+  } catch {
+    return [];
+  }
+}
 
-export interface StudyPlanRecord {
-  id: string;
-  student_id?: string;
+// ============================================================
+// STUDY PLANS & TASKS (Sessão 6 - Organizador de Estudos)
+// ============================================================
+export async function getStudyPlans(institutionId?: string): Promise<StudyPlanRecord[]> {
+  const params = institutionId ? `?institution_id=${institutionId}` : '';
+  try {
+    const result = await request<any>(`/study-plans${params}`);
+    return extractItems<StudyPlanRecord>(result);
+  } catch {
+    return [];
+  }
+}
+
+export async function getStudyPlanTasks(studyPlanId: string): Promise<StudyPlanTaskRecord[]> {
+  try {
+    const result = await request<any>(`/study-plan-tasks?study_plan_id=${studyPlanId}`);
+    return extractItems<StudyPlanTaskRecord>(result);
+  } catch {
+    return [];
+  }
+}
+
+export async function createStudyPlan(data: {
   name: string;
-  course_id?: string | null;
-  status: 'active' | 'completed' | 'archived';
-  created_at?: string;
-  updated_at?: string;
-}
-
-export async function getStudyPlans(
-  courseId?: string,
-  status?: string
-): Promise<StudyPlanRecord[]> {
-  const params = new URLSearchParams();
-  if (courseId) params.set('course_id', courseId);
-  if (status) params.set('status', status);
-  const qs = params.toString() ? `?${params}` : '';
-  const result = await request<{ items: StudyPlanRecord[] } | StudyPlanRecord[]>(`/study-plans${qs}`);
-  // Handle both { items: [...] } and plain array
-  if (Array.isArray(result)) return result;
-  return (result as any)?.items || [];
-}
-
-export async function getStudyPlan(planId: string): Promise<StudyPlanRecord> {
-  return request<StudyPlanRecord>(`/study-plans/${planId}`);
-}
-
-export async function createStudyPlan(
-  data: { name: string; course_id?: string; status?: string }
-): Promise<StudyPlanRecord> {
+  institution_id: string;
+  [key: string]: any;
+}): Promise<StudyPlanRecord> {
   return request<StudyPlanRecord>('/study-plans', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export async function updateStudyPlan(
-  planId: string,
-  data: { name?: string; status?: string }
-): Promise<StudyPlanRecord> {
-  return request<StudyPlanRecord>(`/study-plans/${planId}`, {
-    method: 'PUT',
+export async function updateStudyPlan(id: string, data: Partial<StudyPlanRecord>): Promise<StudyPlanRecord> {
+  return request<StudyPlanRecord>(`/study-plans/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteStudyPlan(planId: string): Promise<void> {
-  return request(`/study-plans/${planId}`, { method: 'DELETE' });
+export async function deleteStudyPlan(id: string): Promise<void> {
+  await request<void>(`/study-plans/${id}`, { method: 'DELETE' });
 }
 
-// ============================================================
-// STUDY PLAN TASKS — Task management within a plan
-// GET  /study-plan-tasks?study_plan_id=xxx → { data: { items: [...] } }
-// POST /study-plan-tasks { study_plan_id, item_type, item_id, status?, order_index? }
-// PUT  /study-plan-tasks/:id { status?, order_index?, completed_at? }
-// DELETE /study-plan-tasks/:id
-// ============================================================
-
-export interface StudyPlanTaskRecord {
-  id: string;
-  study_plan_id: string;
-  item_type: string;   // flashcard, quiz, video, resumo, 3d, reading
-  item_id: string;     // topic ID or item reference
-  status: 'pending' | 'completed' | 'skipped';
-  order_index: number;
-  completed_at?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export async function getStudyPlanTasks(
-  studyPlanId: string
-): Promise<StudyPlanTaskRecord[]> {
-  const result = await request<{ items: StudyPlanTaskRecord[] } | StudyPlanTaskRecord[]>(
-    `/study-plan-tasks?study_plan_id=${studyPlanId}`
-  );
-  if (Array.isArray(result)) return result;
-  return (result as any)?.items || [];
-}
-
-export async function createStudyPlanTask(
-  data: {
-    study_plan_id: string;
-    item_type: string;
-    item_id: string;
-    status?: string;
-    order_index?: number;
-  }
-): Promise<StudyPlanTaskRecord> {
+export async function createStudyPlanTask(data: Partial<StudyPlanTaskRecord>): Promise<StudyPlanTaskRecord> {
   return request<StudyPlanTaskRecord>('/study-plan-tasks', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export async function updateStudyPlanTask(
-  taskId: string,
-  data: { status?: string; order_index?: number; completed_at?: string | null }
-): Promise<StudyPlanTaskRecord> {
-  return request<StudyPlanTaskRecord>(`/study-plan-tasks/${taskId}`, {
-    method: 'PUT',
+export async function updateStudyPlanTask(id: string, data: Partial<StudyPlanTaskRecord>): Promise<StudyPlanTaskRecord> {
+  return request<StudyPlanTaskRecord>(`/study-plan-tasks/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteStudyPlanTask(taskId: string): Promise<void> {
-  return request(`/study-plan-tasks/${taskId}`, { method: 'DELETE' });
+export async function deleteStudyPlanTask(id: string): Promise<void> {
+  await request<void>(`/study-plan-tasks/${id}`, { method: 'DELETE' });
 }
 
-// ── Reorder (shared endpoint for multiple tables) ──
-
-export async function reorderItems(
-  table: string,
-  items: { id: string; order_index: number }[]
-): Promise<void> {
-  return request('/reorder', {
-    method: 'PUT',
-    body: JSON.stringify({ table, items }),
-  });
-}
-
-// ============================================================
-// STUDY SESSIONS — Track study session lifecycle
-// POST /study-sessions { session_type, instrument_type? }
-// PUT  /study-sessions/:id { ended_at, items_reviewed?, correct_count? }
-// GET  /study-sessions?status=active (optional)
-// ============================================================
-
-export interface StudySessionRecord {
-  id: string;
-  student_id?: string;
-  session_type: 'review' | 'study' | 'quiz';
-  instrument_type?: 'flashcard' | 'quiz' | 'summary';
-  started_at: string;
-  ended_at?: string | null;
-  items_reviewed?: number;
-  correct_count?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export async function createStudySession(
-  data: { session_type: string; instrument_type?: string }
-): Promise<StudySessionRecord> {
-  return request<StudySessionRecord>('/study-sessions', {
+export async function reorderItems(resource: string, items: { id: string; order_index: number }[]): Promise<void> {
+  await request<void>(`/${resource}/reorder`, {
     method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStudySession(
-  sessionId: string,
-  data: { ended_at?: string; items_reviewed?: number; correct_count?: number }
-): Promise<StudySessionRecord> {
-  return request<StudySessionRecord>(`/study-sessions/${sessionId}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function getStudySessions(
-  status?: string
-): Promise<StudySessionRecord[]> {
-  const qs = status ? `?status=${status}` : '';
-  const result = await request<{ items: StudySessionRecord[] } | StudySessionRecord[]>(
-    `/study-sessions${qs}`
-  );
-  if (Array.isArray(result)) return result;
-  return (result as any)?.items || [];
-}
-
-// ============================================================
-// FSRS STATES — Free Spaced Repetition Scheduler states
-// GET  /fsrs-states?summary_id=xxx | ?item_id=xxx | ?instrument_type=xxx
-// POST /fsrs-states { item_id, instrument_type, stability, difficulty, next_review, last_review }
-// ============================================================
-
-export interface FsrsStateRecord {
-  id: string;
-  student_id?: string;
-  item_id: string;          // flashcard ID or quiz ID
-  instrument_type: string;  // "flashcard" | "quiz"
-  summary_id?: string;
-  subtopic_id?: string;
-  keyword_id?: string;
-  stability: number;
-  difficulty: number;
-  reps: number;
-  lapses: number;
-  state: number;            // 0=new, 1=learning, 2=review, 3=relearning
-  next_review: string;      // ISO date
-  last_review?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export async function getFsrsStates(options?: {
-  summary_id?: string;
-  item_id?: string;
-  instrument_type?: string;
-  limit?: number;
-  offset?: number;
-}): Promise<FsrsStateRecord[]> {
-  const params = new URLSearchParams();
-  if (options?.summary_id) params.set('summary_id', options.summary_id);
-  if (options?.item_id) params.set('item_id', options.item_id);
-  if (options?.instrument_type) params.set('instrument_type', options.instrument_type);
-  if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.offset) params.set('offset', String(options.offset));
-  const qs = params.toString() ? `?${params}` : '';
-  const result = await request<{ items: FsrsStateRecord[] } | FsrsStateRecord[]>(
-    `/fsrs-states${qs}`
-  );
-  if (Array.isArray(result)) return result;
-  return (result as any)?.items || [];
-}
-
-export async function upsertFsrsState(
-  data: {
-    item_id: string;
-    instrument_type: string;
-    stability: number;
-    difficulty: number;
-    next_review: string;
-    last_review?: string;
-    reps?: number;
-    lapses?: number;
-    state?: number;
-  }
-): Promise<FsrsStateRecord> {
-  return request<FsrsStateRecord>('/fsrs-states', {
-    method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ items }),
   });
 }
