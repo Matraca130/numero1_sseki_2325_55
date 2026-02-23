@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import { getForgettingCurvePoints, calculateRetention, getUrgencyLevel } from '@/app/services/spacedRepetition';
+import { useContentTree } from '@/app/context/ContentTreeContext';
+import { getUrgencyLevel } from '@/app/services/spacedRepetition';
 import { motion } from 'motion/react';
 import {
   Brain,
@@ -179,58 +180,104 @@ const TABS = [
 
 export function StudyDashboardsView() {
   const { navigateTo } = useStudentNav();
-  const { courseProgress, reviews, isConnected } = useStudentDataContext();
+  const { bktStates, dailyActivity, stats, isConnected } = useStudentDataContext();
+  const { tree } = useContentTree();
   const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>('overview');
 
-  // Build subject cards from real course progress data
-  const realSubjects: SubjectCard[] = isConnected && courseProgress.length > 0
-    ? courseProgress.flatMap(cp => {
-        const topics = cp.topicProgress || [];
-        // Group by section
-        const sections = new Map<string, typeof topics>();
-        topics.forEach(t => {
-          const arr = sections.get(t.sectionId) || [];
-          arr.push(t);
-          sections.set(t.sectionId, arr);
-        });
-        return Array.from(sections.entries()).map(([sectionId, sectionTopics], idx) => {
-          const avgMastery = Math.round(sectionTopics.reduce((s, t) => s + t.masteryPercent, 0) / sectionTopics.length);
-          const totalDue = sectionTopics.reduce((s, t) => s + t.flashcardsDue, 0);
-          const urgency = getUrgencyLevel(avgMastery);
-          const colors = ['blue', 'pink', 'indigo', 'emerald', 'red'] as const;
-          const c = colors[idx % colors.length];
-          const ringOffset = Math.round((1 - avgMastery / 100) * 125);
-          const strokeColors: Record<string, string> = { blue: '#3B82F6', pink: '#DB2777', indigo: '#4F46E5', emerald: '#10B981', red: '#ef4444' };
+  // Build topic lookup from content tree
+  const topicLookup = useMemo(() => {
+    const map = new Map<string, { topicName: string; sectionName: string; sectionId: string; courseName: string; courseId: string }>();
+    if (!tree) return map;
+    for (const course of tree.courses) {
+      for (const semester of course.semesters) {
+        for (const section of semester.sections) {
+          for (const topic of section.topics) {
+            map.set(topic.id, {
+              topicName: topic.name,
+              sectionName: section.name,
+              sectionId: section.id,
+              courseName: course.name,
+              courseId: course.id,
+            });
+          }
+        }
+      }
+    }
+    return map;
+  }, [tree]);
 
-          return {
-            id: `${cp.courseId}-${sectionId}`,
-            name: sectionTopics[0]?.sectionTitle || sectionId,
-            department: cp.courseName,
-            retention: avgMastery,
-            retentionColor: `text-${c}-600`,
-            ringStroke: strokeColors[c] || '#8b5cf6',
-            ringOffset,
-            consistency: avgMastery >= 80 ? 'Alta' : avgMastery >= 60 ? 'Moderada' : 'Volátil',
-            consistencyColor: avgMastery >= 80 ? `text-${c}-600` : avgMastery >= 60 ? `text-${c}-600` : 'text-red-500',
-            nextReview: totalDue > 0 ? 'Hoje' : 'Em breve',
-            nextReviewColor: totalDue > 0 ? 'text-red-500 font-bold' : 'text-gray-700',
-            progressPct: totalDue > 0 ? 100 : Math.min(avgMastery, 50),
-            progressColor: totalDue > 0 ? `bg-${c}-500 animate-pulse` : `bg-${c}-500`,
-            accentGradient: `bg-gradient-to-r from-${c}-400 to-${c}-600`,
-            iconBg: `bg-${c}-100`,
-            iconColor: `text-${c}-600`,
-            icon: SUBJECTS[idx % SUBJECTS.length]?.icon || <Brain size={18} />,
-            heatmapColors: sectionTopics.map(t => {
-              if (t.masteryPercent >= 80) return `bg-${c}-500`;
-              if (t.masteryPercent >= 60) return `bg-${c}-400`;
-              if (t.masteryPercent >= 40) return `bg-${c}-300`;
-              return `bg-${c}-200`;
-            }).concat(Array(Math.max(0, 20 - sectionTopics.length)).fill(`bg-${c}-100`)).slice(0, 20),
-            isUrgent: urgency === 'critical',
-          };
-        });
-      })
-    : SUBJECTS;
+  // Build subject cards from real BKT states grouped by section
+  const realSubjects: SubjectCard[] = useMemo(() => {
+    if (!isConnected || bktStates.length === 0) return [];
+
+    // Group bkt states by section
+    const sectionGroups = new Map<string, { name: string; department: string; states: typeof bktStates }>();
+    bktStates.forEach(b => {
+      const lookup = topicLookup.get(b.subtopic_id);
+      const sectionId = lookup?.sectionId || 'unknown';
+      const sectionName = lookup?.sectionName || `Seção ${b.subtopic_id.slice(0, 6)}`;
+      const courseName = lookup?.courseName || 'Curso';
+      if (!sectionGroups.has(sectionId)) {
+        sectionGroups.set(sectionId, { name: sectionName, department: courseName, states: [] });
+      }
+      sectionGroups.get(sectionId)!.states.push(b);
+    });
+
+    const PALETTE = ['blue', 'pink', 'indigo', 'emerald', 'red'] as const;
+    const ICONS = [<Calculator size={18} />, <Brain size={18} />, <Palette size={18} />, <FlaskConical size={18} />, <BookOpen size={18} />];
+    const STROKE_COLORS: Record<string, string> = {
+      blue: '#3B82F6', pink: '#DB2777', indigo: '#4F46E5', emerald: '#10B981', red: '#ef4444',
+    };
+
+    return Array.from(sectionGroups.entries()).map(([sectionId, group], idx) => {
+      const avgPKnow = group.states.reduce((s, b) => s + b.p_know, 0) / group.states.length;
+      const retention = Math.round(avgPKnow * 100);
+      const c = PALETTE[idx % PALETTE.length];
+      const ringOffset = Math.round((1 - avgPKnow) * 125);
+      const urgency = getUrgencyLevel(retention);
+
+      // Build mini-heatmap from individual topic mastery values
+      const heatmap = group.states
+        .map(b => {
+          const pct = Math.round(b.p_know * 100);
+          if (pct >= 80) return `bg-${c}-500`;
+          if (pct >= 60) return `bg-${c}-400`;
+          if (pct >= 40) return `bg-${c}-300`;
+          return `bg-${c}-200`;
+        })
+        .concat(Array(Math.max(0, 20 - group.states.length)).fill(`bg-${c}-100`))
+        .slice(0, 20);
+
+      // Consistency label
+      const variance = group.states.reduce((s, b) => s + Math.abs(b.p_know - avgPKnow), 0) / group.states.length;
+      const consistency = variance < 0.1 ? 'Estável' : variance < 0.2 ? 'Moderada' : 'Volátil';
+
+      // Next review estimation
+      const hasDue = group.states.some(b => b.p_know < 0.5);
+
+      return {
+        id: sectionId,
+        name: group.name,
+        department: group.department,
+        retention,
+        retentionColor: `text-${c}-600`,
+        ringStroke: STROKE_COLORS[c] || '#8b5cf6',
+        ringOffset,
+        consistency,
+        consistencyColor: retention >= 80 ? `text-${c}-600` : variance >= 0.2 ? 'text-red-500' : `text-${c}-600`,
+        nextReview: hasDue ? 'Agora (Atrasado)' : retention >= 80 ? 'Em 5 dias' : 'Amanhã',
+        nextReviewColor: hasDue ? 'text-red-500 font-bold uppercase' : 'text-gray-700',
+        progressPct: hasDue ? 100 : Math.min(retention, 50),
+        progressColor: hasDue ? `bg-${c}-500 animate-pulse` : `bg-${c}-500`,
+        accentGradient: `bg-gradient-to-r from-${c}-400 to-${c}-600`,
+        iconBg: `bg-${c}-100`,
+        iconColor: `text-${c}-600`,
+        icon: ICONS[idx % ICONS.length],
+        heatmapColors: heatmap,
+        isUrgent: urgency === 'critical',
+      } as SubjectCard;
+    });
+  }, [isConnected, bktStates, topicLookup]);
 
   const displaySubjects = realSubjects.length > 0 ? realSubjects : SUBJECTS;
 
@@ -525,14 +572,21 @@ export function StudyDashboardsView() {
           {!isConnected && (
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
               <p className="text-xs text-blue-600">
-                Conecte ao Supabase em "Meus Dados" para ver dados reais do seu estudo.
+                Conecte ao backend para ver dados reais do seu estudo.
               </p>
             </div>
           )}
-          {isConnected && (
+          {isConnected && bktStates.length > 0 && (
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
               <p className="text-xs text-emerald-600">
-                Dados conectados ao Supabase. Os valores refletem seu progresso real.
+                ✓ Dados conectados ao backend — {bktStates.length} estados de conhecimento, {dailyActivity.length} dias de atividade.
+              </p>
+            </div>
+          )}
+          {isConnected && bktStates.length === 0 && (
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 text-center">
+              <p className="text-xs text-amber-600">
+                Backend conectado, mas ainda sem dados de progresso. Estude para gerar dados reais.
               </p>
             </div>
           )}

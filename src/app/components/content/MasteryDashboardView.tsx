@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { useContentTree } from '@/app/context/ContentTreeContext';
 import { motion } from 'motion/react';
 import {
   ChevronLeft,
@@ -107,53 +108,93 @@ const SUBJECT_ACCENT_COLORS: Record<string, string> = {
 
 export function MasteryDashboardView() {
   const { navigateTo } = useStudentNav();
-  const { courseProgress, stats, sessions, isConnected } = useStudentDataContext();
+  const { bktStates, dailyActivity, stats, isConnected } = useStudentDataContext();
+  const { tree } = useContentTree();
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month');
+
+  // Build topic lookup from content tree
+  const topicLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!tree) return map;
+    for (const course of tree.courses) {
+      for (const semester of course.semesters) {
+        for (const section of semester.sections) {
+          for (const topic of section.topics) {
+            map.set(topic.id, topic.name);
+          }
+        }
+      }
+    }
+    return map;
+  }, [tree]);
 
   const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const prevMonthDays = [26, 27, 28, 29, 30];
   const daysInMonth = 28;
   const today = 14;
-  const completionPct = isConnected && courseProgress.length > 0
-    ? Math.round(courseProgress.reduce((s, c) => s + c.masteryPercent, 0) / courseProgress.length)
+  const completionPct = isConnected && bktStates.length > 0
+    ? Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100)
     : 65;
 
-  // Build today's tasks from real data
-  const realTasks = isConnected && courseProgress.length > 0
-    ? (() => {
-        const tasks: typeof TODAY_TASKS = [];
-        // Find topics with flashcards due (reviews)
-        courseProgress.forEach(cp => {
-          (cp.topicProgress || []).forEach(tp => {
-            if (tp.flashcardsDue > 0 && tp.masteryPercent < 50) {
-              tasks.push({
-                id: `review-${tp.topicId}`,
-                type: 'review',
-                subject: cp.courseName,
-                title: tp.topicTitle,
-                retention: tp.masteryPercent,
-                urgency: tp.masteryPercent < 40 ? 'urgent' : 'normal' as any,
-              });
-            }
+  // Build calendar events from real daily activity
+  const activityMap = useMemo(() => {
+    const map = new Map<number, { minutes: number; cards: number; sessions: number }>();
+    if (isConnected && dailyActivity.length > 0) {
+      dailyActivity.forEach(d => {
+        const date = new Date(d.date + 'T12:00:00');
+        if (date.getMonth() === 1 && date.getFullYear() === 2026) {
+          map.set(date.getDate(), {
+            minutes: d.studyMinutes,
+            cards: d.cardsReviewed,
+            sessions: d.sessionsCount,
           });
-        });
-        // Add study sessions
-        const sessionTypes = [
-          { subject: 'Anatomia', title: 'Revisão de Flashcards', time: '14:00', isPrimary: true, description: 'Revisar cards pendentes do Membro Superior.' },
-          { subject: 'Histologia', title: 'Leitura do Capítulo', time: '16:30', duration: '45m', description: 'Tecido Conjuntivo - seção 2.' },
-          { subject: 'Geral', title: 'Diário de Estudo', time: '20:30' },
-        ];
-        sessionTypes.forEach((s, i) => {
-          tasks.push({ id: `session-${i}`, type: 'session', ...s } as any);
-        });
-        return tasks;
-      })()
-    : TODAY_TASKS;
+        }
+      });
+    }
+    return map;
+  }, [isConnected, dailyActivity]);
 
-  const displayTasks = realTasks.length > 0 ? realTasks : TODAY_TASKS;
+  // Build today's tasks from BKT states (low p_know = urgent review)
+  const displayTasks = useMemo(() => {
+    if (!isConnected || bktStates.length === 0) return TODAY_TASKS;
+
+    const urgentTopics = [...bktStates]
+      .filter(b => b.p_know < 0.5)
+      .sort((a, b) => a.p_know - b.p_know)
+      .slice(0, 3);
+
+    const reviewTasks = urgentTopics.map((b, i) => ({
+      id: `review-${i}`,
+      type: 'review' as const,
+      subject: topicLookup.get(b.subtopic_id) || `Tópico ${b.subtopic_id.slice(0, 6)}`,
+      title: 'Revisão Espaçada',
+      retention: Math.round(b.p_know * 100),
+      urgency: 'urgent' as const,
+    }));
+
+    // Keep mock session tasks as scheduled items (they represent the day's agenda)
+    const sessionTasks = TODAY_TASKS.filter(t => t.type === 'session');
+
+    return [...reviewTasks, ...sessionTasks];
+  }, [isConnected, bktStates, topicLookup]);
+
   const remainingTasks = displayTasks.filter(t => t.type === 'session').length;
 
-  const getEventsForDay = (day: number) => CALENDAR_EVENTS.filter(e => e.day === day);
+  const getEventsForDay = (day: number) => {
+    const actData = activityMap.get(day);
+    const mockEvents = CALENDAR_EVENTS.filter(e => e.day === day);
+    if (isConnected && actData && actData.minutes > 0 && mockEvents.length === 0) {
+      // Synthesize event from real activity
+      return [{
+        day,
+        title: `${actData.sessions} sessão(ões)`,
+        category: 'core' as const,
+        time: `${actData.minutes} min`,
+        hasReview: actData.cards > 0,
+      }];
+    }
+    return mockEvents;
+  };
 
   return (
     <div className="h-full flex flex-col bg-[#f5f6fa]">

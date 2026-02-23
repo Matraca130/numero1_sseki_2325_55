@@ -1,7 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import { calculateRetention, getUrgencyLevel } from '@/app/services/spacedRepetition';
+import { useContentTree } from '@/app/context/ContentTreeContext';
+import { useAuth } from '@/app/context/AuthContext';
+import {
+  getFsrsStates,
+  type FsrsStateRecord,
+} from '@/app/services/platformApi';
 import { motion } from 'motion/react';
 import {
   GraduationCap,
@@ -24,7 +29,7 @@ import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { KPICard, TrendBadge } from '@/app/components/shared/KPICard';
 import { headingStyle, components, colors } from '@/app/design-system';
 
-// Mock deck data
+// ── Deck interface (same as original) ──
 interface Deck {
   id: string;
   name: string;
@@ -42,7 +47,8 @@ interface Deck {
   iconBg: string;
 }
 
-const STATS = {
+// ── Fallback mock data (used when no FSRS states exist) ──
+const MOCK_STATS = {
   totalMastered: 1248,
   masteredTrend: '+12%',
   todayLoad: 86,
@@ -50,7 +56,7 @@ const STATS = {
   avgRetention: 92,
 };
 
-const DECKS: Deck[] = [
+const MOCK_DECKS: Deck[] = [
   {
     id: '1',
     name: 'Fisiologia II: Integração',
@@ -133,6 +139,17 @@ const DECKS: Deck[] = [
   },
 ];
 
+// ── Icon pool for dynamically-built decks ──
+const DECK_ICONS = [
+  { icon: <Calculator size={18} />, bg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+  { icon: <Palette size={18} />, bg: 'bg-gradient-to-br from-pink-400 to-pink-600' },
+  { icon: <FlaskConical size={18} />, bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
+  { icon: <Languages size={18} />, bg: 'bg-gray-500' },
+  { icon: <Scale size={18} />, bg: 'bg-indigo-500' },
+  { icon: <Brain size={18} />, bg: 'bg-gradient-to-br from-purple-400 to-purple-600' },
+  { icon: <GraduationCap size={18} />, bg: 'bg-gradient-to-br from-amber-400 to-amber-600' },
+];
+
 const DUE_BADGE_STYLES = {
   critical: 'bg-red-100 text-red-800',
   warning: 'bg-orange-100 text-orange-800',
@@ -140,29 +157,165 @@ const DUE_BADGE_STYLES = {
   none: 'bg-gray-100 text-gray-500',
 };
 
+// ── Helper: Build decks from FSRS states + content tree ──
+function buildDecksFromFsrs(
+  fsrsStates: FsrsStateRecord[],
+  tree: any,
+): Deck[] {
+  if (!fsrsStates.length) return [];
+
+  const now = new Date();
+
+  // Group FSRS states by summary_id (or subtopic_id as fallback)
+  const groups = new Map<string, { states: FsrsStateRecord[]; label: string }>();
+  for (const s of fsrsStates) {
+    const key = s.summary_id || s.subtopic_id || 'unknown';
+    if (!groups.has(key)) {
+      // Try to find a name from the content tree
+      let label = key;
+      if (tree?.courses) {
+        for (const c of tree.courses) {
+          for (const sem of c.semesters || []) {
+            for (const sec of sem.sections || []) {
+              for (const t of sec.topics || []) {
+                if (t.id === s.subtopic_id || t.id === key) {
+                  label = `${sec.name || sec.title}: ${t.name || t.title}`;
+                }
+              }
+            }
+          }
+        }
+      }
+      groups.set(key, { states: [], label });
+    }
+    groups.get(key)!.states.push(s);
+  }
+
+  return Array.from(groups.entries()).map(([key, { states, label }], i) => {
+    const totalCards = states.length;
+    const due = states.filter(s => new Date(s.next_review) <= now);
+    const cardsDue = due.length;
+    const avgDifficulty = states.reduce((sum, s) => sum + s.difficulty, 0) / totalCards;
+    const easePercent = Math.round((1 - avgDifficulty / 10) * 100);
+
+    // Determine urgency
+    let dueUrgency: Deck['dueUrgency'] = 'none';
+    if (cardsDue > 20) dueUrgency = 'critical';
+    else if (cardsDue > 5) dueUrgency = 'warning';
+    else if (cardsDue > 0) dueUrgency = 'info';
+
+    // Next review: find nearest future review
+    const futureReviews = states
+      .map(s => new Date(s.next_review))
+      .filter(d => d > now)
+      .sort((a, b) => a.getTime() - b.getTime());
+    const nextDate = futureReviews[0];
+    let nextReview = 'Sem revisão';
+    let nextReviewSub = '';
+    let nextReviewColor = 'text-gray-800';
+
+    if (cardsDue > 0) {
+      nextReview = 'Hoje';
+      const overdue = due.sort((a, b) =>
+        new Date(a.next_review).getTime() - new Date(b.next_review).getTime()
+      );
+      const oldestDue = overdue[0];
+      if (oldestDue) {
+        const hoursOverdue = Math.round((now.getTime() - new Date(oldestDue.next_review).getTime()) / 3600000);
+        nextReviewSub = hoursOverdue > 0 ? `Atrasado ${hoursOverdue}h` : 'Agora';
+        nextReviewColor = hoursOverdue > 2 ? 'text-red-600' : 'text-gray-800';
+      }
+    } else if (nextDate) {
+      const diffDays = Math.round((nextDate.getTime() - now.getTime()) / 86400000);
+      if (diffDays === 0) { nextReview = 'Hoje'; nextReviewSub = nextDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+      else if (diffDays === 1) { nextReview = 'Amanhã'; nextReviewSub = nextDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+      else {
+        nextReview = nextDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+        nextReviewSub = 'Revisão';
+      }
+    }
+
+    const iconSet = DECK_ICONS[i % DECK_ICONS.length];
+
+    return {
+      id: key,
+      name: label,
+      category: `${totalCards} Cards`,
+      totalCards,
+      cardsDue,
+      dueUrgency,
+      easeFactor: easePercent,
+      easeColor: easePercent >= 80 ? 'text-emerald-600' : easePercent >= 50 ? 'text-amber-600' : 'text-orange-500',
+      easeBarPct: Math.max(0, Math.min(100, easePercent)),
+      nextReview,
+      nextReviewSub,
+      nextReviewColor,
+      icon: iconSet.icon,
+      iconBg: iconSet.bg,
+    };
+  }).sort((a, b) => b.cardsDue - a.cardsDue);  // Most urgent first
+}
+
 export function ReviewSessionView() {
   const { navigateTo } = useStudentNav();
-  const { stats: studentStats, courseProgress, reviews, isConnected } = useStudentDataContext();
+  const { user } = useAuth();
+  const { stats: studentStats, bktStates, isConnected } = useStudentDataContext();
+  const { tree } = useContentTree();
   const [currentPage, setCurrentPage] = useState(1);
+  const [fsrsStates, setFsrsStates] = useState<FsrsStateRecord[]>([]);
+  const [fsrsLoading, setFsrsLoading] = useState(true);
+
+  // Fetch FSRS states on mount
+  useEffect(() => {
+    if (!user?.id) { setFsrsLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const states = await getFsrsStates({ instrument_type: 'flashcard', limit: 500 });
+        if (!cancelled) setFsrsStates(states);
+      } catch (err) {
+        console.error('[ReviewSessionView] FSRS fetch error:', err);
+      } finally {
+        if (!cancelled) setFsrsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Build decks from real FSRS data or fallback to mock
+  const realDecks = useMemo(
+    () => buildDecksFromFsrs(fsrsStates, tree),
+    [fsrsStates, tree],
+  );
+  const decks = realDecks.length > 0 ? realDecks : MOCK_DECKS;
+  const hasRealData = realDecks.length > 0;
+
+  // Pagination
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(decks.length / pageSize));
+  const pagedDecks = decks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Build real stats from backend data
-  const realMastered = isConnected && studentStats
+  const now = new Date();
+  const totalDue = hasRealData
+    ? fsrsStates.filter(s => new Date(s.next_review) <= now).length
+    : MOCK_STATS.todayLoad;
+  const totalMastered = isConnected && studentStats
     ? studentStats.totalCardsReviewed
-    : STATS.totalMastered;
-  const realTodayLoad = isConnected && courseProgress.length > 0
-    ? courseProgress.reduce((s, cp) =>
-        s + (cp.topicProgress?.reduce((ts, tp) => ts + tp.flashcardsDue, 0) || 0), 0)
-    : STATS.todayLoad;
-  const realAvgRetention = isConnected && courseProgress.length > 0
-    ? Math.round(courseProgress.reduce((s, cp) => s + cp.masteryPercent, 0) / courseProgress.length)
-    : STATS.avgRetention;
+    : MOCK_STATS.totalMastered;
+  const avgRetention = isConnected && bktStates.length > 0
+    ? Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100)
+    : MOCK_STATS.avgRetention;
+  const todayDone = isConnected
+    ? Math.max(0, totalMastered - totalDue)
+    : MOCK_STATS.todayDone;
 
   const effectiveStats = {
-    totalMastered: realMastered,
-    masteredTrend: STATS.masteredTrend,
-    todayLoad: Math.max(realTodayLoad, 1),
-    todayDone: isConnected ? Math.round(realTodayLoad * 0.35) : STATS.todayDone,
-    avgRetention: realAvgRetention,
+    totalMastered,
+    masteredTrend: MOCK_STATS.masteredTrend,
+    todayLoad: Math.max(totalDue, 1),
+    todayDone: Math.min(todayDone, totalDue),
+    avgRetention,
   };
 
   const todayPct = Math.round((effectiveStats.todayDone / effectiveStats.todayLoad) * 100);
@@ -199,7 +352,7 @@ export function ReviewSessionView() {
               icon={<GraduationCap size={20} />}
               label="Cards Dominados"
               value={effectiveStats.totalMastered.toLocaleString()}
-              trendSlot={<TrendBadge label={STATS.masteredTrend} up />}
+              trendSlot={<TrendBadge label={MOCK_STATS.masteredTrend} up />}
             />
           </motion.div>
 
@@ -269,7 +422,7 @@ export function ReviewSessionView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {DECKS.map((deck, i) => (
+                {pagedDecks.map((deck, i) => (
                   <motion.tr
                     key={deck.id}
                     initial={{ opacity: 0 }}
@@ -330,15 +483,36 @@ export function ReviewSessionView() {
 
           {/* Table footer */}
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-xs text-gray-400">Mostrando 1-5 de 12 decks</p>
+            <p className="text-xs text-gray-400">
+              Mostrando {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, decks.length)} de {decks.length} decks
+            </p>
             <div className="flex gap-1">
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs disabled:opacity-40"
+              >
                 <ChevronLeft size={14} />
               </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-teal-500 bg-white text-teal-600 text-xs">1</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs">2</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs">3</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={clsx(
+                    "w-8 h-8 flex items-center justify-center rounded-lg border text-xs",
+                    currentPage === i + 1
+                      ? "border-teal-500 bg-white text-teal-600"
+                      : "border-gray-200 bg-white hover:bg-gray-50 text-gray-400"
+                  )}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs disabled:opacity-40"
+              >
                 <ChevronRight size={14} />
               </button>
             </div>

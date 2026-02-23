@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { motion, AnimatePresence } from 'motion/react';
@@ -30,6 +30,10 @@ import {
   ArrowRight,
   Flame,
   Activity,
+  GripVertical,
+  Archive,
+  Trash2,
+  Check,
 } from 'lucide-react';
 import clsx from 'clsx';
 import {
@@ -46,6 +50,7 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
+import { useStudyPlans } from '@/app/hooks/useStudyPlans';
 
 // Method icons lookup
 const METHOD_ICONS: Record<string, React.ReactNode> = {
@@ -95,10 +100,21 @@ const COMPLETED_TASKS = [
 ];
 
 export function ScheduleView() {
-  const { studyPlans, toggleTaskComplete } = useApp();
+  const { studyPlans } = useApp();
+  const { plans: backendPlans, loading: plansLoading } = useStudyPlans();
 
-  if (studyPlans.length > 0) {
+  // Use backend plans if available, else fallback to AppContext local plans
+  const effectivePlans = backendPlans.length > 0 ? backendPlans : studyPlans;
+
+  if (effectivePlans.length > 0) {
     return <StudyPlanDashboard />;
+  }
+  if (plansLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-surface-dashboard">
+        <div className="text-gray-400 text-sm animate-pulse">Carregando planos...</div>
+      </div>
+    );
   }
   return <DefaultScheduleView />;
 }
@@ -107,12 +123,43 @@ export function ScheduleView() {
 //  Study Plan Dashboard (when plans exist)
 // ════════════════════════════════════════════════
 function StudyPlanDashboard() {
-  const { studyPlans, toggleTaskComplete } = useApp();
+  const { studyPlans: localPlans, toggleTaskComplete: localToggle } = useApp();
+  const {
+    plans: backendPlans,
+    toggleTaskComplete: backendToggle,
+    reorderTasks,
+    updatePlanStatus,
+    deletePlan,
+  } = useStudyPlans();
   const { navigateTo } = useStudentNav();
+
+  // Prefer backend plans; fallback to local
+  const studyPlans = backendPlans.length > 0 ? backendPlans : localPlans;
+  const toggleTaskComplete = backendPlans.length > 0 ? backendToggle : localToggle;
+
   const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 7));
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 1, 7));
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+  // ── Drag & drop state ──
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
+
+  // ── Plan action menu state ──
+  const [openMenuPlanId, setOpenMenuPlanId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuPlanId(null);
+      }
+    };
+    if (openMenuPlanId) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenuPlanId]);
 
   // Calendar logic
   const monthStart = startOfMonth(currentDate);
@@ -170,6 +217,65 @@ function StudyPlanDashboard() {
 
   // Determine if on track
   const isOnTrack = totalTasks > 0 && (completedTasks / totalTasks) >= 0 ; // always "on track" for demo since we start at 0%
+
+  // ── Drag & drop handlers ──
+  const handleDragStart = useCallback((taskId: string) => {
+    setDraggedTaskId(taskId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    if (taskId !== draggedTaskId) {
+      setDragOverTaskId(taskId);
+    }
+  }, [draggedTaskId]);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    if (!draggedTaskId || draggedTaskId === targetTaskId) {
+      setDraggedTaskId(null);
+      setDragOverTaskId(null);
+      return;
+    }
+
+    // Find both tasks to determine plan
+    const draggedTask = tasksForDate.find(t => t.id === draggedTaskId);
+    const targetTask = tasksForDate.find(t => t.id === targetTaskId);
+
+    if (draggedTask && targetTask && draggedTask.planId === targetTask.planId) {
+      // Get all tasks for this plan, reorder them
+      const plan = studyPlans.find(p => p.id === draggedTask.planId);
+      if (plan) {
+        const planTaskIds = plan.tasks.map(t => t.id);
+        const fromIdx = planTaskIds.indexOf(draggedTaskId);
+        const toIdx = planTaskIds.indexOf(targetTaskId);
+        if (fromIdx >= 0 && toIdx >= 0) {
+          const newOrder = [...planTaskIds];
+          newOrder.splice(fromIdx, 1);
+          newOrder.splice(toIdx, 0, draggedTaskId);
+          reorderTasks(draggedTask.planId, newOrder);
+        }
+      }
+    }
+
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+  }, [draggedTaskId, tasksForDate, studyPlans, reorderTasks]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+  }, []);
+
+  // ── Plan action handlers ──
+  const handlePlanAction = useCallback(async (planId: string, action: 'completed' | 'archived' | 'delete') => {
+    setOpenMenuPlanId(null);
+    if (action === 'delete') {
+      await deletePlan(planId);
+    } else {
+      await updatePlanStatus(planId, action);
+    }
+  }, [deletePlan, updatePlanStatus]);
 
   return (
     <div className="h-full flex flex-col bg-surface-dashboard">
@@ -349,12 +455,24 @@ function StudyPlanDashboard() {
                       return (
                         <div
                           key={task.id}
+                          draggable
+                          onDragStart={() => handleDragStart(task.id)}
+                          onDragOver={(e) => handleDragOver(e, task.id)}
+                          onDrop={(e) => handleDrop(e, task.id)}
+                          onDragEnd={handleDragEnd}
                           className={clsx(
                             "bg-white rounded-xl border transition-all",
-                            task.completed ? "border-emerald-200 bg-emerald-50/30" : "border-gray-200 hover:shadow-sm"
+                            task.completed ? "border-emerald-200 bg-emerald-50/30" : "border-gray-200 hover:shadow-sm",
+                            draggedTaskId === task.id && "opacity-40 scale-[0.97]",
+                            dragOverTaskId === task.id && draggedTaskId !== task.id && "border-teal-400 shadow-md ring-2 ring-teal-200/50"
                           )}
                         >
                           <div className="flex items-center gap-3 px-4 py-3">
+                            {/* Drag handle */}
+                            <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 shrink-0 touch-none">
+                              <GripVertical size={16} />
+                            </div>
+
                             <button
                               onClick={() => toggleTaskComplete(task.planId, task.id)}
                               className={clsx(
@@ -588,12 +706,50 @@ function StudyPlanDashboard() {
                 const planCompleted = plan.tasks.filter(t => t.completed).length;
                 const planTotal = plan.tasks.length;
                 const planProgress = planTotal > 0 ? Math.round((planCompleted / planTotal) * 100) : 0;
+                const isMenuOpen = openMenuPlanId === plan.id;
                 return (
-                  <div key={plan.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <div key={plan.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100 relative">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-gray-800 text-sm">{plan.name}</span>
-                      <span className="text-[10px] font-bold text-gray-500">{planProgress}%</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-500">{planProgress}%</span>
+                        <button
+                          onClick={() => setOpenMenuPlanId(isMenuOpen ? null : plan.id)}
+                          className="p-1 hover:bg-gray-200 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Action dropdown */}
+                    {isMenuOpen && (
+                      <div ref={menuRef} className="absolute right-3 top-10 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 w-48">
+                        <button
+                          onClick={() => handlePlanAction(plan.id, 'completed')}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                        >
+                          <Check size={14} />
+                          Marcar como completo
+                        </button>
+                        <button
+                          onClick={() => handlePlanAction(plan.id, 'archived')}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                        >
+                          <Archive size={14} />
+                          Arquivar plano
+                        </button>
+                        <div className="border-t border-gray-100 my-1" />
+                        <button
+                          onClick={() => handlePlanAction(plan.id, 'delete')}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                          Excluir plano
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex gap-1 mb-2">
                       {plan.subjects.map(s => (
                         <span key={s.id} className={clsx("text-[10px] px-2 py-0.5 rounded-full text-white font-bold", s.color)}>

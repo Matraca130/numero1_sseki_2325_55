@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { useContentTree } from '@/app/context/ContentTreeContext';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft,
@@ -76,9 +77,26 @@ const CATEGORY_STYLES = {
 
 export function KnowledgeHeatmapView() {
   const { navigateTo } = useStudentNav();
-  const { dailyActivity, courseProgress, stats, isConnected } = useStudentDataContext();
+  const { dailyActivity, bktStates, stats, isConnected } = useStudentDataContext();
+  const { tree } = useContentTree();
   const [selectedDay, setSelectedDay] = useState<number | null>(6);
   const [currentMonth] = useState('Fevereiro 2026');
+
+  // Build topic lookup from content tree
+  const topicLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!tree) return map;
+    for (const course of tree.courses) {
+      for (const semester of course.semesters) {
+        for (const section of semester.sections) {
+          for (const topic of section.topics) {
+            map.set(topic.id, topic.name);
+          }
+        }
+      }
+    }
+    return map;
+  }, [tree]);
 
   const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   
@@ -88,7 +106,7 @@ export function KnowledgeHeatmapView() {
   const today = 14;
 
   // Build heat levels from real daily activity data
-  const activityMap = new Map<number, { minutes: number; cards: number; retention: number | null }>();
+  const activityMap = new Map<number, { minutes: number; cards: number; retention: number | null; sessions: number }>();
   if (isConnected && dailyActivity.length > 0) {
     dailyActivity.forEach(d => {
       const date = new Date(d.date + 'T12:00:00');
@@ -97,39 +115,64 @@ export function KnowledgeHeatmapView() {
           minutes: d.studyMinutes,
           cards: d.cardsReviewed,
           retention: d.retentionPercent ?? null,
+          sessions: d.sessionsCount,
         });
       }
     });
   }
 
   const getHeatLevel = (day: number): 'high' | 'med' | 'none' => {
+    // Use real activity data if connected
     const data = activityMap.get(day);
-    if (!data || data.minutes === 0) return 'none';
-    if (data.minutes >= 80) return 'high';
-    if (data.minutes >= 30) return 'med';
+    if (data && data.minutes > 0) {
+      if (data.minutes >= 80) return 'high';
+      if (data.minutes >= 30) return 'med';
+      return 'none';
+    }
+    // Fallback to mock heat levels when not connected
+    if (!isConnected || activityMap.size === 0) {
+      const mock = HEAT_LEVELS.find(h => h.day === day);
+      return mock?.level || 'none';
+    }
     return 'none';
   };
 
   const getEventsForDay = (day: number) => {
     const data = activityMap.get(day);
-    if (!data || data.minutes === 0) return CALENDAR_EVENTS.filter(e => e.day === day);
-    // Merge real activity with calendar events
-    return CALENDAR_EVENTS.filter(e => e.day === day);
+    const mockEvents = CALENDAR_EVENTS.filter(e => e.day === day);
+    if (isConnected && data && data.minutes > 0) {
+      // Build real activity event
+      const realEvent: CalendarEvent = {
+        day,
+        title: `${data.sessions} sessão(ões)`,
+        category: 'core' as const,
+        cards: data.cards > 0 ? data.cards : undefined,
+        noteText: `${data.minutes} min estudados`,
+      };
+      return mockEvents.length > 0 ? mockEvents : [realEvent];
+    }
+    return mockEvents;
   };
 
-  // Compute overall retention from real data
-  const overallRetention = isConnected && stats
+  // Compute overall retention from BKT data
+  const overallRetention = isConnected && bktStates.length > 0
     ? Math.round(
-        courseProgress.reduce((sum, cp) => sum + cp.masteryPercent, 0) /
-        Math.max(courseProgress.length, 1)
+        bktStates.reduce((sum, b) => sum + b.p_know, 0) / bktStates.length * 100
       )
     : TIMELINE_DATA.overallRetention;
 
-  // Find critical topics (lowest mastery)
-  const criticalTopic = isConnected && courseProgress.length > 0
-    ? courseProgress
-        .flatMap(cp => cp.topicProgress || [])
-        .sort((a, b) => a.masteryPercent - b.masteryPercent)[0]
+  // Find critical topics (lowest mastery from BKT)
+  const criticalTopic = isConnected && bktStates.length > 0
+    ? (() => {
+        const sorted = [...bktStates].sort((a, b) => a.p_know - b.p_know);
+        const worst = sorted[0];
+        return worst ? {
+          topicId: worst.subtopic_id,
+          topicTitle: topicLookup.get(worst.subtopic_id) || `Subtópico ${worst.subtopic_id.slice(0, 8)}`,
+          masteryPercent: Math.round(worst.p_know * 100),
+          flashcardsDue: worst.total_attempts > 0 ? Math.max(1, 5 - worst.correct_attempts) : 5,
+        } : null;
+      })()
     : null;
 
   const heatBg = (level: string) => {
@@ -186,52 +229,77 @@ export function KnowledgeHeatmapView() {
               
               {/* Popover for selected day */}
               <AnimatePresence>
-                {selectedDay === 6 && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute top-[140px] left-[200px] z-50 w-72 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/80 p-4"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-bold text-pink-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Anatomia Patológica</h4>
-                      <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600">
-                        <X size={14} />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="text-center">
-                        <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Retenção</div>
-                        <div className="text-xl font-bold text-orange-500">72%</div>
-                      </div>
-                      <div className="h-8 w-px bg-gray-200" />
-                      <div className="text-center">
-                        <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Cards</div>
-                        <div className="text-xl font-bold text-gray-800">48</div>
-                      </div>
-                      <div className="h-8 w-px bg-gray-200" />
-                      <div className="text-center">
-                        <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Pendentes</div>
-                        <div className="text-xl font-bold text-red-500">12</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Força da Memória</span>
-                        <span className="text-pink-600">Enfraquecendo</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-pink-400 to-pink-600 w-[72%] rounded-full" />
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigateTo('review-session')}
-                      className="mt-4 w-full py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+                {selectedDay !== null && selectedDay > 0 && selectedDay <= daysInMonth && (() => {
+                  const dayData = activityMap.get(selectedDay);
+                  const dayEvents = getEventsForDay(selectedDay);
+                  if (dayEvents.length === 0 && !dayData) return null;
+
+                  // Compute position (rough grid position)
+                  const dayIndex = prevMonthDays.length + selectedDay - 1;
+                  const row = Math.floor(dayIndex / 7);
+                  const col = dayIndex % 7;
+                  const topPx = 20 + row * 130;
+                  const leftPx = Math.min(col * 140 + 60, 500);
+
+                  const retention = dayData?.retention ?? 72;
+                  const cards = dayData?.cards ?? dayEvents.reduce((s, e) => s + (e.cards || 0), 0);
+                  const pending = isConnected
+                    ? bktStates.filter(b => b.p_know < 0.5).length
+                    : 12;
+
+                  return (
+                    <motion.div
+                      key={`popover-${selectedDay}`}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="absolute z-50 w-72 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/80 p-4"
+                      style={{ top: `${topPx}px`, left: `${leftPx}px` }}
                     >
-                      <PlayCircle size={16} /> Revisar Agora
-                    </button>
-                  </motion.div>
-                )}
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-bold text-pink-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {dayEvents[0]?.title || `Dia ${selectedDay}`}
+                        </h4>
+                        <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600">
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="text-center">
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Retenção</div>
+                          <div className={clsx("text-xl font-bold", retention >= 70 ? 'text-emerald-500' : retention >= 50 ? 'text-orange-500' : 'text-red-500')}>{retention}%</div>
+                        </div>
+                        <div className="h-8 w-px bg-gray-200" />
+                        <div className="text-center">
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Cards</div>
+                          <div className="text-xl font-bold text-gray-800">{cards}</div>
+                        </div>
+                        <div className="h-8 w-px bg-gray-200" />
+                        <div className="text-center">
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Pendentes</div>
+                          <div className="text-xl font-bold text-red-500">{pending}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">Força da Memória</span>
+                          <span className={clsx(retention >= 70 ? 'text-emerald-600' : 'text-pink-600')}>
+                            {retention >= 80 ? 'Forte' : retention >= 60 ? 'Moderada' : 'Enfraquecendo'}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div className={clsx("h-full rounded-full", retention >= 70 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-pink-400 to-pink-600')} style={{ width: `${retention}%` }} />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigateTo('review-session')}
+                        className="mt-4 w-full py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <PlayCircle size={16} /> Revisar Agora
+                      </button>
+                    </motion.div>
+                  );
+                })()}
               </AnimatePresence>
 
               {/* Previous month days */}
@@ -345,17 +413,29 @@ export function KnowledgeHeatmapView() {
                       <Brain size={18} />
                     </div>
                     <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Sessão Ativa</div>
-                      <div className="text-sm font-bold text-gray-800">{TIMELINE_DATA.activeSession.subject}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        {isConnected && stats ? 'Sessão Atual' : 'Sessão Ativa'}
+                      </div>
+                      <div className="text-sm font-bold text-gray-800">
+                        {isConnected && stats
+                          ? `${stats.totalSessions} sessões realizadas`
+                          : TIMELINE_DATA.activeSession.subject}
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Aumento de Retenção Projetado</span>
-                      <span className="text-emerald-600 font-bold">+{TIMELINE_DATA.activeSession.retentionBoost}%</span>
+                      <span className="text-gray-400">
+                        {isConnected ? 'Retenção Média' : 'Aumento de Retenção Projetado'}
+                      </span>
+                      <span className="text-emerald-600 font-bold">
+                        {isConnected && bktStates.length > 0
+                          ? `${Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100)}%`
+                          : `+${TIMELINE_DATA.activeSession.retentionBoost}%`}
+                      </span>
                     </div>
                     <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full" style={{ width: `${TIMELINE_DATA.activeSession.progress}%` }} />
+                      <div className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full" style={{ width: `${isConnected && bktStates.length > 0 ? Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100) : TIMELINE_DATA.activeSession.progress}%` }} />
                     </div>
                   </div>
                 </div>
@@ -406,7 +486,7 @@ export function KnowledgeHeatmapView() {
                 <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-100 shadow-sm">
                   <h4 className="text-sm font-bold text-red-900 mb-1">
                     {criticalTopic
-                      ? `${criticalTopic.sectionTitle}: ${criticalTopic.topicTitle}`
+                      ? criticalTopic.topicTitle
                       : TIMELINE_DATA.criticalAlert.subject}
                   </h4>
                   <p className="text-xs text-red-700/80 mb-3">

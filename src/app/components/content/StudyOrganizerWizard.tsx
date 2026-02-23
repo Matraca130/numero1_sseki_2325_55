@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
-import { courses } from '@/app/data/courses';
+import { useTreeCourses } from '@/app/hooks/useTreeCourses';
+import { useStudyPlans } from '@/app/hooks/useStudyPlans';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BookOpen, Video, Zap, GraduationCap, FileText, Box,
@@ -41,23 +42,25 @@ const STUDY_METHODS = [
 
 const DAY_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-// ──────────── Helper ────────────
-function getSubjectColor(id: string): string {
-  const c = courses.find(c => c.id === id);
-  return c?.color || 'bg-gray-500';
-}
-
-function getSubjectName(id: string): string {
-  const c = courses.find(c => c.id === id);
-  return c?.name || id;
-}
-
 // ──────────── Main Component ────────────
 export function StudyOrganizerWizard() {
   const { addStudyPlan, studyPlans } = useApp();
+  const { createPlanFromWizard } = useStudyPlans();
   const { navigateTo } = useStudentNav();
+  const { courses } = useTreeCourses();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
+
+  // ──────────── Helpers (use courses from hook) ────────────
+  const getSubjectColor = (id: string): string => {
+    const c = courses.find(c => c.id === id);
+    return c?.color || 'bg-gray-500';
+  };
+
+  const getSubjectName = (id: string): string => {
+    const c = courses.find(c => c.id === id);
+    return c?.name || id;
+  };
 
   // Wizard state
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
@@ -200,6 +203,7 @@ export function StudyOrganizerWizard() {
     };
 
     addStudyPlan(plan);
+    createPlanFromWizard(plan);
     navigateTo('schedule');
   };
 

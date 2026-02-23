@@ -3,8 +3,10 @@
 // Shows connection status + student profile & stats from Supabase
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { useAuth } from '@/app/context/AuthContext';
+import { useContentTree } from '@/app/context/ContentTreeContext';
 import {
   User,
   Database,
@@ -47,7 +49,9 @@ const ACTIVITY_VISUALS = [
 ];
 
 export function StudentDataPanel() {
-  const { profile, stats, courseProgress, dailyActivity, sessions, loading, error, isConnected, refresh, seedAndLoad } = useStudentDataContext();
+  const { profile, stats, courseProgress, dailyActivity, sessions, loading, error, isConnected, refresh, seedAndLoad, bktStates } = useStudentDataContext();
+  const { user } = useAuth();
+  const { tree } = useContentTree();
   const [seeding, setSeeding] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month'>('today');
 
@@ -58,6 +62,36 @@ export function StudentDataPanel() {
   };
 
   const seeded = isConnected;
+
+  // Build course cards from content tree + BKT states
+  const realCourseCards = useMemo(() => {
+    if (!tree || bktStates.length === 0) return [];
+    return tree.courses.map(course => {
+      // Find all topics in this course
+      const topicIds: string[] = [];
+      course.semesters.forEach(sem => sem.sections.forEach(sec => sec.topics.forEach(t => topicIds.push(t.id))));
+      // Find BKT states for these topics
+      const courseStates = bktStates.filter(b => topicIds.includes(b.subtopic_id));
+      const avgMastery = courseStates.length > 0
+        ? Math.round(courseStates.reduce((s, b) => s + b.p_know, 0) / courseStates.length * 100)
+        : 0;
+      const totalTopics = topicIds.length;
+      const masteredTopics = courseStates.filter(b => b.p_know >= 0.8).length;
+
+      return {
+        courseId: course.id,
+        courseName: course.name,
+        masteryPercent: avgMastery,
+        lessonsCompleted: masteredTopics,
+        lessonsTotal: totalTopics,
+        topicName: course.semesters[0]?.sections[0]?.name || '',
+      };
+    });
+  }, [tree, bktStates]);
+
+  // Use real user name if available
+  const userName = user?.name || profile?.name || 'Dr. Julian Reed';
+  const userCourse = profile?.course || 'CARDIOLOGIA';
 
   // Calculate daily progress
   const dailyGoal = profile?.preferences?.dailyGoalMinutes || 600; // 10 hours default
@@ -131,9 +165,9 @@ export function StudentDataPanel() {
               <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                 <div className="text-right">
                   <p className="text-sm font-semibold text-gray-900">
-                    {profile?.name || 'Dr. Julian Reed'}
+                    {userName}
                   </p>
-                  <p className="text-xs text-gray-500">{profile?.course || 'CARDIOLOGIA'}</p>
+                  <p className="text-xs text-gray-500">{userCourse}</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                   <User size={20} className="text-white" />
@@ -238,17 +272,17 @@ export function StudentDataPanel() {
               </div>
 
               {/* Courses Grid */}
-              {seeded && courseProgress.length > 0 ? (
+              {seeded && (realCourseCards.length > 0 || courseProgress.length > 0) ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {courseProgress.slice(0, 4).map((course, idx) => {
+                  {(realCourseCards.length > 0 ? realCourseCards : courseProgress).slice(0, 4).map((course, idx) => {
                     const v = COURSE_VISUALS[idx % COURSE_VISUALS.length];
                     return (
                       <CourseCard
                         key={course.courseId}
                         title={course.courseName}
-                        module={course.topicProgress?.[0]?.topicTitle || `MÓDULO ${['IV', 'FINAL', 'II', 'I'][idx % 4]}`}
+                        module={('topicName' in course ? course.topicName : course.topicProgress?.[0]?.topicTitle) || `MÓDULO ${['IV', 'FINAL', 'II', 'I'][idx % 4]}`}
                         progress={course.masteryPercent}
-                        progressText={`${course.lessonsCompleted}/${course.lessonsTotal} Aulas`}
+                        progressText={`${course.lessonsCompleted}/${course.lessonsTotal} ${realCourseCards.length > 0 ? 'Tópicos' : 'Aulas'}`}
                         icon={v.icon}
                         iconBg={v.bg}
                         progressColor={v.progress}
@@ -330,21 +364,39 @@ export function StudentDataPanel() {
                   </div>
 
                   <div className="space-y-4">
-                    {sessions.slice(0, 3).map((session, idx) => {
-                      const a = ACTIVITY_VISUALS[idx % ACTIVITY_VISUALS.length];
-                      const date = new Date(session.startedAt);
-                      const timeStr = `Há ${date.getHours()}h ${date.getMinutes()} min`;
-                      return (
-                        <ActivityItem
-                          key={session.id}
-                          icon={a.icon}
-                          iconColor={a.color}
-                          iconBg={a.bg}
-                          title={a.label}
-                          subtitle={`${a.sub} • ${timeStr}`}
-                        />
-                      );
-                    })}
+                    {dailyActivity.length > 0 ? (
+                      dailyActivity.slice(0, 3).map((day, idx) => {
+                        const a = ACTIVITY_VISUALS[idx % ACTIVITY_VISUALS.length];
+                        const date = new Date(day.date + 'T12:00:00');
+                        const timeStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                        return (
+                          <ActivityItem
+                            key={day.date}
+                            icon={a.icon}
+                            iconColor={a.color}
+                            iconBg={a.bg}
+                            title={`${day.cardsReviewed} cards • ${day.studyMinutes} min`}
+                            subtitle={`${day.sessionsCount} sessão(ões) • ${timeStr}`}
+                          />
+                        );
+                      })
+                    ) : (
+                      sessions.slice(0, 3).map((session, idx) => {
+                        const a = ACTIVITY_VISUALS[idx % ACTIVITY_VISUALS.length];
+                        const date = new Date(session.startedAt);
+                        const timeStr = `Há ${date.getHours()}h ${date.getMinutes()} min`;
+                        return (
+                          <ActivityItem
+                            key={session.id}
+                            icon={a.icon}
+                            iconColor={a.color}
+                            iconBg={a.bg}
+                            title={a.label}
+                            subtitle={`${a.sub} • ${timeStr}`}
+                          />
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
