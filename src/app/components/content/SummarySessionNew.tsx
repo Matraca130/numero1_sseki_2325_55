@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import { getStudyContent } from '@/app/data/studyContent';
+import { getStudyContent } from '@/app/types/legacy-stubs';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import {
@@ -46,9 +46,10 @@ import {
   masteryConfig,
   findKeyword,
   getAllKeywordTerms
-} from '@/app/data/keywords';
-import { getSectionImage } from '@/app/data/sectionImages';
-import { courses, Model3D } from '@/app/data/courses';
+} from '@/app/types/legacy-stubs';
+import { getSectionImage } from '@/app/types/legacy-stubs';
+import type { Model3D } from '@/app/types/legacy-stubs';
+import { courses } from '@/app/types/legacy-stubs';
 // studentApi and SummaryAnnotation moved to useSummaryPersistence hook
 
 // ── Hook imports ──

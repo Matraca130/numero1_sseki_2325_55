@@ -8,9 +8,10 @@ import React, { useState } from 'react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { ContentTree } from '@/app/components/shared/ContentTree';
 import { PageHeader } from '@/app/components/shared/PageHeader';
-import { ListTree, RefreshCw, FileText, ChevronRight } from 'lucide-react';
+import { ListTree, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Toaster, toast } from 'sonner';
+import { TopicDetailPanel } from './TopicDetailPanel';
 
 export function ProfessorCurriculumPage() {
   const {
@@ -161,42 +162,11 @@ export function ProfessorCurriculumPage() {
         {/* Right: Detail panel */}
         <div className="flex-1 overflow-y-auto">
           {selectedTopicId ? (
-            <motion.div
+            <TopicDetailPanel
               key={selectedTopicId}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-8"
-            >
-              <div className="max-w-3xl">
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-                  <span>Curriculum</span>
-                  <ChevronRight size={14} />
-                  <span className="text-gray-600">{selectedTopicName}</span>
-                </div>
-
-                <div className="bg-white rounded-xl border border-gray-200 p-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center">
-                      <FileText size={20} className="text-purple-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-gray-900">{selectedTopicName}</h2>
-                      <p className="text-xs text-gray-400 mt-0.5">Contenido del topico</p>
-                    </div>
-                  </div>
-
-                  <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center">
-                    <FileText size={32} className="text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">
-                      Aqui se mostraran los resumenes, flashcards y quizzes de este topico.
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Funcionalidad en construccion
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+              topicId={selectedTopicId}
+              topicName={selectedTopicName}
+            />
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">

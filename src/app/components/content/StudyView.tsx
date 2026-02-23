@@ -10,9 +10,9 @@ import {
 import clsx from 'clsx';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { SummarySession as SummarySessionWithAnnotations } from '@/app/components/content/SummarySessionNew';
-import { getLessonsForTopic } from '@/app/data/lessonData';
+import { getLessonsForTopic } from '@/app/types/legacy-stubs';
 import { LessonGridView } from '@/app/components/content/LessonGridView';
-import { Lesson } from '@/app/data/courses';
+import type { Lesson } from '@/app/types/legacy-stubs';
 import { Quote, StickyNote, Edit3 } from 'lucide-react';
 
 interface AnnotationBlock {
@@ -373,7 +373,7 @@ function VideoSession({ onBack, topic, courseColor, accentColor, activeLesson }:
           className="flex items-center gap-2 text-white/80 hover:text-white transition-colors py-2 px-3 hover:bg-white/10 rounded-lg"
         >
           <ArrowLeft size={18} />
-          <span className="text-sm font-medium">Voltar</span>
+          <span className="text-sm font-medium">Volver</span>
         </button>
         <span className="text-white font-medium truncate max-w-[60%]">{activeLesson ? `${topic.title} — ${activeLesson.title}` : topic.title}</span>
         <div className="w-[88px]" /> {/* Spacer to balance the header */}

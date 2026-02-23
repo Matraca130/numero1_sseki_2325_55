@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Topic } from '@/app/data/courses';
-import { Lesson } from '@/app/data/courses';
-import { getLessonsForTopic } from '@/app/data/lessonData';
+import type { Topic, Lesson } from '@/app/types/legacy-stubs';
+import { getLessonsForTopic } from '@/app/types/legacy-stubs';
 import { Play, FileText, ChevronDown, ChevronUp, Circle, CheckCircle2, MonitorPlay, BookOpen, Zap } from 'lucide-react';
 import clsx from 'clsx';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
