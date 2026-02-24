@@ -1,20 +1,34 @@
+// ============================================================
+// Axon — ModelViewer3D Component
+//
+// Three.js viewer for 3D anatomical models (procedural fallback).
+// Integrates:
+//   - PinSystem: professor pin placement / student pin viewing
+//   - PinEditor: professor side panel for pin management
+//   - StudentNotes3D: student spatial + text notes
+//   - LayerPanel: professor side panel for layer management
+//   - ModelPartLoader: loads and manages model parts and layers
+//
+// Props:
+//   modelId    — ID of the model_3d record
+//   modelName  — display name
+//   mode       — "view" (student) or "edit" (professor)
+// ============================================================
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import clsx from 'clsx';
-import { getModel3DPins, getModel3DNotes, createModel3DNote, deleteModel3DNote } from '@/app/services/models3dApi';
-import type { Model3DPin, Model3DNote } from '@/app/services/models3dApi';
-import { Loader2, StickyNote, Plus, Trash2, X, Send } from 'lucide-react';
-
-// ── Annotation Point Type (from backend pins) ──
-export interface AnnotationPoint {
-  id: string;
-  label: string;
-  description: string;
-  position: [number, number, number]; // x, y, z in 3D space
-  color?: string;
-  pinType?: string;
-}
+import { Loader2, List, Layers } from 'lucide-react';
+import { getModel3DPins } from '@/app/services/models3dApi';
+import type { Model3DPin } from '@/app/services/models3dApi';
+import { PinSystem } from '@/app/components/viewer3d/PinSystem';
+import type { PinMode } from '@/app/components/viewer3d/PinSystem';
+import { PinEditor } from '@/app/components/viewer3d/PinEditor';
+import { StudentNotes3D } from '@/app/components/viewer3d/StudentNotes3D';
+import { LayerPanel } from '@/app/components/viewer3d/LayerPanel';
+import { ModelPartLoader, getStoredParts, getStoredLayers } from '@/app/components/viewer3d/ModelPartMesh';
+import type { ModelLayerConfig } from '@/app/components/viewer3d/ModelPartMesh';
 
 // ── Model Data by topic (procedural fallback) ──
 const MODEL_CONFIGS: Record<string, {
@@ -26,45 +40,31 @@ const MODEL_CONFIGS: Record<string, {
   'heart-3d': { cameraPos: [4, 2, 5], buildModel: (scene) => buildHeartModel(scene) },
 };
 
-// ── Default fallback for any model ──
 const DEFAULT_CONFIG = {
   cameraPos: [4, 3, 5] as [number, number, number],
   buildModel: (scene: THREE.Scene) => { buildGenericBone(scene); },
 };
 
 // ══════════════════════════════════════════════
-// ── Model Builders ──
+// ── Model Builders (procedural fallback) ──
 // ══════════════════════════════════════════════
 
 function createBoneMaterial() {
   return new THREE.MeshPhysicalMaterial({
-    color: 0xf5e6d3,
-    roughness: 0.6,
-    metalness: 0.05,
-    clearcoat: 0.1,
-    clearcoatRoughness: 0.4,
+    color: 0xf5e6d3, roughness: 0.6, metalness: 0.05, clearcoat: 0.1, clearcoatRoughness: 0.4,
   });
 }
 
 function createMuscleMaterial(color = 0xcc4444) {
   return new THREE.MeshPhysicalMaterial({
-    color,
-    roughness: 0.7,
-    metalness: 0.02,
-    clearcoat: 0.3,
-    clearcoatRoughness: 0.6,
+    color, roughness: 0.7, metalness: 0.02, clearcoat: 0.3, clearcoatRoughness: 0.6,
   });
 }
 
 function createCartillageMaterial() {
   return new THREE.MeshPhysicalMaterial({
-    color: 0xb8d4e3,
-    roughness: 0.4,
-    metalness: 0.0,
-    clearcoat: 0.5,
-    clearcoatRoughness: 0.2,
-    transparent: true,
-    opacity: 0.85,
+    color: 0xb8d4e3, roughness: 0.4, metalness: 0.0, clearcoat: 0.5, clearcoatRoughness: 0.2,
+    transparent: true, opacity: 0.85,
   });
 }
 
@@ -123,7 +123,7 @@ function buildShoulderModel(scene: THREE.Scene) {
 
   const cartHead = new THREE.Mesh(
     new THREE.SphereGeometry(0.66, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2.2),
-    cartMat
+    cartMat,
   );
   cartHead.position.set(0, 1.8, 0);
   cartHead.rotation.x = -0.3;
@@ -142,7 +142,9 @@ function buildShoulderModel(scene: THREE.Scene) {
   scapShape.lineTo(0.5, 1.8);
   scapShape.lineTo(0.3, 0.5);
   scapShape.closePath();
-  const scapGeo = new THREE.ExtrudeGeometry(scapShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 });
+  const scapGeo = new THREE.ExtrudeGeometry(scapShape, {
+    depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3,
+  });
   const scapula = new THREE.Mesh(scapGeo, boneMat);
   scapula.position.set(-1.5, -0.5, -0.2);
   scapula.rotation.y = 0.2;
@@ -224,7 +226,9 @@ function buildArmModel(scene: THREE.Scene) {
 function buildHeartModel(scene: THREE.Scene) {
   const heartMat = createMuscleMaterial(0xcc3333);
   const vesselMat = createMuscleMaterial(0xaa2222);
-  const veinMat = new THREE.MeshPhysicalMaterial({ color: 0x4466cc, roughness: 0.5, metalness: 0.05, clearcoat: 0.3 });
+  const veinMat = new THREE.MeshPhysicalMaterial({
+    color: 0x4466cc, roughness: 0.5, metalness: 0.05, clearcoat: 0.3,
+  });
 
   const lvGeo = new THREE.SphereGeometry(0.9, 24, 24);
   const lv = new THREE.Mesh(lvGeo, heartMat);
@@ -280,84 +284,39 @@ function buildHeartModel(scene: THREE.Scene) {
 interface ModelViewer3DProps {
   modelId: string;
   modelName: string;
+  mode?: PinMode; // "view" (student default) | "edit" (professor)
 }
 
-export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
+export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const animFrameRef = useRef<number>(0);
+  const modelMeshesRef = useRef<THREE.Object3D[]>([]);
+  const partLoaderRef = useRef<ModelPartLoader | null>(null);
 
-  // Backend data
-  const [pins, setPins] = useState<Model3DPin[]>([]);
-  const [notes, setNotes] = useState<Model3DNote[]>([]);
-  const [pinsLoading, setPinsLoading] = useState(true);
+  // State for child components
+  const [sceneReady, setSceneReady] = useState(false);
+  const [showPinEditor, setShowPinEditor] = useState(false);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [layerUpdateKey, setLayerUpdateKey] = useState(0);
+  const [storedLayers, setStoredLayersState] = useState<ModelLayerConfig[]>([]);
+  const [hasMultiPart, setHasMultiPart] = useState(false);
 
-  // Derived annotations from backend pins
-  const annotations: AnnotationPoint[] = pins.map(pin => ({
-    id: pin.id,
-    label: pin.label || 'Pin',
-    description: pin.description || '',
-    position: [pin.geometry.x, pin.geometry.y, pin.geometry.z],
-    color: pin.color || '#60a5fa',
-    pinType: pin.pin_type,
-  }));
+  // Pin editor data — fetched separately for the editor panel
+  const [editorPins, setEditorPins] = useState<Model3DPin[]>([]);
 
-  const [annotations2D, setAnnotations2D] = useState<{ id: string; x: number; y: number; visible: boolean; annotation: AnnotationPoint }[]>([]);
-  const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [showNotes, setShowNotes] = useState(false);
-  const [newNote, setNewNote] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
-
-  // Fetch pins and notes from backend
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchData() {
-      setPinsLoading(true);
-      try {
-        const [pinsRes, notesRes] = await Promise.allSettled([
-          getModel3DPins(modelId),
-          getModel3DNotes(modelId),
-        ]);
-        if (cancelled) return;
-        if (pinsRes.status === 'fulfilled') {
-          setPins(pinsRes.value?.items || []);
-        }
-        if (notesRes.status === 'fulfilled') {
-          setNotes(notesRes.value?.items || []);
-        }
-      } catch (err) {
-        console.error('[ModelViewer3D] Error fetching data:', err);
-      } finally {
-        if (!cancelled) setPinsLoading(false);
-      }
-    }
-    fetchData();
-    return () => { cancelled = true; };
+  const fetchEditorPins = useCallback(async () => {
+    try {
+      const res = await getModel3DPins(modelId);
+      setEditorPins(res?.items || []);
+    } catch { /* PinSystem handles its own fetch */ }
   }, [modelId]);
 
   // Use procedural config if available, otherwise default
   const config = MODEL_CONFIGS[modelId] || DEFAULT_CONFIG;
-
-  const projectAnnotations = useCallback(() => {
-    if (!cameraRef.current || !containerRef.current || annotations.length === 0) return;
-    const camera = cameraRef.current;
-    const rect = containerRef.current.getBoundingClientRect();
-
-    const projected = annotations.map(ann => {
-      const vec = new THREE.Vector3(...ann.position);
-      vec.project(camera);
-      const x = (vec.x * 0.5 + 0.5) * rect.width;
-      const y = (-vec.y * 0.5 + 0.5) * rect.height;
-      const visible = vec.z < 1;
-      return { id: ann.id, x, y, visible, annotation: ann };
-    });
-
-    setAnnotations2D(projected);
-  }, [annotations]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -408,15 +367,51 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
     gridHelper.position.y = -3;
     scene.add(gridHelper);
 
-    // Build procedural model
-    config.buildModel(scene);
+    // Check for multi-part config in localStorage
+    const storedParts = getStoredParts(modelId);
+    const layers = getStoredLayers(modelId);
+    setStoredLayersState(layers);
+
+    if (storedParts.length > 0) {
+      // ── Multi-part mode: load GLB parts via ModelPartLoader ──
+      setHasMultiPart(true);
+      const loader = new ModelPartLoader(scene, () => {
+        setLayerUpdateKey(k => k + 1);
+        // Update raycasting meshes from loaded parts
+        modelMeshesRef.current = loader.getAllMeshes();
+      });
+      loader.init(storedParts);
+      loader.loadAllVisible();
+      partLoaderRef.current = loader;
+    } else {
+      // ── V1 mode: procedural model (backwards compatible) ──
+      setHasMultiPart(false);
+      const modelGroup = new THREE.Group();
+      config.buildModel(modelGroup);
+      scene.add(modelGroup);
+
+      // Collect model meshes for raycasting
+      const meshes: THREE.Object3D[] = [];
+      modelGroup.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          meshes.push(obj);
+        }
+      });
+      modelMeshesRef.current = meshes;
+    }
+
+    setSceneReady(true);
 
     // Animation loop
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
-      projectAnnotations();
+
+      // Call projection callbacks from PinSystem and StudentNotes3D
+      const el = container as any;
+      el.__pinSystemProject?.();
+      el.__studentNotesProject?.();
     };
     animate();
 
@@ -433,10 +428,13 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
     resizeObserver.observe(container);
 
     return () => {
+      setSceneReady(false);
       cancelAnimationFrame(animFrameRef.current);
       resizeObserver.disconnect();
       controls.dispose();
       renderer.dispose();
+      partLoaderRef.current?.dispose();
+      partLoaderRef.current = null;
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
@@ -451,195 +449,89 @@ export function ModelViewer3D({ modelId, modelName }: ModelViewer3DProps) {
         }
       });
     };
-  }, [modelId, config, projectAnnotations]);
-
-  // Add note
-  const handleAddNote = async () => {
-    if (!newNote.trim()) return;
-    setSavingNote(true);
-    try {
-      const created = await createModel3DNote({ model_id: modelId, note: newNote.trim() });
-      setNotes(prev => [...prev, created]);
-      setNewNote('');
-    } catch (err) {
-      console.error('[ModelViewer3D] Error adding note:', err);
-    } finally {
-      setSavingNote(false);
-    }
-  };
-
-  // Delete note
-  const handleDeleteNote = async (noteId: string) => {
-    try {
-      await deleteModel3DNote(noteId);
-      setNotes(prev => prev.filter(n => n.id !== noteId));
-    } catch (err) {
-      console.error('[ModelViewer3D] Error deleting note:', err);
-    }
-  };
+  }, [modelId, config]);
 
   return (
     <div className="relative w-full h-full">
       {/* Three.js canvas container */}
       <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Loading overlay for pins */}
-      {pinsLoading && (
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm text-[10px] text-gray-300">
-          <Loader2 size={12} className="animate-spin" />
-          Carregando pins...
-        </div>
+      {/* ── Pin System (handles markers + overlays) ── */}
+      {sceneReady && (
+        <PinSystem
+          modelId={modelId}
+          mode={mode}
+          scene={sceneRef.current}
+          camera={cameraRef.current}
+          containerRef={containerRef}
+          modelMeshes={modelMeshesRef.current}
+        />
       )}
 
-      {/* Annotation toggle */}
-      <button
-        onClick={() => setShowAnnotations(!showAnnotations)}
-        className={clsx(
-          "absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border",
-          showAnnotations
-            ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
-            : "bg-white/5 text-gray-500 border-white/10 hover:bg-white/10"
-        )}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        {showAnnotations ? 'Ocultar Pontos' : 'Mostrar Pontos'}
-        {annotations.length > 0 && (
-          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-500/30 text-[9px]">{annotations.length}</span>
-        )}
-      </button>
+      {/* ── Student Notes (spatial + text) ── */}
+      {sceneReady && mode === 'view' && (
+        <StudentNotes3D
+          modelId={modelId}
+          scene={sceneRef.current}
+          camera={cameraRef.current}
+          containerRef={containerRef}
+          modelMeshes={modelMeshesRef.current}
+        />
+      )}
 
-      {/* Notes toggle */}
-      <button
-        onClick={() => setShowNotes(!showNotes)}
-        className={clsx(
-          "absolute top-3 left-[170px] z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border",
-          showNotes
-            ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-            : "bg-white/5 text-gray-500 border-white/10 hover:bg-white/10"
-        )}
-      >
-        <StickyNote size={12} />
-        Notas
-        {notes.length > 0 && (
-          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/30 text-[9px]">{notes.length}</span>
-        )}
-      </button>
+      {/* ── Professor: Pin Editor toggle ── */}
+      {mode === 'edit' && (
+        <button
+          onClick={() => { setShowPinEditor(!showPinEditor); if (!showPinEditor) fetchEditorPins(); }}
+          className={clsx(
+            'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+            showPinEditor
+              ? 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+              : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10',
+          )}
+          style={{ left: 170 }}
+        >
+          <List size={12} />
+          Panel Pins
+        </button>
+      )}
 
-      {/* Annotation points */}
-      {showAnnotations && annotations2D.map(({ id, x, y, visible, annotation }) => (
-        visible && (
-          <div
-            key={id}
-            className="absolute z-10 pointer-events-auto"
-            style={{
-              left: x,
-              top: y,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {/* Ping animation */}
-            <div
-              className="absolute inset-0 rounded-full animate-ping opacity-30"
-              style={{
-                backgroundColor: annotation.color || '#60a5fa',
-                width: 14,
-                height: 14,
-                left: -7,
-                top: -7,
-              }}
-            />
-            {/* Dot */}
-            <button
-              onClick={() => setActiveAnnotation(activeAnnotation === id ? null : id)}
-              className="relative w-3.5 h-3.5 rounded-full border-2 border-white/80 shadow-lg cursor-pointer hover:scale-150 transition-transform"
-              style={{ backgroundColor: annotation.color || '#60a5fa' }}
-            />
+      {/* ── Professor: Pin Editor panel ── */}
+      {mode === 'edit' && showPinEditor && (
+        <PinEditor
+          pins={editorPins}
+          onPinsChanged={fetchEditorPins}
+          camera={cameraRef.current}
+          controls={controlsRef.current}
+          onClose={() => setShowPinEditor(false)}
+        />
+      )}
 
-            {/* Tooltip */}
-            {activeAnnotation === id && (
-              <div
-                className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/90 backdrop-blur-xl rounded-lg border border-white/15 p-3 min-w-[200px] max-w-[260px] shadow-2xl z-30"
-                style={{ borderLeftColor: annotation.color || '#60a5fa', borderLeftWidth: 3 }}
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: annotation.color || '#60a5fa' }} />
-                  <h4 className="text-xs font-bold text-white">{annotation.label}</h4>
-                </div>
-                <p className="text-[10px] text-gray-400 leading-relaxed">{annotation.description}</p>
-                {annotation.pinType && (
-                  <span className="mt-1.5 inline-block text-[8px] text-gray-500 uppercase tracking-wider">{annotation.pinType}</span>
-                )}
-              </div>
-            )}
-          </div>
-        )
-      ))}
+      {/* ── Layer Panel toggle (both modes, only if multi-part) ── */}
+      {hasMultiPart && (
+        <button
+          onClick={() => setShowLayerPanel(!showLayerPanel)}
+          className={clsx(
+            'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+            showLayerPanel
+              ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+              : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10',
+          )}
+          style={{ left: mode === 'edit' ? 270 : 170 }}
+        >
+          <Layers size={12} />
+          Capas
+        </button>
+      )}
 
-      {/* Notes panel */}
-      {showNotes && (
-        <div className="absolute top-12 right-3 z-20 w-72 max-h-[60vh] bg-black/85 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
-            <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-              <StickyNote size={12} className="text-amber-400" />
-              Minhas Notas
-            </h4>
-            <button onClick={() => setShowNotes(false)} className="text-gray-500 hover:text-white transition-colors">
-              <X size={14} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
-            {notes.length === 0 && (
-              <div className="text-center py-6 text-gray-500">
-                <StickyNote size={20} className="mx-auto mb-2 opacity-40" />
-                <p className="text-[10px]">Nenhuma nota ainda.</p>
-              </div>
-            )}
-            {notes.map((note) => (
-              <div key={note.id} className="group flex items-start gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                <p className="text-[11px] text-gray-300 flex-1 leading-relaxed">{note.note}</p>
-                <button
-                  onClick={() => handleDeleteNote(note.id)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all shrink-0"
-                >
-                  <Trash2 size={11} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Add note */}
-          <div className="p-2 border-t border-white/10">
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddNote(); }}
-                placeholder="Escrever nota..."
-                disabled={savingNote}
-                className="flex-1 px-2.5 py-1.5 text-[11px] bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500/30 disabled:opacity-50"
-              />
-              <button
-                onClick={handleAddNote}
-                disabled={!newNote.trim() || savingNote}
-                className={clsx(
-                  "flex items-center justify-center px-2 py-1.5 rounded-lg transition-all",
-                  !newNote.trim() || savingNote
-                    ? "bg-white/5 text-gray-600 cursor-not-allowed"
-                    : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-                )}
-              >
-                {savingNote ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ── Layer Panel ── */}
+      {hasMultiPart && showLayerPanel && partLoaderRef.current && (
+        <LayerPanel
+          partLoader={partLoaderRef.current}
+          layers={storedLayers}
+          updateKey={layerUpdateKey}
+          onClose={() => setShowLayerPanel(false)}
+        />
       )}
 
       {/* Model name watermark */}
