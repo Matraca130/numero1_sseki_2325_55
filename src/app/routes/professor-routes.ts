@@ -8,6 +8,7 @@ import type { RouteObject } from 'react-router';
 
 import { ProfessorCurriculumPage } from '@/app/components/roles/pages/professor/ProfessorCurriculumPage';
 import { ProfessorQuizzesPage } from '@/app/components/roles/pages/professor/ProfessorQuizzesPage';
+import { ProfessorFlashcardsPage } from '@/app/components/roles/pages/professor/ProfessorFlashcardsPage';
 import { PlaceholderPage } from '@/app/components/roles/PlaceholderPage';
 import { SummaryView } from '@/app/components/content/SummaryView';
 import { LayoutDashboard, BookOpen, Brain, HelpCircle, Users, Bot, Settings } from 'lucide-react';
@@ -74,7 +75,7 @@ export const professorChildren: RouteObject[] = [
   { index: true,        Component: ProfessorDashboardPlaceholder },
   { path: 'courses',    Component: ProfessorCoursesPlaceholder },
   { path: 'curriculum', Component: ProfessorCurriculumPage },
-  { path: 'flashcards', Component: ProfessorFlashcardsPlaceholder },
+  { path: 'flashcards', Component: ProfessorFlashcardsPage },
   { path: 'quizzes',    Component: ProfessorQuizzesPage },
   { path: 'students',   Component: ProfessorStudentsPlaceholder },
   { path: 'ai',         Component: ProfessorAIPlaceholder },

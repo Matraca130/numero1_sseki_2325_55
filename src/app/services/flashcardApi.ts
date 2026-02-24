@@ -18,6 +18,7 @@ export interface FlashcardItem {
   id: string;
   summary_id: string;
   keyword_id: string;
+  subtopic_id?: string | null;
   front: string;
   back: string;
   source: 'ai' | 'manual' | 'imported';
@@ -61,6 +62,7 @@ export async function getFlashcard(id: string): Promise<FlashcardItem> {
 export async function createFlashcard(data: {
   summary_id: string;
   keyword_id: string;
+  subtopic_id?: string | null;
   front: string;
   back: string;
   source?: 'manual' | 'ai';
@@ -75,7 +77,7 @@ export async function createFlashcard(data: {
 
 export async function updateFlashcard(
   id: string,
-  data: { front?: string; back?: string; source?: string; is_active?: boolean }
+  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean }
 ): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`, {
     method: 'PUT',

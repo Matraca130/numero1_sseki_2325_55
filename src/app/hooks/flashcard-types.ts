@@ -3,7 +3,7 @@
 // Shared across all flashcard screens and hooks.
 // ============================================================
 
-import type { Flashcard } from '@/app/data/courses';
+import type { Flashcard } from '@/app/types/content';
 
 // ── Types ──
 
