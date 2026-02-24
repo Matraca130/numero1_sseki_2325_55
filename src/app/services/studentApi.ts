@@ -358,66 +358,9 @@ export async function upsertFsrsState(data: Record<string, any>): Promise<any> {
   });
 }
 
-// ── Study Plans ───────────────────────────────────────────
-// GET/POST/PUT/DELETE /study-plans
-
-export async function getStudyPlans(): Promise<any[]> {
-  try {
-    const raw = await apiCall<any>('/study-plans');
-    return Array.isArray(raw) ? raw : extractItems(raw);
-  } catch {
-    return [];
-  }
-}
-
-export async function createStudyPlan(data: Record<string, any>): Promise<any> {
-  return apiCall('/study-plans', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStudyPlan(id: string, data: Record<string, any>): Promise<any> {
-  return apiCall(`/study-plans/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteStudyPlan(id: string): Promise<any> {
-  return apiCall(`/study-plans/${id}`, { method: 'DELETE' });
-}
-
-// ── Study Plan Tasks ──────────────────────────────────────
-// GET/POST/PUT/DELETE /study-plan-tasks
-
-export async function getStudyPlanTasks(planId?: string): Promise<any[]> {
-  const qs = planId ? `?study_plan_id=${planId}` : '';
-  try {
-    const raw = await apiCall<any>(`/study-plan-tasks${qs}`);
-    return Array.isArray(raw) ? raw : extractItems(raw);
-  } catch {
-    return [];
-  }
-}
-
-export async function createStudyPlanTask(data: Record<string, any>): Promise<any> {
-  return apiCall('/study-plan-tasks', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStudyPlanTask(id: string, data: Record<string, any>): Promise<any> {
-  return apiCall(`/study-plan-tasks/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteStudyPlanTask(id: string): Promise<any> {
-  return apiCall(`/study-plan-tasks/${id}`, { method: 'DELETE' });
-}
+// Study Plans & Tasks -> use platformApi.ts (removed duplicates)
+// getStudyPlans, createStudyPlan, updateStudyPlan, deleteStudyPlan,
+// getStudyPlanTasks, createStudyPlanTask, updateStudyPlanTask, deleteStudyPlanTask
 
 // ── Study Summaries (student-generated notes) ─────────────
 // These were stored in the old Figma Make KV. The real backend

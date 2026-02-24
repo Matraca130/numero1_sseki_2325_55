@@ -859,14 +859,23 @@ export interface BktStateRecord {
 export interface StudyPlanRecord {
   id: string;
   name: string;
-  institution_id: string;
-  [key: string]: any;
+  student_id: string;
+  course_id?: string | null;
+  status: 'active' | 'completed' | 'archived';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface StudyPlanTaskRecord {
   id: string;
   study_plan_id: string;
-  [key: string]: any;
+  item_type: string;
+  item_id: string;
+  status: 'pending' | 'completed' | 'skipped';
+  order_index: number;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export async function getStudentStatsReal(studentId: string): Promise<StudentStatsRecord | null> {
@@ -912,8 +921,8 @@ export async function getAllBktStates(studentId: string): Promise<BktStateRecord
 // ============================================================
 // STUDY PLANS & TASKS (Sessão 6 - Organizador de Estudos)
 // ============================================================
-export async function getStudyPlans(institutionId?: string): Promise<StudyPlanRecord[]> {
-  const params = institutionId ? `?institution_id=${institutionId}` : '';
+export async function getStudyPlans(status?: 'active' | 'completed' | 'archived'): Promise<StudyPlanRecord[]> {
+  const params = status ? `?status=${status}` : '';
   try {
     const result = await request<any>(`/study-plans${params}`);
     return extractItems<StudyPlanRecord>(result);
@@ -933,8 +942,8 @@ export async function getStudyPlanTasks(studyPlanId: string): Promise<StudyPlanT
 
 export async function createStudyPlan(data: {
   name: string;
-  institution_id: string;
-  [key: string]: any;
+  course_id?: string;
+  status?: 'active' | 'completed' | 'archived';
 }): Promise<StudyPlanRecord> {
   return request<StudyPlanRecord>('/study-plans', {
     method: 'POST',
@@ -971,9 +980,9 @@ export async function deleteStudyPlanTask(id: string): Promise<void> {
   await request<void>(`/study-plan-tasks/${id}`, { method: 'DELETE' });
 }
 
-export async function reorderItems(resource: string, items: { id: string; order_index: number }[]): Promise<void> {
-  await request<void>(`/${resource}/reorder`, {
-    method: 'POST',
-    body: JSON.stringify({ items }),
+export async function reorderItems(table: string, items: { id: string; order_index: number }[]): Promise<void> {
+  await request<void>('/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ table, items }),
   });
 }
