@@ -13,6 +13,7 @@ import { StudyView } from '@/app/components/content/StudyView';
 import { StudentSummariesView } from '@/app/components/content/StudentSummariesView';
 import { StudentPlaceholder } from '@/app/components/content/StudentPlaceholder';
 import { SummaryView } from '@/app/components/content/SummaryView';
+import { QuizView } from '@/app/components/content/QuizView';
 import { Calendar, Layers, Box, GraduationCap, Database } from 'lucide-react';
 
 // ── Placeholder wrappers ──────────────────────────────────
@@ -66,7 +67,7 @@ export const studentChildren: RouteObject[] = [
   { path: 'schedule',     Component: SchedulePlaceholder },
   { path: 'flashcards',   Component: FlashcardsPlaceholder },
   { path: '3d',           Component: Atlas3DPlaceholder },
-  { path: 'quiz',         Component: QuizPlaceholder },
+  { path: 'quiz',         Component: QuizView },
   { path: 'student-data', Component: StudentDataPlaceholder },
   { path: 'summary/:topicId', Component: SummaryView },
   // Catch-all → redirect to home
