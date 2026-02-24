@@ -333,63 +333,6 @@ export interface SM2Card {
   nextReview?: string; // ISO date of next review
 }
 
-export interface SM2ReviewResult {
-  ease: number;
-  interval: number;
-  repetitions: number;
-  nextReview: string;
-}
-
-/**
- * SM-2 Algorithm
- * @param card - Current card state
- * @param quality - Rating 1-5 (mapped from user input)
- * @returns Updated card state with new interval and next review date
- */
-export function sm2Review(
-  card: SM2Card,
-  quality: 1 | 2 | 3 | 4 | 5
-): SM2ReviewResult {
-  // Map our 1-5 scale to SM-2's 0-5 scale
-  const q = quality - 1; // Now 0-4, we add 1 so effective range is 1-5 for SM-2
-  const smQuality = quality; // Direct mapping: 1=again, 2=hard, 3=good, 4=easy, 5=perfect
-
-  let { ease, interval, repetitions } = card;
-
-  // If quality < 3, reset repetitions (failed recall)
-  if (smQuality < 3) {
-    repetitions = 0;
-    interval = 1; // Review again tomorrow
-  } else {
-    // Successful recall
-    if (repetitions === 0) {
-      interval = 1;
-    } else if (repetitions === 1) {
-      interval = 6;
-    } else {
-      interval = Math.round(interval * ease);
-    }
-    repetitions += 1;
-  }
-
-  // Update ease factor using SM-2 formula
-  // EF' = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))
-  const delta = 0.1 - (5 - smQuality) * (0.08 + (5 - smQuality) * 0.02);
-  ease = Math.max(1.3, ease + delta);
-
-  // Calculate next review date
-  const now = new Date();
-  const next = new Date(now);
-  next.setDate(next.getDate() + interval);
-
-  return {
-    ease: Math.round(ease * 100) / 100,
-    interval,
-    repetitions,
-    nextReview: next.toISOString(),
-  };
-}
-
 /**
  * Create a new SM-2 card with default values
  */

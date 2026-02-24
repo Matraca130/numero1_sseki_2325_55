@@ -1,7 +1,8 @@
 // ============================================================
 // Axon — Professor Routes (children of ProfessorLayout)
 //
-// PODA v2: Only curriculum kept. Rest → PlaceholderPage.
+// Active: curriculum, flashcards, quizzes
+// Placeholder: dashboard, courses, students, ai, settings
 // ============================================================
 import React from 'react';
 import type { RouteObject } from 'react-router';
@@ -11,7 +12,7 @@ import { ProfessorQuizzesPage } from '@/app/components/roles/pages/professor/Pro
 import { ProfessorFlashcardsPage } from '@/app/components/roles/pages/professor/ProfessorFlashcardsPage';
 import { PlaceholderPage } from '@/app/components/roles/PlaceholderPage';
 import { SummaryView } from '@/app/components/content/SummaryView';
-import { LayoutDashboard, BookOpen, Brain, HelpCircle, Users, Bot, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, Bot, Settings } from 'lucide-react';
 
 // Wrapper components for PlaceholderPage (React Router needs Component, not element)
 function ProfessorDashboardPlaceholder() {
@@ -28,22 +29,6 @@ function ProfessorCoursesPlaceholder() {
     description: 'Gestión de cursos asignados — próximamente',
     icon: React.createElement(BookOpen, { size: 24 }),
     accentColor: 'teal',
-  });
-}
-function ProfessorFlashcardsPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'Flashcards',
-    description: 'Gestión de flashcards — próximamente',
-    icon: React.createElement(Brain, { size: 24 }),
-    accentColor: 'purple',
-  });
-}
-function ProfessorQuizzesPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'Quizzes',
-    description: 'Gestión de quizzes — próximamente',
-    icon: React.createElement(HelpCircle, { size: 24 }),
-    accentColor: 'amber',
   });
 }
 function ProfessorStudentsPlaceholder() {
