@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useApp, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
+import { apiCall } from '@/app/lib/api';
 import {
   getStudyPlans,
   getStudyPlanTasks,
@@ -110,7 +111,7 @@ export function useStudyPlans() {
     setError(null);
 
     try {
-      const rawPlans = await getStudyPlans(undefined, 'active');
+      const rawPlans = await getStudyPlans('active');
       setBackendPlans(rawPlans);
 
       // Fetch tasks for each plan in parallel
@@ -160,9 +161,13 @@ export function useStudyPlans() {
 
         // Derive date from order_index (spread across plan creation + days)
         const planCreated = bp.created_at ? new Date(bp.created_at) : new Date();
-        const dayOffset = Math.floor(idx / 3); // ~3 tasks per day
+        const dayOffset = Math.floor(idx / 4); // ~4 tasks per day
         const taskDate = new Date(planCreated);
         taskDate.setDate(taskDate.getDate() + dayOffset);
+        // Skip weekends
+        while (taskDate.getDay() === 0 || taskDate.getDay() === 6) {
+          taskDate.setDate(taskDate.getDate() + 1);
+        }
 
         return {
           id: bt.id,
@@ -196,7 +201,7 @@ export function useStudyPlans() {
           d.setDate(d.getDate() + 30); // default 30-day plan
           return d;
         })(),
-        weeklyHours: [2, 2, 2, 2, 2, 1, 1],
+        weeklyHours: (bp as any).metadata?.weeklyHours || [2, 2, 2, 2, 2, 1, 1],
         tasks: frontendTasks,
         createdAt: bp.created_at ? new Date(bp.created_at) : new Date(),
         totalEstimatedHours: Math.round(
@@ -233,6 +238,7 @@ export function useStudyPlans() {
       const record = await apiCreatePlan({
         name: frontendPlan.name,
         status: 'active',
+        course_id: frontendPlan.subjects?.[0]?.id || undefined,
       });
 
       // 2) Create tasks in parallel (batched for performance)
@@ -287,6 +293,30 @@ export function useStudyPlans() {
         status: newStatus,
         completed_at: completedAt,
       });
+
+      // Track activity when task is completed
+      if (newStatus === 'completed') {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const estimatedMinutes = METHOD_DEFAULTS[task.item_type]?.minutes || 25;
+        // Both are UPSERT on the backend — safe to call multiple times
+        Promise.allSettled([
+          apiCall('/daily-activities', {
+            method: 'POST',
+            body: JSON.stringify({
+              activity_date: today,
+              sessions_count: 1,
+              time_spent_seconds: estimatedMinutes * 60,
+            }),
+          }),
+          apiCall('/student-stats', {
+            method: 'POST',
+            body: JSON.stringify({
+              total_sessions: 1,
+              last_study_date: today,
+            }),
+          }),
+        ]).catch(e => console.warn('[useStudyPlans] tracking error (non-fatal):', e));
+      }
 
       // Update local state immediately
       setBackendTasksMap(prev => {
