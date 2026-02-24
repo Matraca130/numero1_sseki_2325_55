@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import { courses } from '@/app/data/courses';
+import { courses } from '@/app/types/legacy-stubs';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { components, colors, headingStyle, layout } from '@/app/design-system';
 import { 

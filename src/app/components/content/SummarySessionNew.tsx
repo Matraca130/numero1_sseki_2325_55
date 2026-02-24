@@ -35,7 +35,16 @@ import {
   Box,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+// ── Simple resizable panel shim (replaces react-resizable-panels) ──
+function PanelGroup({ children, className, ...rest }: any) {
+  return <div className={clsx("flex h-full w-full", className)} {...rest}>{children}</div>;
+}
+function Panel({ children, defaultSize, className, ...rest }: any) {
+  return <div className={className} style={{ flex: `${defaultSize ?? 50} 1 0%`, minWidth: 0, overflow: 'hidden' }} {...rest}>{children}</div>;
+}
+function PanelResizeHandle({ children, className, ...rest }: any) {
+  return <div className={className} {...rest}>{children}</div>;
+}
 import { getStudyContent } from '@/app/types/legacy-stubs';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';

@@ -2,23 +2,27 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
-import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import {
-  createStudySession,
-  updateStudySession,
-  submitReview,
-} from '@/app/services/platformApi';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Play, FileText, ArrowLeft, MoreVertical, PanelRightClose, PanelRight,
   Plus, Trash2, Maximize, Minimize, Highlighter, MousePointer2,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+// ── Simple resizable panel shim (replaces react-resizable-panels) ──
+function PanelGroup({ children, className, ...rest }: any) {
+  return <div className={clsx("flex h-full w-full", className)} {...rest}>{children}</div>;
+}
+function Panel({ children, defaultSize, className, ...rest }: any) {
+  return <div className={className} style={{ flex: `${defaultSize ?? 50} 1 0%`, minWidth: 0, overflow: 'hidden' }} {...rest}>{children}</div>;
+}
+function PanelResizeHandle({ children, className, ...rest }: any) {
+  return <div className={className} {...rest}>{children}</div>;
+}
+
 import { SummarySession as SummarySessionWithAnnotations } from '@/app/components/content/SummarySessionNew';
-import { getLessonsForTopic } from '@/app/data/lessonData';
+import { getLessonsForTopic } from '@/app/types/legacy-stubs';
 import { LessonGridView } from '@/app/components/content/LessonGridView';
-import { Lesson } from '@/app/data/courses';
+import type { Lesson } from '@/app/types/legacy-stubs';
 import { Quote, StickyNote, Edit3 } from 'lucide-react';
 
 interface AnnotationBlock {
@@ -379,7 +383,7 @@ function VideoSession({ onBack, topic, courseColor, accentColor, activeLesson }:
           className="flex items-center gap-2 text-white/80 hover:text-white transition-colors py-2 px-3 hover:bg-white/10 rounded-lg"
         >
           <ArrowLeft size={18} />
-          <span className="text-sm font-medium">Voltar</span>
+          <span className="text-sm font-medium">Volver</span>
         </button>
         <span className="text-white font-medium truncate max-w-[60%]">{activeLesson ? `${topic.title} — ${activeLesson.title}` : topic.title}</span>
         <div className="w-[88px]" /> {/* Spacer to balance the header */}
@@ -655,57 +659,9 @@ function VideoSession({ onBack, topic, courseColor, accentColor, activeLesson }:
 }
 
 function FlashcardsSession({ onBack, topic, courseColor, accentColor }: any) {
-    const { recordSessionComplete } = useStudentDataContext();
     const [currentCard, setCurrentCard] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [sessionRatings, setSessionRatings] = useState<number[]>([]);
-
-    // Backend session tracking (fire-and-forget)
-    const backendSessionId = useRef<string | null>(null);
-    const sessionStart = useRef<string>(new Date().toISOString());
-    const cardStartTime = useRef<number>(Date.now());
-
-    // Create real backend session on mount
-    useEffect(() => {
-      (async () => {
-        try {
-          const session = await createStudySession({
-            session_type: 'review',
-            instrument_type: 'flashcard',
-          });
-          backendSessionId.current = session.id;
-          console.log('[FlashcardsSession] Backend session created:', session.id);
-        } catch (err) {
-          console.warn('[FlashcardsSession] Failed to create backend session:', err);
-        }
-      })();
-    }, []);
-
-    // Close backend session + record stats on unmount
-    const closeSession = useCallback(() => {
-      const sessionId = backendSessionId.current;
-      if (!sessionId || sessionRatings.length === 0) return;
-      const correctCount = sessionRatings.filter(r => r >= 4).length;
-      const timeSpentSeconds = Math.round(
-        (Date.now() - new Date(sessionStart.current).getTime()) / 1000
-      );
-
-      // Close backend session (fire-and-forget)
-      updateStudySession(sessionId, {
-        ended_at: new Date().toISOString(),
-        items_reviewed: sessionRatings.length,
-        correct_count: correctCount,
-      }).catch(() => {});
-
-      // Record to daily-activities + student-stats
-      recordSessionComplete({
-        reviewsCount: sessionRatings.length,
-        correctCount,
-        timeSpentSeconds,
-        type: 'flashcard',
-      });
-    }, [sessionRatings, recordSessionComplete]);
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
@@ -733,29 +689,9 @@ function FlashcardsSession({ onBack, topic, courseColor, accentColor }: any) {
     ];
 
     const handleRate = (level: number) => {
-        const responseTimeMs = Date.now() - cardStartTime.current;
-        const card = flashcards[currentCard];
-
-        // Submit review to real backend (fire-and-forget)
-        if (backendSessionId.current && card) {
-          submitReview({
-            session_id: backendSessionId.current,
-            item_id: String(card.id),
-            instrument_type: 'flashcard',
-            subtopic_id: topic?.id || '',
-            keyword_id: String(card.id),
-            grade: Math.max(1, Math.min(4, level)) as 1 | 2 | 3 | 4,
-            response_time_ms: responseTimeMs,
-          }).catch(err => {
-            console.warn('[FlashcardsSession] Review submit failed:', err);
-          });
-        }
-
-        setSessionRatings(prev => [...prev, level]);
         setIsFlipped(false);
         setTimeout(() => {
             setCurrentCard((prev) => (prev + 1) % flashcards.length);
-            cardStartTime.current = Date.now();
         }, 300);
     };
 
@@ -774,7 +710,6 @@ function FlashcardsSession({ onBack, topic, courseColor, accentColor }: any) {
                 <button 
                 onClick={() => {
                     if (isFullscreen) toggleFullscreen();
-                    closeSession();
                     onBack();
                 }}
                 className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors py-2 px-3 hover:bg-gray-50 rounded-lg"

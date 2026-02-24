@@ -1,7 +1,7 @@
 
-  # ORIGINAL INTOCADO (cópia)
+  # session resumen
 
-  This is a code bundle for ORIGINAL INTOCADO (cópia). The original project is available at https://www.figma.com/design/6iEDw69gDbsGLayMrSaUGQ/ORIGINAL-INTOCADO--c%C3%B3pia-.
+  This is a code bundle for session resumen. The original project is available at https://www.figma.com/design/tpctw2F6yCCKW6TMVToPEi/session-resumen.
 
   ## Running the code
 

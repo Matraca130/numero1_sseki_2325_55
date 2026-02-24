@@ -1,15 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
-import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import { useAuth } from '@/app/context/AuthContext';
-import { useStudyPlans } from '@/app/hooks/useStudyPlans';
-import { getFsrsStates, type FsrsStateRecord } from '@/app/services/platformApi';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, Folder, FolderOpen, PlayCircle, BookOpen, Clock, CheckCircle2, Layers, Zap, Brain, CalendarCheck } from 'lucide-react';
+import { ChevronRight, Folder, FolderOpen, PlayCircle, BookOpen, Clock, CheckCircle2, Layers } from 'lucide-react';
 import clsx from 'clsx';
-import { Topic, Section, Semester } from '@/app/data/courses';
-import { getLessonsForTopic } from '@/app/data/lessonData';
+import type { Topic, Section, Semester } from '@/app/types/legacy-stubs';
+import { getLessonsForTopic } from '@/app/types/legacy-stubs';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { headingStyle, components, colors } from '@/app/design-system';
 import { iconBadgeClasses } from '@/app/design-system';
@@ -228,27 +224,7 @@ function SectionCard({ section, currentCourse, currentTopic, onTopicSelect, isEx
 export function StudyHubView() {
   const { currentCourse, currentTopic, setCurrentTopic } = useApp();
   const { navigateTo } = useStudentNav();
-  const { user } = useAuth();
-  const { stats: studentStats, bktStates, isConnected } = useStudentDataContext();
-  const { plans: backendPlans } = useStudyPlans();
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
-  const [pendingReviews, setPendingReviews] = useState(0);
-
-  // Fetch FSRS states to count pending reviews
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const states = await getFsrsStates({ instrument_type: 'flashcard', limit: 500 });
-        if (!cancelled) {
-          const now = new Date();
-          setPendingReviews(states.filter(s => new Date(s.next_review) <= now).length);
-        }
-      } catch { /* ignore */ }
-    })();
-    return () => { cancelled = true; };
-  }, [user?.id]);
 
   const handleTopicSelect = (topic: Topic) => {
     setCurrentTopic(topic);
@@ -258,13 +234,6 @@ export function StudyHubView() {
   const totalSections = currentCourse.semesters.reduce((acc: number, s: Semester) => acc + s.sections.length, 0);
   const totalTopics = currentCourse.semesters.reduce((acc: number, s: Semester) => acc + s.sections.reduce((a: number, sec: Section) => a + sec.topics.length, 0), 0);
 
-  // Real stats for header
-  const activePlans = backendPlans.length;
-  const streakDays = isConnected && studentStats ? studentStats.currentStreak : 0;
-  const avgMastery = isConnected && bktStates.length > 0
-    ? Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100)
-    : 0;
-
   return (
     <div className="h-full overflow-y-auto bg-surface-dashboard">
       {/* ── AXON Page Header ── */}
@@ -272,28 +241,9 @@ export function StudyHubView() {
         title="Plano de Estudos"
         subtitle={currentCourse.name}
         statsLeft={
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span>{totalSections} seções &middot; {totalTopics} tópicos</span>
-            {isConnected && (
-              <>
-                {activePlans > 0 && (
-                  <span className="flex items-center gap-1 text-teal-600">
-                    <CalendarCheck size={13} /> {activePlans} {activePlans === 1 ? 'plano' : 'planos'}
-                  </span>
-                )}
-                {pendingReviews > 0 && (
-                  <span className="flex items-center gap-1 text-amber-600">
-                    <Zap size={13} /> {pendingReviews} revisões
-                  </span>
-                )}
-                {avgMastery > 0 && (
-                  <span className="flex items-center gap-1 text-emerald-600">
-                    <Brain size={13} /> {avgMastery}% domínio
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+          <p className="text-gray-500 text-sm">
+            {totalSections} seções &middot; {totalTopics} tópicos disponíveis
+          </p>
         }
         actionButton={
           <button

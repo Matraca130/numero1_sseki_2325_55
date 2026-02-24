@@ -81,45 +81,40 @@ export async function apiCall<T = any>(
   return json as T;
 }
 
-/**
- * Busca una keyword "General" para el summary dado.
- * Si no existe, la crea. Devuelve siempre el objeto keyword.
- * Esto permite crear Flashcards/Quizzes sin keyword específica.
- */
-export async function ensureGeneralKeyword(
-  summaryId: string,
-  token: string
-): Promise<{ id: string; name: string; summary_id: string }> {
-  // 1. Buscar keywords existentes del summary
-  // Nota: apiCall no acepta params en el objeto de opciones, se debe concatenar al path
-  const keywords = await apiCall(`/keywords?summary_id=${summaryId}`, {
-    method: 'GET',
-    headers: {
-      'X-Access-Token': token
-    }
-  });
+// ── ensureGeneralKeyword ──────────────────────────────────
+// Flashcards and Quiz Questions require keyword_id on POST.
+// This helper ensures a "General" keyword exists for a given
+// summary, creating one if needed. NEVER duplicates.
 
-  // 2. Buscar si ya existe una llamada "General"
-  const existing = Array.isArray(keywords)
-    ? keywords.find(
-        (k: any) => k.name && k.name.toLowerCase() === 'general'
-      )
-    : null;
+export interface GeneralKeyword {
+  id: string;
+  summary_id: string;
+  name: string;
+  definition: string | null;
+  priority: number;
+  is_active: boolean;
+}
 
-  if (existing) return existing;
+export async function ensureGeneralKeyword(summaryId: string): Promise<GeneralKeyword> {
+  // 1) Fetch existing keywords for this summary
+  const result = await apiCall<any>(`/keywords?summary_id=${summaryId}`);
+  const items: any[] = Array.isArray(result) ? result : (result?.items ?? []);
 
-  // 3. Si no existe, crearla — priority DEBE ser INTEGER (1), nunca string
-  const created = await apiCall('/keywords', {
+  // 2) Look for an active "General" keyword
+  const existing = items.find(
+    (k: any) => k.name === 'General' && k.is_active !== false
+  );
+  if (existing) return existing as GeneralKeyword;
+
+  // 3) Create one
+  const created = await apiCall<GeneralKeyword>('/keywords', {
     method: 'POST',
-    headers: {
-      'X-Access-Token': token
-    },
     body: JSON.stringify({
-      name: 'General',
       summary_id: summaryId,
-      priority: 1,
+      name: 'General',
+      definition: 'Contenido general del resumen',
+      priority: 0,
     }),
   });
-
   return created;
 }

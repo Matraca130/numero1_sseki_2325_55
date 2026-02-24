@@ -1,0 +1,7 @@
+node_modules/
+!node_modules/@AxonPlataforma/
+dist/
+.env
+.env.local
+*.log
+package-lock.json

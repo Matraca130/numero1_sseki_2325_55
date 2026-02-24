@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getStudySummary, saveStudySummary } from '@/app/services/studentApi';
 import type { SummaryAnnotation } from '@/app/types/student';
-import type { MasteryLevel } from '@/app/data/keywords';
+import type { MasteryLevel } from '@/app/types/legacy-stubs';
 import type { TextAnnotation } from './useTextAnnotations';
 
 // ── Types ──

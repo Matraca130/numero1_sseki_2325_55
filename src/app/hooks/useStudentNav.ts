@@ -21,6 +21,7 @@ export type ViewType =
   | 'dashboard'
   | 'study-hub'
   | 'study'
+  | 'summaries'
   | 'flashcards'
   | 'quiz'
   | '3d'
@@ -30,9 +31,7 @@ export type ViewType =
   | 'study-dashboards'
   | 'knowledge-heatmap'
   | 'mastery-dashboard'
-  | 'student-data'
-  | 'summaries'
-  | '3d-atlas';
+  | 'student-data';
 
 // ── Mapping helpers ──────────────────────────────────────────
 

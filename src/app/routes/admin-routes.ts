@@ -1,28 +1,68 @@
 // ============================================================
 // Axon — Admin Routes (children of AdminLayout)
 //
-// ADDING A NEW ADMIN PAGE:
-//   1. Create the component in /src/app/components/roles/pages/admin/
-//   2. Import it here
-//   3. Add { path: 'my-slug', Component: MyPage }
-//   That's it — no other files need changes.
-//
-// PARALLEL-SAFE: Only admin-area devs touch this file.
+// PODA v2: ALL pages → PlaceholderPage
 // ============================================================
+import React from 'react';
 import type { RouteObject } from 'react-router';
 
-import { AdminDashboardPage } from '@/app/components/roles/pages/admin/AdminDashboardPage';
-import { AdminMembersPage } from '@/app/components/roles/pages/admin/AdminMembersPage';
-import { AdminContentPage } from '@/app/components/roles/pages/admin/AdminContentPage';
-import { AdminScopesPage } from '@/app/components/roles/pages/admin/AdminScopesPage';
-import { AdminReportsPage } from '@/app/components/roles/pages/admin/AdminReportsPage';
-import { AdminSettingsPage } from '@/app/components/roles/pages/admin/AdminSettingsPage';
+import { PlaceholderPage } from '@/app/components/roles/PlaceholderPage';
+import { LayoutDashboard, Users, BookOpen, Shield, BarChart3, Settings } from 'lucide-react';
+
+function AdminDashboardPlaceholder() {
+  return React.createElement(PlaceholderPage, {
+    title: 'Dashboard Admin',
+    description: 'Panel principal del administrador — próximamente',
+    icon: React.createElement(LayoutDashboard, { size: 24 }),
+    accentColor: 'blue',
+  });
+}
+function AdminMembersPlaceholder() {
+  return React.createElement(PlaceholderPage, {
+    title: 'Miembros',
+    description: 'Gestión de miembros — próximamente',
+    icon: React.createElement(Users, { size: 24 }),
+    accentColor: 'teal',
+  });
+}
+function AdminContentPlaceholder() {
+  return React.createElement(PlaceholderPage, {
+    title: 'Contenido',
+    description: 'Gestión de contenido — próximamente',
+    icon: React.createElement(BookOpen, { size: 24 }),
+    accentColor: 'purple',
+  });
+}
+function AdminScopesPlaceholder() {
+  return React.createElement(PlaceholderPage, {
+    title: 'Scopes',
+    description: 'Gestión de scopes — próximamente',
+    icon: React.createElement(Shield, { size: 24 }),
+    accentColor: 'amber',
+  });
+}
+function AdminReportsPlaceholder() {
+  return React.createElement(PlaceholderPage, {
+    title: 'Reportes',
+    description: 'Reportes y analíticas — próximamente',
+    icon: React.createElement(BarChart3, { size: 24 }),
+    accentColor: 'blue',
+  });
+}
+function AdminSettingsPlaceholder() {
+  return React.createElement(PlaceholderPage, {
+    title: 'Configuración',
+    description: 'Configuración de administración — próximamente',
+    icon: React.createElement(Settings, { size: 24 }),
+    accentColor: 'teal',
+  });
+}
 
 export const adminChildren: RouteObject[] = [
-  { index: true,      Component: AdminDashboardPage },
-  { path: 'members',  Component: AdminMembersPage },
-  { path: 'content',  Component: AdminContentPage },
-  { path: 'scopes',   Component: AdminScopesPage },
-  { path: 'reports',  Component: AdminReportsPage },
-  { path: 'settings', Component: AdminSettingsPage },
+  { index: true,      Component: AdminDashboardPlaceholder },
+  { path: 'members',  Component: AdminMembersPlaceholder },
+  { path: 'content',  Component: AdminContentPlaceholder },
+  { path: 'scopes',   Component: AdminScopesPlaceholder },
+  { path: 'reports',  Component: AdminReportsPlaceholder },
+  { path: 'settings', Component: AdminSettingsPlaceholder },
 ];

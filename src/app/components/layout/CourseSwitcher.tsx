@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '@/app/context/AppContext';
-import { courses } from '@/app/data/courses';
+import { courses } from '@/app/types/legacy-stubs';
 import { components, animation } from '@/app/design-system';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, BookOpen } from 'lucide-react';
