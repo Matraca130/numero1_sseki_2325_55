@@ -13,6 +13,10 @@
 //   6. When done → QuizResults
 //
 // Design: teal accent (matching existing QuizView), motion animations
+//
+// FIX RT-001 (2025-02-27):
+//   - completed_at (not ended_at)
+//   - removed duration_seconds
 // ============================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -163,7 +167,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     setQuestionStartTime(Date.now());
   }, [currentIdx]);
 
-  // ── Computed ────────────────────────────────────────────
+  // ── Computed ────────────────────────────────────────────────
   const correctCount = Object.values(savedAnswers).filter(a => a.answered && a.correct).length;
   const wrongCount = Object.values(savedAnswers).filter(a => a.answered && !a.correct).length;
   const answeredCount = Object.values(savedAnswers).filter(a => a.answered).length;
@@ -197,7 +201,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     }
   };
 
-  // ── Submit answer ───────────────────────────────────────
+  // ── Submit answer ───────────────────────────────────────────
   const submitAnswer = async (answer: string, optionText: string | null) => {
     if (submitting) return;
     const currentQ = questions[currentIdx];
@@ -260,7 +264,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     submitAnswer(liveTextInput.trim(), null);
   };
 
-  // ── Navigation ──────────────────────────────────────────
+  // ── Navigation ──────────────────────────────────────────────
   const goToQuestion = (idx: number, dir: 'forward' | 'back') => {
     setNavDirection(dir);
     setCurrentIdx(idx);
@@ -288,18 +292,16 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     if (currentIdx > 0) goToQuestion(currentIdx - 1, 'back');
   };
 
-  // ── Finish quiz ─────────────────────────────────────────
+  // ── Finish quiz ─────────────────────────────────────────────
   const finishQuiz = async () => {
     setClosingSession(true);
     const totalCorrect = Object.values(savedAnswers).filter(a => a.answered && a.correct).length;
     const totalReviews = Object.values(savedAnswers).filter(a => a.answered).length;
-    const durationSec = Math.round((Date.now() - sessionStartTime) / 1000);
 
     if (sessionId) {
       try {
         await quizApi.closeStudySession(sessionId, {
-          ended_at: new Date().toISOString(),
-          duration_seconds: durationSec,
+          completed_at: new Date().toISOString(),
           total_reviews: totalReviews,
           correct_reviews: totalCorrect,
         });
@@ -311,7 +313,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     setPhase('results');
   };
 
-  // ── Restart ─────────────────────────────────────────────
+  // ── Restart ───────────────────────────────────────────────
   const handleRestart = () => {
     setSavedAnswers({});
     setCurrentIdx(0);
@@ -326,7 +328,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
       .catch(err => console.error('[QuizTaker] New session error:', err));
   };
 
-  // ── PHASE: loading ──────────────────────────────────────
+  // ── PHASE: loading ──────────────────────────────────────────
   if (phase === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -336,7 +338,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     );
   }
 
-  // ── PHASE: error ────────────────────────────────────────
+  // ── PHASE: error ────────────────────────────────────────────
   if (phase === 'error') {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
@@ -358,7 +360,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     );
   }
 
-  // ── PHASE: results ──────────────────────────────────────
+  // ── PHASE: results ──────────────────────────────────────────
   if (phase === 'results') {
     return (
       <QuizResults
@@ -372,7 +374,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
     );
   }
 
-  // ── PHASE: session ──────────────────────────────────────
+  // ── PHASE: session ──────────────────────────────────────────
   const currentQ = questions[currentIdx];
   if (!currentQ) return null;
 
@@ -719,7 +721,7 @@ export function QuizTaker({ quizId, quizTitle, onBack, onComplete }: QuizTakerPr
   );
 }
 
-// ── Feedback Block ────────────────────────────────────────
+// ── Feedback Block ──────────────────────────────────────────
 
 function FeedbackBlock({
   correct,
@@ -766,7 +768,7 @@ function FeedbackBlock({
   );
 }
 
-// ── Timer Display ─────────────────────────────────────────
+// ── Timer Display ───────────────────────────────────────────
 
 function TimerDisplay({ startTime, paused }: { startTime: number; paused: boolean }) {
   const [elapsed, setElapsed] = useState(0);
