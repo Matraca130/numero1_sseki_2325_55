@@ -16,7 +16,7 @@ import type { TreeCourse } from '@/app/services/contentTreeApi';
 import { FlashcardsManager } from '@/app/components/content/FlashcardsManager';
 import {
   CreditCard, BookOpen, Layers, GraduationCap,
-  Loader2, FileText,
+  Loader2, FileText, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 // ── Helper: breadcrumb path for a topic ──────────────────
@@ -313,6 +313,9 @@ export function ProfessorFlashcardsPage() {
   const [selectedTopicName, setSelectedTopicName] = useState<string>('');
   const [selectedSummary, setSelectedSummary] = useState<Summary | null>(null);
 
+  // Collapsible tree panel
+  const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
+
   // ── Handlers ────────────────────────────────────────────
   const handleSelectTopic = (topicId: string, topicName: string) => {
     setSelectedTopicId(topicId);
@@ -330,32 +333,49 @@ export function ProfessorFlashcardsPage() {
   return (
     <div className="flex h-full overflow-hidden">
       {/* ══════ LEFT PANEL — Content Tree ══════ */}
-      <div className="w-[280px] shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
+      <div className={`${isTreeCollapsed ? 'w-[52px]' : 'w-[280px]'} shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden transition-all duration-300`}>
         {/* Panel header */}
         <div className="px-4 py-3 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-              <Layers size={14} className="text-purple-500" />
-            </div>
-            <div>
-              <h3 className="text-[13px] font-bold text-gray-900">Arbol de Contenido</h3>
-              <p className="text-[10px] text-gray-400">Selecciona un topico</p>
-            </div>
+            <button
+              onClick={() => setIsTreeCollapsed(!isTreeCollapsed)}
+              className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center hover:bg-purple-100 transition-colors cursor-pointer shrink-0"
+              title={isTreeCollapsed ? 'Expandir panel' : 'Colapsar panel'}
+            >
+              {isTreeCollapsed ? <ChevronRight size={14} className="text-purple-500" /> : <Layers size={14} className="text-purple-500" />}
+            </button>
+            {!isTreeCollapsed && (
+              <div className="flex-1 flex items-center justify-between min-w-0">
+                <div>
+                  <h3 className="text-[13px] font-bold text-gray-900">Arbol de Contenido</h3>
+                  <p className="text-[10px] text-gray-400">Selecciona un topico</p>
+                </div>
+                <button
+                  onClick={() => setIsTreeCollapsed(true)}
+                  className="p-1 rounded-md text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+                  title="Colapsar panel"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Tree */}
-        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar-light">
-          <CascadeNavigator
-            selectedTopicId={selectedTopicId}
-            selectedSummaryId={selectedSummary?.id || null}
-            onSelectTopic={handleSelectTopic}
-            onSelectSummary={handleSelectSummary}
-            institutionId={institutionId}
-            tree={tree}
-            treeLoading={treeLoading}
-          />
-        </div>
+        {!isTreeCollapsed && (
+          <div className="flex-1 overflow-y-auto p-2 custom-scrollbar-light">
+            <CascadeNavigator
+              selectedTopicId={selectedTopicId}
+              selectedSummaryId={selectedSummary?.id || null}
+              onSelectTopic={handleSelectTopic}
+              onSelectSummary={handleSelectSummary}
+              institutionId={institutionId}
+              tree={tree}
+              treeLoading={treeLoading}
+            />
+          </div>
+        )}
       </div>
 
       {/* ══════ RIGHT PANEL — Flashcard Management ══════ */}

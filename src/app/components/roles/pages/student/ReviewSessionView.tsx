@@ -551,6 +551,8 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
               <FlashcardCard
                 front={currentItem.card.front}
                 back={currentItem.card.back}
+                frontImageUrl={currentItem.card.front_image_url}
+                backImageUrl={currentItem.card.back_image_url}
                 keywordName={null}
                 isFlipped={isFlipped}
                 onFlip={() => { if (!isFlipped) setIsFlipped(true); }}

@@ -54,7 +54,7 @@ export function TopicSidebar() {
     selectTopic(topicId);
     // Also set in AppContext for backward compat with StudyView
     setCurrentTopic({ id: topicId, title: topicName } as any);
-    navigateTo('summaries');
+    navigateTo('study');
   };
 
   // Loading state
@@ -77,11 +77,11 @@ export function TopicSidebar() {
             className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-teal-700 hover:text-teal-800 hover:bg-teal-50 transition-colors group"
           >
             <ArrowLeft className="w-5 h-5 text-teal-500 group-hover:text-teal-700 transition-colors" />
-            <span className="text-sm" style={headingStyle}>Volver a los temas</span>
+            <span className="text-sm" style={headingStyle}>Voltar aos temas</span>
           </button>
         </div>
         <div className="flex-1 flex items-center justify-center px-4">
-          <p className="text-xs text-gray-400 text-center">No hay contenido disponible</p>
+          <p className="text-xs text-gray-400 text-center">Nenhum conteudo disponivel</p>
         </div>
       </div>
     );
@@ -98,7 +98,7 @@ export function TopicSidebar() {
           className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-teal-700 hover:text-teal-800 hover:bg-teal-50 transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 text-teal-500 group-hover:text-teal-700 transition-colors" />
-          <span className="text-sm" style={headingStyle}>Volver a los temas</span>
+          <span className="text-sm" style={headingStyle}>Voltar aos temas</span>
         </button>
       </div>
 

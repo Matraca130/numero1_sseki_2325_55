@@ -4,7 +4,6 @@
 import React from 'react';
 import { RoleShell, type NavItemConfig } from './RoleShell';
 import { PlatformDataProvider } from '@/app/context/PlatformDataContext';
-import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   ShieldCheck, Key, Settings, BarChart3, Crown,
@@ -24,15 +23,13 @@ const NAV_ITEMS: NavItemConfig[] = [
 export function OwnerLayout() {
   return (
     <PlatformDataProvider>
-      <ContentTreeProvider>
-        <RoleShell
-          role="owner"
-          roleLabel="Propietario"
-          roleIcon={<Crown size={16} />}
-          accentColor="amber"
-          navItems={NAV_ITEMS}
-        />
-      </ContentTreeProvider>
+      <RoleShell
+        role="owner"
+        roleLabel="Propietario"
+        roleIcon={<Crown size={16} />}
+        accentColor="amber"
+        navItems={NAV_ITEMS}
+      />
     </PlatformDataProvider>
   );
 }

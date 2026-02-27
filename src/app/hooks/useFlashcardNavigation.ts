@@ -29,7 +29,9 @@ function mapApiCard(card: any): Flashcard {
     summary_id: card.summary_id,
     keyword_id: card.keyword_id,
     source: card.source,
-    image: undefined,
+    image: card.front_image_url || card.back_image_url || undefined,
+    frontImageUrl: card.front_image_url || null,
+    backImageUrl: card.back_image_url || null,
   };
 }
 

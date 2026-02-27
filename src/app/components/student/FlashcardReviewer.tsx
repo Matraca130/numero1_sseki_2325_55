@@ -7,6 +7,12 @@
 // 3. Flip cards, grade 1-4, submit reviews
 // 4. Close session with stats
 //
+// Supports all 6 card types (text, text_image, image_text,
+// image_image, text_both, cloze).
+// Cloze cards: grade after all blanks revealed (not after flip).
+// Image preloading for next card.
+// Stats breakdown by card type.
+//
 // States: idle → reviewing → finished
 // Used in SummaryView (EV-2) or standalone.
 // Backend: FLAT routes via studySessionApi + flashcardApi.
@@ -18,13 +24,16 @@ import * as flashcardApi from '@/app/services/flashcardApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 import type { Keyword } from '@/app/types/platform';
-import { FlashcardCard } from './FlashcardCard';
+import { FlashcardCard, detectCardType } from './FlashcardCard';
+import type { CardType } from './FlashcardCard';
+import { FlashcardImageZoom } from './FlashcardImageZoom';
 import { computeFsrsUpdate, getInitialFsrsState } from '@/app/lib/fsrs-engine';
 import type { FsrsState } from '@/app/lib/fsrs-engine';
 import { updateBKT } from '@/app/lib/bkt-engine';
 import {
   CreditCard, Play, Loader2, X, RotateCcw,
-  Trophy, BarChart3, ChevronRight,
+  Trophy, BarChart3, ChevronRight, Type, Image as ImageIcon,
+  TextCursorInput,
 } from 'lucide-react';
 
 // ── Grade definitions ─────────────────────────────────────
@@ -63,6 +72,51 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
   const [grades, setGrades] = useState<number[]>([]);
   const [submittingGrade, setSubmittingGrade] = useState(false);
   const sessionStartRef = useRef<Date | null>(null);
+
+  // ── Image zoom state ────────────────────────────────────
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+
+  // ── Cloze state ───────────────────────��─────────────────
+  const [clozeReady, setClozeReady] = useState(false);
+
+  // ── Current card (must be before currentCardType) ───────
+  const currentCard = flashcards[currentIndex] || null;
+  const totalCards = flashcards.length;
+  const reviewedCount = grades.length;
+
+  // ── Current card type helper ────────────────────────────
+  const currentCardType = useMemo(() => {
+    if (!currentCard) return 'text' as CardType;
+    return detectCardType(currentCard.front, currentCard.back);
+  }, [currentCard]);
+
+  const isClozeCard = currentCardType === 'cloze';
+
+  // ── Reset cloze state on card change ────────────────────
+  useEffect(() => {
+    setClozeReady(false);
+  }, [currentIndex]);
+
+  // ── Image preloading for next card ──────────────────────
+  useEffect(() => {
+    if (phase !== 'reviewing') return;
+    const nextCard = flashcards[currentIndex + 1];
+    if (!nextCard) return;
+    // Preload images from next card
+    const urls: string[] = [];
+    // Explicit image URLs from backend columns
+    if (nextCard.front_image_url) urls.push(nextCard.front_image_url);
+    if (nextCard.back_image_url) urls.push(nextCard.back_image_url);
+    // Content-embedded images
+    const imgRegex = /!\[img\]\(([^)]+)\)/g;
+    let match;
+    while ((match = imgRegex.exec(nextCard.front)) !== null) urls.push(match[1]);
+    while ((match = imgRegex.exec(nextCard.back)) !== null) urls.push(match[1]);
+    for (const url of urls) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, [phase, currentIndex, flashcards]);
 
   // ── FSRS/BKT tracking (non-blocking) ───────────────────
   const handleTrackingUpdate = useCallback(async (
@@ -151,11 +205,6 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     return map;
   }, [keywords]);
 
-  // ── Current card ────────────────────────────────────────
-  const currentCard = flashcards[currentIndex] || null;
-  const totalCards = flashcards.length;
-  const reviewedCount = grades.length;
-
   // ── Start session ───────────────────────────────────────
   const startReview = useCallback(async () => {
     try {
@@ -228,12 +277,34 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') {
+      // Don't handle if zoom modal is open
+      if (zoomImageUrl) return;
+
+      // Space: flip card (non-cloze) or reveal all (cloze)
+      if (e.key === ' ') {
         e.preventDefault();
         if (!isFlipped) {
           setIsFlipped(true);
         }
       }
+
+      // Enter: for non-cloze, flip; for cloze, handled by ClozeInteraction
+      if (e.key === 'Enter' && !isClozeCard) {
+        e.preventDefault();
+        if (!isFlipped) {
+          setIsFlipped(true);
+        }
+      }
+
+      // Tab: for cloze cards, reveal all blanks (triggers clozeComplete → flip)
+      if (e.key === 'Tab' && isClozeCard && !isFlipped) {
+        e.preventDefault();
+        // ClozeInteraction handles its own reveal-all via the button
+        // We trigger flip + clozeReady as a shortcut
+        setClozeReady(true);
+        setIsFlipped(true);
+      }
+
       // Number keys 1-4 for grading (only when flipped)
       if (isFlipped && !submittingGrade) {
         const num = parseInt(e.key);
@@ -242,10 +313,23 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
           handleGrade(num);
         }
       }
+
+      // Z: zoom current card's image (if it has one)
+      if (e.key === 'z' || e.key === 'Z') {
+        if (currentCard) {
+          const imgRegex = /!\[img\]\(([^)]+)\)/;
+          const side = isFlipped ? currentCard.back : currentCard.front;
+          const match = side.match(imgRegex);
+          if (match) {
+            e.preventDefault();
+            setZoomImageUrl(match[1]);
+          }
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [phase, isFlipped, submittingGrade, handleGrade]);
+  }, [phase, isFlipped, submittingGrade, handleGrade, zoomImageUrl, isClozeCard, currentCard]);
 
   // ── Restart ─────────────────────────────────────────────
   const restartReview = useCallback(() => {
@@ -270,6 +354,27 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     if (grades.length === 0) return 0;
     return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100);
   }, [grades]);
+
+  // ── Card type distribution ─────────────────────────────
+  const cardTypeDistribution = useMemo(() => {
+    const dist: { [key in CardType]: number } = {
+      text: 0,
+      text_image: 0,
+      image_text: 0,
+      image_image: 0,
+      text_both: 0,
+      cloze: 0,
+    };
+    for (const card of flashcards) {
+      const type = detectCardType(card.front, card.back);
+      if (type in dist) {
+        dist[type]++;
+      }
+    }
+    return dist;
+  }, [flashcards]);
+
+  const totalCardTypes = Object.values(cardTypeDistribution).reduce((sum, count) => sum + count, 0);
 
   // ── Loading ─────────────────────────────────────────────
   if (loading) {
@@ -397,10 +502,17 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
               <FlashcardCard
                 front={currentCard.front}
                 back={currentCard.back}
+                frontImageUrl={currentCard.front_image_url}
+                backImageUrl={currentCard.back_image_url}
                 keywordName={keywordMap.get(currentCard.keyword_id) || null}
                 isFlipped={isFlipped}
                 onFlip={() => {
                   if (!isFlipped) setIsFlipped(true);
+                }}
+                onImageZoom={(url) => setZoomImageUrl(url)}
+                onClozeComplete={() => {
+                  setClozeReady(true);
+                  setIsFlipped(true);
                 }}
               />
             </motion.div>
@@ -441,6 +553,12 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
             </div>
           )}
         </div>
+
+        {/* ── Image Zoom Modal ── */}
+        <FlashcardImageZoom
+          imageUrl={zoomImageUrl}
+          onClose={() => setZoomImageUrl(null)}
+        />
       </div>
     );
   }
@@ -544,6 +662,54 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
                 </span>
               </div>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Card type distribution bar chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="w-full max-w-sm bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-5 mb-8"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 size={14} className="text-zinc-400" />
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              Por tipo de tarjeta
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {([
+              { type: 'text' as CardType, label: 'Texto', color: 'bg-violet-500', icon: <Type size={12} /> },
+              { type: 'text_image' as CardType, label: 'Txt→Img', color: 'bg-indigo-500', icon: <Type size={12} /> },
+              { type: 'image_text' as CardType, label: 'Img→Txt', color: 'bg-sky-500', icon: <ImageIcon size={12} /> },
+              { type: 'image_image' as CardType, label: 'Img→Img', color: 'bg-teal-500', icon: <ImageIcon size={12} /> },
+              { type: 'text_both' as CardType, label: 'Mixto', color: 'bg-purple-500', icon: <Type size={12} /> },
+              { type: 'cloze' as CardType, label: 'Cloze', color: 'bg-cyan-500', icon: <TextCursorInput size={12} /> },
+            ])
+              .filter(item => cardTypeDistribution[item.type] > 0)
+              .map((item, idx) => {
+                const count = cardTypeDistribution[item.type];
+                return (
+                  <div key={item.type} className="flex items-center gap-3">
+                    <span className="text-xs text-zinc-400 w-16 shrink-0 flex items-center gap-1">
+                      {item.icon}
+                      {item.label}
+                    </span>
+                    <div className="flex-1 h-5 bg-zinc-800 rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full rounded-full ${item.color}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(count / Math.max(totalCardTypes, 1)) * 100}%` }}
+                        transition={{ duration: 0.5, delay: 0.5 + idx * 0.1 }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-300 w-6 text-right">
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         </motion.div>
 

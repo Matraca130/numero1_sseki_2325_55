@@ -21,7 +21,6 @@ export type ViewType =
   | 'dashboard'
   | 'study-hub'
   | 'study'
-  | 'summaries'
   | 'flashcards'
   | 'quiz'
   | '3d'

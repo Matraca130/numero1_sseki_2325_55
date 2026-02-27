@@ -20,17 +20,8 @@ import {
   KeywordData,
   MasteryLevel,
   masteryConfig,
-} from '@/app/types/legacy-stubs';
+} from '@/app/types/keywords';
 import { AIQuestionItem } from '@/app/components/shared/AIQuestionItem';
-
-// ── Extended mastery display config (safe accessor) ──────────
-const masteryDisplay: Record<string, { underlineClass: string; bgLight: string; headerBg: string; bgDot: string }> = {
-  none:      { underlineClass: 'decoration-gray-300', bgLight: 'bg-gray-50', headerBg: 'bg-gray-50', bgDot: 'bg-gray-400' },
-  seen:      { underlineClass: 'decoration-blue-300', bgLight: 'bg-blue-50', headerBg: 'bg-blue-50', bgDot: 'bg-blue-400' },
-  learning:  { underlineClass: 'decoration-amber-300', bgLight: 'bg-amber-50', headerBg: 'bg-amber-50', bgDot: 'bg-amber-400' },
-  familiar:  { underlineClass: 'decoration-teal-300', bgLight: 'bg-teal-50', headerBg: 'bg-teal-50', bgDot: 'bg-teal-400' },
-  mastered:  { underlineClass: 'decoration-green-300', bgLight: 'bg-green-50', headerBg: 'bg-green-50', bgDot: 'bg-green-400' },
-};
 
 // ─── Editable Keyword (Pop-up de Palavra-chave) ─────────────────────────────
 //
@@ -71,7 +62,6 @@ export function EditableKeyword({
   const popupRef = useRef<HTMLDivElement>(null);
 
   const config = masteryConfig[mastery];
-  const display = masteryDisplay[mastery] || masteryDisplay.none;
 
   const toggleSection = (key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -180,8 +170,8 @@ export function EditableKeyword({
         className={clsx(
           "cursor-pointer underline underline-offset-[3px] decoration-2 transition-all duration-200",
           config.textColor,
-          display.underlineClass,
-          isOpen && `${display.bgLight} rounded px-0.5 -mx-0.5`
+          config.underlineClass,
+          isOpen && `${config.bgLight} rounded px-0.5 -mx-0.5`
         )}
       >
         {keywordData.term}
@@ -205,16 +195,16 @@ export function EditableKeyword({
               }}
             >
               {/* ── Header ── */}
-              <div className={clsx("px-5 pt-4 pb-3 border-b", config.borderColor, display.headerBg)}>
+              <div className={clsx("px-5 pt-4 pb-3 border-b", config.borderColor, config.headerBg)}>
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-center gap-2.5">
-                    <span className={clsx("w-3.5 h-3.5 rounded-full ring-2 ring-white shadow-sm", display.bgDot)} />
+                    <span className={clsx("w-3.5 h-3.5 rounded-full ring-2 ring-white shadow-sm", config.bgDot)} />
                     <h3 className="font-bold text-gray-900 uppercase tracking-wide text-base">
                       {keywordData.term}
                     </h3>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    {keywordData.model3d && (
+                    {keywordData.has3DModel && (
                       <button
                         onClick={() => {
                           setIsOpen(false);
@@ -229,9 +219,9 @@ export function EditableKeyword({
                     )}
                     <div className={clsx(
                       "flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium",
-                      display.bgLight, config.textColor, config.borderColor, "border"
+                      config.bgLight, config.textColor, config.borderColor, "border"
                     )}>
-                      <span className={clsx("w-1.5 h-1.5 rounded-full", display.bgDot)} />
+                      <span className={clsx("w-1.5 h-1.5 rounded-full", config.bgDot)} />
                       {mastery === 'green' ? 'Dominado' : mastery === 'yellow' ? 'Parcial' : 'Nao dominado'}
                     </div>
                     <button
@@ -376,7 +366,7 @@ export function EditableKeyword({
                           Perguntas Mais Feitas
                         </span>
                         <span className="text-[9px] text-blue-400 bg-blue-100/60 px-1.5 py-0.5 rounded-full font-medium">
-                          {keywordData.aiQuestions?.length ?? 0}
+                          {keywordData.aiQuestions.length}
                         </span>
                       </button>
                       <AnimatePresence>
@@ -390,7 +380,7 @@ export function EditableKeyword({
                           >
                             <div className="px-3.5 pb-3.5 pl-[42px]">
                               <div className="pt-2 border-t border-blue-100/30 space-y-2">
-                                {(keywordData.aiQuestions ?? []).map((q, i) => (
+                                {keywordData.aiQuestions.map((q, i) => (
                                   <AIQuestionItem key={i} question={q} />
                                 ))}
                               </div>

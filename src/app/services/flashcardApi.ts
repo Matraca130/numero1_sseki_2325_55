@@ -21,6 +21,8 @@ export interface FlashcardItem {
   subtopic_id?: string | null;
   front: string;
   back: string;
+  front_image_url?: string | null;
+  back_image_url?: string | null;
   source: 'ai' | 'manual' | 'imported';
   is_active: boolean;
   deleted_at: string | null;
@@ -66,6 +68,8 @@ export async function createFlashcard(data: {
   front: string;
   back: string;
   source?: 'manual' | 'ai';
+  front_image_url?: string | null;
+  back_image_url?: string | null;
 }): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>('/flashcards', {
     method: 'POST',
@@ -77,7 +81,7 @@ export async function createFlashcard(data: {
 
 export async function updateFlashcard(
   id: string,
-  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean }
+  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean; keyword_id?: string; front_image_url?: string | null; back_image_url?: string | null }
 ): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`, {
     method: 'PUT',

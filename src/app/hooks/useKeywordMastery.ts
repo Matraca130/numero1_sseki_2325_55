@@ -1,47 +1,81 @@
 // ============================================================
-// useKeywordMastery — Stub (original deleted during poda)
-//
-// Returns no-op functions so SummarySessionNew compiles.
-// TODO: Re-implement when keyword mastery feature is built
-//       against the real backend.
+// useKeywordMastery — Keyword mastery levels + personal notes
+// Reusable: not tied to SummarySession specifically
 // ============================================================
 
 import { useState, useCallback } from 'react';
-import type { MasteryLevel, KeywordData } from '@/app/types/legacy-stubs';
+import {
+  KeywordData,
+  MasteryLevel,
+  masteryConfig,
+  findKeyword,
+  getAllKeywordTerms,
+} from '@/app/types/keywords';
 
-export interface KeywordMasteryState {
-  keywordMastery: Record<string, MasteryLevel>;
-  setKeywordMastery: (km: Record<string, MasteryLevel>) => void;
-  updateMastery: (term: string, level: MasteryLevel) => void;
-  getMastery: (term: string) => MasteryLevel;
-  getAnnotationStats: () => { total: number; mastered: number; learning: number; seen: number; none: number };
-  getAnnotatedKeywords: () => KeywordData[];
+export type { KeywordData, MasteryLevel };
+export { masteryConfig };
+
+export interface AnnotatedKeyword {
+  keyword: KeywordData;
+  mastery: MasteryLevel;
+  notes: string[];
 }
 
-export function useKeywordMastery(): KeywordMasteryState {
-  const [keywordMastery, setKeywordMastery] = useState<Record<string, MasteryLevel>>({});
+export interface KeywordStats {
+  red: number;
+  yellow: number;
+  green: number;
+  total: number;
+}
 
-  const updateMastery = useCallback((term: string, level: MasteryLevel) => {
+export function useKeywordMastery() {
+  const [keywordMastery, setKeywordMastery] = useState<Record<string, MasteryLevel>>({});
+  const [personalNotes, setPersonalNotes] = useState<Record<string, string[]>>({});
+
+  const handleMasteryChange = useCallback((term: string, level: MasteryLevel) => {
     setKeywordMastery(prev => ({ ...prev, [term]: level }));
   }, []);
 
-  const getMastery = useCallback((term: string): MasteryLevel => {
-    return keywordMastery[term] || 'none';
+  const handleUpdateNotes = useCallback((term: string, notes: string[]) => {
+    setPersonalNotes(prev => ({ ...prev, [term]: notes }));
+  }, []);
+
+  const getAnnotationStats = useCallback((): KeywordStats => {
+    const allTerms = getAllKeywordTerms();
+    let red = 0, yellow = 0, green = 0;
+    allTerms.forEach(term => {
+      const kw = findKeyword(term);
+      if (!kw) return;
+      const level = keywordMastery[kw.term] || kw.masteryLevel;
+      if (level === 'red') red++;
+      else if (level === 'yellow') yellow++;
+      else green++;
+    });
+    return { red, yellow, green, total: allTerms.length };
   }, [keywordMastery]);
 
-  const getAnnotationStats = useCallback(() => {
-    return { total: 0, mastered: 0, learning: 0, seen: 0, none: 0 };
-  }, []);
-
-  const getAnnotatedKeywords = useCallback((): KeywordData[] => {
-    return [];
-  }, []);
+  const getAnnotatedKeywords = useCallback((): AnnotatedKeyword[] => {
+    const allTerms = getAllKeywordTerms();
+    return allTerms
+      .map(term => {
+        const kw = findKeyword(term)!;
+        const level = keywordMastery[kw.term] || kw.masteryLevel;
+        const notes = personalNotes[kw.term] || [];
+        return { keyword: kw, mastery: level, notes };
+      })
+      .sort((a, b) => {
+        const order: Record<MasteryLevel, number> = { red: 0, yellow: 1, green: 2 };
+        return order[a.mastery] - order[b.mastery];
+      });
+  }, [keywordMastery, personalNotes]);
 
   return {
     keywordMastery,
-    setKeywordMastery,
-    updateMastery,
-    getMastery,
+    setKeywordMastery,       // for persistence restore
+    personalNotes,
+    setPersonalNotes,        // for persistence restore
+    handleMasteryChange,
+    handleUpdateNotes,
     getAnnotationStats,
     getAnnotatedKeywords,
   };

@@ -33,17 +33,17 @@ export function Sidebar() {
   const navItems: NavItem[] = [
     { id: 'home', label: 'Inicio', icon: Home },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'study-hub', label: 'Estudiar', icon: BookOpen, also: ['study', 'summaries'] },
+    { id: 'study-hub', label: 'Estudar', icon: BookOpen, also: ['study'] },
     { id: 'schedule', label: 'Cronograma', icon: Calendar },
     { id: 'flashcards', label: 'Flashcards', icon: Layers },
     { id: '3d', label: 'Atlas 3D', icon: Box },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
-    { id: 'student-data', label: 'Mis Datos', icon: Database },
+    { id: 'student-data', label: 'Meus Dados', icon: Database },
   ];
 
   const secondaryItems: NavItem[] = [
-    { id: 'home' as ViewType, label: 'Comunidad', icon: Users },
-    { id: 'home' as ViewType, label: 'Configuracion', icon: Settings },
+    { id: 'home' as ViewType, label: 'Comunidade', icon: Users },
+    { id: 'home' as ViewType, label: 'Configuracoes', icon: Settings },
   ];
 
   return (
@@ -82,7 +82,7 @@ export function Sidebar() {
                   return clsx(
                     components.sidebar.navItem.base,
                     active
-                      ? clsx(components.sidebar.navItem.active, currentCourse.accentColor || '')
+                      ? clsx(components.sidebar.navItem.active, currentCourse.accentColor.replace('text-', 'text-'))
                       : components.sidebar.navItem.inactive
                   );
                 }}
@@ -113,7 +113,7 @@ export function Sidebar() {
 
         {/* Secondary Navigation */}
         <div className="space-y-1">
-          <p className={components.sidebar.sectionLabel}>Otros</p>
+          <p className={components.sidebar.sectionLabel}>Outros</p>
           {secondaryItems.map((item, idx) => {
             const Icon = item.icon;
             return (

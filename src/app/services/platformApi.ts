@@ -36,19 +36,6 @@ export { ApiError as PlatformApiError } from '@/app/services/apiConfig';
 // Use centralized request helper
 const request = realRequest;
 
-// ── CRUD factory response unwrapper ───────────────────────
-// Backend list endpoints using CRUD factory return:
-//   { data: { items: [...], total: N, limit: N, offset: N } }
-// After realRequest unwraps { data: X }, we get X = { items, ... }.
-// This helper safely extracts the array from either format.
-function extractItems<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && typeof result === 'object' && 'items' in result) {
-    return (result as { items: T[] }).items;
-  }
-  return [];
-}
-
 // ============================================================
 // INSTITUTIONS
 // ============================================================
@@ -141,52 +128,43 @@ export async function deleteInstitution(instId: UUID): Promise<{ id: UUID; is_ac
 }
 
 // ============================================================
-// MEMBERS (Memberships — flat routes per backend spec)
-// GET    /memberships?institution_id=xxx → { data: [...] }
-// GET    /memberships/:id               → { data: { ... } }
-// POST   /memberships { user_id|email, institution_id, role, institution_plan_id? }
-// PUT    /memberships/:id { role?, institution_plan_id?, is_active? }
-// DELETE /memberships/:id               → soft-deactivate
+// MEMBERS
 // ============================================================
 
 export async function getMembers(institutionId: UUID): Promise<MemberListItem[]> {
   return request<MemberListItem[]>(`/memberships?institution_id=${institutionId}`);
 }
 
-export async function getMember(memberId: UUID): Promise<MemberListItem> {
-  return request<MemberListItem>(`/memberships/${memberId}`);
-}
-
 export async function createMember(data: CreateMemberPayload): Promise<MemberListItem> {
-  return request<MemberListItem>('/memberships', {
+  return request<MemberListItem>('/members', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function changeMemberRole(memberId: UUID, role: MembershipRole): Promise<MemberListItem> {
-  return request<MemberListItem>(`/memberships/${memberId}`, {
-    method: 'PUT',
+  return request<MemberListItem>(`/members/${memberId}/role`, {
+    method: 'PATCH',
     body: JSON.stringify({ role }),
   });
 }
 
 export async function changeMemberPlan(memberId: UUID, institutionPlanId: UUID | null): Promise<MemberListItem> {
-  return request<MemberListItem>(`/memberships/${memberId}`, {
-    method: 'PUT',
+  return request<MemberListItem>(`/members/${memberId}/plan`, {
+    method: 'PATCH',
     body: JSON.stringify({ institution_plan_id: institutionPlanId }),
   });
 }
 
 export async function toggleMemberActive(memberId: UUID, isActive: boolean): Promise<MemberListItem> {
-  return request<MemberListItem>(`/memberships/${memberId}`, {
-    method: 'PUT',
+  return request<MemberListItem>(`/members/${memberId}/toggle-active`, {
+    method: 'PATCH',
     body: JSON.stringify({ is_active: isActive }),
   });
 }
 
-export async function deleteMember(memberId: UUID): Promise<{ id: UUID; is_active: boolean }> {
-  return request(`/memberships/${memberId}`, { method: 'DELETE' });
+export async function deleteMember(memberId: UUID): Promise<{ id: UUID; deleted: boolean }> {
+  return request(`/members/${memberId}`, { method: 'DELETE' });
 }
 
 // ============================================================
@@ -222,18 +200,13 @@ export async function deletePlatformPlan(id: UUID): Promise<{ id: UUID; is_activ
 
 // ============================================================
 // INSTITUTION PLANS (institutions sell to students)
-// GET  /institution-plans?institution_id=xxx → { data: { items: [...] } }
-// POST /institution-plans { institution_id, name, ... }
-// PUT  /institution-plans/:id { name?, ... }
-// DELETE /institution-plans/:id
 // ============================================================
 
 export async function getInstitutionPlans(instId: UUID, includeInactive = false): Promise<InstitutionPlan[]> {
   const params = new URLSearchParams();
   params.set('institution_id', instId);
   if (includeInactive) params.set('include_inactive', 'true');
-  const result = await request<unknown>(`/institution-plans?${params}`);
-  return extractItems<InstitutionPlan>(result);
+  return request<InstitutionPlan[]>(`/institution-plans?${params}`);
 }
 
 export async function getInstitutionPlan(id: UUID): Promise<InstitutionPlan> {
@@ -273,21 +246,10 @@ export async function setDefaultInstitutionPlan(id: UUID): Promise<InstitutionPl
 
 // ============================================================
 // SUBSCRIPTIONS
-// GET  /institution-subscriptions?institution_id=xxx → { data: { items: [...] } }
-// POST /institution-subscriptions { institution_id, plan_id, ... }
-// PUT  /institution-subscriptions/:id { plan_id?, status?, ... }
-// DELETE /institution-subscriptions/:id
 // ============================================================
 
-export async function getInstitutionSubscriptions(instId: UUID): Promise<InstitutionSubscription[]> {
-  const result = await request<unknown>(`/institution-subscriptions?institution_id=${instId}`);
-  return extractItems<InstitutionSubscription>(result);
-}
-
-/** @deprecated Use getInstitutionSubscriptions for the full list */
 export async function getInstitutionSubscription(instId: UUID): Promise<InstitutionSubscription | null> {
-  const list = await getInstitutionSubscriptions(instId);
-  return list.find(s => s.status === 'active') ?? list[0] ?? null;
+  return request<InstitutionSubscription | null>(`/institution-subscriptions?institution_id=${instId}`);
 }
 
 export async function getSubscription(id: UUID): Promise<InstitutionSubscription> {
@@ -319,10 +281,7 @@ export async function cancelSubscription(id: UUID): Promise<{ id: UUID; status: 
 }
 
 // ============================================================
-// ADMIN SCOPES (flat routes per backend spec)
-// GET    /admin-scopes?membership_id=xxx → { data: [...] }
-// POST   /admin-scopes { membership_id, scope_type, scope_id? }
-// DELETE /admin-scopes/:id              → hard delete
+// ADMIN SCOPES
 // ============================================================
 
 export async function getAdminScopes(membershipId: UUID): Promise<AdminScope[]> {
@@ -331,6 +290,14 @@ export async function getAdminScopes(membershipId: UUID): Promise<AdminScope[]> 
 
 export async function getAdminScope(id: UUID): Promise<AdminScope> {
   return request<AdminScope>(`/admin-scopes/${id}`);
+}
+
+export async function getAllAdminScopes(): Promise<AdminScope[]> {
+  return request<AdminScope[]>('/admin-scopes');
+}
+
+export async function getInstitutionAdminScopes(instId: UUID): Promise<AdminScope[]> {
+  return request<AdminScope[]>(`/admin-scopes?institution_id=${instId}`);
 }
 
 export async function createAdminScope(data: {
@@ -348,42 +315,48 @@ export async function deleteAdminScope(id: UUID): Promise<{ id: UUID; deleted: b
   return request(`/admin-scopes/${id}`, { method: 'DELETE' });
 }
 
-// ============================================================
-// ACCESS RULES (flat routes per backend spec)
-// GET    /plan-access-rules?plan_id=xxx → { data: { items: [...] } }
-// POST   /plan-access-rules { plan_id, scope_type, scope_id }
-// PUT    /plan-access-rules/:id { scope_type?, scope_id? }
-// DELETE /plan-access-rules/:id → hard delete
-// ============================================================
-
-export async function getPlanAccessRules(planId: UUID): Promise<PlanAccessRule[]> {
-  const result = await request<unknown>(`/plan-access-rules?plan_id=${planId}`);
-  return extractItems<PlanAccessRule>(result);
-}
-
-export async function createAccessRule(data: {
-  plan_id: UUID;
-  scope_type: string;
-  scope_id: UUID;
-}): Promise<PlanAccessRule> {
-  return request<PlanAccessRule>('/plan-access-rules', {
-    method: 'POST',
-    body: JSON.stringify(data),
+export async function bulkReplaceAdminScopes(
+  membershipId: UUID,
+  scopes: Array<{ scope_type: string; scope_id?: UUID }>
+): Promise<AdminScope[]> {
+  return request<AdminScope[]>(`/admin-scopes?membership_id=${membershipId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ scopes }),
   });
 }
 
-export async function updateAccessRule(id: UUID, data: {
+// ============================================================
+// ACCESS RULES
+// ============================================================
+
+export async function getPlanAccessRules(planId: UUID): Promise<PlanAccessRule[]> {
+  return request<PlanAccessRule[]>(`/plan-access-rules?plan_id=${planId}`);
+}
+
+export async function createAccessRules(data: {
+  plan_id: UUID;
+  rules?: Array<{ scope_type: string; scope_id: UUID }>;
   scope_type?: string;
   scope_id?: UUID;
-}): Promise<PlanAccessRule> {
-  return request<PlanAccessRule>(`/plan-access-rules/${id}`, {
-    method: 'PUT',
+}): Promise<PlanAccessRule[]> {
+  return request<PlanAccessRule[]>('/plan-access-rules', {
+    method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteAccessRule(id: UUID): Promise<{ id: UUID; deleted: boolean }> {
   return request(`/plan-access-rules/${id}`, { method: 'DELETE' });
+}
+
+export async function bulkReplaceAccessRules(
+  planId: UUID,
+  rules: Array<{ scope_type: string; scope_id: UUID }>
+): Promise<PlanAccessRule[]> {
+  return request<PlanAccessRule[]>(`/plan-access-rules?plan_id=${planId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ rules }),
+  });
 }
 
 export async function checkAccess(
@@ -393,7 +366,7 @@ export async function checkAccess(
   institutionId: UUID
 ): Promise<AccessCheckResult> {
   return request<AccessCheckResult>(
-    `/check-access/${userId}/${scopeType}/${scopeId}?institution_id=${institutionId}`
+    `/check-access?user_id=${userId}&scope_type=${scopeType}&scope_id=${scopeId}&institution_id=${institutionId}`
   );
 }
 
@@ -437,7 +410,7 @@ export async function deleteCourse(courseId: UUID): Promise<void> {
 // ============================================================
 
 export async function getTopicSummaries(topicId: UUID): Promise<Summary[]> {
-  return request<Summary[]>(`/topics/${topicId}/summaries`);
+  return request<Summary[]>(`/summaries?topic_id=${topicId}`);
 }
 
 export async function createSummary(topicId: UUID, data: {
@@ -446,9 +419,9 @@ export async function createSummary(topicId: UUID, data: {
   content_markdown: string;
   status?: SummaryStatus;
 }): Promise<Summary> {
-  return request<Summary>(`/topics/${topicId}/summaries`, {
+  return request<Summary>('/summaries', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, topic_id: topicId }),
   });
 }
 
@@ -467,8 +440,8 @@ export async function deleteSummary(summaryId: UUID): Promise<void> {
 // CONTENT — Keywords
 // ============================================================
 
-export async function getKeywords(institutionId?: UUID): Promise<Keyword[]> {
-  const qs = institutionId ? `?institution_id=${institutionId}` : '';
+export async function getKeywords(summaryId?: UUID): Promise<Keyword[]> {
+  const qs = summaryId ? `?summary_id=${summaryId}` : '';
   return request<Keyword[]>(`/keywords${qs}`);
 }
 
@@ -644,11 +617,11 @@ export interface FlashcardCard {
 }
 
 export async function getFlashcardsBySummary(summaryId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/summaries/${summaryId}/flashcards`);
+  return request<FlashcardCard[]>(`/flashcards?summary_id=${summaryId}`);
 }
 
 export async function getFlashcardsByKeyword(keywordId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/keywords/${keywordId}/flashcards`);
+  return request<FlashcardCard[]>(`/flashcards?keyword_id=${keywordId}`);
 }
 
 export async function getFlashcard(cardId: UUID): Promise<FlashcardCard> {
@@ -723,266 +696,4 @@ export async function getBktStates(options?: {
 export async function getFsrsStates(cardId?: UUID): Promise<any> {
   const qs = cardId ? `?card_id=${cardId}` : '';
   return request(`/fsrs${qs}`);
-}
-
-// ============================================================
-// STUDY SESSIONS (flat routes per backend spec)
-// POST /study-sessions { ... }
-// PATCH /study-sessions/:id { ... }
-// ============================================================
-
-export async function createStudySession(data: Record<string, any>): Promise<any> {
-  return request('/study-sessions', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStudySession(id: string, data: Record<string, any>): Promise<any> {
-  return request(`/study-sessions/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-// ============================================================
-// AI GENERATIONS (immutable log)
-// GET  /ai-generations?institution_id=xxx&generation_type=xxx&limit=50&offset=0
-//      → { data: [...] } (array plano)
-// POST /ai-generations { institution_id, generation_type, ... }
-// ============================================================
-
-export interface AIGeneration {
-  id: UUID;
-  institution_id: UUID;
-  generation_type: string;
-  source_summary_id?: UUID | null;
-  source_keyword_id?: UUID | null;
-  items_generated?: number | null;
-  model_used?: string | null;
-  created_at: ISODate;
-}
-
-export async function getAIGenerations(
-  institutionId: UUID,
-  options?: { generation_type?: string; limit?: number; offset?: number }
-): Promise<AIGeneration[]> {
-  const params = new URLSearchParams();
-  params.set('institution_id', institutionId);
-  if (options?.generation_type) params.set('generation_type', options.generation_type);
-  if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.offset) params.set('offset', String(options.offset));
-  return request<AIGeneration[]>(`/ai-generations?${params}`);
-}
-
-export async function createAIGeneration(data: {
-  institution_id: UUID;
-  generation_type: string;
-  source_summary_id?: UUID;
-  source_keyword_id?: UUID;
-  items_generated?: number;
-  model_used?: string;
-}): Promise<AIGeneration> {
-  return request<AIGeneration>('/ai-generations', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-// ============================================================
-// SUMMARY DIAGNOSTICS (immutable log)
-// GET  /summary-diagnostics?summary_id=xxx&diagnostic_type=xxx
-//      → { data: [...] } (array plano)
-// POST /summary-diagnostics { summary_id, content, ... }
-// ============================================================
-
-export interface SummaryDiagnostic {
-  id: UUID;
-  summary_id: UUID;
-  content: string;
-  ai_generation_id?: UUID | null;
-  parent_diagnostic_id?: UUID | null;
-  diagnostic_type?: string | null;
-  structured_data?: Record<string, any> | null;
-  model_used?: string | null;
-  prompt_version?: string | null;
-  created_at: ISODate;
-}
-
-export async function getSummaryDiagnostics(
-  summaryId: UUID,
-  diagnosticType?: string
-): Promise<SummaryDiagnostic[]> {
-  const params = new URLSearchParams();
-  params.set('summary_id', summaryId);
-  if (diagnosticType) params.set('diagnostic_type', diagnosticType);
-  return request<SummaryDiagnostic[]>(`/summary-diagnostics?${params}`);
-}
-
-export async function createSummaryDiagnostic(data: {
-  summary_id: UUID;
-  content: string;
-  ai_generation_id?: UUID;
-  parent_diagnostic_id?: UUID;
-  diagnostic_type?: string;
-  structured_data?: Record<string, any>;
-  model_used?: string;
-  prompt_version?: string;
-}): Promise<SummaryDiagnostic> {
-  return request<SummaryDiagnostic>('/summary-diagnostics', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-// ============================================================
-// STUDENT STATS & DAILY ACTIVITIES (Sessão 6 - Estudo & Estatísticas)
-// ============================================================
-export interface DailyActivityRecord {
-  id: string;
-  student_id: string;
-  date: string;
-  [key: string]: any;
-}
-
-export interface StudentStatsRecord {
-  id: string;
-  student_id: string;
-  [key: string]: any;
-}
-
-export interface BktStateRecord {
-  id: string;
-  student_id: string;
-  [key: string]: any;
-}
-
-export interface StudyPlanRecord {
-  id: string;
-  name: string;
-  student_id: string;
-  course_id?: string | null;
-  status: 'active' | 'completed' | 'archived';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface StudyPlanTaskRecord {
-  id: string;
-  study_plan_id: string;
-  item_type: string;
-  item_id: string;
-  status: 'pending' | 'completed' | 'skipped';
-  order_index: number;
-  completed_at?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export async function getStudentStatsReal(studentId: string): Promise<StudentStatsRecord | null> {
-  try {
-    return await request<StudentStatsRecord>(`/student-stats?student_id=${studentId}`);
-  } catch {
-    return null;
-  }
-}
-
-export async function getDailyActivities(studentId: string): Promise<DailyActivityRecord[]> {
-  try {
-    const result = await request<any>(`/daily-activities?student_id=${studentId}`);
-    return extractItems<DailyActivityRecord>(result);
-  } catch {
-    return [];
-  }
-}
-
-export async function upsertStudentStats(data: Partial<StudentStatsRecord>): Promise<StudentStatsRecord> {
-  return request<StudentStatsRecord>('/student-stats', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function upsertDailyActivity(data: Partial<DailyActivityRecord>): Promise<DailyActivityRecord> {
-  return request<DailyActivityRecord>('/daily-activities', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function getAllBktStates(studentId: string): Promise<BktStateRecord[]> {
-  try {
-    const result = await request<any>(`/bkt-states?student_id=${studentId}`);
-    return extractItems<BktStateRecord>(result);
-  } catch {
-    return [];
-  }
-}
-
-// ============================================================
-// STUDY PLANS & TASKS (Sessão 6 - Organizador de Estudos)
-// ============================================================
-export async function getStudyPlans(status?: 'active' | 'completed' | 'archived'): Promise<StudyPlanRecord[]> {
-  const params = status ? `?status=${status}` : '';
-  try {
-    const result = await request<any>(`/study-plans${params}`);
-    return extractItems<StudyPlanRecord>(result);
-  } catch {
-    return [];
-  }
-}
-
-export async function getStudyPlanTasks(studyPlanId: string): Promise<StudyPlanTaskRecord[]> {
-  try {
-    const result = await request<any>(`/study-plan-tasks?study_plan_id=${studyPlanId}`);
-    return extractItems<StudyPlanTaskRecord>(result);
-  } catch {
-    return [];
-  }
-}
-
-export async function createStudyPlan(data: {
-  name: string;
-  course_id?: string;
-  status?: 'active' | 'completed' | 'archived';
-}): Promise<StudyPlanRecord> {
-  return request<StudyPlanRecord>('/study-plans', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStudyPlan(id: string, data: Partial<StudyPlanRecord>): Promise<StudyPlanRecord> {
-  return request<StudyPlanRecord>(`/study-plans/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteStudyPlan(id: string): Promise<void> {
-  await request<void>(`/study-plans/${id}`, { method: 'DELETE' });
-}
-
-export async function createStudyPlanTask(data: Partial<StudyPlanTaskRecord>): Promise<StudyPlanTaskRecord> {
-  return request<StudyPlanTaskRecord>('/study-plan-tasks', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStudyPlanTask(id: string, data: Partial<StudyPlanTaskRecord>): Promise<StudyPlanTaskRecord> {
-  return request<StudyPlanTaskRecord>(`/study-plan-tasks/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteStudyPlanTask(id: string): Promise<void> {
-  await request<void>(`/study-plan-tasks/${id}`, { method: 'DELETE' });
-}
-
-export async function reorderItems(table: string, items: { id: string; order_index: number }[]): Promise<void> {
-  await request<void>('/reorder', {
-    method: 'PUT',
-    body: JSON.stringify({ table, items }),
-  });
 }

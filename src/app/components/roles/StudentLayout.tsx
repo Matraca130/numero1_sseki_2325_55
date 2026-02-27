@@ -33,7 +33,6 @@ import { TopicSidebar } from '@/app/components/layout/TopicSidebar';
 import { CourseSwitcher } from '@/app/components/layout/CourseSwitcher';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { UserProfileDropdown } from '@/app/components/layout/UserProfileDropdown';
-import { AxonAIAssistant } from '@/app/components/ai/AxonAIAssistant';
 import { components, animation } from '@/app/design-system';
 import { motion } from 'motion/react';
 import { Menu } from 'lucide-react';
@@ -43,7 +42,6 @@ import { Menu } from 'lucide-react';
 function StudentShell() {
   const { isSidebarOpen, setSidebarOpen, isStudySessionActive } = useApp();
   const { navigateTo, isView } = useStudentNav();
-  const [isAIOpen, setAIOpen] = React.useState(false);
   const location = useLocation();
 
   const showTopicSidebar = isView('study-hub', 'study') && !isStudySessionActive;
@@ -107,9 +105,6 @@ function StudentShell() {
           </main>
         </div>
       </div>
-
-      {/* AI Assistant Panel */}
-      <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} />
     </div>
   );
 }

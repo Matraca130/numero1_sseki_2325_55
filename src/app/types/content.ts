@@ -23,6 +23,9 @@ export interface Flashcard {
   question: string;
   answer: string;
   image?: string;
+  // Explicit image URLs from backend (front/back separate)
+  frontImageUrl?: string | null;
+  backImageUrl?: string | null;
   // Real backend fields (optional, for FSRS tracking)
   summary_id?: string;
   keyword_id?: string;
@@ -100,7 +103,7 @@ export const courses: Course[] = [
   },
 ];
 
-// ── Stub: getLessonsForTopic ─────────���────────────────────────
+// ── Stub: getLessonsForTopic ─────────────────────────────────
 // Previously in data/lessonData.ts. Returns empty array since
 // real lesson data will come from the backend.
 

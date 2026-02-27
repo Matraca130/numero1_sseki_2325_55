@@ -98,17 +98,20 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
 
             {/* Reveal overlay */}
             {!isRevealed && (
-              <button
-                onClick={() => setIsRevealed(true)}
-                className="absolute inset-0 z-10 w-full h-full flex flex-col items-center justify-end pb-10 bg-gradient-to-t from-white/80 to-transparent hover:from-gray-50/60 transition-colors cursor-pointer group outline-none"
-              >
-                <div className="bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-lg shadow-gray-900/20 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all flex items-center gap-2 text-sm">
+              <div className="mt-auto flex flex-col items-center pb-10">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setIsRevealed(true)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsRevealed(true); }}
+                  className="bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-lg shadow-gray-900/20 hover:-translate-y-1 hover:shadow-xl transition-all flex items-center gap-2 text-sm cursor-pointer outline-none"
+                >
                   <Eye size={16} /> Mostrar Resposta
                 </div>
-                <span className="text-xs font-medium text-gray-400 mt-3 group-hover:opacity-0 transition-opacity">
-                  Toque em qualquer lugar para ver a resposta
+                <span className="text-xs font-medium text-gray-400 mt-3">
+                  Toque no botão para ver a resposta
                 </span>
-              </button>
+              </div>
             )}
 
             {/* ── Rating Buttons (inside card, at bottom when revealed) ── */}
@@ -148,7 +151,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
           {/* ── Right Column: Image / Progress Area ── */}
           <div className="hidden lg:flex w-[38%] shrink-0 border-l border-gray-100 bg-gray-50/30 flex-col relative overflow-hidden">
             {/* Subtle decorative pattern (visible when no image) */}
-            {!currentCard.image && (
+            {!currentCard.image && !currentCard.frontImageUrl && !currentCard.backImageUrl && (
               <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #14b8a6 1px, transparent 0)', backgroundSize: '24px 24px' }} />
             )}
 
@@ -161,10 +164,14 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                 transition={{ duration: 0.35, ease: 'easeInOut' }}
                 className="flex-1 flex flex-col relative z-10 min-h-0"
               >
-                {currentCard.image ? (
+                {(currentCard.image || currentCard.frontImageUrl || currentCard.backImageUrl) ? (
                   /* ── Image fills the entire right column ── */
                   <img
-                    src={currentCard.image}
+                    src={
+                      isRevealed
+                        ? (currentCard.backImageUrl || currentCard.frontImageUrl || currentCard.image)!
+                        : (currentCard.frontImageUrl || currentCard.image)!
+                    }
                     alt={currentCard.question}
                     className="flex-1 w-full object-cover min-h-0"
                   />

@@ -5,12 +5,12 @@
 //   This file is a THIN ASSEMBLER. It does NOT import page components.
 //   Each role has its own route file with page imports:
 //
-//     routes/student-routes.ts    → /student/* children
-//     routes/owner-routes.ts      → /owner/* children
-//     routes/admin-routes.ts      → /admin/* children
-//     routes/professor-routes.ts  → /professor/* children
+//     routes/student-routes.tsx   → /student/* children
+//     routes/owner-routes.tsx     → /owner/* children
+//     routes/admin-routes.tsx     → /admin/* children
+//     routes/professor-routes.tsx → /professor/* children
 //
-//   To add a new page, edit ONLY the corresponding routes/*.ts file.
+//   To add a new page, edit ONLY the corresponding routes/*.tsx file.
 //   This file rarely needs changes.
 //
 // ROLES:
@@ -42,9 +42,6 @@ import { ownerChildren } from '@/app/routes/owner-routes';
 import { adminChildren } from '@/app/routes/admin-routes';
 import { professorChildren } from '@/app/routes/professor-routes';
 
-// Diagnostics (no auth required)
-import { DiagnosticsPage } from '@/app/components/DiagnosticsPage';
-
 export const router = createBrowserRouter([
   {
     // Root layout — provides AuthProvider to entire route tree
@@ -54,10 +51,6 @@ export const router = createBrowserRouter([
       {
         path: '/login',
         Component: LoginPage,
-      },
-      {
-        path: '/diagnostics',
-        Component: DiagnosticsPage,
       },
 
       // ── Protected (require authentication) ─────────────────
