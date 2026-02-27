@@ -97,3 +97,256 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
 }
+
+/* ================================================================
+   Axon Prose — Editorial / PDF-like reading experience
+   Applied via class "axon-prose" on dangerouslySetInnerHTML wrappers
+   ================================================================ */
+
+.axon-prose {
+  font-family: "Lora", Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: #374151;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+/* ── Headings: sans-serif accent ── */
+.axon-prose h1,
+.axon-prose h2,
+.axon-prose h3,
+.axon-prose h4 {
+  font-family: "Inter", system-ui, sans-serif;
+  text-align: left;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.axon-prose h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #6d28d9;
+}
+
+.axon-prose h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid #7c3aed;
+}
+
+.axon-prose h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #4338ca;
+}
+
+.axon-prose h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-style: italic;
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+  color: #6b7280;
+}
+
+/* ── Paragraphs ── */
+.axon-prose p {
+  margin-bottom: 1.15em;
+}
+
+/* Drop cap on the first paragraph's first letter */
+.axon-prose > p:first-of-type::first-letter {
+  font-family: "Lora", Georgia, serif;
+  font-size: 3.2em;
+  font-weight: 700;
+  float: left;
+  line-height: 0.8;
+  margin-right: 0.08em;
+  margin-top: 0.05em;
+  color: #7c3aed;
+}
+
+/* ── Strong / emphasis ── */
+.axon-prose strong {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.axon-prose em {
+  font-style: italic;
+  color: #4b5563;
+}
+
+/* ── Links ── */
+.axon-prose a {
+  color: #7c3aed;
+  text-decoration: underline;
+  text-decoration-color: rgba(124, 58, 237, 0.3);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.2s;
+}
+.axon-prose a:hover {
+  text-decoration-color: #7c3aed;
+}
+
+/* ── Lists ── */
+.axon-prose ul {
+  list-style: none;
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+.axon-prose ul > li {
+  position: relative;
+  padding-left: 0.25em;
+  margin-bottom: 0.4em;
+  text-align: left;
+}
+.axon-prose ul > li::before {
+  content: "";
+  position: absolute;
+  left: -1.1em;
+  top: 0.65em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7c3aed;
+}
+
+.axon-prose ol {
+  list-style: none;
+  counter-reset: axon-ol;
+  padding-left: 1.8em;
+  margin-bottom: 1em;
+}
+.axon-prose ol > li {
+  position: relative;
+  counter-increment: axon-ol;
+  padding-left: 0.25em;
+  margin-bottom: 0.4em;
+  text-align: left;
+}
+.axon-prose ol > li::before {
+  content: counter(axon-ol) ".";
+  position: absolute;
+  left: -1.8em;
+  top: 0;
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 0.85em;
+  color: #7c3aed;
+  width: 1.5em;
+  text-align: right;
+}
+
+/* ── Blockquotes ── */
+.axon-prose blockquote {
+  position: relative;
+  margin: 1.5em 0;
+  padding: 1rem 1.25rem 1rem 1.5rem;
+  border-left: 3px solid #7c3aed;
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe50);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+  color: #4b5563;
+}
+.axon-prose blockquote p {
+  margin-bottom: 0.5em;
+}
+.axon-prose blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Code ── */
+.axon-prose code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  background: #f3f4f6;
+  color: #7c3aed;
+  padding: 0.15em 0.4em;
+  border-radius: 0.25rem;
+  border: 1px solid #e5e7eb;
+}
+
+.axon-prose pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin: 1.5em 0;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.6;
+  border: 1px solid #313244;
+}
+.axon-prose pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border: none;
+  font-size: inherit;
+}
+
+/* ── Images: editorial figure style ── */
+.axon-prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2em auto;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+/* ── Horizontal rules ── */
+.axon-prose hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d1d5db 20%, #d1d5db 80%, transparent);
+  margin: 2.5em 0;
+}
+
+/* ── Tables ── */
+.axon-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-family: "Inter", sans-serif;
+  font-size: 0.9em;
+}
+.axon-prose thead th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid #7c3aed;
+  color: #374151;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.axon-prose tbody td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+.axon-prose tbody tr:hover {
+  background: #faf5ff;
+}
+
+/* ── Mark / highlight ── */
+.axon-prose mark {
+  background: linear-gradient(120deg, #fef3c7 0%, #fde68a 100%);
+  padding: 0.1em 0.2em;
+  border-radius: 0.15em;
+  color: inherit;
+}

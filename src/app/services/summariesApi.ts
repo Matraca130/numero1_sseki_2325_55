@@ -79,6 +79,27 @@ export interface Video {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+  // Mux fields (populated by backend when is_mux = true)
+  is_mux?: boolean;
+  mux_asset_id?: string | null;
+  mux_playback_id?: string | null;
+  thumbnail_url?: string | null;
+  status?: string | null; // 'uploading' | 'ready' | 'errored'
+}
+
+export interface SummaryBlock {
+  id: string;
+  summary_id: string;
+  type: 'text' | 'heading' | 'image' | 'video' | 'pdf' | 'callout' | 'divider' | 'keyword-ref';
+  content: Record<string, any>;
+  position_x: number;
+  position_y: number;
+  width: number;
+  height: number;
+  order_index: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // ── Summaries ─────────────────────────────────────────────
@@ -278,4 +299,10 @@ export async function reorder(
     method: 'PUT',
     body: JSON.stringify({ table, items }),
   });
+}
+
+// ── Summary Blocks (visual editor) ───────────────────────
+
+export async function getSummaryBlocks(summaryId: string): Promise<PaginatedList<SummaryBlock>> {
+  return apiCall<PaginatedList<SummaryBlock>>(`/summary-blocks?summary_id=${summaryId}`);
 }
