@@ -758,3 +758,109 @@ export async function getAllBktStates(
   const qs = params.toString() ? `?${params}` : '';
   return request<BktStateRecord[]>(`/bkt${qs}`);
 }
+
+// ============================================================
+// STUDY PLANS — CRUD (Schedule / Study Organizer)
+// ============================================================
+
+export interface StudyPlanRecord {
+  id: string;
+  user_id: string;
+  name: string;
+  status: 'active' | 'completed' | 'archived';
+  course_id?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudyPlanTaskRecord {
+  id: string;
+  study_plan_id: string;
+  item_type: string;
+  item_id: string;
+  status: 'pending' | 'completed' | 'skipped';
+  order_index: number;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export async function getStudyPlans(
+  status?: 'active' | 'completed' | 'archived'
+): Promise<StudyPlanRecord[]> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const qs = params.toString() ? `?${params}` : '';
+  return request<StudyPlanRecord[]>(`/study-plans${qs}`);
+}
+
+export async function getStudyPlanTasks(
+  studyPlanId: string
+): Promise<StudyPlanTaskRecord[]> {
+  return request<StudyPlanTaskRecord[]>(
+    `/study-plan-tasks?study_plan_id=${studyPlanId}`
+  );
+}
+
+export async function createStudyPlan(data: {
+  name: string;
+  status?: string;
+  course_id?: string;
+  metadata?: Record<string, any>;
+}): Promise<StudyPlanRecord> {
+  return request<StudyPlanRecord>('/study-plans', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateStudyPlan(
+  planId: string,
+  data: Partial<StudyPlanRecord>
+): Promise<StudyPlanRecord> {
+  return request<StudyPlanRecord>(`/study-plans/${planId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteStudyPlan(planId: string): Promise<void> {
+  return request(`/study-plans/${planId}`, { method: 'DELETE' });
+}
+
+export async function createStudyPlanTask(data: {
+  study_plan_id: string;
+  item_type: string;
+  item_id: string;
+  status?: string;
+  order_index?: number;
+}): Promise<StudyPlanTaskRecord> {
+  return request<StudyPlanTaskRecord>('/study-plan-tasks', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateStudyPlanTask(
+  taskId: string,
+  data: Partial<StudyPlanTaskRecord>
+): Promise<StudyPlanTaskRecord> {
+  return request<StudyPlanTaskRecord>(`/study-plan-tasks/${taskId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteStudyPlanTask(taskId: string): Promise<void> {
+  return request(`/study-plan-tasks/${taskId}`, { method: 'DELETE' });
+}
+
+export async function reorderItems(
+  table: string,
+  items: Array<{ id: string; order_index: number }>
+): Promise<void> {
+  return request(`/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ table, items }),
+  });
+}
