@@ -11,6 +11,11 @@
 //   PUT    /quiz-questions/:id/restore → restore
 //
 // Uses apiCall() from lib/api.ts (handles Authorization + X-Access-Token)
+//
+// FIX RT-001 (2025-02-27):
+//   - student_id (not user_id)
+//   - completed_at (not ended_at)
+//   - removed duration_seconds (column doesn't exist)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -143,12 +148,11 @@ export async function restoreQuizQuestion(id: string): Promise<QuizQuestion> {
 
 export interface StudySession {
   id: string;
-  user_id?: string;
+  student_id?: string;
   session_type: string;
   course_id?: string;
   started_at: string;
-  ended_at?: string | null;
-  duration_seconds?: number | null;
+  completed_at?: string | null;
   total_reviews?: number | null;
   correct_reviews?: number | null;
   created_at: string;
@@ -172,8 +176,7 @@ export async function createStudySession(data: {
  * Close a study session with final stats.
  */
 export async function closeStudySession(id: string, data: {
-  ended_at: string;
-  duration_seconds: number;
+  completed_at: string;
   total_reviews: number;
   correct_reviews: number;
 }): Promise<StudySession> {

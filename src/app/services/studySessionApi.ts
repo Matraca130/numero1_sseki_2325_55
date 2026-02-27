@@ -3,6 +3,14 @@
 //
 // Covers: study-sessions, reviews, fsrs-states
 // Uses apiCall() from lib/api.ts (handles Auth headers).
+//
+// FIX RT-001..RT-003 (2025-02-27):
+//   - student_id (not user_id)
+//   - completed_at (not ended_at)
+//   - removed duration_seconds (column doesn't exist)
+//   - added 'reading' to session_type
+//   - instrument_type: 'flashcard' | 'quiz' (was 'flashcard' only)
+//   - removed response_time_ms from reviews (column doesn't exist)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -11,12 +19,11 @@ import { apiCall } from '@/app/lib/api';
 
 export interface StudySessionRecord {
   id: string;
-  user_id?: string;
-  session_type: 'flashcard' | 'quiz' | 'mixed';
+  student_id?: string;
+  session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
   course_id?: string;
   started_at: string;
-  ended_at?: string | null;
-  duration_seconds?: number;
+  completed_at?: string | null;
   total_reviews?: number;
   correct_reviews?: number;
   created_at?: string;
@@ -44,14 +51,13 @@ export interface ReviewRecord {
   item_id: string;
   instrument_type: 'flashcard' | 'quiz';
   grade: number;
-  response_time_ms?: number;
   created_at?: string;
 }
 
 // ── Study Sessions ────────────────────────────────────────
 
 export async function createStudySession(data: {
-  session_type: 'flashcard' | 'quiz' | 'mixed';
+  session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
   course_id?: string;
 }): Promise<StudySessionRecord> {
   return apiCall<StudySessionRecord>('/study-sessions', {
@@ -63,8 +69,7 @@ export async function createStudySession(data: {
 export async function closeStudySession(
   sessionId: string,
   data: {
-    ended_at: string;
-    duration_seconds: number;
+    completed_at: string;
     total_reviews: number;
     correct_reviews: number;
   }
@@ -113,9 +118,8 @@ export async function upsertFsrsState(data: {
 export async function submitReview(data: {
   session_id: string;
   item_id: string;
-  instrument_type: 'flashcard';
+  instrument_type: 'flashcard' | 'quiz';
   grade: number;
-  response_time_ms?: number;
 }): Promise<ReviewRecord> {
   return apiCall<ReviewRecord>('/reviews', {
     method: 'POST',

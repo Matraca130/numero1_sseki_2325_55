@@ -4,6 +4,11 @@
 //   - POST /study-sessions to start/close
 //   - POST /reviews per card
 //   - POST /fsrs-states to update scheduling
+//
+// FIX RT-001, RT-003 (2025-02-27):
+//   - completed_at (not ended_at)
+//   - removed duration_seconds (column doesn't exist)
+//   - removed response_time_ms from submitReview (column doesn't exist)
 // ============================================================
 
 import { useState, useCallback, useRef } from 'react';
@@ -60,14 +65,13 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
     const sessionId = sessionIdRef.current;
     if (!sessionId) return;
 
-    // 1. Submit review
+    // 1. Submit review (no response_time_ms — column doesn't exist in reviews table)
     try {
       await sessionApi.submitReview({
         session_id: sessionId,
         item_id: card.id,
         instrument_type: 'flashcard',
         grade,
-        response_time_ms: responseTimeMs,
       });
     } catch (err) {
       console.warn('[FlashcardEngine] Failed to submit review:', err);
@@ -112,13 +116,11 @@ export function useFlashcardEngine({ studentId, courseId, topicId, onFinish }: U
     const sessionId = sessionIdRef.current;
     if (!sessionId || sessionId.startsWith('local-')) return;
 
-    const durationSeconds = Math.round((Date.now() - sessionStartTime.current) / 1000);
     const correctReviews = stats.filter(s => s >= 3).length;
 
     try {
       await sessionApi.closeStudySession(sessionId, {
-        ended_at: new Date().toISOString(),
-        duration_seconds: durationSeconds,
+        completed_at: new Date().toISOString(),
         total_reviews: stats.length,
         correct_reviews: correctReviews,
       });
