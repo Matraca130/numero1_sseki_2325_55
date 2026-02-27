@@ -697,3 +697,31 @@ export async function getFsrsStates(cardId?: UUID): Promise<any> {
   const qs = cardId ? `?card_id=${cardId}` : '';
   return request(`/fsrs${qs}`);
 }
+
+// ============================================================
+// STUDENT STATS & DAILY ACTIVITIES
+// ============================================================
+
+export interface StudentStatsRecord {
+  current_streak: number;
+  longest_streak: number;
+  total_reviews: number;
+  total_time_seconds: number;
+  mastery_average: number;
+}
+
+export interface DailyActivityRecord {
+  activity_date: string;
+  time_spent_seconds: number;
+  reviews_count: number;
+  correct_count: number;
+  cards_studied: number;
+}
+
+export async function getStudentStatsReal(): Promise<StudentStatsRecord> {
+  return request<StudentStatsRecord>('/student-stats');
+}
+
+export async function getDailyActivities(from: string, to: string): Promise<DailyActivityRecord[]> {
+  return request<DailyActivityRecord[]>(`/daily-activities?from=${from}&to=${to}`);
+}
