@@ -110,6 +110,14 @@ export function ProfessorQuizzesPage() {
   const [showCreateEdit, setShowCreateEdit] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
 
+  // ── Sidebar collapse state ──────────────────────────────
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
   // ── 1. Load content-tree + memberships (single load) ────
   useEffect(() => {
     if (!institutionId) {
@@ -339,159 +347,301 @@ export function ProfessorQuizzesPage() {
   return (
     <div className="flex h-full">
       {/* ── Left Panel: Cascade Selectors ── */}
-      <div className="w-[300px] shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+      <div className={clsx(
+        'shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden',
+        sidebarOpen ? 'w-[300px]' : 'w-[300px]'
+      )}>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="px-4 py-3 border-b border-gray-100 w-full text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
+        >
           <div className="flex items-center gap-2 mb-1">
             <ClipboardList size={16} className="text-purple-600" />
             <h2 className="text-sm text-gray-900" style={{ fontWeight: 700 }}>Quizzes</h2>
+            <div className="flex-1" />
+            <span className="text-gray-400 transition-transform">
+              {sidebarOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
           </div>
           <p className="text-[11px] text-gray-400">Navega la jerarquia para gestionar preguntas</p>
-        </div>
+        </button>
 
-        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-3">
-          {/* ── Course ── */}
-          <div>
-            <label className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>
-              <BookOpen size={12} className="text-purple-500" />
-              Curso
-            </label>
-            {treeLoading ? (
-              <div className="flex items-center gap-2 px-2 py-2">
-                <Loader2 size={13} className="animate-spin text-gray-400" />
-                <span className="text-[11px] text-gray-400">Cargando cursos...</span>
-              </div>
-            ) : courses.length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic px-1">Sin cursos asignados como profesor</p>
-            ) : (
-              <select
-                value={selectedCourseId}
-                onChange={e => handleCourseChange(e.target.value)}
-                className={SELECT_CLS}
-              >
-                <option value="">-- Seleccionar curso --</option>
-                {courses.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* ── Semester ── */}
-          {selectedCourseId && (
-            <div>
-              <label className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>
-                <GraduationCap size={12} className="text-gray-400" />
-                Semestre
-              </label>
-              {semesters.length === 0 ? (
-                <p className="text-[11px] text-gray-400 italic px-1">Sin semestres</p>
-              ) : (
-                <select
-                  value={selectedSemesterId}
-                  onChange={e => handleSemesterChange(e.target.value)}
-                  className={SELECT_CLS}
-                >
-                  <option value="">-- Seleccionar semestre --</option>
-                  {semesters.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
-
-          {/* ── Section ── */}
-          {selectedSemesterId && (
-            <div>
-              <label className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>
-                <Layers size={12} className="text-gray-400" />
-                Seccion
-              </label>
-              {sections.length === 0 ? (
-                <p className="text-[11px] text-gray-400 italic px-1">Sin secciones</p>
-              ) : (
-                <select
-                  value={selectedSectionId}
-                  onChange={e => handleSectionChange(e.target.value)}
-                  className={SELECT_CLS}
-                >
-                  <option value="">-- Seleccionar seccion --</option>
-                  {sections.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
-
-          {/* ── Topic ── */}
-          {selectedSectionId && (
-            <div>
-              <label className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>
-                <FileText size={12} className="text-gray-400" />
-                Topico
-              </label>
-              {topics.length === 0 ? (
-                <p className="text-[11px] text-gray-400 italic px-1">Sin topicos</p>
-              ) : (
-                <select
-                  value={selectedTopicId}
-                  onChange={e => handleTopicChange(e.target.value)}
-                  className={SELECT_CLS}
-                >
-                  <option value="">-- Seleccionar topico --</option>
-                  {topics.map((t: any) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
-
-          {/* ── Summary ── */}
-          {selectedTopicId && (
-            <div>
-              <label className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>
-                <ClipboardList size={12} className="text-purple-500" />
-                Resumen
-              </label>
-              {summariesLoading ? (
-                <div className="flex items-center gap-2 px-2 py-2">
-                  <Loader2 size={13} className="animate-spin text-gray-400" />
-                  <span className="text-[11px] text-gray-400">Cargando...</span>
+        <AnimatePresence initial={false}>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              <div className="flex-1 overflow-y-auto py-1 px-3">
+                {/* ── Course ── */}
+                <div className="border-b border-gray-100">
+                  <button
+                    onClick={() => toggleSection('course')}
+                    className="flex items-center gap-1.5 w-full py-2.5 px-1 text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
+                  >
+                    <BookOpen size={12} className="text-purple-500 shrink-0" />
+                    <span className="text-[11px] text-gray-500 shrink-0" style={{ fontWeight: 600 }}>Curso</span>
+                    {selectedCourseName && collapsedSections['course'] && (
+                      <span className="text-[10px] text-purple-600 truncate ml-1 max-w-[130px]" style={{ fontWeight: 500 }}>
+                        — {selectedCourseName}
+                      </span>
+                    )}
+                    <div className="flex-1" />
+                    {collapsedSections['course'] ? <ChevronRight size={12} className="text-gray-400 shrink-0" /> : <ChevronDown size={12} className="text-gray-400 shrink-0" />}
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {!collapsedSections['course'] && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pb-2.5 px-1">
+                          {treeLoading ? (
+                            <div className="flex items-center gap-2 px-2 py-2">
+                              <Loader2 size={13} className="animate-spin text-gray-400" />
+                              <span className="text-[11px] text-gray-400">Cargando cursos...</span>
+                            </div>
+                          ) : courses.length === 0 ? (
+                            <p className="text-[11px] text-gray-400 italic px-1">Sin cursos asignados como profesor</p>
+                          ) : (
+                            <select
+                              value={selectedCourseId}
+                              onChange={e => handleCourseChange(e.target.value)}
+                              className={SELECT_CLS}
+                            >
+                              <option value="">-- Seleccionar curso --</option>
+                              {courses.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              ) : summaries.length === 0 ? (
-                <p className="text-[11px] text-gray-400 italic px-1">Sin resumenes en este topico</p>
-              ) : (
-                <select
-                  value={selectedSummaryId || ''}
-                  onChange={e => setSelectedSummaryId(e.target.value || null)}
-                  className={SELECT_CLS}
-                >
-                  <option value="">-- Seleccionar resumen --</option>
-                  {summaries.map((s: any) => (
-                    <option key={s.id} value={s.id}>
-                      {s.title || `Resumen ${s.id.substring(0, 8)}`} ({s.status || 'draft'})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
 
-          {/* ── Selection indicator ── */}
-          {selectedSummaryId && (
-            <div className="mt-2 px-3 py-2.5 rounded-lg bg-purple-50 border border-purple-100">
-              <div className="flex items-center gap-1.5 text-[10px] text-purple-600 mb-1" style={{ fontWeight: 700 }}>
-                <Check size={12} />
-                Resumen seleccionado
+                {/* ── Semester ── */}
+                {selectedCourseId && (
+                  <div className="border-b border-gray-100">
+                    <button
+                      onClick={() => toggleSection('semester')}
+                      className="flex items-center gap-1.5 w-full py-2.5 px-1 text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    >
+                      <GraduationCap size={12} className="text-gray-400 shrink-0" />
+                      <span className="text-[11px] text-gray-500 shrink-0" style={{ fontWeight: 600 }}>Semestre</span>
+                      {selectedSemesterName && collapsedSections['semester'] && (
+                        <span className="text-[10px] text-purple-600 truncate ml-1 max-w-[130px]" style={{ fontWeight: 500 }}>
+                          — {selectedSemesterName}
+                        </span>
+                      )}
+                      <div className="flex-1" />
+                      {collapsedSections['semester'] ? <ChevronRight size={12} className="text-gray-400 shrink-0" /> : <ChevronDown size={12} className="text-gray-400 shrink-0" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {!collapsedSections['semester'] && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-2.5 px-1">
+                            {semesters.length === 0 ? (
+                              <p className="text-[11px] text-gray-400 italic px-1">Sin semestres</p>
+                            ) : (
+                              <select
+                                value={selectedSemesterId}
+                                onChange={e => handleSemesterChange(e.target.value)}
+                                className={SELECT_CLS}
+                              >
+                                <option value="">-- Seleccionar semestre --</option>
+                                {semesters.map((s: any) => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* ── Section ── */}
+                {selectedSemesterId && (
+                  <div className="border-b border-gray-100">
+                    <button
+                      onClick={() => toggleSection('section')}
+                      className="flex items-center gap-1.5 w-full py-2.5 px-1 text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    >
+                      <Layers size={12} className="text-gray-400 shrink-0" />
+                      <span className="text-[11px] text-gray-500 shrink-0" style={{ fontWeight: 600 }}>Seccion</span>
+                      {selectedSectionName && collapsedSections['section'] && (
+                        <span className="text-[10px] text-purple-600 truncate ml-1 max-w-[130px]" style={{ fontWeight: 500 }}>
+                          — {selectedSectionName}
+                        </span>
+                      )}
+                      <div className="flex-1" />
+                      {collapsedSections['section'] ? <ChevronRight size={12} className="text-gray-400 shrink-0" /> : <ChevronDown size={12} className="text-gray-400 shrink-0" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {!collapsedSections['section'] && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-2.5 px-1">
+                            {sections.length === 0 ? (
+                              <p className="text-[11px] text-gray-400 italic px-1">Sin secciones</p>
+                            ) : (
+                              <select
+                                value={selectedSectionId}
+                                onChange={e => handleSectionChange(e.target.value)}
+                                className={SELECT_CLS}
+                              >
+                                <option value="">-- Seleccionar seccion --</option>
+                                {sections.map((s: any) => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* ── Topic ── */}
+                {selectedSectionId && (
+                  <div className="border-b border-gray-100">
+                    <button
+                      onClick={() => toggleSection('topic')}
+                      className="flex items-center gap-1.5 w-full py-2.5 px-1 text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    >
+                      <FileText size={12} className="text-gray-400 shrink-0" />
+                      <span className="text-[11px] text-gray-500 shrink-0" style={{ fontWeight: 600 }}>Topico</span>
+                      {selectedTopicName && collapsedSections['topic'] && (
+                        <span className="text-[10px] text-purple-600 truncate ml-1 max-w-[130px]" style={{ fontWeight: 500 }}>
+                          — {selectedTopicName}
+                        </span>
+                      )}
+                      <div className="flex-1" />
+                      {collapsedSections['topic'] ? <ChevronRight size={12} className="text-gray-400 shrink-0" /> : <ChevronDown size={12} className="text-gray-400 shrink-0" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {!collapsedSections['topic'] && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-2.5 px-1">
+                            {topics.length === 0 ? (
+                              <p className="text-[11px] text-gray-400 italic px-1">Sin topicos</p>
+                            ) : (
+                              <select
+                                value={selectedTopicId}
+                                onChange={e => handleTopicChange(e.target.value)}
+                                className={SELECT_CLS}
+                              >
+                                <option value="">-- Seleccionar topico --</option>
+                                {topics.map((t: any) => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* ── Summary ── */}
+                {selectedTopicId && (
+                  <div className="border-b border-gray-100">
+                    <button
+                      onClick={() => toggleSection('summary')}
+                      className="flex items-center gap-1.5 w-full py-2.5 px-1 text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    >
+                      <ClipboardList size={12} className="text-purple-500 shrink-0" />
+                      <span className="text-[11px] text-gray-500 shrink-0" style={{ fontWeight: 600 }}>Resumen</span>
+                      {selectedSummaryId && collapsedSections['summary'] && (
+                        <span className="text-[10px] text-purple-600 truncate ml-1 max-w-[130px]" style={{ fontWeight: 500 }}>
+                          — {summaries.find(s => s.id === selectedSummaryId)?.title || '...'}
+                        </span>
+                      )}
+                      <div className="flex-1" />
+                      {collapsedSections['summary'] ? <ChevronRight size={12} className="text-gray-400 shrink-0" /> : <ChevronDown size={12} className="text-gray-400 shrink-0" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {!collapsedSections['summary'] && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-2.5 px-1">
+                            {summariesLoading ? (
+                              <div className="flex items-center gap-2 px-2 py-2">
+                                <Loader2 size={13} className="animate-spin text-gray-400" />
+                                <span className="text-[11px] text-gray-400">Cargando...</span>
+                              </div>
+                            ) : summaries.length === 0 ? (
+                              <p className="text-[11px] text-gray-400 italic px-1">Sin resumenes en este topico</p>
+                            ) : (
+                              <select
+                                value={selectedSummaryId || ''}
+                                onChange={e => setSelectedSummaryId(e.target.value || null)}
+                                className={SELECT_CLS}
+                              >
+                                <option value="">-- Seleccionar resumen --</option>
+                                {summaries.map((s: any) => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.title || `Resumen ${s.id.substring(0, 8)}`} ({s.status || 'draft'})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* ── Selection indicator ── */}
+                {selectedSummaryId && (
+                  <div className="mt-2 px-3 py-2.5 rounded-lg bg-purple-50 border border-purple-100">
+                    <div className="flex items-center gap-1.5 text-[10px] text-purple-600 mb-1" style={{ fontWeight: 700 }}>
+                      <Check size={12} />
+                      Resumen seleccionado
+                    </div>
+                    <p className="text-[11px] text-purple-800 truncate" style={{ fontWeight: 500 }}>
+                      {summaries.find(s => s.id === selectedSummaryId)?.title || selectedSummaryId.substring(0, 12)}
+                    </p>
+                  </div>
+                )}
               </div>
-              <p className="text-[11px] text-purple-800 truncate" style={{ fontWeight: 500 }}>
-                {summaries.find(s => s.id === selectedSummaryId)?.title || selectedSummaryId.substring(0, 12)}
-              </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
 
       {/* ── Right Panel: Questions ── */}
@@ -652,7 +802,8 @@ export function ProfessorQuizzesPage() {
         )}
       </div>
 
-      {/* ── Create/Edit Modal ── */}
+      {/* ── Create/Edit Modal ───────────────────────────────────── */}
+
       <AnimatePresence>
         {showCreateEdit && selectedSummaryId && (
           <QuestionFormModal
