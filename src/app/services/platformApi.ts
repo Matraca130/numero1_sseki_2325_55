@@ -699,7 +699,7 @@ export async function getFsrsStates(cardId?: UUID): Promise<any> {
 }
 
 // ============================================================
-// STUDENT STATS & DAILY ACTIVITIES
+// STUDENT STATS & DAILY ACTIVITIES (Dashboard — EV-7)
 // ============================================================
 
 export interface StudentStatsRecord {
@@ -716,12 +716,45 @@ export interface DailyActivityRecord {
   reviews_count: number;
   correct_count: number;
   cards_studied: number;
+  sessions_count: number;
 }
 
 export async function getStudentStatsReal(): Promise<StudentStatsRecord> {
   return request<StudentStatsRecord>('/student-stats');
 }
 
-export async function getDailyActivities(from: string, to: string): Promise<DailyActivityRecord[]> {
-  return request<DailyActivityRecord[]>(`/daily-activities?from=${from}&to=${to}`);
+export async function getDailyActivities(
+  from: string,
+  to: string,
+  limit?: number
+): Promise<DailyActivityRecord[]> {
+  const params = new URLSearchParams({ from, to });
+  if (limit) params.set('limit', String(limit));
+  return request<DailyActivityRecord[]>(`/daily-activities?${params}`);
+}
+
+// ============================================================
+// BKT STATES — Bulk fetch (Dashboard Mastery Overview)
+// ============================================================
+
+export interface BktStateRecord {
+  subtopic_id: string;
+  keyword_id: string;
+  p_know: number;
+  p_learn: number;
+  p_guess: number;
+  p_slip: number;
+  total_attempts: number;
+  last_reviewed_at: string;
+}
+
+export async function getAllBktStates(
+  subtopicId?: string,
+  limit?: number
+): Promise<BktStateRecord[]> {
+  const params = new URLSearchParams();
+  if (subtopicId) params.set('subtopic_id', subtopicId);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString() ? `?${params}` : '';
+  return request<BktStateRecord[]>(`/bkt${qs}`);
 }
