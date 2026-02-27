@@ -16,6 +16,11 @@
 // States: idle → reviewing → finished
 // Used in SummaryView (EV-2) or standalone.
 // Backend: FLAT routes via studySessionApi + flashcardApi.
+//
+// FIX RT-001, RT-003 (2025-02-27):
+//   - completed_at (not ended_at)
+//   - removed duration_seconds
+//   - removed response_time_ms from submitReview
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,7 +41,7 @@ import {
   TextCursorInput,
 } from 'lucide-react';
 
-// ── Grade definitions ─────────────────────────────────────
+// ── Grade definitions ─────────────────────────────────────────
 
 const GRADES = [
   { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabia' },
@@ -52,11 +57,11 @@ interface FlashcardReviewerProps {
   onClose?: () => void;
 }
 
-// ── Review state type ─────────────────────────────────────
+// ── Review state type ─────────────────────────────────────────
 
 type ReviewPhase = 'idle' | 'reviewing' | 'finished';
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ───────────────────────────────────────────────
 
 export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps) {
   // ── Data ────────────────────────────────────────────────
@@ -64,7 +69,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Session state ───────────────────────────────────────
+  // ── Session state ───────────────────────────────────────────
   const [phase, setPhase] = useState<ReviewPhase>('idle');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,10 +78,10 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
   const [submittingGrade, setSubmittingGrade] = useState(false);
   const sessionStartRef = useRef<Date | null>(null);
 
-  // ── Image zoom state ────────────────────────────────────
+  // ── Image zoom state ──────────────────────────────────────────
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
-  // ── Cloze state ───────────────────────��─────────────────
+  // ── Cloze state ─────────────────────────────────────────────
   const [clozeReady, setClozeReady] = useState(false);
 
   // ── Current card (must be before currentCardType) ───────
@@ -196,7 +201,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
       .finally(() => setLoading(false));
   }, [summaryId]);
 
-  // ── Keyword lookup ──────────────────────────────────────
+  // ── Keyword lookup ──────────────────────────────────────────
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
@@ -205,7 +210,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     return map;
   }, [keywords]);
 
-  // ── Start session ───────────────────────────────────────
+  // ── Start session ───────────────────────────────────────────
   const startReview = useCallback(async () => {
     try {
       const session = await sessionApi.createStudySession({
@@ -222,7 +227,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     }
   }, []);
 
-  // ── Grade a card ────────────────────────────────────────
+  // ── Grade a card ────────────────────────────────────────────
   const handleGrade = useCallback(async (grade: number) => {
     if (!sessionId || !currentCard || submittingGrade) return;
     setSubmittingGrade(true);
@@ -245,15 +250,11 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
       } else {
         // Session complete — close it
         const now = new Date();
-        const durationSeconds = sessionStartRef.current
-          ? Math.round((now.getTime() - sessionStartRef.current.getTime()) / 1000)
-          : 0;
         const correctReviews = newGrades.filter(g => g >= 3).length;
 
         try {
           await sessionApi.closeStudySession(sessionId, {
-            ended_at: now.toISOString(),
-            duration_seconds: durationSeconds,
+            completed_at: now.toISOString(),
             total_reviews: totalCards,
             correct_reviews: correctReviews,
           });
@@ -273,7 +274,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     }
   }, [sessionId, currentCard, currentIndex, totalCards, grades, submittingGrade, handleTrackingUpdate]);
 
-  // ── Keyboard shortcuts ──────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const handler = (e: KeyboardEvent) => {
@@ -331,7 +332,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     return () => window.removeEventListener('keydown', handler);
   }, [phase, isFlipped, submittingGrade, handleGrade, zoomImageUrl, isClozeCard, currentCard]);
 
-  // ── Restart ─────────────────────────────────────────────
+  // ── Restart ───────────────────────────────────────────────
   const restartReview = useCallback(() => {
     setPhase('idle');
     setSessionId(null);
@@ -376,7 +377,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
 
   const totalCardTypes = Object.values(cardTypeDistribution).reduce((sum, count) => sum + count, 0);
 
-  // ── Loading ─────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -385,7 +386,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     );
   }
 
-  // ── No flashcards ───────────────────────────────────────
+  // ── No flashcards ───────────────────────────────────────────
   if (totalCards === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">

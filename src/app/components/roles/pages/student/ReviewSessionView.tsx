@@ -15,6 +15,10 @@
 // 7. Close: PUT /study-sessions/:id + POST /daily-activities + POST /student-stats
 //
 // Backend: FLAT routes via studySessionApi + flashcardApi + apiCall.
+//
+// FIX RT-001 (2025-02-27):
+//   - completed_at (not ended_at)
+//   - removed duration_seconds
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,7 +37,7 @@ import {
   Play,
 } from 'lucide-react';
 
-// ── Grade definitions ─────────────────────────────────────
+// ── Grade definitions ─────────────────────────────────────────
 
 const GRADES = [
   { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabia' },
@@ -57,7 +61,7 @@ interface ReviewSessionViewProps {
 
 type ReviewPhase = 'loading' | 'idle' | 'reviewing' | 'finished';
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ───────────────────────────────────────────────
 
 export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
   // ── Data ────────────────────────────────────────────────
@@ -66,7 +70,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
   const [totalDueCount, setTotalDueCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ── Session state ───────────────────────────────────────
+  // ── Session state ───────────────────────────────────────────
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -74,7 +78,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
   const [submittingGrade, setSubmittingGrade] = useState(false);
   const sessionStartRef = useRef<Date | null>(null);
 
-  // ── Timer ───────────────────────────────────────────────
+  // ── Timer ─────────────────────────────────────────────────
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -172,11 +176,11 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     return () => { cancelled = true; };
   }, []);
 
-  // ── Current item ────────────────────────────────────────
+  // ── Current item ────────────────────────────────────────────
   const currentItem = queue[currentIdx] || null;
   const reviewedCount = grades.length;
 
-  // ── Start session ───────────────────────────────────────
+  // ── Start session ───────────────────────────────────────────
   const startSession = useCallback(async () => {
     try {
       const session = await sessionApi.createStudySession({
@@ -252,7 +256,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     }
   }, []);
 
-  // ── Grade a card ────────────────────────────────────────
+  // ── Grade a card ────────────────────────────────────────────
   const handleGrade = useCallback(async (grade: number) => {
     if (!sessionId || !currentItem || submittingGrade) return;
     setSubmittingGrade(true);
@@ -299,8 +303,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
           // Close session
           try {
             await sessionApi.closeStudySession(sessionId, {
-              ended_at: now.toISOString(),
-              duration_seconds: durationSeconds,
+              completed_at: now.toISOString(),
               total_reviews: newGrades.length,
               correct_reviews: correctReviews,
             });
@@ -350,7 +353,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     }
   }, [sessionId, currentItem, currentIdx, queue, grades, submittingGrade, handleTrackingUpdate, stopTimer, elapsedSeconds]);
 
-  // ── Keyboard shortcuts ──────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const handler = (e: KeyboardEvent) => {
@@ -370,7 +373,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [phase, isFlipped, submittingGrade, handleGrade]);
 
-  // ── Grade distribution ──────────────────────────────────
+  // ── Grade distribution ────────────────────────────────────────
   const gradeDistribution = useMemo(() => {
     const dist = [0, 0, 0, 0];
     for (const g of grades) {
@@ -384,7 +387,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100);
   }, [grades]);
 
-  // ── Next review estimate ────────────────────────────────
+  // ── Next review estimate ────────────────────────────────────────
   const nextDueEstimate = useMemo(() => {
     if (grades.length === 0) return '';
     const hasAgain = grades.some(g => g === 1);
