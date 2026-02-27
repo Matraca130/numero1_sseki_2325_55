@@ -6,6 +6,10 @@
 // Content tree CRUD (semesters/sections/topics) → contentTreeApi.ts
 //
 // Uses centralized config from apiConfig.ts
+//
+// FIX RT-004 (2025-02-27):
+//   - Removed phantom fields from ReviewRequest
+//     (subtopic_id, keyword_id, response_time_ms don't exist in reviews table)
 // ============================================================
 
 import { realRequest, REAL_BACKEND_URL, getRealToken, ApiError, publicAnonKey } from '@/app/services/apiConfig';
@@ -57,9 +61,6 @@ export async function checkSlugAvailability(slug: string): Promise<{ available: 
 }
 
 export async function getInstitutionDashboardStats(instId: UUID): Promise<InstitutionDashboardStats> {
-  // This endpoint does NOT exist on the backend.
-  // Stats are computed client-side from memberships, courses, plans.
-  // We fetch memberships + institution to build a best-effort stats object.
   try {
     const [members, institution] = await Promise.allSettled([
       request<any[]>(`/memberships?institution_id=${instId}`),
@@ -83,14 +84,13 @@ export async function getInstitutionDashboardStats(instId: UUID): Promise<Instit
       institutionName: inst?.name || '',
       hasInstitution: !!inst,
       totalMembers: memberList.length,
-      totalPlans: 0, // Will be set by plans fetch if needed
+      totalPlans: 0,
       activeStudents,
       inactiveMembers,
       membersByRole,
       subscription: null,
     };
   } catch {
-    // Return empty stats on any error
     return {
       institutionName: '',
       hasInstitution: false,
@@ -372,9 +372,6 @@ export async function checkAccess(
 
 // ============================================================
 // CONTENT — Courses
-// NOTE: Semester/Section/Topic CRUD is handled by contentTreeApi.ts
-// (flat routes: /semesters, /sections, /topics with query params).
-// Do NOT duplicate here — those old nested routes were removed.
 // ============================================================
 
 export async function getCourses(institutionId?: UUID): Promise<Course[]> {
@@ -406,7 +403,7 @@ export async function deleteCourse(courseId: UUID): Promise<void> {
 }
 
 // ============================================================
-// CONTENT — Summaries (content summaries, professor-authored)
+// CONTENT — Summaries
 // ============================================================
 
 export async function getTopicSummaries(topicId: UUID): Promise<Summary[]> {
@@ -483,9 +480,7 @@ export async function healthCheck(): Promise<{
 }
 
 // ============================================================
-// ADMIN — Student Management (SQL + KV hybrid)
-// NOTE: routes-admin-students.tsx must be mounted in index.ts
-// for these to work. Verify deployment status.
+// ADMIN — Student Management
 // ============================================================
 
 export interface AdminStudentListItem {
@@ -540,7 +535,6 @@ export async function getAdminStudents(
   if (options?.order) params.set('order', options.order);
   const qs = params.toString() ? `?${params}` : '';
 
-  // This endpoint may return { data, pagination } — handle specially
   const url = `${REAL_BACKEND_URL}/admin/students/${institutionId}${qs}`;
   const token = getRealToken();
   const res = await fetch(url, {
@@ -598,7 +592,7 @@ export async function changeStudentPlan(
 }
 
 // ============================================================
-// FLASHCARDS — Professor Management (KV-based on real backend)
+// FLASHCARDS — Professor Management
 // ============================================================
 
 export interface FlashcardCard {
@@ -647,17 +641,15 @@ export async function deleteFlashcard(cardId: UUID): Promise<void> {
 }
 
 // ============================================================
-// REVIEWS & SPACED REPETITION (KV-based on real backend)
+// REVIEWS & SPACED REPETITION
+// FIX RT-004: Removed phantom fields that don't exist in reviews table
 // ============================================================
 
 export interface ReviewRequest {
   session_id: UUID;
   item_id: UUID;
   instrument_type: 'flashcard' | 'quiz';
-  subtopic_id: UUID;
-  keyword_id: UUID;
   grade: 1 | 2 | 3 | 4;
-  response_time_ms?: number;
 }
 
 export interface ReviewResponse {
