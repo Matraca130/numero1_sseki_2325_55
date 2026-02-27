@@ -1,20 +1,16 @@
 // ============================================================
 // Axon — Professor Routes (children of ProfessorLayout)
 //
-// Active: curriculum, flashcards, quizzes
-// Placeholder: dashboard, courses, students, ai, settings
+// CODE SPLIT (BUG-014): Real components use React Router `lazy`.
+// Placeholders are inline (tiny, no benefit from splitting).
 // ============================================================
 import React from 'react';
 import type { RouteObject } from 'react-router';
 
-import { ProfessorCurriculumPage } from '@/app/components/roles/pages/professor/ProfessorCurriculumPage';
-import { ProfessorQuizzesPage } from '@/app/components/roles/pages/professor/ProfessorQuizzesPage';
-import { ProfessorFlashcardsPage } from '@/app/components/roles/pages/professor/ProfessorFlashcardsPage';
 import { PlaceholderPage } from '@/app/components/roles/PlaceholderPage';
-import { SummaryView } from '@/app/components/content/SummaryView';
 import { LayoutDashboard, BookOpen, Users, Bot, Settings } from 'lucide-react';
 
-// Wrapper components for PlaceholderPage (React Router needs Component, not element)
+// Placeholder wrappers (inline — tiny, no need to lazy-load)
 function ProfessorDashboardPlaceholder() {
   return React.createElement(PlaceholderPage, {
     title: 'Dashboard del Profesor',
@@ -59,11 +55,23 @@ function ProfessorSettingsPlaceholder() {
 export const professorChildren: RouteObject[] = [
   { index: true,        Component: ProfessorDashboardPlaceholder },
   { path: 'courses',    Component: ProfessorCoursesPlaceholder },
-  { path: 'curriculum', Component: ProfessorCurriculumPage },
-  { path: 'flashcards', Component: ProfessorFlashcardsPage },
-  { path: 'quizzes',    Component: ProfessorQuizzesPage },
+  {
+    path: 'curriculum',
+    lazy: () => import('@/app/components/roles/pages/professor/ProfessorCurriculumPage').then(m => ({ Component: m.ProfessorCurriculumPage })),
+  },
+  {
+    path: 'flashcards',
+    lazy: () => import('@/app/components/roles/pages/professor/ProfessorFlashcardsPage').then(m => ({ Component: m.ProfessorFlashcardsPage })),
+  },
+  {
+    path: 'quizzes',
+    lazy: () => import('@/app/components/roles/pages/professor/ProfessorQuizzesPage').then(m => ({ Component: m.ProfessorQuizzesPage })),
+  },
   { path: 'students',   Component: ProfessorStudentsPlaceholder },
   { path: 'ai',         Component: ProfessorAIPlaceholder },
   { path: 'settings',   Component: ProfessorSettingsPlaceholder },
-  { path: 'summary/:topicId', Component: SummaryView },
+  {
+    path: 'summary/:topicId',
+    lazy: () => import('@/app/components/content/SummaryView').then(m => ({ Component: m.SummaryView })),
+  },
 ];

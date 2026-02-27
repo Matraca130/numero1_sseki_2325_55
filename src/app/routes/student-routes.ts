@@ -1,45 +1,78 @@
 // ============================================================
 // Axon — Student Routes (children of StudentLayout)
 //
-// EV-FIX: DashboardView → DashboardPage, Atlas3DPlaceholder → ThreeDView
-// Sessions integrated: Quiz, Flashcards, Dashboard/Organizer, 3D
+// CODE SPLIT (BUG-014): All page components use React Router `lazy`
+// so they're downloaded only when the student navigates to them.
 // ============================================================
 import type { RouteObject } from 'react-router';
 
-import { WelcomeView } from '@/app/components/content/WelcomeView';
-import DashboardPage from '@/app/pages/DashboardPage';
-import { StudyHubView } from '@/app/components/content/StudyHubView';
-import { StudyView } from '@/app/components/content/StudyView';
-import { StudentSummariesView } from '@/app/components/content/StudentSummariesView';
-import { SummaryView } from '@/app/components/content/SummaryView';
-import { QuizView } from '@/app/components/content/QuizView';
-import { FlashcardView } from '@/app/components/content/FlashcardView';
-import { ScheduleView } from '@/app/components/content/ScheduleView';
-import { StudyOrganizerWizard } from '@/app/components/content/StudyOrganizerWizard';
-import { ReviewSessionView } from '@/app/components/content/ReviewSessionView';
-import { StudyDashboardsView } from '@/app/components/content/StudyDashboardsView';
-import { KnowledgeHeatmapView } from '@/app/components/content/KnowledgeHeatmapView';
-import { MasteryDashboardView } from '@/app/components/content/MasteryDashboardView';
-import { StudentDataPanel } from '@/app/components/content/StudentDataPanel';
-import { ThreeDView } from '@/app/components/content/ThreeDView';
-
 export const studentChildren: RouteObject[] = [
-  { index: true,              Component: WelcomeView },
-  { path: 'dashboard',        Component: DashboardPage },
-  { path: 'study-hub',        Component: StudyHubView },
-  { path: 'study',            Component: StudyView },
-  { path: 'summaries',        Component: StudentSummariesView },
-  { path: 'schedule',         Component: ScheduleView },
-  { path: 'organize-study',   Component: StudyOrganizerWizard },
-  { path: 'review-session',   Component: ReviewSessionView },
-  { path: 'flashcards',       Component: FlashcardView },
-  { path: '3d',               Component: ThreeDView },
-  { path: 'quiz',             Component: QuizView },
-  { path: 'study-dashboards', Component: StudyDashboardsView },
-  { path: 'knowledge-heatmap', Component: KnowledgeHeatmapView },
-  { path: 'mastery-dashboard', Component: MasteryDashboardView },
-  { path: 'student-data',     Component: StudentDataPanel },
-  { path: 'summary/:topicId', Component: SummaryView },
-  // Catch-all → redirect to home
-  { path: '*',                Component: WelcomeView },
+  {
+    index: true,
+    lazy: () => import('@/app/components/content/WelcomeView').then(m => ({ Component: m.WelcomeView })),
+  },
+  {
+    path: 'dashboard',
+    lazy: () => import('@/app/pages/DashboardPage').then(m => ({ Component: m.default })),
+  },
+  {
+    path: 'study-hub',
+    lazy: () => import('@/app/components/content/StudyHubView').then(m => ({ Component: m.StudyHubView })),
+  },
+  {
+    path: 'study',
+    lazy: () => import('@/app/components/content/StudyView').then(m => ({ Component: m.StudyView })),
+  },
+  {
+    path: 'summaries',
+    lazy: () => import('@/app/components/content/StudentSummariesView').then(m => ({ Component: m.StudentSummariesView })),
+  },
+  {
+    path: 'schedule',
+    lazy: () => import('@/app/components/content/ScheduleView').then(m => ({ Component: m.ScheduleView })),
+  },
+  {
+    path: 'organize-study',
+    lazy: () => import('@/app/components/content/StudyOrganizerWizard').then(m => ({ Component: m.StudyOrganizerWizard })),
+  },
+  {
+    path: 'review-session',
+    lazy: () => import('@/app/components/content/ReviewSessionView').then(m => ({ Component: m.ReviewSessionView })),
+  },
+  {
+    path: 'flashcards',
+    lazy: () => import('@/app/components/content/FlashcardView').then(m => ({ Component: m.FlashcardView })),
+  },
+  {
+    path: '3d',
+    lazy: () => import('@/app/components/content/ThreeDView').then(m => ({ Component: m.ThreeDView })),
+  },
+  {
+    path: 'quiz',
+    lazy: () => import('@/app/components/content/QuizView').then(m => ({ Component: m.QuizView })),
+  },
+  {
+    path: 'study-dashboards',
+    lazy: () => import('@/app/components/content/StudyDashboardsView').then(m => ({ Component: m.StudyDashboardsView })),
+  },
+  {
+    path: 'knowledge-heatmap',
+    lazy: () => import('@/app/components/content/KnowledgeHeatmapView').then(m => ({ Component: m.KnowledgeHeatmapView })),
+  },
+  {
+    path: 'mastery-dashboard',
+    lazy: () => import('@/app/components/content/MasteryDashboardView').then(m => ({ Component: m.MasteryDashboardView })),
+  },
+  {
+    path: 'student-data',
+    lazy: () => import('@/app/components/content/StudentDataPanel').then(m => ({ Component: m.StudentDataPanel })),
+  },
+  {
+    path: 'summary/:topicId',
+    lazy: () => import('@/app/components/content/SummaryView').then(m => ({ Component: m.SummaryView })),
+  },
+  {
+    path: '*',
+    lazy: () => import('@/app/components/content/WelcomeView').then(m => ({ Component: m.WelcomeView })),
+  },
 ];
