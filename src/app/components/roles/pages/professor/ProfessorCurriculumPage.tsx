@@ -1,19 +1,24 @@
 // ============================================================
 // Axon — Professor: Curriculum Page
-// Full content tree with CRUD for courses, semesters, sections, topics.
+//
+// Two modes:
+//   1. TREE MODE (default): ContentTree (340px) + TopicDetailPanel
+//   2. EDITOR MODE (when editing a summary): EditorSidebar (collapsible) + SummaryDetailView (full-page)
+//
 // Uses ContentTreeContext for data + ContentTree for UI.
-// Right panel: 3D model management via ModelManager component.
 // PARALLEL-SAFE: This file is independent. Edit freely.
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { ContentTree } from '@/app/components/shared/ContentTree';
 import { PageHeader } from '@/app/components/shared/PageHeader';
-import { ListTree, RefreshCw, ChevronRight, FileText, Box } from 'lucide-react';
-import { motion } from 'motion/react';
+import { EditorSidebar } from '@/app/components/professor/EditorSidebar';
+import { SummaryDetailView } from './SummaryDetailView';
+import { ListTree, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'sonner';
-import { ModelManager } from '@/app/components/professor/ModelManager';
 import { TopicDetailPanel } from './TopicDetailPanel';
+import type { Summary } from '@/app/services/summariesApi';
 
 export function ProfessorCurriculumPage() {
   const {
@@ -26,7 +31,28 @@ export function ProfessorCurriculumPage() {
   } = useContentTree();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'content' | '3d'>('content');
+
+  // ── Editor mode state ───────────────────────────────────
+  const [editingSummary, setEditingSummary] = useState<Summary | null>(null);
+  const [editingTopicName, setEditingTopicName] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const isEditorMode = editingSummary !== null;
+
+  const handleEditSummary = useCallback((summary: Summary, topicName: string) => {
+    setEditingSummary(summary);
+    setEditingTopicName(topicName);
+  }, []);
+
+  const handleBackToCurriculum = useCallback(() => {
+    setEditingSummary(null);
+    setEditingTopicName('');
+  }, []);
+
+  const handleSummaryUpdated = useCallback(() => {
+    // Refresh context tree in background (summary status may have changed)
+    refresh().catch(() => {});
+  }, [refresh]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -90,6 +116,45 @@ export function ProfessorCurriculumPage() {
     return { courses: courses.length, semesters, sections, topics };
   }, [tree]);
 
+  // ══════════════════════════════════════════════════════════
+  // EDITOR MODE: EditorSidebar + SummaryDetailView
+  // ══════════════════════════════════════════════════════════
+  if (isEditorMode) {
+    return (
+      <div className="h-full flex overflow-hidden bg-gray-50">
+        <Toaster position="top-right" richColors />
+
+        {/* Collapsible sidebar */}
+        <EditorSidebar
+          tree={tree}
+          loading={loading}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+          activeSummaryId={editingSummary.id}
+          onSelectSummary={(summary, topicName) => {
+            setEditingSummary(summary);
+            setEditingTopicName(topicName);
+          }}
+          onBackToCurriculum={handleBackToCurriculum}
+        />
+
+        {/* Full-page editor */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <SummaryDetailView
+            key={editingSummary.id}
+            summary={editingSummary}
+            topicName={editingTopicName}
+            onBack={handleBackToCurriculum}
+            onSummaryUpdated={handleSummaryUpdated}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // TREE MODE: ContentTree + TopicDetailPanel (original view)
+  // ══════════════════════════════════════════════════════════
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <Toaster position="top-right" richColors />
@@ -165,57 +230,12 @@ export function ProfessorCurriculumPage() {
         {/* Right: Detail panel */}
         <div className="flex-1 overflow-y-auto">
           {selectedTopicId ? (
-            <motion.div
+            <TopicDetailPanel
               key={selectedTopicId}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-8"
-            >
-              <div className="max-w-4xl">
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-                  <span>Curriculum</span>
-                  <ChevronRight size={14} />
-                  <span className="text-gray-600">{selectedTopicName}</span>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-1 mb-6 border-b border-gray-100 pb-0">
-                  <button
-                    onClick={() => setActiveTab('content')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
-                      activeTab === 'content'
-                        ? 'border-violet-600 text-violet-700 bg-violet-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <FileText size={14} />
-                    Contenido
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('3d')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
-                      activeTab === '3d'
-                        ? 'border-violet-600 text-violet-700 bg-violet-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <Box size={14} />
-                    Modelos 3D
-                  </button>
-                </div>
-
-                {/* Tab Content */}
-                {activeTab === 'content' && (
-                  <TopicDetailPanel
-                    topicId={selectedTopicId}
-                    topicName={selectedTopicName}
-                  />
-                )}
-                {activeTab === '3d' && (
-                  <ModelManager topicId={selectedTopicId} topicName={selectedTopicName} />
-                )}
-              </div>
-            </motion.div>
+              topicId={selectedTopicId}
+              topicName={selectedTopicName}
+              onEditSummary={handleEditSummary}
+            />
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
@@ -223,7 +243,7 @@ export function ProfessorCurriculumPage() {
                   <ListTree size={28} className="text-gray-300" />
                 </div>
                 <p className="text-gray-400 text-sm">Selecciona un topico del arbol</p>
-                <p className="text-gray-300 text-xs mt-1">para ver y editar su contenido y modelos 3D</p>
+                <p className="text-gray-300 text-xs mt-1">para ver y editar su contenido</p>
               </div>
             </div>
           )}

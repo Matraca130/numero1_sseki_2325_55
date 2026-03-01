@@ -12,8 +12,7 @@ import {
 } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 
 interface SummaryFormDialogProps {
   open: boolean;
@@ -39,7 +38,6 @@ export function SummaryFormDialog({
   defaultValues,
 }: SummaryFormDialogProps) {
   const [formTitle, setFormTitle] = useState(defaultValues?.title || '');
-  const [markdown, setMarkdown] = useState(defaultValues?.content_markdown || '');
   const [status, setStatus] = useState<'draft' | 'published'>(defaultValues?.status || 'draft');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +46,10 @@ export function SummaryFormDialog({
   useEffect(() => {
     if (open) {
       setFormTitle(defaultValues?.title || '');
-      setMarkdown(defaultValues?.content_markdown || '');
       setStatus(defaultValues?.status || 'draft');
       setError(null);
     }
-  }, [open, defaultValues?.title, defaultValues?.content_markdown, defaultValues?.status]);
+  }, [open, defaultValues?.title, defaultValues?.status]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +62,7 @@ export function SummaryFormDialog({
     try {
       await onSubmit({
         title: formTitle.trim(),
-        content_markdown: markdown.trim(),
+        content_markdown: defaultValues?.content_markdown || '',
         status,
       });
     } catch (err: any) {
@@ -81,7 +78,7 @@ export function SummaryFormDialog({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            {defaultValues ? 'Modifica los campos del resumen' : 'Completa los campos para crear un nuevo resumen'}
+            {defaultValues ? 'Modifica los campos del resumen' : 'Crea un resumen y luego edita el contenido con el editor visual'}
           </DialogDescription>
         </DialogHeader>
 
@@ -96,15 +93,14 @@ export function SummaryFormDialog({
             />
           </div>
 
-          <div>
-            <label className="text-sm text-gray-700 mb-1 block">Contenido (Markdown)</label>
-            <Textarea
-              value={markdown}
-              onChange={(e) => setMarkdown(e.target.value)}
-              placeholder="Escribe el contenido del resumen en formato Markdown..."
-              className="min-h-[120px]"
-            />
-          </div>
+          {!defaultValues && (
+            <div className="flex items-start gap-3 p-3 bg-violet-50/50 border border-violet-100 rounded-lg">
+              <FileText size={16} className="text-violet-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-violet-600">
+                Una vez creado, podras editar el contenido con el editor visual (con formato, imagenes y mas) en la pestaña <strong>Editor</strong>.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="text-sm text-gray-700 mb-1 block">Estado</label>

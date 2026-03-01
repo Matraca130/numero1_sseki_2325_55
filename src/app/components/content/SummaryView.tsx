@@ -32,6 +32,7 @@ import { SummaryHeader } from '@/app/components/summary/SummaryHeader';
 import { ChunkRenderer } from '@/app/components/summary/ChunkRenderer';
 import { KeywordsManager } from '@/app/components/professor/KeywordsManager';
 import { VideosManager } from '@/app/components/professor/VideosManager';
+import { QuickKeywordCreator } from '@/app/components/professor/QuickKeywordCreator';
 import { KeywordBadges } from '@/app/components/student/KeywordBadges';
 import { VideoPlayer } from '@/app/components/student/VideoPlayer';
 import { TextHighlighter } from '@/app/components/student/TextHighlighter';
@@ -382,6 +383,12 @@ export function SummaryView() {
                 <span className="truncate max-w-[120px]">{breadcrumb.courseName}</span>
               </>
             )}
+            {breadcrumb.sectionName && (
+              <>
+                <ChevronRight size={14} className="text-gray-300" />
+                <span className="truncate max-w-[120px]">{breadcrumb.sectionName}</span>
+              </>
+            )}
             <ChevronRight size={14} className="text-gray-300" />
             <span className="text-gray-600">{breadcrumb.topicName}</span>
           </div>
@@ -527,6 +534,10 @@ export function SummaryView() {
               annotations={annotations}
               onAnnotationsChanged={fetchAnnotations}
             />
+          ) : isProfessor && selectedSummaryId ? (
+            <QuickKeywordCreator summaryId={selectedSummaryId}>
+              <ChunkRenderer chunks={chunks} loading={chunksLoading} />
+            </QuickKeywordCreator>
           ) : (
             <ChunkRenderer chunks={chunks} loading={chunksLoading} />
           )}
