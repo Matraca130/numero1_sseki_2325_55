@@ -3,14 +3,14 @@
 ## Contexto del proyecto
 
 **Proyecto:** Axon v4.4 — Plataforma educativa
-**Repo:** `Matraca130/numero1_sseki_2325_55` (público, GitHub)
+**Repo:** `Matraca130/numero1_sseki_2325_55` (publico, GitHub)
 **Branch de trabajo:** `phase0/split-student-routes`
 **Stack:** React 18 + TypeScript + Supabase + Deno
 **Modelo:** 6 agentes paralelos bajo esquema "file swap"
 
-## Qué cambió en Phase 0
+## Que cambio en Phase 0
 
-`student-routes.ts` fue splitado. Tu ahora **ERES DUEÑO** de `src/app/routes/threed-student-routes.ts`.
+`student-routes.ts` fue splitado. Tu ahora **ERES DUENO** de `src/app/routes/threed-student-routes.ts`.
 
 ## Git workflow
 
@@ -23,60 +23,60 @@ git commit -m "agent6(3d): <descripcion corta>"
 git push origin phase0/split-student-routes
 ```
 
-## Acción requerida: NINGUNA
+## Accion requerida: NINGUNA
 
-Eres el **segundo agente más independiente** (después de Agent 3).
-Tu código NO usa AppContext, NO usa AuthContext, NO usa StudentDataContext.
-Solo usa ContentTreeContext para leer el árbol y encontrar topics con modelos 3D.
-El auth se maneja de forma encapsulada vía `lib/api.ts` → `apiCall()` (ANON_KEY + getAccessToken()).
+Eres el **segundo agente mas independiente** (despues de Agent 3).
+Tu codigo NO usa AppContext, NO usa AuthContext, NO usa StudentDataContext.
+Solo usa ContentTreeContext para leer el arbol y encontrar topics con modelos 3D.
+El auth se maneja de forma encapsulada via `lib/api.ts` -> `apiCall()` (ANON_KEY + getAccessToken()).
 Tus archivos nunca importan AuthContext directamente.
 
-Pasos de verificación:
+Pasos de verificacion:
 1. `npm run dev` — debe compilar sin errores
 2. `/student/3d` — debe cargar ThreeDView
 
 ## Tus archivos — Inventario completo (14 archivos)
 
 ### Rutas
-| Archivo | Tamaño | Descripción |
+| Archivo | Tamano | Descripcion |
 |---------|--------|-------------|
 | `src/app/routes/threed-student-routes.ts` | ~1KB | **NUEVO** — Tu archivo de rutas (lazy) |
 
 ### Servicios y API
-| Archivo | Tamaño | Descripción |
+| Archivo | Tamano | Descripcion |
 |---------|--------|-------------|
 | `src/app/services/models3dApi.ts` | 6KB | CRUD base: getModels3D, createModel3D, updateModel3D, deleteModel3D, getModel3DPins, model3d-notes CRUD |
-| `src/app/lib/model3d-api.ts` | 8KB | Wrapper alto nivel: upload con validación, progress tracking, re-exporta CRUD de models3dApi |
+| `src/app/lib/model3d-api.ts` | 8KB | Wrapper alto nivel: upload con validacion, progress tracking, re-exporta CRUD de models3dApi |
 
 ### Vista estudiante
-| Archivo | Tamaño | Descripción |
+| Archivo | Tamano | Descripcion |
 |---------|--------|-------------|
-| `src/app/components/content/ThreeDView.tsx` | 20KB | Lista de modelos 3D, selección, navegación |
+| `src/app/components/content/ThreeDView.tsx` | 20KB | Lista de modelos 3D, seleccion, navegacion |
 | `src/app/components/content/ModelViewer3D.tsx` | 20KB | Renderer Three.js con OrbitControls, integra viewer3d/* |
 
 ### Componentes viewer3d/ (todos tuyos)
-| Archivo | Tamaño | Descripción |
+| Archivo | Tamano | Descripcion |
 |---------|--------|-------------|
-| `src/app/components/viewer3d/PinSystem.tsx` | 20KB | Gestión de pines 3D: raycast, formulario inline, overlay HTML |
-| `src/app/components/viewer3d/StudentNotes3D.tsx` | 15KB | Notas personales del estudiante con posición 3D opcional |
+| `src/app/components/viewer3d/PinSystem.tsx` | 20KB | Gestion de pines 3D: raycast, formulario inline, overlay HTML |
+| `src/app/components/viewer3d/StudentNotes3D.tsx` | 15KB | Notas personales del estudiante con posicion 3D opcional |
 | `src/app/components/viewer3d/LayerPanel.tsx` | 11KB | Sidebar de capas: toggle visibilidad, opacidad |
 | `src/app/components/viewer3d/PinEditor.tsx` | 10KB | Panel lateral profesor: listar/editar/eliminar pines |
-| `src/app/components/viewer3d/ModelPartMesh.tsx` | 10KB | Clase imperativa Three.js: carga .glb, gestión de partes y capas. NO es componente React |
+| `src/app/components/viewer3d/ModelPartMesh.tsx` | 10KB | Clase imperativa Three.js: carga .glb, gestion de partes y capas. NO es componente React |
 | `src/app/components/viewer3d/PinMarker3D.tsx` | 5KB | Clase imperativa Three.js: meshes esfera+ring por tipo de pin. NO es componente React |
 
 ### Lado profesor (3 archivos tuyos en `professor/`)
-| Archivo | Tamaño | Descripción |
+| Archivo | Tamano | Descripcion |
 |---------|--------|-------------|
 | `src/app/components/professor/ModelManager.tsx` | 23KB | CRUD completo de modelos 3D por topic. Upload via ModelUploadZone |
-| `src/app/components/professor/ModelPartsManager.tsx` | 24KB | CRUD de partes y capas. Usa **localStorage** (no backend aún) |
-| `src/app/components/professor/ModelUploadZone.tsx` | 9KB | Drag-and-drop upload .glb/.gltf con validación client-side |
+| `src/app/components/professor/ModelPartsManager.tsx` | 24KB | CRUD de partes y capas. Usa **localStorage** (no backend aun) |
+| `src/app/components/professor/ModelUploadZone.tsx` | 9KB | Drag-and-drop upload .glb/.gltf con validacion client-side |
 
 > **NOTA:** La carpeta `professor/` contiene 15 archivos de varios agentes.
 > Solo estos 3 son tuyos: `ModelManager`, `ModelPartsManager`, `ModelUploadZone`.
 > NO toques: `QuizQuestionsEditor` (Agent 1), `FlashcardBulkImport` (Agent 3),
 > `KeywordsManager`, `SubtopicsPanel`, `VideosManager`, `ProfessorNotesPanel`, etc.
 
-## Grafo de dependencias (verificado en código real)
+## Grafo de dependencias (verificado en codigo real)
 
 ```
 LADO ESTUDIANTE
@@ -94,7 +94,7 @@ ThreeDView.tsx
         ├── viewer3d/PinSystem.tsx
         │     ├── three
         │     ├── models3dApi.createModel3DPin()
-        │     └── viewer3d/PinMarker3D.tsx   ← three puro (clase imperativa)
+        │     └── viewer3d/PinMarker3D.tsx   <- three puro (clase imperativa)
         ├── viewer3d/PinEditor.tsx
         │     ├── three (tipo OrbitControls)
         │     ├── sonner (toast)
@@ -118,16 +118,16 @@ ProfessorCurriculumPage.tsx [NO ES TUYO — read-only]
   └── professor/ModelManager.tsx
         ├── motion/react, sonner (toast)
         ├── lucide-react
-        ├── lib/model3d-api.ts → getModels3D, createModel3D, updateModel3D, deleteModel3D, uploadAndCreateModel
-        │     └── lib/api.ts → apiCall() (auth encapsulado: ANON_KEY + getAccessToken)
+        ├── lib/model3d-api.ts -> getModels3D, createModel3D, updateModel3D, deleteModel3D, uploadAndCreateModel
+        │     └── lib/api.ts -> apiCall() (auth encapsulado: ANON_KEY + getAccessToken)
         └── professor/ModelUploadZone.tsx
               ├── clsx, lucide-react
-              └── lib/model3d-api.ts → validateModelFile, formatFileSize
+              └── lib/model3d-api.ts -> validateModelFile, formatFileSize
 
-ModelManager.tsx → puede abrir:
+ModelManager.tsx -> puede abrir:
   └── professor/ModelPartsManager.tsx
         ├── clsx, sonner (toast), lucide-react
-        └── viewer3d/ModelPartMesh → getStoredParts, setStoredParts, getStoredLayers, setStoredLayers (localStorage)
+        └── viewer3d/ModelPartMesh -> getStoredParts, setStoredParts, getStoredLayers, setStoredLayers (localStorage)
 ```
 
 ## Paquetes externos del dominio 3D
@@ -142,8 +142,7 @@ ModelManager.tsx → puede abrir:
 | `clsx` | ModelViewer3D, PinSystem, PinEditor, StudentNotes3D, LayerPanel, ModelPartsManager, ModelUploadZone |
 | `lucide-react` | ThreeDView, ModelViewer3D, PinEditor, StudentNotes3D, LayerPanel, ModelManager, ModelPartsManager, ModelUploadZone |
 
-## Verificación de independencia (confirmada en código real)
-
+## Verificacion de independencia (confirmada en codigo real):
 ```ts
 // ThreeDView.tsx — imports reales:
 import { useContentTree } from '@/app/context/ContentTreeContext';     // Solo tree
@@ -174,45 +173,41 @@ import { getModels3D, createModel3D, updateModel3D, deleteModel3D, uploadAndCrea
 import type { Model3D, UploadProgress } from '@/app/lib/model3d-api';
 import { ModelUploadZone } from '@/app/components/professor/ModelUploadZone';
 
-// NINGÚN archivo del Agent 6 importa: AppContext, AuthContext, StudentDataContext, useStudentNav
-// Auth se maneja encapsulado en lib/api.ts → apiCall()
+// NINGUN archivo del Agent 6 importa: AppContext, AuthContext, StudentDataContext, useStudentNav
+// Auth se maneja encapsulado en lib/api.ts -> apiCall()
 ```
 
-## Dependencias compartidas (read-only)
-
-| Contexto/Archivo | Qué lees | Dueño |
+## Dependencias compartidas (read-only):
+| Contexto/Archivo | Que lees | Dueno |
 |------------------|----------|-------|
-| `useContentTree()` | tree (para encontrar topics con modelos 3D) | Núcleo compartido |
-| `@/app/design-system` | colores y estilos compartidos | Núcleo compartido |
-| `@/app/components/shared/AxonPageHeader` | header compartido | Núcleo compartido |
-| `ProfessorCurriculumPage.tsx` | Renderiza ModelManager (no lo modifiques) | Núcleo profesor |
+| `useContentTree()` | tree (para encontrar topics con modelos 3D) | Nucleo compartido |
+| `@/app/design-system` | colores y estilos compartidos | Nucleo compartido |
+| `@/app/components/shared/AxonPageHeader` | header compartido | Nucleo compartido |
+| `ProfessorCurriculumPage.tsx` | Renderiza ModelManager (no lo modifiques) | Nucleo profesor |
 
-## Qué NO debes tocar NUNCA
-
+## Que NO debes tocar NUNCA:
 - `student-routes.ts` (assembler PROTEGIDO)
 - `ContentTreeContext.tsx`, `design-system.ts`
 - `ProfessorCurriculumPage.tsx` (solo consume ModelManager)
 - `lib/api.ts`, `lib/supabase.ts` (infraestructura compartida)
-- Ningún archivo de otro agente
+- Ningun archivo de otro agente
 - Otros archivos en `professor/` (QuizQuestionsEditor, FlashcardBulkImport, KeywordsManager, etc.)
 
-## Violaciones de arquitectura conocidas (pendientes de fix)
+## Violaciones de arquitectura conocidas (pendientes de fix):
 
-| Violación | Archivo | Descripción |
+| Violacion | Archivo | Descripcion |
 |-----------|---------|-------------|
 | Tipos inline | `models3dApi.ts` | `Model3D`, `Model3DPin`, etc. definidos inline en vez de `types/` |
 | Headers manuales | `lib/model3d-api.ts` | Construye headers `Authorization` + `X-Access-Token` manualmente en vez de usar `apiCall()` |
-| Archivo >500 líneas | `ThreeDView.tsx` | Excede límite de ARCHITECTURE-PRACTICES.md |
-| `console.error` directo | `ModelManager.tsx` (x2), `models3dApi.ts` | Debería usar `lib/logger.ts` (aún no existe) |
-| 2 wrappers HTTP | `models3dApi.ts` usa `apiCall()`, `model3d-api.ts` usa XHR directo | Debería consolidarse en 1 |
+| Archivo >500 lineas | `ThreeDView.tsx` | Excede limite de ARCHITECTURE-PRACTICES.md |
+| `console.error` directo | `ModelManager.tsx` (x2), `models3dApi.ts` | Deberia usar `lib/logger.ts` (aun no existe) |
+| 2 wrappers HTTP | `models3dApi.ts` usa `apiCall()`, `model3d-api.ts` usa XHR directo | Deberia consolidarse en 1 |
 
-## Tu ventaja
-
+## Tu ventaja:
 Junto con Agent 3, tienes la mayor libertad del proyecto. Tu dominio (3D) es completamente aislado.
 Puedes refactorizar internamente, agregar nuevas vistas 3D, cambiar el renderer, etc. sin riesgo de conflicto con nadie.
 
-## Cómo agregar una nueva ruta
-
+## Como agregar una nueva ruta:
 Abre `src/app/routes/threed-student-routes.ts` y agrega:
 ```ts
 {
@@ -221,4 +216,4 @@ Abre `src/app/routes/threed-student-routes.ts` y agrega:
     .then(m => ({ Component: m.ThreeDEditor })),
 },
 ```
-Si necesitas un item en el Sidebar, pídelo a Agent 5.
+Si necesitas un item en el Sidebar, pidelo a Agent 5.
