@@ -69,7 +69,7 @@ export interface QuizQuestionListResponse {
 }
 
 export interface CreateQuizQuestionPayload {
-  name: string;
+  // FIX BA-01: removed 'name' — quiz_questions table has NO 'name' column
   summary_id: string;
   keyword_id: string;
   subtopic_id?: string;  // optional — omit if no subtopic selected
@@ -214,7 +214,8 @@ export async function closeStudySession(id: string, data: {
 
 /**
  * Get study sessions (e.g. for history).
- * Returns array plano: { data: [...] }
+ * FIX BA-02: study-sessions is CRUD factory → returns { items, total, limit, offset }
+ * after apiCall unwraps .data. Handle both formats defensively.
  */
 export async function getStudySessions(filters?: {
   session_type?: string;
@@ -226,7 +227,9 @@ export async function getStudySessions(filters?: {
   if (filters?.course_id) params.set('course_id', filters.course_id);
   if (filters?.limit) params.set('limit', String(filters.limit));
   const qs = params.toString() ? `?${params}` : '';
-  return apiCall<StudySession[]>(`/study-sessions${qs}`);
+  const result = await apiCall<any>(`/study-sessions${qs}`);
+  // CRUD factory returns { items, total, limit, offset }, not a plain array
+  return Array.isArray(result) ? result : result?.items || [];
 }
 
 // ── Quiz Attempts ─────────────────────────────────────────
