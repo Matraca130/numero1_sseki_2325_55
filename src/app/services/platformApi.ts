@@ -698,7 +698,7 @@ export async function getFsrsStates(cardId?: UUID): Promise<any> {
 
 // ============================================================
 // STUDENT STATS & DAILY ACTIVITIES (Dashboard — EV-7)
-// EXPANDED: +total_sessions, +last_study_date, +id?, +timestamps
+// EXPANDED: All new fields optional for backward compat
 // ============================================================
 
 export interface StudentStatsRecord {
@@ -709,8 +709,8 @@ export interface StudentStatsRecord {
   total_reviews: number;
   total_time_seconds: number;
   mastery_average: number;
-  total_sessions: number;
-  last_study_date: string | null;
+  total_sessions?: number;
+  last_study_date?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -746,7 +746,7 @@ export async function getDailyActivities(
 
 // ============================================================
 // BKT STATES — Bulk fetch (Dashboard Mastery Overview)
-// EXPANDED: +p_transit?, +delta?, +correct_attempts?, +last_attempt_at?
+// EXPANDED: All new fields optional for backward compat
 // ============================================================
 
 export interface BktStateRecord {
