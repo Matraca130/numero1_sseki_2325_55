@@ -15,8 +15,11 @@ import {
   CheckCircle2, XCircle, ChevronLeft, Lightbulb,
   BookOpen, X, Loader2, Clock,
 } from 'lucide-react';
-import { focusRing } from '@/app/components/design-kit';
 import { logger } from '@/app/lib/logger';
+
+// ── Inlined from design-kit (file not in repo) ──────────
+const focusRing = "focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none";
+
 import {
   checkAnswer,
   QUESTION_TYPE_LABELS,

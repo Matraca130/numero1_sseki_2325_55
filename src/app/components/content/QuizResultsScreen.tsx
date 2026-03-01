@@ -11,7 +11,35 @@ import {
   Trophy, Clock, CheckCircle2, XCircle, AlertCircle,
   ChevronLeft, RotateCw, Target,
 } from 'lucide-react';
-import { Confetti, focusRing } from '@/app/components/design-kit';
+
+// ── Inlined from design-kit (file not in repo) ──────────
+
+const focusRing = "focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none";
+
+function Confetti({ show }: { show: boolean }) {
+  if (!show) return null;
+  const particles = Array.from({ length: 24 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    color: ['#10b981', '#14b8a6', '#f59e0b', '#8b5cf6', '#ec4899', '#3b82f6'][i % 6],
+    delay: Math.random() * 0.5,
+    size: 5 + Math.random() * 7,
+  }));
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{ left: `${p.x}%`, top: '-10px', width: p.size, height: p.size, backgroundColor: p.color }}
+          initial={{ y: -20, opacity: 1, rotate: 0 }}
+          animate={{ y: 300, opacity: 0, rotate: 360 + Math.random() * 360, x: (Math.random() - 0.5) * 80 }}
+          transition={{ duration: 1.5 + Math.random(), delay: p.delay, ease: 'easeOut' }}
+        />
+      ))}
+    </div>
+  );
+}
 
 // ── Props ────────────────────────────────────────────────
 
