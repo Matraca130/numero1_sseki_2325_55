@@ -12,7 +12,7 @@
 //   Error:   { "error": "descriptive message" }
 // ============================================================
 
-export const API_BASE = 'https://xdnciktarvxyhkrokbng.supabase.co/functions/v1/make-server-6569f786';
+export const API_BASE = 'https://xdnciktarvxyhkrokbng.supabase.co/functions/v1/server';
 export const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkbmNpa3RhcnZ4eWhrcm9rYm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMTM4NjAsImV4cCI6MjA4Njc4OTg2MH0._nCGOiOh1bMWvqtQ62d368LlYj5xPI6e7pcsdjDEiYQ';
 
 // ── Access token management ───────────────────────────────
@@ -82,23 +82,38 @@ export async function apiCall<T = any>(
 }
 
 // ── ensureGeneralKeyword ──────────────────────────────────
-// Idempotent: only ONE "General" keyword per summary. Never duplicates.
+// Flashcards and Quiz Questions require keyword_id on POST.
+// This helper ensures a "General" keyword exists for a given
+// summary, creating one if needed. NEVER duplicates.
 
-export async function ensureGeneralKeyword(summaryId: string) {
-  const result = await apiCall<any>("/keywords?summary_id=" + summaryId);
-  const items = result?.items || result || [];
+export interface GeneralKeyword {
+  id: string;
+  summary_id: string;
+  name: string;
+  definition: string | null;
+  priority: number;
+  is_active: boolean;
+}
+
+export async function ensureGeneralKeyword(summaryId: string): Promise<GeneralKeyword> {
+  // 1) Fetch existing keywords for this summary
+  const result = await apiCall<any>(`/keywords?summary_id=${summaryId}`);
+  const items: any[] = Array.isArray(result) ? result : (result?.items ?? []);
+
+  // 2) Look for an active "General" keyword
   const existing = items.find(
-    (kw: any) => (kw.name === "General" || kw.term === "General") && kw.is_active !== false
+    (k: any) => k.name === 'General' && k.is_active !== false
   );
-  if (existing) return existing;
-  const created = await apiCall<any>("/keywords", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  if (existing) return existing as GeneralKeyword;
+
+  // 3) Create one
+  const created = await apiCall<GeneralKeyword>('/keywords', {
+    method: 'POST',
     body: JSON.stringify({
       summary_id: summaryId,
-      name: "General",
-      definition: "Contenido general del resumen",
-      priority: 1,
+      name: 'General',
+      definition: 'Contenido general del resumen',
+      priority: 0,
     }),
   });
   return created;

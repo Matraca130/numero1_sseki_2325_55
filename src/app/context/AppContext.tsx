@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import { Course, Topic, courses } from '@/app/types/content';
+import type { Course, Topic } from '@/app/types/legacy-stubs';
+import { courses } from '@/app/types/legacy-stubs';
 
 // @refresh reset
 
@@ -57,10 +58,15 @@ interface AppContextType {
 
 const noop = () => {};
 
+// Fallback empty course when courses array is empty (mock data removed)
+const emptyCourse: Course = { id: '', name: '', color: '', accentColor: '', semesters: [] };
+const fallbackCourse = courses[0] ?? emptyCourse;
+const fallbackTopic = fallbackCourse.semesters?.[0]?.sections?.[0]?.topics?.[0] ?? null;
+
 const defaultContextValue: AppContextType = {
-  currentCourse: courses[0],
+  currentCourse: fallbackCourse,
   setCurrentCourse: noop,
-  currentTopic: courses[0].semesters[0].sections[0].topics[0],
+  currentTopic: fallbackTopic,
   setCurrentTopic: noop,
   isSidebarOpen: true,
   setSidebarOpen: noop,
@@ -82,9 +88,8 @@ const AppContext = createContext<AppContextType>(defaultContextValue);
 // ── Provider ─────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentCourse, setCurrentCourse] = useState<Course>(courses[0]);
-  const defaultTopic = courses[0].semesters[0].sections[0].topics[0];
-  const [currentTopic, setCurrentTopic] = useState<Topic | null>(defaultTopic);
+  const [currentCourse, setCurrentCourse] = useState<Course>(fallbackCourse);
+  const [currentTopic, setCurrentTopic] = useState<Topic | null>(fallbackTopic);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isStudySessionActive, setStudySessionActive] = useState(false);
   const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);

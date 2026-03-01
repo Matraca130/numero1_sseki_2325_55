@@ -244,7 +244,7 @@ export function KeywordHighlighterInline({
     return () => { cancelled = true; };
   }, [keywords]);
 
-  // ── Compute mastery per keyword ─────────────────────────
+  // ── Compute mastery per keyword ─────────────────���───────
   const keywordMasteryMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const kw of keywords) {

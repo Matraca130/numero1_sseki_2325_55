@@ -100,6 +100,7 @@ export interface FlashcardReview {
   cardId: number;
   topicId: string;
   courseId: string;
+  sessionId?: string;        // UUID, opcional — reviews históricas no lo tienen
   reviewedAt: string; // ISO date
   rating: 1 | 2 | 3 | 4 | 5; // 1=again, 5=easy
   responseTimeMs: number;

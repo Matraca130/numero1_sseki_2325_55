@@ -156,11 +156,11 @@ export function StudentSummaryReader({
   const [contentPage, setContentPage] = useState(0);
   const CONTENT_PAGE_SIZE = 3500;
 
-  // ── Chunks ────────────────────────────────────────────
+  // ── Chunks ──────────────────────────────────────────────
   const [chunks, setChunks] = useState<Chunk[]>([]);
   const [chunksLoading, setChunksLoading] = useState(true);
 
-  // ── Keywords ──────────────────────────────────────────
+  // ── Keywords ────────────────────────────────────────────
   const [keywords, setKeywords] = useState<SummaryKeyword[]>([]);
   const [keywordsLoading, setKeywordsLoading] = useState(true);
   const [expandedKeyword, setExpandedKeyword] = useState<string | null>(null);
@@ -173,11 +173,11 @@ export function StudentSummaryReader({
   const [editingKwNoteId, setEditingKwNoteId] = useState<string | null>(null);
   const [editKwNoteText, setEditKwNoteText] = useState('');
 
-  // ── Videos ────────────────────────────────────────────
+  // ── Videos ──────────────────────────────────────────────
   const [videosCount, setVideosCount] = useState(0);
   const [videosLoading, setVideosLoading] = useState(true);
 
-  // ── Text Annotations ──────────────────────────────────
+  // ── Text Annotations ────────────────────────────────────
   const [textAnnotations, setTextAnnotations] = useState<TextAnnotation[]>([]);
   const [annotationsLoading, setAnnotationsLoading] = useState(true);
   const [showAnnotationForm, setShowAnnotationForm] = useState(false);
@@ -185,12 +185,12 @@ export function StudentSummaryReader({
   const [newAnnotationColor, setNewAnnotationColor] = useState('yellow');
   const [savingAnnotation, setSavingAnnotation] = useState(false);
 
-  // ── Reading state ─────────────────────────────────────
+  // ── Reading state ───────────────────────────────────────
   const [currentReadingState, setCurrentReadingState] = useState<ReadingState | null>(readingState);
   const [markingRead, setMarkingRead] = useState(false);
   const [showXpToast, setShowXpToast] = useState(false);
 
-  // ── Blocks detection ──────────────────────────────────
+  // ── Blocks detection ────────────────────────────────────
   const [hasBlocks, setHasBlocks] = useState(false);
   const [blocksLoading, setBlocksLoading] = useState(true);
 
@@ -258,7 +258,7 @@ export function StudentSummaryReader({
     finally { setKwNotesLoading(null); }
   }, []);
 
-  // ── Initial load ──────────────────────────────────────
+  // ── Initial load ────────────────────────────────────────
   useEffect(() => {
     fetchChunks();
     fetchKeywords();
@@ -296,7 +296,7 @@ export function StudentSummaryReader({
     };
   }, []);
 
-  // ── Mark as completed ─────────────────────────────────
+  // ── Mark as completed ───────────────────────────────────
   const handleMarkCompleted = async () => {
     setMarkingRead(true);
     try {
@@ -334,7 +334,7 @@ export function StudentSummaryReader({
     }
   };
 
-  // ── Annotations CRUD ─────────────────────────────────
+  // ── Annotations CRUD ───────────────────────────────────
   const handleCreateAnnotation = async () => {
     if (!newAnnotationNote.trim()) return;
     setSavingAnnotation(true);
@@ -358,7 +358,7 @@ export function StudentSummaryReader({
     catch (err: any) { toast.error(err.message || 'Error al eliminar'); }
   };
 
-  // ── Keyword Note CRUD ────────────────────────────────
+  // ── Keyword Note CRUD ──────────────────────────────────
   const handleCreateKwNote = async (keywordId: string) => {
     if (!newKwNote.trim()) return;
     setSavingKwNote(true);
@@ -405,7 +405,7 @@ export function StudentSummaryReader({
 
   const isCompleted = currentReadingState?.completed === true;
 
-  // ── Loading skeleton ──────────────────────────────────
+  // ── Loading skeleton ────────────────────────────────────
   const ListSkeleton = () => (
     <div className="space-y-3">
       {[1, 2, 3].map(i => (
@@ -420,7 +420,7 @@ export function StudentSummaryReader({
     </div>
   );
 
-  // ── Tab badge ─────────────────────────────────────────
+  // ── Tab badge ───────────────────────────────────────────
   const TabBadge = ({ count, active }: { count: number; active?: boolean }) => (
     <span className={`ml-1 text-[10px] rounded-full px-1.5 py-0.5 ${active ? 'bg-teal-100 text-teal-700' : 'bg-zinc-200 text-zinc-600'}`}>
       {count}
