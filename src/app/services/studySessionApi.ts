@@ -11,6 +11,10 @@
 //   - added 'reading' to session_type
 //   - instrument_type: 'flashcard' | 'quiz' (was 'flashcard' only)
 //   - removed response_time_ms from reviews (column doesn't exist)
+//
+// FIX BA-03,BA-05 (2026-03-01):
+//   - getStudySessions: handle CRUD factory paginated response
+//   - FsrsState: user_id → student_id (matches DB column)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -32,7 +36,7 @@ export interface StudySessionRecord {
 
 export interface FsrsState {
   id: string;
-  user_id?: string;
+  student_id?: string;  // FIX BA-05: was 'user_id', real DB column is 'student_id'
   flashcard_id: string;
   stability: number;
   difficulty: number;
@@ -80,7 +84,27 @@ export async function closeStudySession(
   });
 }
 
-// ── FSRS States ───────────────────────────────────────────
+/**
+ * Get study sessions with optional filters.
+ * FIX BA-03: study-sessions is CRUD factory → returns { items, total, limit, offset }
+ * after apiCall unwraps .data. Handle both formats defensively.
+ */
+export async function getStudySessions(filters?: {
+  session_type?: string;
+  course_id?: string;
+  limit?: number;
+}): Promise<StudySessionRecord[]> {
+  const qs = new URLSearchParams();
+  if (filters?.session_type) qs.set('session_type', filters.session_type);
+  if (filters?.course_id) qs.set('course_id', filters.course_id);
+  if (filters?.limit) qs.set('limit', String(filters.limit));
+  const query = qs.toString();
+  const result = await apiCall<any>(`/study-sessions${query ? `?${query}` : ''}`);
+  // CRUD factory returns { items, total, limit, offset }, not a plain array
+  return Array.isArray(result) ? result : result?.items || [];
+}
+
+// ── FSRS States ─────────────────────────────────────────
 
 export async function getFsrsStates(params?: {
   due_before?: string;
@@ -113,7 +137,7 @@ export async function upsertFsrsState(data: {
   });
 }
 
-// ── Reviews ───────────────────────────────────────────────
+// ── Reviews ─────────────────────────────────────────────
 
 export async function submitReview(data: {
   session_id: string;
