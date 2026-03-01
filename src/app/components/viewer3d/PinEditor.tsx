@@ -112,7 +112,7 @@ export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: Pi
 
   // Delete
   const handleDelete = useCallback(async (pinId: string) => {
-    if (!confirm('¿Eliminar este pin?')) return;
+    if (!confirm('\u00bfEliminar este pin?')) return;
     try {
       await deleteModel3DPin(pinId);
       toast.success('Pin eliminado');
