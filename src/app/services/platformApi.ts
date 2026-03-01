@@ -10,6 +10,12 @@
 // FIX RT-004 (2025-02-27):
 //   - Removed phantom fields from ReviewRequest
 //     (subtopic_id, keyword_id, response_time_ms don't exist in reviews table)
+//
+// COORDINATOR COMMIT (Phase 0):
+//   - Expanded StudentStatsRecord, DailyActivityRecord, BktStateRecord
+//   - Added StudySessionRecord, FsrsStateRecord interfaces
+//   - Added upsert endpoints, study session CRUD, enhanced FSRS
+//   - Added getStudyPlan (single), offset params
 // ============================================================
 
 import { realRequest, REAL_BACKEND_URL, getRealToken, ApiError, publicAnonKey } from '@/app/services/apiConfig';
@@ -692,23 +698,34 @@ export async function getFsrsStates(cardId?: UUID): Promise<any> {
 
 // ============================================================
 // STUDENT STATS & DAILY ACTIVITIES (Dashboard — EV-7)
+// EXPANDED: +total_sessions, +last_study_date, +id?, +timestamps
 // ============================================================
 
 export interface StudentStatsRecord {
+  id?: string;
+  student_id?: string;
   current_streak: number;
   longest_streak: number;
   total_reviews: number;
   total_time_seconds: number;
   mastery_average: number;
+  total_sessions: number;
+  last_study_date: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface DailyActivityRecord {
+  id?: string;
+  student_id?: string;
   activity_date: string;
   time_spent_seconds: number;
   reviews_count: number;
   correct_count: number;
   cards_studied: number;
   sessions_count: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export async function getStudentStatsReal(): Promise<StudentStatsRecord> {
@@ -718,35 +735,48 @@ export async function getStudentStatsReal(): Promise<StudentStatsRecord> {
 export async function getDailyActivities(
   from: string,
   to: string,
-  limit?: number
+  limit?: number,
+  offset?: number
 ): Promise<DailyActivityRecord[]> {
   const params = new URLSearchParams({ from, to });
   if (limit) params.set('limit', String(limit));
+  if (offset) params.set('offset', String(offset));
   return request<DailyActivityRecord[]>(`/daily-activities?${params}`);
 }
 
 // ============================================================
 // BKT STATES — Bulk fetch (Dashboard Mastery Overview)
+// EXPANDED: +p_transit?, +delta?, +correct_attempts?, +last_attempt_at?
 // ============================================================
 
 export interface BktStateRecord {
+  id?: string;
+  student_id?: string;
   subtopic_id: string;
   keyword_id: string;
   p_know: number;
   p_learn: number;
+  p_transit?: number;
   p_guess: number;
   p_slip: number;
+  delta?: number;
   total_attempts: number;
+  correct_attempts?: number;
   last_reviewed_at: string;
+  last_attempt_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export async function getAllBktStates(
   subtopicId?: string,
-  limit?: number
+  limit?: number,
+  offset?: number
 ): Promise<BktStateRecord[]> {
   const params = new URLSearchParams();
   if (subtopicId) params.set('subtopic_id', subtopicId);
   if (limit) params.set('limit', String(limit));
+  if (offset) params.set('offset', String(offset));
   const qs = params.toString() ? `?${params}` : '';
   return request<BktStateRecord[]>(`/bkt${qs}`);
 }
@@ -784,6 +814,12 @@ export async function getStudyPlans(
   if (status) params.set('status', status);
   const qs = params.toString() ? `?${params}` : '';
   return request<StudyPlanRecord[]>(`/study-plans${qs}`);
+}
+
+export async function getStudyPlan(
+  planId: string
+): Promise<StudyPlanRecord> {
+  return request<StudyPlanRecord>(`/study-plans/${planId}`);
 }
 
 export async function getStudyPlanTasks(
@@ -854,5 +890,137 @@ export async function reorderItems(
   return request(`/reorder`, {
     method: 'POST',
     body: JSON.stringify({ table, items }),
+  });
+}
+
+// ============================================================
+// STUDY SESSIONS — CRUD (Dashboard + Study Organizer)
+// NEW: Coordinator commit Phase 0
+// ============================================================
+
+export interface StudySessionRecord {
+  id: string;
+  student_id?: string;
+  session_type: 'review' | 'study' | 'quiz';
+  instrument_type?: 'flashcard' | 'quiz' | 'summary';
+  started_at: string;
+  ended_at?: string | null;
+  items_reviewed?: number;
+  correct_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function createStudySession(data: {
+  session_type: 'review' | 'study' | 'quiz';
+  instrument_type?: 'flashcard' | 'quiz' | 'summary';
+  started_at?: string;
+}): Promise<StudySessionRecord> {
+  return request<StudySessionRecord>('/study-sessions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateStudySession(
+  sessionId: string,
+  data: Partial<StudySessionRecord>
+): Promise<StudySessionRecord> {
+  return request<StudySessionRecord>(`/study-sessions/${sessionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getStudySessions(
+  status?: string,
+  limit?: number
+): Promise<StudySessionRecord[]> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString() ? `?${params}` : '';
+  return request<StudySessionRecord[]>(`/study-sessions${qs}`);
+}
+
+// ============================================================
+// FSRS STATES — Enhanced (Dashboard Stability View)
+// NEW: Coordinator commit Phase 0
+// ============================================================
+
+export interface FsrsStateRecord {
+  id: string;
+  student_id?: string;
+  item_id: string;
+  instrument_type: string;
+  summary_id?: string;
+  subtopic_id?: string;
+  keyword_id?: string;
+  stability: number;
+  difficulty: number;
+  reps: number;
+  lapses: number;
+  state: number; // 0=new, 1=learning, 2=review, 3=relearning
+  next_review: string;
+  last_review?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function getFsrsStatesEnhanced(options?: {
+  item_id?: string;
+  instrument_type?: string;
+  subtopic_id?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<FsrsStateRecord[]> {
+  const params = new URLSearchParams();
+  if (options?.item_id) params.set('item_id', options.item_id);
+  if (options?.instrument_type) params.set('instrument_type', options.instrument_type);
+  if (options?.subtopic_id) params.set('subtopic_id', options.subtopic_id);
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.offset) params.set('offset', String(options.offset));
+  const qs = params.toString() ? `?${params}` : '';
+  return request<FsrsStateRecord[]>(`/fsrs${qs}`);
+}
+
+export async function upsertFsrsState(
+  data: Partial<FsrsStateRecord> & { item_id: string; instrument_type: string }
+): Promise<FsrsStateRecord> {
+  return request<FsrsStateRecord>('/fsrs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ============================================================
+// UPSERT ENDPOINTS — Dashboard writes (trigger-assisted)
+// NEW: Coordinator commit Phase 0
+// ============================================================
+
+export async function upsertDailyActivity(
+  data: Partial<DailyActivityRecord> & { activity_date: string }
+): Promise<DailyActivityRecord> {
+  return request<DailyActivityRecord>('/daily-activities', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function upsertStudentStats(
+  data: Partial<StudentStatsRecord>
+): Promise<StudentStatsRecord> {
+  return request<StudentStatsRecord>('/student-stats', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function upsertBktState(
+  data: Partial<BktStateRecord> & { subtopic_id: string }
+): Promise<BktStateRecord> {
+  return request<BktStateRecord>('/bkt', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }
