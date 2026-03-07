@@ -20,17 +20,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-// ── Subtopic type ─────────────────────────────────────────
-
-interface Subtopic {
-  id: string;
-  keyword_id: string;
-  name: string;
-  order_index: number;
-  is_active?: boolean;
-  deleted_at?: string | null;
-}
+import type { Subtopic } from '@/app/types/flashcard-manager';
 
 // ── Props ─────────────────────────────────────────────────
 

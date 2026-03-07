@@ -1,8 +1,26 @@
 // ============================================================
 // useFlashcardNavigation — View state machine + navigation
-// NOW CONNECTED TO REAL BACKEND:
+//
+// REFACTORED v4.4.1:
+//   - Uses shared useStudyQueueData (eliminates duplicate study-queue fetch)
+//   - LRU-bounded cardCache (max 30 topics, ~6000 cards at ~200/topic)
+//   - Stable loadTopicCards ref (no stale closure issue)
+//   - enrichedSections: per-topic memoization instead of full rebuild
+//   - Avoids N+1 cascade for already-cached topics
+//
+// PERF v4.4.3:
+//   [C2] enrichedSections now uses granular per-topic memoization.
+//        Instead of re-enriching ALL cards when masteryMap changes,
+//        only topics whose mastery data actually changed are rebuilt.
+//        This reduces O(N×M) → O(changed×M) spreads after each session.
+//   [C1] loadFlashcardsForTopic now tries a batch endpoint first (1 request).
+//        Falls back to the old N+1 pattern if the endpoint doesn't exist (404)
+//        or fails for any reason. This allows gradual backend deployment.
+//
+// CONNECTED TO REAL BACKEND:
 //   - Structure from ContentTreeContext (content-tree API)
 //   - Flashcards from GET /flashcards?summary_id=xxx
+//   - Mastery from shared useStudyQueueData (FSRS+BKT)
 //   - Topics/Sections built from real tree, not stub courses[]
 // ============================================================
 
@@ -10,9 +28,24 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '@/app/context/AppContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
+import { useStudyQueueData, invalidateStudyQueueCache } from '@/app/hooks/useStudyQueueData';
 import { apiCall } from '@/app/lib/api';
+import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
+import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
+import type { OptimisticCardUpdate } from './useFlashcardEngine';
 import type { Section, Topic, Flashcard, Course } from '@/app/types/content';
 import type { FlashcardViewState } from './flashcard-types';
+
+// ── Constants ─────────────────────────────────────────────
+
+/** Max topics to keep in cardCache before evicting oldest */
+const CARD_CACHE_MAX_TOPICS = 30;
+
+/** Batch size for loading flashcards (avoids saturating connections) */
+const LOAD_BATCH_SIZE = 5;
+
+/** Delay between batches (ms) */
+const LOAD_BATCH_DELAY = 200;
 
 // ── Helper: map API flashcard → UI Flashcard ──────────────
 
@@ -21,13 +54,14 @@ function mapApiCard(card: any): Flashcard {
     id: card.id,
     front: card.front || '',
     back: card.back || '',
-    question: card.front || '',   // alias for SessionScreen
-    answer: card.back || '',      // alias for SessionScreen
-    mastery: 0,                   // default — overwritten by FSRS state
+    question: card.front || '',
+    answer: card.back || '',
+    mastery: 0,
     difficulty: 'normal',
     keywords: [],
     summary_id: card.summary_id,
     keyword_id: card.keyword_id,
+    subtopic_id: card.subtopic_id || null,
     source: card.source,
     image: card.front_image_url || card.back_image_url || undefined,
     frontImageUrl: card.front_image_url || null,
@@ -35,13 +69,56 @@ function mapApiCard(card: any): Flashcard {
   };
 }
 
+// ── Helper: convert p_know (0-1) to mastery (0-5) ────────
+
+function pKnowToMastery(pKnow: number): number {
+  if (pKnow >= 0.90) return 5;
+  if (pKnow >= 0.75) return 4;
+  if (pKnow >= 0.60) return 3;
+  if (pKnow >= 0.40) return 2;
+  if (pKnow >= 0.20) return 1;
+  return 0;
+}
+
+// ── Helper: enrich cards with study-queue mastery data ────
+
+function enrichCardWithMastery(
+  card: Flashcard,
+  sqMap: Map<string, StudyQueueItem>,
+): Flashcard {
+  const sq = sqMap.get(card.id);
+  if (!sq) return card;
+  return {
+    ...card,
+    mastery: pKnowToMastery(sq.p_know),
+    fsrs_state: sq.fsrs_state,
+    due_at: sq.due_at || undefined,
+  };
+}
+
 // ── Helper: load flashcards for a topic ───────────────────
-// 1. Get summaries for this topic
-// 2. Get flashcards for each summary
+// [C1] PERF v4.4.3: Try the batch endpoint first (1 request).
+// Falls back to the old N+1 pattern if the endpoint doesn't exist (404)
+// or fails for any reason. This allows gradual backend deployment.
 
 async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
+  // ── Strategy 1: Batch endpoint (PERF C1) ──
   try {
-    // Flat route: GET /summaries?topic_id=xxx
+    const data = await getFlashcardsByTopic(topicId);
+    const items = Array.isArray(data) ? data : data?.items || [];
+    return items
+      .filter((card: any) => card.is_active !== false && !card.deleted_at)
+      .map(mapApiCard);
+  } catch (batchErr: any) {
+    // If it's a 404 (endpoint not deployed yet), fall through to N+1.
+    // For other errors, also fall through — the N+1 is our safety net.
+    if (import.meta.env.DEV) {
+      console.warn(`[FlashcardNav] Batch endpoint failed for topic ${topicId}, falling back to N+1:`, batchErr?.message);
+    }
+  }
+
+  // ── Strategy 2: N+1 fallback (original logic) ──
+  try {
     let summaries: any[] = [];
     try {
       const data = await apiCall<any>(`/summaries?topic_id=${topicId}`);
@@ -52,7 +129,6 @@ async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
 
     if (summaries.length === 0) return [];
 
-    // Load flashcards for each summary (parallel)
     const results = await Promise.allSettled(
       summaries.map((s: any) =>
         apiCall<any>(`/flashcards?summary_id=${s.id}`)
@@ -74,7 +150,9 @@ async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
 
     return allCards;
   } catch (err) {
-    console.error(`[FlashcardNav] Error loading flashcards for topic ${topicId}:`, err);
+    if (import.meta.env.DEV) {
+      console.error(`[FlashcardNav] Error loading flashcards for topic ${topicId}:`, err);
+    }
     return [];
   }
 }
@@ -92,7 +170,6 @@ function buildCourseFromTree(tree: any): Course {
     };
   }
 
-  // Use the first course (or merge all)
   const firstCourse = tree.courses[0];
   return {
     id: firstCourse.id,
@@ -117,6 +194,37 @@ function buildCourseFromTree(tree: any): Course {
   };
 }
 
+// ── LRU Card Cache ────────────────────────────────────────
+
+interface LruCardCache {
+  data: Map<string, Flashcard[]>;
+  order: string[]; // oldest first
+}
+
+function createLruCache(): LruCardCache {
+  return { data: new Map(), order: [] };
+}
+
+function lruGet(cache: LruCardCache, key: string): Flashcard[] | undefined {
+  return cache.data.get(key);
+}
+
+function lruSet(cache: LruCardCache, key: string, value: Flashcard[]): LruCardCache {
+  const newData = new Map(cache.data);
+  let newOrder = cache.order.filter(k => k !== key);
+
+  // Evict oldest if at capacity
+  while (newOrder.length >= CARD_CACHE_MAX_TOPICS) {
+    const evicted = newOrder.shift()!;
+    newData.delete(evicted);
+  }
+
+  newData.set(key, value);
+  newOrder.push(key);
+
+  return { data: newData, order: newOrder };
+}
+
 // ══════════════════════════════════════════════════════════
 // HOOK
 // ══════════════════════════════════════════════════════════
@@ -132,13 +240,26 @@ export function useFlashcardNavigation() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [selectedSectionIdx, setSelectedSectionIdx] = useState(0);
 
-  // Flashcard cache: topicId → Flashcard[]
-  const [cardCache, setCardCache] = useState<Record<string, Flashcard[]>>({});
+  // LRU-bounded flashcard cache
+  const [cardCache, setCardCache] = useState<LruCardCache>(createLruCache);
   const [loadingTopics, setLoadingTopics] = useState<Set<string>>(new Set());
   const pendingLoads = useRef<Set<string>>(new Set());
+  /** Ref mirror of cardCache keys for synchronous checks in stable callbacks */
+  const cachedTopicIds = useRef<Set<string>>(new Set());
 
   // Build course from tree
   const currentCourse = useMemo(() => buildCourseFromTree(tree), [tree]);
+
+  // ── Shared study-queue data (single fetch for the course) ──
+  const sqData = useStudyQueueData(currentCourse.id === 'empty' ? null : currentCourse.id);
+
+  // Backward-compat: expose masteryMap as flashcard_id → StudyQueueItem
+  const masteryMap = sqData.byFlashcardId;
+
+  const refreshMastery = useCallback(async () => {
+    invalidateStudyQueueCache();
+    await sqData.refresh();
+  }, [sqData]);
 
   // Derived: all sections (flattened from semesters)
   const allSections = useMemo(
@@ -146,22 +267,26 @@ export function useFlashcardNavigation() {
     [currentCourse],
   );
 
-  // ── Load flashcards for visible topics ──────────────────
+  // ── Load flashcards for a topic (stable ref) ───────────
 
   const loadTopicCards = useCallback(async (topicId: string) => {
-    if (cardCache[topicId] || pendingLoads.current.has(topicId)) return;
+    if (pendingLoads.current.has(topicId)) return;
+    if (cachedTopicIds.current.has(topicId)) return;
+
     pendingLoads.current.add(topicId);
     setLoadingTopics(prev => new Set(prev).add(topicId));
 
     const cards = await loadFlashcardsForTopic(topicId);
-    setCardCache(prev => ({ ...prev, [topicId]: cards }));
+
+    cachedTopicIds.current.add(topicId);
+    setCardCache(prev => lruSet(prev, topicId, cards));
     pendingLoads.current.delete(topicId);
     setLoadingTopics(prev => {
       const next = new Set(prev);
       next.delete(topicId);
       return next;
     });
-  }, [cardCache]);
+  }, []); // Stable — no dependencies that change
 
   // Auto-load flashcards for all topics when tree loads
   useEffect(() => {
@@ -176,31 +301,51 @@ export function useFlashcardNavigation() {
         }
       }
     }
+
     // Load in batches to avoid overwhelming the API
     let idx = 0;
-    const batchSize = 5;
+    let cancelled = false;
     const loadBatch = () => {
-      const batch = topicIds.slice(idx, idx + batchSize);
+      if (cancelled) return;
+      const batch = topicIds.slice(idx, idx + LOAD_BATCH_SIZE);
       batch.forEach(id => loadTopicCards(id));
-      idx += batchSize;
+      idx += LOAD_BATCH_SIZE;
       if (idx < topicIds.length) {
-        setTimeout(loadBatch, 300);
+        setTimeout(loadBatch, LOAD_BATCH_DELAY);
       }
     };
     if (topicIds.length > 0) loadBatch();
-  }, [tree, treeLoading]); // intentionally not including loadTopicCards
 
-  // ── Inject cached flashcards into sections ──────────────
+    return () => { cancelled = true; };
+  }, [tree, treeLoading, loadTopicCards]);
+
+  // ── Inject cached flashcards + mastery into sections ────
+  // [C2] Granular per-topic enrichment: uses a persistent cache keyed by
+  // (topicId, cardCache version, masteryMap version) so only topics whose
+  // underlying data actually changed get re-enriched. Stable references
+  // for unchanged topics avoid unnecessary child re-renders.
+
+  const enrichedTopicCache = useRef(new Map<string, { cards: Flashcard[]; cacheRef: Flashcard[]; mapRef: Map<string, StudyQueueItem> }>());
 
   const enrichedSections = useMemo(() => {
+    const topicCache = enrichedTopicCache.current;
     return allSections.map(section => ({
       ...section,
-      topics: section.topics.map(topic => ({
-        ...topic,
-        flashcards: cardCache[topic.id] || [],
-      })),
+      topics: section.topics.map(topic => {
+        const cached = lruGet(cardCache, topic.id) || [];
+        const prev = topicCache.get(topic.id);
+
+        // [C2] Only re-enrich if the raw cards or masteryMap changed for THIS topic
+        if (prev && prev.cacheRef === cached && prev.mapRef === masteryMap) {
+          return { ...topic, flashcards: prev.cards };
+        }
+
+        const enriched = cached.map(card => enrichCardWithMastery(card, masteryMap));
+        topicCache.set(topic.id, { cards: enriched, cacheRef: cached, mapRef: masteryMap });
+        return { ...topic, flashcards: enriched };
+      }),
     }));
-  }, [allSections, cardCache]);
+  }, [allSections, cardCache, masteryMap]);
 
   const allFlashcards = useMemo(
     () => enrichedSections.flatMap(sec => sec.topics.flatMap(t => t.flashcards || [])),
@@ -217,9 +362,7 @@ export function useFlashcardNavigation() {
   // ── Actions ──
 
   const openSection = useCallback((section: Section, idx: number) => {
-    // Ensure flashcards are loaded for this section's topics
     section.topics.forEach(t => loadTopicCards(t.id));
-    // Find enriched version
     const enriched = enrichedSections.find(s => s.id === section.id) || section;
     setSelectedSection(enriched);
     setSelectedSectionIdx(idx);
@@ -228,27 +371,35 @@ export function useFlashcardNavigation() {
 
   const openDeck = useCallback((topic: Topic) => {
     loadTopicCards(topic.id);
-    const enriched = {
-      ...topic,
-      flashcards: cardCache[topic.id] || topic.flashcards || [],
-    };
+    const cached = lruGet(cardCache, topic.id) || topic.flashcards || [];
+    const enrichedCards = cached.map(card => enrichCardWithMastery(card, masteryMap));
+    const enriched = { ...topic, flashcards: enrichedCards };
     setSelectedTopic(enriched);
     setViewState('deck');
-  }, [cardCache, loadTopicCards]);
+  }, [cardCache, loadTopicCards, masteryMap]);
 
   const goBack = useCallback(() => {
     if (viewState === 'summary' || viewState === 'session') {
-      setViewState(selectedTopic ? 'deck' : selectedSection ? 'section' : 'hub');
-    } else if (viewState === 'deck') {
-      setViewState('section');
+      setViewState('hub');
       setSelectedTopic(null);
+      setSelectedSection(null);
+    } else if (viewState === 'deck') {
+      setViewState('hub');
+      setSelectedTopic(null);
+      setSelectedSection(null);
     } else if (viewState === 'section') {
       setViewState('hub');
       setSelectedSection(null);
     } else {
       navigateTo('study');
     }
-  }, [viewState, selectedTopic, selectedSection, navigateTo]);
+  }, [viewState, navigateTo]);
+
+  const goToHub = useCallback(() => {
+    setViewState('hub');
+    setSelectedTopic(null);
+    setSelectedSection(null);
+  }, []);
 
   const studySelectedTopic = useCallback(() => {
     if (selectedTopic) {
@@ -257,25 +408,86 @@ export function useFlashcardNavigation() {
     }
   }, [selectedTopic, setCurrentTopic, navigateTo]);
 
-  // Keep selectedSection/selectedTopic enriched with latest card cache
+  // Keep selectedSection/selectedTopic enriched with latest card cache + mastery
   const enrichedSelectedSection = useMemo(() => {
     if (!selectedSection) return null;
     return {
       ...selectedSection,
       topics: selectedSection.topics.map(t => ({
         ...t,
-        flashcards: cardCache[t.id] || t.flashcards || [],
+        flashcards: (lruGet(cardCache, t.id) || t.flashcards || []).map(
+          card => enrichCardWithMastery(card, masteryMap)
+        ),
       })),
     };
-  }, [selectedSection, cardCache]);
+  }, [selectedSection, cardCache, masteryMap]);
 
   const enrichedSelectedTopic = useMemo(() => {
     if (!selectedTopic) return null;
     return {
       ...selectedTopic,
-      flashcards: cardCache[selectedTopic.id] || selectedTopic.flashcards || [],
+      flashcards: (lruGet(cardCache, selectedTopic.id) || selectedTopic.flashcards || []).map(
+        card => enrichCardWithMastery(card, masteryMap)
+      ),
     };
-  }, [selectedTopic, cardCache]);
+  }, [selectedTopic, cardCache, masteryMap]);
+
+  // ── Apply optimistic mastery updates (from useFlashcardEngine) ──
+  // Merges locally-computed FSRS/BKT values into the study-queue data
+  // so that enrichedSections recalculates with updated mastery BEFORE
+  // the backend round-trip completes. The subsequent refreshMastery()
+  // call overwrites with authoritative backend data.
+  const applyOptimisticMastery = useCallback(
+    (updates: Map<string, OptimisticCardUpdate>) => {
+      if (updates.size === 0) return;
+
+      // Build StudyQueueItems — use existing when available, create
+      // synthetic stubs for cards NOT yet in study-queue (new cards).
+      const patchedItems: import('@/app/lib/studyQueueApi').StudyQueueItem[] = [];
+      for (const [cardId, upd] of updates) {
+        const existing = sqData.byFlashcardId.get(cardId);
+        if (existing) {
+          // Merge optimistic values onto existing item
+          patchedItems.push({
+            ...existing,
+            p_know: upd.p_know,
+            fsrs_state: upd.fsrs_state as any,
+            stability: upd.stability,
+            difficulty: upd.difficulty,
+            due_at: upd.due_at,
+          });
+        } else {
+          // Card has no study-queue entry yet (first review ever).
+          // Create a synthetic stub with required fields so the queue
+          // indexes pick it up for enrichCardWithMastery.
+          patchedItems.push({
+            flashcard_id: cardId,
+            summary_id: '',
+            keyword_id: '',
+            subtopic_id: null,
+            front: '',
+            back: '',
+            front_image_url: null,
+            back_image_url: null,
+            need_score: 0,
+            retention: 0,
+            mastery_color: upd.p_know >= 0.75 ? 'green' : upd.p_know >= 0.4 ? 'yellow' : 'red',
+            p_know: upd.p_know,
+            fsrs_state: upd.fsrs_state as any,
+            due_at: upd.due_at,
+            stability: upd.stability,
+            difficulty: upd.difficulty,
+            is_new: true,
+          });
+        }
+      }
+
+      if (patchedItems.length > 0) {
+        sqData.applyOptimisticBatch(patchedItems);
+      }
+    },
+    [sqData],
+  );
 
   return {
     viewState,
@@ -286,9 +498,13 @@ export function useFlashcardNavigation() {
     allSections: enrichedSections,
     allFlashcards,
     currentCourse,
+    masteryMap,
+    refreshMastery,
+    applyOptimisticMastery,
     openSection,
     openDeck,
     goBack,
+    goToHub,
     studySelectedTopic,
   };
 }

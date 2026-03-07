@@ -27,17 +27,38 @@ export const RATINGS = [
   { value: 5, label: 'Perfeito', color: 'bg-emerald-500', hover: 'hover:bg-emerald-600', text: 'text-emerald-500', desc: 'Memorizado' },
 ] as const;
 
+/** FSRS 4-level grading scale (used by FlashcardReviewer + ReviewSessionView) */
+export const GRADES = [
+  { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabia' },
+  { value: 2, label: 'Dificil', color: 'bg-orange-500 hover:bg-orange-600', desc: 'Con mucho esfuerzo' },
+  { value: 3, label: 'Bien', color: 'bg-emerald-500 hover:bg-emerald-600', desc: 'Con algo de esfuerzo' },
+  { value: 4, label: 'Facil', color: 'bg-blue-500 hover:bg-blue-600', desc: 'Muy facil' },
+] as const;
+
 // ── Pure Utilities ──
 
 export function getMasteryStats(cards: Flashcard[]): MasteryStats {
   if (cards.length === 0) return { avg: 0, pct: 0, mastered: 0, learning: 0, newCards: 0 };
-  const avg = cards.reduce((s, c) => s + c.mastery, 0) / cards.length;
+
+  let sum = 0;
+  let mastered = 0;
+  let learning = 0;
+  let newCards = 0;
+
+  for (const c of cards) {
+    sum += c.mastery;
+    if (c.mastery >= 4) mastered++;
+    else if (c.mastery === 3) learning++;
+    else newCards++;
+  }
+
+  const avg = sum / cards.length;
   return {
     avg,
     pct: (avg / 5) * 100,
-    mastered: cards.filter(c => c.mastery >= 4).length,
-    learning: cards.filter(c => c.mastery === 3).length,
-    newCards: cards.filter(c => c.mastery <= 2).length,
+    mastered,
+    learning,
+    newCards,
   };
 }
 

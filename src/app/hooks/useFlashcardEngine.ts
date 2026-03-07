@@ -178,8 +178,7 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
 
     try {
       await sessionApi.closeStudySession(sessionId, {
-        ended_at: new Date().toISOString(),
-        duration_seconds: durationSeconds,
+        completed_at: new Date().toISOString(),
         total_reviews: stats.length,
         correct_reviews: correctReviews,
       });

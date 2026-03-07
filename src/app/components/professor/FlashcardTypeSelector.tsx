@@ -15,16 +15,8 @@ import {
   Type, Image, Columns2, SquareSplitHorizontal,
   LayoutGrid, TextCursorInput,
 } from 'lucide-react';
-
-// ── Types ─────────────────────────────────────────────────
-
-export type CardType =
-  | 'text'
-  | 'text_image'
-  | 'image_text'
-  | 'image_image'
-  | 'text_both'
-  | 'cloze';
+import type { CardType } from '@/app/lib/flashcard-utils';
+export type { CardType };
 
 type SideFormat = 'text' | 'text_image';
 

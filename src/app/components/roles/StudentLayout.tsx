@@ -44,7 +44,7 @@ function StudentShell() {
   const { navigateTo, isView } = useStudentNav();
   const location = useLocation();
 
-  const showTopicSidebar = isView('study-hub', 'study') && !isStudySessionActive;
+  const showTopicSidebar = isView('study-hub', 'study', 'flashcards') && !isStudySessionActive;
 
   // Derive a stable key from the URL for page transitions
   const routeKey = location.pathname;

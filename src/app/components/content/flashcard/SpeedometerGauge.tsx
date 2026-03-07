@@ -1,6 +1,18 @@
+// ============================================================
+// SpeedometerGauge -- Arc gauge showing session progress
+//
+// Each segment represents one card. Completed segments show
+// their mastery color via getMasteryColor(rating).hex.
+// Current card segment uses brand teal (#14b8a6) as active indicator.
+//
+// STANDALONE: depends on react, motion/react, mastery-colors.
+// PHASE 3: Completed segments use dynamic mastery colors.
+// ============================================================
+
 import React from 'react';
 import { motion } from 'motion/react';
 import { Flashcard } from '@/app/types/content';
+import { getMasteryColor } from './mastery-colors';
 
 export function SpeedometerGauge({ cards, currentIndex, sessionStats }: {
   cards: Flashcard[];
@@ -63,11 +75,9 @@ export function SpeedometerGauge({ cards, currentIndex, sessionStats }: {
 
           if (!isCompleted && !isCurrent) return null;
 
-          let color = "#14b8a6";
+          let color = '#14b8a6'; // brand/active — current card indicator
           if (isCompleted && rating !== undefined) {
-            if (rating >= 4) color = "#10b981";
-            else if (rating === 3) color = "#f59e0b";
-            else color = "#f43f5e";
+            color = getMasteryColor(rating).hex;
           }
 
           const segStart = startAngle + i * segmentAngle + segmentGap;
@@ -81,7 +91,7 @@ export function SpeedometerGauge({ cards, currentIndex, sessionStats }: {
               stroke={color}
               strokeWidth={isCurrent ? strokeWidth + 2 : strokeWidth}
               strokeLinecap="round"
-              className={isCurrent ? "drop-shadow(0 0 6px rgba(20,184,166,0.5))" : undefined}
+              style={isCurrent ? { filter: "drop-shadow(0 0 6px rgba(20,184,166,0.5))" } : undefined}
               initial={{ opacity: 0, pathLength: 0 }}
               animate={{ opacity: isCurrent ? [0.6, 1, 0.6] : 1, pathLength: 1 }}
               transition={isCurrent
@@ -92,13 +102,13 @@ export function SpeedometerGauge({ cards, currentIndex, sessionStats }: {
           );
         })}
 
-        {/* Gradient definition */}
-        <defs>
+        {/* Gradient definition (unused — kept for potential future use) */}
+        {/* <defs>
           <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#14b8a6" />
             <stop offset="100%" stopColor="#0d9488" />
           </linearGradient>
-        </defs>
+        </defs> */}
 
         {/* Needle indicator */}
         {(() => {

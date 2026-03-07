@@ -241,8 +241,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
 
         try {
           await sessionApi.closeStudySession(sid, {
-            ended_at: now.toISOString(),
-            duration_seconds: durationSeconds,
+            completed_at: now.toISOString(),
             total_reviews: totalCards,
             correct_reviews: correctReviews,
           });

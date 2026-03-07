@@ -1,26 +1,36 @@
+// ============================================================
+// FlashcardSectionScreen -- Section-level overview
+//
+// Shows all topics in a section with mastery rings and stats.
+// STANDALONE: depends on react, motion/react, lucide-react,
+//   design-system (headingStyle), flashcard-types, mastery-colors.
+//
+// PHASE 4: Section icon, topic accents, CTA button all use
+//   getMasteryColorFromPct for dynamic mastery-derived colors.
+// ============================================================
+
 import React from 'react';
 import { motion } from 'motion/react';
 import { Section, Topic, Flashcard } from '@/app/types/content';
-import clsx from 'clsx';
 import { ChevronLeft, ChevronRight, BookOpen, Layers, Play } from 'lucide-react';
-import { headingStyle, sectionColors } from '@/app/design-system';
+import { headingStyle } from '@/app/design-system';
 import { getMasteryStats } from '@/app/hooks/flashcard-types';
 import { MasteryBadges } from './MasteryBadges';
-import { ProgressRing } from './ProgressRing';
-
-const SECTION_COLORS = sectionColors.multi;
+import { MasteryRing } from './MasteryRing';
+import { getMasteryColorFromPct } from './mastery-colors';
 
 export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, onStartSection, onBack }: {
   section: Section;
   sectionIdx: number;
+  /** @deprecated Colors now derived from mastery via getMasteryColorFromPct. Kept for caller compat. */
   courseColor: string;
   onOpenDeck: (t: Topic) => void;
   onStartSection: (cards: Flashcard[]) => void;
   onBack: () => void;
 }) {
-  const colorSet = SECTION_COLORS[sectionIdx % SECTION_COLORS.length];
   const sectionCards = section.topics.flatMap(t => t.flashcards || []);
   const stats = getMasteryStats(sectionCards);
+  const sectionColor = getMasteryColorFromPct(stats.pct / 100);
 
   return (
     <motion.div
@@ -38,7 +48,10 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-teal-500 flex items-center justify-center shadow-sm">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm"
+                style={{ backgroundColor: sectionColor.hex }}
+              >
                 <BookOpen size={22} className="text-white" />
               </div>
               <div>
@@ -53,7 +66,8 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
                   <MasteryBadges stats={stats} compact className="hidden md:flex" />
                   <button
                     onClick={() => onStartSection(sectionCards)}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold shadow-sm hover:scale-105 active:scale-95 transition-all bg-teal-600 hover:bg-teal-700"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all"
+                    style={{ backgroundColor: sectionColor.hex, fontWeight: 600 }}
                   >
                     <Play size={14} fill="currentColor" /> Estudar Secao
                   </button>
@@ -70,6 +84,7 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
           {section.topics.map((topic, idx) => {
             const cards = topic.flashcards || [];
             const tStats = getMasteryStats(cards);
+            const topicColor = getMasteryColorFromPct(tStats.pct / 100);
 
             return (
               <motion.button
@@ -81,14 +96,26 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
                 onClick={() => onOpenDeck(topic)}
                 className="w-full bg-white rounded-2xl p-5 text-left border border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-lg transition-all group flex items-center gap-5 relative overflow-hidden"
               >
-                {/* Left accent */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500" />
+                {/* Left accent — dynamic per topic mastery */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1"
+                  style={{ backgroundColor: topicColor.hex }}
+                />
 
-                {/* Stacked cards visual */}
+                {/* Stacked cards visual — dynamic per topic mastery */}
                 <div className="relative w-14 h-14 shrink-0">
-                  <div className="absolute inset-0 rounded-xl bg-teal-500 opacity-10 translate-x-1 translate-y-1" />
-                  <div className="absolute inset-0 rounded-xl bg-teal-500 opacity-20 translate-x-0.5 translate-y-0.5" />
-                  <div className="absolute inset-0 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+                  <div
+                    className="absolute inset-0 rounded-xl opacity-10 translate-x-1 translate-y-1"
+                    style={{ backgroundColor: topicColor.hex }}
+                  />
+                  <div
+                    className="absolute inset-0 rounded-xl opacity-20 translate-x-0.5 translate-y-0.5"
+                    style={{ backgroundColor: topicColor.hex }}
+                  />
+                  <div
+                    className="absolute inset-0 rounded-xl flex items-center justify-center shadow-sm"
+                    style={{ backgroundColor: topicColor.hex }}
+                  >
                     <Layers size={22} className="text-white" />
                   </div>
                 </div>
@@ -105,7 +132,7 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
                         <span className="text-sm font-bold text-gray-700">{cards.length}</span>
                         <span className="text-[10px] text-gray-400">cards</span>
                       </div>
-                      <ProgressRing pct={tStats.pct} size={40} stroke={3} color="text-teal-500" />
+                      <MasteryRing pct={tStats.pct} size={40} stroke={3} color={topicColor.hex} />
                     </>
                   ) : (
                     <span className="text-[11px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg font-medium border border-gray-200">Vazio</span>

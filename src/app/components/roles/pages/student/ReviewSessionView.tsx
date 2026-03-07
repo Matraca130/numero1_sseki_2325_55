@@ -84,7 +84,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
   // ── Timing per card (for response_time_ms) ──────────────
   const cardStartTime = useRef<number>(Date.now());
 
-  // ── Batch review hook ──────────────────────────���────────
+  // ── Batch review hook ──────────────────────────────────
   // Replaces the old persistCardReview + submitReview pattern.
   // queueReview: sync, zero POSTs — queues locally
   // submitBatch: async, 1 POST /review-batch at session end
@@ -278,8 +278,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
 
         try {
           await sessionApi.closeStudySession(sid, {
-            ended_at: now.toISOString(),
-            duration_seconds: durationSeconds,
+            completed_at: now.toISOString(),
             total_reviews: newGrades.length,
             correct_reviews: correctReviews,
           });

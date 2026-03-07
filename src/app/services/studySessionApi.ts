@@ -127,26 +127,15 @@ export async function createStudySession(data: {
 export async function closeStudySession(
   sessionId: string,
   data: {
-    ended_at: string;
-    duration_seconds?: number;
+    completed_at: string;        // FIX RT-001: was 'ended_at'
     total_reviews: number;
     correct_reviews: number;
+    // NOTE: duration_seconds removed — column doesn't exist in DB.
   }
 ): Promise<StudySessionRecord> {
-  // BACKEND FIX RT-002: The study-sessions CRUD factory only accepts
-  // updateFields: ["completed_at", "total_reviews", "correct_reviews"].
-  // "ended_at" and "duration_seconds" are NOT in updateFields and get
-  // silently ignored. Map ended_at → completed_at for the backend.
-  const backendPayload = {
-    completed_at: data.ended_at,  // Map frontend name → backend column
-    total_reviews: data.total_reviews,
-    correct_reviews: data.correct_reviews,
-    // duration_seconds is NOT stored on study_sessions (computed from
-    // created_at → completed_at on read). Omitted intentionally.
-  };
   return apiCall<StudySessionRecord>(`/study-sessions/${sessionId}`, {
     method: 'PUT',
-    body: JSON.stringify(backendPayload),
+    body: JSON.stringify(data),
   });
 }
 
