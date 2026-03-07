@@ -13,7 +13,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import {
-  getMasteryColor,
+  getSafeMasteryColor,
   getMasteryLabel,
   getMasteryTailwind,
   type MasteryColor,
@@ -39,7 +39,8 @@ export function MasteryIndicator({
   variant = 'dot',
   showTooltip = true,
 }: MasteryIndicatorProps) {
-  const color: MasteryColor = pMastery < 0 ? 'gray' : getMasteryColor(pMastery);
+  // M-6 FIX: Use getSafeMasteryColor to handle -1 sentinel
+  const color: MasteryColor = getSafeMasteryColor(pMastery);
   const label = getMasteryLabel(color);
   const tw = getMasteryTailwind(color);
   const pct = pMastery < 0 ? 0 : Math.round(pMastery * 100);
@@ -129,9 +130,13 @@ export function MasteryIndicator({
       <span className={clsx(
         'absolute inset-0 flex items-center justify-center',
         tw.textDark,
-        size === 'sm' ? 'text-[7px]' : size === 'md' ? 'text-[8px]' : 'text-[10px]',
-      )}>
-        {pMastery < 0 ? '—' : `${pct}`}
+        size === 'sm' ? 'text-[7px]' : size === 'md' ? 'text-[8px]' : 'text-[9px]',
+      )} style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
+        {pMastery < 0
+          ? '—'
+          : size === 'lg'
+            ? label.slice(0, 3)
+            : `${pct}%`}
       </span>
     </div>
   );

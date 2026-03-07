@@ -3,12 +3,16 @@
 //
 // Scans summary text (plain or HTML) for keyword names and wraps
 // matches in highlighted clickable <span>s. Clicking a keyword
-// opens InlineKeywordPopover (positioned with useSmartPosition).
+// opens InlineKeywordPopover (positioned with @floating-ui/react).
 //
-// Connects to REAL backend:
-//   GET /keywords?summary_id=xxx
-//   GET /bkt-states (batch, scopeToUser)
-//   GET /subtopics?keyword_id=xxx (per keyword)
+// S1 migration: keyword + BKT + subtopics data now comes from
+// useKeywordMasteryQuery (React Query). This eliminates 4
+// useState + 2 useEffect of manual fetching and shares cache
+// with KeywordBadges.
+//
+// S2 positioning: passes live HTMLElement ref (anchorEl) to
+// InlineKeywordPopover, which uses @floating-ui/react for
+// dynamic positioning. Replaces frozen DOMRect snapshot.
 //
 // Usage:
 //   <KeywordHighlighterInline summaryId={id}>
@@ -26,31 +30,44 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import { apiCall } from '@/app/lib/api';
-import * as summariesApi from '@/app/services/summariesApi';
-import type { SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
-import type { BktState } from '@/app/lib/mastery-helpers';
-import {
-  getKeywordMastery,
-  getMasteryColor,
-} from '@/app/lib/mastery-helpers';
+import type { SummaryKeyword } from '@/app/services/summariesApi';
+import { getMasteryColor } from '@/app/lib/mastery-helpers';
 import { InlineKeywordPopover } from './InlineKeywordPopover';
+import { useKeywordMasteryQuery } from '@/app/hooks/queries/useKeywordMasteryQuery';
 
 // ── Helpers ───────────────────────────────────────────────
-
-function extractItems<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && typeof result === 'object' && Array.isArray((result as any).items))
-    return (result as any).items;
-  return [];
-}
 
 /** Escape regex special chars */
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// ── Mastery color → Tailwind classes for highlight ────────
+/**
+ * Strip all .axon-kw-highlight spans from a container, replacing each
+ * with its text content, then normalize() to merge adjacent text nodes.
+ *
+ * Why: The TreeWalker effect injects highlight <span>s into the live DOM.
+ *      When the effect re-runs (e.g. keywordMasteryMap changes), we must
+ *      restore the DOM to its un-highlighted state FIRST; otherwise the
+ *      walker finds text nodes INSIDE existing highlight spans → creates
+ *      nested <span class="axon-kw-highlight"> elements.
+ *
+ * normalize() is critical: without it, "Mito" + "condria" remain as two
+ * adjacent text nodes and the regex can't match "Mitocondria" as a whole.
+ *
+ * Event listeners on removed spans are automatically garbage-collected
+ * (no manual removeEventListener needed).
+ */
+function stripHighlights(container: HTMLElement): void {
+  const highlights = container.querySelectorAll('.axon-kw-highlight');
+  highlights.forEach((span) => {
+    const text = document.createTextNode(span.textContent || '');
+    span.parentNode?.replaceChild(text, span);
+  });
+  container.normalize();
+}
+
+// ── Mastery color -> Tailwind classes for highlight ────────
 
 function getHighlightClasses(mastery: number): {
   bg: string;
@@ -163,105 +180,31 @@ export function KeywordHighlighterInline({
   children,
   onNavigateKeyword,
 }: KeywordHighlighterInlineProps) {
-  // ── Data state ──────────────────────────────────────────
-  const [keywords, setKeywords] = useState<SummaryKeyword[]>([]);
-  const [bktMap, setBktMap] = useState<Map<string, BktState>>(new Map());
-  const [subtopicsMap, setSubtopicsMap] = useState<Map<string, Subtopic[]>>(new Map());
-  const [dataReady, setDataReady] = useState(false);
+  // ── React Query: keywords + mastery data (shared cache) ──
+  const {
+    keywords,
+    bktMap,
+    keywordMasteryMap,
+    dataReady,
+  } = useKeywordMasteryQuery(summaryId);
 
   // ── Popup state ─────────────────────────────────────────
   const [activeKeywordId, setActiveKeywordId] = useState<string | null>(null);
-  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  // Ref tracks popup open/closed so the TreeWalker effect cleanup
+  // can read the CURRENT value (refs aren't stale in closures).
+  // Updated every render, consumed in the effect cleanup guard.
+  const isPopupOpenRef = useRef(false);
+  isPopupOpenRef.current = !!activeKeywordId;
 
   // ── Container ref for HTML mode ─────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ── Fetch keywords ──────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const result = await summariesApi.getKeywords(summaryId);
-        const kws = extractItems<SummaryKeyword>(result).filter(
-          (k) => k.is_active !== false
-        );
-        if (!cancelled) setKeywords(kws);
-      } catch {
-        if (!cancelled) setKeywords([]);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [summaryId]);
-
-  // ── Fetch BKT states + subtopics (batch) ────────────────
-  useEffect(() => {
-    if (keywords.length === 0) {
-      setDataReady(true);
-      return;
-    }
-    let cancelled = false;
-
-    (async () => {
-      try {
-        // 1. Batch BKT
-        const bktResult = await apiCall<unknown>('/bkt-states');
-        const bktItems = extractItems<BktState>(bktResult);
-        const map = new Map<string, BktState>();
-        for (const b of bktItems) map.set(b.subtopic_id, b);
-        if (!cancelled) setBktMap(map);
-
-        // 2. Subtopics per keyword (parallel)
-        const results = await Promise.all(
-          keywords.map(async (kw) => {
-            try {
-              const r = await summariesApi.getSubtopics(kw.id);
-              return {
-                keywordId: kw.id,
-                subtopics: extractItems<Subtopic>(r).filter(
-                  (s) => s.is_active !== false
-                ),
-              };
-            } catch {
-              return { keywordId: kw.id, subtopics: [] };
-            }
-          })
-        );
-
-        if (!cancelled) {
-          const sMap = new Map<string, Subtopic[]>();
-          for (const r of results) sMap.set(r.keywordId, r.subtopics);
-          setSubtopicsMap(sMap);
-          setDataReady(true);
-        }
-      } catch {
-        if (!cancelled) {
-          setBktMap(new Map());
-          setDataReady(true);
-        }
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [keywords]);
-
-  // ── Compute mastery per keyword ─────────────────���───────
-  const keywordMasteryMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const kw of keywords) {
-      const subs = subtopicsMap.get(kw.id) || [];
-      const bkts = subs
-        .map((s) => bktMap.get(s.id))
-        .filter((b): b is BktState => b != null);
-      map.set(kw.id, getKeywordMastery(bkts));
-    }
-    return map;
-  }, [keywords, subtopicsMap, bktMap]);
-
   // ── Handle keyword click ────────────────────────────────
   const handleKeywordClick = useCallback(
     (kwId: string, spanEl: HTMLElement) => {
-      const rect = spanEl.getBoundingClientRect();
-      setAnchorRect(rect);
+      setAnchorEl(spanEl);
       setActiveKeywordId(kwId);
     },
     []
@@ -269,7 +212,7 @@ export function KeywordHighlighterInline({
 
   const handleClosePopup = useCallback(() => {
     setActiveKeywordId(null);
-    setAnchorRect(null);
+    setAnchorEl(null);
   }, []);
 
   // ── Active keyword data ─────────────────────────────────
@@ -282,12 +225,32 @@ export function KeywordHighlighterInline({
   useEffect(() => {
     if (plainText || !containerRef.current || keywords.length === 0) return;
 
+    // ── FIX-I1: Don't strip/re-walk while popup is open ─────
+    // If BKT refetches while popup is open, keywordMasteryMap changes
+    // and this effect re-runs. Without this guard, stripHighlights()
+    // would destroy the anchor span → autoUpdate detects reference
+    // gone → hide.referenceHidden → popup closes unexpectedly.
+    // When popup closes, activeKeywordId becomes null → deps change
+    // → effect re-runs normally with fresh mastery colors.
+    if (activeKeywordId) return;
+
     const container = containerRef.current;
 
+    // ── Strip previous highlights to prevent nested spans on re-run ──
+    // Without this, when deps change (e.g. keywordMasteryMap updates),
+    // the TreeWalker finds text nodes INSIDE old highlight <span>s and
+    // wraps them again → nested .axon-kw-highlight elements.
+    stripHighlights(container);
+
     // Build regex from keyword names
+    // C-1 FIX: Removed \b word boundaries — they fail for accented
+    // Spanish chars (á,é,í,ó,ú,ñ) because JS \b uses ASCII-only \w.
+    // Lookbehinds (?<!...) would fix it but crash Safari <16.4 (SyntaxError).
+    // Pragmatic: longest-first sorting already prevents most false positives;
+    // plain text mode has used this same approach without issues.
     const sorted = [...keywords].sort((a, b) => b.name.length - a.name.length);
     const pattern = sorted.map((k) => escapeRegex(k.name)).join('|');
-    const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+    const regex = new RegExp(`(${pattern})`, 'gi');
 
     // Walk text nodes and wrap matches
     const walker = document.createTreeWalker(
@@ -366,11 +329,18 @@ export function KeywordHighlighterInline({
       textNode.parentNode?.replaceChild(fragment, textNode);
     }
 
-    // Cleanup: restore original text nodes on unmount
+    // Cleanup: strip highlights before next effect run or on unmount.
+    // containerRef.current may be null if the <div> unmounted (e.g.
+    // switching from HTML mode to plainText mode) — guard handles it.
     return () => {
-      // We don't restore — the component re-renders from scratch via React
+      // FIX-I1: Don't strip in cleanup if popup is still open —
+      // isPopupOpenRef reads the CURRENT value (set during render),
+      // not the stale closure value from when this cleanup was created.
+      if (containerRef.current && !isPopupOpenRef.current) {
+        stripHighlights(containerRef.current);
+      }
     };
-  }, [keywords, keywordMasteryMap, plainText, handleKeywordClick, dataReady]);
+  }, [keywords, keywordMasteryMap, plainText, handleKeywordClick, dataReady, activeKeywordId]);
 
   // ── Plain text mode: React-rendered segments ────────────
   const segments = useMemo(() => {
@@ -423,13 +393,12 @@ export function KeywordHighlighterInline({
       ) : null}
 
       {/* Popover */}
-      {activeKeyword && anchorRect && (
+      {activeKeyword && anchorEl && (
         <InlineKeywordPopover
           keyword={activeKeyword}
           allKeywords={keywords}
           bktMap={bktMap}
-          subtopicsCache={subtopicsMap}
-          anchorRect={anchorRect}
+          anchorEl={anchorEl}
           onClose={handleClosePopup}
           onNavigateKeyword={onNavigateKeyword}
         />

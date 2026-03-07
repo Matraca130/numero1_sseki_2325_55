@@ -4,49 +4,45 @@
 // Rebuilt with design-kit.tsx primitives. All E2E connections preserved:
 //   - summariesApi (chunks, keywords, subtopics, blocks)
 //   - studentSummariesApi (reading state, annotations, kw notes)
-//   - VideoPlayer, SummaryViewer, supabase (reading time tracking)
+//   - VideoPlayer, SummaryViewer, useReadingTimeTracker (reading time)
 // ============================================================
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ChevronRight, FileText, Layers, Tag, Video as VideoIcon,
+  ArrowLeft, ChevronRight, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2, ChevronDown, ChevronUp,
   Plus, Trash2, Save, X, Edit3,
-  StickyNote, BookOpen, Send, ChevronLeft,
+  StickyNote, BookOpen, Send,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import * as summariesApi from '@/app/services/summariesApi';
 import * as studentApi from '@/app/services/studentSummariesApi';
-import type { Summary, Chunk, SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
-import type { ReadingState, TextAnnotation, KwStudentNote } from '@/app/services/studentSummariesApi';
+import type { Summary } from '@/app/services/summariesApi';
+import type { ReadingState } from '@/app/services/studentSummariesApi';
 import { VideoPlayer } from '@/app/components/student/VideoPlayer';
 import { SummaryViewer } from '@/app/components/student/SummaryViewer';
-import { supabase } from '@/app/lib/supabase';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/app/hooks/queries/queryKeys';
+import type { TextAnnotation, KwStudentNote } from '@/app/services/studentSummariesApi';
+import { useSummaryReaderQueries } from '@/app/hooks/queries/useSummaryReaderQueries';
+import { useKeywordDetailQueries } from '@/app/hooks/queries/useKeywordDetailQueries';
 import {
-  Breadcrumb,
   PageNavigation,
-  ProgressBar,
   CompletionCard,
   KeywordPill,
   XpToast,
   focusRing,
-  tokens,
   proseClasses,
 } from '@/app/components/design-kit';
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
+import { useReadingTimeTracker } from '@/app/hooks/useReadingTimeTracker';
+import { useVideoListQuery } from '@/app/hooks/queries/useVideoPlayerQueries';
 
 // ── Helpers ───────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
-
 const MD_IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
 const RAW_IMAGE_URL_RE = /^https?:\/\/\S+\.(jpe?g|png|gif|webp|svg|avif|bmp)(\?\S*)?$/i;
 
@@ -131,6 +127,44 @@ function renderPlainLine(line: string, key: number): React.ReactNode {
 
 // ── Props ─────────────────────────────────────────────────
 
+// L-2 FIX: Module-scope constants (were inside component body)
+const CONTENT_PAGE_SIZE = 3500;
+
+// H-4 FIX: Module-scope constant (was recreated every render)
+const ANNOTATION_COLOR_MAP: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  yellow: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' },
+  blue: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-400' },
+  green: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+  pink: { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', dot: 'bg-pink-400' },
+};
+
+// H-3 FIX: Module-scope components (were defined inside StudentSummaryReader,
+// causing React Fiber to unmount/remount on every parent render due to
+// unstable function reference identity).
+function ListSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+          <div className="w-6 h-6 rounded bg-zinc-200" />
+          <div className="flex-1">
+            <div className="h-3 w-48 bg-zinc-200 rounded mb-2" />
+            <div className="h-2.5 w-32 bg-zinc-200 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TabBadge({ count, active }: { count: number; active?: boolean }) {
+  return (
+    <span className={`ml-1 text-[10px] rounded-full px-1.5 py-0.5 ${active ? 'bg-teal-100 text-teal-700' : 'bg-zinc-200 text-zinc-600'}`}>
+      {count}
+    </span>
+  );
+}
+
 interface StudentSummaryReaderProps {
   summary: Summary;
   topicName: string;
@@ -150,282 +184,302 @@ export function StudentSummaryReader({
   onNavigateKeyword,
 }: StudentSummaryReaderProps) {
   const [activeTab, setActiveTab] = useState('chunks');
-  const startTimeRef = useRef(Date.now());
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
-  const CONTENT_PAGE_SIZE = 3500;
 
-  // ── Chunks ──────────────────────────────────────────────
-  const [chunks, setChunks] = useState<Chunk[]>([]);
-  const [chunksLoading, setChunksLoading] = useState(true);
+  // ── React Query: 4 initial fetches
+  const {
+    chunks, chunksLoading,
+    keywords, keywordsLoading,
+    textAnnotations, annotationsLoading,
+    hasBlocks, blocksLoading,
+    invalidateAnnotations,
+  } = useSummaryReaderQueries(summary.id);
+  const rqClient = useQueryClient();
 
-  // ── Keywords ────────────────────────────────────────────
-  const [keywords, setKeywords] = useState<SummaryKeyword[]>([]);
-  const [keywordsLoading, setKeywordsLoading] = useState(true);
+  // ── MEJORA-P1: Memoized pagination + keyword-to-page map ──
+  // Extracted from inline IIFE so keywordPageMap can reference the pages.
+  const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
+    if (!summary.content_markdown) {
+      return { isHtmlContent: false, htmlPages: [] as string[], textPages: [] as string[][], totalPages: 0 };
+    }
+    const isHtml = /<[a-z][\s\S]*>/i.test(summary.content_markdown);
+    const enriched = isHtml ? enrichHtmlWithImages(summary.content_markdown) : '';
+    const html = isHtml ? paginateHtml(enriched, CONTENT_PAGE_SIZE) : [];
+    const text = !isHtml ? paginateLines(summary.content_markdown, 45) : [];
+    return {
+      isHtmlContent: isHtml,
+      htmlPages: html,
+      textPages: text,
+      totalPages: isHtml ? html.length : text.length,
+    };
+  }, [summary.content_markdown]);
+
+  const safePage = Math.min(contentPage, Math.max(0, totalPages - 1));
+
+  // MEJORA-P1: Map each keyword ID to its first page index.
+  // Used by the navigation wrapper to auto-switch pages when the
+  // target keyword is on a different page than the one displayed.
+  const keywordPageMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!keywords.length || totalPages <= 1) return map;
+
+    // Build one searchable text string per page (strip HTML tags)
+    const pageTexts = isHtmlContent
+      ? htmlPages.map(h => h.replace(/<[^>]+>/g, ''))
+      : textPages.map(lines => lines.join('\n'));
+
+    for (const kw of keywords) {
+      const needle = kw.name.toLowerCase();
+      for (let i = 0; i < pageTexts.length; i++) {
+        if (pageTexts[i].toLowerCase().includes(needle)) {
+          map.set(kw.id, i);
+          break; // first occurrence wins
+        }
+      }
+    }
+    return map;
+  }, [keywords, htmlPages, textPages, isHtmlContent, totalPages]);
+
+  // MEJORA-P1: Pending cross-page keyword navigation.
+  // When the target keyword is on a different page, we switch pages
+  // first and then re-invoke the parent handler after the new page
+  // mounts (AnimatePresence 150ms + KHI TreeWalker rAF).
+  const pendingPageNavRef = useRef<{ keywordId: string; summaryId: string } | null>(null);
+
+  useEffect(() => {
+    if (!pendingPageNavRef.current) return;
+    const { keywordId, summaryId } = pendingPageNavRef.current;
+    pendingPageNavRef.current = null;
+
+    // Wait for AnimatePresence exit (150ms) + enter (150ms) + KHI TreeWalker (~16ms)
+    // ≈ 316ms. Use 500ms for safe margin on slow devices.
+    const timer = window.setTimeout(() => {
+      onNavigateKeyword?.(keywordId, summaryId);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [contentPage, onNavigateKeyword]);
+
+  // MEJORA-P1: Wrap onNavigateKeyword to handle cross-page navigation.
+  // If the keyword is on a different page in the same summary,
+  // switch pages first and defer to the parent handler via pendingPageNavRef.
+  const handleNavigateKeywordWrapped = useCallback(
+    (keywordId: string, summaryId: string) => {
+      if (summaryId === summary.id && totalPages > 1) {
+        const targetPage = keywordPageMap.get(keywordId);
+        if (targetPage !== undefined && targetPage !== safePage) {
+          setContentPage(targetPage);
+          pendingPageNavRef.current = { keywordId, summaryId };
+          toast.info('Navegando a otra pagina del resumen...');
+          return;
+        }
+      }
+      // Same page or different summary — delegate directly
+      onNavigateKeyword?.(keywordId, summaryId);
+    },
+    [summary.id, totalPages, keywordPageMap, safePage, onNavigateKeyword],
+  );
+
+  // ── Keywords: React Query on-demand (cache per keywordId) ──
   const [expandedKeyword, setExpandedKeyword] = useState<string | null>(null);
-  const [subtopicsMap, setSubtopicsMap] = useState<Record<string, Subtopic[]>>({});
-  const [subtopicsLoading, setSubtopicsLoading] = useState<string | null>(null);
-  const [kwNotesMap, setKwNotesMap] = useState<Record<string, KwStudentNote[]>>({});
-  const [kwNotesLoading, setKwNotesLoading] = useState<string | null>(null);
+  const {
+    subtopics, subtopicsLoading,
+    kwNotes, kwNotesLoading,
+    invalidateKwNotes,
+  } = useKeywordDetailQueries(expandedKeyword);
   const [newKwNote, setNewKwNote] = useState('');
-  const [savingKwNote, setSavingKwNote] = useState(false);
   const [editingKwNoteId, setEditingKwNoteId] = useState<string | null>(null);
   const [editKwNoteText, setEditKwNoteText] = useState('');
 
   // ── Videos ──────────────────────────────────────────────
-  const [videosCount, setVideosCount] = useState(0);
-  const [videosLoading, setVideosLoading] = useState(true);
+  const { data: videos, isLoading: videosLoading } = useVideoListQuery(summary.id);
+  const videosCount = videos?.length || 0;
 
-  // ── Text Annotations ────────────────────────────────────
-  const [textAnnotations, setTextAnnotations] = useState<TextAnnotation[]>([]);
-  const [annotationsLoading, setAnnotationsLoading] = useState(true);
+  // ── Annotation form state ──────────────────────────────
   const [showAnnotationForm, setShowAnnotationForm] = useState(false);
   const [newAnnotationNote, setNewAnnotationNote] = useState('');
   const [newAnnotationColor, setNewAnnotationColor] = useState('yellow');
-  const [savingAnnotation, setSavingAnnotation] = useState(false);
 
   // ── Reading state ───────────────────────────────────────
-  const [currentReadingState, setCurrentReadingState] = useState<ReadingState | null>(readingState);
-  const [markingRead, setMarkingRead] = useState(false);
+  // H-2 FIX: Removed useState<ReadingState> duplicate. The `readingState`
+  // prop (from React Query cache via parent) is now the single source of truth.
+  // Mutations update the cache via onReadingStateChanged → prop refreshes.
   const [showXpToast, setShowXpToast] = useState(false);
 
-  // ── Blocks detection ────────────────────────────────────
-  const [hasBlocks, setHasBlocks] = useState(false);
-  const [blocksLoading, setBlocksLoading] = useState(true);
+  // ── Reliable reading time tracking (30s periodic + visibilitychange + beforeunload) ──
+  const { snapshotForExternalSave } = useReadingTimeTracker(
+    summary.id,
+    readingState?.time_spent_seconds ?? 0,
+  );
 
   // ── Fetch callbacks (ALL E2E connections preserved) ─────
 
-  const fetchChunks = useCallback(async () => {
-    setChunksLoading(true);
-    try {
-      const result = await summariesApi.getChunks(summary.id);
-      setChunks(extractItems<Chunk>(result).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
-    } catch (err: any) {
-      console.error('[StudentReader] Chunks load error:', err);
-      setChunks([]);
-    } finally {
-      setChunksLoading(false);
-    }
-  }, [summary.id]);
-
-  const fetchKeywords = useCallback(async () => {
-    setKeywordsLoading(true);
-    try {
-      const result = await summariesApi.getKeywords(summary.id);
-      setKeywords(extractItems<SummaryKeyword>(result).filter(k => k.is_active));
-    } catch (err: any) {
-      console.error('[StudentReader] Keywords load error:', err);
-      setKeywords([]);
-    } finally {
-      setKeywordsLoading(false);
-    }
-  }, [summary.id]);
-
-  const handleVideosLoaded = useCallback((count: number) => {
-    setVideosCount(count);
-    setVideosLoading(false);
-  }, []);
-
-  const fetchAnnotations = useCallback(async () => {
-    setAnnotationsLoading(true);
-    try {
-      const result = await studentApi.getTextAnnotations(summary.id);
-      setTextAnnotations(extractItems<TextAnnotation>(result));
-    } catch (err: any) {
-      console.error('[StudentReader] Annotations load error:', err);
-      setTextAnnotations([]);
-    } finally {
-      setAnnotationsLoading(false);
-    }
-  }, [summary.id]);
-
-  const fetchSubtopics = useCallback(async (keywordId: string) => {
-    setSubtopicsLoading(keywordId);
-    try {
-      const result = await summariesApi.getSubtopics(keywordId);
-      setSubtopicsMap(prev => ({ ...prev, [keywordId]: extractItems<Subtopic>(result).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)) }));
-    } catch { setSubtopicsMap(prev => ({ ...prev, [keywordId]: [] })); }
-    finally { setSubtopicsLoading(null); }
-  }, []);
-
-  const fetchKwNotes = useCallback(async (keywordId: string) => {
-    setKwNotesLoading(keywordId);
-    try {
-      const result = await studentApi.getKwStudentNotes(keywordId);
-      setKwNotesMap(prev => ({ ...prev, [keywordId]: extractItems<KwStudentNote>(result) }));
-    } catch { setKwNotesMap(prev => ({ ...prev, [keywordId]: [] })); }
-    finally { setKwNotesLoading(null); }
-  }, []);
-
-  // ── Initial load ────────────────────────────────────────
-  useEffect(() => {
-    fetchChunks();
-    fetchKeywords();
-    fetchAnnotations();
-    let cancelled = false;
-    summariesApi.getSummaryBlocks(summary.id)
-      .then(result => {
-        if (cancelled) return;
-        const items = Array.isArray(result) ? result : (result?.items || []);
-        setHasBlocks(items.filter((b: any) => b.is_active !== false).length > 0);
-      })
-      .catch(() => { if (!cancelled) setHasBlocks(false); })
-      .finally(() => { if (!cancelled) setBlocksLoading(false); });
-    return () => { cancelled = true; };
-  }, [fetchChunks, fetchKeywords, fetchAnnotations, summary.id]);
-
   // ── Track reading time on unmount ───────────────────────
-  const readingStateRef = useRef(currentReadingState);
-  readingStateRef.current = currentReadingState;
+  // REPLACED: Old async cleanup was unreliable (chained getSession → upsert in cleanup).
+  // Now handled by useReadingTimeTracker with 3-layer persistence:
+  //   1. Periodic save every 30s
+  //   2. visibilitychange (tab hidden → save)
+  //   3. beforeunload with keepalive:true fetch
+  // The old useEffect cleanup is no longer needed.
 
-  useEffect(() => {
-    return () => {
-      const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
-      if (elapsed > 5) {
-        supabase.auth.getSession().then(({ data }) => {
-          if (data?.session) {
-            studentApi.upsertReadingState({
-              summary_id: summary.id,
-              time_spent_seconds: (readingStateRef.current?.time_spent_seconds || 0) + elapsed,
-              last_read_at: new Date().toISOString(),
-            }).catch(() => {});
-          }
-        }).catch(() => {});
-      }
-    };
-  }, []);
+  // ── Mutations ──────────────────────────────────────────
 
-  // ── Mark as completed ───────────────────────────────────
-  const handleMarkCompleted = async () => {
-    setMarkingRead(true);
-    try {
-      const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
-      const rs = await studentApi.upsertReadingState({
+  // Mark as completed (deduplication prevents double-XP)
+  const markCompletedMutation = useMutation({
+    mutationFn: () => {
+      // Atomic snapshot: captures total AND resets session clock
+      // so periodic save won't race with this call
+      const totalTime = snapshotForExternalSave();
+      return studentApi.upsertReadingState({
         summary_id: summary.id,
         completed: true,
-        time_spent_seconds: (currentReadingState?.time_spent_seconds || 0) + elapsed,
+        time_spent_seconds: totalTime,
         last_read_at: new Date().toISOString(),
       });
-      setCurrentReadingState(rs);
+    },
+    onSuccess: (rs) => {
       onReadingStateChanged(rs);
-      startTimeRef.current = Date.now();
       setShowXpToast(true);
       setTimeout(() => setShowXpToast(false), 3000);
       toast.success('Resumen marcado como leido');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al marcar como leido');
-    } finally {
-      setMarkingRead(false);
-    }
-  };
+      rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(summary.topic_id) });
+    },
+    onError: (err: any) => toast.error(err.message || 'Error al marcar como leido'),
+  });
 
-  const handleUnmarkCompleted = async () => {
-    setMarkingRead(true);
-    try {
-      const rs = await studentApi.upsertReadingState({ summary_id: summary.id, completed: false });
-      setCurrentReadingState(rs);
+  // Unmark completed
+  const unmarkCompletedMutation = useMutation({
+    mutationFn: () => studentApi.upsertReadingState({ summary_id: summary.id, completed: false }),
+    onSuccess: (rs) => {
       onReadingStateChanged(rs);
       toast.success('Marcado como no leido');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar');
-    } finally {
-      setMarkingRead(false);
-    }
-  };
+      rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(summary.topic_id) });
+    },
+    onError: (err: any) => toast.error(err.message || 'Error al actualizar'),
+  });
 
-  // ── Annotations CRUD ───────────────────────────────────
-  const handleCreateAnnotation = async () => {
-    if (!newAnnotationNote.trim()) return;
-    setSavingAnnotation(true);
-    try {
-      await studentApi.createTextAnnotation({
+  // Annotation create
+  const createAnnotationMutation = useMutation({
+    mutationFn: (vars: { note: string; color: string }) =>
+      studentApi.createTextAnnotation({
         summary_id: summary.id,
         start_offset: 0, end_offset: 0,
-        color: newAnnotationColor,
-        note: newAnnotationNote.trim(),
-      });
+        color: vars.color,
+        note: vars.note,
+      }),
+    onSuccess: () => {
       toast.success('Anotacion creada');
       setNewAnnotationNote('');
       setShowAnnotationForm(false);
-      await fetchAnnotations();
-    } catch (err: any) { toast.error(err.message || 'Error al crear anotacion'); }
-    finally { setSavingAnnotation(false); }
-  };
+      invalidateAnnotations();
+    },
+    onError: (err: any) => toast.error(err.message || 'Error al crear anotacion'),
+  });
 
-  const handleDeleteAnnotation = async (id: string) => {
-    try { await studentApi.deleteTextAnnotation(id); toast.success('Anotacion eliminada'); await fetchAnnotations(); }
-    catch (err: any) { toast.error(err.message || 'Error al eliminar'); }
-  };
+  // Annotation delete (optimistic)
+  const deleteAnnotationMutation = useMutation({
+    mutationFn: (id: string) => studentApi.deleteTextAnnotation(id),
+    onMutate: async (id) => {
+      await rqClient.cancelQueries({ queryKey: queryKeys.summaryAnnotations(summary.id) });
+      const previous = rqClient.getQueryData<TextAnnotation[]>(queryKeys.summaryAnnotations(summary.id));
+      rqClient.setQueryData<TextAnnotation[]>(
+        queryKeys.summaryAnnotations(summary.id),
+        (old) => old?.filter(a => a.id !== id) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) rqClient.setQueryData(queryKeys.summaryAnnotations(summary.id), context.previous);
+      toast.error('Error al eliminar anotacion');
+    },
+    onSuccess: () => toast.success('Anotacion eliminada'),
+    onSettled: () => invalidateAnnotations(),
+  });
 
-  // ── Keyword Note CRUD ──────────────────────────────────
-  const handleCreateKwNote = async (keywordId: string) => {
-    if (!newKwNote.trim()) return;
-    setSavingKwNote(true);
-    try {
-      await studentApi.createKwStudentNote({ keyword_id: keywordId, note: newKwNote.trim() });
+  // KW Note create
+  const createKwNoteMutation = useMutation({
+    mutationFn: (vars: { keywordId: string; note: string }) =>
+      studentApi.createKwStudentNote({ keyword_id: vars.keywordId, note: vars.note }),
+    onSuccess: (_data, vars) => {
       toast.success('Nota agregada');
       setNewKwNote('');
-      await fetchKwNotes(keywordId);
-    } catch (err: any) { toast.error(err.message || 'Error al crear nota'); }
-    finally { setSavingKwNote(false); }
-  };
+      invalidateKwNotes(vars.keywordId);
+    },
+    onError: (err: any) => toast.error(err.message || 'Error al crear nota'),
+  });
 
-  const handleUpdateKwNote = async (noteId: string, keywordId: string) => {
-    if (!editKwNoteText.trim()) return;
-    setSavingKwNote(true);
-    try {
-      await studentApi.updateKwStudentNote(noteId, { note: editKwNoteText.trim() });
+  // KW Note update
+  const updateKwNoteMutation = useMutation({
+    mutationFn: (vars: { noteId: string; keywordId: string; note: string }) =>
+      studentApi.updateKwStudentNote(vars.noteId, { note: vars.note }),
+    onSuccess: (_data, vars) => {
       toast.success('Nota actualizada');
       setEditingKwNoteId(null);
-      await fetchKwNotes(keywordId);
-    } catch (err: any) { toast.error(err.message || 'Error al actualizar'); }
-    finally { setSavingKwNote(false); }
+      invalidateKwNotes(vars.keywordId);
+    },
+    onError: (err: any) => toast.error(err.message || 'Error al actualizar'),
+  });
+
+  // KW Note delete (optimistic)
+  const deleteKwNoteMutation = useMutation({
+    mutationFn: (vars: { noteId: string; keywordId: string }) =>
+      studentApi.deleteKwStudentNote(vars.noteId),
+    onMutate: async (vars) => {
+      await rqClient.cancelQueries({ queryKey: queryKeys.kwNotes(vars.keywordId) });
+      const previous = rqClient.getQueryData<KwStudentNote[]>(queryKeys.kwNotes(vars.keywordId));
+      rqClient.setQueryData<KwStudentNote[]>(
+        queryKeys.kwNotes(vars.keywordId),
+        (old) => old?.filter(n => n.id !== vars.noteId) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, vars, context) => {
+      if (context?.previous) rqClient.setQueryData(queryKeys.kwNotes(vars.keywordId), context.previous);
+      toast.error('Error al eliminar nota');
+    },
+    onSuccess: () => toast.success('Nota eliminada'),
+    onSettled: (_d, _e, vars) => invalidateKwNotes(vars.keywordId),
+  });
+
+  // ── Derived loading flags ──────────────────────────────
+  const markingRead = markCompletedMutation.isPending || unmarkCompletedMutation.isPending;
+  const savingAnnotation = createAnnotationMutation.isPending;
+  const savingKwNote = createKwNoteMutation.isPending || updateKwNoteMutation.isPending;
+
+  // ── Thin handlers (delegate to mutations) ──────────────
+
+  const handleMarkCompleted = () => markCompletedMutation.mutate();
+  const handleUnmarkCompleted = () => unmarkCompletedMutation.mutate();
+
+  const handleCreateAnnotation = () => {
+    if (!newAnnotationNote.trim()) return;
+    createAnnotationMutation.mutate({ note: newAnnotationNote.trim(), color: newAnnotationColor });
   };
 
-  const handleDeleteKwNote = async (noteId: string, keywordId: string) => {
-    try { await studentApi.deleteKwStudentNote(noteId); toast.success('Nota eliminada'); await fetchKwNotes(keywordId); }
-    catch (err: any) { toast.error(err.message || 'Error al eliminar'); }
+  const handleDeleteAnnotation = (id: string) => deleteAnnotationMutation.mutate(id);
+
+  const handleCreateKwNote = (keywordId: string) => {
+    if (!newKwNote.trim()) return;
+    createKwNoteMutation.mutate({ keywordId, note: newKwNote.trim() });
   };
+
+  const handleUpdateKwNote = (noteId: string, keywordId: string) => {
+    if (!editKwNoteText.trim()) return;
+    updateKwNoteMutation.mutate({ noteId, keywordId, note: editKwNoteText.trim() });
+  };
+
+  const handleDeleteKwNote = (noteId: string, keywordId: string) =>
+    deleteKwNoteMutation.mutate({ noteId, keywordId });
 
   const toggleKeywordExpand = (keywordId: string) => {
     if (expandedKeyword === keywordId) { setExpandedKeyword(null); } else {
       setExpandedKeyword(keywordId);
-      if (!subtopicsMap[keywordId]) fetchSubtopics(keywordId);
-      if (!kwNotesMap[keywordId]) fetchKwNotes(keywordId);
     }
   };
 
-  const annotationColorMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-    yellow: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' },
-    blue: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-400' },
-    green: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-400' },
-    pink: { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', dot: 'bg-pink-400' },
-  };
-
-  const isCompleted = currentReadingState?.completed === true;
-
-  // ── Loading skeleton ────────────────────────────────────
-  const ListSkeleton = () => (
-    <div className="space-y-3">
-      {[1, 2, 3].map(i => (
-        <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
-          <div className="w-6 h-6 rounded bg-zinc-200" />
-          <div className="flex-1">
-            <div className="h-3 w-48 bg-zinc-200 rounded mb-2" />
-            <div className="h-2.5 w-32 bg-zinc-200 rounded" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  // ── Tab badge ───────────────────────────────────────────
-  const TabBadge = ({ count, active }: { count: number; active?: boolean }) => (
-    <span className={`ml-1 text-[10px] rounded-full px-1.5 py-0.5 ${active ? 'bg-teal-100 text-teal-700' : 'bg-zinc-200 text-zinc-600'}`}>
-      {count}
-    </span>
-  );
+  const isCompleted = readingState?.completed === true;
 
   return (
     <motion.div
@@ -485,10 +539,10 @@ export function StudentSummaryReader({
                     <span className="text-[11px] text-zinc-400">
                       {new Date(summary.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
-                    {currentReadingState?.time_spent_seconds != null && currentReadingState.time_spent_seconds > 0 && (
+                    {readingState?.time_spent_seconds != null && readingState.time_spent_seconds > 0 && (
                       <span className="text-[11px] text-zinc-400 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {Math.round(currentReadingState.time_spent_seconds / 60)} min de lectura
+                        {Math.round(readingState.time_spent_seconds / 60)} min de lectura
                       </span>
                     )}
                   </div>
@@ -520,15 +574,7 @@ export function StudentSummaryReader({
           </div>
 
           {/* ── Paginated content preview ── */}
-          {summary.content_markdown && (() => {
-            const isHtmlContent = /<[a-z][\s\S]*>/i.test(summary.content_markdown);
-            const enriched = isHtmlContent ? enrichHtmlWithImages(summary.content_markdown) : '';
-            const htmlPages = isHtmlContent ? paginateHtml(enriched, CONTENT_PAGE_SIZE) : [];
-            const textPages = !isHtmlContent ? paginateLines(summary.content_markdown, 45) : [];
-            const totalPages = isHtmlContent ? htmlPages.length : textPages.length;
-            const safePage = Math.min(contentPage, totalPages - 1);
-
-            return (
+          {summary.content_markdown && (
               <div className="px-6 sm:px-8 py-6">
                 <div className="min-h-[180px]">
                   <AnimatePresence mode="wait">
@@ -540,26 +586,13 @@ export function StudentSummaryReader({
                       transition={{ duration: 0.15 }}
                     >
                       {isHtmlContent ? (
-                        <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={onNavigateKeyword}>
+                        <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
                           <div className={proseClasses} dangerouslySetInnerHTML={{ __html: htmlPages[safePage] || '' }} />
                         </KeywordHighlighterInline>
                       ) : (
-                        <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={onNavigateKeyword}>
-                          <div className="whitespace-pre-wrap text-zinc-600">
-                            {(textPages[safePage] || []).map((line, i) => {
-                              const trimmed = line.trim();
-                              const mdMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-                              if (mdMatch) return (
-                                <figure key={i} className="my-3">
-                                  <img src={mdMatch[2]} alt={mdMatch[1] || ''} loading="lazy" className="rounded-xl border border-zinc-200 shadow-sm max-w-full h-auto mx-auto block" />
-                                  {mdMatch[1] && <figcaption className="mt-1.5 text-center text-[10px] text-zinc-400 italic">{mdMatch[1]}</figcaption>}
-                                </figure>
-                              );
-                              if (/^https?:\/\/\S+\.(jpe?g|png|gif|webp|svg|avif|bmp)(\?\S*)?$/i.test(trimmed)) return (
-                                <figure key={i} className="my-3"><img src={trimmed} alt="" loading="lazy" className="rounded-xl border border-zinc-200 shadow-sm max-w-full h-auto mx-auto block" /></figure>
-                              );
-                              return <React.Fragment key={i}>{line}{'\n'}</React.Fragment>;
-                            })}
+                        <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
+                          <div className="axon-prose max-w-none">
+                            {textPages[safePage]?.map((line, i) => renderPlainLine(line, i))}
                           </div>
                         </KeywordHighlighterInline>
                       )}
@@ -578,8 +611,7 @@ export function StudentSummaryReader({
                   />
                 )}
               </div>
-            );
-          })()}
+          )}
 
           {/* Completion card when read */}
           {isCompleted && (
@@ -652,12 +684,12 @@ export function StudentSummaryReader({
                         transition={{ delay: idx * 0.02 }}
                       >
                         {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
-                          <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={onNavigateKeyword}>
+                          <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
                             <div className={proseClasses} dangerouslySetInnerHTML={{ __html: enrichHtmlWithImages(chunk.content) }} />
                           </KeywordHighlighterInline>
                         ) : (
-                          <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={onNavigateKeyword}>
-                            <div className="prose prose-sm max-w-none text-zinc-600 leading-relaxed">
+                          <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
+                            <div className="axon-prose max-w-none">
                               {chunk.content.split('\n').map((line, i) => renderPlainLine(line, i))}
                             </div>
                           </KeywordHighlighterInline>
@@ -705,10 +737,6 @@ export function StudentSummaryReader({
                   <div className="space-y-2">
                     {keywords.map(kw => {
                       const isExpanded = expandedKeyword === kw.id;
-                      const subtopics = subtopicsMap[kw.id] || [];
-                      const kwNotes = kwNotesMap[kw.id] || [];
-                      const isLoadingSubs = subtopicsLoading === kw.id;
-                      const isLoadingNotes = kwNotesLoading === kw.id;
 
                       return (
                         <div key={kw.id} className={`border rounded-xl transition-all ${isExpanded ? 'border-teal-200 bg-teal-50/30 shadow-sm' : 'border-zinc-200 hover:border-zinc-300'}`}>
@@ -745,7 +773,7 @@ export function StudentSummaryReader({
                                   {/* Subtopics */}
                                   <div className="mt-3">
                                     <span className="text-[10px] text-zinc-400 uppercase tracking-wider" style={{ fontWeight: 600 }}>Subtemas</span>
-                                    {isLoadingSubs ? (
+                                    {subtopicsLoading ? (
                                       <div className="flex items-center gap-2 mt-1">
                                         <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
                                         <span className="text-[10px] text-zinc-400">Cargando...</span>
@@ -767,7 +795,7 @@ export function StudentSummaryReader({
                                   {/* Keyword notes */}
                                   <div className="mt-4">
                                     <span className="text-[10px] text-zinc-400 uppercase tracking-wider" style={{ fontWeight: 600 }}>Mis notas</span>
-                                    {isLoadingNotes ? (
+                                    {kwNotesLoading ? (
                                       <div className="flex items-center gap-2 mt-1">
                                         <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
                                         <span className="text-[10px] text-zinc-400">Cargando...</span>
@@ -837,7 +865,7 @@ export function StudentSummaryReader({
           {/* ── VIDEOS TAB ── */}
           <TabsContent value="videos">
             <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
-              <VideoPlayer summaryId={summary.id} onVideosLoaded={handleVideosLoaded} />
+              <VideoPlayer summaryId={summary.id} />
             </div>
           </TabsContent>
 
@@ -882,7 +910,7 @@ export function StudentSummaryReader({
                           />
                           <div className="flex items-center gap-2 mb-3">
                             <span className="text-[10px] text-zinc-400" style={{ fontWeight: 500 }}>Color:</span>
-                            {Object.entries(annotationColorMap).map(([color, styles]) => (
+                            {Object.entries(ANNOTATION_COLOR_MAP).map(([color, styles]) => (
                               <button
                                 key={color}
                                 onClick={() => setNewAnnotationColor(color)}
@@ -937,7 +965,7 @@ export function StudentSummaryReader({
                       <div className="space-y-2">
                         <AnimatePresence mode="popLayout">
                           {textAnnotations.map(ann => {
-                            const colorStyles = annotationColorMap[ann.color || 'yellow'] || annotationColorMap.yellow;
+                            const colorStyles = ANNOTATION_COLOR_MAP[ann.color || 'yellow'] || ANNOTATION_COLOR_MAP.yellow;
                             return (
                               <motion.div
                                 key={ann.id}

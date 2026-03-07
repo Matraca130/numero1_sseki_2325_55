@@ -5,20 +5,19 @@
 // summary cards with status badges, motivational messages.
 // All E2E connections preserved.
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
-  FileText, ChevronRight, Loader2, RefreshCw,
+  FileText, RefreshCw,
   CheckCircle2, BookOpen, Clock, AlertCircle,
-  ArrowRight, Sparkles, Layers, Play,
+  ArrowRight, Sparkles,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { StudentSummaryReader } from './StudentSummaryReader';
-import * as summariesApi from '@/app/services/summariesApi';
-import * as studentApi from '@/app/services/studentSummariesApi';
-import type { Summary } from '@/app/services/summariesApi';
-import type { ReadingState } from '@/app/services/studentSummariesApi';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTopicProgressRawQuery } from '@/app/hooks/queries/useTopicProgressRawQuery';
+import { queryKeys } from '@/app/hooks/queries/queryKeys';
+import type { TopicProgressResponse } from '@/app/services/topicProgressApi';
 import {
   HeroSection,
   ProgressBar,
@@ -28,15 +27,29 @@ import {
   useFadeUp,
 } from '@/app/components/design-kit';
 import { useApp } from '@/app/context/AppContext';
+import { useKeywordNavigation } from '@/app/hooks/useKeywordNavigation';
 
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
+// ── Strip markdown syntax for plain-text preview ──────────
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/^#{1,6}\s+/gm, '')           // headers: # ## ###
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // images: ![alt](url)
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // links: [text](url) → text
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')     // bold: **text** or __text__
+    .replace(/(\*|_)(.*?)\1/g, '$2')        // italic: *text* or _text_
+    .replace(/~~(.*?)~~/g, '$1')            // strikethrough
+    .replace(/`{1,3}[^`]*`{1,3}/g, '')     // inline/block code
+    .replace(/^[-*+]\s+/gm, '')             // unordered list markers
+    .replace(/^\d+\.\s+/gm, '')             // ordered list markers
+    .replace(/^>\s+/gm, '')                 // blockquotes
+    .replace(/^---+$/gm, '')                // horizontal rules
+    .replace(/\|/g, ' ')                    // table pipes
+    .replace(/\n+/g, ' ')                   // newlines → spaces
+    .replace(/\s{2,}/g, ' ')               // collapse whitespace
+    .trim();
 }
 
-// ── Motivational text based on progress ───────────────────
+// ── Motivational text based on progress ──────────────────
 function getMotivation(progress: number, total: number): string {
   if (total === 0) return '';
   if (progress === 0) return 'Dale, empeza!';
@@ -60,15 +73,17 @@ export function StudentSummariesView() {
     }
   }, [selectedTopicId, currentTopic?.id, selectTopic]);
 
-  const [summaries, setSummaries] = useState<Summary[]>([]);
-  const [readingStates, setReadingStates] = useState<Record<string, ReadingState>>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null);
-  const fadeUp = useFadeUp();
+  // ── React Query: topic progress (summaries + reading states) ──
+  const { summaries, readingStates, isLoading, error, refetch } = useTopicProgressRawQuery(effectiveTopicId);
+  const queryClient = useQueryClient();
 
-  // ── Pending navigation (for cross-topic keyword jumps) ──
-  const pendingNavRef = React.useRef<string | null>(null);
+  // ── Keyword navigation (SRP-3: extracted to hook) ──
+  const { selectedSummaryId, setSelectedSummaryId, handleNavigateKeyword, isPendingNav } = useKeywordNavigation({
+    summaries,
+    effectiveTopicId,
+    selectTopic,
+  });
+  const fadeUp = useFadeUp();
 
   // Resolve topic & section name
   const { topicName, sectionName, courseName } = (() => {
@@ -85,163 +100,7 @@ export function StudentSummariesView() {
     return { topicName: '', sectionName: '', courseName: '' };
   })();
 
-  // ── Fetch summaries ─────────────────────────────────────
-  const fetchSummaries = useCallback(async () => {
-    if (!effectiveTopicId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await summariesApi.getSummaries(effectiveTopicId);
-      const items = extractItems<Summary>(result);
-      const published = items.filter(s => s.status === 'published' && s.is_active);
-      setSummaries(published.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
-
-      const statesMap: Record<string, ReadingState> = {};
-      await Promise.allSettled(
-        published.map(async (s) => {
-          try {
-            const state = await studentApi.getReadingState(s.id);
-            if (state) statesMap[s.id] = state;
-          } catch { /* ignore */ }
-        })
-      );
-      setReadingStates(statesMap);
-    } catch (err: any) {
-      console.error('[StudentSummaries] Load error:', err);
-      setError(err.message || 'Error al cargar resumenes');
-      setSummaries([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveTopicId]);
-
-  // Auto-fetch on topic change
-  useEffect(() => {
-    // Only reset selected summary if there's no pending cross-topic navigation
-    if (!pendingNavRef.current) {
-      setSelectedSummaryId(null);
-    }
-    if (!effectiveTopicId) {
-      setSummaries([]);
-      setReadingStates({});
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await summariesApi.getSummaries(effectiveTopicId);
-        if (cancelled) return;
-        const items = extractItems<Summary>(result);
-        const published = items.filter(s => s.status === 'published' && s.is_active);
-        setSummaries(published.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
-
-        const statesMap: Record<string, ReadingState> = {};
-        await Promise.allSettled(
-          published.map(async (s) => {
-            try {
-              const state = await studentApi.getReadingState(s.id);
-              if (state) statesMap[s.id] = state;
-            } catch { /* ignore */ }
-          })
-        );
-        if (cancelled) return;
-        setReadingStates(statesMap);
-
-        // ── Check for pending cross-topic navigation ──
-        if (pendingNavRef.current) {
-          const targetId = pendingNavRef.current;
-          pendingNavRef.current = null;
-          if (published.some(s => s.id === targetId)) {
-            setSelectedSummaryId(targetId);
-          } else {
-            console.warn('[StudentSummaries] Pending nav target not found in topic summaries:', targetId);
-          }
-        }
-      } catch (err: any) {
-        if (cancelled) return;
-        setError(err.message || 'Error al cargar resumenes');
-        setSummaries([]);
-        pendingNavRef.current = null;
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [effectiveTopicId]);
-
-  // ── Navigate to keyword in another summary ──────────────
-  const handleNavigateKeyword = useCallback(async (keywordId: string, targetSummaryId: string) => {
-    console.log('[StudentSummaries] handleNavigateKeyword called:', {
-      keywordId,
-      targetSummaryId,
-      currentSummaryId: selectedSummaryId,
-      summariesCount: summaries.length,
-      isSameSummary: selectedSummaryId === targetSummaryId,
-      isInCurrentTopic: summaries.some(s => s.id === targetSummaryId),
-    });
-
-    // Case A: same summary — scroll to the keyword highlight in DOM
-    if (selectedSummaryId === targetSummaryId) {
-      // Find the highlighted keyword span and scroll to it with a flash effect
-      requestAnimationFrame(() => {
-        const kwSpan = document.querySelector(
-          `[data-keyword-id="${keywordId}"]`
-        ) as HTMLElement | null;
-        if (kwSpan) {
-          kwSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Flash highlight
-          kwSpan.style.outline = '2px solid #8b5cf6';
-          kwSpan.style.outlineOffset = '2px';
-          kwSpan.style.borderRadius = '4px';
-          kwSpan.style.transition = 'outline-color 0.3s ease';
-          setTimeout(() => {
-            kwSpan.style.outlineColor = 'transparent';
-            setTimeout(() => {
-              kwSpan.style.outline = '';
-              kwSpan.style.outlineOffset = '';
-            }, 300);
-          }, 1500);
-          toast.info('Keyword encontrada en este resumen');
-        } else {
-          toast.info('Keyword conectada — mismo resumen');
-        }
-      });
-      return;
-    }
-
-    // Case B: different summary in current topic's list
-    if (summaries.some(s => s.id === targetSummaryId)) {
-      setSelectedSummaryId(targetSummaryId);
-      toast.info('Navegando al resumen conectado...');
-      return;
-    }
-
-    // Case C: cross-topic — fetch target summary to find its topic
-    try {
-      const targetSummary = await summariesApi.getSummary(targetSummaryId);
-      if (!targetSummary) {
-        toast.error('No se encontro el resumen destino');
-        return;
-      }
-
-      if (targetSummary.topic_id && targetSummary.topic_id !== effectiveTopicId) {
-        // Store pending navigation so the fetch-on-topic-change useEffect can pick it up
-        pendingNavRef.current = targetSummaryId;
-        selectTopic(targetSummary.topic_id);
-        toast.info(`Cambiando de topico para ir a "${targetSummary.title || 'resumen'}"...`);
-      } else {
-        // Same topic but somehow not in the published list — try anyway
-        setSelectedSummaryId(targetSummaryId);
-      }
-    } catch (err: any) {
-      console.error('[StudentSummaries] Navigate error:', err);
-      toast.error('No se pudo navegar al resumen');
-    }
-  }, [summaries, selectedSummaryId, effectiveTopicId, selectTopic]);
-
-  // ── Reader view ─────────────────────────────────────────
+  // ── Reader view ────────────────────────────────────────
   const selectedSummary = summaries.find(s => s.id === selectedSummaryId);
   if (selectedSummaryId && selectedSummary) {
     return (
@@ -251,10 +110,23 @@ export function StudentSummariesView() {
         readingState={readingStates[selectedSummary.id] || null}
         onBack={() => setSelectedSummaryId(null)}
         onReadingStateChanged={(rs) => {
-          setReadingStates(prev => ({ ...prev, [selectedSummary.id]: rs }));
+          queryClient.setQueryData<TopicProgressResponse>(
+            queryKeys.topicProgress(effectiveTopicId!),
+            (old) => old ? { ...old, reading_states: { ...old.reading_states, [selectedSummary.id]: rs } } : old,
+          );
         }}
         onNavigateKeyword={handleNavigateKeyword}
       />
+    );
+  }
+
+  // ── Cross-topic navigation in progress (prevents list flash) ──
+  if (isPendingNav) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-zinc-50">
+        <div className="w-10 h-10 rounded-full border-4 border-teal-200 border-t-teal-500 animate-spin mb-4" />
+        <p className="text-sm text-zinc-500">Navegando al resumen conectado…</p>
+      </div>
     );
   }
 
@@ -310,19 +182,19 @@ export function StudentSummariesView() {
                     {topicName}
                   </h1>
                   <p className="text-sm text-zinc-400 mt-0.5">
-                    {loading ? 'Cargando...' : `${summaries.length} resumen${summaries.length !== 1 ? 'es' : ''} · ${completedCount} completado${completedCount !== 1 ? 's' : ''}`}
+                    {isLoading ? 'Cargando...' : `${summaries.length} resumen${summaries.length !== 1 ? 'es' : ''} · ${completedCount} completado${completedCount !== 1 ? 's' : ''}`}
                   </p>
                 </div>
               </div>
 
               {/* Progress ring */}
-              {!loading && summaries.length > 0 && (
+              {!isLoading && summaries.length > 0 && (
                 <ProgressRing value={progress} size={52} stroke={4} />
               )}
             </div>
 
             {/* Progress bar + motivation */}
-            {!loading && summaries.length > 0 && (
+            {!isLoading && summaries.length > 0 && (
               <div className="mt-6">
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="text-zinc-300" style={{ fontWeight: 500 }}>
@@ -362,22 +234,22 @@ export function StudentSummariesView() {
             </div>
             <div>
               <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>Resumenes</h3>
-              {!loading && !error && (
+              {!isLoading && !error && (
                 <p className="text-xs text-zinc-500">{summaries.length} disponible{summaries.length !== 1 ? 's' : ''}</p>
               )}
             </div>
           </div>
           <button
-            onClick={fetchSummaries}
-            disabled={loading}
+            onClick={refetch}
+            disabled={isLoading}
             className={`p-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 transition-colors ${focusRing}`}
           >
-            <RefreshCw className={`w-4 h-4 text-zinc-500 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-zinc-500 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
         {/* Loading */}
-        {loading && (
+        {isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-2xl border border-zinc-200 p-5 animate-pulse">
@@ -394,12 +266,12 @@ export function StudentSummariesView() {
         )}
 
         {/* Error */}
-        {!loading && error && (
+        {!isLoading && error && (
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center">
             <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-            <p className="text-sm text-red-600 mb-3">{error}</p>
+            <p className="text-sm text-red-600 mb-3">{error?.message || 'Error al cargar resumenes'}</p>
             <button
-              onClick={fetchSummaries}
+              onClick={refetch}
               className={`px-4 py-2 text-sm bg-white border border-red-200 rounded-xl text-red-600 hover:bg-red-50 ${focusRing}`}
               style={{ fontWeight: 600 }}
             >
@@ -409,7 +281,7 @@ export function StudentSummariesView() {
         )}
 
         {/* Empty */}
-        {!loading && !error && summaries.length === 0 && (
+        {!isLoading && !error && summaries.length === 0 && (
           <div className="bg-white border-2 border-dashed border-zinc-200 rounded-2xl p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
               <FileText className="w-6 h-6 text-teal-300" />
@@ -424,7 +296,7 @@ export function StudentSummariesView() {
         )}
 
         {/* Summaries list */}
-        {!loading && !error && summaries.length > 0 && (
+        {!isLoading && !error && summaries.length > 0 && (
           <div className="space-y-3">
             <AnimatePresence mode="popLayout">
               {summaries.map((s, index) => {
@@ -504,12 +376,14 @@ export function StudentSummariesView() {
                             )}
                           </div>
 
-                          {s.content_markdown && (
-                            <p className="text-xs text-zinc-400 truncate max-w-md mb-2">
-                              {s.content_markdown.substring(0, 120)}
-                              {s.content_markdown.length > 120 ? '...' : ''}
-                            </p>
-                          )}
+                          {s.content_markdown && (() => {
+                            const preview = stripMarkdown(s.content_markdown);
+                            return preview ? (
+                              <p className="text-xs text-zinc-500 line-clamp-2 max-w-md mb-2">
+                                {preview.substring(0, 140)}{preview.length > 140 ? '...' : ''}
+                              </p>
+                            ) : null;
+                          })()}
 
                           <div className="flex items-center gap-3">
                             <span className="text-[10px] text-zinc-400">

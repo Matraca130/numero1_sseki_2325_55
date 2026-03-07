@@ -6,12 +6,18 @@
 //   modal create/edit, expandable rows for SubtopicsPanel +
 //   KeywordConnectionsPanel.
 // priority is INTEGER: 1 (baja), 2 (media), 3 (alta). NEVER strings.
+//
+// Data layer: React Query hooks from useKeywordsManagerQueries.
+// Cache key `queryKeys.summaryKeywords(summaryId)` is SHARED
+// with useSummaryReaderQueries & useKeywordMasteryQuery.
+// Mutations auto-invalidate → QuickKeywordCreator also
+// invalidates the same key, so the list refreshes automatically
+// without needing an `onKeywordCreated` callback.
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from 'sonner';
 import {
-  Plus, Edit3, Trash2, Save, X, Loader2, Tag,
+  Plus, Edit3, Trash2, Save, Loader2, Tag,
   ChevronDown, ChevronUp, Link2, Layers, MessageSquare,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -23,16 +29,14 @@ import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { SubtopicsPanel } from './SubtopicsPanel';
 import { KeywordConnectionsPanel } from './KeywordConnectionsPanel';
 import { ProfessorNotesPanel, ProfessorNotesBadge } from './ProfessorNotesPanel';
-import { apiCall } from '@/app/lib/api';
-import * as api from '@/app/services/summariesApi';
-import type { SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
-
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import type { SummaryKeyword } from '@/app/services/summariesApi';
+import {
+  useKeywordsQuery,
+  useKeywordCountsQuery,
+  useCreateKeywordMutation,
+  useUpdateKeywordMutation,
+  useDeleteKeywordMutation,
+} from '@/app/hooks/queries/useKeywordsManagerQueries';
 
 // ── Priority config ───────────────────────────────────────
 const priorityLabels: Record<number, { label: string; color: string; bg: string }> = {
@@ -46,16 +50,18 @@ interface KeywordsManagerProps {
 }
 
 export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
-  const [keywords, setKeywords] = useState<SummaryKeyword[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── Data (React Query) ──────────────────────────────────
+  const { data: keywords = [], isLoading: loading } = useKeywordsQuery(summaryId);
+  const { data: counts } = useKeywordCountsQuery(summaryId, keywords);
+  const subtopicCounts = counts?.subtopicCounts ?? {};
+  const noteCounts = counts?.noteCounts ?? {};
 
-  // Subtopic counts
-  const [subtopicCounts, setSubtopicCounts] = useState<Record<string, number>>({});
+  // Mutations
+  const createMutation = useCreateKeywordMutation(summaryId);
+  const updateMutation = useUpdateKeywordMutation(summaryId);
+  const deleteMutation = useDeleteKeywordMutation(summaryId);
 
-  // Note counts
-  const [noteCounts, setNoteCounts] = useState<Record<string, number>>({});
-
-  // Expanded panels
+  // ── Expanded panels ────────────────────────────────────
   const [expandedSubtopics, setExpandedSubtopics] = useState<string | null>(null);
   const [expandedConnections, setExpandedConnections] = useState<string | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<string | null>(null);
@@ -66,58 +72,9 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
   const [formName, setFormName] = useState('');
   const [formDefinition, setFormDefinition] = useState('');
   const [formPriority, setFormPriority] = useState<number>(2);
-  const [savingModal, setSavingModal] = useState(false);
 
   // Delete
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // ── Fetch keywords ──────────────────────────────────────
-  const fetchKeywords = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await api.getKeywords(summaryId);
-      const items = extractItems<SummaryKeyword>(result).filter(k => k.is_active !== false);
-      setKeywords(items);
-
-      // Fetch subtopic counts in parallel
-      const counts: Record<string, number> = {};
-      await Promise.all(
-        items.map(async (kw) => {
-          try {
-            const subResult = await api.getSubtopics(kw.id);
-            const subs = extractItems<Subtopic>(subResult);
-            counts[kw.id] = subs.filter(s => s.is_active !== false).length;
-          } catch {
-            counts[kw.id] = 0;
-          }
-        })
-      );
-      setSubtopicCounts(counts);
-
-      // Fetch note counts in parallel
-      const nCounts: Record<string, number> = {};
-      await Promise.all(
-        items.map(async (kw) => {
-          try {
-            const notesResult = await apiCall<any>(`/kw-prof-notes?keyword_id=${kw.id}`);
-            const notes = extractItems<any>(notesResult);
-            nCounts[kw.id] = notes.length;
-          } catch {
-            nCounts[kw.id] = 0;
-          }
-        })
-      );
-      setNoteCounts(nCounts);
-    } catch (err: any) {
-      console.error('[KeywordsManager] fetch error:', err);
-      setKeywords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [summaryId]);
-
-  useEffect(() => { fetchKeywords(); }, [fetchKeywords]);
 
   // ── Open modal ──────────────────────────────────────────
   const openCreate = () => {
@@ -137,55 +94,44 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
   };
 
   // ── Save (create or update) ─────────────────────────────
-  const handleSave = async () => {
-    if (!formName.trim()) {
-      toast.error('El nombre es obligatorio');
-      return;
-    }
-    setSavingModal(true);
-    try {
-      if (editingKeyword) {
-        await api.updateKeyword(editingKeyword.id, {
+  const handleSave = () => {
+    if (!formName.trim()) return;
+
+    if (editingKeyword) {
+      updateMutation.mutate(
+        {
+          keywordId: editingKeyword.id,
+          data: {
+            name: formName.trim(),
+            definition: formDefinition.trim() || undefined,
+            priority: formPriority,
+          },
+        },
+        { onSuccess: () => setShowModal(false) },
+      );
+    } else {
+      createMutation.mutate(
+        {
           name: formName.trim(),
           definition: formDefinition.trim() || undefined,
           priority: formPriority,
-        });
-        toast.success('Keyword actualizado');
-      } else {
-        await api.createKeyword({
-          summary_id: summaryId,
-          name: formName.trim(),
-          definition: formDefinition.trim() || undefined,
-          priority: formPriority,
-        });
-        toast.success('Keyword creado');
-      }
-      setShowModal(false);
-      await fetchKeywords();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al guardar keyword');
-    } finally {
-      setSavingModal(false);
+        },
+        { onSuccess: () => setShowModal(false) },
+      );
     }
   };
 
   // ── Delete ──────────────────────────────────────────────
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deletingId) return;
-    setDeleteLoading(true);
-    try {
-      await api.deleteKeyword(deletingId);
-      toast.success('Keyword eliminado');
-      setDeletingId(null);
-      if (expandedSubtopics === deletingId) setExpandedSubtopics(null);
-      if (expandedConnections === deletingId) setExpandedConnections(null);
-      if (expandedNotes === deletingId) setExpandedNotes(null);
-      await fetchKeywords();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
-    } finally {
-      setDeleteLoading(false);
-    }
+    deleteMutation.mutate(deletingId, {
+      onSuccess: () => {
+        setDeletingId(null);
+        if (expandedSubtopics === deletingId) setExpandedSubtopics(null);
+        if (expandedConnections === deletingId) setExpandedConnections(null);
+        if (expandedNotes === deletingId) setExpandedNotes(null);
+      },
+    });
   };
 
   // ── Toggle panels ───────────────────────────────────────
@@ -206,6 +152,9 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
     if (expandedSubtopics === kwId) setExpandedSubtopics(null);
     if (expandedConnections === kwId) setExpandedConnections(null);
   };
+
+  // ── Derived ─────────────────────────────────────────────
+  const savingModal = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200">
@@ -368,7 +317,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
                         exit={{ height: 0, opacity: 0 }}
                         className="border-t border-gray-50 bg-gray-50/30"
                       >
-                        <SubtopicsPanel keywordId={kw.id} />
+                        <SubtopicsPanel keywordId={kw.id} summaryId={summaryId} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -386,6 +335,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
                           keywordId={kw.id}
                           keywordName={kw.name}
                           allKeywords={keywords}
+                          summaryId={summaryId}
                         />
                       </motion.div>
                     )}
@@ -400,7 +350,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
                         exit={{ height: 0, opacity: 0 }}
                         className="border-t border-gray-50 bg-gray-50/30"
                       >
-                        <ProfessorNotesPanel keywordId={kw.id} />
+                        <ProfessorNotesPanel keywordId={kw.id} summaryId={summaryId} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -516,7 +466,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
         description="Se eliminaran tambien los subtemas asociados. Esta accion no se puede deshacer."
         confirmLabel="Eliminar"
         variant="destructive"
-        loading={deleteLoading}
+        loading={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
     </div>

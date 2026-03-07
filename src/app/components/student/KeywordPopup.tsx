@@ -2,23 +2,21 @@
 // Axon — KeywordPopup (Student: hub central por keyword)
 //
 // Collapsible sections (replaces old tab system):
-//   Definición:  definition + professor notes (with tags) + student notes
+//   Definicion:  definition + professor notes (with tags) + student notes
 //   Subtemas:    subtopics with mastery dots
 //   Conexiones:  connections map + professor/student connections + ConnectForm
 //   Acciones:    flashcard/quiz counts + AI explain + suggested questions + chat
 //
-// Routes (all FLAT):
-//   GET /keyword-connections?keyword_id=xxx
-//   GET /kw-student-notes?keyword_id=xxx (scopeToUser)
-//   GET /kw-prof-notes?keyword_id=xxx (professor notes, visible to student)
-//   GET /flashcards?keyword_id=xxx (count)
-//   GET /quiz-questions?keyword_id=xxx (count)
-//   POST /ai/explain { concept, context }
-//   POST /keyword-connections { keyword_a_id, keyword_b_id, relationship }
+// S1 migration: ALL data fetching moved to useKeywordPopupQueries
+// (React Query). Eliminates 11 useState + 5 useEffect + 2 useCallback
+// of manual fetching. Note CRUD uses useMutation with optimistic
+// delete. Cache seeding from useKeywordMasteryQuery means subtopics
+// are instant on first open.
 //
-// bktMap + subtopicsCache passed from parent (batch, no N+1)
+// bktMap passed from parent (batch, no N+1)
+// subtopicsCache prop removed — React Query cache replaces it
 // ============================================================
-import React, { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import React, { useState, useMemo, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -31,50 +29,21 @@ import clsx from 'clsx';
 import { apiCall } from '@/app/lib/api';
 import { MasteryIndicator } from '@/app/components/shared/MasteryIndicator';
 import { ConnectionsMap } from './ConnectionsMap';
-import * as summariesApi from '@/app/services/summariesApi';
-import * as studentApi from '@/app/services/studentSummariesApi';
 import type { SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
-import type { KwStudentNote } from '@/app/services/studentSummariesApi';
 import {
   type BktState,
   getKeywordMastery,
   getMasteryColor,
   getMasteryLabel,
 } from '@/app/lib/mastery-helpers';
-
-// ── Types ─────────────────────────────────────────────────
-interface KeywordConnection {
-  id: string;
-  keyword_a_id: string;
-  keyword_b_id: string;
-  relationship: string | null;
-  source?: 'professor' | 'student';
-  reason?: string | null;
-  created_at: string;
-}
-
-interface ExternalKeyword {
-  id: string;
-  name: string;
-  summary_id: string;
-  definition: string | null;
-}
-
-interface KwProfNote {
-  id: string;
-  keyword_id: string;
-  professor_id: string;
-  note: string;
-  tag?: 'tip' | 'mnemonic' | 'clinical' | 'correction';
-  created_at: string;
-  updated_at: string;
-}
-
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import {
+  useKeywordPopupQueries,
+  type KeywordConnection,
+  type ExternalKeyword,
+  type KwProfNote,
+} from '@/app/hooks/queries/useKeywordPopupQueries';
+import { ConnectionTypeBadge } from '@/app/components/shared/ConnectionTypeBadge';
+import { useKeywordMasteryQuery } from '@/app/hooks/queries/useKeywordMasteryQuery';
 
 // ── Priority config ───────────────────────────────────────
 const priorityConfig: Record<number, { label: string; bg: string; text: string }> = {
@@ -152,12 +121,19 @@ function ConnectForm({
   const handleCreate = async (targetId: string) => {
     setSaving(true);
     try {
+      // F4: Enforce canonical order a < b (per GUIDELINES.md constraint)
+      const [aId, bId] = keywordId < targetId
+        ? [keywordId, targetId]
+        : [targetId, keywordId];
+
       await apiCall('/keyword-connections', {
         method: 'POST',
         body: JSON.stringify({
-          keyword_a_id: keywordId,
-          keyword_b_id: targetId,
+          keyword_a_id: aId,
+          keyword_b_id: bId,
           relationship: reason.trim() || null,
+          connection_type: 'asociacion',
+          source_keyword_id: keywordId,
         }),
       });
       toast.success('Conexion creada');
@@ -239,7 +215,6 @@ interface KeywordPopupProps {
   keyword: SummaryKeyword;
   allKeywords: SummaryKeyword[];
   bktMap: Map<string, BktState>;
-  subtopicsCache?: Map<string, Subtopic[]>;
   onClose: () => void;
   onNavigateKeyword?: (keywordId: string, summaryId: string) => void;
 }
@@ -248,31 +223,39 @@ export function KeywordPopup({
   keyword,
   allKeywords,
   bktMap,
-  subtopicsCache,
   onClose,
   onNavigateKeyword,
 }: KeywordPopupProps) {
-  // ── Data state ─────────────────────────────────────────
-  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
-  const [subtopicsLoading, setSubtopicsLoading] = useState(true);
+  // ── React Query: all popup data + mutations ─────────────
+  const allKeywordIds = useMemo(() => allKeywords.map(k => k.id), [allKeywords]);
+  const {
+    subtopics,
+    subtopicsLoading,
+    connections,
+    connectionsLoading,
+    externalKws,
+    invalidateConnections,
+    notes,
+    notesLoading,
+    createNote,
+    updateNote,
+    deleteNote,
+    isNoteMutating,
+    profNotes,
+    profNotesLoading,
+    flashcardCount,
+    quizCount,
+  } = useKeywordPopupQueries(keyword.id, allKeywordIds, keyword.summary_id);
 
-  const [connections, setConnections] = useState<KeywordConnection[]>([]);
-  const [connectionsLoading, setConnectionsLoading] = useState(true);
+  // M-4 FIX: Get keywordMasteryMap for local nodes in ConnectionsMap.
+  // This is a cache hit (instant, 0 requests) because useKeywordMasteryQuery
+  // was already called by KeywordHighlighterInline for the same summary.
+  const { keywordMasteryMap } = useKeywordMasteryQuery(keyword.summary_id);
 
-  // External keywords (from other summaries)
-  const [externalKws, setExternalKws] = useState<Map<string, ExternalKeyword>>(new Map());
-
-  // Student notes
-  const [notes, setNotes] = useState<KwStudentNote[]>([]);
-  const [notesLoading, setNotesLoading] = useState(true);
+  // ── Local UI state (forms, editing, AI) ─────────────────
   const [newNoteText, setNewNoteText] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editNoteText, setEditNoteText] = useState('');
-
-  // Action counters
-  const [flashcardCount, setFlashcardCount] = useState<number | null>(null);
-  const [quizCount, setQuizCount] = useState<number | null>(null);
 
   // AI explain
   const [aiExplaining, setAiExplaining] = useState(false);
@@ -280,117 +263,6 @@ export function KeywordPopup({
 
   // AI chat
   const [aiChatInput, setAiChatInput] = useState('');
-
-  // Professor notes (read-only for student)
-  const [profNotes, setProfNotes] = useState<KwProfNote[]>([]);
-  const [profNotesLoading, setProfNotesLoading] = useState(true);
-
-  // ── Fetch subtopics (use cache if available) ────────────
-  useEffect(() => {
-    const cached = subtopicsCache?.get(keyword.id);
-    if (cached) {
-      setSubtopics(cached);
-      setSubtopicsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setSubtopicsLoading(true);
-    summariesApi.getSubtopics(keyword.id)
-      .then(result => {
-        if (!cancelled) {
-          setSubtopics(
-            extractItems<Subtopic>(result)
-              .filter(s => s.is_active !== false)
-              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-          );
-        }
-      })
-      .catch(() => { if (!cancelled) setSubtopics([]); })
-      .finally(() => { if (!cancelled) setSubtopicsLoading(false); });
-    return () => { cancelled = true; };
-  }, [keyword.id, subtopicsCache]);
-
-  // ── Fetch connections + resolve external keywords ───────
-  const fetchConnections = useCallback(async () => {
-    setConnectionsLoading(true);
-    try {
-      const result = await apiCall<any>(`/keyword-connections?keyword_id=${keyword.id}`);
-      const conns = extractItems<KeywordConnection>(result);
-      setConnections(conns);
-
-      const localIdSet = new Set(allKeywords.map(k => k.id));
-      const externalIds = conns
-        .map(c => c.keyword_a_id === keyword.id ? c.keyword_b_id : c.keyword_a_id)
-        .filter(id => !localIdSet.has(id));
-
-      if (externalIds.length > 0) {
-        const results = await Promise.allSettled(
-          externalIds.map(id => apiCall<any>(`/keywords/${id}`))
-        );
-        const map = new Map<string, ExternalKeyword>();
-        results.forEach((r, i) => {
-          if (r.status === 'fulfilled' && r.value) {
-            const kw = r.value;
-            map.set(externalIds[i], {
-              id: kw.id || externalIds[i],
-              name: kw.name || externalIds[i].slice(0, 8),
-              summary_id: kw.summary_id || '',
-              definition: kw.definition || null,
-            });
-          }
-        });
-        setExternalKws(map);
-      }
-    } catch {
-      setConnections([]);
-    } finally {
-      setConnectionsLoading(false);
-    }
-  }, [keyword.id, allKeywords]);
-
-  useEffect(() => { fetchConnections(); }, [fetchConnections]);
-
-  // ── Fetch student notes ��────────────────────────────────
-  const fetchNotes = useCallback(async () => {
-    setNotesLoading(true);
-    try {
-      const result = await studentApi.getKwStudentNotes(keyword.id);
-      setNotes(extractItems<KwStudentNote>(result).filter(n => !n.deleted_at));
-    } catch {
-      setNotes([]);
-    } finally {
-      setNotesLoading(false);
-    }
-  }, [keyword.id]);
-
-  useEffect(() => { fetchNotes(); }, [fetchNotes]);
-
-  // ── Fetch professor notes (read-only for student) ───────
-  useEffect(() => {
-    let cancelled = false;
-    setProfNotesLoading(true);
-    apiCall<any>(`/kw-prof-notes?keyword_id=${keyword.id}`)
-      .then(result => {
-        if (!cancelled) setProfNotes(extractItems<KwProfNote>(result));
-      })
-      .catch(() => { if (!cancelled) setProfNotes([]); })
-      .finally(() => { if (!cancelled) setProfNotesLoading(false); });
-    return () => { cancelled = true; };
-  }, [keyword.id]);
-
-  // ── Fetch flashcard & quiz counts (eager now) ────────────
-  useEffect(() => {
-    let cancelled = false;
-    Promise.allSettled([
-      apiCall<any>(`/flashcards?keyword_id=${keyword.id}`),
-      apiCall<any>(`/quiz-questions?keyword_id=${keyword.id}`),
-    ]).then(([fcResult, qResult]) => {
-      if (cancelled) return;
-      setFlashcardCount(fcResult.status === 'fulfilled' ? extractItems<any>(fcResult.value).length : 0);
-      setQuizCount(qResult.status === 'fulfilled' ? extractItems<any>(qResult.value).length : 0);
-    });
-    return () => { cancelled = true; };
-  }, [keyword.id]);
 
   // ── Compute keyword mastery from bktMap ─────────────────
   const kwMastery = useMemo(() => {
@@ -434,11 +306,12 @@ export function KeywordPopup({
         id: otherId,
         name: kwName(otherId),
         relationship: conn.relationship,
-        mastery: -1,
+        // M-4 FIX: Use real mastery for local nodes (cache hit from useKeywordMasteryQuery)
+        mastery: isLocal ? (keywordMasteryMap.get(otherId) ?? -1) : -1,
         isCrossSummary: !isLocal,
       };
     });
-  }, [connections, keyword.id, localIds, externalKws, allKeywords]);
+  }, [connections, keyword.id, localIds, externalKws, allKeywords, keywordMasteryMap]);
 
   // ── Existing connected keyword IDs (for ConnectForm filter) ──
   const existingConnectionIds = useMemo(() => {
@@ -449,59 +322,53 @@ export function KeywordPopup({
     return ids;
   }, [connections, keyword.id]);
 
-  // ── Separate professor vs student connections ───────────
-  const professorConnections = useMemo(
-    () => connections.filter(c => c.source === 'professor' || !c.source),
-    [connections]
-  );
-  const studentConnections = useMemo(
-    () => connections.filter(c => c.source === 'student'),
-    [connections]
+  // F3 NOTE: When `created_by` column is added to keyword_connections,
+  // re-introduce professor/student split here using created_by instead of source.
+  // For now, all connections render in a single unified list.
+
+  // ── FIX-I3: Centralized close-then-navigate helper ──────
+  // Replaces 3 separate onClose() + setTimeout(50) patterns with
+  // a single useCallback. Uses rAF instead of arbitrary 50ms timeout:
+  // React 18 automatic batching commits the unmount synchronously,
+  // rAF fires after the next paint → popover is guaranteed gone.
+  const closeAndNavigate = useCallback(
+    (targetKeywordId: string, targetSummaryId: string | undefined) => {
+      if (!targetSummaryId || !onNavigateKeyword) {
+        toast.info('No se puede navegar a esta keyword');
+        return;
+      }
+      onClose();
+      requestAnimationFrame(() => {
+        onNavigateKeyword(targetKeywordId, targetSummaryId);
+      });
+    },
+    [onClose, onNavigateKeyword],
   );
 
-  // ── Note CRUD ───────────────────────────────────────────
+  // ── Note CRUD handlers (delegate to mutations) ──────────
   const handleAddNote = async () => {
     if (!newNoteText.trim() || newNoteText.length > 500) return;
-    setSavingNote(true);
     try {
-      await studentApi.createKwStudentNote({
-        keyword_id: keyword.id,
-        note: newNoteText.trim(),
-      });
-      toast.success('Nota agregada');
+      await createNote(newNoteText.trim());
       setNewNoteText('');
-      await fetchNotes();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al agregar nota');
-    } finally {
-      setSavingNote(false);
+    } catch {
+      // Error already toasted by mutation
     }
   };
 
   const handleUpdateNote = async () => {
     if (!editingNoteId || !editNoteText.trim() || editNoteText.length > 500) return;
-    setSavingNote(true);
     try {
-      await studentApi.updateKwStudentNote(editingNoteId, { note: editNoteText.trim() });
-      toast.success('Nota actualizada');
+      await updateNote(editingNoteId, editNoteText.trim());
       setEditingNoteId(null);
       setEditNoteText('');
-      await fetchNotes();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar');
-    } finally {
-      setSavingNote(false);
+    } catch {
+      // Error already toasted by mutation
     }
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    try {
-      await studentApi.deleteKwStudentNote(noteId);
-      toast.success('Nota eliminada');
-      setNotes(prev => prev.filter(n => n.id !== noteId));
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
-    }
+    await deleteNote(noteId);
   };
 
   // ── AI Explain / Chat ──────────────────────────────────
@@ -551,70 +418,31 @@ export function KeywordPopup({
     const otherLocal = allKeywords.find(k => k.id === otherId);
     const otherExt = externalKws.get(otherId);
     const isCross = !otherLocal && !!otherExt;
-    const isStudent = conn.source === 'student';
     const targetSummaryId = otherLocal?.summary_id || otherExt?.summary_id;
-    const canNavigate = !!targetSummaryId && !!onNavigateKeyword;
 
     return (
       <button
         key={conn.id}
-        onClick={() => {
-          console.log('[KeywordPopup] Connection item clicked:', {
-            otherId,
-            targetSummaryId,
-            canNavigate,
-            hasOnNavigate: !!onNavigateKeyword,
-            otherLocal: !!otherLocal,
-            otherExt: !!otherExt,
-          });
-          if (!canNavigate || !targetSummaryId) {
-            toast.info('No se puede navegar a esta keyword');
-            return;
-          }
-          // Close popup first, then navigate
-          onClose();
-          // Small delay to let React process the close before navigating
-          setTimeout(() => {
-            onNavigateKeyword!(otherId, targetSummaryId);
-          }, 50);
-        }}
-        className={clsx(
-          'w-full flex flex-col gap-0.5 py-1.5 px-2 -mx-1 text-left group rounded transition-colors',
-          isStudent
-            ? 'hover:bg-teal-500/10 border border-transparent hover:border-teal-500/20'
-            : 'hover:bg-violet-500/10 border border-transparent hover:border-violet-500/20'
-        )}
+        onClick={() => closeAndNavigate(otherId, targetSummaryId)}
+        className="w-full flex items-center gap-2 py-1.5 px-2 -mx-1 text-left group rounded transition-colors hover:bg-violet-500/10 border border-transparent hover:border-violet-500/20"
       >
-        <div className="flex items-center gap-2 w-full">
-          {isStudent ? (
-            <MessageSquare size={10} className="text-teal-400 shrink-0" />
-          ) : isCross ? (
-            <ExternalLink size={10} className="text-violet-400 shrink-0" />
-          ) : (
-            <BookOpen size={10} className="text-violet-400 shrink-0" />
-          )}
-          <span className={clsx(
-            'text-xs truncate group-hover:transition-colors',
-            isStudent ? 'text-zinc-300 group-hover:text-teal-300' : 'text-zinc-300 group-hover:text-violet-300'
-          )}>
-            {kwName(otherId)}
-          </span>
-          {isStudent && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400 shrink-0" style={{ fontWeight: 600 }}>
-              Tuya
-            </span>
-          )}
-          {conn.relationship && (
-            <>
-              <ArrowRight size={8} className="text-zinc-600 shrink-0" />
-              <span className="text-[10px] text-zinc-500 italic truncate">{conn.relationship}</span>
-            </>
-          )}
-          <ChevronRight size={10} className="text-zinc-600 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
-        {isStudent && conn.reason && (
-          <span className="text-[9px] text-zinc-500 italic ml-5 truncate">{conn.reason}</span>
+        {isCross ? (
+          <ExternalLink size={10} className="text-violet-400 shrink-0" />
+        ) : (
+          <BookOpen size={10} className="text-violet-400 shrink-0" />
         )}
+        <span className="text-xs text-zinc-300 truncate group-hover:text-violet-300 group-hover:transition-colors">
+          {kwName(otherId)}
+        </span>
+        {/* F5: Connection type badge (dark variant for student popup) */}
+        <ConnectionTypeBadge type={conn.connection_type} variant="dark" />
+        {conn.relationship && (
+          <>
+            <ArrowRight size={8} className="text-zinc-600 shrink-0" />
+            <span className="text-[10px] text-zinc-500 italic truncate">{conn.relationship}</span>
+          </>
+        )}
+        <ChevronRight size={10} className="text-zinc-600 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
       </button>
     );
   };
@@ -660,7 +488,7 @@ export function KeywordPopup({
       {/* ── COLLAPSIBLE SECTIONS ────────────────────────────── */}
       <div className="flex-1 overflow-y-auto border-t border-zinc-800">
 
-        {/* ─── 1. DEFINICIÓN & NOTAS ────────────────────────── */}
+        {/* ─── 1. DEFINICION & NOTAS ────────────────────────── */}
         <CollapsibleSection
           icon={<BookOpen size={12} className="text-teal-400" />}
           title="Definicion"
@@ -780,10 +608,10 @@ export function KeywordPopup({
                                   </button>
                                   <button
                                     onClick={handleUpdateNote}
-                                    disabled={savingNote || !editNoteText.trim()}
+                                    disabled={isNoteMutating || !editNoteText.trim()}
                                     className="text-[10px] text-blue-400 hover:text-blue-300 px-1.5 py-0.5 disabled:opacity-50"
                                   >
-                                    {savingNote ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
+                                    {isNoteMutating ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
                                   </button>
                                 </div>
                               </div>
@@ -838,11 +666,11 @@ export function KeywordPopup({
                     />
                     <button
                       onClick={handleAddNote}
-                      disabled={savingNote || !newNoteText.trim()}
+                      disabled={isNoteMutating || !newNoteText.trim()}
                       className="mt-1 text-blue-400 hover:text-blue-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors p-1"
                       title="Agregar nota"
                     >
-                      {savingNote ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      {isNoteMutating ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     </button>
                   </div>
                   {newNoteText.length > 0 && (
@@ -919,21 +747,7 @@ export function KeywordPopup({
                   const local = allKeywords.find(k => k.id === id);
                   const ext = externalKws.get(id);
                   const targetSummaryId = local?.summary_id || ext?.summary_id;
-                  console.log('[KeywordPopup] SVG node clicked:', {
-                    id,
-                    targetSummaryId,
-                    hasOnNavigate: !!onNavigateKeyword,
-                    isLocal: !!local,
-                    isExt: !!ext,
-                  });
-                  if (targetSummaryId && onNavigateKeyword) {
-                    onClose();
-                    setTimeout(() => {
-                      onNavigateKeyword(id, targetSummaryId);
-                    }, 50);
-                  } else {
-                    toast.info('No se puede navegar a esta keyword');
-                  }
+                  closeAndNavigate(id, targetSummaryId);
                 }}
                 className="bg-zinc-800/30 rounded-lg"
               />
@@ -947,32 +761,9 @@ export function KeywordPopup({
             ) : connections.length === 0 ? (
               <p className="text-[10px] text-zinc-600 py-1">Sin conexiones</p>
             ) : (
-              <div className="space-y-2">
-                {/* Professor connections */}
-                {professorConnections.length > 0 && (
-                  <div>
-                    <p className="text-[9px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <BookOpen size={9} className="text-violet-400" />
-                      Del profesor
-                    </p>
-                    <div className="space-y-0.5">
-                      {professorConnections.map(renderConnectionItem)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Student connections */}
-                {studentConnections.length > 0 && (
-                  <div>
-                    <p className="text-[9px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <MessageSquare size={9} className="text-teal-400" />
-                      Mis conexiones
-                    </p>
-                    <div className="space-y-0.5">
-                      {studentConnections.map(renderConnectionItem)}
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-0.5">
+                {/* F3: Unified connection list (no professor/student split until created_by exists) */}
+                {connections.map(renderConnectionItem)}
               </div>
             )}
 
@@ -988,19 +779,7 @@ export function KeywordPopup({
                   {crossSummaryConnections.map(({ conn, ext }) => (
                     <button
                       key={conn.id}
-                      onClick={() => {
-                        console.log('[KeywordPopup] Cross-summary button clicked:', {
-                          extId: ext.id,
-                          extSummaryId: ext.summary_id,
-                          hasOnNavigate: !!onNavigateKeyword,
-                        });
-                        if (onNavigateKeyword && ext.summary_id) {
-                          onClose();
-                          setTimeout(() => {
-                            onNavigateKeyword(ext.id, ext.summary_id);
-                          }, 50);
-                        }
-                      }}
+                      onClick={() => closeAndNavigate(ext.id, ext.summary_id)}
                       className="flex items-center gap-2 py-1.5 w-full text-left group hover:bg-violet-500/10 rounded px-2 -mx-1 transition-colors border border-transparent hover:border-violet-500/20"
                     >
                       <div className="w-5 h-5 rounded bg-violet-500/20 flex items-center justify-center shrink-0">
@@ -1028,7 +807,7 @@ export function KeywordPopup({
               keywordId={keyword.id}
               allKeywords={allKeywords}
               existingConnectionIds={existingConnectionIds}
-              onCreated={fetchConnections}
+              onCreated={invalidateConnections}
             />
           </div>
         </CollapsibleSection>

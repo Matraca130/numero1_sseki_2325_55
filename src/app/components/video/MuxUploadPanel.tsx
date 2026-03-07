@@ -21,26 +21,12 @@ import { Input } from '@/app/components/ui/input';
 import * as muxApi from '@/app/lib/muxApi';
 import * as summariesApi from '@/app/services/summariesApi';
 import type { Video } from '@/app/services/summariesApi';
-
-// ── Helpers ───────────────────────────────────────────────
-
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import { extractItems, formatDuration } from '@/app/lib/api-helpers';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds || seconds <= 0) return '--:--';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska'];

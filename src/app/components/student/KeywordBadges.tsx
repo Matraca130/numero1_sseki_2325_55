@@ -1,45 +1,28 @@
 // ============================================================
 // Axon — KeywordBadges (Student: clickable keyword chips)
 //
-// Fetches keywords for a summary and renders them as badges.
-// Click opens KeywordPopup (hub central).
-// Uses Radix Popover for click-outside + Escape close behavior.
+// Renders keywords for a summary as mastery-colored badges.
+// Click opens KeywordPopup (hub central) via SmartPopup.
 //
-// Routes (all FLAT):
-//   GET /keywords?summary_id=xxx
-//   GET /bkt-states (scopeToUser, batch — ONE call)
-//   GET /subtopics?keyword_id=xxx (per keyword, for mastery calc)
+// S1 migration: keyword + BKT + subtopics data now comes from
+// useKeywordMasteryQuery (React Query). This eliminates 5
+// useState + 2 useEffect + 1 useCallback of manual fetching
+// and shares cache with KeywordHighlighterInline.
 //
 // Mastery color = AVG(subtopics BKT p_know):
-//   🟢>=0.80 | 🟡>=0.50 | 🔴<0.50 | ⚪ sin datos
+//   >= 0.80 | >= 0.50 | < 0.50 | sin datos
 // ============================================================
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AnimatePresence } from 'motion/react';
+import React, { useState } from 'react';
 import { Tag, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/app/components/ui/popover';
+import { SmartPopup } from './SmartPopup';
 import { KeywordPopup } from './KeywordPopup';
 import { MasteryIndicator } from '@/app/components/shared/MasteryIndicator';
-import { apiCall } from '@/app/lib/api';
-import * as summariesApi from '@/app/services/summariesApi';
-import type { SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
 import {
-  type BktState,
-  getKeywordMastery,
   getMasteryColor,
   getMasteryTailwind,
 } from '@/app/lib/mastery-helpers';
-
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import { useKeywordMasteryQuery } from '@/app/hooks/queries/useKeywordMasteryQuery';
 
 interface KeywordBadgesProps {
   summaryId: string;
@@ -48,101 +31,20 @@ interface KeywordBadgesProps {
 }
 
 export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesProps) {
-  const [keywords, setKeywords] = useState<SummaryKeyword[]>([]);
-  const [loading, setLoading] = useState(true);
   const [openKeywordId, setOpenKeywordId] = useState<string | null>(null);
 
-  // BKT batch state: Map<subtopic_id, BktState>
-  const [bktMap, setBktMap] = useState<Map<string, BktState>>(new Map());
-  // Subtopics per keyword: Map<keyword_id, Subtopic[]>
-  const [subtopicsMap, setSubtopicsMap] = useState<Map<string, Subtopic[]>>(new Map());
-  const [masteryReady, setMasteryReady] = useState(false);
-
-  // ── Fetch keywords ──────────────────────────────────────
-  const fetchKeywords = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await summariesApi.getKeywords(summaryId);
-      setKeywords(
-        extractItems<SummaryKeyword>(result).filter(k => k.is_active !== false)
-      );
-    } catch (err: any) {
-      console.error('[KeywordBadges] fetch error:', err);
-      setKeywords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [summaryId]);
-
-  useEffect(() => { fetchKeywords(); }, [fetchKeywords]);
-
-  // ── Batch fetch BKT states (ONE call, scopeToUser) ──────
-  useEffect(() => {
-    if (keywords.length === 0) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        // 1. Batch GET all bkt_states for this student
-        const bktResult = await apiCall<any>('/bkt-states');
-        const bktItems = extractItems<BktState>(bktResult);
-        const map = new Map<string, BktState>();
-        for (const b of bktItems) {
-          map.set(b.subtopic_id, b);
-        }
-        if (!cancelled) setBktMap(map);
-
-        // 2. Fetch subtopics per keyword (parallel, not N+1 on bkt)
-        const subtopicPromises = keywords.map(async kw => {
-          try {
-            const result = await summariesApi.getSubtopics(kw.id);
-            return {
-              keywordId: kw.id,
-              subtopics: extractItems<Subtopic>(result).filter(s => s.is_active !== false),
-            };
-          } catch {
-            return { keywordId: kw.id, subtopics: [] };
-          }
-        });
-
-        const subtopicResults = await Promise.all(subtopicPromises);
-        if (!cancelled) {
-          const sMap = new Map<string, Subtopic[]>();
-          for (const r of subtopicResults) {
-            sMap.set(r.keywordId, r.subtopics);
-          }
-          setSubtopicsMap(sMap);
-          setMasteryReady(true);
-        }
-      } catch {
-        // BKT fetch failed — show gray (no crash)
-        if (!cancelled) {
-          setBktMap(new Map());
-          setMasteryReady(true);
-        }
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [keywords]);
-
-  // ── Compute mastery per keyword ─────────────────────────
-  const keywordMasteryMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const kw of keywords) {
-      const subs = subtopicsMap.get(kw.id) || [];
-      const bkts = subs
-        .map(s => bktMap.get(s.id))
-        .filter((b): b is BktState => b != null);
-      map.set(kw.id, getKeywordMastery(bkts));
-    }
-    return map;
-  }, [keywords, subtopicsMap, bktMap]);
+  // ── React Query: keywords + BKT + subtopics → mastery ──
+  const {
+    keywords,
+    keywordsLoading,
+    bktMap,
+    keywordMasteryMap,
+    dataReady,
+  } = useKeywordMasteryQuery(summaryId);
 
   // ── Badge color helper ──────────────────────────────────
   function getBadgeClasses(kwId: string): string {
-    if (!masteryReady) {
-      // Still loading mastery — show neutral
+    if (!dataReady) {
       return 'bg-zinc-500/20 text-zinc-400';
     }
     const mastery = keywordMasteryMap.get(kwId) ?? -1;
@@ -155,7 +57,7 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
   }
 
   function getBadgeHoverClasses(kwId: string): string {
-    if (!masteryReady) return 'hover:bg-zinc-500/30 hover:text-zinc-300';
+    if (!dataReady) return 'hover:bg-zinc-500/30 hover:text-zinc-300';
     const mastery = keywordMasteryMap.get(kwId) ?? -1;
     if (mastery < 0) return 'hover:bg-zinc-500/30 hover:text-zinc-300';
     const color = getMasteryColor(mastery);
@@ -168,7 +70,7 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
   }
 
   function getBadgeRingClass(kwId: string): string {
-    if (!masteryReady) return 'focus:ring-zinc-500/30';
+    if (!dataReady) return 'focus:ring-zinc-500/30';
     const mastery = keywordMasteryMap.get(kwId) ?? -1;
     if (mastery < 0) return 'focus:ring-zinc-500/30';
     const color = getMasteryColor(mastery);
@@ -180,7 +82,7 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
     }
   }
 
-  if (loading) {
+  if (keywordsLoading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-3">
@@ -224,12 +126,11 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
         {keywords.map(kw => {
           const mastery = keywordMasteryMap.get(kw.id) ?? -1;
           return (
-            <Popover
+            <SmartPopup
               key={kw.id}
               open={openKeywordId === kw.id}
               onOpenChange={(open) => setOpenKeywordId(open ? kw.id : null)}
-            >
-              <PopoverTrigger asChild>
+              trigger={
                 <button
                   data-mastery={mastery < 0 ? 'none' : mastery.toFixed(2)}
                   className={clsx(
@@ -244,28 +145,16 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
                   <MasteryIndicator pMastery={mastery} size="sm" variant="dot" showTooltip={false} />
                   {kw.name}
                 </button>
-              </PopoverTrigger>
-
-              <PopoverContent
-                side="bottom"
-                align="start"
-                sideOffset={8}
-                className="p-0 border-0 bg-transparent shadow-none w-auto max-w-md"
-              >
-                <AnimatePresence>
-                  {openKeywordId === kw.id && (
-                    <KeywordPopup
-                      keyword={kw}
-                      allKeywords={keywords}
-                      bktMap={bktMap}
-                      subtopicsCache={subtopicsMap}
-                      onClose={() => setOpenKeywordId(null)}
-                      onNavigateKeyword={onNavigateKeyword}
-                    />
-                  )}
-                </AnimatePresence>
-              </PopoverContent>
-            </Popover>
+              }
+            >
+              <KeywordPopup
+                keyword={kw}
+                allKeywords={keywords}
+                bktMap={bktMap}
+                onClose={() => setOpenKeywordId(null)}
+                onNavigateKeyword={onNavigateKeyword}
+              />
+            </SmartPopup>
           );
         })}
       </div>

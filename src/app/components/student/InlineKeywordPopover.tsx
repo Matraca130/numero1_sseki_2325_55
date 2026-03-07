@@ -1,54 +1,42 @@
 // ============================================================
 // Axon — InlineKeywordPopover
 //
-// Fixed-position popover that opens when clicking a highlighted
-// keyword in the summary text. Uses useSmartPosition for
-// intelligent 2-axis positioning with arrow indicator.
+// Portal-based popover that opens when clicking a highlighted
+// keyword in the summary text. Uses @floating-ui/react for
+// dynamic positioning that tracks the anchor element through
+// scroll, resize, and layout shifts.
+//
+// Positioning: useFloating + autoUpdate (replaces useSmartPosition)
+// Dismiss: useDismiss (click-outside + Escape, no backdrop layer)
+// Visibility: hide() middleware closes when anchor leaves viewport
 //
 // Renders KeywordPopup content inside a dark-glass card.
-// Portal-based to escape overflow:hidden parents.
 // ============================================================
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { useSmartPosition, type Placement } from '@/app/hooks/useSmartPosition';
+import { motion } from 'motion/react';
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  hide,
+  arrow,
+  useDismiss,
+  useInteractions,
+} from '@floating-ui/react';
 import { KeywordPopup } from './KeywordPopup';
-import type { SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
+import type { SummaryKeyword } from '@/app/services/summariesApi';
 import type { BktState } from '@/app/lib/mastery-helpers';
 
-// ── Arrow component ───────────────────────────────────────
-
-function PopoverArrow({
-  placement,
-  arrowOffset,
-}: {
-  placement: Placement;
-  arrowOffset: number;
-}) {
-  const isAbove = placement === 'above';
-  return (
-    <div
-      className="absolute w-0 h-0"
-      style={{
-        left: `${arrowOffset}px`,
-        transform: 'translateX(-50%)',
-        ...(isAbove
-          ? {
-              bottom: -6,
-              borderLeft: '7px solid transparent',
-              borderRight: '7px solid transparent',
-              borderTop: '7px solid rgb(39, 39, 42)', // zinc-800
-            }
-          : {
-              top: -6,
-              borderLeft: '7px solid transparent',
-              borderRight: '7px solid transparent',
-              borderBottom: '7px solid rgb(39, 39, 42)',
-            }),
-      }}
-    />
-  );
-}
+// ── Arrow constants (module-scope — no per-render allocation) ──
+const STATIC_SIDE_MAP: Record<string, string> = {
+  top: 'bottom',
+  right: 'left',
+  bottom: 'top',
+  left: 'right',
+};
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -56,110 +44,139 @@ interface InlineKeywordPopoverProps {
   keyword: SummaryKeyword;
   allKeywords: SummaryKeyword[];
   bktMap: Map<string, BktState>;
-  subtopicsCache?: Map<string, Subtopic[]>;
-  anchorRect: DOMRect | null;
+  /** Live reference to the anchor span element (not a frozen DOMRect) */
+  anchorEl: HTMLElement | null;
   onClose: () => void;
   onNavigateKeyword?: (keywordId: string, summaryId: string) => void;
 }
+
+// ── Component ─────────────────────────────────────────────
 
 export function InlineKeywordPopover({
   keyword,
   allKeywords,
   bktMap,
-  subtopicsCache,
-  anchorRect,
+  anchorEl,
   onClose,
   onNavigateKeyword,
 }: InlineKeywordPopoverProps) {
-  const { popoverRef, position, placement, arrowOffset, isReady } =
-    useSmartPosition({
-      anchorRect,
-      gap: 10,
-      viewportPadding: 12,
-      topOffset: 56,
-      centerThreshold: 0.15,
+  // ── Arrow ref for Floating UI arrow middleware ───────────
+  const arrowRef = useRef<HTMLDivElement>(null);
+
+  // ── Floating UI: positioning engine ─────────────────────
+  //
+  // elements.reference: live HTMLElement — Floating UI calls
+  //   .getBoundingClientRect() on every update cycle, so the
+  //   position stays correct through scroll/resize/layout.
+  //
+  // whileElementsMounted: autoUpdate installs listeners on:
+  //   - scroll (ALL ancestor scroll containers, not just window)
+  //   - resize (window)
+  //   - ResizeObserver (reference + floating elements)
+  //   - PerformanceObserver for layout shifts (if available)
+  //   Cleans up automatically on unmount.
+  //
+  // middleware order matters:
+  //   offset → flip → shift → hide → arrow
+  //   (each reads the result of the previous one)
+  //
+  const { refs, floatingStyles, context, middlewareData, placement } =
+    useFloating({
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) onClose();
+      },
+      elements: { reference: anchorEl },
+      placement: 'top',
+      middleware: [
+        offset(10),
+        flip({ padding: 16 }),
+        shift({ padding: 12 }),
+        hide({ strategy: 'referenceHidden' }),
+        arrow({ element: arrowRef, padding: 12 }),
+      ],
+      whileElementsMounted: autoUpdate,
     });
 
-  const backdropRef = useRef<HTMLDivElement>(null);
+  // ── Dismiss: Escape + click-outside (no backdrop) ───────
+  //
+  // useDismiss adds a pointerdown listener on document (capture
+  // phase). If the click target is outside the floating element,
+  // it calls onOpenChange(false) → onClose(). No blocking layer
+  // needed — the user can interact with the entire page.
+  //
+  const dismiss = useDismiss(context, {
+    outsidePress: true,
+    escapeKey: true,
+  });
+  const { getFloatingProps } = useInteractions([dismiss]);
 
-  // ── Close on Escape ──────────────────────────────────────
+  // ── Close when anchor scrolls out of viewport ───────────
+  //
+  // hide({ strategy: 'referenceHidden' }) checks if the anchor
+  // rect is completely outside the viewport clipping area.
+  // This replaces the arbitrary "scroll > 150px" threshold.
+  //
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+    if (middlewareData.hide?.referenceHidden) {
+      onClose();
+    }
+  }, [middlewareData.hide?.referenceHidden, onClose]);
 
-  // ── Close on scroll >150px ───────────────────────────────
-  useEffect(() => {
-    const startY = window.scrollY;
-    const handler = () => {
-      if (Math.abs(window.scrollY - startY) > 150) onClose();
-    };
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, [onClose]);
+  // ── Guard ───────────────────────────────────────────────
+  if (!anchorEl) return null;
 
-  // ── Close on click outside ───────────────────────────────
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === backdropRef.current) onClose();
-    },
-    [onClose]
-  );
+  // ── Arrow positioning from middleware data ───────────────
+  //
+  // Floating UI's arrow middleware computes { x, y } relative
+  // to the floating element. staticSide places the arrow on
+  // the edge facing the anchor (e.g. placement=top → arrow
+  // sits at bottom of the popup, pointing down).
+  //
+  const arrowData = middlewareData.arrow;
+  const basePlacement = placement.split('-')[0];
+  const staticSide = STATIC_SIDE_MAP[basePlacement] as string;
 
-  if (!anchorRect) return null;
+  // ── Render ──────────────────────────────────────────────
 
   return createPortal(
-    <AnimatePresence>
+    <motion.div
+      ref={refs.setFloating}
+      style={{
+        ...floatingStyles,
+        width: 'max-content',
+        maxWidth: '400px',
+        minWidth: '300px',
+      }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="z-50"
+      {...getFloatingProps()}
+    >
+      {/* Arrow — rotated square positioned by Floating UI */}
       <div
-        ref={backdropRef}
-        className="fixed inset-0 z-50"
-        onClick={handleBackdropClick}
-        style={{ background: 'transparent' }}
-      >
-        <motion.div
-          ref={popoverRef}
-          initial={{ opacity: 0, scale: 0.95, y: placement === 'above' ? 8 : -8 }}
-          animate={{
-            opacity: isReady ? 1 : 0,
-            scale: 1,
-            y: 0,
-          }}
-          exit={{ opacity: 0, scale: 0.95, y: placement === 'above' ? 8 : -8 }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="fixed z-[51]"
-          style={{
-            top: `${position.top}px`,
-            left: `${position.left}px`,
-            width: 'max-content',
-            maxWidth: '400px',
-            minWidth: '300px',
-            visibility: isReady ? 'visible' : 'hidden',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Arrow */}
-          <PopoverArrow placement={placement} arrowOffset={arrowOffset} />
+        ref={arrowRef}
+        className="absolute w-3 h-3 bg-zinc-800 rotate-45"
+        style={{
+          left: arrowData?.x != null ? `${arrowData.x}px` : '',
+          top: arrowData?.y != null ? `${arrowData.y}px` : '',
+          [staticSide]: '-6px',
+        }}
+      />
 
-          {/* Card */}
-          <div className="rounded-2xl shadow-2xl shadow-black/40 overflow-hidden max-h-[70vh] overflow-y-auto">
-            {/* Close button overlaid on KeywordPopup's own header */}
-
-            {/* Keyword popup content — renders its own dark bg-zinc-900 card */}
-            <KeywordPopup
-              keyword={keyword}
-              allKeywords={allKeywords}
-              bktMap={bktMap}
-              subtopicsCache={subtopicsCache}
-              onClose={onClose}
-              onNavigateKeyword={onNavigateKeyword}
-            />
-          </div>
-        </motion.div>
+      {/* Card wrapper — dimensions & overflow match original */}
+      <div className="rounded-2xl shadow-2xl shadow-black/40 overflow-x-hidden overflow-y-auto max-h-[70vh]">
+        {/* KeywordPopup renders its own dark bg-zinc-900 card */}
+        <KeywordPopup
+          keyword={keyword}
+          allKeywords={allKeywords}
+          bktMap={bktMap}
+          onClose={onClose}
+          onNavigateKeyword={onNavigateKeyword}
+        />
       </div>
-    </AnimatePresence>,
-    document.body
+    </motion.div>,
+    document.body,
   );
 }

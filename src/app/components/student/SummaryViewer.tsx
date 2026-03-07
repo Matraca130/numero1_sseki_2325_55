@@ -1,8 +1,10 @@
 // ============================================================
 // Axon — SummaryViewer (Student: read-only visual block layout)
 //
-// Fetches GET /summary-blocks?summary_id=xxx and renders blocks
-// in the same layout the professor composed.
+// Uses useSummaryBlocksQuery (React Query) which shares cache
+// with useSummaryReaderQueries' blocks-detection query. This
+// means when StudentSummaryReader already fetched the blocks,
+// SummaryViewer gets an instant cache hit — zero double-fetch.
 //
 // Desktop (>=768px): absolute positioning (same as editor)
 // Mobile  (<768px):  vertical stack by order_index
@@ -11,35 +13,30 @@
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Loader2, Layers } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { Skeleton } from '@/app/components/ui/skeleton';
-import * as summariesApi from '@/app/services/summariesApi';
 import type { SummaryBlock } from '@/app/services/summariesApi';
 import { ViewerBlock } from './ViewerBlock';
 import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
-
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 
 // ── Props ─────────────────────────────────────────────────
 
 interface SummaryViewerProps {
   summaryId: string;
-  /** Pre-fetched blocks (avoids double fetch) */
+  /** Pre-fetched blocks (seeds React Query cache, avoids fetch) */
   blocks?: SummaryBlock[];
   onKeywordClick?: (keywordId: string) => void;
 }
 
 export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick }: SummaryViewerProps) {
   const { user } = useAuth();
-  const [blocks, setBlocks] = useState<SummaryBlock[]>(prefetchedBlocks || []);
-  const [loading, setLoading] = useState(!prefetchedBlocks);
+
+  // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
+  const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId, prefetchedBlocks);
+
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -58,27 +55,6 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
-
-  // ── Fetch blocks ────────────────────────────────────────
-  const fetchBlocks = useCallback(async () => {
-    if (prefetchedBlocks) return;
-    setLoading(true);
-    try {
-      const result = await summariesApi.getSummaryBlocks(summaryId);
-      setBlocks(
-        extractItems<SummaryBlock>(result)
-          .filter(b => b.is_active !== false)
-          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-      );
-    } catch (err) {
-      console.error('[SummaryViewer] blocks load error:', err);
-      setBlocks([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [summaryId, prefetchedBlocks]);
-
-  useEffect(() => { fetchBlocks(); }, [fetchBlocks]);
 
   // ── Collect all images for lightbox navigation ──────────
   const allImages: LightboxImage[] = useMemo(() => {
@@ -113,7 +89,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
   const institutionId = user?.user_metadata?.institution_id || '';
 
   // ── Loading state ───────────────────────────────────────
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-4 p-6">
         {[1, 2, 3].map(i => (

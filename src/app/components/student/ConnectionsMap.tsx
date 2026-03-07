@@ -10,8 +10,7 @@ import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import {
   type MasteryColor,
-  getMasteryColor,
-  getMasteryTailwind,
+  getSafeMasteryColor,
 } from '@/app/lib/mastery-helpers';
 
 interface ConnectionNode {
@@ -50,8 +49,9 @@ export function ConnectionsMap({
   onNodeClick,
   className,
 }: ConnectionsMapProps) {
-  // Limit to 8 nodes max
-  const visibleNodes = nodes.slice(0, 8);
+  // L-6 FIX: Memoize slice to prevent nodePositions useMemo from
+  // recalculating on every render due to new array reference.
+  const visibleNodes = useMemo(() => nodes.slice(0, 8), [nodes]);
   const count = visibleNodes.length;
 
   // SVG dimensions
@@ -73,9 +73,7 @@ export function ConnectionsMap({
     });
   }, [visibleNodes, count, cx, cy, radius]);
 
-  const centralColor: MasteryColor = centralKeyword.mastery < 0
-    ? 'gray'
-    : getMasteryColor(centralKeyword.mastery);
+  const centralColor: MasteryColor = getSafeMasteryColor(centralKeyword.mastery);
 
   if (count === 0) {
     return (
@@ -97,9 +95,7 @@ export function ConnectionsMap({
 
         {/* Connection lines */}
         {nodePositions.map((node) => {
-          const nodeColor: MasteryColor = node.mastery < 0
-            ? 'gray'
-            : getMasteryColor(node.mastery);
+          const nodeColor: MasteryColor = getSafeMasteryColor(node.mastery);
           return (
             <g key={`line-${node.id}`}>
               <line
@@ -164,16 +160,13 @@ export function ConnectionsMap({
 
         {/* Connected nodes */}
         {nodePositions.map((node) => {
-          const nodeColor: MasteryColor = node.mastery < 0
-            ? 'gray'
-            : getMasteryColor(node.mastery);
+          const nodeColor: MasteryColor = getSafeMasteryColor(node.mastery);
           return (
             <g
               key={`node-${node.id}`}
               className="cursor-pointer group"
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('[ConnectionsMap] Node clicked:', node.id, node.name);
                 onNodeClick?.(node.id);
               }}
               role="button"
@@ -193,6 +186,9 @@ export function ConnectionsMap({
                 fill="transparent"
                 className="pointer-events-auto"
               />
+              {/* L-4 FIX: Replaced SMIL <animate> with CSS transform.
+                  SMIL is deprecated (Chrome Intent to Deprecate, unstable in Edge).
+                  CSS transform is GPU-accelerated via compositor thread. */}
               <circle
                 cx={node.x}
                 cy={node.y}
@@ -200,11 +196,9 @@ export function ConnectionsMap({
                 fill={colorHexLight[nodeColor]}
                 stroke={colorHex[nodeColor]}
                 strokeWidth={1.5}
-                className="transition-all duration-150"
-              >
-                <animate attributeName="r" from="16" to="18" dur="0.15s" begin="mouseover" fill="freeze" />
-                <animate attributeName="r" from="18" to="16" dur="0.15s" begin="mouseout" fill="freeze" />
-              </circle>
+                className="transition-transform duration-150 group-hover:scale-[1.125]"
+                style={{ transformOrigin: `${node.x}px ${node.y}px` }}
+              />
               {/* Cross-summary indicator: small external arrow */}
               {node.isCrossSummary && (
                 <circle
