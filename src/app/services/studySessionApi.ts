@@ -62,6 +62,7 @@ export interface ReviewRecord {
   item_id: string;
   instrument_type: 'flashcard' | 'quiz';
   grade: number;
+  response_time_ms?: number;  // M-2 FIX: backend now persists this column
   created_at?: string;
 }
 
@@ -199,6 +200,7 @@ export async function submitReview(data: {
   item_id: string;
   instrument_type: 'flashcard' | 'quiz';
   grade: number;
+  response_time_ms?: number;  // M-2 FIX: persisted by backend
 }): Promise<ReviewRecord> {
   return apiCall<ReviewRecord>('/reviews', {
     method: 'POST',
@@ -226,6 +228,7 @@ export async function fallbackToIndividualPosts(
         item_id: item.item_id,
         instrument_type: 'flashcard',
         grade: item.grade,
+        response_time_ms: item.response_time_ms,
       }).catch(err => {
         if (import.meta.env.DEV) console.warn('[Fallback] review failed:', err);
       }) as Promise<void>,
