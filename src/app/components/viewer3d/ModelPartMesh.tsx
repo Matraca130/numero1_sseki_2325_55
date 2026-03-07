@@ -9,12 +9,22 @@
 // material override for opacity/color, and visibility toggling.
 //
 // Used by ModelViewer3D when parts config exists (multi-part mode).
+//
+// Persistence: API-first (GET /model-parts, /model-layers) with
+// localStorage cache as offline fallback.
 // ============================================================
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { logger } from '@/app/lib/logger';
+import { disposeMaterialTextures } from './three-utils';
+import {
+  getModelLayers as apiGetLayers,
+  getModelParts as apiGetParts,
+} from '@/app/lib/model3d-api';
+import type { ModelLayer as APIModelLayer, ModelPart as APIModelPart } from '@/app/types/model3d';
 
-// ── Part config (stored in localStorage) ──
+// ── Part config (used by viewer + professor UI) ──
 export interface ModelPartConfig {
   id: string;
   name: string;
@@ -25,7 +35,7 @@ export interface ModelPartConfig {
   order_index: number;
 }
 
-// ── Layer config (stored in localStorage) ──
+// ── Layer config ──
 export interface ModelLayerConfig {
   id: string;
   name: string;
@@ -44,14 +54,40 @@ interface LoadedPart {
   originalMaterials: Map<THREE.Mesh, THREE.Material | THREE.Material[]>;
 }
 
-// ── localStorage keys ──
+// ── localStorage keys (cache) ──
 const PARTS_KEY = (modelId: string) => `model_parts:${modelId}`;
 const LAYERS_KEY = (modelId: string) => `model_layers:${modelId}`;
 
 // ══════════════════════════════════════════════
-// ── Persistence helpers ──
+// ── Adapters: DB shape → frontend shape ──
 // ══════════════════════════════════════════════
 
+function adaptPartFromDB(row: APIModelPart): ModelPartConfig {
+  return {
+    id: row.id,
+    name: row.name,
+    layer_group: row.layer_group || '',
+    file_url: row.file_url || '',
+    color_hex: row.color_hex || '#cccccc',
+    opacity_default: row.opacity_default ?? 1.0,
+    order_index: row.order_index,
+  };
+}
+
+function adaptLayerFromDB(row: APIModelLayer): ModelLayerConfig {
+  return {
+    id: row.id,
+    name: row.name,
+    color_hex: row.color_hex || '#888888',
+    order_index: row.order_index,
+  };
+}
+
+// ══════════════════════════════════════════════
+// ── Persistence helpers (API-first, localStorage fallback) ──
+// ══════════════════════════════════════════════
+
+/** Sync getter from localStorage cache (for instant init) */
 export function getStoredParts(modelId: string): ModelPartConfig[] {
   try {
     const raw = localStorage.getItem(PARTS_KEY(modelId));
@@ -59,10 +95,7 @@ export function getStoredParts(modelId: string): ModelPartConfig[] {
   } catch { return []; }
 }
 
-export function setStoredParts(modelId: string, parts: ModelPartConfig[]): void {
-  localStorage.setItem(PARTS_KEY(modelId), JSON.stringify(parts));
-}
-
+/** Sync getter from localStorage cache (for instant init) */
 export function getStoredLayers(modelId: string): ModelLayerConfig[] {
   try {
     const raw = localStorage.getItem(LAYERS_KEY(modelId));
@@ -70,12 +103,49 @@ export function getStoredLayers(modelId: string): ModelLayerConfig[] {
   } catch { return []; }
 }
 
+/** Write-through to localStorage (keeps cache fresh) */
+export function setStoredParts(modelId: string, parts: ModelPartConfig[]): void {
+  localStorage.setItem(PARTS_KEY(modelId), JSON.stringify(parts));
+}
+
+/** Write-through to localStorage (keeps cache fresh) */
 export function setStoredLayers(modelId: string, layers: ModelLayerConfig[]): void {
   localStorage.setItem(LAYERS_KEY(modelId), JSON.stringify(layers));
 }
 
+/**
+ * Fetch parts from API, cache to localStorage, return adapted configs.
+ * Falls back to localStorage if API is unavailable.
+ */
+export async function fetchPartsFromAPI(modelId: string): Promise<ModelPartConfig[]> {
+  try {
+    const res = await apiGetParts(modelId);
+    const parts = (res?.items || []).map(adaptPartFromDB);
+    setStoredParts(modelId, parts); // cache
+    return parts;
+  } catch (err) {
+    logger.warn('ModelPartMesh', 'API fetch parts failed, using localStorage cache:', err);
+    return getStoredParts(modelId);
+  }
+}
 
-// ══════════════════════════════════════════════
+/**
+ * Fetch layers from API, cache to localStorage, return adapted configs.
+ * Falls back to localStorage if API is unavailable.
+ */
+export async function fetchLayersFromAPI(modelId: string): Promise<ModelLayerConfig[]> {
+  try {
+    const res = await apiGetLayers(modelId);
+    const layers = (res?.items || []).map(adaptLayerFromDB);
+    setStoredLayers(modelId, layers); // cache
+    return layers;
+  } catch (err) {
+    logger.warn('ModelPartMesh', 'API fetch layers failed, using localStorage cache:', err);
+    return getStoredLayers(modelId);
+  }
+}
+
+// ═════════════════════════════════════════════
 // ── ModelPartLoader class ──
 // ══════════════════════════════════════════════
 
@@ -145,7 +215,7 @@ export class ModelPartLoader {
 
       return group;
     } catch (err) {
-      console.error(`[ModelPartLoader] Error loading part "${part.config.name}":`, err);
+      logger.error('ModelPartLoader', `Error loading part "${part.config.name}":`, err);
       part.loading = false;
       this.onUpdate();
       return null;
@@ -306,7 +376,10 @@ export class ModelPartLoader {
     part.meshes.forEach(mesh => {
       mesh.geometry.dispose();
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      mats.forEach(m => m.dispose());
+      mats.forEach(m => {
+        disposeMaterialTextures(m);
+        m.dispose();
+      });
     });
     part.group = null;
     part.meshes = [];

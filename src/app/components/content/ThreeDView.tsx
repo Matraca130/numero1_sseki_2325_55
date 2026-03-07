@@ -1,31 +1,31 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+// ============================================================
+// Axon — ThreeDView (Student)
+//
+// 3-level navigation for 3D anatomical models:
+//   Level 1: Atlas grid (AtlasScreen — extracted to AtlasScreen.tsx)
+//   Level 2: Section detail (SectionScreen)
+//   Level 3: 3D viewer (ViewerScreen → ModelViewer3D)
+//
+// Data flow: ContentTree → fetch models per topic → group by section
+// ============================================================
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { motion, AnimatePresence } from 'motion/react';
+import { Box, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { ModelViewer3D } from '@/app/components/content/ModelViewer3D';
-import { getModels3D } from '@/app/services/models3dApi';
-import type { Model3D } from '@/app/services/models3dApi';
-import type { TreeCourse, TreeSemester, TreeSection, TreeTopic } from '@/app/services/contentTreeApi';
-import {
-  Box, ChevronRight, Search, ArrowRight, Loader2,
-} from 'lucide-react';
-import clsx from 'clsx';
-import { colors, components, headingStyle, sectionColors, shapes } from '@/app/design-system';
-import { iconClasses, cardClasses, ctaButtonClasses } from '@/app/design-system';
+import { AtlasScreen } from '@/app/components/content/AtlasScreen';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
+import { getModels3DBatch } from '@/app/lib/model3d-api';
+import type { Model3D } from '@/app/lib/model3d-api';
+import type { SectionWithModels } from '@/app/types/model3d';
+import { logger } from '@/app/lib/logger';
+import { components, headingStyle } from '@/app/design-system';
+import { iconClasses, ctaButtonClasses } from '@/app/design-system';
 
 // ── Types ──
 type ViewState = 'atlas' | 'section' | 'viewer';
-
-interface SectionWithModels {
-  sectionId: string;
-  sectionName: string;
-  semesterName: string;
-  models: { topicId: string; topicName: string; model: Model3D }[];
-  totalCount: number;
-}
-
-// ── Section accent colors — from design system ──
-const SECTION_COLORS = sectionColors.teal;
 
 // ══════════════════════════════════════════════
 // ── Main ThreeDView Component ──
@@ -65,43 +65,50 @@ export function ThreeDView() {
     return topics;
   }, [tree]);
 
-  // Fetch models for all topics in parallel
-  const fetchAllModels = useCallback(async () => {
-    if (allTopics.length === 0) {
+  // Stable list of topic IDs for dependency tracking
+  const topicIds = useMemo(
+    () => allTopics.map(t => t.topicId),
+    [allTopics],
+  );
+
+  // H2 audit fix: batch fetch with cache + throttle + AbortController
+  useEffect(() => {
+    if (treeLoading) return;
+    if (topicIds.length === 0) {
       setModelsMap({});
       setModelsLoading(false);
       return;
     }
-    setModelsLoading(true);
-    try {
-      const results = await Promise.allSettled(
-        allTopics.map(t => getModels3D(t.topicId))
-      );
-      const map: Record<string, Model3D[]> = {};
-      results.forEach((result, i) => {
-        const topicId = allTopics[i].topicId;
-        if (result.status === 'fulfilled') {
-          const items = result.value?.items || [];
-          if (items.length > 0) {
-            map[topicId] = items;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    (async () => {
+      setModelsLoading(true);
+      try {
+        const batchResult = await getModels3DBatch(topicIds, controller.signal);
+        if (cancelled) return;
+        // Filter to only topics with models
+        const map: Record<string, Model3D[]> = {};
+        for (const [tid, models] of Object.entries(batchResult)) {
+          if (models.length > 0) {
+            map[tid] = models;
           }
         }
-      });
-      setModelsMap(map);
-    } catch (err) {
-      console.error('[ThreeDView] Error fetching models:', err);
-    } finally {
-      setModelsLoading(false);
-    }
-  }, [allTopics]);
+        setModelsMap(map);
+      } catch (err) {
+        if (cancelled) return;
+        logger.error('ThreeDView', 'Error fetching models:', err);
+      } finally {
+        if (!cancelled) setModelsLoading(false);
+      }
+    })();
 
-  useEffect(() => {
-    if (!treeLoading && allTopics.length > 0) {
-      fetchAllModels();
-    } else if (!treeLoading && allTopics.length === 0) {
-      setModelsLoading(false);
-    }
-  }, [treeLoading, allTopics, fetchAllModels]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [treeLoading, topicIds]);
 
   // Build sections with models grouped by course
   const allCoursesSections = useMemo(() => {
@@ -176,228 +183,92 @@ export function ThreeDView() {
   }
 
   return (
-    <AnimatePresence mode="wait">
-      {viewState === 'atlas' && (
-        <motion.div key="atlas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <AtlasScreen
-            allCoursesSections={allCoursesSections}
-            totalModels={totalModels}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onOpenSection={openSection}
-          />
-        </motion.div>
-      )}
-      {viewState === 'section' && selectedSection && (
-        <motion.div key="section" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }}>
-          <SectionScreen
-            sectionData={selectedSection}
-            onBack={goBack}
-            onOpenModel={openViewer}
-          />
-        </motion.div>
-      )}
-      {viewState === 'viewer' && selectedModel && (
-        <motion.div key="viewer" className="h-full" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.25 }}>
-          <ViewerScreen
-            topicName={selectedModel.topicName}
-            model={selectedModel.model}
-            onBack={goBack}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <ErrorBoundary fallback={<ThreeDErrorFallback />}>
+      <AnimatePresence mode="wait">
+        {viewState === 'atlas' && (
+          <motion.div key="atlas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <AtlasScreen
+              allCoursesSections={allCoursesSections}
+              totalModels={totalModels}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onOpenSection={openSection}
+            />
+          </motion.div>
+        )}
+        {viewState === 'section' && selectedSection && (
+          <motion.div key="section" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }}>
+            <SectionScreen
+              sectionData={selectedSection}
+              onBack={goBack}
+              onOpenModel={openViewer}
+            />
+          </motion.div>
+        )}
+        {viewState === 'viewer' && selectedModel && (
+          <motion.div key="viewer" className="h-full" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.25 }}>
+            <ViewerScreen
+              topicName={selectedModel.topicName}
+              model={selectedModel.model}
+              onBack={goBack}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </ErrorBoundary>
   );
 }
 
-// ══════════════════════════════════════════════
-// ── Level 1: Atlas Home Screen ──
-// ══════════════════════════════════════════════
-function AtlasScreen({
-  allCoursesSections,
-  totalModels,
-  searchQuery,
-  setSearchQuery,
-  onOpenSection,
-}: {
-  allCoursesSections: { course: TreeCourse; sections: SectionWithModels[] }[];
-  totalModels: number;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
-  onOpenSection: (sec: SectionWithModels) => void;
-}) {
-  // Filter by search
-  const filteredCourses = useMemo(() => {
-    if (!searchQuery.trim()) return allCoursesSections;
-    const q = searchQuery.toLowerCase();
-    return allCoursesSections.map(c => ({
-      ...c,
-      sections: c.sections.filter(s =>
-        s.sectionName.toLowerCase().includes(q) ||
-        s.models.some(m => m.model.title.toLowerCase().includes(q) || m.topicName.toLowerCase().includes(q))
-      ),
-    })).filter(c => c.sections.length > 0);
-  }, [allCoursesSections, searchQuery]);
-
-  let colorIdx = 0;
-
+// ── Error Fallback ──
+function ThreeDErrorFallback() {
   return (
     <div className="flex flex-col min-h-full bg-gray-50">
-      <AxonPageHeader
-        title="Atlas 3D"
-        subtitle="Explore modelos anatomicos interativos"
-        statsLeft={
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-teal-500" />
-              <span className="text-xs text-gray-500"><span className="font-semibold text-gray-700">{totalModels}</span> modelos</span>
-            </div>
-          </div>
-        }
-        statsRight={
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar modelo..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-4 py-1.5 text-xs bg-white border border-gray-200 rounded-lg text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 w-52"
-            />
-          </div>
-        }
-      />
-
-      <div className="flex-1 px-6 py-6 space-y-8 custom-scrollbar-light">
-        {filteredCourses.length === 0 && !searchQuery.trim() && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <Box size={40} className="mb-4 opacity-40" />
-            <p className="text-sm">Nenhum modelo 3D disponivel ainda.</p>
-            <p className="text-xs mt-1 text-gray-300">Os modelos aparecerao aqui quando o professor adicionar.</p>
-          </div>
-        )}
-
-        {filteredCourses.map(({ course, sections }) => (
-          <div key={course.id}>
-            {/* Course header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-3 h-3 rounded-full bg-teal-500" />
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide" style={headingStyle}>{course.name}</h3>
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-[10px] text-rose-400 font-medium">
-                {sections.reduce((s, sec) => s + sec.totalCount, 0)} m
-              </span>
-            </div>
-
-            {/* Sections grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sections.map((sec) => {
-                const color = SECTION_COLORS[colorIdx % SECTION_COLORS.length];
-                colorIdx++;
-                return (
-                  <SectionCard
-                    key={sec.sectionId}
-                    sectionData={sec}
-                    color={color}
-                    onOpen={() => onOpenSection(sec)}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        ))}
-
-        {filteredCourses.length === 0 && searchQuery.trim() && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <Search size={40} className="mb-4 opacity-40" />
-            <p className="text-sm">Nenhum modelo encontrado para "{searchQuery}"</p>
-          </div>
-        )}
+      <AxonPageHeader title="Atlas 3D" subtitle="Explore modelos anatomicos interativos" />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <AlertTriangle size={32} className="text-red-500" />
+          <p className="text-sm">Ocorreu um erro ao carregar os modelos 3D.</p>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Section Card (Level 1 grid item) ──
-function SectionCard({
-  sectionData,
-  color,
-  onOpen,
-}: {
-  sectionData: SectionWithModels;
-  color: typeof SECTION_COLORS[0];
-  onOpen: () => void;
-}) {
-  const { sectionName, semesterName, models, totalCount } = sectionData;
-  const progressPercent = 100; // all available from backend
-
-  // SVG circle params
-  const radius = 18;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
-
+// ── Error Fallback for Model Viewer ──
+function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; onBack: () => void }) {
   return (
-    <motion.button
-      onClick={onOpen}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden text-left shadow-sm hover:shadow-md transition-shadow p-5"
-    >
-      {/* Top row: icon + progress circle */}
-      <div className="flex items-start justify-between mb-4">
-        <div className={iconClasses('md')}>
-          <Box size={20} className={components.icon.default.text} />
+    <div className="flex flex-col h-full bg-[#111118] relative overflow-hidden">
+      {/* Header */}
+      <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118]/80 backdrop-blur-lg border-b border-white/10">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs transition-colors"
+          >
+            <ChevronRight size={14} className="rotate-180" />
+            <span>Voltar</span>
+          </button>
+          <div className="w-px h-5 bg-white/10" />
+          <div>
+            <h2 className="text-xs font-bold text-white">{modelName}</h2>
+            <p className="text-[9px] text-gray-500">Erro ao carregar o modelo</p>
+          </div>
         </div>
-        <div className="relative w-12 h-12 flex items-center justify-center">
-          <svg width="48" height="48" className="-rotate-90">
-            <circle cx="24" cy="24" r={radius} fill="none" stroke={colors.border.card} strokeWidth="3" />
-            <circle
-              cx="24" cy="24" r={radius} fill="none"
-              stroke={colors.primary[500]} strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              className="transition-all duration-500"
-            />
-          </svg>
-          <span className="absolute text-[10px] font-semibold text-teal-600">{totalCount}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-gray-600 font-medium">Arraste para rotacionar &middot; Scroll para zoom</span>
         </div>
       </div>
 
-      {/* Title */}
-      <h4 className="font-bold text-gray-900 mb-1" style={headingStyle}>{sectionName}</h4>
-      <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-3">
-        {semesterName} \u00b7 {totalCount} modelos
-      </p>
-
-      {/* Progress row */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-gray-500">Disponveis</span>
-        <span className="text-xs font-semibold text-gray-700">{totalCount} Modelos</span>
+      {/* 3D Viewport — ModelViewer3D fills remaining space */}
+      <div className="flex-1 relative z-10">
+        <div className="flex flex-col items-center justify-center h-full text-gray-400">
+          <AlertTriangle size={32} className="text-red-500" />
+          <p className="text-sm">Ocorreu um erro ao carregar o modelo 3D.</p>
+        </div>
       </div>
-
-      {/* Topic tags */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {models.slice(0, 3).map(({ topicName }, i) => (
-          <span key={i} className="px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-[10px] text-gray-600 font-medium">
-            {topicName}
-          </span>
-        ))}
-        {models.length > 3 && (
-          <span className="px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-[10px] text-gray-400 font-medium">
-            +{models.length - 3}
-          </span>
-        )}
-      </div>
-
-      {/* Teal button */}
-      <div className={ctaButtonClasses()}>
-        Explorar Modelos
-      </div>
-    </motion.button>
+    </div>
   );
 }
-
 
 // ══════════════════════════════════════════════
 // ── Level 2: Section Screen (Models) ──
@@ -489,7 +360,6 @@ function SectionScreen({
   );
 }
 
-
 // ══════════════════════════════════════════════
 // ── Level 3: Viewer Screen (3D Model) ──
 // ══════════════════════════════════════════════
@@ -527,7 +397,11 @@ function ViewerScreen({
 
       {/* 3D Viewport — ModelViewer3D fills remaining space */}
       <div className="flex-1 relative z-10">
-        <ModelViewer3D modelId={model.id} modelName={model.title} />
+        <ErrorBoundary
+          fallback={<ModelViewerErrorFallback modelName={model.title} onBack={onBack} />}
+        >
+          <ModelViewer3D modelId={model.id} modelName={model.title} />
+        </ErrorBoundary>
       </div>
     </div>
   );

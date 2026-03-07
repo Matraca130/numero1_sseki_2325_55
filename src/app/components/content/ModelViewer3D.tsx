@@ -19,16 +19,16 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import clsx from 'clsx';
-import { Loader2, List, Layers } from 'lucide-react';
-import { getModel3DPins } from '@/app/services/models3dApi';
-import type { Model3DPin } from '@/app/services/models3dApi';
+import { Loader2, List, Layers, AlertTriangle, RefreshCw } from 'lucide-react';
 import { PinSystem } from '@/app/components/viewer3d/PinSystem';
 import type { PinMode } from '@/app/components/viewer3d/PinSystem';
 import { PinEditor } from '@/app/components/viewer3d/PinEditor';
 import { StudentNotes3D } from '@/app/components/viewer3d/StudentNotes3D';
 import { LayerPanel } from '@/app/components/viewer3d/LayerPanel';
-import { ModelPartLoader, getStoredParts, getStoredLayers } from '@/app/components/viewer3d/ModelPartMesh';
+import { ModelPartLoader, getStoredParts, getStoredLayers, fetchPartsFromAPI, fetchLayersFromAPI } from '@/app/components/viewer3d/ModelPartMesh';
 import type { ModelLayerConfig } from '@/app/components/viewer3d/ModelPartMesh';
+import { disposeMaterialTextures } from '@/app/components/viewer3d/three-utils';
+import { logger } from '@/app/lib/logger';
 
 // ── Model Data by topic (procedural fallback) ──
 const MODEL_CONFIGS: Record<string, {
@@ -297,6 +297,16 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
   const modelMeshesRef = useRef<THREE.Object3D[]>([]);
   const partLoaderRef = useRef<ModelPartLoader | null>(null);
 
+  // ── Frame callback registry (replaces DOM hacking) ──
+  // Children register projection callbacks via registerFrameCallback.
+  // The animation loop iterates the set each frame with try/catch per callback.
+  const frameCallbacksRef = useRef<Set<() => void>>(new Set());
+
+  const registerFrameCallback = useCallback((cb: () => void) => {
+    frameCallbacksRef.current.add(cb);
+    return () => { frameCallbacksRef.current.delete(cb); };
+  }, []);
+
   // State for child components
   const [sceneReady, setSceneReady] = useState(false);
   const [showPinEditor, setShowPinEditor] = useState(false);
@@ -305,15 +315,22 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
   const [storedLayers, setStoredLayersState] = useState<ModelLayerConfig[]>([]);
   const [hasMultiPart, setHasMultiPart] = useState(false);
 
-  // Pin editor data — fetched separately for the editor panel
-  const [editorPins, setEditorPins] = useState<Model3DPin[]>([]);
+  // ── WebGL context loss recovery (G1) ──
+  // When GPU runs out of VRAM or browser reclaims context, the canvas goes black.
+  // We detect this, show an overlay, and attempt recovery via full remount.
+  const [contextLost, setContextLost] = useState(false);
+  const [sceneKey, setSceneKey] = useState(0);
+  const contextLossCountRef = useRef(0);
+  const contextLossTimestampRef = useRef(0);
+  const MAX_CONTEXT_LOSSES = 2;        // max recoveries in TIME_WINDOW
+  const CONTEXT_LOSS_WINDOW_MS = 30000; // 30 seconds
 
-  const fetchEditorPins = useCallback(async () => {
-    try {
-      const res = await getModel3DPins(modelId);
-      setEditorPins(res?.items || []);
-    } catch { /* PinSystem handles its own fetch */ }
-  }, [modelId]);
+  // ── Pin refresh key (invalidation signal for PinSystem + PinEditor) ──
+  // Incremented when any component performs pin CRUD → both consumers refetch.
+  const [pinRefreshKey, setPinRefreshKey] = useState(0);
+  const handlePinsChanged = useCallback(() => {
+    setPinRefreshKey(k => k + 1);
+  }, []);
 
   // Use procedural config if available, otherwise default
   const config = MODEL_CONFIGS[modelId] || DEFAULT_CONFIG;
@@ -331,11 +348,16 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
     camera.lookAt(0, 0.5, 0);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance', // hint: use discrete GPU on dual-GPU laptops
+    });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
+    renderer.outputColorSpace = THREE.SRGBColorSpace; // explicit: correct for GLTF sRGB textures
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -409,9 +431,13 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
       renderer.render(scene, camera);
 
       // Call projection callbacks from PinSystem and StudentNotes3D
-      const el = container as any;
-      el.__pinSystemProject?.();
-      el.__studentNotesProject?.();
+      frameCallbacksRef.current.forEach(cb => {
+        try {
+          cb();
+        } catch (e) {
+          logger.error('ModelViewer3D', 'Frame callback error:', e);
+        }
+      });
     };
     animate();
 
@@ -427,10 +453,48 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
 
+    // ── WebGL context loss/restore handlers ──
+    // Without preventDefault(), browser won't attempt to restore context.
+    const canvas = renderer.domElement;
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault(); // opt-in: tell browser we want restoration
+      cancelAnimationFrame(animFrameRef.current);
+      setSceneReady(false);
+      setContextLost(true);
+      logger.warn('ModelViewer3D', 'WebGL context lost');
+
+      // Check if we've exceeded max recoveries in the time window
+      const now = Date.now();
+      if (now - contextLossTimestampRef.current > CONTEXT_LOSS_WINDOW_MS) {
+        // Reset count — outside the window
+        contextLossCountRef.current = 0;
+        contextLossTimestampRef.current = now;
+      }
+      contextLossCountRef.current++;
+    };
+
+    const handleContextRestored = () => {
+      logger.info('ModelViewer3D', 'WebGL context restored — remounting scene');
+      setContextLost(false);
+
+      if (contextLossCountRef.current <= MAX_CONTEXT_LOSSES) {
+        // Trigger full remount by changing sceneKey → useEffect cleanup + re-run
+        setSceneKey(k => k + 1);
+      }
+      // If exceeded, contextLost stays false but we don't remount —
+      // the overlay will show "Recargar pagina" button instead
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored);
+
     return () => {
       setSceneReady(false);
       cancelAnimationFrame(animFrameRef.current);
       resizeObserver.disconnect();
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       controls.dispose();
       renderer.dispose();
       partLoaderRef.current?.dispose();
@@ -441,15 +505,54 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose();
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach(m => m.dispose());
-          } else {
-            obj.material.dispose();
-          }
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach(m => {
+            disposeMaterialTextures(m); // free GPU VRAM for textures
+            m.dispose();
+          });
         }
       });
     };
-  }, [modelId, config]);
+  }, [modelId, config, sceneKey]);
+
+  // ── Async API fetch: update parts/layers from backend ──
+  // Runs after initial sync localStorage init. If API returns data,
+  // reinitializes the ModelPartLoader with fresh data from DB.
+  useEffect(() => {
+    if (!sceneReady || !sceneRef.current) return;
+    let cancelled = false;
+
+    (async () => {
+      const [apiParts, apiLayers] = await Promise.all([
+        fetchPartsFromAPI(modelId),
+        fetchLayersFromAPI(modelId),
+      ]);
+      if (cancelled) return;
+
+      setStoredLayersState(apiLayers);
+
+      // If API returned parts and we have a scene, reinitialize loader
+      if (apiParts.length > 0 && sceneRef.current) {
+        setHasMultiPart(true);
+        const scene = sceneRef.current;
+
+        // Dispose existing loader if any
+        if (partLoaderRef.current) {
+          partLoaderRef.current.dispose();
+        }
+
+        const loader = new ModelPartLoader(scene, () => {
+          setLayerUpdateKey(k => k + 1);
+          modelMeshesRef.current = loader.getAllMeshes();
+        });
+        loader.init(apiParts);
+        loader.loadAllVisible();
+        partLoaderRef.current = loader;
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [modelId, sceneReady, sceneKey]);
 
   return (
     <div className="relative w-full h-full">
@@ -465,6 +568,8 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
           camera={cameraRef.current}
           containerRef={containerRef}
           modelMeshes={modelMeshesRef.current}
+          registerFrameCallback={registerFrameCallback}
+          refreshKey={pinRefreshKey}
         />
       )}
 
@@ -476,13 +581,14 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
           camera={cameraRef.current}
           containerRef={containerRef}
           modelMeshes={modelMeshesRef.current}
+          registerFrameCallback={registerFrameCallback}
         />
       )}
 
       {/* ── Professor: Pin Editor toggle ── */}
       {mode === 'edit' && (
         <button
-          onClick={() => { setShowPinEditor(!showPinEditor); if (!showPinEditor) fetchEditorPins(); }}
+          onClick={() => { setShowPinEditor(!showPinEditor); if (!showPinEditor) handlePinsChanged(); }}
           className={clsx(
             'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
             showPinEditor
@@ -499,8 +605,8 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
       {/* ── Professor: Pin Editor panel ── */}
       {mode === 'edit' && showPinEditor && (
         <PinEditor
-          pins={editorPins}
-          onPinsChanged={fetchEditorPins}
+          modelId={modelId}
+          onPinsChanged={handlePinsChanged}
           camera={cameraRef.current}
           controls={controlsRef.current}
           onClose={() => setShowPinEditor(false)}
@@ -538,6 +644,35 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
       <div className="absolute bottom-3 left-3 z-10">
         <p className="text-[9px] text-gray-600 font-medium uppercase tracking-widest">{modelName}</p>
       </div>
+
+      {/* ── WebGL context loss overlay ── */}
+      {contextLost && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="text-center space-y-3 p-6 rounded-xl bg-zinc-900/90 border border-white/10 max-w-xs">
+            <AlertTriangle size={28} className="mx-auto text-amber-400" />
+            <h4 className="text-xs font-bold text-white">Error de GPU</h4>
+            <p className="text-[10px] text-gray-400 leading-relaxed">
+              {contextLossCountRef.current > MAX_CONTEXT_LOSSES
+                ? 'El contexto WebGL se ha perdido varias veces. Tu dispositivo puede no tener suficiente memoria de video.'
+                : 'El contexto WebGL se ha perdido. Intentando recuperar...'}
+            </p>
+            {contextLossCountRef.current > MAX_CONTEXT_LOSSES ? (
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-1.5 mx-auto px-4 py-2 text-[10px] font-semibold text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors"
+              >
+                <RefreshCw size={12} />
+                Recargar pagina
+              </button>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-500">
+                <Loader2 size={12} className="animate-spin" />
+                Recuperando...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,12 +7,26 @@
 //
 // NOT a React component that renders JSX — it's a utility class
 // that imperatively manages THREE objects in an existing scene.
+//
+// PERFORMANCE (Paso 2):
+//   - Sphere + ring geometries are SHARED statics (lazy singleton)
+//     → 50 pins = 2 geometries total, not 100
+//   - Materials remain per-pin (each pin has unique color)
+//   - _sphereCache array rebuilt on add/remove/clear
+//     → getHitPin() uses cached array (zero allocation per call)
+//   - removePin() disposes materials only, not shared geometry
 // ============================================================
 
 import * as THREE from 'three';
 
 // ── Pin type → color mapping ──
+// Supports both DB types (point/line/area) and UI semantic types for backward compat
 const PIN_TYPE_COLORS: Record<string, number> = {
+  // DB types (canonical)
+  point:      0x60a5fa, // blue
+  line:       0xa78bfa, // violet
+  area:       0x34d399, // emerald
+  // Legacy UI types (kept for any cached/old data)
   info:       0x60a5fa, // blue
   keyword:    0xa78bfa, // violet
   annotation: 0x34d399, // emerald
@@ -52,6 +66,40 @@ export class PinMarkerManager {
   private pins: Map<string, ManagedPin> = new Map();
   private hoveredId: string | null = null;
 
+  // ── Shared geometries (lazy singletons — ~2KB GPU total) ──
+  // All pins use identical sphere + ring geometry.
+  // Created on first addPin(), shared across ALL PinMarkerManager instances.
+  // Never disposed — lifetime = app lifetime (negligible memory).
+  private static _sharedSphereGeo: THREE.SphereGeometry | null = null;
+  private static _sharedRingGeo: THREE.RingGeometry | null = null;
+
+  private static getSphereGeo(): THREE.SphereGeometry {
+    if (!PinMarkerManager._sharedSphereGeo) {
+      PinMarkerManager._sharedSphereGeo = new THREE.SphereGeometry(PIN_RADIUS, 16, 16);
+    }
+    return PinMarkerManager._sharedSphereGeo;
+  }
+
+  private static getRingGeo(): THREE.RingGeometry {
+    if (!PinMarkerManager._sharedRingGeo) {
+      PinMarkerManager._sharedRingGeo = new THREE.RingGeometry(RING_RADIUS - 0.02, RING_RADIUS, 24);
+    }
+    return PinMarkerManager._sharedRingGeo;
+  }
+
+  // ── Cached sphere array for raycasting (rebuilt on add/remove/clear) ──
+  // Avoids allocating a new array on every getHitPin() call (~120 calls/sec).
+  private _sphereCache: THREE.Mesh[] = [];
+  private _sphereCacheDirty = true;
+
+  private rebuildSphereCache(): void {
+    this._sphereCache.length = 0;
+    for (const [, pin] of this.pins) {
+      this._sphereCache.push(pin.sphere);
+    }
+    this._sphereCacheDirty = false;
+  }
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
   }
@@ -73,49 +121,53 @@ export class PinMarkerManager {
       group.position.addScaledVector(data.normal, 0.05);
     }
 
-    // Sphere (core)
-    const sphereGeo = new THREE.SphereGeometry(PIN_RADIUS, 16, 16);
+    // Sphere (core) — SHARED geometry, per-pin material
     const sphereMat = new THREE.MeshStandardMaterial({
       color: colorHex,
       emissive: 0x000000,
       roughness: 0.3,
       metalness: 0.2,
     });
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    const sphere = new THREE.Mesh(PinMarkerManager.getSphereGeo(), sphereMat);
     sphere.userData = { pinId: data.id, isPinMarker: true };
     group.add(sphere);
 
-    // Ring (halo)
-    const ringGeo = new THREE.RingGeometry(RING_RADIUS - 0.02, RING_RADIUS, 24);
+    // Ring (halo) — SHARED geometry, per-pin material
     const ringMat = new THREE.MeshBasicMaterial({
       color: colorHex,
       transparent: true,
       opacity: 0.5,
       side: THREE.DoubleSide,
     });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
+    const ring = new THREE.Mesh(PinMarkerManager.getRingGeo(), ringMat);
     ring.userData = { pinId: data.id, isPinMarker: true };
     group.add(ring);
 
     this.scene.add(group);
     this.pins.set(data.id, { id: data.id, group, sphere, ring, data });
+    this._sphereCacheDirty = true;
   }
 
-  /** Remove a pin by id */
+  /** Remove a pin by id — disposes materials only (geometry is shared) */
   removePin(id: string): void {
     const pin = this.pins.get(id);
     if (!pin) return;
+
     this.scene.remove(pin.group);
-    pin.sphere.geometry.dispose();
+
+    // Dispose materials only — geometry is shared static, never disposed per-pin
     (pin.sphere.material as THREE.Material).dispose();
-    pin.ring.geometry.dispose();
     (pin.ring.material as THREE.Material).dispose();
+
     this.pins.delete(id);
+    this._sphereCacheDirty = true;
   }
 
-  /** Remove all pins */
+  /** Remove all pins — disposes materials only */
   clear(): void {
-    for (const [id] of this.pins) {
+    // Snapshot keys to avoid mutating Map during iteration
+    const ids = Array.from(this.pins.keys());
+    for (const id of ids) {
       this.removePin(id);
     }
   }
@@ -150,13 +202,14 @@ export class PinMarkerManager {
     this.hoveredId = id;
   }
 
-  /** Raycast against all pin spheres. Returns pinId or null. */
+  /** Raycast against all pin spheres. Returns pinId or null. Uses cached array. */
   getHitPin(raycaster: THREE.Raycaster): string | null {
-    const meshes: THREE.Mesh[] = [];
-    for (const [, pin] of this.pins) {
-      meshes.push(pin.sphere);
+    if (this._sphereCacheDirty) {
+      this.rebuildSphereCache();
     }
-    const hits = raycaster.intersectObjects(meshes, false);
+    if (this._sphereCache.length === 0) return null;
+
+    const hits = raycaster.intersectObjects(this._sphereCache, false);
     if (hits.length > 0) {
       return hits[0].object.userData.pinId || null;
     }
@@ -183,7 +236,9 @@ export class PinMarkerManager {
     return this.pins.size;
   }
 
+  /** Dispose all pins (materials only — shared geometry persists) */
   dispose(): void {
     this.clear();
+    this._sphereCache.length = 0;
   }
 }

@@ -12,22 +12,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Plus, Pencil, Trash2, X, Save, Loader2, Upload,
-  ToggleLeft, ToggleRight, GripVertical, Eye, EyeOff,
-  ChevronDown, ChevronUp, ExternalLink,
+  Box, Pencil, Trash2, X, Save, Loader2, Upload,
+  Eye, EyeOff, ChevronDown, ChevronUp, ExternalLink, View,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { logger } from '@/app/lib/logger';
 import {
   getModels3D,
   createModel3D,
   updateModel3D,
   deleteModel3D,
+  restoreModel3D,
   uploadAndCreateModel,
   formatFileSize,
 } from '@/app/lib/model3d-api';
 import type { Model3D, UploadProgress } from '@/app/lib/model3d-api';
 import { ModelUploadZone } from '@/app/components/professor/ModelUploadZone';
+import { useNavigate } from 'react-router';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -41,6 +43,7 @@ interface ModelManagerProps {
 // ══════════════════════════════════════════════
 
 export function ModelManager({ topicId, topicName }: ModelManagerProps) {
+  const navigate = useNavigate();
   const [models, setModels] = useState<Model3D[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
@@ -56,8 +59,8 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
     try {
       const res = await getModels3D(topicId);
       setModels(res?.items || []);
-    } catch (err: any) {
-      console.error('[ModelManager] fetch error:', err);
+    } catch (err: unknown) {
+      logger.error('ModelManager', 'fetch error:', err);
       toast.error('Error al cargar modelos 3D');
     } finally {
       setLoading(false);
@@ -74,9 +77,9 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
       await uploadAndCreateModel(file, topicId, title, setUploadProgress);
       toast.success('Modelo 3D subido exitosamente');
       fetchModels();
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Error already reported via progress callback
-      console.error('[ModelManager] upload error:', err);
+      logger.error('ModelManager', 'upload error:', err);
     }
   }, [topicId, uploadTitle, fetchModels]);
 
@@ -102,8 +105,8 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
       toast.success('Modelo 3D creado');
       setShowManualForm(false);
       fetchModels();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al crear modelo');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al crear modelo');
     }
   }, [topicId, fetchModels]);
 
@@ -113,20 +116,43 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
       await updateModel3D(id, data);
       toast.success('Modelo actualizado');
       fetchModels();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar');
     }
   }, [fetchModels]);
 
   // ── Delete ──
   const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('\u00bfEliminar este modelo 3D? (Se puede restaurar despues)')) return;
+    let deletedModel: Model3D | undefined;
+
+    // Optimistic: remove from UI + capture for rollback
+    setModels(prev => {
+      deletedModel = prev.find(m => m.id === id);
+      return prev.filter(m => m.id !== id);
+    });
+
     try {
       await deleteModel3D(id);
-      toast.success('Modelo eliminado');
-      fetchModels();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
+      toast.success('Modelo eliminado', {
+        action: {
+          label: 'Deshacer',
+          onClick: async () => {
+            try {
+              await restoreModel3D(id);
+              fetchModels();
+              toast.success('Modelo restaurado');
+            } catch {
+              toast.error('No se pudo restaurar el modelo');
+            }
+          },
+        },
+      });
+    } catch (err: unknown) {
+      // Rollback on network error
+      if (deletedModel) {
+        setModels(prev => [...prev, deletedModel!]);
+      }
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar');
     }
   }, [fetchModels]);
 
@@ -267,10 +293,10 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
           key={model.id}
           model={model}
           index={index}
-          totalCount={models.length}
           onUpdate={(data) => handleUpdate(model.id, data)}
           onDelete={() => handleDelete(model.id)}
           onToggleActive={() => handleToggleActive(model.id, model.is_active !== false)}
+          onOpen3D={() => navigate(`/professor/3d-viewer/${model.id}`)}
           onMoveUp={index > 0 ? async () => {
             // Swap order_index with previous model
             const prev = models[index - 1];
@@ -296,19 +322,19 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
 function ModelCard({
   model,
   index,
-  totalCount,
   onUpdate,
   onDelete,
   onToggleActive,
+  onOpen3D,
   onMoveUp,
   onMoveDown,
 }: {
   model: Model3D;
   index: number;
-  totalCount: number;
   onUpdate: (data: Partial<Model3D>) => Promise<void>;
   onDelete: () => void;
   onToggleActive: () => void;
+  onOpen3D: () => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }) {
@@ -446,6 +472,15 @@ function ModelCard({
           >
             <Trash2 size={13} />
           </button>
+          <div className="w-px h-5 bg-gray-200 mx-0.5" />
+          <button
+            onClick={onOpen3D}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+            title="Abrir visor 3D"
+          >
+            <View size={13} />
+            3D
+          </button>
         </div>
       </div>
 
@@ -472,7 +507,7 @@ function ModelCard({
                   <p className="text-gray-600 mt-0.5">{model.file_format || 'Sin especificar'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-400">Tama\u00f1o:</span>
+                  <span className="text-gray-400">Tamaño:</span>
                   <p className="text-gray-600 mt-0.5">
                     {model.file_size_bytes ? formatFileSize(model.file_size_bytes) : 'Desconocido'}
                   </p>
