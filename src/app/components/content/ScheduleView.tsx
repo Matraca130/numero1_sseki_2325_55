@@ -51,6 +51,9 @@ import {
 import { ptBR } from 'date-fns/locale';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { useStudyPlans } from '@/app/hooks/useStudyPlans';
+import { useTopicMastery } from '@/app/hooks/useTopicMastery';
+import { useStudyTimeEstimates } from '@/app/hooks/useStudyTimeEstimates';
+import { getAxonToday } from '@/app/utils/constants';
 
 // Method icons lookup
 const METHOD_ICONS: Record<string, React.ReactNode> = {
@@ -78,14 +81,20 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 // ─── Fallback data when no study plans exist ───
-const SCHEDULE_EVENTS = [
-  { date: new Date(2026, 1, 5), title: 'Anatomia: Membro Superior', type: 'study', color: 'bg-teal-100 text-teal-700 border-teal-200' },
-  { date: new Date(2026, 1, 5), title: 'Revisão: Histologia', type: 'review', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { date: new Date(2026, 1, 7), title: 'Prova de Fisiologia', type: 'exam', color: 'bg-red-100 text-red-700 border-red-200' },
-  { date: new Date(2026, 1, 10), title: 'Bioquímica: Metabolismo', type: 'study', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  { date: new Date(2026, 1, 12), title: 'Seminário de Patologia', type: 'task', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { date: new Date(2026, 1, 15), title: 'Simulado Geral', type: 'exam', color: 'bg-red-100 text-red-700 border-red-200' },
-];
+// DT-05 fix: dates are relative to AXON_TODAY instead of hardcoded
+function buildFallbackEvents() {
+  const base = getAxonToday();
+  const d = (offset: number) => { const dt = getAxonToday(); dt.setDate(base.getDate() + offset); return dt; };
+  return [
+    { date: d(-2), title: 'Anatomia: Membro Superior', type: 'study', color: 'bg-teal-100 text-teal-700 border-teal-200' },
+    { date: d(-2), title: 'Revisão: Histologia', type: 'review', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    { date: d(0),  title: 'Prova de Fisiologia', type: 'exam', color: 'bg-red-100 text-red-700 border-red-200' },
+    { date: d(3),  title: 'Bioquímica: Metabolismo', type: 'study', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    { date: d(5),  title: 'Seminário de Patologia', type: 'task', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+    { date: d(8),  title: 'Simulado Geral', type: 'exam', color: 'bg-red-100 text-red-700 border-red-200' },
+  ];
+}
+const SCHEDULE_EVENTS = buildFallbackEvents();
 
 const UPCOMING_EXAMS = [
   { id: 1, title: 'Prova de Fisiologia', date: '07 Fev', daysLeft: 0, priority: 'high' as const },
@@ -124,21 +133,26 @@ export function ScheduleView() {
 // ════════════════════════════════════════════════
 function StudyPlanDashboard() {
   const { studyPlans: localPlans, toggleTaskComplete: localToggle } = useApp();
+
+  // Phase 5: provide mastery + time estimate data for reschedule engine
+  const { topicMastery } = useTopicMastery();
+  const { getEstimate } = useStudyTimeEstimates();
+
   const {
     plans: backendPlans,
     toggleTaskComplete: backendToggle,
     reorderTasks,
     updatePlanStatus,
     deletePlan,
-  } = useStudyPlans();
+  } = useStudyPlans({ topicMastery, getTimeEstimate: getEstimate });
   const { navigateTo } = useStudentNav();
 
   // Prefer backend plans; fallback to local
   const studyPlans = backendPlans.length > 0 ? backendPlans : localPlans;
   const toggleTaskComplete = backendPlans.length > 0 ? backendToggle : localToggle;
 
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 7));
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 1, 7));
+  const [currentDate, setCurrentDate] = useState(getAxonToday());
+  const [selectedDate, setSelectedDate] = useState<Date>(getAxonToday());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
@@ -422,7 +436,7 @@ function StudyPlanDashboard() {
                 <span className="w-2 h-2 bg-teal-500 rounded-full" />
               )}
               <button
-                onClick={() => setSelectedDate(new Date(2026, 1, 7))}
+                onClick={() => setSelectedDate(getAxonToday())}
                 className="text-xs font-semibold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-md hover:bg-teal-50"
               >
                 Hoje
@@ -791,8 +805,8 @@ function StudyPlanDashboard() {
 // ════════════════════════════════════════════════
 function DefaultScheduleView() {
   const { navigateTo } = useStudentNav();
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 7));
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 1, 7));
+  const [currentDate, setCurrentDate] = useState(getAxonToday());
+  const [selectedDate, setSelectedDate] = useState<Date>(getAxonToday());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     provas: false,

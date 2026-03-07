@@ -3,12 +3,16 @@ import { useApp, type StudyPlan, type StudyPlanTask } from '@/app/context/AppCon
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 import { useStudyPlans } from '@/app/hooks/useStudyPlans';
+import { useTopicMastery } from '@/app/hooks/useTopicMastery';
+import { useStudyTimeEstimates } from '@/app/hooks/useStudyTimeEstimates';
+import { getAxonToday } from '@/app/utils/constants';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BookOpen, Video, Zap, GraduationCap, FileText, Box,
   ChevronLeft, ChevronRight, Minus, Plus, Calendar,
   Check, Info, AlertTriangle, Sparkles,
-  Microscope, Bug, Dna, Heart
+  Microscope, Bug, Dna, Heart, Brain,
+  Clock
 } from 'lucide-react';
 import clsx from 'clsx';
 import { headingStyle, components } from '@/app/design-system';
@@ -51,6 +55,56 @@ export function StudyOrganizerWizard() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
 
+  // ─────────── Build topic→course map for mastery aggregation ────────────
+  const { allTopicIds, topicToCourseMap } = useMemo(() => {
+    const ids: string[] = [];
+    const map = new Map<string, string>();
+    for (const course of courses) {
+      for (const sem of course.semesters) {
+        for (const sec of sem.sections) {
+          for (const topic of sec.topics) {
+            ids.push(topic.id);
+            map.set(topic.id, course.id);
+          }
+        }
+      }
+    }
+    return { allTopicIds: ids, topicToCourseMap: map };
+  }, [courses]);
+
+  const { topicMastery, courseMastery, loading: masteryLoading } = useTopicMastery(allTopicIds, topicToCourseMap);
+
+  // ──────────── Phase 4: Real time estimates from study history ────────────
+  const {
+    getEstimate: getTimeEstimate,
+    computeTotalHours,
+    computeWeeklyHours: computeWeeklyHoursEstimate,
+    overallConfidence: timeConfidence,
+    hasRealData: hasTimeData,
+    summary: timeSummary,
+  } = useStudyTimeEstimates();
+
+  // ──────────── Helpers: mastery per course (real data) ────────────
+  const getCourseMasteryPercent = (courseId: string): number => {
+    return courseMastery.get(courseId) ?? 0;
+  };
+
+  /** Count how many topics in a course have any BKT data (totalAttempts > 0) */
+  const getCourseStudiedTopics = (courseId: string): number => {
+    let count = 0;
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return 0;
+    for (const sem of course.semesters) {
+      for (const sec of sem.sections) {
+        for (const topic of sec.topics) {
+          const m = topicMastery.get(topic.id);
+          if (m && m.totalAttempts > 0) count++;
+        }
+      }
+    }
+    return count;
+  };
+
   // ──────────── Helpers (use courses from hook) ────────────
   const getSubjectColor = (id: string): string => {
     const c = courses.find(c => c.id === id);
@@ -71,15 +125,23 @@ export function StudyOrganizerWizard() {
 
   const totalWeeklyHours = weeklyHours.reduce((a, b) => a + b, 0);
 
-  // Estimate required hours
-  const estimatedHours = useMemo(() => {
-    const totalTasks = selectedTopics.length * selectedMethods.length;
-    const avgMinPerTask = selectedMethods.reduce((sum, mId) => {
-      const m = STUDY_METHODS.find(m => m.id === mId);
-      return sum + (m?.avgMinutes || 25);
-    }, 0) / Math.max(selectedMethods.length, 1);
-    return Math.ceil((totalTasks * avgMinPerTask) / 60);
-  }, [selectedTopics, selectedMethods]);
+  // ── Phase 4: Estimate required hours from real data ────────
+  // Total hours needed for ALL tasks (topics × methods × real minutes per session)
+  const estimatedTotalHours = useMemo(() => {
+    return computeTotalHours(selectedTopics.length, selectedMethods);
+  }, [selectedTopics.length, selectedMethods, computeTotalHours]);
+
+  // Weekly hours needed = total ÷ weeks until deadline (deadline-aware)
+  const estimatedWeeklyHours = useMemo(() => {
+    return computeWeeklyHoursEstimate(
+      selectedTopics.length,
+      selectedMethods,
+      completionDate || null,
+    );
+  }, [selectedTopics.length, selectedMethods, completionDate, computeWeeklyHoursEstimate]);
+
+  // Use weekly if available (deadline is set), otherwise show total as fallback
+  const estimatedHours = estimatedWeeklyHours ?? estimatedTotalHours;
 
   // Existing plan hours
   const existingPlanHours = studyPlans.reduce((sum, p) => {
@@ -118,30 +180,75 @@ export function StudyOrganizerWizard() {
   // Generate plan
   const generatePlan = () => {
     const tasks: StudyPlanTask[] = [];
-    const today = new Date(2026, 1, 7); // Feb 7, 2026
+    const today = getAxonToday();
     const endDate = new Date(completionDate);
     let currentDay = new Date(today);
     let taskIndex = 0;
 
-    // Create all task items: topic × method
-    const allItems: { topicTitle: string; sectionTitle: string; courseName: string; courseId: string; method: string; minutes: number }[] = [];
-    for (const topic of selectedTopics) {
+    // ── Phase 3: Sort topics by priority (weakest first) ────────
+    const sortedTopics = [...selectedTopics].sort((a, b) => {
+      const mA = topicMastery.get(a.topicId);
+      const mB = topicMastery.get(b.topicId);
+      const prioA = mA?.priorityScore ?? 50;
+      const prioB = mB?.priorityScore ?? 50;
+      return prioB - prioA; // highest priority first
+    });
+
+    // ── Phase 3: Compute per-topic time multipliers based on mastery ──
+    // Weak topics (low mastery) get 1.5x time, strong topics get 0.7x
+    const getTimeMultiplier = (topicId: string): number => {
+      const m = topicMastery.get(topicId);
+      if (!m || m.totalAttempts === 0) return 1.0; // no data = standard
+      if (m.masteryPercent < 30) return 1.5;       // very weak
+      if (m.masteryPercent < 50) return 1.3;       // weak
+      if (m.masteryPercent >= 80) return 0.7;      // strong
+      if (m.masteryPercent >= 65) return 0.85;     // decent
+      return 1.0;
+    };
+
+    // Create all task items: topic × method (sorted by priority)
+    // Phase 4: Use real time estimates from study history instead of static defaults
+    const allItems: { topicTitle: string; sectionTitle: string; courseName: string; courseId: string; topicId: string; method: string; minutes: number }[] = [];
+    for (const topic of sortedTopics) {
+      const multiplier = getTimeMultiplier(topic.topicId);
       for (const methodId of selectedMethods) {
-        const method = STUDY_METHODS.find(m => m.id === methodId);
+        const timeEst = getTimeEstimate(methodId);
+        const baseMinutes = timeEst.estimatedMinutes;
         allItems.push({
           topicTitle: topic.topicTitle,
           sectionTitle: topic.sectionTitle,
           courseName: topic.courseName,
           courseId: topic.courseId,
+          topicId: topic.topicId,
           method: methodId,
-          minutes: method?.avgMinutes || 25,
+          minutes: Math.round(baseMinutes * multiplier),
         });
       }
     }
 
+    // ── Phase 3: Interleave weak topics more frequently ──────────
+    // Group items by priority tier and interleave
+    const highPriority = allItems.filter(item => {
+      const m = topicMastery.get(item.topicId);
+      return (m?.priorityScore ?? 50) >= 60;
+    });
+    const normalPriority = allItems.filter(item => {
+      const m = topicMastery.get(item.topicId);
+      return (m?.priorityScore ?? 50) < 60;
+    });
+
+    // Interleave: 2 high-priority items, then 1 normal, repeat
+    const interleaved: typeof allItems = [];
+    let hi = 0, lo = 0;
+    while (hi < highPriority.length || lo < normalPriority.length) {
+      if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
+      if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
+      if (lo < normalPriority.length) interleaved.push(normalPriority[lo++]);
+    }
+
     // Distribute tasks across days
     let itemIdx = 0;
-    while (currentDay <= endDate && itemIdx < allItems.length) {
+    while (currentDay <= endDate && itemIdx < interleaved.length) {
       const dayOfWeek = currentDay.getDay(); // 0=Sun ... 6=Sat
       // Map to our weeklyHours array: [Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6]
       const hoursIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -149,8 +256,8 @@ export function StudyOrganizerWizard() {
 
       if (availableMinutes > 0) {
         let usedMinutes = 0;
-        while (usedMinutes < availableMinutes && itemIdx < allItems.length) {
-          const item = allItems[itemIdx];
+        while (usedMinutes < availableMinutes && itemIdx < interleaved.length) {
+          const item = interleaved[itemIdx];
           if (usedMinutes + item.minutes <= availableMinutes + 10) { // small tolerance
             tasks.push({
               id: `task-${taskIndex++}`,
@@ -161,6 +268,7 @@ export function StudyOrganizerWizard() {
               method: item.method,
               estimatedMinutes: item.minutes,
               completed: false,
+              topicId: item.topicId,
             });
             usedMinutes += item.minutes;
             itemIdx++;
@@ -174,8 +282,8 @@ export function StudyOrganizerWizard() {
     }
 
     // If items remain, distribute on the last days
-    while (itemIdx < allItems.length) {
-      const item = allItems[itemIdx];
+    while (itemIdx < interleaved.length) {
+      const item = interleaved[itemIdx];
       tasks.push({
         id: `task-${taskIndex++}`,
         date: new Date(endDate),
@@ -185,6 +293,7 @@ export function StudyOrganizerWizard() {
         method: item.method,
         estimatedMinutes: item.minutes,
         completed: false,
+        topicId: item.topicId,
       });
       itemIdx++;
     }
@@ -198,8 +307,9 @@ export function StudyOrganizerWizard() {
       completionDate: endDate,
       weeklyHours,
       tasks,
-      createdAt: new Date(2026, 1, 7),
-      totalEstimatedHours: estimatedHours,
+      createdAt: getAxonToday(),
+      // Phase 4 fix: compute from actual generated tasks (consistent with useStudyPlans.ts:202)
+      totalEstimatedHours: Math.round(tasks.reduce((sum, t) => sum + t.estimatedMinutes, 0) / 60),
     };
 
     addStudyPlan(plan);
@@ -286,12 +396,12 @@ export function StudyOrganizerWizard() {
 
   const renderStep = () => {
     switch (step) {
-      case 0: return <StepSubjects />;
-      case 1: return <StepMethods />;
-      case 2: return <StepTopics />;
-      case 3: return <StepDate />;
-      case 4: return <StepHours />;
-      case 5: return <StepReview />;
+      case 0: return StepSubjects();
+      case 1: return StepMethods();
+      case 2: return StepTopics();
+      case 3: return StepDate();
+      case 4: return StepHours();
+      case 5: return StepReview();
       default: return null;
     }
   };
@@ -337,16 +447,44 @@ export function StudyOrganizerWizard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-gray-900">{course.name}</h3>
-                      <span className="text-sm font-semibold text-gray-400">0%</span>
+                      {(() => {
+                        const pct = getCourseMasteryPercent(course.id);
+                        return (
+                          <span className={clsx(
+                            "text-sm font-semibold",
+                            pct >= 70 ? "text-emerald-500" :
+                            pct >= 40 ? "text-amber-500" :
+                            pct > 0 ? "text-orange-500" :
+                            "text-gray-400"
+                          )}>
+                            {pct}%
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">{MODULE_LABELS[course.id] || 'MÓDULO I'}</p>
                   </div>
                 </div>
 
+                {/* Progress bar */}
+                <div className="px-5 pt-3 pb-1">
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className={clsx(
+                        "h-1.5 rounded-full transition-all duration-500",
+                        getCourseMasteryPercent(course.id) >= 70 ? "bg-emerald-400" :
+                        getCourseMasteryPercent(course.id) >= 40 ? "bg-amber-400" :
+                        "bg-teal-400"
+                      )}
+                      style={{ width: `${getCourseMasteryPercent(course.id)}%` }}
+                    />
+                  </div>
+                </div>
+
                 {/* Progress row */}
-                <div className="flex items-center justify-between px-5 pt-4 pb-3">
+                <div className="flex items-center justify-between px-5 pt-2 pb-3">
                   <span className="text-sm text-gray-500">Progresso</span>
-                  <span className="text-sm text-gray-500">0/{totalTopics} Aulas</span>
+                  <span className="text-sm text-gray-500">{getCourseStudiedTopics(course.id)}/{totalTopics} Aulas</span>
                 </div>
 
                 {/* Button */}
@@ -499,6 +637,9 @@ export function StudyOrganizerWizard() {
                           <div className="ml-8 space-y-0.5">
                             {section.topics.map((topic) => {
                               const isSelected = selectedTopics.some(t => t.topicId === topic.id && t.courseId === course.id);
+                              const mastery = topicMastery.get(topic.id);
+                              const mPct = mastery?.masteryPercent ?? 0;
+                              const hasData = mastery && mastery.totalAttempts > 0;
                               return (
                                 <button
                                   key={topic.id}
@@ -514,7 +655,19 @@ export function StudyOrganizerWizard() {
                                   )}>
                                     {isSelected && <Check size={10} className="text-white" />}
                                   </div>
-                                  <span>{topic.title}</span>
+                                  <span className="flex-1">{topic.title}</span>
+                                  {hasData ? (
+                                    <span className={clsx(
+                                      "text-xs font-semibold px-2 py-0.5 rounded-full",
+                                      mPct >= 70 ? "bg-emerald-100 text-emerald-700" :
+                                      mPct >= 40 ? "bg-amber-100 text-amber-700" :
+                                      "bg-red-100 text-red-700"
+                                    )}>
+                                      {mPct}%
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-gray-300">--</span>
+                                  )}
                                 </button>
                               );
                             })}
@@ -542,7 +695,7 @@ export function StudyOrganizerWizard() {
   // Step 4: Set Completion Date
   function StepDate() {
     const daysRemaining = completionDate
-      ? Math.ceil((new Date(completionDate).getTime() - new Date(2026, 1, 7).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.ceil((new Date(completionDate).getTime() - getAxonToday().getTime()) / (1000 * 60 * 60 * 24))
       : null;
 
     return (
@@ -589,6 +742,15 @@ export function StudyOrganizerWizard() {
 
   // Step 5: Set Weekly Hours
   function StepHours() {
+    // Phase 4: Confidence label for time estimate source
+    const confidenceLabel = hasTimeData
+      ? timeConfidence === 'high'
+        ? `Baseado em ${timeSummary.totalSessionsAnalyzed} sessões reais`
+        : timeConfidence === 'medium'
+        ? `Baseado em ${timeSummary.totalSessionsAnalyzed} sessões`
+        : `Baseado em ${timeSummary.daysOfActivityAnalyzed} dias de atividade`
+      : 'Estimativa padrão';
+
     return (
       <div className="space-y-6">
         <div>
@@ -596,9 +758,57 @@ export function StudyOrganizerWizard() {
             Organize sua semana de estudos
           </h2>
           <p className="text-gray-500">
-            Estimamos <span className="font-semibold text-teal-600">{estimatedHours} horas</span> de estudo por semana. Ajuste as horas diárias abaixo.
+            {estimatedWeeklyHours !== null ? (
+              <>Estimamos <span className="font-semibold text-teal-600">{estimatedHours}h/semana</span> para concluir no prazo ({estimatedTotalHours}h total).</>
+            ) : (
+              <>Estimamos <span className="font-semibold text-teal-600">{estimatedTotalHours} horas</span> de estudo no total. Ajuste as horas diárias abaixo.</>
+            )}
           </p>
         </div>
+
+        {/* Phase 4: Per-method time breakdown */}
+        {selectedMethods.length > 0 && (
+          <div className={`${components.card.base} px-5 py-4`}>
+            <div className="flex items-center gap-2 mb-3">
+              <Clock size={16} className="text-teal-600" />
+              <span className="text-sm font-semibold text-gray-700">Tempo por recurso</span>
+              <span className={clsx(
+                "text-xs px-2 py-0.5 rounded-full font-medium ml-auto",
+                hasTimeData
+                  ? timeConfidence === 'high' ? "bg-emerald-100 text-emerald-700"
+                  : timeConfidence === 'medium' ? "bg-teal-100 text-teal-700"
+                  : "bg-gray-100 text-gray-600"
+                  : "bg-gray-100 text-gray-500"
+              )}>
+                {confidenceLabel}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {selectedMethods.map(mId => {
+                const method = STUDY_METHODS.find(m => m.id === mId);
+                const est = getTimeEstimate(mId);
+                const isDifferent = est.confidence !== 'fallback' && est.estimatedMinutes !== (method?.avgMinutes || 25);
+                return (
+                  <div key={mId} className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg bg-gray-50">
+                    <span className="text-gray-600 flex-1">{method?.label || mId}</span>
+                    <span className="font-semibold text-gray-800 tabular-nums">{est.estimatedMinutes} min</span>
+                    {isDifferent && (
+                      <span className="text-xs text-gray-400 line-through tabular-nums">{method?.avgMinutes}</span>
+                    )}
+                    {est.confidence !== 'fallback' && (
+                      <div className={clsx(
+                        "w-1.5 h-1.5 rounded-full shrink-0",
+                        est.confidence === 'high' ? "bg-emerald-400" :
+                        est.confidence === 'medium' ? "bg-teal-400" :
+                        "bg-amber-400"
+                      )} title={est.sourceLabel} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className={`${components.card.base} ${components.card.paddingLg}`}>
           <div className="grid grid-cols-7 gap-3">
@@ -659,6 +869,27 @@ export function StudyOrganizerWizard() {
 
   // Step 6: Review
   function StepReview() {
+    // Compute mastery stats for selected topics
+    const selectedMasteryStats = useMemo(() => {
+      let withData = 0;
+      let totalMastery = 0;
+      let needsReview = 0;
+      for (const t of selectedTopics) {
+        const m = topicMastery.get(t.topicId);
+        if (m && m.totalAttempts > 0) {
+          withData++;
+          totalMastery += m.masteryPercent;
+          if (m.needsReview) needsReview++;
+        }
+      }
+      return {
+        withData,
+        withoutData: selectedTopics.length - withData,
+        avgMastery: withData > 0 ? Math.round(totalMastery / withData) : 0,
+        needsReview,
+      };
+    }, [selectedTopics, topicMastery]);
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -724,12 +955,28 @@ export function StudyOrganizerWizard() {
               </div>
             </div>
             <div className="px-5 py-4 max-h-36 overflow-y-auto space-y-1.5">
-              {selectedTopics.map((t, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                  <div className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
-                  <span>{t.topicTitle}</span>
-                </div>
-              ))}
+              {selectedTopics.map((t, i) => {
+                const mastery = topicMastery.get(t.topicId);
+                const mPct = mastery?.masteryPercent ?? 0;
+                const hasData = mastery && mastery.totalAttempts > 0;
+                return (
+                  <div key={t.topicId} className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className={clsx(
+                      "w-2 h-2 rounded-full shrink-0",
+                      hasData
+                        ? mPct >= 70 ? "bg-emerald-400" : mPct >= 40 ? "bg-amber-400" : "bg-red-400"
+                        : "bg-teal-400"
+                    )} />
+                    <span className="flex-1">{t.topicTitle}</span>
+                    {hasData && (
+                      <span className={clsx(
+                        "text-xs font-semibold",
+                        mPct >= 70 ? "text-emerald-600" : mPct >= 40 ? "text-amber-600" : "text-red-600"
+                      )}>{mPct}%</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -754,9 +1001,25 @@ export function StudyOrganizerWizard() {
                 <span className="font-bold text-gray-800">{totalWeeklyHours}h</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Horas estimadas</span>
-                <span className="font-bold text-gray-800">{estimatedHours}h</span>
+                <span className="text-gray-500">Total estimado</span>
+                <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                  ~{estimatedTotalHours}h
+                  {hasTimeData && (
+                    <div className={clsx(
+                      "w-1.5 h-1.5 rounded-full",
+                      timeConfidence === 'high' ? "bg-emerald-400" :
+                      timeConfidence === 'medium' ? "bg-teal-400" :
+                      "bg-amber-400"
+                    )} />
+                  )}
+                </span>
               </div>
+              {estimatedWeeklyHours !== null && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Ritmo semanal</span>
+                  <span className="font-bold text-gray-800">~{estimatedWeeklyHours}h/sem</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-500">Total de tarefas</span>
                 <span className="font-bold text-gray-800">{selectedTopics.length * selectedMethods.length}</span>
@@ -764,6 +1027,53 @@ export function StudyOrganizerWizard() {
             </div>
           </div>
         </div>
+
+        {/* Mastery Insight Banner (Phase 1) */}
+        {selectedMasteryStats.withData > 0 && (
+          <div className={clsx(
+            "rounded-xl border px-5 py-4 flex items-start gap-4",
+            selectedMasteryStats.avgMastery >= 70
+              ? "bg-emerald-50 border-emerald-200"
+              : selectedMasteryStats.avgMastery >= 40
+              ? "bg-amber-50 border-amber-200"
+              : "bg-red-50 border-red-200"
+          )}>
+            <div className={clsx(
+              "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+              selectedMasteryStats.avgMastery >= 70 ? "bg-emerald-100 text-emerald-600" :
+              selectedMasteryStats.avgMastery >= 40 ? "bg-amber-100 text-amber-600" :
+              "bg-red-100 text-red-600"
+            )}>
+              <Brain size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1">
+                <h4 className="font-bold text-gray-900">Mastery Atual</h4>
+                <span className={clsx(
+                  "text-sm font-bold px-2.5 py-0.5 rounded-full",
+                  selectedMasteryStats.avgMastery >= 70 ? "bg-emerald-100 text-emerald-700" :
+                  selectedMasteryStats.avgMastery >= 40 ? "bg-amber-100 text-amber-700" :
+                  "bg-red-100 text-red-700"
+                )}>
+                  {selectedMasteryStats.avgMastery}%
+                </span>
+              </div>
+              <p className="text-sm text-gray-600">
+                {selectedMasteryStats.withData} de {selectedTopics.length} tópicos com dados de estudo.
+                {selectedMasteryStats.needsReview > 0 && (
+                  <span className="font-semibold text-amber-700">
+                    {' '}{selectedMasteryStats.needsReview} tópico{selectedMasteryStats.needsReview !== 1 ? 's' : ''} precisa{selectedMasteryStats.needsReview !== 1 ? 'm' : ''} de revisão prioritária.
+                  </span>
+                )}
+                {selectedMasteryStats.withoutData > 0 && (
+                  <span className="text-gray-500">
+                    {' '}{selectedMasteryStats.withoutData} tópico{selectedMasteryStats.withoutData !== 1 ? 's' : ''} ainda sem dados.
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
