@@ -3,7 +3,7 @@
 //
 // Thin state-machine that switches between:
 //   1. QuizSelection — sidebar tree + quiz picker
-//   2. QuizSessionView — active quiz session
+//   2. QuizTaker — active quiz session (Phase 11: unified system)
 //
 // All logic lives in sub-components. This file stays < 100 lines.
 // ============================================================
@@ -15,9 +15,9 @@ import type { QuizQuestion } from '@/app/services/quizApi';
 import { AnimatePresence } from 'motion/react';
 import { AlertCircle, RotateCw } from 'lucide-react';
 import { QuizSelection } from './QuizSelection';
-import { QuizSessionView } from './QuizSessionView';
+import { QuizTaker } from '@/app/components/student/QuizTaker';
 
-// ── ErrorBoundary (per-feature) ──────────────────────────
+// ── ErrorBoundary (for QuizSelection only) ───────────────
 
 interface EBProps { children: ReactNode; label: string }
 interface EBState { hasError: boolean; error: Error | null }
@@ -86,15 +86,13 @@ export function QuizView() {
             />
           </QuizErrorBoundary>
         ) : (
-          <QuizErrorBoundary key="ses-eb" label="Sesion de Quiz">
-            <QuizSessionView
-              key="session"
-              questions={sessionQuestions}
-              summaryTitle={sessionSummaryTitle}
-              summaryId={sessionSummaryId}
-              onBack={() => setViewState('selection')}
-            />
-          </QuizErrorBoundary>
+          <QuizTaker
+            key="session"
+            preloadedQuestions={sessionQuestions}
+            quizTitle={`Quiz: ${sessionSummaryTitle}`}
+            summaryId={sessionSummaryId}
+            onBack={() => setViewState('selection')}
+          />
         )}
       </AnimatePresence>
     </div>
