@@ -15,6 +15,13 @@
 // FIX BA-03,BA-05 (2026-03-01):
 //   - getStudySessions: handle CRUD factory paginated response
 //   - FsrsState: user_id → student_id (matches DB column)
+//
+// PERF v4.4.3 (2026-03-07):
+//   - Added BatchReviewItem, BatchReviewResponse types
+//   - Added submitReviewBatch() — single POST for all reviews
+//     in a session instead of 3×N individual POSTs.
+//   - Added fallbackToIndividualPosts() for resilience
+//   - computeFsrsUpdate moved to lib/fsrs-engine.ts (canonical)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -58,6 +65,53 @@ export interface ReviewRecord {
   created_at?: string;
 }
 
+// ── PERF M1: Batch Review Submission ──────────────────────
+
+export interface BatchReviewItem {
+  item_id: string;
+  instrument_type: 'flashcard';
+  grade: number;
+  response_time_ms?: number;
+  fsrs_update?: {
+    stability: number;
+    difficulty: number;
+    due_at: string;
+    last_review_at: string;
+    reps: number;
+    lapses: number;
+    state: 'new' | 'learning' | 'review' | 'relearning';
+  };
+  bkt_update?: {
+    subtopic_id: string;
+    p_know: number;
+    p_transit: number;
+    p_slip: number;
+    p_guess: number;
+    delta: number;
+    total_attempts: number;
+    correct_attempts: number;
+    last_attempt_at: string;
+  };
+}
+
+export interface BatchReviewResponse {
+  processed: number;
+  reviews_created: number;
+  fsrs_updated: number;
+  bkt_updated: number;
+  errors?: { index: number; step: string; message: string }[];
+}
+
+export async function submitReviewBatch(
+  sessionId: string,
+  reviews: BatchReviewItem[],
+): Promise<BatchReviewResponse> {
+  return apiCall<BatchReviewResponse>('/review-batch', {
+    method: 'POST',
+    body: JSON.stringify({ session_id: sessionId, reviews }),
+  });
+}
+
 // ── Study Sessions ────────────────────────────────────────
 
 export async function createStudySession(data: {
@@ -73,14 +127,26 @@ export async function createStudySession(data: {
 export async function closeStudySession(
   sessionId: string,
   data: {
-    completed_at: string;
+    ended_at: string;
+    duration_seconds?: number;
     total_reviews: number;
     correct_reviews: number;
   }
 ): Promise<StudySessionRecord> {
+  // BACKEND FIX RT-002: The study-sessions CRUD factory only accepts
+  // updateFields: ["completed_at", "total_reviews", "correct_reviews"].
+  // "ended_at" and "duration_seconds" are NOT in updateFields and get
+  // silently ignored. Map ended_at → completed_at for the backend.
+  const backendPayload = {
+    completed_at: data.ended_at,  // Map frontend name → backend column
+    total_reviews: data.total_reviews,
+    correct_reviews: data.correct_reviews,
+    // duration_seconds is NOT stored on study_sessions (computed from
+    // created_at → completed_at on read). Omitted intentionally.
+  };
   return apiCall<StudySessionRecord>(`/study-sessions/${sessionId}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: JSON.stringify(backendPayload),
   });
 }
 
@@ -151,75 +217,63 @@ export async function submitReview(data: {
   });
 }
 
-// ── FSRS Simplified Algorithm (client-side) ───────────────
+// ── Fallback: fire individual POSTs when batch fails ──────
+// Maps BatchReviewItems back to the 3 individual endpoints.
+// All calls are fire-and-forget with error logging.
+// Shared by useFlashcardEngine, useReviewBatch, and any
+// future consumer of the batch submission pattern.
 
-export interface FsrsUpdate {
-  stability: number;
-  difficulty: number;
-  due_at: string;
-  reps: number;
-  lapses: number;
-  state: 'new' | 'learning' | 'review' | 'relearning';
-}
+export async function fallbackToIndividualPosts(
+  sessionId: string,
+  items: BatchReviewItem[],
+): Promise<void> {
+  const promises: Promise<void>[] = [];
 
-export function computeFsrsUpdate(
-  currentState: FsrsState | null,
-  grade: number, // 0-5
-): FsrsUpdate {
-  const now = new Date();
+  for (const item of items) {
+    // POST /reviews
+    promises.push(
+      submitReview({
+        session_id: sessionId,
+        item_id: item.item_id,
+        instrument_type: 'flashcard',
+        grade: item.grade,
+      }).catch(err => {
+        if (import.meta.env.DEV) console.warn('[Fallback] review failed:', err);
+      }) as Promise<void>,
+    );
 
-  // New card (no prior state)
-  if (!currentState || currentState.state === 'new') {
-    if (grade >= 3) {
-      const dueAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +1 day
-      return {
-        stability: 1,
-        difficulty: 5,
-        due_at: dueAt.toISOString(),
-        reps: 1,
-        lapses: 0,
-        state: 'learning',
-      };
-    } else {
-      const dueAt = new Date(now.getTime() + 60 * 1000); // +1 min (retry)
-      return {
-        stability: 0.5,
-        difficulty: 5,
-        due_at: dueAt.toISOString(),
-        reps: 0,
-        lapses: 0,
-        state: 'new',
-      };
+    // POST /fsrs-states
+    if (item.fsrs_update) {
+      promises.push(
+        upsertFsrsState({
+          flashcard_id: item.item_id,
+          ...item.fsrs_update,
+        }).catch(err => {
+          if (import.meta.env.DEV) console.warn('[Fallback] FSRS failed:', err);
+        }) as Promise<void>,
+      );
+    }
+
+    // POST /bkt-states
+    if (item.bkt_update) {
+      promises.push(
+        apiCall('/bkt-states', {
+          method: 'POST',
+          body: JSON.stringify(item.bkt_update),
+        }).catch(err => {
+          if (import.meta.env.DEV) console.warn('[Fallback] BKT failed:', err);
+        }) as Promise<void>,
+      );
     }
   }
 
-  // Existing card in review/learning/relearning
-  const { stability, difficulty, reps, lapses } = currentState;
-
-  if (grade >= 3) {
-    // Success
-    const newStability = stability * (1 + 0.5 * grade);
-    const intervalMs = newStability * 24 * 60 * 60 * 1000;
-    const dueAt = new Date(now.getTime() + intervalMs);
-    return {
-      stability: Math.round(newStability * 100) / 100,
-      difficulty: Math.max(1, difficulty - 0.1 * (grade - 3)),
-      due_at: dueAt.toISOString(),
-      reps: reps + 1,
-      lapses,
-      state: 'review',
-    };
-  } else {
-    // Failure
-    const newStability = Math.max(0.5, stability * 0.5);
-    const dueAt = new Date(now.getTime() + 10 * 60 * 1000); // +10 min
-    return {
-      stability: Math.round(newStability * 100) / 100,
-      difficulty: Math.min(10, difficulty + 0.2),
-      due_at: dueAt.toISOString(),
-      reps,
-      lapses: lapses + 1,
-      state: 'relearning',
-    };
-  }
+  await Promise.allSettled(promises);
 }
+
+// ── FSRS Algorithm ────────────────────────────────────────
+// DEPRECATED inline: The old computeFsrsUpdate that lived here used a DIFFERENT
+// formula than lib/fsrs-engine.ts, causing scheduling inconsistencies.
+// All consumers now use the canonical implementation from lib/fsrs-engine.ts.
+// Re-exported here ONLY for backward compatibility.
+export type { FsrsUpdate } from '@/app/lib/fsrs-engine';
+export { computeFsrsUpdate } from '@/app/lib/fsrs-engine';

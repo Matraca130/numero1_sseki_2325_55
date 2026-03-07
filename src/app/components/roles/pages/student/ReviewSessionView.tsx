@@ -11,14 +11,21 @@
 // 3. POST /study-sessions → create session
 // 4. Review cards with flip + grade 1-4
 // 5. grade=1 → re-insert at end of queue
-// 6. Track: POST /reviews + FSRS upsert + BKT upsert
-// 7. Close: PUT /study-sessions/:id + POST /daily-activities + POST /student-stats
+// 6. queueReview (sync, 0 POSTs) per card
+// 7. Session end:
+//    a. submitBatch → 1 POST /review-batch
+//    b. closeStudySession → 1 POST
+//    c. daily-activities → 1 POST
+//    d. student-stats → 1 POST
+//
+// v4.4.4 — Migrated to useReviewBatch:
+//   Previously used persistCardReview (3×N POSTs) + submitReview
+//   (1×N POSTs) = 4×N total. Now: queueReview (sync) during
+//   session + submitBatch (1 POST) at end.
+//   Also passes REAL existingFsrs from FsrsStateRow (unlike
+//   FlashcardReviewer which passes undefined for new-card state).
 //
 // Backend: FLAT routes via studySessionApi + flashcardApi + apiCall.
-//
-// FIX RT-001 (2025-02-27):
-//   - completed_at (not ended_at)
-//   - removed duration_seconds
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,59 +33,64 @@ import { apiCall } from '@/app/lib/api';
 import * as flashcardApi from '@/app/services/flashcardApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
-import type { FsrsState as FsrsStateRecord } from '@/app/services/studySessionApi';
+import type { FsrsStateRow } from '@/app/services/studySessionApi';
 import { FlashcardCard } from '@/app/components/student/FlashcardCard';
-import { computeFsrsUpdate, getInitialFsrsState } from '@/app/lib/fsrs-engine';
-import type { FsrsState as FsrsEngineState } from '@/app/lib/fsrs-engine';
-import { updateBKT } from '@/app/lib/bkt-engine';
+import { useReviewBatch } from '@/app/hooks/useReviewBatch';
 import {
-  CreditCard, Loader2, X, RotateCcw, CheckCircle,
+  Loader2, X, CheckCircle,
   Trophy, BarChart3, ChevronRight, Clock, Calendar,
   Play,
 } from 'lucide-react';
-
-// ── Grade definitions ─────────────────────────────────────────
-
-const GRADES = [
-  { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabia' },
-  { value: 2, label: 'Dificil', color: 'bg-orange-500 hover:bg-orange-600', desc: 'Con mucho esfuerzo' },
-  { value: 3, label: 'Bien', color: 'bg-emerald-500 hover:bg-emerald-600', desc: 'Con algo de esfuerzo' },
-  { value: 4, label: 'Facil', color: 'bg-blue-500 hover:bg-blue-600', desc: 'Muy facil' },
-] as const;
+import { GRADES } from '@/app/hooks/flashcard-types';
 
 // ── Queue item: card + its FSRS state ─────────────────────
 
 interface ReviewQueueItem {
   card: FlashcardItem;
-  fsrsState: FsrsStateRecord;
+  fsrsState: FsrsStateRow;
 }
 
 // ── Props ─────────────────────────────────────────────────
 
 interface ReviewSessionViewProps {
   onClose?: () => void;
+  /**
+   * Optional mastery map: flashcard_id → { p_know }.
+   * If provided, queueReview uses real p_know values for BKT.
+   * If omitted, defaults to 0 (first pass) — intra-session
+   * accumulation still works via useReviewBatch's sessionBktRef.
+   */
+  masteryMap?: Map<string, { p_know: number }>;
 }
 
 type ReviewPhase = 'loading' | 'idle' | 'reviewing' | 'finished';
 
-// ── Component ───────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────
 
-export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
+export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProps) {
   // ── Data ────────────────────────────────────────────────
   const [phase, setPhase] = useState<ReviewPhase>('loading');
   const [queue, setQueue] = useState<ReviewQueueItem[]>([]);
   const [totalDueCount, setTotalDueCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ── Session state ───────────────────────────────────────────
+  // ── Session state ───────────────────────────────────────
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [grades, setGrades] = useState<number[]>([]);
-  const [submittingGrade, setSubmittingGrade] = useState(false);
   const sessionStartRef = useRef<Date | null>(null);
 
-  // ── Timer ─────────────────────────────────────────────────
+  // ── Timing per card (for response_time_ms) ──────────────
+  const cardStartTime = useRef<number>(Date.now());
+
+  // ── Batch review hook ──────────────────────────���────────
+  // Replaces the old persistCardReview + submitReview pattern.
+  // queueReview: sync, zero POSTs — queues locally
+  // submitBatch: async, 1 POST /review-batch at session end
+  const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
+
+  // ── Timer ───────────────────────────────────────────────
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -176,11 +188,11 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     return () => { cancelled = true; };
   }, []);
 
-  // ── Current item ────────────────────────────────────────────
+  // ── Current item ────────────────────────────────────────
   const currentItem = queue[currentIdx] || null;
   const reviewedCount = grades.length;
 
-  // ── Start session ───────────────────────────────────────────
+  // ── Start session ───────────────────────────────────────
   const startSession = useCallback(async () => {
     try {
       const session = await sessionApi.createStudySession({
@@ -188,172 +200,131 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
       });
       setSessionId(session.id);
       sessionStartRef.current = new Date();
+      cardStartTime.current = Date.now();
       setCurrentIdx(0);
       setIsFlipped(false);
       setGrades([]);
       setElapsedSeconds(0);
+      batchReset();
       setPhase('reviewing');
     } catch (err: any) {
       console.error('[ReviewSession] Session create error:', err);
     }
-  }, []);
+  }, [batchReset]);
 
-  // ── Tracking update (non-blocking) ─────────────────────
-  const handleTrackingUpdate = useCallback(async (
-    item: ReviewQueueItem,
-    grade: 1 | 2 | 3 | 4
-  ) => {
-    // 1. FSRS update (card-level scheduling)
-    const fsrsInput: FsrsEngineState = {
-      stability: item.fsrsState.stability || 1,
-      difficulty: item.fsrsState.difficulty || 5,
-      reps: item.fsrsState.reps || 0,
-      lapses: item.fsrsState.lapses || 0,
-      state: item.fsrsState.state || 'new',
-    };
-    const fsrsResult = computeFsrsUpdate(fsrsInput, grade);
+  // ── Grade a card ────────────────────────────────────────
+  // NOW SYNC: queueReview does zero network calls.
+  // Batch submission + analytics happen ONLY at session end.
+  const handleGrade = useCallback((grade: number) => {
+    if (!sessionId || !currentItem) return;
 
-    try {
-      await apiCall('/fsrs-states', {
-        method: 'POST',
-        body: JSON.stringify({
-          flashcard_id: item.card.id,
-          stability: fsrsResult.stability,
-          difficulty: fsrsResult.difficulty,
-          state: fsrsResult.state,
-          reps: fsrsResult.reps,
-          lapses: fsrsResult.lapses,
-          due_at: fsrsResult.due_at,
-          last_review_at: new Date().toISOString(),
-        }),
-      });
-    } catch (err) {
-      console.error('[ReviewSession] FSRS update failed (non-blocking):', err);
+    // 1. Compute response time
+    const responseTimeMs = Date.now() - cardStartTime.current;
+
+    // 2. Queue review via useReviewBatch (sync, zero POSTs)
+    //    ADVANTAGE over FlashcardReviewer: we have REAL FSRS state
+    //    from the FsrsStateRow, so scheduling is accurate.
+    const masteryEntry = masteryMap?.get(currentItem.card.id);
+    queueReview({
+      card: currentItem.card,
+      grade,
+      responseTimeMs,
+      existingFsrs: {
+        stability: currentItem.fsrsState.stability || 1,
+        difficulty: currentItem.fsrsState.difficulty || 5,
+        reps: currentItem.fsrsState.reps || 0,
+        lapses: currentItem.fsrsState.lapses || 0,
+        state: currentItem.fsrsState.state || 'new',
+      },
+      currentPKnow: masteryEntry?.p_know,
+    });
+
+    // 3. Update local grades state
+    const newGrades = [...grades, grade];
+    setGrades(newGrades);
+
+    // 4. grade=1 → re-insert at end of queue (spaced repetition re-queue)
+    if (grade === 1) {
+      setQueue(prev => [...prev, currentItem]);
     }
 
-    // 2. BKT update (concept-level, solo si tiene subtopic_id)
-    if (item.card.subtopic_id) {
-      const isCorrect = grade >= 3;
-      const newP = updateBKT(0, isCorrect, 'flashcard');
-      try {
-        await apiCall('/bkt-states', {
-          method: 'POST',
-          body: JSON.stringify({
-            subtopic_id: item.card.subtopic_id,
-            p_know: newP,
-            p_transit: 0.1,
-            p_slip: 0.1,
-            p_guess: 0.25,
-            delta: newP,
-            total_attempts: 1,
-            correct_attempts: isCorrect ? 1 : 0,
-            last_attempt_at: new Date().toISOString(),
-          }),
-        });
-      } catch (err) {
-        console.error('[ReviewSession] BKT update failed (non-blocking):', err);
-      }
-    }
-  }, []);
+    // 5. Move to next card or finish
+    //    Must account for potential queue growth from grade=1 re-queue
+    const updatedQueueLength = grade === 1 ? queue.length + 1 : queue.length;
 
-  // ── Grade a card ────────────────────────────────────────────
-  const handleGrade = useCallback(async (grade: number) => {
-    if (!sessionId || !currentItem || submittingGrade) return;
-    setSubmittingGrade(true);
+    if (currentIdx + 1 < updatedQueueLength) {
+      // ── Next card ──
+      setCurrentIdx(currentIdx + 1);
+      setIsFlipped(false);
+      cardStartTime.current = Date.now();
+    } else {
+      // ── Session complete ──
+      stopTimer();
+      setPhase('finished');
 
-    try {
-      // POST /reviews
-      await sessionApi.submitReview({
-        session_id: sessionId,
-        item_id: currentItem.card.id,
-        instrument_type: 'flashcard',
-        grade,
-      });
+      // Fire batch submit + close + analytics in background (non-blocking)
+      const sid = sessionId;
+      const startTime = sessionStartRef.current;
+      (async () => {
+        // a. Submit all reviews in ONE batch request
+        await submitBatch(sid);
 
-      const newGrades = [...grades, grade];
-      setGrades(newGrades);
+        // b. Close session on backend
+        const now = new Date();
+        const durationSeconds = startTime
+          ? Math.round((now.getTime() - startTime.getTime()) / 1000)
+          : 0;
+        const correctReviews = newGrades.filter(g => g >= 3).length;
 
-      // Non-blocking tracking update
-      handleTrackingUpdate(currentItem, grade as 1 | 2 | 3 | 4);
-
-      // grade=1 → re-insert at end of queue
-      if (grade === 1) {
-        setQueue(prev => [...prev, currentItem]);
-      }
-
-      // Move to next card or finish
-      if (currentIdx + 1 < queue.length) {
-        setCurrentIdx(currentIdx + 1);
-        setIsFlipped(false);
-      } else {
-        // Check if grade=1 added more cards
-        const updatedQueueLength = grade === 1 ? queue.length + 1 : queue.length;
-        if (currentIdx + 1 < updatedQueueLength) {
-          setCurrentIdx(currentIdx + 1);
-          setIsFlipped(false);
-        } else {
-          // Session complete
-          stopTimer();
-          const now = new Date();
-          const durationSeconds = sessionStartRef.current
-            ? Math.round((now.getTime() - sessionStartRef.current.getTime()) / 1000)
-            : elapsedSeconds;
-          const correctReviews = newGrades.filter(g => g >= 3).length;
-
-          // Close session
-          try {
-            await sessionApi.closeStudySession(sessionId, {
-              completed_at: now.toISOString(),
-              total_reviews: newGrades.length,
-              correct_reviews: correctReviews,
-            });
-          } catch (err) {
-            console.error('[ReviewSession] Session close error:', err);
-          }
-
-          // POST /daily-activities (UPSERT)
-          const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
-          try {
-            await apiCall('/daily-activities', {
-              method: 'POST',
-              body: JSON.stringify({
-                activity_date: today,
-                reviews_count: newGrades.length,
-                correct_count: correctReviews,
-                time_spent_seconds: durationSeconds,
-                sessions_count: 1,
-              }),
-            });
-          } catch (err) {
-            console.error('[ReviewSession] Daily activity update failed:', err);
-          }
-
-          // POST /student-stats (UPSERT)
-          try {
-            await apiCall('/student-stats', {
-              method: 'POST',
-              body: JSON.stringify({
-                total_reviews: newGrades.length,
-                total_time_seconds: durationSeconds,
-                total_sessions: 1,
-                last_study_date: today,
-              }),
-            });
-          } catch (err) {
-            console.error('[ReviewSession] Student stats update failed:', err);
-          }
-
-          setPhase('finished');
+        try {
+          await sessionApi.closeStudySession(sid, {
+            ended_at: now.toISOString(),
+            duration_seconds: durationSeconds,
+            total_reviews: newGrades.length,
+            correct_reviews: correctReviews,
+          });
+        } catch (err) {
+          console.error('[ReviewSession] Session close error:', err);
         }
-      }
-    } catch (err: any) {
-      console.error('[ReviewSession] Review submit error:', err);
-    } finally {
-      setSubmittingGrade(false);
-    }
-  }, [sessionId, currentItem, currentIdx, queue, grades, submittingGrade, handleTrackingUpdate, stopTimer, elapsedSeconds]);
 
-  // ── Keyboard shortcuts ────────────────────────────────────────
+        // c. POST /daily-activities (UPSERT) — analytics/gamification
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        try {
+          await apiCall('/daily-activities', {
+            method: 'POST',
+            body: JSON.stringify({
+              activity_date: today,
+              reviews_count: newGrades.length,
+              correct_count: correctReviews,
+              time_spent_seconds: durationSeconds,
+              sessions_count: 1,
+            }),
+          });
+        } catch (err) {
+          console.error('[ReviewSession] Daily activity update failed:', err);
+        }
+
+        // d. POST /student-stats (UPSERT) — analytics/gamification
+        try {
+          await apiCall('/student-stats', {
+            method: 'POST',
+            body: JSON.stringify({
+              total_reviews: newGrades.length,
+              total_time_seconds: durationSeconds,
+              total_sessions: 1,
+              last_study_date: today,
+            }),
+          });
+        } catch (err) {
+          console.error('[ReviewSession] Student stats update failed:', err);
+        }
+      })();
+    }
+  }, [sessionId, currentItem, currentIdx, queue, grades, queueReview, submitBatch, stopTimer, masteryMap]);
+  // ^^^ REMOVED elapsedSeconds from deps — was causing handleGrade recreation every second.
+  //     Duration is computed from sessionStartRef (ref, not state) instead.
+
+  // ── Keyboard shortcuts ──────────────────────────────────
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const handler = (e: KeyboardEvent) => {
@@ -361,7 +332,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
         e.preventDefault();
         if (!isFlipped) setIsFlipped(true);
       }
-      if (isFlipped && !submittingGrade) {
+      if (isFlipped) {
         const num = parseInt(e.key);
         if (num >= 1 && num <= 4) {
           e.preventDefault();
@@ -371,9 +342,9 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [phase, isFlipped, submittingGrade, handleGrade]);
+  }, [phase, isFlipped, handleGrade]);
 
-  // ── Grade distribution ────────────────────────────────────────
+  // ── Grade distribution ──────────────────────────────────
   const gradeDistribution = useMemo(() => {
     const dist = [0, 0, 0, 0];
     for (const g of grades) {
@@ -387,7 +358,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
     return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100);
   }, [grades]);
 
-  // ── Next review estimate ────────────────────────────────────────
+  // ── Next review estimate ────────────────────────────────
   const nextDueEstimate = useMemo(() => {
     if (grades.length === 0) return '';
     const hasAgain = grades.some(g => g === 1);
@@ -579,8 +550,7 @@ export function ReviewSessionView({ onClose }: ReviewSessionViewProps) {
                   <button
                     key={g.value}
                     onClick={() => handleGrade(g.value)}
-                    disabled={submittingGrade}
-                    className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl text-white font-semibold transition-all disabled:opacity-50 ${g.color} shadow-lg`}
+                    className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl text-white font-semibold transition-all ${g.color} shadow-lg`}
                   >
                     <span className="text-sm">{g.label}</span>
                     <span className="text-[10px] opacity-70">{g.value}</span>

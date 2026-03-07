@@ -12,37 +12,8 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Tag, Image as ImageIcon } from 'lucide-react';
 import { ClozeInteraction } from './ClozeInteraction';
-
-// ── Card type detection ───────────────────────────────────
-
-type CardType = 'text' | 'text_image' | 'image_text' | 'image_image' | 'text_both' | 'cloze';
-
-function extractImageUrl(content: string): string | null {
-  const mdMatch = content.match(/!\[img\]\(([^)]+)\)/);
-  if (mdMatch) return mdMatch[1];
-  const trimmed = content.trim();
-  if (trimmed.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|bmp)/i)) {
-    return trimmed;
-  }
-  return null;
-}
-
-function extractText(content: string): string {
-  return content.replace(/!\[img\]\([^)]+\)/g, '').trim();
-}
-
-function detectCardType(front: string, back: string): CardType {
-  if (/\{\{.+?\}\}/.test(front)) return 'cloze';
-  const fImg = extractImageUrl(front);
-  const bImg = extractImageUrl(back);
-  const fTxt = extractText(front);
-  const bTxt = extractText(back);
-  if (fImg && bImg && fTxt && bTxt) return 'text_both';
-  if (fImg && bImg) return 'image_image';
-  if (fImg && !bImg) return 'image_text';
-  if (!fImg && bImg) return 'text_image';
-  return 'text';
-}
+import { extractImageUrl, extractText, detectCardType } from '@/app/lib/flashcard-utils';
+import type { CardType } from '@/app/lib/flashcard-utils';
 
 // ── Render cloze back with highlighted words ──────────────
 

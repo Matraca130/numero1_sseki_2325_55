@@ -8,6 +8,11 @@
 //   List:   { data: { items: [...], total, limit, offset } }
 //   Single: { data: { ... } }
 //   apiCall() unwraps the { data: ... } envelope automatically.
+//
+// PERF v4.4.3:
+//   [C1] Added getFlashcardsByTopic() — single request per topic
+//        instead of 1+N (summaries + per-summary flashcards).
+//        Falls back to old N+1 pattern if endpoint doesn't exist (404).
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -53,13 +58,28 @@ export async function getFlashcards(
   return apiCall<FlashcardListResponse>(`/flashcards?${params}`);
 }
 
-// ── GET /flashcards/:id ─────────────────────────────────
+// ── PERF C1: GET /flashcards-by-topic?topic_id=xxx ────────
+// Single request replaces: GET /summaries + N × GET /flashcards
+// Returns all active flashcards for a topic in one call.
+
+export async function getFlashcardsByTopic(
+  topicId: string,
+  opts?: { limit?: number; offset?: number }
+): Promise<FlashcardListResponse> {
+  const params = new URLSearchParams();
+  params.set('topic_id', topicId);
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  if (opts?.offset) params.set('offset', String(opts.offset));
+  return apiCall<FlashcardListResponse>(`/flashcards-by-topic?${params}`);
+}
+
+// ── GET /flashcards/:id ───────────────────────────────────
 
 export async function getFlashcard(id: string): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`);
 }
 
-// ── POST /flashcards ──────────────────────────────────
+// ── POST /flashcards ──────────────────────────────────────
 
 export async function createFlashcard(data: {
   summary_id: string;
@@ -77,13 +97,11 @@ export async function createFlashcard(data: {
   });
 }
 
-// ── PUT /flashcards/:id ─────────────────────────────────
-// FIX BA-04: removed keyword_id — not in backend updateFields,
-// crud-factory silently ignores it. keyword_id is set at creation only.
+// ── PUT /flashcards/:id ───────────────────────────────────
 
 export async function updateFlashcard(
   id: string,
-  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean; front_image_url?: string | null; back_image_url?: string | null }
+  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean; keyword_id?: string; front_image_url?: string | null; back_image_url?: string | null }
 ): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`, {
     method: 'PUT',
