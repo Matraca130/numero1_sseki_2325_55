@@ -11,25 +11,43 @@
 //   PUT    /quiz-questions/:id/restore → restore
 //
 // Uses apiCall() from lib/api.ts (handles Authorization + X-Access-Token)
-//
-// FIX RT-001 (2025-02-27):
-//   - student_id (not user_id)
-//   - completed_at (not ended_at)
-//   - removed duration_seconds (column doesn't exist)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { DIFFICULTY_TO_INT } from '@/app/services/quizConstants';
+import type { QuestionType, Difficulty } from '@/app/services/quizConstants';
 
 // ── Types ─────────────────────────────────────────────────
 
-export type QuestionType = 'mcq' | 'true_false' | 'fill_blank' | 'open';
-export type Difficulty = 'easy' | 'medium' | 'hard';
+// Re-export from quizConstants for backwards compatibility
+export type { QuestionType, Difficulty } from '@/app/services/quizConstants';
 export type QuestionSource = 'manual' | 'ai';
+
+// ── Quiz Entity (matches backend /quizzes) ────────────────
+export interface QuizEntity {
+  id: string;
+  summary_id: string;
+  title: string;
+  description: string | null;
+  source: 'manual' | 'ai';
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface QuizEntityListResponse {
+  items: QuizEntity[];
+  total: number;
+  limit: number;
+  offset: number;
+}
 
 export interface QuizQuestion {
   id: string;
   summary_id: string;
   keyword_id: string;
+  subtopic_id?: string | null;  // null when DB column is NULL, undefined when field absent
   question_type: QuestionType;
   question: string;
   options: string[] | null;
@@ -51,9 +69,10 @@ export interface QuizQuestionListResponse {
 }
 
 export interface CreateQuizQuestionPayload {
-  name: string;
+  // FIX BA-01: removed 'name' — quiz_questions table has NO 'name' column
   summary_id: string;
   keyword_id: string;
+  subtopic_id?: string;  // optional — omit if no subtopic selected
   question_type: QuestionType;
   question: string;
   correct_answer: string;
@@ -86,7 +105,7 @@ export async function getQuizQuestions(
   filters?: {
     keyword_id?: string;
     question_type?: QuestionType;
-    difficulty?: Difficulty;
+    difficulty?: Difficulty | number;
     limit?: number;
     offset?: number;
   }
@@ -95,7 +114,13 @@ export async function getQuizQuestions(
   params.set('summary_id', summaryId);
   if (filters?.keyword_id) params.set('keyword_id', filters.keyword_id);
   if (filters?.question_type) params.set('question_type', filters.question_type);
-  if (filters?.difficulty) params.set('difficulty', filters.difficulty);
+  if (filters?.difficulty != null) {
+    // Accept both string ('easy') and integer (1) — always send integer to backend
+    const diffInt = typeof filters.difficulty === 'number'
+      ? filters.difficulty
+      : DIFFICULTY_TO_INT[filters.difficulty as Difficulty];
+    if (diffInt) params.set('difficulty', String(diffInt));
+  }
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.offset) params.set('offset', String(filters.offset));
   return apiCall<QuizQuestionListResponse>(`/quiz-questions?${params}`);
@@ -174,6 +199,7 @@ export async function createStudySession(data: {
 
 /**
  * Close a study session with final stats.
+ * FIX RT-001: uses completed_at (not ended_at), no duration_seconds.
  */
 export async function closeStudySession(id: string, data: {
   completed_at: string;
@@ -188,7 +214,8 @@ export async function closeStudySession(id: string, data: {
 
 /**
  * Get study sessions (e.g. for history).
- * Returns array plano: { data: [...] }
+ * FIX BA-02: study-sessions is CRUD factory → returns { items, total, limit, offset }
+ * after apiCall unwraps .data. Handle both formats defensively.
  */
 export async function getStudySessions(filters?: {
   session_type?: string;
@@ -200,7 +227,9 @@ export async function getStudySessions(filters?: {
   if (filters?.course_id) params.set('course_id', filters.course_id);
   if (filters?.limit) params.set('limit', String(filters.limit));
   const qs = params.toString() ? `?${params}` : '';
-  return apiCall<StudySession[]>(`/study-sessions${qs}`);
+  const result = await apiCall<any>(`/study-sessions${qs}`);
+  // CRUD factory returns { items, total, limit, offset }, not a plain array
+  return Array.isArray(result) ? result : result?.items || [];
 }
 
 // ── Quiz Attempts ─────────────────────────────────────────

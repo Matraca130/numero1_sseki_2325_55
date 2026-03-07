@@ -53,13 +53,13 @@ export async function getFlashcards(
   return apiCall<FlashcardListResponse>(`/flashcards?${params}`);
 }
 
-// ── GET /flashcards/:id ───────────────────────────────────
+// ── GET /flashcards/:id ─────────────────────────────────
 
 export async function getFlashcard(id: string): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`);
 }
 
-// ── POST /flashcards ──────────────────────────────────────
+// ── POST /flashcards ──────────────────────────────────
 
 export async function createFlashcard(data: {
   summary_id: string;
@@ -77,11 +77,13 @@ export async function createFlashcard(data: {
   });
 }
 
-// ── PUT /flashcards/:id ───────────────────────────────────
+// ── PUT /flashcards/:id ─────────────────────────────────
+// FIX BA-04: removed keyword_id — not in backend updateFields,
+// crud-factory silently ignores it. keyword_id is set at creation only.
 
 export async function updateFlashcard(
   id: string,
-  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean; keyword_id?: string; front_image_url?: string | null; back_image_url?: string | null }
+  data: { front?: string; back?: string; source?: string; subtopic_id?: string | null; is_active?: boolean; front_image_url?: string | null; back_image_url?: string | null }
 ): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`, {
     method: 'PUT',

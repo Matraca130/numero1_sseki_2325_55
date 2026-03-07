@@ -367,7 +367,7 @@ function SectionCard({
       {/* Title */}
       <h4 className="font-bold text-gray-900 mb-1" style={headingStyle}>{sectionName}</h4>
       <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-3">
-        {semesterName} · {totalCount} modelos
+        {semesterName} \u00b7 {totalCount} modelos
       </p>
 
       {/* Progress row */}

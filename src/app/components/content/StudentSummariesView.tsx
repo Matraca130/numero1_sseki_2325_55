@@ -1,72 +1,101 @@
 // ============================================================
 // Axon — StudentSummariesView (Student: read-only summaries)
 //
-// Shows published summaries for the selected topic from the
-// content tree. Clicking a summary opens StudentSummaryReader.
-// Reading states are fetched to show progress badges.
-//
-// All data from real backend via summariesApi + studentSummariesApi.
+// Design: refined to match Figma prototypes with hero progress,
+// summary cards with status badges, motivational messages.
+// All E2E connections preserved.
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   FileText, ChevronRight, Loader2, RefreshCw,
-  CheckCircle2, BookOpen, Clock, ArrowLeft, AlertCircle,
+  CheckCircle2, BookOpen, Clock, AlertCircle,
+  ArrowRight, Sparkles, Layers, Play,
 } from 'lucide-react';
-import clsx from 'clsx';
-import { Button } from '@/app/components/ui/button';
-import { Skeleton } from '@/app/components/ui/skeleton';
+import { toast } from 'sonner';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { StudentSummaryReader } from './StudentSummaryReader';
 import * as summariesApi from '@/app/services/summariesApi';
 import * as studentApi from '@/app/services/studentSummariesApi';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
+import {
+  HeroSection,
+  ProgressBar,
+  ProgressRing,
+  Breadcrumb,
+  focusRing,
+  useFadeUp,
+} from '@/app/components/design-kit';
+import { useApp } from '@/app/context/AppContext';
 
-// ── Helper: extract items from CRUD factory response ──────
+// ── Helper ────────────────────────────────────────────────
 function extractItems<T>(result: any): T[] {
   if (Array.isArray(result)) return result;
   if (result && Array.isArray(result.items)) return result.items;
   return [];
 }
 
+// ── Motivational text based on progress ───────────────────
+function getMotivation(progress: number, total: number): string {
+  if (total === 0) return '';
+  if (progress === 0) return 'Dale, empeza!';
+  if (progress / total >= 1) return 'Excelente! Completaste todo!';
+  if (progress / total >= 0.7) return 'Ya casi terminas!';
+  if (progress / total >= 0.3) return 'Vas muy bien, segui asi!';
+  return 'Buen comienzo!';
+}
+
 export function StudentSummariesView() {
-  const { selectedTopicId, tree } = useContentTree();
+  const { selectedTopicId, tree, selectTopic } = useContentTree();
+  const { currentTopic } = useApp();
+  const shouldReduce = useReducedMotion();
+
+  const effectiveTopicId = selectedTopicId || currentTopic?.id || null;
+
+  // Sync contexts
+  React.useEffect(() => {
+    if (!selectedTopicId && currentTopic?.id) {
+      selectTopic(currentTopic.id);
+    }
+  }, [selectedTopicId, currentTopic?.id, selectTopic]);
 
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [readingStates, setReadingStates] = useState<Record<string, ReadingState>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null);
+  const fadeUp = useFadeUp();
 
-  // Resolve topic name from tree
-  const topicName = (() => {
-    if (!tree || !selectedTopicId) return '';
+  // ── Pending navigation (for cross-topic keyword jumps) ──
+  const pendingNavRef = React.useRef<string | null>(null);
+
+  // Resolve topic & section name
+  const { topicName, sectionName, courseName } = (() => {
+    if (!tree || !effectiveTopicId) return { topicName: '', sectionName: '', courseName: '' };
     for (const c of tree.courses) {
       for (const s of c.semesters) {
         for (const sec of s.sections) {
           for (const t of sec.topics) {
-            if (t.id === selectedTopicId) return t.name;
+            if (t.id === effectiveTopicId) return { topicName: t.name, sectionName: sec.name, courseName: c.name };
           }
         }
       }
     }
-    return '';
+    return { topicName: '', sectionName: '', courseName: '' };
   })();
 
   // ── Fetch summaries ─────────────────────────────────────
   const fetchSummaries = useCallback(async () => {
-    if (!selectedTopicId) return;
+    if (!effectiveTopicId) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await summariesApi.getSummaries(selectedTopicId);
+      const result = await summariesApi.getSummaries(effectiveTopicId);
       const items = extractItems<Summary>(result);
-      // Students only see published summaries
       const published = items.filter(s => s.status === 'published' && s.is_active);
       setSummaries(published.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
 
-      // Fetch reading states for all summaries (in parallel, ignore errors)
       const statesMap: Record<string, ReadingState> = {};
       await Promise.allSettled(
         published.map(async (s) => {
@@ -84,14 +113,135 @@ export function StudentSummariesView() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTopicId]);
+  }, [effectiveTopicId]);
 
+  // Auto-fetch on topic change
   useEffect(() => {
-    setSelectedSummaryId(null);
-    fetchSummaries();
-  }, [selectedTopicId, fetchSummaries]);
+    // Only reset selected summary if there's no pending cross-topic navigation
+    if (!pendingNavRef.current) {
+      setSelectedSummaryId(null);
+    }
+    if (!effectiveTopicId) {
+      setSummaries([]);
+      setReadingStates({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await summariesApi.getSummaries(effectiveTopicId);
+        if (cancelled) return;
+        const items = extractItems<Summary>(result);
+        const published = items.filter(s => s.status === 'published' && s.is_active);
+        setSummaries(published.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
 
-  // ── If reading a summary → show reader ──────────────────
+        const statesMap: Record<string, ReadingState> = {};
+        await Promise.allSettled(
+          published.map(async (s) => {
+            try {
+              const state = await studentApi.getReadingState(s.id);
+              if (state) statesMap[s.id] = state;
+            } catch { /* ignore */ }
+          })
+        );
+        if (cancelled) return;
+        setReadingStates(statesMap);
+
+        // ── Check for pending cross-topic navigation ──
+        if (pendingNavRef.current) {
+          const targetId = pendingNavRef.current;
+          pendingNavRef.current = null;
+          if (published.some(s => s.id === targetId)) {
+            setSelectedSummaryId(targetId);
+          } else {
+            console.warn('[StudentSummaries] Pending nav target not found in topic summaries:', targetId);
+          }
+        }
+      } catch (err: any) {
+        if (cancelled) return;
+        setError(err.message || 'Error al cargar resumenes');
+        setSummaries([]);
+        pendingNavRef.current = null;
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [effectiveTopicId]);
+
+  // ── Navigate to keyword in another summary ──────────────
+  const handleNavigateKeyword = useCallback(async (keywordId: string, targetSummaryId: string) => {
+    console.log('[StudentSummaries] handleNavigateKeyword called:', {
+      keywordId,
+      targetSummaryId,
+      currentSummaryId: selectedSummaryId,
+      summariesCount: summaries.length,
+      isSameSummary: selectedSummaryId === targetSummaryId,
+      isInCurrentTopic: summaries.some(s => s.id === targetSummaryId),
+    });
+
+    // Case A: same summary — scroll to the keyword highlight in DOM
+    if (selectedSummaryId === targetSummaryId) {
+      // Find the highlighted keyword span and scroll to it with a flash effect
+      requestAnimationFrame(() => {
+        const kwSpan = document.querySelector(
+          `[data-keyword-id="${keywordId}"]`
+        ) as HTMLElement | null;
+        if (kwSpan) {
+          kwSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Flash highlight
+          kwSpan.style.outline = '2px solid #8b5cf6';
+          kwSpan.style.outlineOffset = '2px';
+          kwSpan.style.borderRadius = '4px';
+          kwSpan.style.transition = 'outline-color 0.3s ease';
+          setTimeout(() => {
+            kwSpan.style.outlineColor = 'transparent';
+            setTimeout(() => {
+              kwSpan.style.outline = '';
+              kwSpan.style.outlineOffset = '';
+            }, 300);
+          }, 1500);
+          toast.info('Keyword encontrada en este resumen');
+        } else {
+          toast.info('Keyword conectada — mismo resumen');
+        }
+      });
+      return;
+    }
+
+    // Case B: different summary in current topic's list
+    if (summaries.some(s => s.id === targetSummaryId)) {
+      setSelectedSummaryId(targetSummaryId);
+      toast.info('Navegando al resumen conectado...');
+      return;
+    }
+
+    // Case C: cross-topic — fetch target summary to find its topic
+    try {
+      const targetSummary = await summariesApi.getSummary(targetSummaryId);
+      if (!targetSummary) {
+        toast.error('No se encontro el resumen destino');
+        return;
+      }
+
+      if (targetSummary.topic_id && targetSummary.topic_id !== effectiveTopicId) {
+        // Store pending navigation so the fetch-on-topic-change useEffect can pick it up
+        pendingNavRef.current = targetSummaryId;
+        selectTopic(targetSummary.topic_id);
+        toast.info(`Cambiando de topico para ir a "${targetSummary.title || 'resumen'}"...`);
+      } else {
+        // Same topic but somehow not in the published list — try anyway
+        setSelectedSummaryId(targetSummaryId);
+      }
+    } catch (err: any) {
+      console.error('[StudentSummaries] Navigate error:', err);
+      toast.error('No se pudo navegar al resumen');
+    }
+  }, [summaries, selectedSummaryId, effectiveTopicId, selectTopic]);
+
+  // ── Reader view ─────────────────────────────────────────
   const selectedSummary = summaries.find(s => s.id === selectedSummaryId);
   if (selectedSummaryId && selectedSummary) {
     return (
@@ -103,67 +253,139 @@ export function StudentSummariesView() {
         onReadingStateChanged={(rs) => {
           setReadingStates(prev => ({ ...prev, [selectedSummary.id]: rs }));
         }}
+        onNavigateKeyword={handleNavigateKeyword}
       />
     );
   }
 
   // ── No topic selected ───────────────────────────────────
-  if (!selectedTopicId) {
+  if (!effectiveTopicId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8">
-        <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
-          <BookOpen size={28} className="text-teal-300" />
-        </div>
-        <p className="text-gray-500 mb-1">Selecciona un topico</p>
-        <p className="text-xs text-gray-400">
-          Usa el arbol de contenido a la izquierda para navegar
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-zinc-50">
+        <motion.div
+          className="w-20 h-20 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center mb-5"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+        >
+          <BookOpen className="w-9 h-9 text-teal-300" />
+        </motion.div>
+        <p className="text-zinc-700 mb-1" style={{ fontWeight: 700 }}>Selecciona un topico</p>
+        <p className="text-sm text-zinc-400 text-center max-w-xs">
+          Usa el arbol de contenido a la izquierda para elegir que estudiar
         </p>
       </div>
     );
   }
 
+  // Stats
+  const completedCount = summaries.filter(s => readingStates[s.id]?.completed).length;
+  const totalTimeMinutes = Object.values(readingStates).reduce(
+    (acc, rs) => acc + (rs.time_spent_seconds || 0), 0
+  ) / 60;
+  const progress = summaries.length > 0 ? completedCount / summaries.length : 0;
+  const motivation = getMotivation(completedCount, summaries.length);
+
+  // Find the "next" summary to read
+  const nextSummary = summaries.find(s => !readingStates[s.id]?.completed);
+
   return (
-    <div className="h-full overflow-y-auto bg-gray-50/50">
-      <div className="max-w-3xl mx-auto p-8">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+    <div className="h-full overflow-y-auto bg-zinc-50">
+      {/* ── Hero ── */}
+      <HeroSection>
+        <div className="max-w-3xl mx-auto px-6 pt-8 pb-10">
+          <motion.div {...fadeUp(0)}>
+            <Breadcrumb
+              items={[courseName, sectionName, topicName].filter(Boolean)}
+              className="mb-4 text-zinc-400"
+            />
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-teal-300" />
+                </div>
+                <div>
+                  <h1 className="text-xl text-white tracking-tight" style={{ fontWeight: 700 }}>
+                    {topicName}
+                  </h1>
+                  <p className="text-sm text-zinc-400 mt-0.5">
+                    {loading ? 'Cargando...' : `${summaries.length} resumen${summaries.length !== 1 ? 'es' : ''} · ${completedCount} completado${completedCount !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress ring */}
+              {!loading && summaries.length > 0 && (
+                <ProgressRing value={progress} size={52} stroke={4} />
+              )}
+            </div>
+
+            {/* Progress bar + motivation */}
+            {!loading && summaries.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="text-zinc-300" style={{ fontWeight: 500 }}>
+                    {completedCount} de {summaries.length} completado{completedCount !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-teal-300" style={{ fontWeight: 700 }}>
+                    {Math.round(progress * 100)}%
+                  </span>
+                </div>
+                <ProgressBar value={progress} animated dark color="bg-gradient-to-r from-teal-400 to-emerald-400" />
+                <div className="flex items-center justify-between mt-2">
+                  {motivation && (
+                    <p className="text-[11px] text-amber-300" style={{ fontWeight: 600 }}>
+                      {motivation}
+                    </p>
+                  )}
+                  {totalTimeMinutes > 0 && (
+                    <p className="text-[11px] text-zinc-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {Math.round(totalTimeMinutes)} min total
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </HeroSection>
+
+      {/* ── Content ── */}
+      <div className="max-w-3xl mx-auto px-6 py-6">
+        {/* Refresh */}
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
-              <BookOpen size={20} className="text-teal-600" />
+            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
+              <FileText className="w-4 h-4 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-2 text-xs text-gray-400 mb-0.5">
-                <span>Resumenes</span>
-                <ChevronRight size={12} />
-                <span className="text-gray-600">{topicName}</span>
-              </div>
-              <h2 className="text-gray-900">{topicName}</h2>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {loading ? 'Cargando...' : `${summaries.length} resumen${summaries.length !== 1 ? 'es' : ''} disponible${summaries.length !== 1 ? 's' : ''}`}
-              </p>
+              <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>Resumenes</h3>
+              {!loading && !error && (
+                <p className="text-xs text-zinc-500">{summaries.length} disponible{summaries.length !== 1 ? 's' : ''}</p>
+              )}
             </div>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={fetchSummaries}
             disabled={loading}
+            className={`p-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 transition-colors ${focusRing}`}
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          </Button>
+            <RefreshCw className={`w-4 h-4 text-zinc-500 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {/* Loading */}
         {loading && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+              <div key={i} className="bg-white rounded-2xl border border-zinc-200 p-5 animate-pulse">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="w-8 h-8 rounded-lg" />
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100" />
                   <div className="flex-1">
-                    <Skeleton className="h-4 w-48 mb-2" />
-                    <Skeleton className="h-3 w-32" />
+                    <div className="h-4 w-48 bg-zinc-100 rounded-lg mb-2" />
+                    <div className="h-3 w-32 bg-zinc-100 rounded" />
                   </div>
                 </div>
               </div>
@@ -173,26 +395,30 @@ export function StudentSummariesView() {
 
         {/* Error */}
         {!loading && error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <AlertCircle size={24} className="text-red-400 mx-auto mb-2" />
-            <p className="text-sm text-red-600">{error}</p>
-            <Button variant="outline" size="sm" onClick={fetchSummaries} className="mt-3">
+          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center">
+            <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+            <p className="text-sm text-red-600 mb-3">{error}</p>
+            <button
+              onClick={fetchSummaries}
+              className={`px-4 py-2 text-sm bg-white border border-red-200 rounded-xl text-red-600 hover:bg-red-50 ${focusRing}`}
+              style={{ fontWeight: 600 }}
+            >
               Reintentar
-            </Button>
+            </button>
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty */}
         {!loading && !error && summaries.length === 0 && (
-          <div className="bg-white border border-dashed border-gray-200 rounded-xl p-12 text-center">
+          <div className="bg-white border-2 border-dashed border-zinc-200 rounded-2xl p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
-              <FileText size={24} className="text-teal-300" />
+              <FileText className="w-6 h-6 text-teal-300" />
             </div>
-            <p className="text-sm text-gray-500 mb-1">
-              No hay resumenes publicados en este topico
+            <p className="text-sm text-zinc-600 mb-1" style={{ fontWeight: 600 }}>
+              No hay resumenes publicados
             </p>
-            <p className="text-xs text-gray-400">
-              El profesor aun no ha publicado contenido aqui
+            <p className="text-xs text-zinc-400">
+              El profesor aun no ha publicado contenido en este topico
             </p>
           </div>
         )}
@@ -204,6 +430,8 @@ export function StudentSummariesView() {
               {summaries.map((s, index) => {
                 const rs = readingStates[s.id];
                 const isCompleted = rs?.completed === true;
+                const isInProgress = rs && !isCompleted;
+                const isNextToRead = nextSummary?.id === s.id && !isCompleted;
 
                 return (
                   <motion.div
@@ -212,66 +440,105 @@ export function StudentSummariesView() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.03 }}
-                    className="group bg-white rounded-xl border border-gray-200 hover:border-teal-200 hover:shadow-sm transition-all cursor-pointer"
-                    onClick={() => setSelectedSummaryId(s.id)}
+                    transition={{ delay: index * 0.04 }}
                   >
-                    <div className="p-5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className={clsx(
-                            "w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5",
-                            isCompleted
-                              ? "bg-emerald-50 border-emerald-200"
-                              : "bg-teal-50 border-teal-100"
-                          )}>
-                            {isCompleted ? (
-                              <CheckCircle2 size={14} className="text-emerald-500" />
-                            ) : (
-                              <FileText size={14} className="text-teal-500" />
+                    <motion.button
+                      onClick={() => setSelectedSummaryId(s.id)}
+                      className={`w-full text-left bg-white rounded-2xl border-2 p-5 transition-all group cursor-pointer ${focusRing} relative overflow-hidden ${
+                        isCompleted
+                          ? 'border-emerald-300 hover:border-emerald-400'
+                          : isNextToRead
+                            ? 'border-teal-300 ring-1 ring-teal-200 shadow-md hover:shadow-lg'
+                            : isInProgress
+                              ? 'border-teal-200 hover:border-teal-300 hover:shadow-md'
+                              : 'border-zinc-200 hover:border-zinc-300 hover:shadow-md'
+                      }`}
+                      whileHover={shouldReduce ? undefined : { y: -3 }}
+                    >
+                      {/* Top accent */}
+                      <div className={`absolute top-0 left-0 right-0 h-1 ${
+                        isCompleted ? 'bg-emerald-500' : isInProgress || isNextToRead ? 'bg-teal-500' : 'bg-zinc-200'
+                      }`} />
+
+                      {/* Next badge */}
+                      {isNextToRead && (
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                          <span className="text-[10px] text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200" style={{ fontWeight: 700 }}>
+                            Siguiente recomendado
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center shrink-0 ${
+                          isCompleted
+                            ? 'bg-emerald-50 border-emerald-200'
+                            : isInProgress || isNextToRead
+                              ? 'bg-teal-50 border-teal-200'
+                              : 'bg-zinc-50 border-zinc-200'
+                        }`}>
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          ) : isInProgress ? (
+                            <Clock className="w-5 h-5 text-teal-500" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-zinc-400" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm text-zinc-900 truncate" style={{ fontWeight: 700 }}>
+                              {s.title || 'Sin titulo'}
+                            </h3>
+                            {isCompleted && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0" style={{ fontWeight: 600 }}>
+                                <CheckCircle2 className="w-3 h-3" /> Leido
+                              </span>
+                            )}
+                            {isInProgress && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-700 border border-amber-200 shrink-0" style={{ fontWeight: 600 }}>
+                                <Clock className="w-3 h-3" /> En progreso
+                              </span>
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-sm text-gray-900 truncate">
-                                {s.title || 'Sin titulo'}
-                              </h3>
-                              {isCompleted && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                                  <CheckCircle2 size={10} /> Leido
-                                </span>
-                              )}
-                              {rs && !isCompleted && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-blue-50 text-blue-600 border border-blue-200 shrink-0">
-                                  <Clock size={10} /> En progreso
-                                </span>
-                              )}
-                            </div>
-                            {s.content_markdown && (
-                              <p className="text-xs text-gray-400 truncate max-w-md">
-                                {s.content_markdown.substring(0, 120)}
-                                {s.content_markdown.length > 120 ? '...' : ''}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-3 mt-2">
-                              <span className="text-[10px] text-gray-300">
-                                {new Date(s.created_at).toLocaleDateString('es-MX', {
-                                  day: '2-digit', month: 'short', year: 'numeric',
-                                })}
+
+                          {s.content_markdown && (
+                            <p className="text-xs text-zinc-400 truncate max-w-md mb-2">
+                              {s.content_markdown.substring(0, 120)}
+                              {s.content_markdown.length > 120 ? '...' : ''}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-zinc-400">
+                              {new Date(s.created_at).toLocaleDateString('es-MX', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                              })}
+                            </span>
+                            {rs?.time_spent_seconds != null && rs.time_spent_seconds > 0 && (
+                              <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {Math.round(rs.time_spent_seconds / 60)} min
                               </span>
-                              {rs?.time_spent_seconds != null && rs.time_spent_seconds > 0 && (
-                                <span className="text-[10px] text-gray-300 flex items-center gap-1">
-                                  <Clock size={9} />
-                                  {Math.round(rs.time_spent_seconds / 60)} min
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
 
-                        <ChevronRight size={14} className="text-gray-300 group-hover:text-teal-400 transition-colors shrink-0 mt-2 ml-3" />
+                        {/* Arrow */}
+                        <div className="w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1">
+                          <ArrowRight className="w-4 h-4 text-zinc-600" />
+                        </div>
                       </div>
-                    </div>
+
+                      {/* Progress bar for in-progress */}
+                      {isInProgress && rs?.time_spent_seconds && (
+                        <div className="mt-3 ml-14">
+                          <ProgressBar value={Math.min((rs.time_spent_seconds || 0) / 300, 0.9)} color="bg-teal-500" className="h-1.5" />
+                        </div>
+                      )}
+                    </motion.button>
                   </motion.div>
                 );
               })}

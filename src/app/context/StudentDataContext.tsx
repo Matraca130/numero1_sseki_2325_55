@@ -1,14 +1,45 @@
 // ============================================================
-// Axon — Student Data Context
-// Provides student data from Supabase to all views.
-// NOW connected to AuthContext — uses real user.id + token.
+// Axon — Student Data Context v2 (Coordinator commit)
+// ============================================================
+// MIGRATION: studentApi → platformApi for stats/daily/bkt
+// - Profile: constructed from AuthContext (no API call)
+// - Stats: platformApi.getStudentStatsReal() + adaptStats()
+// - DailyActivity: platformApi.getDailyActivities() + adapter
+// - BKT States: platformApi.getAllBktStates() (NEW)
+// - Legacy stubs: courseProgress=[], sessions=[], reviews=[]
+// - Legacy mutators: noop with console.warn
+//
+// BACKWARDS COMPATIBLE: All 9 existing consumers keep working.
+// NEW: bktStates, rawStats, recordSessionComplete
 // ============================================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import * as api from '@/app/services/studentApi';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+  useRef,
+} from 'react';
 import { useAuth } from '@/app/context/AuthContext';
+
+// ── Platform API (real backend) ──
+import {
+  getStudentStatsReal,
+  getDailyActivities,
+  getAllBktStates,
+} from '@/app/services/platformApi';
+import type {
+  StudentStatsRecord,
+  DailyActivityRecord,
+  BktStateRecord,
+} from '@/app/services/platformApi';
+
+// ── Frontend types (unchanged) ──
 import type {
   StudentProfile,
+  StudentPreferences,
   StudentStats,
   CourseProgress,
   DailyActivity,
@@ -18,6 +49,80 @@ import type {
 
 // @refresh reset
 
+// ────────────────────────────────────────────────────────────
+// Adapters: backend records → frontend types
+// ────────────────────────────────────────────────────────────
+
+function adaptStats(
+  raw: StudentStatsRecord | null,
+  rawDaily: DailyActivityRecord[]
+): StudentStats | null {
+  if (!raw) return null;
+
+  // Build weeklyActivity from daily activities (Mon=0 ... Sun=6)
+  const weekActivity = [0, 0, 0, 0, 0, 0, 0];
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() + mondayOffset);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  for (const d of rawDaily) {
+    const date = new Date(d.activity_date + 'T00:00:00');
+    if (date >= startOfWeek && date <= now) {
+      const idx = (date.getDay() + 6) % 7; // Mon=0, Sun=6
+      weekActivity[idx] += Math.round(d.time_spent_seconds / 60);
+    }
+  }
+
+  const totalMinutes = Math.round(raw.total_time_seconds / 60);
+  const totalSessions = raw.total_sessions ?? 0;
+  const streakDays = raw.current_streak || 1;
+
+  return {
+    totalStudyMinutes: totalMinutes,
+    totalSessions,
+    totalCardsReviewed: raw.total_reviews,
+    totalQuizzesCompleted: 0, // not tracked in student-stats table yet
+    currentStreak: raw.current_streak,
+    longestStreak: raw.longest_streak,
+    averageDailyMinutes:
+      totalSessions > 0 ? Math.round(totalMinutes / streakDays) : 0,
+    lastStudyDate: raw.last_study_date || '',
+    weeklyActivity: weekActivity,
+  };
+}
+
+function adaptDailyActivities(raw: DailyActivityRecord[]): DailyActivity[] {
+  return raw.map((r) => ({
+    date: r.activity_date,
+    studyMinutes: Math.round(r.time_spent_seconds / 60),
+    sessionsCount: r.sessions_count,
+    cardsReviewed: r.reviews_count,
+    retentionPercent:
+      r.correct_count > 0 && r.reviews_count > 0
+        ? Math.round((r.correct_count / r.reviews_count) * 100)
+        : undefined,
+  }));
+}
+
+// ────────────────────────────────────────────────────────────
+// Default preferences (used when constructing profile from auth)
+// ────────────────────────────────────────────────────────────
+
+const DEFAULT_PREFERENCES: StudentPreferences = {
+  theme: 'light',
+  language: 'pt-BR',
+  dailyGoalMinutes: 60,
+  notificationsEnabled: true,
+  spacedRepetitionAlgorithm: 'fsrs',
+};
+
+// ────────────────────────────────────────────────────────────
+// State & Context types
+// ────────────────────────────────────────────────────────────
+
 export interface StudentDataState {
   profile: StudentProfile | null;
   stats: StudentStats | null;
@@ -25,6 +130,9 @@ export interface StudentDataState {
   dailyActivity: DailyActivity[];
   sessions: StudySession[];
   reviews: FlashcardReview[];
+  // ── NEW (v2) ──
+  bktStates: BktStateRecord[];
+  rawStats: StudentStatsRecord | null;
 }
 
 interface StudentDataContextType extends StudentDataState {
@@ -34,12 +142,29 @@ interface StudentDataContextType extends StudentDataState {
   /** The resolved student ID being used (real user or fallback) */
   studentId: string | null;
   refresh: () => Promise<void>;
+  /** @deprecated Legacy — does nothing in v2 (no /seed endpoint) */
   seedAndLoad: () => Promise<void>;
+  /** @deprecated Legacy — profile comes from AuthContext now */
   updateProfile: (data: Partial<StudentProfile>) => Promise<void>;
+  /** @deprecated Legacy — stats come from platformApi now */
   updateStats: (data: Partial<StudentStats>) => Promise<void>;
+  /** @deprecated Legacy — use recordSessionComplete instead */
   logSession: (data: Omit<StudySession, 'studentId'>) => Promise<void>;
+  /** @deprecated Legacy — reviews are submitted via platformApi.submitReview */
   saveReviews: (reviews: FlashcardReview[]) => Promise<void>;
+  // ── NEW (v2) ──
+  /** Signals a session is complete; triggers data refresh (DB triggers handle writes) */
+  recordSessionComplete: (session: {
+    reviewsCount: number;
+    correctCount: number;
+    timeSpentSeconds: number;
+    type: 'flashcard' | 'quiz' | 'reading';
+  }) => Promise<void>;
 }
+
+// ────────────────────────────────────────────────────────────
+// Context + defaults
+// ────────────────────────────────────────────────────────────
 
 const StudentDataContext = createContext<StudentDataContextType>({
   profile: null,
@@ -48,6 +173,8 @@ const StudentDataContext = createContext<StudentDataContextType>({
   dailyActivity: [],
   sessions: [],
   reviews: [],
+  bktStates: [],
+  rawStats: null,
   loading: true,
   error: null,
   isConnected: false,
@@ -58,11 +185,15 @@ const StudentDataContext = createContext<StudentDataContextType>({
   updateStats: async () => {},
   logSession: async () => {},
   saveReviews: async () => {},
+  recordSessionComplete: async () => {},
 });
+
+// ────────────────────────────────────────────────────────────
+// Provider
+// ────────────────────────────────────────────────────────────
 
 export function StudentDataProvider({ children }: { children: ReactNode }) {
   const { user, status } = useAuth();
-  // Resolve: use authenticated user ID, or undefined (studentApi will fallback)
   const userId = user?.id || undefined;
 
   const [data, setData] = useState<StudentDataState>({
@@ -72,106 +203,150 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
     dailyActivity: [],
     sessions: [],
     reviews: [],
+    bktStates: [],
+    rawStats: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const hasAttemptedSeed = useRef(false);
-  // Track which userId we last loaded for, to reset on user change
+  const hasAttemptedLoad = useRef(false);
   const lastLoadedUserId = useRef<string | undefined>(undefined);
 
-  const fetchAll = useCallback(async (sid?: string): Promise<boolean> => {
+  // ── Construct profile from AuthContext (no API call) ──
+  const buildProfile = useCallback((): StudentProfile | null => {
+    if (!user) return null;
+    const meta = (user as any).user_metadata || {};
+    return {
+      id: user.id,
+      name:
+        meta.full_name ||
+        meta.name ||
+        (user.email ? user.email.split('@')[0] : 'Estudante'),
+      email: user.email || '',
+      avatarUrl: meta.avatar_url || undefined,
+      enrolledCourseIds: [],
+      createdAt: (user as any).created_at || new Date().toISOString(),
+      preferences: DEFAULT_PREFERENCES,
+    };
+  }, [user]);
+
+  // ── Main data fetch (platformApi) ──
+  const fetchAll = useCallback(async (): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
-      const [profile, stats, courseProgress, dailyActivity, sessions, reviews] =
+      const today = new Date().toISOString().slice(0, 10);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+        .toISOString()
+        .slice(0, 10);
+
+      const [rawStatsResult, rawDailyResult, bktResult] =
         await Promise.allSettled([
-          api.getProfile(sid),
-          api.getStats(sid),
-          api.getAllCourseProgress(sid),
-          api.getDailyActivity(sid),
-          api.getSessions(sid),
-          api.getReviews(sid),
+          getStudentStatsReal(),
+          getDailyActivities(thirtyDaysAgo, today, 90),
+          getAllBktStates(undefined, 500),
         ]);
 
-      const profileVal = profile.status === 'fulfilled' ? profile.value : null;
+      const rawStats =
+        rawStatsResult.status === 'fulfilled' ? rawStatsResult.value : null;
+      const rawDaily =
+        rawDailyResult.status === 'fulfilled' ? rawDailyResult.value : [];
+      const bktStates =
+        bktResult.status === 'fulfilled' ? bktResult.value : [];
+
+      // Adapt to frontend types
+      const stats = adaptStats(rawStats, rawDaily);
+      const dailyActivity = adaptDailyActivities(rawDaily);
+      const profile = buildProfile();
 
       setData({
-        profile: profileVal,
-        stats: stats.status === 'fulfilled' ? stats.value : null,
-        courseProgress: courseProgress.status === 'fulfilled' ? courseProgress.value : [],
-        dailyActivity: dailyActivity.status === 'fulfilled' ? dailyActivity.value : [],
-        sessions: sessions.status === 'fulfilled' ? sessions.value : [],
-        reviews: reviews.status === 'fulfilled' ? reviews.value : [],
+        profile,
+        stats,
+        courseProgress: [], // computed from static content tree, not API
+        dailyActivity,
+        sessions: [], // legacy — use getStudySessions() directly
+        reviews: [], // legacy — reviews submitted via platformApi.submitReview
+        bktStates,
+        rawStats,
       });
 
       setLoading(false);
-      return !!profileVal; // true if data exists
+      return !!profile;
     } catch (err: any) {
       console.error('[StudentDataContext] fetch error:', err);
-      setError(err.message);
+      setError(err.message || 'Error loading student data');
+      // Still set profile from auth even if API fails
+      setData((prev) => ({
+        ...prev,
+        profile: buildProfile(),
+      }));
       setLoading(false);
       return false;
     }
+  }, [buildProfile]);
+
+  // ── NEW: recordSessionComplete ──
+  const recordSessionComplete = useCallback(
+    async (_session: {
+      reviewsCount: number;
+      correctCount: number;
+      timeSpentSeconds: number;
+      type: 'flashcard' | 'quiz' | 'reading';
+    }) => {
+      // The DB triggers (trg_review_inserted + trg_study_session_completed)
+      // handle all writes to student-stats and daily-activities tables.
+      // We just need to refresh the data to reflect the updated state.
+      console.log(
+        '[StudentDataContext] Session complete, refreshing data...',
+        _session.type
+      );
+      await fetchAll();
+    },
+    [fetchAll]
+  );
+
+  // ── Legacy mutator stubs (backwards compat, no-op) ──
+  const seedAndLoad = useCallback(async () => {
+    console.warn(
+      '[StudentDataContext] seedAndLoad() is deprecated in v2. /seed endpoint does not exist in real backend.'
+    );
+    await fetchAll();
+  }, [fetchAll]);
+
+  const updateProfileFn = useCallback(
+    async (_data: Partial<StudentProfile>) => {
+      console.warn(
+        '[StudentDataContext] updateProfile() is deprecated in v2. Profile is derived from AuthContext.'
+      );
+    },
+    []
+  );
+
+  const updateStatsFn = useCallback(async (_data: Partial<StudentStats>) => {
+    console.warn(
+      '[StudentDataContext] updateStats() is deprecated in v2. Stats are managed by DB triggers.'
+    );
   }, []);
 
-  const seedAndLoad = useCallback(async () => {
-    // /seed endpoint removed — does not exist in real backend.
-    // Just reload all student data from real API endpoints.
-    await fetchAll(userId);
-  }, [fetchAll, userId]);
+  const logSessionFn = useCallback(
+    async (_session: Omit<StudySession, 'studentId'>) => {
+      console.warn(
+        '[StudentDataContext] logSession() is deprecated in v2. Use recordSessionComplete() or platformApi.createStudySession().'
+      );
+    },
+    []
+  );
 
-  const updateProfileFn = useCallback(async (updates: Partial<StudentProfile>) => {
-    try {
-      const updated = await api.updateProfile(updates, userId);
-      setData(prev => ({ ...prev, profile: { ...prev.profile!, ...updated } }));
-    } catch (err: any) {
-      console.error('[StudentDataContext] updateProfile error:', err);
-    }
-  }, [userId]);
+  const saveReviewsFn = useCallback(async (_reviews: FlashcardReview[]) => {
+    console.warn(
+      '[StudentDataContext] saveReviews() is deprecated in v2. Use platformApi.submitReview() directly.'
+    );
+  }, []);
 
-  const updateStatsFn = useCallback(async (updates: Partial<StudentStats>) => {
-    try {
-      const updated = await api.updateStats(updates, userId);
-      setData(prev => ({ ...prev, stats: { ...prev.stats!, ...updated } }));
-    } catch (err: any) {
-      console.error('[StudentDataContext] updateStats error:', err);
-    }
-  }, [userId]);
-
-  const logSessionFn = useCallback(async (session: Omit<StudySession, 'studentId'>) => {
-    try {
-      const created = await api.logSession(session, userId);
-      setData(prev => ({ ...prev, sessions: [created, ...prev.sessions] }));
-    } catch (err: any) {
-      console.error('[StudentDataContext] logSession error:', err);
-    }
-  }, [userId]);
-
-  const saveReviewsFn = useCallback(async (reviews: FlashcardReview[]) => {
-    try {
-      await api.saveReviews(reviews, userId);
-      setData(prev => ({
-        ...prev,
-        reviews: [
-          ...reviews,
-          ...prev.reviews.filter(r =>
-            !reviews.some(nr => nr.cardId === r.cardId && nr.topicId === r.topicId && nr.courseId === r.courseId)
-          ),
-        ],
-      }));
-    } catch (err: any) {
-      console.error('[StudentDataContext] saveReviews error:', err);
-    }
-  }, [userId]);
-
-  // Auto-load when authenticated user changes (or on mount)
+  // ── Auto-load on auth change ──
   useEffect(() => {
-    // Don't fetch until auth is resolved
     if (status === 'loading') return;
 
-    let cancelled = false;
-
-    // If user changed, reset state and seed flag
+    // Reset on user change
     if (lastLoadedUserId.current !== userId) {
       setData({
         profile: null,
@@ -180,30 +355,32 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         dailyActivity: [],
         sessions: [],
         reviews: [],
+        bktStates: [],
+        rawStats: null,
       });
-      hasAttemptedSeed.current = false;
+      hasAttemptedLoad.current = false;
       lastLoadedUserId.current = userId;
     }
 
     async function init() {
-      if (hasAttemptedSeed.current) return;
-      hasAttemptedSeed.current = true;
+      if (hasAttemptedLoad.current) return;
+      hasAttemptedLoad.current = true;
 
-      console.log(`[StudentDataContext] Loading data for user: ${userId || 'anonymous (fallback)'}`);
+      console.log(
+        `[StudentDataContext] Loading data for user: ${userId || 'anonymous (fallback)'}`
+      );
       try {
-        await fetchAll(userId);
-        // /seed endpoint removed — does not exist in real backend.
-        // Student data is loaded on-demand by each view via apiCall().
+        await fetchAll();
       } catch (err: any) {
         console.error('[StudentDataContext] init failed:', err);
         setLoading(false);
       }
     }
     init();
-    return () => { cancelled = true; };
   }, [fetchAll, userId, status]);
 
-  const isConnected = !!data.profile;
+  // isConnected = true if we have a user AND stats loaded from backend
+  const isConnected = !!data.profile && data.rawStats !== null;
 
   return (
     <StudentDataContext.Provider
@@ -213,12 +390,13 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         error,
         isConnected,
         studentId: userId || null,
-        refresh: async () => { await fetchAll(userId); },
+        refresh: fetchAll,
         seedAndLoad,
         updateProfile: updateProfileFn,
         updateStats: updateStatsFn,
         logSession: logSessionFn,
         saveReviews: saveReviewsFn,
+        recordSessionComplete,
       }}
     >
       {children}

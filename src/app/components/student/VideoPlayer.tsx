@@ -1,7 +1,7 @@
 // ============================================================
-// Axon — VideoPlayer (Student: video list + embed player + annotations)
+// Axon — VideoPlayer (Student: Mux video list + player + annotations)
 //
-// Shows active videos for a summary with YouTube/Vimeo embed.
+// Shows active Mux videos for a summary.
 // Route (FLAT): GET /videos?summary_id=xxx
 // Filters: is_active === true AND deleted_at IS NULL
 //
@@ -15,36 +15,23 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Video, Play, Clock, Loader2, ChevronDown, ChevronUp,
-  ExternalLink, X, PenLine, Trash2, Edit3, MessageSquare,
+  X, PenLine, Trash2, Edit3, MessageSquare,
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as api from '@/app/services/summariesApi';
 import * as studentApi from '@/app/services/studentSummariesApi';
 import type { Video as VideoType } from '@/app/services/summariesApi';
 import type { VideoNote } from '@/app/services/studentSummariesApi';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { VideoNoteForm } from './VideoNoteForm';
 import { AnnotationTimeline } from './AnnotationTimeline';
+import { MuxVideoPlayer } from '../video/MuxVideoPlayer';
 
 // ── Helper ────────────────────────────────────────────────
 function extractItems<T>(result: any): T[] {
   if (Array.isArray(result)) return result;
   if (result && Array.isArray(result.items)) return result.items;
   return [];
-}
-
-// ── YouTube ID extractor ──────────────────────────────────
-function extractYouTubeId(url: string): string | null {
-  const match = url.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
-  );
-  return match ? match[1] : null;
-}
-
-// ── Vimeo ID extractor ────────────────────────────────────
-function extractVimeoId(url: string): string | null {
-  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  return match ? match[1] : null;
 }
 
 // ── Duration formatter ────────────────────────────────────
@@ -63,15 +50,28 @@ function formatTimestamp(seconds: number | null): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// ── Mux thumbnail helper ──────────────────────────────────
+function getMuxThumb(v: VideoType): string | null {
+  if (v.mux_playback_id) {
+    return `https://image.mux.com/${v.mux_playback_id}/thumbnail.jpg?width=160&height=90&fit_mode=smartcrop`;
+  }
+  if (v.thumbnail_url) return v.thumbnail_url;
+  return null;
+}
+
 // ── Props ─────────────────────────────────────────────────
 interface VideoPlayerProps {
   summaryId: string;
+  /** Pre-fetched videos — if provided, skips the initial GET /videos call */
+  initialVideos?: VideoType[];
+  /** Called once videos are loaded (useful for parent badge counts) */
+  onVideosLoaded?: (count: number) => void;
 }
 
-export function VideoPlayer({ summaryId }: VideoPlayerProps) {
+export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoPlayerProps) {
   const { user } = useAuth();
-  const [videos, setVideos] = useState<VideoType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [videos, setVideos] = useState<VideoType[]>(initialVideos ?? []);
+  const [loading, setLoading] = useState(!initialVideos);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
 
@@ -88,8 +88,46 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
 
-  // ── Fetch videos ────────────────────────────────────────
-  const fetchVideos = useCallback(async () => {
+  // Stable ref for onVideosLoaded callback (avoids re-fetch cycles)
+  const onVideosLoadedRef = useRef(onVideosLoaded);
+  onVideosLoadedRef.current = onVideosLoaded;
+
+  // ── Fetch videos (single effect with cancellation) ──────
+  useEffect(() => {
+    // If parent provided pre-fetched videos, use those
+    if (initialVideos) {
+      setVideos(initialVideos);
+      setLoading(false);
+      onVideosLoadedRef.current?.(initialVideos.length);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    (async () => {
+      try {
+        const result = await api.getVideos(summaryId);
+        if (cancelled) return;
+        const items = extractItems<VideoType>(result)
+          .filter(v => v.is_active && !v.deleted_at)
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+        setVideos(items);
+        onVideosLoadedRef.current?.(items.length);
+      } catch {
+        if (cancelled) return;
+        setVideos([]);
+        onVideosLoadedRef.current?.(0);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [summaryId, initialVideos]);
+
+  // Manual refresh (used by UI refresh button if any)
+  const refreshVideos = useCallback(async () => {
     setLoading(true);
     try {
       const result = await api.getVideos(summaryId);
@@ -97,14 +135,14 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
         .filter(v => v.is_active && !v.deleted_at)
         .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
       setVideos(items);
+      onVideosLoadedRef.current?.(items.length);
     } catch {
       setVideos([]);
+      onVideosLoadedRef.current?.(0);
     } finally {
       setLoading(false);
     }
   }, [summaryId]);
-
-  useEffect(() => { fetchVideos(); }, [fetchVideos]);
 
   // ── Fetch annotations for active video ──────────────────
   const fetchNotes = useCallback(async (videoId: string) => {
@@ -146,26 +184,6 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [activeVideoId, seekToSeconds]);
-
-  // ── Build embed URL (with optional start time) ──────────
-  const getEmbedUrl = (v: VideoType, startSeconds?: number | null): string | null => {
-    const platform = (v.platform || '').toLowerCase();
-    if (platform === 'youtube') {
-      const ytId = extractYouTubeId(v.url);
-      if (!ytId) return null;
-      let url = `https://www.youtube.com/embed/${ytId}?rel=0&enablejsapi=1`;
-      if (startSeconds && startSeconds > 0) url += `&start=${startSeconds}`;
-      return url;
-    }
-    if (platform === 'vimeo') {
-      const vimeoId = extractVimeoId(v.url);
-      if (!vimeoId) return null;
-      let url = `https://player.vimeo.com/video/${vimeoId}`;
-      if (startSeconds && startSeconds > 0) url += `#t=${startSeconds}s`;
-      return url;
-    }
-    return null;
-  };
 
   // ── Seek handler ────────────────────────────────────────
   const handleSeek = useCallback((seconds: number) => {
@@ -227,7 +245,7 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
   if (!loading && videos.length === 0) return null;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-clip">
       {/* Header */}
       <button
         onClick={() => setExpanded(prev => !prev)}
@@ -257,7 +275,7 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            className="overflow-clip"
           >
             {loading ? (
               <div className="px-5 pb-4 flex items-center gap-2">
@@ -287,31 +305,28 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
 
                     {/* Player + Timeline side by side */}
                     <div className="flex gap-2">
-                      {/* Video embed */}
+                      {/* Video player */}
                       <div className="flex-1 min-w-0">
-                        {getEmbedUrl(activeVideo, seekToSeconds) ? (
-                          <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black">
-                            <iframe
-                              key={`${activeVideo.id}-${seekToSeconds}`}
-                              src={getEmbedUrl(activeVideo, seekToSeconds)!}
-                              title={activeVideo.title}
-                              className="absolute inset-0 w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                          </div>
+                        {activeVideo.status === 'ready' ? (
+                          <MuxVideoPlayer
+                            videoId={activeVideo.id}
+                            institutionId={user?.user_metadata?.institution_id || ''}
+                            title={activeVideo.title}
+                            thumbnailUrl={activeVideo.thumbnail_url}
+                          />
                         ) : (
                           <div className="w-full aspect-video rounded-lg bg-zinc-800 flex flex-col items-center justify-center gap-2">
-                            <Video size={24} className="text-zinc-600" />
-                            <a
-                              href={activeVideo.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
-                            >
-                              <ExternalLink size={10} />
-                              Abrir en nueva pestana
-                            </a>
+                            {activeVideo.status === 'errored' ? (
+                              <>
+                                <Video size={20} className="text-red-400" />
+                                <p className="text-[10px] text-zinc-500">Error al procesar video</p>
+                              </>
+                            ) : (
+                              <>
+                                <Loader2 size={20} className="text-amber-400 animate-spin" />
+                                <p className="text-[10px] text-zinc-500">Video procesandose...</p>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
@@ -388,7 +403,7 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
+                          className="overflow-clip"
                         >
                           <div className="mt-2 bg-zinc-800/40 border border-zinc-700/40 rounded-lg overflow-hidden">
                             <div className="px-3 py-2 border-b border-zinc-700/30 flex items-center justify-between">
@@ -481,7 +496,8 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
                 <div className="space-y-1">
                   {videos.map(v => {
                     const isActive = v.id === activeVideoId;
-                    const ytId = extractYouTubeId(v.url);
+                    const thumb = getMuxThumb(v);
+                    const isProcessing = v.status !== 'ready' && v.status !== 'errored';
                     return (
                       <button
                         key={v.id}
@@ -497,21 +513,27 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
                         )}
                       >
                         {/* Thumbnail or icon */}
-                        {ytId ? (
+                        {thumb ? (
                           <div className="relative w-16 h-10 rounded overflow-hidden bg-zinc-800 shrink-0">
                             <img
-                              src={`https://img.youtube.com/vi/${ytId}/default.jpg`}
+                              src={thumb}
                               alt={v.title}
                               className="w-full h-full object-cover"
                               loading="lazy"
                             />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Play size={12} className="text-white drop-shadow" />
-                            </div>
+                            {!isProcessing && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Play size={12} className="text-white drop-shadow" />
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="w-16 h-10 rounded bg-zinc-800 flex items-center justify-center shrink-0">
-                            <Play size={12} className="text-zinc-500" />
+                            {isProcessing ? (
+                              <Loader2 size={12} className="text-amber-400 animate-spin" />
+                            ) : (
+                              <Play size={12} className="text-zinc-500" />
+                            )}
                           </div>
                         )}
 
@@ -524,13 +546,17 @@ export function VideoPlayer({ summaryId }: VideoPlayerProps) {
                             {v.title}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] text-zinc-600 capitalize">
-                              {v.platform || 'video'}
-                            </span>
+                            <span className="text-[9px] text-violet-500">Mux</span>
                             {v.duration_seconds && v.duration_seconds > 0 && (
                               <span className="flex items-center gap-0.5 text-[9px] text-zinc-600">
                                 <Clock size={7} />
                                 {formatDuration(v.duration_seconds)}
+                              </span>
+                            )}
+                            {isProcessing && (
+                              <span className="text-[9px] text-amber-400 flex items-center gap-1">
+                                <Loader2 size={8} className="animate-spin" />
+                                Procesando
                               </span>
                             )}
                           </div>

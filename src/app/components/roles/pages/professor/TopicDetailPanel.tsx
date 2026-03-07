@@ -24,9 +24,11 @@ import type { Summary } from '@/app/services/summariesApi';
 interface TopicDetailPanelProps {
   topicId: string;
   topicName: string;
+  /** When provided, clicking a summary calls this instead of opening inline SummaryDetailView */
+  onEditSummary?: (summary: Summary, topicName: string) => void;
 }
 
-export function TopicDetailPanel({ topicId, topicName }: TopicDetailPanelProps) {
+export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDetailPanelProps) {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -327,7 +329,14 @@ export function TopicDetailPanel({ topicId, topicName }: TopicDetailPanelProps) 
                       ? 'border-red-200 bg-red-50/30 opacity-60'
                       : 'border-gray-200 hover:border-purple-200 hover:shadow-sm'
                   }`}
-                  onClick={() => s.is_active && setSelectedSummaryId(s.id)}
+                  onClick={() => {
+                    if (!s.is_active) return;
+                    if (onEditSummary) {
+                      onEditSummary(s, topicName);
+                    } else {
+                      setSelectedSummaryId(s.id);
+                    }
+                  }}
                 >
                   <div className="p-5">
                     <div className="flex items-start justify-between">

@@ -6,10 +6,6 @@
 // Content tree CRUD (semesters/sections/topics) → contentTreeApi.ts
 //
 // Uses centralized config from apiConfig.ts
-//
-// FIX RT-004 (2025-02-27):
-//   - Removed phantom fields from ReviewRequest
-//     (subtopic_id, keyword_id, response_time_ms don't exist in reviews table)
 // ============================================================
 
 import { realRequest, REAL_BACKEND_URL, getRealToken, ApiError, publicAnonKey } from '@/app/services/apiConfig';
@@ -61,6 +57,9 @@ export async function checkSlugAvailability(slug: string): Promise<{ available: 
 }
 
 export async function getInstitutionDashboardStats(instId: UUID): Promise<InstitutionDashboardStats> {
+  // This endpoint does NOT exist on the backend.
+  // Stats are computed client-side from memberships, courses, plans.
+  // We fetch memberships + institution to build a best-effort stats object.
   try {
     const [members, institution] = await Promise.allSettled([
       request<any[]>(`/memberships?institution_id=${instId}`),
@@ -285,7 +284,7 @@ export async function cancelSubscription(id: UUID): Promise<{ id: UUID; status: 
 // ============================================================
 
 export async function getAdminScopes(membershipId: UUID): Promise<AdminScope[]> {
-  return request<AdminScope[]>(`/admin-scopes?membership_id=${membershipId}`);
+  return request<AdminScope[]>(`/admin-scopes/membership/${membershipId}`);
 }
 
 export async function getAdminScope(id: UUID): Promise<AdminScope> {
@@ -297,7 +296,7 @@ export async function getAllAdminScopes(): Promise<AdminScope[]> {
 }
 
 export async function getInstitutionAdminScopes(instId: UUID): Promise<AdminScope[]> {
-  return request<AdminScope[]>(`/admin-scopes?institution_id=${instId}`);
+  return request<AdminScope[]>(`/institutions/${instId}/admin-scopes`);
 }
 
 export async function createAdminScope(data: {
@@ -319,7 +318,7 @@ export async function bulkReplaceAdminScopes(
   membershipId: UUID,
   scopes: Array<{ scope_type: string; scope_id?: UUID }>
 ): Promise<AdminScope[]> {
-  return request<AdminScope[]>(`/admin-scopes?membership_id=${membershipId}`, {
+  return request<AdminScope[]>(`/admin-scopes/membership/${membershipId}`, {
     method: 'PUT',
     body: JSON.stringify({ scopes }),
   });
@@ -330,7 +329,7 @@ export async function bulkReplaceAdminScopes(
 // ============================================================
 
 export async function getPlanAccessRules(planId: UUID): Promise<PlanAccessRule[]> {
-  return request<PlanAccessRule[]>(`/plan-access-rules?plan_id=${planId}`);
+  return request<PlanAccessRule[]>(`/institution-plans/${planId}/access-rules`);
 }
 
 export async function createAccessRules(data: {
@@ -353,7 +352,7 @@ export async function bulkReplaceAccessRules(
   planId: UUID,
   rules: Array<{ scope_type: string; scope_id: UUID }>
 ): Promise<PlanAccessRule[]> {
-  return request<PlanAccessRule[]>(`/plan-access-rules?plan_id=${planId}`, {
+  return request<PlanAccessRule[]>(`/institution-plans/${planId}/access-rules`, {
     method: 'PUT',
     body: JSON.stringify({ rules }),
   });
@@ -366,12 +365,15 @@ export async function checkAccess(
   institutionId: UUID
 ): Promise<AccessCheckResult> {
   return request<AccessCheckResult>(
-    `/check-access?user_id=${userId}&scope_type=${scopeType}&scope_id=${scopeId}&institution_id=${institutionId}`
+    `/check-access/${userId}/${scopeType}/${scopeId}?institution_id=${institutionId}`
   );
 }
 
 // ============================================================
 // CONTENT — Courses
+// NOTE: Semester/Section/Topic CRUD is handled by contentTreeApi.ts
+// (flat routes: /semesters, /sections, /topics with query params).
+// Do NOT duplicate here — those old nested routes were removed.
 // ============================================================
 
 export async function getCourses(institutionId?: UUID): Promise<Course[]> {
@@ -403,7 +405,7 @@ export async function deleteCourse(courseId: UUID): Promise<void> {
 }
 
 // ============================================================
-// CONTENT — Summaries
+// CONTENT — Summaries (content summaries, professor-authored)
 // ============================================================
 
 export async function getTopicSummaries(topicId: UUID): Promise<Summary[]> {
@@ -437,8 +439,8 @@ export async function deleteSummary(summaryId: UUID): Promise<void> {
 // CONTENT — Keywords
 // ============================================================
 
-export async function getKeywords(summaryId?: UUID): Promise<Keyword[]> {
-  const qs = summaryId ? `?summary_id=${summaryId}` : '';
+export async function getKeywords(institutionId?: UUID): Promise<Keyword[]> {
+  const qs = institutionId ? `?institution_id=${institutionId}` : '';
   return request<Keyword[]>(`/keywords${qs}`);
 }
 
@@ -480,7 +482,9 @@ export async function healthCheck(): Promise<{
 }
 
 // ============================================================
-// ADMIN — Student Management
+// ADMIN — Student Management (SQL + KV hybrid)
+// NOTE: routes-admin-students.tsx must be mounted in index.ts
+// for these to work. Verify deployment status.
 // ============================================================
 
 export interface AdminStudentListItem {
@@ -535,6 +539,7 @@ export async function getAdminStudents(
   if (options?.order) params.set('order', options.order);
   const qs = params.toString() ? `?${params}` : '';
 
+  // This endpoint may return { data, pagination } — handle specially
   const url = `${REAL_BACKEND_URL}/admin/students/${institutionId}${qs}`;
   const token = getRealToken();
   const res = await fetch(url, {
@@ -592,7 +597,7 @@ export async function changeStudentPlan(
 }
 
 // ============================================================
-// FLASHCARDS — Professor Management
+// FLASHCARDS — Professor Management (KV-based on real backend)
 // ============================================================
 
 export interface FlashcardCard {
@@ -641,30 +646,23 @@ export async function deleteFlashcard(cardId: UUID): Promise<void> {
 }
 
 // ============================================================
-// REVIEWS & SPACED REPETITION
-// FIX RT-004: Removed phantom fields that don't exist in reviews table
+// REVIEWS & SPACED REPETITION (KV-based on real backend)
 // ============================================================
 
 export interface ReviewRequest {
   session_id: UUID;
   item_id: UUID;
   instrument_type: 'flashcard' | 'quiz';
-  grade: 1 | 2 | 3 | 4;
+  grade: number;  // 0-5 per backend validation
 }
 
 export interface ReviewResponse {
-  review_log: any;
-  updated_bkt: any;
-  updated_card_fsrs: any | null;
-  feedback: {
-    delta_before: number;
-    delta_after: number;
-    color_before: string;
-    color_after: string;
-    mastery: number;
-    stability: number | null;
-    next_due: string | null;
-  };
+  id: string;
+  session_id: string;
+  item_id: string;
+  instrument_type: string;
+  grade: number;
+  created_at: string;
 }
 
 export async function submitReview(data: ReviewRequest): Promise<ReviewResponse> {
@@ -674,132 +672,168 @@ export async function submitReview(data: ReviewRequest): Promise<ReviewResponse>
   });
 }
 
-export async function getBktStates(options?: {
-  subtopic_id?: UUID;
-  keyword_id?: UUID;
-}): Promise<any> {
-  const params = new URLSearchParams();
-  if (options?.subtopic_id) params.set('subtopic_id', options.subtopic_id);
-  if (options?.keyword_id) params.set('keyword_id', options.keyword_id);
-  const qs = params.toString() ? `?${params}` : '';
-  return request(`/bkt${qs}`);
-}
+// Old getBktStates(/bkt) removed — replaced by typed getAllBktStates
+// using /bkt-states endpoint below.
 
-export async function getFsrsStates(cardId?: UUID): Promise<any> {
-  const qs = cardId ? `?card_id=${cardId}` : '';
-  return request(`/fsrs${qs}`);
-}
+// Old getFsrsStates(/fsrs) removed — replaced by the typed version
+// at the bottom of this file using /fsrs-states endpoint.
 
 // ============================================================
-// STUDENT STATS & DAILY ACTIVITIES (Dashboard — EV-7)
+// DAILY ACTIVITIES — Student daily study log (upsert by date)
+// GET  /daily-activities?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=90&offset=0
+// POST /daily-activities { activity_date, reviews_count?, ... }
 // ============================================================
-
-export interface StudentStatsRecord {
-  current_streak: number;
-  longest_streak: number;
-  total_reviews: number;
-  total_time_seconds: number;
-  mastery_average: number;
-}
 
 export interface DailyActivityRecord {
-  activity_date: string;
-  time_spent_seconds: number;
+  id?: string;
+  student_id?: string;
+  activity_date: string;   // YYYY-MM-DD
   reviews_count: number;
   correct_count: number;
-  cards_studied: number;
+  time_spent_seconds: number;
   sessions_count: number;
-}
-
-export async function getStudentStatsReal(): Promise<StudentStatsRecord> {
-  return request<StudentStatsRecord>('/student-stats');
+  created_at?: string;
+  updated_at?: string;
 }
 
 export async function getDailyActivities(
   from: string,
   to: string,
-  limit?: number
+  limit = 90,
+  offset = 0
 ): Promise<DailyActivityRecord[]> {
-  const params = new URLSearchParams({ from, to });
-  if (limit) params.set('limit', String(limit));
-  return request<DailyActivityRecord[]>(`/daily-activities?${params}`);
+  const params = new URLSearchParams({ from, to, limit: String(limit), offset: String(offset) });
+  const result = await request<DailyActivityRecord[]>(`/daily-activities?${params}`);
+  return result || [];
+}
+
+export async function upsertDailyActivity(
+  data: Partial<DailyActivityRecord> & { activity_date: string }
+): Promise<DailyActivityRecord> {
+  return request<DailyActivityRecord>('/daily-activities', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ============================================================
-// BKT STATES — Bulk fetch (Dashboard Mastery Overview)
+// STUDENT STATS — Lifetime aggregate stats (upsert per student)
+// GET  /student-stats → { data: { ... } } or { data: null }
+// POST /student-stats { current_streak?, longest_streak?, ... }
+// ============================================================
+
+export interface StudentStatsRecord {
+  id?: string;
+  student_id?: string;
+  current_streak: number;
+  longest_streak: number;
+  total_reviews: number;
+  total_time_seconds: number;
+  total_sessions: number;
+  last_study_date: string | null; // YYYY-MM-DD
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function getStudentStatsReal(): Promise<StudentStatsRecord | null> {
+  try {
+    return await request<StudentStatsRecord | null>('/student-stats');
+  } catch (err: any) {
+    if (err.status === 404) return null;
+    throw err;
+  }
+}
+
+export async function upsertStudentStats(
+  data: Partial<StudentStatsRecord>
+): Promise<StudentStatsRecord> {
+  return request<StudentStatsRecord>('/student-stats', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ============================================================
+// BKT STATES — Bayesian Knowledge Tracing per subtopic
+// GET  /bkt-states?subtopic_id=xxx&limit=100&offset=0
+// POST /bkt-states { subtopic_id, p_know?, ... }
 // ============================================================
 
 export interface BktStateRecord {
+  id?: string;
+  student_id?: string;
   subtopic_id: string;
-  keyword_id: string;
-  p_know: number;
-  p_learn: number;
-  p_guess: number;
-  p_slip: number;
+  p_know: number;       // [0,1]
+  p_transit: number;    // [0,1]
+  p_slip: number;       // [0,1]
+  p_guess: number;      // [0,1]
+  delta: number;
   total_attempts: number;
-  last_reviewed_at: string;
+  correct_attempts: number;
+  last_attempt_at?: string | null;  // accepted by POST but may not be in all rows
+  created_at?: string;
+  updated_at?: string;
 }
 
 export async function getAllBktStates(
   subtopicId?: string,
-  limit?: number
+  limit = 200,
+  offset = 0
 ): Promise<BktStateRecord[]> {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (subtopicId) params.set('subtopic_id', subtopicId);
-  if (limit) params.set('limit', String(limit));
-  const qs = params.toString() ? `?${params}` : '';
-  return request<BktStateRecord[]>(`/bkt${qs}`);
+  const result = await request<BktStateRecord[]>(`/bkt-states?${params}`);
+  return result || [];
+}
+
+export async function upsertBktState(
+  data: Partial<BktStateRecord> & { subtopic_id: string }
+): Promise<BktStateRecord> {
+  return request<BktStateRecord>('/bkt-states', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ============================================================
-// STUDY PLANS — CRUD (Schedule / Study Organizer)
+// STUDY PLANS — Plan management
+// GET  /study-plans?course_id=xxx&status=xxx → { data: { items: [...] } }
+// GET  /study-plans/:id → { data: { ... } }
+// POST /study-plans { name, course_id?, status? }
+// PUT  /study-plans/:id { name?, status? }
+// DELETE /study-plans/:id
 // ============================================================
 
 export interface StudyPlanRecord {
   id: string;
-  user_id: string;
+  student_id?: string;
   name: string;
+  course_id?: string | null;
   status: 'active' | 'completed' | 'archived';
-  course_id?: string;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface StudyPlanTaskRecord {
-  id: string;
-  study_plan_id: string;
-  item_type: string;
-  item_id: string;
-  status: 'pending' | 'completed' | 'skipped';
-  order_index: number;
-  completed_at: string | null;
-  created_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export async function getStudyPlans(
-  status?: 'active' | 'completed' | 'archived'
+  courseId?: string,
+  status?: string
 ): Promise<StudyPlanRecord[]> {
   const params = new URLSearchParams();
+  if (courseId) params.set('course_id', courseId);
   if (status) params.set('status', status);
   const qs = params.toString() ? `?${params}` : '';
-  return request<StudyPlanRecord[]>(`/study-plans${qs}`);
+  const result = await request<{ items: StudyPlanRecord[] } | StudyPlanRecord[]>(`/study-plans${qs}`);
+  if (Array.isArray(result)) return result;
+  return (result as any)?.items || [];
 }
 
-export async function getStudyPlanTasks(
-  studyPlanId: string
-): Promise<StudyPlanTaskRecord[]> {
-  return request<StudyPlanTaskRecord[]>(
-    `/study-plan-tasks?study_plan_id=${studyPlanId}`
-  );
+export async function getStudyPlan(planId: string): Promise<StudyPlanRecord> {
+  return request<StudyPlanRecord>(`/study-plans/${planId}`);
 }
 
-export async function createStudyPlan(data: {
-  name: string;
-  status?: string;
-  course_id?: string;
-  metadata?: Record<string, any>;
-}): Promise<StudyPlanRecord> {
+export async function createStudyPlan(
+  data: { name: string; course_id?: string; status?: string }
+): Promise<StudyPlanRecord> {
   return request<StudyPlanRecord>('/study-plans', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -808,7 +842,7 @@ export async function createStudyPlan(data: {
 
 export async function updateStudyPlan(
   planId: string,
-  data: Partial<StudyPlanRecord>
+  data: { name?: string; status?: string }
 ): Promise<StudyPlanRecord> {
   return request<StudyPlanRecord>(`/study-plans/${planId}`, {
     method: 'PUT',
@@ -820,13 +854,45 @@ export async function deleteStudyPlan(planId: string): Promise<void> {
   return request(`/study-plans/${planId}`, { method: 'DELETE' });
 }
 
-export async function createStudyPlanTask(data: {
+// ============================================================
+// STUDY PLAN TASKS — Task management within a plan
+// GET  /study-plan-tasks?study_plan_id=xxx → { data: { items: [...] } }
+// POST /study-plan-tasks { study_plan_id, item_type, item_id, status?, order_index? }
+// PUT  /study-plan-tasks/:id { status?, order_index?, completed_at? }
+// DELETE /study-plan-tasks/:id
+// ============================================================
+
+export interface StudyPlanTaskRecord {
+  id: string;
   study_plan_id: string;
-  item_type: string;
-  item_id: string;
-  status?: string;
-  order_index?: number;
-}): Promise<StudyPlanTaskRecord> {
+  item_type: string;   // flashcard, quiz, video, resumo, 3d, reading
+  item_id: string;     // topic ID or item reference
+  status: 'pending' | 'completed' | 'skipped';
+  order_index: number;
+  completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function getStudyPlanTasks(
+  studyPlanId: string
+): Promise<StudyPlanTaskRecord[]> {
+  const result = await request<{ items: StudyPlanTaskRecord[] } | StudyPlanTaskRecord[]>(
+    `/study-plan-tasks?study_plan_id=${studyPlanId}`
+  );
+  if (Array.isArray(result)) return result;
+  return (result as any)?.items || [];
+}
+
+export async function createStudyPlanTask(
+  data: {
+    study_plan_id: string;
+    item_type: string;
+    item_id: string;
+    status?: string;
+    order_index?: number;
+  }
+): Promise<StudyPlanTaskRecord> {
   return request<StudyPlanTaskRecord>('/study-plan-tasks', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -835,7 +901,7 @@ export async function createStudyPlanTask(data: {
 
 export async function updateStudyPlanTask(
   taskId: string,
-  data: Partial<StudyPlanTaskRecord>
+  data: { status?: string; order_index?: number; completed_at?: string | null }
 ): Promise<StudyPlanTaskRecord> {
   return request<StudyPlanTaskRecord>(`/study-plan-tasks/${taskId}`, {
     method: 'PUT',
@@ -847,12 +913,126 @@ export async function deleteStudyPlanTask(taskId: string): Promise<void> {
   return request(`/study-plan-tasks/${taskId}`, { method: 'DELETE' });
 }
 
+// ── Reorder (shared endpoint for multiple tables) ──
+
 export async function reorderItems(
   table: string,
-  items: Array<{ id: string; order_index: number }>
+  items: { id: string; order_index: number }[]
 ): Promise<void> {
-  return request(`/reorder`, {
-    method: 'POST',
+  return request('/reorder', {
+    method: 'PUT',
     body: JSON.stringify({ table, items }),
+  });
+}
+
+// ============================================================
+// STUDY SESSIONS — Track study session lifecycle
+// POST /study-sessions { session_type, course_id? }
+// PUT  /study-sessions/:id { completed_at?, total_reviews?, correct_reviews? }
+// GET  /study-sessions?course_id=xxx&session_type=xxx
+// ============================================================
+
+export interface StudySessionRecord {
+  id: string;
+  student_id?: string;
+  course_id?: string | null;
+  session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
+  started_at: string;
+  completed_at?: string | null;   // null = in progress
+  total_reviews: number;
+  correct_reviews: number;
+  created_at?: string;
+}
+
+export async function createStudySession(
+  data: { session_type: string; course_id?: string }
+): Promise<StudySessionRecord> {
+  return request<StudySessionRecord>('/study-sessions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateStudySession(
+  sessionId: string,
+  data: { completed_at?: string; total_reviews?: number; correct_reviews?: number }
+): Promise<StudySessionRecord> {
+  return request<StudySessionRecord>(`/study-sessions/${sessionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getStudySessions(
+  options?: { course_id?: string; session_type?: string }
+): Promise<StudySessionRecord[]> {
+  const params = new URLSearchParams();
+  if (options?.course_id) params.set('course_id', options.course_id);
+  if (options?.session_type) params.set('session_type', options.session_type);
+  const qs = params.toString() ? `?${params}` : '';
+  const result = await request<{ items: StudySessionRecord[] } | StudySessionRecord[]>(
+    `/study-sessions${qs}`
+  );
+  if (Array.isArray(result)) return result;
+  return (result as any)?.items || [];
+}
+
+// ============================================================
+// FSRS STATES — Free Spaced Repetition Scheduler states
+// GET  /fsrs-states?flashcard_id=xxx&state=xxx&due_before=ISO&limit=100&offset=0
+// POST /fsrs-states { flashcard_id, stability?, difficulty?, due_at?, last_review_at?, reps?, lapses?, state? }
+// ============================================================
+
+export interface FsrsStateRecord {
+  id: string;
+  student_id?: string;
+  flashcard_id?: string | null;   // FK -> flashcards.id (nullable in DB)
+  stability: number;
+  difficulty: number;
+  reps: number;
+  lapses: number;
+  state: 'new' | 'learning' | 'review' | 'relearning';
+  due?: string | null;            // TIMESTAMPTZ, next review date
+  last_review?: string | null;    // TIMESTAMPTZ
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function getFsrsStates(options?: {
+  flashcard_id?: string;
+  state?: 'new' | 'learning' | 'review' | 'relearning';
+  due_before?: string;  // ISO timestamp
+  limit?: number;
+  offset?: number;
+}): Promise<FsrsStateRecord[]> {
+  const params = new URLSearchParams();
+  if (options?.flashcard_id) params.set('flashcard_id', options.flashcard_id);
+  if (options?.state) params.set('state', options.state);
+  if (options?.due_before) params.set('due_before', options.due_before);
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.offset) params.set('offset', String(options.offset));
+  const qs = params.toString() ? `?${params}` : '';
+  const result = await request<{ items: FsrsStateRecord[] } | FsrsStateRecord[]>(
+    `/fsrs-states${qs}`
+  );
+  if (Array.isArray(result)) return result;
+  return (result as any)?.items || [];
+}
+
+export async function upsertFsrsState(
+  data: {
+    flashcard_id: string;
+    stability?: number;
+    difficulty?: number;
+    due_at?: string;
+    last_review_at?: string;
+    reps?: number;
+    lapses?: number;
+    state?: 'new' | 'learning' | 'review' | 'relearning';
+  }
+): Promise<FsrsStateRecord> {
+  return request<FsrsStateRecord>('/fsrs-states', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }

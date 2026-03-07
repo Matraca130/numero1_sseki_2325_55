@@ -5,9 +5,9 @@
 // Routes (all FLAT):
 //   GET    /kw-prof-notes?keyword_id=xxx
 //   POST   /kw-prof-notes { keyword_id, note }  — UPSERT on (professor_id, keyword_id)
-//   PUT    /kw-prof-notes/:id { note }
 //   DELETE /kw-prof-notes/:id                    — hard delete
 //
+// NO PUT route — updates go through POST (UPSERT).
 // Schema: id, keyword_id, professor_id, note(text), created_at, updated_at
 // NO "is_visible", NO "note_text". Field = "note". All notes visible.
 // ============================================================
@@ -103,14 +103,18 @@ export function ProfessorNotesPanel({ keywordId, keywordName }: ProfessorNotesPa
     }
   };
 
-  // ── Update note via PUT ─────────────────────────────────
+  // ── Update note via POST UPSERT ──────────────────────────
+  // Backend has no PUT route — POST upserts on (professor_id, keyword_id)
   const handleUpdate = async () => {
     if (!editingId || !editText.trim() || editText.length > 1000) return;
     setSaving(true);
     try {
-      await apiCall(`/kw-prof-notes/${editingId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ note: editText.trim() }),
+      await apiCall('/kw-prof-notes', {
+        method: 'POST',
+        body: JSON.stringify({
+          keyword_id: keywordId,
+          note: editText.trim(),
+        }),
       });
       toast.success('Nota actualizada');
       setEditingId(null);

@@ -120,7 +120,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
 
   // ── Delete ──
   const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('¿Eliminar este modelo 3D? (Se puede restaurar despues)')) return;
+    if (!confirm('\u00bfEliminar este modelo 3D? (Se puede restaurar despues)')) return;
     try {
       await deleteModel3D(id);
       toast.success('Modelo eliminado');
@@ -472,7 +472,7 @@ function ModelCard({
                   <p className="text-gray-600 mt-0.5">{model.file_format || 'Sin especificar'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-400">Tamaño:</span>
+                  <span className="text-gray-400">Tama\u00f1o:</span>
                   <p className="text-gray-600 mt-0.5">
                     {model.file_size_bytes ? formatFileSize(model.file_size_bytes) : 'Desconocido'}
                   </p>

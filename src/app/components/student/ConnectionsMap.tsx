@@ -170,9 +170,29 @@ export function ConnectionsMap({
           return (
             <g
               key={`node-${node.id}`}
-              className="cursor-pointer"
-              onClick={() => onNodeClick?.(node.id)}
+              className="cursor-pointer group"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('[ConnectionsMap] Node clicked:', node.id, node.name);
+                onNodeClick?.(node.id);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onNodeClick?.(node.id);
+                }
+              }}
             >
+              {/* Invisible larger hit area */}
+              <circle
+                cx={node.x}
+                cy={node.y}
+                r={26}
+                fill="transparent"
+                className="pointer-events-auto"
+              />
               <circle
                 cx={node.x}
                 cy={node.y}
@@ -180,8 +200,11 @@ export function ConnectionsMap({
                 fill={colorHexLight[nodeColor]}
                 stroke={colorHex[nodeColor]}
                 strokeWidth={1.5}
-                className="transition-all hover:opacity-80"
-              />
+                className="transition-all duration-150"
+              >
+                <animate attributeName="r" from="16" to="18" dur="0.15s" begin="mouseover" fill="freeze" />
+                <animate attributeName="r" from="18" to="16" dur="0.15s" begin="mouseout" fill="freeze" />
+              </circle>
               {/* Cross-summary indicator: small external arrow */}
               {node.isCrossSummary && (
                 <circle
