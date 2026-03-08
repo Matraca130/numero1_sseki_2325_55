@@ -274,3 +274,7 @@ export function FlashcardPreview({
 }
 
 export default FlashcardPreview;
+
+// Re-exported for backward compat — FlashcardsManager imports these from here.
+// They now live in lib/flashcard-utils.ts (moved in v4.4.3).
+export { extractImageUrl, extractText } from '@/app/lib/flashcard-utils';
