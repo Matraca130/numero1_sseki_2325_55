@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import { Course, Topic, courses } from '@/app/data/courses';
+import type { Course, Topic } from '@/app/data/courses';
 
 // @refresh reset
 
