@@ -19,6 +19,7 @@ import type { SavedAnswer } from '@/app/components/student/quiz-types';
 import { updateBKT } from '@/app/lib/bkt-engine';
 import { logger } from '@/app/lib/logger';
 import { checkAnswer } from '@/app/lib/quiz-utils';
+import { normalizeQuestionType, normalizeDifficulty } from '@/app/services/quizConstants';
 
 // ── Return type ──────────────────────────────────────────
 
@@ -94,6 +95,14 @@ export function useQuizSession(
   useEffect(() => {
     let cancelled = false;
 
+    // Reset state when quizId changes (e.g. adaptive quiz navigation)
+    setSavedAnswers({});
+    bktMasteryRef.current = {};
+    bktMaxMasteryRef.current = {};
+    sessionClosedRef.current = false;
+    setBackendWarning(null);
+    setPhase('loading');
+
     (async () => {
       try {
         // 1. Create study session (always)
@@ -141,8 +150,21 @@ export function useQuizSession(
           return; // Already initialized via preloaded
         }
 
-        // 3. Filter active + shuffle
-        items = items.filter((q) => q.is_active);
+        // 3. Filter active + normalize + shuffle
+        // FIX H-CRIT-1: Normalize question_type and difficulty at the DATA LAYER
+        // so all downstream logic (QuestionRenderer branching, checkAnswer,
+        // QuizTaker canSubmit/handleSubmit) uses canonical values.
+        // Without this, AI-generated questions with "multiple_choice" type
+        // would not match === 'mcq' checks and render as open text inputs.
+        items = items
+          .filter((q) => q.is_active)
+          .map((q) => ({
+            ...q,
+            question_type: normalizeQuestionType(q.question_type),
+            difficulty: typeof q.difficulty === 'string'
+              ? ({ easy: 1, medium: 2, hard: 3 }[q.difficulty as string] ?? 2)
+              : q.difficulty,
+          }));
         items = items.sort(() => Math.random() - 0.5);
 
         if (cancelled) return;
@@ -220,19 +242,16 @@ export function useQuizSession(
     bktMaxMasteryRef.current[subtopicId] = Math.max(prevMax, newP);
 
     try {
-      await apiCall('/bkt-states', {
-        method: 'POST',
-        body: JSON.stringify({
-          subtopic_id: subtopicId,
-          p_know: newP,
-          p_transit: 0.1,
-          p_slip: 0.1,
-          p_guess: 0.25,
-          delta: newP - prevMastery,
-          total_attempts: 1,
-          correct_attempts: isCorrect ? 1 : 0,
-          last_attempt_at: new Date().toISOString(),
-        }),
+      await quizApi.upsertBktState({
+        subtopic_id: subtopicId,
+        p_know: newP,
+        p_transit: 0.1,
+        p_slip: 0.1,
+        p_guess: 0.25,
+        delta: newP - prevMastery,
+        total_attempts: 1,
+        correct_attempts: isCorrect ? 1 : 0,
+        last_attempt_at: new Date().toISOString(),
       });
     } catch (err) {
       logger.error('[QuizTaker] BKT update failed (non-blocking):', err);
@@ -279,14 +298,11 @@ export function useQuizSession(
         .catch((err) => logger.error('[QuizTaker] Attempt error:', err));
 
       const reviewPromise = sessionId
-        ? apiCall('/reviews', {
-            method: 'POST',
-            body: JSON.stringify({
-              session_id: sessionId,
-              item_id: question.id,
-              instrument_type: 'quiz',
-              grade: correct ? 1 : 0,
-            }),
+        ? quizApi.createReview({
+            session_id: sessionId,
+            item_id: question.id,
+            instrument_type: 'quiz',
+            grade: correct ? 1 : 0,
           }).catch((err) => logger.error('[QuizTaker] Review error:', err))
         : Promise.resolve();
 
@@ -336,11 +352,18 @@ export function useQuizSession(
     bktMaxMasteryRef.current = {};
     sessionClosedRef.current = false;
     preloadedUsedRef.current = false;
+    setBackendWarning(null);
     setPhase('session');
     quizApi
       .createStudySession({ session_type: 'quiz' })
       .then((s) => setSessionId(s.id))
-      .catch((err) => logger.error('[QuizTaker] New session error:', err));
+      .catch((err) => {
+        // FIX H4-1: Show warning instead of silent fail
+        logger.error('[QuizTaker] New session error:', err);
+        setBackendWarning(
+          'No se pudo crear una nueva sesion de estudio. Tus respuestas se registraran sin sesion asociada.',
+        );
+      });
   }, []);
 
   // ── Review session ──────────────────────────────────────
