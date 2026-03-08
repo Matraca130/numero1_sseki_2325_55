@@ -13,12 +13,16 @@ import { Outlet } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/app/contexts/AuthContext';
 import { queryClient } from '@/app/lib/queryClient';
+import { Toaster } from 'sonner';
 
 export function AuthLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Outlet />
+        {/* FE-BUG-005: Toaster moved here from App.tsx so it has access
+            to router context (useNavigate) and auth context. */}
+        <Toaster position="bottom-right" richColors closeButton />
       </AuthProvider>
     </QueryClientProvider>
   );
