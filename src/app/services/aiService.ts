@@ -57,21 +57,77 @@ export interface GeneratedFlashcard {
   id?: string;
   front: string;
   back: string;
+  summary_id?: string;
   keyword_id?: string;
   subtopic_id?: string;
   source?: string;
+  created_by?: string;
+  created_at?: string;
   _meta?: { model: string; tokens: any; related?: boolean };
-  _smart?: any;
+  _smart?: SmartTargetMeta;
 }
 
 export interface GeneratedQuestion {
   id?: string;
+  summary_id?: string;
+  keyword_id?: string;
+  subtopic_id?: string;
   question_type: string;
   question: string;
   options: string[];
   correct_answer: string;
   explanation: string;
   difficulty: string;
+  source?: string;
+  created_by?: string;
+  created_at?: string;
+  _meta?: { model: string; tokens: any; had_wrong_answer?: boolean };
+  _smart?: SmartTargetMeta;
+}
+
+/** Metadata from backend's smart targeting system (generate-smart.ts) */
+export interface SmartTargetMeta {
+  target_keyword: string;
+  target_summary: string;
+  target_subtopic: string | null;
+  p_know: number;
+  need_score: number;
+  primary_reason:
+    | 'new_concept'
+    | 'low_mastery'
+    | 'needs_review'
+    | 'moderate_mastery'
+    | 'reinforcement';
+  was_deduped?: boolean;
+  candidates_evaluated?: number;
+}
+
+/** Bulk response from generate-smart with count>1 (Fase 8E) */
+export interface SmartBulkResponse {
+  items: Array<{
+    type: string;
+    id: string;
+    keyword_id: string;
+    keyword_name: string;
+    summary_id: string;
+    _smart: SmartTargetMeta;
+  }>;
+  errors: Array<{
+    keyword_id: string;
+    keyword_name: string;
+    error: string;
+  }>;
+  _meta: {
+    model: string;
+    action: string;
+    summary_id?: string;
+    quiz_id?: string;
+    total_attempted: number;
+    total_generated: number;
+    total_failed: number;
+    total_targets_available: number;
+    tokens: { input: number; output: number };
+  };
 }
 
 // ── Generate request params (matches backend /ai/generate) ──
@@ -98,33 +154,10 @@ function handleRateLimitError(err: Error): never {
   throw err;
 }
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // RAG CHAT — POST /ai/rag-chat
-//
-// Backend contract (chat.ts on main):
-//   Request body:
-//     message: string        — REQUIRED, max 2000 chars
-//     summary_id?: UUID      — optional, scopes vector search to one summary
-//     history?: Array<{role, content}> — optional, max 6 entries
-//     strategy?: string      — optional: auto|standard|multi_query|hyde
-//
-//   Response:
-//     response: string       — the AI reply (NOT "reply"!)
-//     sources: [...]         — matched chunks
-//     tokens: {input, output}
-//     log_id: string         — for rag-feedback
-//     _search: {...}         — search metadata
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
-/**
- * Chat with AI using RAG context.
- * Backend: POST /ai/rag-chat
- *
- * @param message - The user's current message (string, max 2000 chars)
- * @param opts.summaryId - Optional UUID to scope search to one summary
- * @param opts.history - Optional conversation history (max 6 entries)
- * @param opts.strategy - Optional retrieval strategy
- */
 export async function chat(
   message: string,
   opts?: {
@@ -148,9 +181,6 @@ export async function chat(
   }
 }
 
-/**
- * Convenience: get just the text response from chat.
- */
 export async function chatText(
   message: string,
   opts?: {
@@ -163,17 +193,10 @@ export async function chatText(
   return result.response;
 }
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // AI GENERATE — POST /ai/generate
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
-/**
- * Generate a flashcard via AI.
- * Backend: POST /ai/generate (action: 'flashcard')
- *
- * The backend generates ONE flashcard per call and persists it to DB.
- * Returns the full flashcard row with id, front, back, etc.
- */
 export async function generateFlashcard(
   params: {
     summaryId: string;
@@ -201,10 +224,6 @@ export async function generateFlashcard(
   }
 }
 
-/**
- * Generate a quiz question via AI.
- * Backend: POST /ai/generate (action: 'quiz_question')
- */
 export async function generateQuizQuestion(
   params: {
     summaryId: string;
@@ -232,52 +251,58 @@ export async function generateQuizQuestion(
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// AI GENERATE-SMART — POST /ai/generate-smart
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// AI GENERATE-SMART — POST /ai/generate-smart (Fase 8A + 8E)
+// ════════════════════════════════════════════════════════
 
 /**
  * Smart generation with gap analysis.
- * Backend: POST /ai/generate-smart (Fase 8A)
+ * Backend: POST /ai/generate-smart (Fase 8A + 8E)
  *
  * Backend auto-selects the best keyword to study based on
- * BKT mastery profile. Does NOT require summary_id — the
- * server chooses the best target.
+ * BKT mastery profile via RPC get_smart_generate_target().
  *
- * Body: { action, institution_id?, related? }
+ * Fase 8E additions:
+ *   - summary_id: scopes RPC to one summary (subtopic-level targeting)
+ *   - count: generates 1-10 items in one request (sequential Gemini)
+ *   - quiz_id: auto-links quiz_questions to a quiz entity
+ *
+ * When count=1: returns single item (GeneratedFlashcard | GeneratedQuestion)
+ * When count>1: returns SmartBulkResponse with items[] + errors[]
  */
 export async function generateSmart(
   params: {
     action?: 'flashcard' | 'quiz_question';
     institutionId?: string;
+    summaryId?: string;
     related?: boolean;
     count?: number;
+    quizId?: string;
   } = {}
 ): Promise<any> {
   try {
+    const body: Record<string, unknown> = {
+      action: params.action || 'flashcard',
+    };
+    if (params.institutionId) body.institution_id = params.institutionId;
+    if (params.summaryId) body.summary_id = params.summaryId;
+    if (params.related !== undefined) body.related = params.related;
+    if (params.count && params.count > 1) body.count = params.count;
+    if (params.quizId) body.quiz_id = params.quizId;
+
     return await apiCall<any>('/ai/generate-smart', {
       method: 'POST',
-      body: JSON.stringify({
-        action: params.action || 'flashcard',
-        institution_id: params.institutionId,
-        related: params.related,
-      }),
+      body: JSON.stringify(body),
     });
   } catch (err: any) {
     handleRateLimitError(err);
   }
 }
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // AI PRE-GENERATE — POST /ai/pre-generate (Fase 8D)
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
-/**
- * Bulk pre-generate AI content for a summary.
- * Professor/admin only. Up to 5 items per call.
- *
- * Body: { summary_id, action, count? }
- */
 export async function preGenerate(
   params: {
     summaryId: string;
@@ -303,14 +328,10 @@ export async function preGenerate(
   }
 }
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // EXPLAIN — convenience wrapper over rag-chat
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
-/**
- * Explain a concept using AI with RAG context.
- * Sends a single message to /ai/rag-chat.
- */
 export async function explainConcept(
   concept: string,
   summaryId?: string
@@ -320,14 +341,10 @@ export async function explainConcept(
   return result.response;
 }
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // RAG FEEDBACK — PATCH /ai/rag-feedback
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
-/**
- * Submit RAG feedback (thumbs up/down on AI responses).
- * Backend: PATCH /ai/rag-feedback (T-03)
- */
 export async function submitRagFeedback(
   params: {
     logId: string;
@@ -345,10 +362,6 @@ export async function submitRagFeedback(
   });
 }
 
-/**
- * Get available AI models.
- * Backend: GET /ai/list-models
- */
 export async function listModels(): Promise<any> {
   return apiCall<any>('/ai/list-models');
 }
