@@ -30,10 +30,12 @@ interface UseTopicProgressRawResult {
 /**
  * @param topicId - topic UUID (null = disabled)
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function useTopicProgressRawQuery(
   topicId: string | null,
 ): UseTopicProgressRawResult {
-  const enabled = !!topicId;
+  const enabled = !!topicId && UUID_RE.test(topicId);
 
   const { data, isLoading, error, refetch } = useQuery<TopicProgressResponse>({
     queryKey: queryKeys.topicProgress(topicId ?? ''),
