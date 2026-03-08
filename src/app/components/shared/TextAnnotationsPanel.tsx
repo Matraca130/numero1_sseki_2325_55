@@ -14,7 +14,7 @@ import clsx from 'clsx';
 // ─── Text Annotations Panel ──────────────────────────────────────────────────
 //
 // Panel lateral/inferior para anotações de texto (destaques, notas, perguntas
-// ao MedBot). Extraído de SummarySessionNew.tsx para legibilidade.
+// ao MedBot).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface TextAnnotationEntry {

@@ -7,7 +7,7 @@ import type { AIQuestion } from '@/app/types/legacy-stubs';
 // ─── AI Question Item (FAQ Style) ───────────────────────────────────────────
 //
 // Accordion item para perguntas frequentes dentro do pop-up
-// de keyword. Extraído de SummarySessionNew.tsx para reutilização.
+// de keyword.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function AIQuestionItem({ question }: { question: AIQuestion }) {

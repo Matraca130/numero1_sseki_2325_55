@@ -97,7 +97,6 @@ export const fileStructure = {
     QuizView:             '/src/app/components/content/QuizView.tsx',             // Quiz: multiple choice + write-in + fill-blank
     ThreeDView:           '/src/app/components/content/ThreeDView.tsx',           // Atlas 3D: modelos anatomicos
     ScheduleView:         '/src/app/components/content/ScheduleView.tsx',         // Cronograma de estudio
-    SummarySessionNew:    '/src/app/components/content/SummarySessionNew.tsx',    // Lector de resumo + anotaciones + IA
     ReviewSessionView:    '/src/app/components/content/ReviewSessionView.tsx',    // Sesion de revision espaciada
     StudyDashboardsView:  '/src/app/components/content/StudyDashboardsView.tsx',  // Dashboards de estudio
     KnowledgeHeatmapView: '/src/app/components/content/KnowledgeHeatmapView.tsx', // Heatmap de conocimiento
@@ -502,7 +501,7 @@ export const conventions = {
 
   /** Deep token usage — componentes que usan helpers del design system */
   deepTokenUsage: {
-    iconClasses: ['ThreeDView', 'SummarySessionNew', 'FlashcardView'],
+    iconClasses: ['ThreeDView', 'FlashcardView'],
     ctaButtonClasses: ['ThreeDView', 'FlashcardView'],
     kpiCardClasses: ['ReviewSessionView'],
     iconBadgeClasses: ['ReviewSessionView', 'QuizView', 'StudyHubView'],
