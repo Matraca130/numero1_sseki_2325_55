@@ -233,6 +233,7 @@ export function KeywordHighlighterInline({
     // When popup closes, activeKeywordId becomes null → deps change
     // → effect re-runs normally with fresh mastery colors.
     if (activeKeywordId) return;
+    if (!dataReady) return;
 
     const container = containerRef.current;
 

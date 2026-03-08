@@ -35,10 +35,12 @@ function toEnrichedSummaries(raw: TopicProgressResponse): EnrichedSummary[] {
 /**
  * @param topicId - topic UUID to fetch progress for (null = disabled)
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function useTopicProgressQuery(
   topicId: string | null,
 ): UseTopicProgressResult {
-  const enabled = !!topicId;
+  const enabled = !!topicId && UUID_RE.test(topicId);
 
   const { data, isLoading, error, refetch } = useQuery<TopicProgressResponse, Error, EnrichedSummary[]>({
     queryKey: queryKeys.topicProgress(topicId ?? ''),

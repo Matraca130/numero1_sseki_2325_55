@@ -69,7 +69,7 @@ const emptyCourse: Course = {
 };
 
 const defaultContextValue: AppContextType = {
-  currentCourse: courses[0] ?? emptyCourse,
+  currentCourse: emptyCourse,
   setCurrentCourse: noop,
   currentTopic: null,
   setCurrentTopic: noop,
@@ -93,7 +93,7 @@ const AppContext = createContext<AppContextType>(defaultContextValue);
 // ── Provider ─────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentCourse, setCurrentCourse] = useState<Course>(courses[0] ?? emptyCourse);
+  const [currentCourse, setCurrentCourse] = useState<Course>(emptyCourse);
   const [currentTopic, setCurrentTopic] = useState<Topic | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isStudySessionActive, setStudySessionActive] = useState(false);
