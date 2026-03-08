@@ -24,6 +24,11 @@ export const studyStudentRoutes: RouteObject[] = [
     lazy: () => import('@/app/components/content/StudyView').then(m => ({ Component: m.StudyView })),
   },
   {
+    // StudyHubView section cards navigate to /student/study-plan?sectionId=...
+    path: 'study-plan',
+    lazy: () => import('@/app/components/content/StudyView').then(m => ({ Component: m.StudyView })),
+  },
+  {
     path: 'schedule',
     lazy: () => import('@/app/components/content/ScheduleView').then(m => ({ Component: m.ScheduleView })),
   },

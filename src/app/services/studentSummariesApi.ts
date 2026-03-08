@@ -68,8 +68,16 @@ export interface VideoNote {
 
 export async function getReadingState(summaryId: string): Promise<ReadingState | null> {
   try {
-    const result = await apiCall<ReadingState | null>(`/reading-states?summary_id=${summaryId}`);
-    return result;
+    const result = await apiCall<any>(`/reading-states?summary_id=${summaryId}`);
+    // Handle both paginated { items: [...] } and direct object shapes
+    if (result && Array.isArray(result.items)) {
+      return result.items[0] ?? null;
+    }
+    if (Array.isArray(result)) {
+      return result[0] ?? null;
+    }
+    // Direct object (custom endpoint or single-item response)
+    return result ?? null;
   } catch (err: any) {
     if (err.message?.includes('404') || err.status === 404) return null;
     throw err;

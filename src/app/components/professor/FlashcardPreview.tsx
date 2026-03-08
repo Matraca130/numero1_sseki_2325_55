@@ -11,26 +11,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Tag, RotateCcw, Image as ImageIcon } from 'lucide-react';
-import type { CardType } from './FlashcardTypeSelector';
+import type { CardType } from '@/app/lib/flashcard-utils';
+import { extractImageUrl, extractText } from '@/app/lib/flashcard-utils';
 
 // ── Helpers ───────────────────────────────────────────────
-
-/** Extract image URL from content: ![img](URL) or standalone URL */
-export function extractImageUrl(content: string): string | null {
-  const mdMatch = content.match(/!\[img\]\(([^)]+)\)/);
-  if (mdMatch) return mdMatch[1];
-  // Check if the whole content is a URL
-  const trimmed = content.trim();
-  if (trimmed.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|bmp)/i)) {
-    return trimmed;
-  }
-  return null;
-}
-
-/** Extract text content (removing image markdown) */
-export function extractText(content: string): string {
-  return content.replace(/!\[img\]\([^)]+\)/g, '').trim();
-}
 
 /** Render cloze front: replace {{word}} with blanks */
 export function renderClozeFront(text: string): React.ReactNode[] {
@@ -290,3 +274,7 @@ export function FlashcardPreview({
 }
 
 export default FlashcardPreview;
+
+// Re-exported for backward compat — FlashcardsManager imports these from here.
+// They now live in lib/flashcard-utils.ts (moved in v4.4.3).
+export { extractImageUrl, extractText } from '@/app/lib/flashcard-utils';

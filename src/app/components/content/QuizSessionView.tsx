@@ -1,4 +1,21 @@
 // ============================================================
+// @deprecated — Phase 14: This file was replaced by:
+//   /student/QuizTaker.tsx + /student/useQuizSession.ts (session)
+//   /student/QuizResults.tsx (results)
+//
+// Reasons for replacement:
+//   - No BKT tracking (POST /bkt-states)
+//   - No POST /reviews
+//   - No Promise.allSettled (simple catch only)
+//   - 629 monolithic lines (exceeds 500-line limit)
+//   - No extracted sub-components
+//
+// QuizView.tsx now uses QuizTaker instead of this file.
+// Keep in repo for historical reference.
+// Delete on next code cleanup if no hidden consumers.
+// ============================================================
+
+// ============================================================
 // Axon — Quiz Session View (extracted from QuizView)
 //
 // Handles: study session lifecycle, answer submission,

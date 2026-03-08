@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import type { Course, Topic } from '@/app/types/legacy-stubs';
-import { courses } from '@/app/types/legacy-stubs';
+import type { Course, Topic } from '@/app/data/courses';
 
 // @refresh reset
 
@@ -21,6 +20,8 @@ export interface StudyPlanTask {
   method: string;
   estimatedMinutes: number;
   completed: boolean;
+  /** Topic ID for backend mapping (Phase 3+) */
+  topicId?: string;
 }
 
 export interface StudyPlan {
@@ -58,15 +59,19 @@ interface AppContextType {
 
 const noop = () => {};
 
-// Fallback empty course when courses array is empty (mock data removed)
-const emptyCourse: Course = { id: '', name: '', color: '', accentColor: '', semesters: [] };
-const fallbackCourse = courses[0] ?? emptyCourse;
-const fallbackTopic = fallbackCourse.semesters?.[0]?.sections?.[0]?.topics?.[0] ?? null;
+// Fallback empty course when no mock/real data is loaded yet
+const emptyCourse: Course = {
+  id: '',
+  name: '',
+  color: 'bg-gray-400',
+  accentColor: 'text-gray-400',
+  semesters: [],
+};
 
 const defaultContextValue: AppContextType = {
-  currentCourse: fallbackCourse,
+  currentCourse: emptyCourse,
   setCurrentCourse: noop,
-  currentTopic: fallbackTopic,
+  currentTopic: null,
   setCurrentTopic: noop,
   isSidebarOpen: true,
   setSidebarOpen: noop,
@@ -88,8 +93,8 @@ const AppContext = createContext<AppContextType>(defaultContextValue);
 // ── Provider ─────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentCourse, setCurrentCourse] = useState<Course>(fallbackCourse);
-  const [currentTopic, setCurrentTopic] = useState<Topic | null>(fallbackTopic);
+  const [currentCourse, setCurrentCourse] = useState<Course>(emptyCourse);
+  const [currentTopic, setCurrentTopic] = useState<Topic | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isStudySessionActive, setStudySessionActive] = useState(false);
   const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
@@ -98,7 +103,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeType>('light');
 
   const addStudyPlan = useCallback((plan: StudyPlan) => {
-    setStudyPlans(prev => [...prev, plan]);
+    setStudyPlans(prev => {
+      // Dedup: replace existing plan with same ID, or append if new
+      const idx = prev.findIndex(p => p.id === plan.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = plan;
+        return next;
+      }
+      return [...prev, plan];
+    });
   }, []);
 
   const toggleTaskComplete = useCallback((planId: string, taskId: string) => {

@@ -4,130 +4,104 @@
 // Shown when expanding a keyword in KeywordsManager.
 // Routes: GET /subtopics?keyword_id=xxx, POST, PUT, DELETE
 // order_index starts at 0. is_active toggleable.
+//
+// Data layer: React Query hooks from useSubtopicMutations.
+// Cache key: kwSubtopics(keywordId) — shared with student-side
+// useKeywordMasteryQuery batch seeding.
+//
+// Business rule: max 6 subtopics per keyword.
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from 'sonner';
 import {
-  Plus, Trash2, Save, X, Loader2, GripVertical, ToggleLeft, ToggleRight,
+  Plus, Trash2, Save, X, Loader2, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
-import * as api from '@/app/services/summariesApi';
-import type { Subtopic } from '@/app/services/summariesApi';
-
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import {
+  useSubtopicsQuery,
+  useCreateSubtopicMutation,
+  useUpdateSubtopicMutation,
+  useDeleteSubtopicMutation,
+  MAX_SUBTOPICS_PER_KEYWORD,
+} from '@/app/hooks/queries/useSubtopicMutations';
 
 interface SubtopicsPanelProps {
   keywordId: string;
+  summaryId: string;
 }
 
-export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
-  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
-  const [loading, setLoading] = useState(true);
+export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
+  // ── Data (React Query) ────────────────────────────────────
+  const { data: subtopics = [], isLoading: loading } = useSubtopicsQuery(keywordId);
 
-  // Inline add
+  // Mutations
+  const createMutation = useCreateSubtopicMutation(summaryId);
+  const updateMutation = useUpdateSubtopicMutation(summaryId);
+  const deleteMutation = useDeleteSubtopicMutation(summaryId);
+
+  // ── Inline add ────────────────────────────────────────────
   const [newName, setNewName] = useState('');
-  const [adding, setAdding] = useState(false);
 
-  // Inline edit
+  // ── Inline edit ───────────────────────────────────────────
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [saving, setSaving] = useState(false);
 
-  // Delete
+  // ── Delete ────────────────────────────────────────────────
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // ── Fetch ───────────────────────────────────────────────
-  const fetchSubtopics = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await api.getSubtopics(keywordId);
-      setSubtopics(
-        extractItems<Subtopic>(result).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-      );
-    } catch (err: any) {
-      console.error('[SubtopicsPanel] fetch error:', err);
-      setSubtopics([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [keywordId]);
+  // ── Derived ───────────────────────────────────────────────
+  const activeCount = subtopics.filter(s => s.is_active !== false).length;
+  const atLimit = activeCount >= MAX_SUBTOPICS_PER_KEYWORD;
 
-  useEffect(() => { fetchSubtopics(); }, [fetchSubtopics]);
+  // ── Handlers ──────────────────────────────────────────────
 
-  // ── Add ─────────────────────────────────────────────────
-  const handleAdd = async () => {
-    if (!newName.trim()) return;
-    setAdding(true);
-    try {
-      await api.createSubtopic({
+  const handleAdd = () => {
+    if (!newName.trim() || atLimit) return;
+    createMutation.mutate(
+      {
         keyword_id: keywordId,
         name: newName.trim(),
-        order_index: subtopics.length, // next index
-      });
-      toast.success('Subtema agregado');
-      setNewName('');
-      await fetchSubtopics();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al agregar subtema');
-    } finally {
-      setAdding(false);
-    }
+        order_index: subtopics.length,
+      },
+      { onSuccess: () => setNewName('') },
+    );
   };
 
-  // ── Update name ─────────────────────────────────────────
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!editingId || !editName.trim()) return;
-    setSaving(true);
-    try {
-      await api.updateSubtopic(editingId, { name: editName.trim() });
-      toast.success('Subtema actualizado');
-      setEditingId(null);
-      await fetchSubtopics();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar');
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate(
+      {
+        subtopicId: editingId,
+        keywordId,
+        data: { name: editName.trim() },
+      },
+      { onSuccess: () => setEditingId(null) },
+    );
   };
 
-  // ── Toggle active ───────────────────────────────────────
-  const handleToggleActive = async (sub: Subtopic) => {
-    try {
-      await api.updateSubtopic(sub.id, { is_active: !sub.is_active });
-      toast.success(sub.is_active ? 'Subtema desactivado' : 'Subtema activado');
-      await fetchSubtopics();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al cambiar estado');
-    }
+  const handleToggleActive = (sub: { id: string; is_active: boolean }) => {
+    // Prevent activating beyond limit
+    if (!sub.is_active && atLimit) return;
+    updateMutation.mutate({
+      subtopicId: sub.id,
+      keywordId,
+      data: { is_active: !sub.is_active },
+    });
   };
 
-  // ── Delete ──────────────────────────────────────────────
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deletingId) return;
-    setDeleteLoading(true);
-    try {
-      await api.deleteSubtopic(deletingId);
-      toast.success('Subtema eliminado');
-      setDeletingId(null);
-      await fetchSubtopics();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
-    } finally {
-      setDeleteLoading(false);
-    }
+    deleteMutation.mutate(
+      { subtopicId: deletingId, keywordId },
+      { onSuccess: () => setDeletingId(null) },
+    );
   };
 
+  // ── Loading state ─────────────────────────────────────────
   if (loading) {
     return (
       <div className="pl-4 py-2 space-y-2">
@@ -140,13 +114,20 @@ export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
 
   return (
     <div className="pl-4 py-2">
-      <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">
-        Subtemas ({subtopics.length})
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] text-gray-400 uppercase tracking-wider">
+          Subtemas ({activeCount}/{MAX_SUBTOPICS_PER_KEYWORD})
+        </p>
+        {atLimit && (
+          <span className="text-[9px] text-amber-500">
+            Limite alcanzado
+          </span>
+        )}
+      </div>
 
       {/* Subtopics list */}
       <AnimatePresence mode="popLayout">
-        {subtopics.map((sub, idx) => (
+        {subtopics.map(sub => (
           <motion.div
             key={sub.id}
             initial={{ opacity: 0, height: 0 }}
@@ -165,12 +146,28 @@ export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
                   onChange={e => setEditName(e.target.value)}
                   className="h-7 text-xs flex-1"
                   autoFocus
-                  onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditingId(null); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleSaveEdit();
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
                 />
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleSaveEdit} disabled={saving}>
-                  {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} className="text-emerald-600" />}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={handleSaveEdit}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending
+                    ? <Loader2 size={12} className="animate-spin" />
+                    : <Save size={12} className="text-emerald-600" />}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingId(null)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setEditingId(null)}
+                >
                   <X size={12} className="text-gray-400" />
                 </Button>
               </>
@@ -189,8 +186,16 @@ export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
 
                 <button
                   onClick={() => handleToggleActive(sub)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  title={sub.is_active ? 'Desactivar' : 'Activar'}
+                  className={clsx(
+                    "opacity-0 group-hover:opacity-100 transition-opacity",
+                    !sub.is_active && atLimit && "cursor-not-allowed opacity-30"
+                  )}
+                  title={
+                    !sub.is_active && atLimit
+                      ? `Limite de ${MAX_SUBTOPICS_PER_KEYWORD} subtemas activos`
+                      : sub.is_active ? 'Desactivar' : 'Activar'
+                  }
+                  disabled={!sub.is_active && atLimit}
                 >
                   {sub.is_active ? (
                     <ToggleRight size={14} className="text-emerald-500" />
@@ -217,8 +222,9 @@ export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
         <Input
           value={newName}
           onChange={e => setNewName(e.target.value)}
-          placeholder="Nuevo subtema..."
+          placeholder={atLimit ? `Max ${MAX_SUBTOPICS_PER_KEYWORD} subtemas` : "Nuevo subtema..."}
           className="h-7 text-xs flex-1"
+          disabled={atLimit}
           onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
         />
         <Button
@@ -226,9 +232,11 @@ export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
           variant="ghost"
           className="h-7 px-2 text-xs text-violet-600 hover:text-violet-700"
           onClick={handleAdd}
-          disabled={adding || !newName.trim()}
+          disabled={createMutation.isPending || !newName.trim() || atLimit}
         >
-          {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+          {createMutation.isPending
+            ? <Loader2 size={12} className="animate-spin" />
+            : <Plus size={12} />}
           <span className="ml-1">Agregar</span>
         </Button>
       </div>
@@ -241,7 +249,7 @@ export function SubtopicsPanel({ keywordId }: SubtopicsPanelProps) {
         description="Este subtema sera eliminado permanentemente. Esta accion no se puede deshacer."
         confirmLabel="Eliminar"
         variant="destructive"
-        loading={deleteLoading}
+        loading={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
     </div>

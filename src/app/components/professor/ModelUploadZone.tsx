@@ -113,7 +113,7 @@ export function ModelUploadZone({ onFileSelected, progress, onReset, disabled }:
             <div>
               <p className="text-sm font-semibold text-emerald-800">{selectedFileName}</p>
               <p className="text-xs text-emerald-600 mt-0.5">
-                {formatFileSize(selectedFileSize)} \u00b7 Subido exitosamente
+                {formatFileSize(selectedFileSize)} · Subido exitosamente
               </p>
             </div>
           </div>
@@ -240,7 +240,7 @@ export function ModelUploadZone({ onFileSelected, progress, onReset, disabled }:
                 )}
               </p>
               <p className="text-xs text-gray-400">
-                Formatos: .glb, .gltf \u00b7 Maximo: 100 MB
+                Formatos: .glb, .gltf · Maximo: 100 MB
               </p>
             </>
           )}

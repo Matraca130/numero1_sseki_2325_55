@@ -40,4 +40,21 @@ export const animation = {
     duration: 0.15,
     ease:     'easeOut',
   },
+
+  // ── Tokens used by FadeIn.tsx / useMotionPresets ──────────
+  // Values sourced from axonoficialll (canonical Axon)
+  fadeUp: {
+    initial:      { opacity: 0, y: 12 },
+    animate:      { opacity: 1, y: 0 },
+    duration:     0.35,
+    staggerDelay: 0.06,
+  },
+  cardHover: {
+    whileHover: { y: -4, transition: { duration: 0.2 } },
+  },
+  springPop: {
+    initial:  { scale: 0, opacity: 0 },
+    animate:  { scale: 1, opacity: 1 },
+    spring:   { type: 'spring', stiffness: 300, damping: 20 },
+  },
 } as const;

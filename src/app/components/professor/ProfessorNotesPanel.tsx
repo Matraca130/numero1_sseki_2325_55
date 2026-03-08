@@ -2,6 +2,10 @@
 // Axon — ProfessorNotesPanel (Professor: CRUD notas por keyword)
 //
 // Renders within KeywordsManager when expanding a keyword.
+// React Query migration (S1): uses useProfNotesQuery,
+// useUpsertProfNoteMutation, useDeleteProfNoteMutation from
+// useProfessorNotesQueries.ts. No direct apiCall.
+//
 // Routes (all FLAT):
 //   GET    /kw-prof-notes?keyword_id=xxx
 //   POST   /kw-prof-notes { keyword_id, note }  — UPSERT on (professor_id, keyword_id)
@@ -11,7 +15,7 @@
 // Schema: id, keyword_id, professor_id, note(text), created_at, updated_at
 // NO "is_visible", NO "note_text". Field = "note". All notes visible.
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -19,87 +23,55 @@ import {
   Loader2, Send,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { apiCall } from '@/app/lib/api';
 import { useAuth } from '@/app/context/AuthContext';
-
-// ── Types ─────────────────────────────────────────────────
-interface KwProfNote {
-  id: string;
-  keyword_id: string;
-  professor_id: string;
-  note: string;
-  created_at: string;
-  updated_at: string;
-}
-
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import {
+  useProfNotesQuery,
+  useUpsertProfNoteMutation,
+  useDeleteProfNoteMutation,
+} from '@/app/hooks/queries/useProfessorNotesQueries';
 
 // ── Props ─────────────────────────────────────────────────
 interface ProfessorNotesPanelProps {
   keywordId: string;
   keywordName?: string;
+  /** Optional: when provided, mutations also invalidate keywordCounts(summaryId) for badge refresh */
+  summaryId?: string;
 }
 
-export function ProfessorNotesPanel({ keywordId, keywordName }: ProfessorNotesPanelProps) {
+export function ProfessorNotesPanel({ keywordId, keywordName, summaryId }: ProfessorNotesPanelProps) {
   const { user } = useAuth();
   const userId = user?.id || '';
 
-  const [notes, setNotes] = useState<KwProfNote[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── React Query ─────────────────────────────────────────
+  const { data: notes = [], isLoading: loading } = useProfNotesQuery(keywordId);
+  const upsertNote = useUpsertProfNoteMutation(keywordId, summaryId);
+  const deleteNoteMutation = useDeleteProfNoteMutation(keywordId, summaryId);
+
+  // ── My existing note (UPSERT = one per professor per keyword) ──
+  const myNote = useMemo(
+    () => notes.find(n => n.professor_id === userId),
+    [notes, userId],
+  );
 
   // New note
   const [showForm, setShowForm] = useState(false);
   const [noteText, setNoteText] = useState('');
-  const [saving, setSaving] = useState(false);
 
   // Edit
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
 
-  // ── Fetch notes ─────────────────────────────────────────
-  const fetchNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await apiCall<any>(`/kw-prof-notes?keyword_id=${keywordId}`);
-      setNotes(extractItems<KwProfNote>(result));
-    } catch {
-      setNotes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [keywordId]);
-
-  useEffect(() => { fetchNotes(); }, [fetchNotes]);
-
-  // ── My existing note (UPSERT = one per professor per keyword) ──
-  const myNote = notes.find(n => n.professor_id === userId);
-
   // ── Create / Update note ────────────────────────────────
   const handleSave = async () => {
     const text = noteText.trim();
     if (!text || text.length > 1000) return;
-    setSaving(true);
     try {
-      // POST is UPSERT on (professor_id, keyword_id)
-      await apiCall('/kw-prof-notes', {
-        method: 'POST',
-        body: JSON.stringify({
-          keyword_id: keywordId,
-          note: text,
-        }),
-      });
+      await upsertNote.mutateAsync(text);
       toast.success(myNote ? 'Nota actualizada' : 'Nota creada');
       setNoteText('');
       setShowForm(false);
-      await fetchNotes();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al guardar nota');
-    } finally {
-      setSaving(false);
+    } catch {
+      // error toast handled by mutation hook
     }
   };
 
@@ -107,34 +79,22 @@ export function ProfessorNotesPanel({ keywordId, keywordName }: ProfessorNotesPa
   // Backend has no PUT route — POST upserts on (professor_id, keyword_id)
   const handleUpdate = async () => {
     if (!editingId || !editText.trim() || editText.length > 1000) return;
-    setSaving(true);
     try {
-      await apiCall('/kw-prof-notes', {
-        method: 'POST',
-        body: JSON.stringify({
-          keyword_id: keywordId,
-          note: editText.trim(),
-        }),
-      });
+      await upsertNote.mutateAsync(editText.trim());
       toast.success('Nota actualizada');
       setEditingId(null);
       setEditText('');
-      await fetchNotes();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar');
-    } finally {
-      setSaving(false);
+    } catch {
+      // error toast handled by mutation hook
     }
   };
 
   // ── Delete note ─────────────────────────────────────────
   const handleDelete = async (noteId: string) => {
     try {
-      await apiCall(`/kw-prof-notes/${noteId}`, { method: 'DELETE' });
-      toast.success('Nota eliminada');
-      setNotes(prev => prev.filter(n => n.id !== noteId));
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
+      await deleteNoteMutation.mutateAsync(noteId);
+    } catch {
+      // error toast handled by mutation hook
     }
   };
 
@@ -205,10 +165,10 @@ export function ProfessorNotesPanel({ keywordId, keywordName }: ProfessorNotesPa
                             </button>
                             <button
                               onClick={handleUpdate}
-                              disabled={saving || !editText.trim()}
+                              disabled={upsertNote.isPending || !editText.trim()}
                               className="text-[10px] text-pink-600 hover:text-pink-700 px-1.5 py-0.5 disabled:opacity-50"
                             >
-                              {saving ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
+                              {upsertNote.isPending ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
                             </button>
                           </div>
                         </div>
@@ -277,11 +237,11 @@ export function ProfessorNotesPanel({ keywordId, keywordName }: ProfessorNotesPa
                   <div className="flex flex-col gap-1 mt-1">
                     <button
                       onClick={handleSave}
-                      disabled={saving || !noteText.trim()}
+                      disabled={upsertNote.isPending || !noteText.trim()}
                       className="text-pink-600 hover:text-pink-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors p-1"
                       title="Guardar nota"
                     >
-                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      {upsertNote.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     </button>
                     <button
                       onClick={() => { setShowForm(false); setNoteText(''); }}

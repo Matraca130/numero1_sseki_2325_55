@@ -83,13 +83,14 @@ export async function getInstitutionDashboardStats(instId: UUID): Promise<Instit
       institutionName: inst?.name || '',
       hasInstitution: !!inst,
       totalMembers: memberList.length,
-      totalPlans: 0,
+      totalPlans: 0, // Will be set by plans fetch if needed
       activeStudents,
       inactiveMembers,
       membersByRole,
       subscription: null,
     };
   } catch {
+    // Return empty stats on any error
     return {
       institutionName: '',
       hasInstitution: false,
@@ -619,6 +620,25 @@ export async function getFlashcardsBySummary(summaryId: UUID): Promise<Flashcard
   return request<FlashcardCard[]>(`/flashcards?summary_id=${summaryId}`);
 }
 
+/** Fetch all flashcards, optionally filtered by subtopic_id or status.
+ *  Used by Phase 2 to build flashcard_id → subtopic_id mapping for FSRS. */
+export async function getFlashcards(options?: {
+  subtopic_id?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<FlashcardCard[]> {
+  const params = new URLSearchParams();
+  if (options?.subtopic_id) params.set('subtopic_id', options.subtopic_id);
+  if (options?.status) params.set('status', options.status);
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.offset) params.set('offset', String(options.offset));
+  const qs = params.toString() ? `?${params}` : '';
+  const result = await request<{ items: FlashcardCard[] } | FlashcardCard[]>(`/flashcards${qs}`);
+  if (Array.isArray(result)) return result;
+  return (result as any)?.items || [];
+}
+
 export async function getFlashcardsByKeyword(keywordId: UUID): Promise<FlashcardCard[]> {
   return request<FlashcardCard[]>(`/flashcards?keyword_id=${keywordId}`);
 }
@@ -810,6 +830,9 @@ export interface StudyPlanRecord {
   name: string;
   course_id?: string | null;
   status: 'active' | 'completed' | 'archived';
+  completion_date?: string | null;       // DT-02: ISO date "YYYY-MM-DD"
+  weekly_hours?: number[] | null;        // DT-02: JSONB [Mon..Sun] hours per day
+  metadata?: Record<string, any> | null; // DT-02: extensible plan metadata
   created_at?: string;
   updated_at?: string;
 }
@@ -823,6 +846,7 @@ export async function getStudyPlans(
   if (status) params.set('status', status);
   const qs = params.toString() ? `?${params}` : '';
   const result = await request<{ items: StudyPlanRecord[] } | StudyPlanRecord[]>(`/study-plans${qs}`);
+  // Handle both { items: [...] } and plain array
   if (Array.isArray(result)) return result;
   return (result as any)?.items || [];
 }
@@ -832,7 +856,14 @@ export async function getStudyPlan(planId: string): Promise<StudyPlanRecord> {
 }
 
 export async function createStudyPlan(
-  data: { name: string; course_id?: string; status?: string }
+  data: {
+    name: string;
+    course_id?: string;
+    status?: string;
+    completion_date?: string;
+    weekly_hours?: number[];
+    metadata?: Record<string, any>;
+  }
 ): Promise<StudyPlanRecord> {
   return request<StudyPlanRecord>('/study-plans', {
     method: 'POST',
@@ -842,7 +873,13 @@ export async function createStudyPlan(
 
 export async function updateStudyPlan(
   planId: string,
-  data: { name?: string; status?: string }
+  data: {
+    name?: string;
+    status?: string;
+    completion_date?: string | null;
+    weekly_hours?: number[] | null;
+    metadata?: Record<string, any> | null;
+  }
 ): Promise<StudyPlanRecord> {
   return request<StudyPlanRecord>(`/study-plans/${planId}`, {
     method: 'PUT',
@@ -857,19 +894,27 @@ export async function deleteStudyPlan(planId: string): Promise<void> {
 // ============================================================
 // STUDY PLAN TASKS — Task management within a plan
 // GET  /study-plan-tasks?study_plan_id=xxx → { data: { items: [...] } }
-// POST /study-plan-tasks { study_plan_id, item_type, item_id, status?, order_index? }
-// PUT  /study-plan-tasks/:id { status?, order_index?, completed_at? }
+// POST /study-plan-tasks { study_plan_id, item_type, item_id, status?, order_index?,
+//       original_method?, scheduled_date?, estimated_minutes? }
+// PUT  /study-plan-tasks/:id { status?, order_index?, completed_at?,
+//       scheduled_date?, estimated_minutes?, metadata? }
+// PUT  /study-plan-tasks/batch { study_plan_id, updates[] }   ← Phase 5
 // DELETE /study-plan-tasks/:id
 // ============================================================
 
 export interface StudyPlanTaskRecord {
   id: string;
   study_plan_id: string;
-  item_type: string;   // flashcard, quiz, video, resumo, 3d, reading
-  item_id: string;     // topic ID or item reference
+  item_type: string;                     // flashcard, quiz, reading, keyword (DB CHECK)
+  item_id: string;                       // topic ID or item reference
   status: 'pending' | 'completed' | 'skipped';
   order_index: number;
   completed_at?: string | null;
+  // Phase 5 columns (Migration 002):
+  original_method?: string | null;       // wizard method preserved: 'video', '3d', 'resumo', etc.
+  scheduled_date?: string | null;        // "YYYY-MM-DD" — set by wizard distribution + reschedule
+  estimated_minutes?: number | null;     // adjusted by mastery multiplier; default 25
+  metadata?: Record<string, any> | null; // extensible JSONB
   created_at?: string;
   updated_at?: string;
 }
@@ -891,6 +936,10 @@ export async function createStudyPlanTask(
     item_id: string;
     status?: string;
     order_index?: number;
+    // Phase 5 fields:
+    original_method?: string;
+    scheduled_date?: string;
+    estimated_minutes?: number;
   }
 ): Promise<StudyPlanTaskRecord> {
   return request<StudyPlanTaskRecord>('/study-plan-tasks', {
@@ -901,7 +950,15 @@ export async function createStudyPlanTask(
 
 export async function updateStudyPlanTask(
   taskId: string,
-  data: { status?: string; order_index?: number; completed_at?: string | null }
+  data: {
+    status?: string;
+    order_index?: number;
+    completed_at?: string | null;
+    // Phase 5 fields:
+    scheduled_date?: string | null;
+    estimated_minutes?: number;
+    metadata?: Record<string, any> | null;
+  }
 ): Promise<StudyPlanTaskRecord> {
   return request<StudyPlanTaskRecord>(`/study-plan-tasks/${taskId}`, {
     method: 'PUT',
@@ -911,6 +968,38 @@ export async function updateStudyPlanTask(
 
 export async function deleteStudyPlanTask(taskId: string): Promise<void> {
   return request(`/study-plan-tasks/${taskId}`, { method: 'DELETE' });
+}
+
+// ── Batch update tasks (Phase 5: reschedule engine) ─────────
+// PUT /study-plan-tasks/batch
+// Validates plan ownership, applies all updates in parallel.
+// Max 200 updates per call.
+
+export interface BatchUpdateTasksPayload {
+  study_plan_id: string;
+  updates: Array<{
+    id: string;
+    scheduled_date?: string;
+    estimated_minutes?: number;
+    order_index?: number;
+    status?: string;
+    metadata?: Record<string, any>;
+  }>;
+}
+
+export interface BatchUpdateTasksResult {
+  succeeded: number;
+  failed: number;
+  total: number;
+}
+
+export async function batchUpdateTasks(
+  payload: BatchUpdateTasksPayload
+): Promise<BatchUpdateTasksResult> {
+  return request<BatchUpdateTasksResult>('/study-plan-tasks/batch', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }
 
 // ── Reorder (shared endpoint for multiple tables) ──

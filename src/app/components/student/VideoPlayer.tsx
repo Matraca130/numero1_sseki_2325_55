@@ -1,7 +1,11 @@
 // ============================================================
 // Axon — VideoPlayer (Student: Mux video list + player + annotations)
 //
-// Shows active Mux videos for a summary.
+// Uses React Query hooks from useVideoPlayerQueries:
+//   - useVideoListQuery   → cached video list (shared cache key)
+//   - useVideoNotesQuery  → cached student notes per video
+//   - useVideoNoteMutations → CRUD with auto-invalidation
+//
 // Route (FLAT): GET /videos?summary_id=xxx
 // Filters: is_active === true AND deleted_at IS NULL
 //
@@ -18,29 +22,18 @@ import {
   X, PenLine, Trash2, Edit3, MessageSquare,
 } from 'lucide-react';
 import clsx from 'clsx';
-import * as api from '@/app/services/summariesApi';
-import * as studentApi from '@/app/services/studentSummariesApi';
 import type { Video as VideoType } from '@/app/services/summariesApi';
 import type { VideoNote } from '@/app/services/studentSummariesApi';
 import { useAuth } from '@/app/context/AuthContext';
 import { VideoNoteForm } from './VideoNoteForm';
 import { AnnotationTimeline } from './AnnotationTimeline';
 import { MuxVideoPlayer } from '../video/MuxVideoPlayer';
-
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
-
-// ── Duration formatter ────────────────────────────────────
-function formatDuration(seconds: number | null): string {
-  if (!seconds || seconds <= 0) return '';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
+import { formatDuration } from '@/app/lib/api-helpers';
+import {
+  useVideoListQuery,
+  useVideoNotesQuery,
+  useVideoNoteMutations,
+} from '@/app/hooks/queries/useVideoPlayerQueries';
 
 // ── Timestamp formatter ───────────────────────────────────
 function formatTimestamp(seconds: number | null): string {
@@ -70,17 +63,22 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoPlayerProps) {
   const { user } = useAuth();
-  const [videos, setVideos] = useState<VideoType[]>(initialVideos ?? []);
-  const [loading, setLoading] = useState(!initialVideos);
+
+  // ── Data (React Query) ────────────────────────────────────
+  const { data: videos = [], isLoading: loading } = useVideoListQuery(summaryId, initialVideos);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
 
-  // ── Annotation state ───────────────────────────────────
-  const [notes, setNotes] = useState<VideoNote[]>([]);
-  const [notesLoading, setNotesLoading] = useState(false);
+  // ── Notes (React Query — re-fetches when activeVideoId changes) ──
+  const notesQuery = useVideoNotesQuery(activeVideoId, user?.id);
+  const { createNote, updateNote, deleteNote } = useVideoNoteMutations();
+  const notes = activeVideoId ? (notesQuery.data ?? []) : [];
+  const notesLoading = notesQuery.isLoading && !!activeVideoId;
+  const saving = createNote.isPending || updateNote.isPending;
+
+  // ── Annotation UI state ────────────────────────────────
   const [showForm, setShowForm] = useState(false);
   const [editingNote, setEditingNote] = useState<VideoNote | null>(null);
-  const [saving, setSaving] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(false);
 
   // Timer to approximate playback position
@@ -88,89 +86,22 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
 
-  // Stable ref for onVideosLoaded callback (avoids re-fetch cycles)
+  // ── Notify parent of video count ────────────────────────
   const onVideosLoadedRef = useRef(onVideosLoaded);
   onVideosLoadedRef.current = onVideosLoaded;
 
-  // ── Fetch videos (single effect with cancellation) ──────
   useEffect(() => {
-    // If parent provided pre-fetched videos, use those
-    if (initialVideos) {
-      setVideos(initialVideos);
-      setLoading(false);
-      onVideosLoadedRef.current?.(initialVideos.length);
-      return;
+    if (!loading) {
+      onVideosLoadedRef.current?.(videos.length);
     }
+  }, [videos.length, loading]);
 
-    let cancelled = false;
-    setLoading(true);
-
-    (async () => {
-      try {
-        const result = await api.getVideos(summaryId);
-        if (cancelled) return;
-        const items = extractItems<VideoType>(result)
-          .filter(v => v.is_active && !v.deleted_at)
-          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-        setVideos(items);
-        onVideosLoadedRef.current?.(items.length);
-      } catch {
-        if (cancelled) return;
-        setVideos([]);
-        onVideosLoadedRef.current?.(0);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [summaryId, initialVideos]);
-
-  // Manual refresh (used by UI refresh button if any)
-  const refreshVideos = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await api.getVideos(summaryId);
-      const items = extractItems<VideoType>(result)
-        .filter(v => v.is_active && !v.deleted_at)
-        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-      setVideos(items);
-      onVideosLoadedRef.current?.(items.length);
-    } catch {
-      setVideos([]);
-      onVideosLoadedRef.current?.(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [summaryId]);
-
-  // ── Fetch annotations for active video ──────────────────
-  const fetchNotes = useCallback(async (videoId: string) => {
-    if (!user?.id) return;
-    setNotesLoading(true);
-    try {
-      const result = await studentApi.getVideoNotes(videoId);
-      const items = extractItems<VideoNote>(result)
-        .filter(n => !n.deleted_at && n.student_id === user.id)
-        .sort((a, b) => (a.timestamp_seconds ?? 0) - (b.timestamp_seconds ?? 0));
-      setNotes(items);
-    } catch {
-      setNotes([]);
-    } finally {
-      setNotesLoading(false);
-    }
-  }, [user?.id]);
-
+  // ── Reset annotation UI when switching videos ──────────
   useEffect(() => {
-    if (activeVideoId) {
-      fetchNotes(activeVideoId);
-      setShowAnnotations(false);
-      setShowForm(false);
-      setEditingNote(null);
-    } else {
-      setNotes([]);
-    }
-  }, [activeVideoId, fetchNotes]);
+    setShowAnnotations(false);
+    setShowForm(false);
+    setEditingNote(null);
+  }, [activeVideoId]);
 
   // ── Playback timer ──────────────────────────────────────
   useEffect(() => {
@@ -192,51 +123,42 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
     setElapsedSeconds(seconds);
   }, []);
 
-  // ── CRUD handlers ───────────────────────────────────────
+  // ── CRUD handlers (delegate to mutations) ───────────────
   const handleCreateNote = async (data: { note: string; timestamp_seconds: number | null }) => {
     if (!activeVideoId || !user?.id) return;
-    setSaving(true);
-    try {
-      await studentApi.createVideoNote({
+    createNote.mutate(
+      {
         video_id: activeVideoId,
         note: data.note,
         timestamp_seconds: data.timestamp_seconds ?? undefined,
-      });
-      await fetchNotes(activeVideoId);
-      setShowForm(false);
-    } catch (err) {
-      console.error('Error creating video note:', err);
-    } finally {
-      setSaving(false);
-    }
+      },
+      { onSuccess: () => setShowForm(false) },
+    );
   };
 
   const handleUpdateNote = async (data: { note: string; timestamp_seconds: number | null }) => {
     if (!editingNote) return;
-    setSaving(true);
-    try {
-      await studentApi.updateVideoNote(editingNote.id, {
-        note: data.note,
-        timestamp_seconds: data.timestamp_seconds ?? undefined,
-      });
-      await fetchNotes(activeVideoId!);
-      setEditingNote(null);
-      setShowForm(false);
-    } catch (err) {
-      console.error('Error updating video note:', err);
-    } finally {
-      setSaving(false);
-    }
+    updateNote.mutate(
+      {
+        id: editingNote.id,
+        videoId: activeVideoId!,
+        data: {
+          note: data.note,
+          timestamp_seconds: data.timestamp_seconds ?? undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditingNote(null);
+          setShowForm(false);
+        },
+      },
+    );
   };
 
-  const handleDeleteNote = async (noteId: string) => {
+  const handleDeleteNote = (noteId: string) => {
     if (!activeVideoId) return;
-    try {
-      await studentApi.deleteVideoNote(noteId);
-      await fetchNotes(activeVideoId);
-    } catch (err) {
-      console.error('Error deleting video note:', err);
-    }
+    deleteNote.mutate({ noteId, videoId: activeVideoId });
   };
 
   const activeVideo = videos.find(v => v.id === activeVideoId);
@@ -550,7 +472,7 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
                             {v.duration_seconds && v.duration_seconds > 0 && (
                               <span className="flex items-center gap-0.5 text-[9px] text-zinc-600">
                                 <Clock size={7} />
-                                {formatDuration(v.duration_seconds)}
+                                {formatDuration(v.duration_seconds, '')}
                               </span>
                             )}
                             {isProcessing && (

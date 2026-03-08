@@ -1,25 +1,95 @@
+// ============================================================
+// FlashcardSummaryScreen -- Post-session summary with AI gen
+//
+// PHASE 3: Fully decoupled from contexts and API services.
+//   - Removed useStudentDataContext (studentId baked into callback)
+//   - Removed getTopicKeywords / getCourseKeywords imports
+//   - New prop: onLoadKeywords callback (optional)
+// PHASE 8a: Dynamic boxShadow on CTA button matches mastery color.
+//
+// STANDALONE: depends on react, motion/react, lucide-react,
+//   SmartFlashcardGenerator (UI component), KeywordCollection type.
+// ============================================================
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import clsx from 'clsx';
-import { Trophy, Sparkles, Activity } from 'lucide-react';
+import { Trophy, Sparkles, Activity, TrendingUp, TrendingDown, Star } from 'lucide-react';
 import { SmartFlashcardGenerator } from '@/app/components/ai/SmartFlashcardGenerator';
-import { getTopicKeywords, getCourseKeywords } from '@/app/services/studentApi';
 import type { KeywordCollection } from '@/app/types/keywords';
-import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import type { CardMasteryDelta } from '@/app/hooks/useFlashcardEngine';
+import { getMasteryColorFromPct } from './mastery-colors';
 
-export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseName, topicId, topicTitle, onExit }: {
+// ── Types ─────────────────────────────────────────────────
+
+export interface SummaryScreenProps {
   stats: number[];
   onRestart: () => void;
+  /** @deprecated Colors now derived from mastery via getMasteryColorFromPct. Kept for caller compat. */
   courseColor: string;
   courseId: string;
   courseName: string;
   topicId: string | null;
   topicTitle: string | null;
   onExit: () => void;
-}) {
+  /**
+   * Real mastery percentage (0-100) computed from p_know values.
+   * If provided, used instead of the average-of-ratings fallback.
+   */
+  realMasteryPercent?: number;
+  /** Total cards considered mastered across the course (BKT >= 0.75) */
+  totalMastered?: number;
+  /** Total cards in the course */
+  totalCards?: number;
+  /** Per-card mastery deltas from the session (before/after p_know) */
+  masteryDeltas?: CardMasteryDelta[];
+  /**
+   * Callback to load keywords for the AI generator.
+   * The caller should bake in studentId via closure.
+   * Returns `{ keywords: KeywordCollection }`.
+   * If omitted, the AI button opens with empty keywords.
+   */
+  onLoadKeywords?: (
+    courseId: string,
+    topicId: string | null,
+  ) => Promise<{ keywords: KeywordCollection }>;
+}
+
+// ── Component ─────────────────────────────────────────────
+
+export function SummaryScreen({
+  stats,
+  onRestart,
+  courseColor,
+  courseId,
+  courseName,
+  topicId,
+  topicTitle,
+  onExit,
+  realMasteryPercent,
+  totalMastered,
+  totalCards,
+  masteryDeltas,
+  onLoadKeywords,
+}: SummaryScreenProps) {
+  // Use real p_know mastery if available, fallback to rating average
   const average = stats.reduce((a, b) => a + b, 0) / stats.length;
-  const mastery = (average / 5) * 100;
-  const { studentId } = useStudentDataContext();
+  const mastery = realMasteryPercent ?? (average / 5) * 100;
+  const summaryColor = getMasteryColorFromPct(mastery / 100);
+
+  // Compute delta stats from masteryDeltas
+  const deltaStats = (() => {
+    if (!masteryDeltas || masteryDeltas.length === 0) return null;
+    let improved = 0;
+    let declined = 0;
+    let newlyMastered = 0;
+    for (const d of masteryDeltas) {
+      if (d.after > d.before) improved++;
+      else if (d.after < d.before) declined++;
+      // "mastered" = p_know crossed 0.75 threshold
+      if (d.before < 0.75 && d.after >= 0.75) newlyMastered++;
+    }
+    return { improved, declined, newlyMastered, total: masteryDeltas.length };
+  })();
 
   // AI Flashcard Generator state
   const [showGenerator, setShowGenerator] = useState(false);
@@ -28,15 +98,17 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
   const [keywordsError, setKeywordsError] = useState<string | null>(null);
 
   const handleOpenGenerator = async () => {
+    // If no callback provided, open with empty keywords
+    if (!onLoadKeywords) {
+      setKeywords({});
+      setShowGenerator(true);
+      return;
+    }
+
     setLoadingKeywords(true);
     setKeywordsError(null);
     try {
-      let data: any;
-      if (topicId) {
-        data = await getTopicKeywords(courseId, topicId, studentId || undefined);
-      } else {
-        data = await getCourseKeywords(courseId, studentId || undefined);
-      }
+      const data = await onLoadKeywords(courseId, topicId);
       const kw = (data?.keywords || {}) as KeywordCollection;
       setKeywords(kw);
       setShowGenerator(true);
@@ -47,7 +119,7 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
         setKeywords({});
         setShowGenerator(true);
       } else {
-        setKeywordsError('Nao foi possivel carregar as keywords. Tente novamente.');
+        setKeywordsError('N\u00E3o foi poss\u00EDvel carregar as keywords. Tente novamente.');
       }
     } finally {
       setLoadingKeywords(false);
@@ -61,16 +133,19 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
       className="flex flex-col items-center justify-center h-full bg-surface-dashboard p-8 text-center relative overflow-hidden"
     >
       {/* Ambient celebration glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] bg-gradient-to-br from-teal-200/20 via-teal-100/15 to-transparent rounded-full blur-3xl" />
+      <div
+        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] rounded-full blur-3xl"
+        style={{ background: `radial-gradient(circle, ${summaryColor.hex}33 0%, ${summaryColor.hex}1A 50%, transparent 100%)` }}
+      />
 
       <div className="relative z-10 flex flex-col items-center">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-6 shadow-xl shadow-amber-500/25">
           <Trophy size={40} className="text-white" />
         </div>
 
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Sessao Concluida!</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Sesi{'\u00F3n'} Completada!</h2>
         <p className="text-gray-500 mb-8 max-w-md">
-          Voce completou {stats.length} flashcards com um dominio estimado de:
+          Completaste {stats.length} flashcards con un dominio estimado de:
         </p>
 
         <div className="relative w-48 h-48 flex items-center justify-center mb-10">
@@ -78,11 +153,10 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
             <circle cx="96" cy="96" r="88" stroke="#e2e8f0" strokeWidth="12" fill="none" />
             <motion.circle
               cx="96" cy="96" r="88"
-              stroke="currentColor"
+              stroke={summaryColor.hex}
               strokeWidth="12"
               fill="none"
               strokeLinecap="round"
-              className="text-teal-500"
               strokeDasharray={2 * Math.PI * 88}
               initial={{ strokeDashoffset: 2 * Math.PI * 88 }}
               animate={{ strokeDashoffset: 2 * Math.PI * 88 * (1 - mastery / 100) }}
@@ -95,21 +169,76 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
           </div>
         </div>
 
+        {/* ── Session Delta Stats ── */}
+        {deltaStats && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="flex items-center gap-4 mb-8"
+          >
+            {deltaStats.improved > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
+                <TrendingUp size={14} className="text-emerald-500" />
+                <span className="text-xs text-emerald-700" style={{ fontWeight: 600 }}>
+                  {deltaStats.improved} mejoraron
+                </span>
+              </div>
+            )}
+            {deltaStats.newlyMastered > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200">
+                <Star size={14} className="text-amber-500" />
+                <span className="text-xs text-amber-700" style={{ fontWeight: 600 }}>
+                  {deltaStats.newlyMastered} {deltaStats.newlyMastered === 1 ? 'nueva dominada' : 'nuevas dominadas'}
+                </span>
+              </div>
+            )}
+            {deltaStats.declined > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200">
+                <TrendingDown size={14} className="text-rose-500" />
+                <span className="text-xs text-rose-700" style={{ fontWeight: 600 }}>
+                  {deltaStats.declined} bajaron
+                </span>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Total mastered context */}
+        {totalMastered != null && totalCards != null && totalCards > 0 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="text-sm text-gray-500 mb-8"
+          >
+            <span className="text-gray-700" style={{ fontWeight: 600 }}>{totalMastered}</span> de{' '}
+            <span className="text-gray-700" style={{ fontWeight: 600 }}>{totalCards}</span> cards dominadas en total
+          </motion.p>
+        )}
+
         {/* Action buttons */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex gap-4">
             <button onClick={onExit} className="px-6 py-3 rounded-full border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
-              Voltar ao Deck
+              Volver al Deck
             </button>
-            <button onClick={onRestart} className="px-6 py-3 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-lg shadow-teal-500/20 hover:scale-105 transition-all">
-              Praticar Novamente
+            <button
+              onClick={onRestart}
+              className="px-6 py-3 rounded-full text-white font-semibold shadow-lg hover:scale-105 hover:brightness-90 transition-all"
+              style={{
+                backgroundColor: summaryColor.hex,
+                boxShadow: `0 8px 24px ${summaryColor.hex}40`,
+              }}
+            >
+              Practicar de Nuevo
             </button>
           </div>
 
           {/* Divider */}
           <div className="flex items-center gap-3 w-full max-w-xs my-1">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">ou</span>
+            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">o</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
@@ -150,7 +279,7 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
           )}
 
           <p className="text-[11px] text-gray-400 max-w-xs">
-            A IA analisa seus gaps de conhecimento e gera flashcards focados nas keywords que mais precisam de reforco
+            La IA analiza tus gaps de conocimiento y genera flashcards enfocados en las keywords que m{'\u00E1s'} necesitan refuerzo
           </p>
         </div>
       </div>
@@ -165,7 +294,9 @@ export function SummaryScreen({ stats, onRestart, courseColor, courseId, courseN
             topicTitle={topicTitle || courseName}
             keywords={keywords}
             onFlashcardsGenerated={(flashcards, updatedKeywords) => {
-              console.log(`[SummaryScreen] Generated ${flashcards.length} flashcards`);
+              if (import.meta.env.DEV) {
+                console.log(`[SummaryScreen] Generated ${flashcards.length} flashcards`);
+              }
               setKeywords(updatedKeywords);
             }}
             onClose={() => setShowGenerator(false)}

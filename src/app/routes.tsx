@@ -3,11 +3,15 @@
 //
 // ARCHITECTURE:
 //   This file is a THIN ASSEMBLER. It does NOT import page components.
-//   Each role has its own route file with lazy page imports.
+//   Each role has its own route file with page imports:
 //
-// CODE SPLIT (BUG-014):
-//   Role layouts are lazy-loaded so a student never downloads
-//   AdminLayout, ProfessorLayout, or OwnerLayout code.
+//     routes/student-routes.tsx   → /student/* children
+//     routes/owner-routes.tsx     → /owner/* children
+//     routes/admin-routes.tsx     → /admin/* children
+//     routes/professor-routes.tsx → /professor/* children
+//
+//   To add a new page, edit ONLY the corresponding routes/*.tsx file.
+//   This file rarely needs changes.
 //
 // ROLES:
 //   /owner/*       → Propietario de institucion
@@ -18,7 +22,7 @@
 import React from 'react';
 import { createBrowserRouter } from 'react-router';
 
-// Auth (shared — small, loaded immediately)
+// Auth (shared — rarely changes)
 import { LoginPage } from '@/app/components/auth/LoginPage';
 import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import { RequireAuth } from '@/app/components/auth/RequireAuth';
@@ -26,8 +30,13 @@ import { RequireRole } from '@/app/components/auth/RequireRole';
 import { PostLoginRouter } from '@/app/components/auth/PostLoginRouter';
 import { SelectRolePage } from '@/app/components/auth/SelectRolePage';
 
-// Per-role children (lazy route definitions — each file is tiny,
-// the actual page components inside use lazy() too)
+// Role Layouts (shared — rarely changes)
+import { OwnerLayout } from '@/app/components/roles/OwnerLayout';
+import { AdminLayout } from '@/app/components/roles/AdminLayout';
+import { ProfessorLayout } from '@/app/components/roles/ProfessorLayout';
+import { StudentLayout } from '@/app/components/roles/StudentLayout';
+
+// Per-role children (one file per area — edit independently)
 import { studentChildren } from '@/app/routes/student-routes';
 import { ownerChildren } from '@/app/routes/owner-routes';
 import { adminChildren } from '@/app/routes/admin-routes';
@@ -55,46 +64,47 @@ export const router = createBrowserRouter([
           // Role / institution picker
           { path: 'select-org', Component: SelectRolePage },
 
-          // ── OWNER (/owner/*) ── lazy layout ────────────────
+          // ── OWNER (/owner/*) ───────────────────────────────
           {
             element: <RequireRole roles={['owner']} />,
             children: [
               {
                 path: 'owner',
-                lazy: () => import('@/app/components/roles/OwnerLayout').then(m => ({ Component: m.OwnerLayout })),
+                Component: OwnerLayout,
                 children: ownerChildren,
               },
             ],
           },
 
-          // ── ADMIN (/admin/*) ── lazy layout ────────────────
+          // ── ADMIN (/admin/*) ───────────────────────────────
           {
             element: <RequireRole roles={['admin', 'owner']} />,
             children: [
               {
                 path: 'admin',
-                lazy: () => import('@/app/components/roles/AdminLayout').then(m => ({ Component: m.AdminLayout })),
+                Component: AdminLayout,
                 children: adminChildren,
               },
             ],
           },
 
-          // ── PROFESSOR (/professor/*) ── lazy layout ────────
+          // ── PROFESSOR (/professor/*) ───────────────────────
           {
             element: <RequireRole roles={['professor', 'admin', 'owner']} />,
             children: [
               {
                 path: 'professor',
-                lazy: () => import('@/app/components/roles/ProfessorLayout').then(m => ({ Component: m.ProfessorLayout })),
+                Component: ProfessorLayout,
                 children: professorChildren,
               },
             ],
           },
 
-          // ── STUDENT (/student/*) ── lazy layout ────────────
+          // ── STUDENT (/student/*) ───────────────────────────
+          // Any authenticated role can view the student experience.
           {
             path: 'student',
-            lazy: () => import('@/app/components/roles/StudentLayout').then(m => ({ Component: m.StudentLayout })),
+            Component: StudentLayout,
             children: studentChildren,
           },
 

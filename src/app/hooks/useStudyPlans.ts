@@ -9,14 +9,21 @@
 //   4. Map to frontend StudyPlan/StudyPlanTask types
 //   5. Sync to AppContext.studyPlans so ScheduleView works unchanged
 //
-// CRUD: createPlan, toggleTask, deletePlan, reorder tasks
+// CRUD: createPlan, toggleTask (+ reschedule), deletePlan, reorder tasks
+//
+// Phase 5 additions:
+//   - toggleTaskComplete calls rescheduleRemainingTasks after status update
+//   - Reschedule changes persisted via PUT /study-plan-tasks/batch
+//   - CREATE sends original_method, scheduled_date, estimated_minutes
+//   - READ uses scheduled_date/original_method/estimated_minutes with legacy fallbacks
+//   - DELETE simplified via CASCADE (no N+1 task deletes)
+//   - Accepts optional topicMastery + getTimeEstimate for reschedule (Opcion B)
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useApp, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { apiCall } from '@/app/lib/api';
 import {
   getStudyPlans,
   getStudyPlanTasks,
@@ -25,13 +32,23 @@ import {
   updateStudyPlanTask as apiUpdateTask,
   updateStudyPlan as apiUpdatePlan,
   deleteStudyPlan as apiDeletePlan,
-  deleteStudyPlanTask as apiDeleteTask,
+  batchUpdateTasks as apiBatchUpdate,
   reorderItems,
 } from '@/app/services/platformApi';
 import type {
   StudyPlanRecord,
   StudyPlanTaskRecord,
 } from '@/app/services/platformApi';
+import {
+  METHOD_TIME_DEFAULTS,
+  BACKEND_ITEM_TYPE_TO_METHOD,
+  METHOD_TO_BACKEND_ITEM_TYPE,
+} from '@/app/utils/constants';
+import {
+  rescheduleRemainingTasks,
+  type RescheduleChange,
+} from '@/app/utils/rescheduleEngine';
+import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
 
 // ── Content tree lookup helpers ─────────────────────────────
 
@@ -72,20 +89,21 @@ function buildTopicMap(tree: any): Map<string, TopicLookup> {
   return map;
 }
 
-// ── Method display info ─────────────────────────────────────
+// ── Hook Options ────────────────────────────────────────────
+// Phase 5 — Opcion B: accept mastery + time estimate data as
+// optional props so the caller can share already-loaded data.
+// If not provided, reschedule gracefully degrades (no-op).
 
-const METHOD_DEFAULTS: Record<string, { minutes: number }> = {
-  flashcard: { minutes: 20 },
-  quiz: { minutes: 15 },
-  video: { minutes: 30 },
-  resumo: { minutes: 25 },
-  '3d': { minutes: 20 },
-  reading: { minutes: 30 },
-};
+export interface UseStudyPlansOptions {
+  /** Current mastery data from useTopicMastery (Phase 5 reschedule) */
+  topicMastery?: Map<string, TopicMasteryInfo>;
+  /** Time estimate getter from useStudyTimeEstimates (Phase 5 reschedule) */
+  getTimeEstimate?: (methodId: string) => { estimatedMinutes: number };
+}
 
 // ── Hook ────────────────────────────────────────────────────
 
-export function useStudyPlans() {
+export function useStudyPlans(opts?: UseStudyPlansOptions) {
   const { user, status: authStatus } = useAuth();
   const { addStudyPlan: syncToAppContext } = useApp();
   const { tree } = useContentTree();
@@ -96,6 +114,9 @@ export function useStudyPlans() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const didInitialSync = useRef(false);
+
+  // Phase 5: Guard against concurrent reschedule operations
+  const isRescheduling = useRef(false);
 
   // Build topic lookup from content tree
   const topicMap = useMemo(
@@ -111,7 +132,7 @@ export function useStudyPlans() {
     setError(null);
 
     try {
-      const rawPlans = await getStudyPlans('active');
+      const rawPlans = await getStudyPlans(undefined, 'active');
       setBackendPlans(rawPlans);
 
       // Fetch tasks for each plan in parallel
@@ -159,15 +180,27 @@ export function useStudyPlans() {
           subjectSet.set(courseId, { id: courseId, name: courseName, color: courseColor });
         }
 
-        // Derive date from order_index (spread across plan creation + days)
+        // Phase 5: Use scheduled_date from backend, fallback to derived date for legacy tasks
         const planCreated = bp.created_at ? new Date(bp.created_at) : new Date();
-        const dayOffset = Math.floor(idx / 4); // ~4 tasks per day
-        const taskDate = new Date(planCreated);
-        taskDate.setDate(taskDate.getDate() + dayOffset);
-        // Skip weekends
-        while (taskDate.getDay() === 0 || taskDate.getDay() === 6) {
-          taskDate.setDate(taskDate.getDate() + 1);
-        }
+        const taskDate = bt.scheduled_date
+          ? new Date(bt.scheduled_date)
+          : (() => {
+              const d = new Date(planCreated);
+              d.setDate(d.getDate() + Math.floor(idx / 3)); // legacy: ~3 tasks per day
+              return d;
+            })();
+
+        // Phase 5: Use original_method for display (preserves 'video', '3d', etc.)
+        // Falls back to reverse-mapped item_type for legacy tasks
+        const displayMethod = bt.original_method
+          || BACKEND_ITEM_TYPE_TO_METHOD[bt.item_type]
+          || bt.item_type;
+
+        // Phase 5: Use persisted estimated_minutes, fallback to defaults
+        const estMinutes = bt.estimated_minutes
+          ?? METHOD_TIME_DEFAULTS[bt.item_type]
+          ?? METHOD_TIME_DEFAULTS[displayMethod]
+          ?? 25;
 
         return {
           id: bt.id,
@@ -175,9 +208,10 @@ export function useStudyPlans() {
           title: topicTitle,
           subject: courseName,
           subjectColor: courseColor,
-          method: bt.item_type,
-          estimatedMinutes: METHOD_DEFAULTS[bt.item_type]?.minutes || 25,
+          method: displayMethod,
+          estimatedMinutes: estMinutes,
           completed: bt.status === 'completed',
+          topicId: bt.item_id,
         };
       });
 
@@ -185,7 +219,9 @@ export function useStudyPlans() {
         id: bp.id,
         name: bp.name,
         subjects: Array.from(subjectSet.values()),
-        methods: [...new Set(tasks.map(t => t.item_type))],
+        methods: [...new Set(tasks.map(t =>
+          t.original_method || BACKEND_ITEM_TYPE_TO_METHOD[t.item_type] || t.item_type
+        ))],
         selectedTopics: sortedTasks.map(bt => {
           const lookup = topicMap.get(bt.item_id);
           return {
@@ -197,11 +233,16 @@ export function useStudyPlans() {
           };
         }),
         completionDate: (() => {
+          // DT-02: read persisted completion_date, fallback for legacy plans
+          if (bp.completion_date) return new Date(bp.completion_date);
           const d = bp.created_at ? new Date(bp.created_at) : new Date();
-          d.setDate(d.getDate() + 30); // default 30-day plan
+          d.setDate(d.getDate() + 30); // legacy fallback: 30-day plan
           return d;
         })(),
-        weeklyHours: (bp as any).metadata?.weeklyHours || [2, 2, 2, 2, 2, 1, 1],
+        // DT-02: read persisted weekly_hours, fallback for legacy plans
+        weeklyHours: Array.isArray(bp.weekly_hours) && bp.weekly_hours.length === 7
+          ? bp.weekly_hours
+          : [2, 2, 2, 2, 2, 1, 1], // legacy fallback
         tasks: frontendTasks,
         createdAt: bp.created_at ? new Date(bp.created_at) : new Date(),
         totalEstimatedHours: Math.round(
@@ -217,7 +258,7 @@ export function useStudyPlans() {
       didInitialSync.current = true;
       mapped.forEach(plan => syncToAppContext(plan));
     }
-  }, [backendPlans, backendTasksMap, topicMap]);
+  }, [backendPlans, backendTasksMap, topicMap, syncToAppContext]);
 
   // ── Auto-fetch on mount ───────────────────────────────────
 
@@ -234,21 +275,37 @@ export function useStudyPlans() {
     frontendPlan: StudyPlan
   ): Promise<void> => {
     try {
-      // 1) Create the plan
+      // 1) Create the plan — DT-02: persists completion_date, weekly_hours, metadata
       const record = await apiCreatePlan({
         name: frontendPlan.name,
         status: 'active',
-        course_id: frontendPlan.subjects?.[0]?.id || undefined,
+        completion_date: frontendPlan.completionDate
+          ? frontendPlan.completionDate.toISOString().slice(0, 10)
+          : undefined,
+        weekly_hours: frontendPlan.weeklyHours ?? undefined,
+        metadata: {
+          methods: frontendPlan.methods,
+          totalEstimatedHours: frontendPlan.totalEstimatedHours,
+          subjectCount: frontendPlan.subjects.length,
+          createdByWizard: true,
+        },
       });
 
-      // 2) Create tasks in parallel (batched for performance)
+      // 2) Create tasks in parallel — Phase 5: sends original_method, scheduled_date, estimated_minutes
       const taskPromises = frontendPlan.tasks.map((task, idx) =>
         apiCreateTask({
           study_plan_id: record.id,
-          item_type: task.method,
-          item_id: frontendPlan.selectedTopics[idx % frontendPlan.selectedTopics.length]?.topicId || task.id,
+          // DT-12 fix: map wizard methods to valid backend item_type
+          item_type: METHOD_TO_BACKEND_ITEM_TYPE[task.method] || 'reading',
+          item_id: task.topicId || frontendPlan.selectedTopics[idx % frontendPlan.selectedTopics.length]?.topicId || task.id,
           status: task.completed ? 'completed' : 'pending',
           order_index: idx,
+          // Phase 5: preserve original wizard data
+          original_method: task.method,
+          scheduled_date: task.date instanceof Date
+            ? task.date.toISOString().slice(0, 10)
+            : undefined,
+          estimated_minutes: task.estimatedMinutes,
         })
       );
 
@@ -272,7 +329,173 @@ export function useStudyPlans() {
     }
   }, [fetchAll, syncToAppContext]);
 
-  /** Toggle a task's completion status */
+  // ── Phase 5: Reschedule helper ────────────────────────────
+  // Called after a task status change to redistribute pending tasks.
+  // Gracefully no-ops if mastery data is unavailable.
+  //
+  // NOTE: Builds plan snapshot directly from backendPlans + backendTasksMap
+  // (which already contain the optimistic update from toggleTaskComplete)
+  // instead of reading from the derived `plans` state, which requires
+  // a React re-render cycle to propagate. This eliminates the race
+  // condition where `plans` might be stale at the time of invocation.
+
+  const runReschedule = useCallback(async (
+    planId: string,
+    /** Pre-applied tasks snapshot (already contains the status flip) */
+    tasksSnapshot: StudyPlanTaskRecord[],
+  ): Promise<void> => {
+    // Guard: need both mastery and time estimate data
+    if (!opts?.topicMastery || !opts?.getTimeEstimate) {
+      console.log('[useStudyPlans] Reschedule skipped: mastery/estimate data not provided');
+      return;
+    }
+
+    // Guard: prevent concurrent reschedule
+    if (isRescheduling.current) {
+      console.log('[useStudyPlans] Reschedule skipped: already in progress');
+      return;
+    }
+
+    // Find the backend plan record for metadata
+    const bp = backendPlans.find(p => p.id === planId);
+    if (!bp) {
+      console.warn(`[useStudyPlans] Reschedule skipped: plan ${planId} not found in backendPlans`);
+      return;
+    }
+
+    // Build a fresh frontend StudyPlan snapshot from backend data
+    // (mirrors the mapping effect logic, but inline and synchronous)
+    const sortedTasks = [...tasksSnapshot].sort((a, b) => a.order_index - b.order_index);
+    const planCreated = bp.created_at ? new Date(bp.created_at) : new Date();
+
+    const frontendTasks: StudyPlanTask[] = sortedTasks.map((bt, idx) => {
+      const lookup = topicMap.get(bt.item_id);
+      const displayMethod = bt.original_method
+        || BACKEND_ITEM_TYPE_TO_METHOD[bt.item_type]
+        || bt.item_type;
+      const estMinutes = bt.estimated_minutes
+        ?? METHOD_TIME_DEFAULTS[bt.item_type]
+        ?? METHOD_TIME_DEFAULTS[displayMethod]
+        ?? 25;
+
+      const taskDate = bt.scheduled_date
+        ? new Date(bt.scheduled_date)
+        : (() => {
+            const d = new Date(planCreated);
+            d.setDate(d.getDate() + Math.floor(idx / 3));
+            return d;
+          })();
+
+      return {
+        id: bt.id,
+        date: taskDate,
+        title: lookup?.topicTitle || bt.item_id,
+        subject: lookup?.courseName || 'Materia',
+        subjectColor: lookup?.courseColor || 'bg-gray-500',
+        method: displayMethod,
+        estimatedMinutes: estMinutes,
+        completed: bt.status === 'completed',
+        topicId: bt.item_id,
+      };
+    });
+
+    const planSnapshot: StudyPlan = {
+      id: bp.id,
+      name: bp.name,
+      subjects: [],
+      methods: [],
+      selectedTopics: [],
+      completionDate: bp.completion_date
+        ? new Date(bp.completion_date)
+        : (() => { const d = new Date(planCreated); d.setDate(d.getDate() + 30); return d; })(),
+      weeklyHours: Array.isArray(bp.weekly_hours) && bp.weekly_hours.length === 7
+        ? bp.weekly_hours
+        : [2, 2, 2, 2, 2, 1, 1],
+      tasks: frontendTasks,
+      createdAt: planCreated,
+      totalEstimatedHours: Math.round(frontendTasks.reduce((sum, t) => sum + t.estimatedMinutes, 0) / 60),
+    };
+
+    // Only reschedule if there are pending tasks
+    const pendingCount = planSnapshot.tasks.filter(t => !t.completed).length;
+    if (pendingCount === 0) {
+      console.log('[useStudyPlans] Reschedule skipped: no pending tasks');
+      return;
+    }
+
+    isRescheduling.current = true;
+
+    try {
+      const result = rescheduleRemainingTasks({
+        plan: planSnapshot,
+        topicMastery: opts.topicMastery,
+        getTimeEstimate: opts.getTimeEstimate,
+      });
+
+      if (!result.didReschedule || result.changes.length === 0) {
+        console.log('[useStudyPlans] Reschedule: no changes needed');
+        return;
+      }
+
+      console.log(`[useStudyPlans] Reschedule: ${result.changes.length} task(s) will be updated`);
+
+      // Persist changes via batch endpoint
+      const batchPayload = {
+        study_plan_id: planId,
+        updates: result.changes.map((c: RescheduleChange) => ({
+          id: c.taskId,
+          scheduled_date: c.newDate.toISOString().slice(0, 10),
+          estimated_minutes: c.newEstimatedMinutes,
+          order_index: c.newOrderIndex,
+        })),
+      };
+
+      try {
+        const batchResult = await apiBatchUpdate(batchPayload);
+        console.log(`[useStudyPlans] Batch update: ${batchResult.succeeded}/${batchResult.total} succeeded`);
+      } catch (batchErr: any) {
+        // Batch endpoint not yet deployed — fall back to individual PUTs
+        console.warn('[useStudyPlans] Batch endpoint unavailable, falling back to individual updates:', batchErr.message);
+        await Promise.allSettled(
+          batchPayload.updates.map(u =>
+            apiUpdateTask(u.id, {
+              scheduled_date: u.scheduled_date,
+              estimated_minutes: u.estimated_minutes,
+              order_index: u.order_index,
+            })
+          )
+        );
+      }
+
+      // Update local state optimistically with rescheduled tasks
+      setBackendTasksMap(prev => {
+        const next = new Map(prev);
+        const planTasks = [...(next.get(planId) || [])];
+
+        for (const change of result.changes) {
+          const idx = planTasks.findIndex(t => t.id === change.taskId);
+          if (idx >= 0) {
+            planTasks[idx] = {
+              ...planTasks[idx],
+              scheduled_date: change.newDate.toISOString().slice(0, 10),
+              estimated_minutes: change.newEstimatedMinutes,
+              order_index: change.newOrderIndex,
+            };
+          }
+        }
+
+        next.set(planId, planTasks);
+        return next;
+      });
+    } catch (err: any) {
+      console.error('[useStudyPlans] Reschedule error (non-blocking):', err);
+      // Non-blocking: task status was already saved, reschedule is best-effort
+    } finally {
+      isRescheduling.current = false;
+    }
+  }, [backendPlans, topicMap, opts?.topicMastery, opts?.getTimeEstimate]);
+
+  /** Toggle a task's completion status + trigger reschedule */
   const toggleTaskComplete = useCallback(async (
     planId: string,
     taskId: string
@@ -288,51 +511,37 @@ export function useStudyPlans() {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
     const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
 
+    // Build the tasks snapshot WITH the status flip already applied
+    // This is the ground truth for the reschedule engine — no race condition.
+    const updatedTasks = (tasks || []).map(t =>
+      t.id === taskId
+        ? { ...t, status: newStatus as StudyPlanTaskRecord['status'], completed_at: completedAt }
+        : t
+    );
+
     try {
+      // Step 1: Update task status on backend
       await apiUpdateTask(taskId, {
         status: newStatus,
         completed_at: completedAt,
       });
 
-      // Track activity when task is completed
-      if (newStatus === 'completed') {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const estimatedMinutes = METHOD_DEFAULTS[task.item_type]?.minutes || 25;
-        // Both are UPSERT on the backend — safe to call multiple times
-        Promise.allSettled([
-          apiCall('/daily-activities', {
-            method: 'POST',
-            body: JSON.stringify({
-              activity_date: today,
-              sessions_count: 1,
-              time_spent_seconds: estimatedMinutes * 60,
-            }),
-          }),
-          apiCall('/student-stats', {
-            method: 'POST',
-            body: JSON.stringify({
-              total_sessions: 1,
-              last_study_date: today,
-            }),
-          }),
-        ]).catch(e => console.warn('[useStudyPlans] tracking error (non-fatal):', e));
-      }
-
-      // Update local state immediately
+      // Step 2: Optimistic local update
       setBackendTasksMap(prev => {
         const next = new Map(prev);
-        const planTasks = [...(next.get(planId) || [])];
-        const idx = planTasks.findIndex(t => t.id === taskId);
-        if (idx >= 0) {
-          planTasks[idx] = { ...planTasks[idx], status: newStatus as any, completed_at: completedAt };
-        }
-        next.set(planId, planTasks);
+        next.set(planId, updatedTasks);
         return next;
       });
+
+      // Step 3: Phase 5 — Trigger reschedule after completing a task
+      // Pass the already-updated tasks snapshot directly (no setTimeout needed)
+      if (newStatus === 'completed') {
+        runReschedule(planId, updatedTasks);
+      }
     } catch (err: any) {
       console.error('[useStudyPlans] toggleTask error:', err);
     }
-  }, [backendTasksMap]);
+  }, [backendTasksMap, runReschedule]);
 
   /** Reorder tasks within a plan */
   const reorderTasks = useCallback(async (
@@ -373,19 +582,16 @@ export function useStudyPlans() {
     }
   }, [fetchAll]);
 
-  /** Delete a plan and all its tasks */
+  /** Delete a plan — Phase 5: simplified via CASCADE (tasks auto-deleted) */
   const deletePlan = useCallback(async (planId: string): Promise<void> => {
     try {
-      // Delete all tasks first
-      const tasks = backendTasksMap.get(planId) || [];
-      await Promise.allSettled(tasks.map(t => apiDeleteTask(t.id)));
-      // Then delete the plan
+      // CASCADE FK auto-deletes all study_plan_tasks for this plan
       await apiDeletePlan(planId);
       await fetchAll();
     } catch (err: any) {
       console.error('[useStudyPlans] deletePlan error:', err);
     }
-  }, [backendTasksMap, fetchAll]);
+  }, [fetchAll]);
 
   return {
     plans,

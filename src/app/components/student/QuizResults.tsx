@@ -10,28 +10,21 @@
 // Design: teal accent, motion animations (matching QuizView)
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
-import type { QuizQuestion, QuestionType } from '@/app/services/quizApi';
-import type { SavedAnswer } from '@/app/components/student/QuizTaker';
+import React, { useState, useMemo, useRef } from 'react';
+import type { QuizQuestion } from '@/app/services/quizApi';
+import type { SavedAnswer } from '@/app/components/student/quiz-types';
+import {
+  QUESTION_TYPE_LABELS_SHORT,
+  DIFFICULTY_LABELS,
+  INT_TO_DIFFICULTY,
+} from '@/app/services/quizConstants';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import {
   Trophy, CheckCircle2, XCircle, RotateCw, ChevronLeft,
   Clock, AlertCircle, ChevronDown, ChevronRight, Target,
 } from 'lucide-react';
-
-// ── Helpers ──────────────────────────────────────────────
-
-type Difficulty = 'easy' | 'medium' | 'hard';
-const INT_TO_DIFFICULTY: Record<number, Difficulty> = { 1: 'easy', 2: 'medium', 3: 'hard' };
-const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: 'Facil', medium: 'Media', hard: 'Dificil' };
-
-const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
-  mcq: 'Opcion multiple',
-  true_false: 'V/F',
-  fill_blank: 'Completar',
-  open: 'Abierta',
-};
+import { Confetti, focusRing } from '@/app/components/design-kit';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -40,8 +33,11 @@ interface QuizResultsProps {
   savedAnswers: Record<number, SavedAnswer>;
   sessionStartTime: number;
   quizTitle: string;
+  keywordMap?: Record<string, string>;
   onRestart: () => void;
   onBack: () => void;
+  /** Optional: go back to session mode to review answered questions */
+  onReview?: () => void;
 }
 
 // ── Grouped stats ────────────────────────────────────────
@@ -59,18 +55,31 @@ export function QuizResults({
   savedAnswers,
   sessionStartTime,
   quizTitle,
+  keywordMap,
   onRestart,
   onBack,
+  onReview,
 }: QuizResultsProps) {
   const [showDetail, setShowDetail] = useState(false);
 
-  // Computed stats
-  const correctCount = Object.values(savedAnswers).filter(a => a.answered && a.correct).length;
-  const wrongCount = Object.values(savedAnswers).filter(a => a.answered && !a.correct).length;
-  const answeredCount = Object.values(savedAnswers).filter(a => a.answered).length;
+  // Freeze duration at mount time so re-renders don't change it
+  const durationSecRef = useRef(Math.round((Date.now() - sessionStartTime) / 1000));
+
+  // Computed stats (single-pass memoized)
+  const { correctCount, wrongCount, answeredCount } = useMemo(() => {
+    let correct = 0, wrong = 0, answered = 0;
+    for (const a of Object.values(savedAnswers)) {
+      if (a.answered) {
+        answered++;
+        if (a.correct) correct++; else wrong++;
+      }
+    }
+    return { correctCount: correct, wrongCount: wrong, answeredCount: answered };
+  }, [savedAnswers]);
+
   const total = questions.length;
   const pct = total > 0 ? (correctCount / total) * 100 : 0;
-  const durationSec = Math.round((Date.now() - sessionStartTime) / 1000);
+  const durationSec = durationSecRef.current;
   const minutes = Math.floor(durationSec / 60);
   const seconds = durationSec % 60;
 
@@ -82,9 +91,8 @@ export function QuizResults({
       const sa = savedAnswers[idx];
       const key = q.keyword_id || 'unknown';
       if (!map.has(key)) {
-        // We don't have keyword names here — use a truncated ID
-        // In production, pass keywords from parent for labels
-        map.set(key, { label: `Keyword ${key.substring(0, 8)}`, total: 0, correct: 0 });
+        const label = keywordMap?.[key] || `Keyword ${key.substring(0, 8)}`;
+        map.set(key, { label, total: 0, correct: 0 });
       }
       const entry = map.get(key)!;
       entry.total++;
@@ -96,7 +104,7 @@ export function QuizResults({
       const bPct = b.total > 0 ? b.correct / b.total : 0;
       return aPct - bPct; // weakest first
     });
-  }, [questions, savedAnswers]);
+  }, [questions, savedAnswers, keywordMap]);
 
   // Performance message
   const performanceMsg = pct >= 80
@@ -109,34 +117,58 @@ export function QuizResults({
 
   const performanceColor = pct >= 70 ? '#0d9488' : pct >= 40 ? '#f59e0b' : '#ef4444';
 
+  // Check if BKT was possible for any question
+  const hasBktData = useMemo(
+    () => questions.some(q => q.subtopic_id),
+    [questions],
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col h-full overflow-y-auto bg-white"
+      className="flex flex-col h-full overflow-y-auto custom-scrollbar-light bg-zinc-50"
     >
       <div className="flex-1 flex flex-col items-center px-6 py-8">
         <div className="w-full max-w-2xl">
 
           {/* ── Trophy + Title ── */}
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 rounded-full bg-teal-600 flex items-center justify-center mx-auto mb-5 shadow-lg">
-              <Trophy size={40} className="text-white" />
-            </div>
-            <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>
-              Quiz completado!
+          <div className="text-center mb-8 relative">
+            {/* Confetti for high scores */}
+            {pct >= 70 && <Confetti show />}
+
+            <motion.div
+              className={clsx(
+                'w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl',
+                pct >= 70 ? 'bg-gradient-to-br from-teal-500 to-emerald-600 shadow-teal-500/30' :
+                pct >= 40 ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/25' :
+                'bg-gradient-to-br from-rose-400 to-red-500 shadow-rose-500/25'
+              )}
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+            >
+              <Trophy size={44} className="text-white" />
+            </motion.div>
+            <h2 className="text-2xl text-zinc-900 mb-2" style={{ fontWeight: 700 }}>
+              {pct >= 80 ? 'Excelente!' : pct >= 60 ? 'Buen trabajo!' : 'Quiz completado'}
             </h2>
-            <p className="text-sm text-gray-500 mb-1">{quizTitle}</p>
-            <p className="text-sm text-gray-400 flex items-center justify-center gap-2">
+            <p className="text-sm text-zinc-500 mb-1">{quizTitle}</p>
+            <p className="text-sm text-zinc-400 flex items-center justify-center gap-2">
               <Clock size={14} /> {minutes}m {seconds}s
             </p>
           </div>
 
           {/* ── Score Circle ── */}
           <div className="flex justify-center mb-8">
-            <div className="relative w-48 h-48">
+            <motion.div
+              className="relative w-48 h-48"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.4, type: 'spring' }}
+            >
               <svg className="w-full h-full transform -rotate-90">
-                <circle cx="96" cy="96" r="84" stroke="#f1f5f9" strokeWidth="12" fill="none" />
+                <circle cx="96" cy="96" r="84" stroke="#e4e4e7" strokeWidth="12" fill="none" />
                 <motion.circle
                   cx="96" cy="96" r="84"
                   stroke={performanceColor}
@@ -148,47 +180,78 @@ export function QuizResults({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl text-gray-900" style={{ fontWeight: 700 }}>
+                <motion.span
+                  className="text-4xl text-zinc-900"
+                  style={{ fontWeight: 700 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
                   {pct.toFixed(0)}%
-                </span>
-                <span className="text-xs text-gray-400 uppercase tracking-wider mt-1" style={{ fontWeight: 700 }}>
+                </motion.span>
+                <span className="text-xs text-zinc-400 uppercase tracking-wider mt-1" style={{ fontWeight: 700 }}>
                   {correctCount}/{total}
                 </span>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* ── Summary Stats ── */}
-          <div className="flex items-center justify-center gap-6 mb-3">
-            <div className="flex items-center gap-1.5 text-emerald-600 text-sm" style={{ fontWeight: 600 }}>
+          <motion.div
+            className="flex items-center justify-center gap-4 mb-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 text-sm" style={{ fontWeight: 600 }}>
               <CheckCircle2 size={16} /> {correctCount} correctas
             </div>
-            <div className="flex items-center gap-1.5 text-rose-500 text-sm" style={{ fontWeight: 600 }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-500 text-sm" style={{ fontWeight: 600 }}>
               <XCircle size={16} /> {wrongCount} incorrectas
             </div>
             {answeredCount < total && (
-              <div className="flex items-center gap-1.5 text-gray-400 text-sm" style={{ fontWeight: 600 }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-400 text-sm" style={{ fontWeight: 600 }}>
                 <AlertCircle size={16} /> {total - answeredCount} sin respuesta
               </div>
             )}
-          </div>
-          <p className="text-center text-sm text-gray-500 mb-8">{performanceMsg}</p>
+          </motion.div>
+          <p className="text-center text-sm text-zinc-500 mb-8">{performanceMsg}</p>
+
+          {/* ── BKT not available notice ── */}
+          {!hasBktData && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-500 text-[11px] mb-6 mx-auto max-w-md">
+              <AlertCircle size={14} className="shrink-0 text-zinc-400" />
+              <span>Seguimiento adaptativo (BKT) no disponible — las preguntas no tienen subtopico asignado.</span>
+            </div>
+          )}
+
+          {/* ── Review answers button ── */}
+          {onReview && (
+            <button
+              onClick={onReview}
+              className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 transition-colors mb-2 mx-auto px-4 py-2 rounded-xl hover:bg-teal-50"
+              style={{ fontWeight: 600 }}
+            >
+              <Target size={14} />
+              Revisar respuestas
+            </button>
+          )}
 
           {/* ── Grouped by Keyword ── */}
           {keywordGroups.length > 1 && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-3">
                 <Target size={14} className="text-teal-500" />
-                <h3 className="text-sm text-gray-700" style={{ fontWeight: 700 }}>Resultado por keyword</h3>
+                <h3 className="text-sm text-zinc-700" style={{ fontWeight: 700 }}>Resultado por keyword</h3>
               </div>
               <div className="space-y-2">
                 {keywordGroups.map((group, gi) => {
                   const groupPct = group.total > 0 ? (group.correct / group.total) * 100 : 0;
                   return (
-                    <div key={gi} className="flex items-center gap-3 px-4 py-2.5 bg-gray-50 rounded-xl">
+                    <div key={gi} className="flex items-center gap-3 px-4 py-2.5 bg-white rounded-xl border border-zinc-200">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[12px] text-gray-700 truncate" style={{ fontWeight: 600 }}>
+                          <span className="text-[12px] text-zinc-700 truncate" style={{ fontWeight: 600 }}>
                             {group.label}
                           </span>
                           <span className={clsx(
@@ -198,7 +261,7 @@ export function QuizResults({
                             {group.correct}/{group.total}
                           </span>
                         </div>
-                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
                           <motion.div
                             className={clsx(
                               'h-full rounded-full',
@@ -220,7 +283,7 @@ export function QuizResults({
           {/* ── Detail Toggle ── */}
           <button
             onClick={() => setShowDetail(!showDetail)}
-            className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 transition-colors mb-4 mx-auto"
+            className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 transition-colors mb-4 mx-auto px-4 py-2 rounded-xl hover:bg-teal-50"
             style={{ fontWeight: 600 }}
           >
             {showDetail ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -246,13 +309,16 @@ export function QuizResults({
                     const diffKey = INT_TO_DIFFICULTY[q.difficulty] || 'medium';
 
                     return (
-                      <div
+                      <motion.div
                         key={q.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
                         className={clsx(
-                          'rounded-xl border px-4 py-3',
-                          answered && correct ? 'border-emerald-200 bg-emerald-50/50' :
-                          answered && !correct ? 'border-rose-200 bg-rose-50/50' :
-                          'border-gray-200 bg-gray-50'
+                          'rounded-2xl border px-5 py-4 bg-white shadow-sm',
+                          answered && correct ? 'border-emerald-200' :
+                          answered && !correct ? 'border-rose-200' :
+                          'border-zinc-200'
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -274,7 +340,7 @@ export function QuizResults({
                                 #{idx + 1}
                               </span>
                               <span className="text-[9px] text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200" style={{ fontWeight: 600 }}>
-                                {QUESTION_TYPE_LABELS[q.question_type]}
+                                {QUESTION_TYPE_LABELS_SHORT[q.question_type]}
                               </span>
                               <span className={clsx(
                                 'text-[9px] px-1.5 py-0.5 rounded border',
@@ -337,7 +403,7 @@ export function QuizResults({
                             )}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -346,24 +412,28 @@ export function QuizResults({
           </AnimatePresence>
 
           {/* ── Action Buttons ── */}
-          <div className="flex gap-4 justify-center pt-4 pb-8">
-            <button
+          <div className="flex gap-4 justify-center pt-6 pb-8">
+            <motion.button
               onClick={onBack}
-              className="px-6 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              className={`px-6 py-3 rounded-xl text-zinc-500 hover:text-zinc-900 border border-zinc-200 hover:border-zinc-300 bg-white hover:shadow-md transition-all ${focusRing}`}
               style={{ fontWeight: 700 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
             >
               <div className="flex items-center gap-2">
                 <ChevronLeft size={18} />
                 Volver
               </div>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={onRestart}
-              className="px-8 py-3 rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-lg hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-3"
+              className={`px-8 py-3 rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-600/25 transition-all inline-flex items-center gap-3 ${focusRing}`}
               style={{ fontWeight: 700 }}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
             >
               <RotateCw size={18} /> Repetir quiz
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>

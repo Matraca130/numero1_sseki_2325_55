@@ -58,7 +58,7 @@ export interface TipTapEditorProps {
   /** List of keyword names to highlight in editor */
   keywordNames?: string[];
   /** Called when professor clicks on a highlighted keyword */
-  onKeywordClick?: (keywordName: string, rect: DOMRect) => void;
+  onKeywordClick?: (keywordName: string, anchorEl: HTMLElement) => void;
 }
 
 // ── Editor CSS ────────────────────────────────────────────
@@ -385,8 +385,7 @@ export function TipTapEditor({
       const kwName = kwEl.getAttribute('data-keyword');
       if (!kwName) return;
 
-      const rect = kwEl.getBoundingClientRect();
-      onKeywordClick(kwName, rect);
+      onKeywordClick(kwName, kwEl);
     };
 
     contentEl.addEventListener('click', handler);
@@ -723,8 +722,7 @@ function SelectionKeywordBubble({
 
   // Listen to editor selection changes
   useEffect(() => {
-    editor.on('selectionUpdate', updateBubble);
-    editor.on('blur', () => {
+    const handleBlur = () => {
       // Delay to allow button click before hiding
       setTimeout(() => {
         if (!editor.isFocused) {
@@ -732,9 +730,13 @@ function SelectionKeywordBubble({
           setSelectedText('');
         }
       }, 200);
-    });
+    };
+
+    editor.on('selectionUpdate', updateBubble);
+    editor.on('blur', handleBlur);
     return () => {
       editor.off('selectionUpdate', updateBubble);
+      editor.off('blur', handleBlur);
     };
   }, [editor, updateBubble]);
 

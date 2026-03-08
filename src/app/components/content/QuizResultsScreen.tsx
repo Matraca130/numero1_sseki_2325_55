@@ -1,4 +1,14 @@
 // ============================================================
+// @deprecated — Phase 14: This file was replaced by:
+//   /student/QuizResults.tsx (unified results with keyword grouping,
+//   BKT notice, review button, and design-kit imports)
+//
+// QuizView.tsx now uses QuizTaker → QuizResults instead of this file.
+// Keep in repo for historical reference.
+// Delete on next code cleanup if no hidden consumers.
+// ============================================================
+
+// ============================================================
 // Axon — Quiz Results Screen (extracted from QuizSession)
 //
 // Shows score circle, stats, performance message, and actions.

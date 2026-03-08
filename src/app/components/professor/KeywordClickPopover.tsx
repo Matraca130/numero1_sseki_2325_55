@@ -4,6 +4,13 @@
 // Floating popover that appears when the professor clicks on a
 // highlighted keyword in the TipTap editor.
 // Shows: keyword info header, definition, priority, connections.
+//
+// Positioning: @floating-ui/react with autoUpdate (replaces
+// frozen {top,left} coordinates). Tracks scroll, resize, and
+// layout shifts in all ancestor scroll containers.
+//
+// Dismiss: useDismiss (click-outside + Escape). No backdrop layer.
+// Visibility: hide() middleware closes when anchor leaves viewport.
 // ============================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -12,6 +19,17 @@ import {
   Tag, X, Link2, Edit3, ChevronDown, ChevronUp,
   MessageSquare,
 } from 'lucide-react';
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  hide,
+  arrow,
+  useDismiss,
+  useInteractions,
+} from '@floating-ui/react';
 import { KeywordConnectionsPanel } from './KeywordConnectionsPanel';
 import { ProfessorNotesPanel } from './ProfessorNotesPanel';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
@@ -24,77 +42,100 @@ const priorityConfig: Record<number, { label: string; dot: string; bg: string; t
   3: { label: 'Alta', dot: 'bg-red-400', bg: 'bg-red-50', text: 'text-red-700' },
 };
 
+// ── Arrow constants (module-scope — no per-render allocation) ──
+const STATIC_SIDE_MAP: Record<string, string> = {
+  top: 'bottom',
+  right: 'left',
+  bottom: 'top',
+  left: 'right',
+};
+
+const ARROW_BORDERS: Record<string, Record<string, string>> = {
+  top:    { borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' },
+  bottom: { borderTop: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb' },
+  left:   { borderTop: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' },
+  right:  { borderBottom: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb' },
+};
+
 // ── Props ─────────────────────────────────────────────────
 export interface KeywordClickPopoverProps {
   keyword: SummaryKeyword;
   allKeywords: SummaryKeyword[];
-  /** Position relative to viewport */
-  position: { top: number; left: number };
+  /** Live DOM element to anchor the popover to */
+  anchorEl: HTMLElement;
   onClose: () => void;
   onEdit?: (keyword: SummaryKeyword) => void;
-  /** Called when connected keywords change (to update visual highlights) */
-  onConnectionsChanged?: () => void;
 }
 
 export function KeywordClickPopover({
   keyword,
   allKeywords,
-  position,
+  anchorEl,
   onClose,
   onEdit,
-  onConnectionsChanged,
 }: KeywordClickPopoverProps) {
-  const popoverRef = useRef<HTMLDivElement>(null);
   const [showConnections, setShowConnections] = useState(true);
   const [showNotes, setShowNotes] = useState(true);
+  const arrowRef = useRef<HTMLDivElement>(null);
 
   const pc = priorityConfig[keyword.priority] || priorityConfig[0];
 
-  // Close on click outside
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handler);
-    }, 100);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', handler);
-    };
-  }, [onClose]);
+  // ── Floating UI ─────────────────────────────────────────
+  const { refs, floatingStyles, context, middlewareData, placement } = useFloating({
+    open: true,
+    onOpenChange: (open) => {
+      if (!open) onClose();
+    },
+    elements: { reference: anchorEl },
+    placement: 'bottom',
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(10),
+      flip({ padding: 16 }),
+      shift({ padding: 12 }),
+      hide({ strategy: 'referenceHidden' }),
+      arrow({ element: arrowRef, padding: 12 }),
+    ],
+  });
 
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  // ── Dismiss (click-outside + Escape) ────────────────────
+  const dismiss = useDismiss(context, {
+    outsidePress: true,
+    escapeKey: true,
+  });
+  const { getFloatingProps } = useInteractions([dismiss]);
 
-  // Clamp position so popover stays in viewport
-  const popoverWidth = 360;
-  const clampedLeft = Math.max(16, Math.min(position.left - popoverWidth / 2, window.innerWidth - popoverWidth - 16));
-  const clampedTop = Math.max(16, position.top + 8);
+  // ── Close when anchor scrolls out of viewport ───────────
+  useEffect(() => {
+    if (middlewareData.hide?.referenceHidden) {
+      onClose();
+    }
+  }, [middlewareData.hide?.referenceHidden, onClose]);
+
+  // ── Arrow positioning ───────────────────────────────────
+  // Generic staticSide pattern — handles all 4 placements
+  // (top, bottom, left, right) even if flip produces unexpected sides.
+  const arrowData = middlewareData.arrow;
+  const basePlacement = placement.split('-')[0] as 'top' | 'bottom' | 'left' | 'right';
+  const staticSide = STATIC_SIDE_MAP[basePlacement] as string;
 
   return createPortal(
-    <AnimatePresence>
-      <motion.div
-        ref={popoverRef}
-        initial={{ opacity: 0, scale: 0.95, y: -6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: -6 }}
-        transition={{ duration: 0.15 }}
-        className="fixed z-[60] bg-white rounded-xl border border-gray-200 shadow-2xl overflow-hidden"
-        style={{
-          top: `${clampedTop}px`,
-          left: `${clampedLeft}px`,
-          width: `${popoverWidth}px`,
-          maxHeight: 'min(480px, calc(100vh - 32px))',
-        }}
+    <motion.div
+      ref={refs.setFloating}
+      initial={{ opacity: 0, scale: 0.95, y: basePlacement === 'top' ? 6 : -6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.15 }}
+      className="z-[60]"
+      style={{
+        ...floatingStyles,
+        width: '360px',
+      }}
+      {...getFloatingProps()}
+    >
+      {/* ── Card wrapper — overflow-hidden here, NOT on outer div ── */}
+      <div
+        className="bg-white rounded-xl border border-gray-200 shadow-2xl overflow-hidden"
+        style={{ maxHeight: 'min(480px, calc(100vh - 32px))' }}
       >
         {/* ── Header ─────────────────────────────────────── */}
         <div className="bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
@@ -175,6 +216,7 @@ export function KeywordClickPopover({
                     keywordId={keyword.id}
                     keywordName={keyword.name}
                     allKeywords={allKeywords}
+                    summaryId={keyword.summary_id}
                   />
                 </div>
               </motion.div>
@@ -217,8 +259,20 @@ export function KeywordClickPopover({
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
-    </AnimatePresence>,
+      </div>
+
+      {/* ── Arrow — AFTER card in DOM order so it paints on top of the card border ── */}
+      <div
+        ref={arrowRef}
+        className="absolute z-[1] w-2.5 h-2.5 bg-white rotate-45"
+        style={{
+          left: arrowData?.x != null ? `${arrowData.x}px` : '',
+          top: arrowData?.y != null ? `${arrowData.y}px` : '',
+          [staticSide]: '-5px',
+          ...ARROW_BORDERS[basePlacement],
+        }}
+      />
+    </motion.div>,
     document.body
   );
 }

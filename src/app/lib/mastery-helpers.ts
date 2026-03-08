@@ -33,6 +33,15 @@ export function getMasteryColor(pKnow: number): MasteryColor {
   return 'red';
 }
 
+/**
+ * M-6 FIX: Safe mastery color that handles the -1 (no data) sentinel.
+ * Eliminates the duplicated `mastery < 0 ? 'gray' : getMasteryColor(mastery)`
+ * pattern across 5+ files.
+ */
+export function getSafeMasteryColor(mastery: number): MasteryColor {
+  return mastery < 0 ? 'gray' : getMasteryColor(mastery);
+}
+
 export function getMasteryLabel(color: MasteryColor): string {
   switch (color) {
     case 'green':  return 'Dominado';

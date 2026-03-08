@@ -25,9 +25,13 @@ import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
 import { HighlightToolbar } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
-import * as studentApi from '@/app/services/studentSummariesApi';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 import type { Chunk } from '@/app/services/summariesApi';
+import {
+  useCreateAnnotationMutation,
+  useUpdateAnnotationMutation,
+  useDeleteAnnotationMutation,
+} from '@/app/hooks/queries/useAnnotationMutations';
 
 // ── Color map for highlight backgrounds ───────────────────
 const colorMap: Record<string, { bg: string; bgHover: string; border: string }> = {
@@ -36,12 +40,6 @@ const colorMap: Record<string, { bg: string; bgHover: string; border: string }> 
   blue:   { bg: 'bg-blue-200/50',   bgHover: 'bg-blue-200/70',   border: 'border-blue-300' },
   pink:   { bg: 'bg-pink-200/50',   bgHover: 'bg-pink-200/70',   border: 'border-pink-300' },
 };
-
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
 
 // ── Build plain text from chunks ──────────────────────────
 function buildPlainText(chunks: Chunk[]): string {
@@ -98,7 +96,6 @@ interface TextHighlighterProps {
   loading?: boolean;
   summaryId: string;
   annotations: TextAnnotation[];
-  onAnnotationsChanged: () => void;
 }
 
 export function TextHighlighter({
@@ -106,7 +103,6 @@ export function TextHighlighter({
   loading,
   summaryId,
   annotations,
-  onAnnotationsChanged,
 }: TextHighlighterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
@@ -115,10 +111,14 @@ export function TextHighlighter({
   // Note editing
   const [editingAnnotation, setEditingAnnotation] = useState<TextAnnotation | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
 
   // Annotate mode: select color + add note simultaneously
   const [annotateMode, setAnnotateMode] = useState(false);
+
+  // ── React Query mutations ───────────────────────────────
+  const createMutation = useCreateAnnotationMutation(summaryId);
+  const updateMutation = useUpdateAnnotationMutation(summaryId);
+  const deleteMutation = useDeleteAnnotationMutation(summaryId);
 
   const fullText = buildPlainText(chunks);
   const liveAnnotations = annotations.filter(a => !a.deleted_at);
@@ -188,83 +188,73 @@ export function TextHighlighter({
   }, []);
 
   // ── Create highlight ────────────────────────────────────
-  const handleSelectColor = async (color: HighlightColor) => {
+  const handleSelectColor = (color: HighlightColor) => {
     if (!selectionRange) return;
-
-    try {
-      await studentApi.createTextAnnotation({
+    createMutation.mutate(
+      {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color,
-      });
-      toast.success('Subrayado creado');
-      window.getSelection()?.removeAllRanges();
-      setToolbar(null);
-      setSelectionRange(null);
-      onAnnotationsChanged();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al crear subrayado');
-    }
+      },
+      {
+        onSuccess: () => {
+          toast.success('Subrayado creado');
+          window.getSelection()?.removeAllRanges();
+          setToolbar(null);
+          setSelectionRange(null);
+        },
+      },
+    );
   };
 
   // ── Create highlight with note ──────────────────────────
   const handleAnnotate = () => {
-    setAnnotateMode(true);
-    // For simplicity, create with yellow first, then user edits the note
-    handleAnnotateWithNote();
-  };
-
-  const handleAnnotateWithNote = async () => {
     if (!selectionRange) return;
-    try {
-      const ann = await studentApi.createTextAnnotation({
+    setAnnotateMode(true);
+    createMutation.mutate(
+      {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color: 'yellow',
-      });
-      window.getSelection()?.removeAllRanges();
-      setToolbar(null);
-      setSelectionRange(null);
-      setAnnotateMode(false);
-      onAnnotationsChanged();
-      // Open note editor immediately
-      setEditingAnnotation(ann);
-      setNoteText('');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al crear anotacion');
-    }
+      },
+      {
+        onSuccess: (ann) => {
+          window.getSelection()?.removeAllRanges();
+          setToolbar(null);
+          setSelectionRange(null);
+          setAnnotateMode(false);
+          // Open note editor immediately
+          setEditingAnnotation(ann);
+          setNoteText('');
+        },
+      },
+    );
   };
 
   // ── Save note on annotation ─────────────────────────────
-  const handleSaveNote = async () => {
+  const handleSaveNote = () => {
     if (!editingAnnotation) return;
-    setSavingNote(true);
-    try {
-      await studentApi.updateTextAnnotation(editingAnnotation.id, {
-        note: noteText.trim() || null,
-      });
-      toast.success('Nota guardada');
-      setEditingAnnotation(null);
-      setNoteText('');
-      onAnnotationsChanged();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al guardar nota');
-    } finally {
-      setSavingNote(false);
-    }
+    updateMutation.mutate(
+      { id: editingAnnotation.id, data: { note: noteText.trim() || null } },
+      {
+        onSuccess: () => {
+          setEditingAnnotation(null);
+          setNoteText('');
+        },
+      },
+    );
   };
 
   // ── Delete annotation ───────────────────────────────────
-  const handleDeleteAnnotation = async (ann: TextAnnotation) => {
-    try {
-      await studentApi.deleteTextAnnotation(ann.id);
-      toast.success('Subrayado eliminado');
-      onAnnotationsChanged();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
-    }
+  const handleDeleteAnnotation = (ann: TextAnnotation) => {
+    deleteMutation.mutate(ann.id, {
+      onSuccess: () => {
+        setEditingAnnotation(null);
+        setNoteText('');
+      },
+    });
   };
 
   // ── Loading / Empty states ──────────────────────────────
@@ -417,9 +407,9 @@ export function TextHighlighter({
                     size="sm"
                     className="h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white"
                     onClick={handleSaveNote}
-                    disabled={savingNote}
+                    disabled={updateMutation.isPending}
                   >
-                    {savingNote ? <Loader2 size={12} className="animate-spin mr-1" /> : <Save size={12} className="mr-1" />}
+                    {updateMutation.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : <Save size={12} className="mr-1" />}
                     Guardar
                   </Button>
                 </div>

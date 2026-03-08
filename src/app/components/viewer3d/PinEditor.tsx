@@ -3,19 +3,29 @@
 //
 // Lists all pins for a model with filter, click to animate camera
 // to pin position, edit/delete pins, keyword autocomplete.
+//
+// PERFORMANCE (Paso 3):
+//   Fetches its own pins via modelId (only when panel is open).
+//   Synchronized with PinSystem via onPinsChanged callback
+//   that increments a shared refreshKey in the parent.
 // ============================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsType } from 'three/examples/jsm/controls/OrbitControls.js';
-import { MapPin, Search, Pencil, Trash2, X, Save, Loader2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
-import clsx from 'clsx';
+import { MapPin, Search, Pencil, Trash2, X, Save, Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateModel3DPin, deleteModel3DPin } from '@/app/services/models3dApi';
-import type { Model3DPin } from '@/app/services/models3dApi';
+import { getModel3DPins, updateModel3DPin, deleteModel3DPin } from '@/app/lib/model3d-api';
+import type { Model3DPin } from '@/app/lib/model3d-api';
+import { logger } from '@/app/lib/logger';
 
-// ── Pin type labels ──
+// ── Pin type labels (DB types + legacy for backward compat) ──
 const PIN_TYPE_LABELS: Record<string, string> = {
+  // DB canonical types
+  point: 'Punto',
+  line: 'Linea',
+  area: 'Area',
+  // Legacy UI types (for any old cached data)
   info: 'Info',
   keyword: 'Keyword',
   annotation: 'Anotacion',
@@ -25,26 +35,43 @@ const PIN_TYPE_LABELS: Record<string, string> = {
 };
 
 interface PinEditorProps {
-  pins: Model3DPin[];
+  modelId: string;
   onPinsChanged: () => void;
   camera: THREE.PerspectiveCamera | null;
   controls: OrbitControlsType | null;
   onClose: () => void;
 }
 
-export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: PinEditorProps) {
+export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }: PinEditorProps) {
+  const [pins, setPins] = useState<Model3DPin[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // ── Fetch pins on mount ──
+  const fetchPins = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getModel3DPins(modelId);
+      setPins(res?.items || []);
+    } catch (err: unknown) {
+      logger.error('PinEditor', 'fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [modelId]);
+
+  useEffect(() => { fetchPins(); }, [fetchPins]);
+
   // Filter pins
   const filtered = useMemo(() => {
     if (!filter.trim()) return pins;
     const q = filter.toLowerCase();
     return pins.filter(p =>
-      (p.label || '').toLowerCase().includes(q) ||
+      (p.title || '').toLowerCase().includes(q) ||
       (p.description || '').toLowerCase().includes(q) ||
       (p.pin_type || '').toLowerCase().includes(q),
     );
@@ -88,7 +115,7 @@ export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: Pi
   // Start editing
   const startEdit = useCallback((pin: Model3DPin) => {
     setEditingId(pin.id);
-    setEditLabel(pin.label || '');
+    setEditLabel(pin.title || '');
     setEditDesc(pin.description || '');
   }, []);
 
@@ -97,14 +124,20 @@ export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: Pi
     setSaving(true);
     try {
       await updateModel3DPin(pinId, {
-        label: editLabel.trim() || undefined,
+        title: editLabel.trim() || undefined,
         description: editDesc.trim() || undefined,
       });
+      // Optimistic update locally
+      setPins(prev => prev.map(p =>
+        p.id === pinId
+          ? { ...p, title: editLabel.trim() || p.title, description: editDesc.trim() || p.description }
+          : p,
+      ));
       toast.success('Pin actualizado');
       setEditingId(null);
-      onPinsChanged();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar');
+      onPinsChanged(); // Signal parent → PinSystem refetches
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar');
     } finally {
       setSaving(false);
     }
@@ -112,13 +145,15 @@ export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: Pi
 
   // Delete
   const handleDelete = useCallback(async (pinId: string) => {
-    if (!confirm('\u00bfEliminar este pin?')) return;
+    if (!confirm('¿Eliminar este pin?')) return;
     try {
       await deleteModel3DPin(pinId);
+      // Optimistic update locally
+      setPins(prev => prev.filter(p => p.id !== pinId));
       toast.success('Pin eliminado');
-      onPinsChanged();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar');
+      onPinsChanged(); // Signal parent → PinSystem refetches
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar');
     }
   }, [onPinsChanged]);
 
@@ -151,9 +186,16 @@ export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: Pi
         </div>
       )}
 
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 size={16} className="animate-spin text-gray-500" />
+        </div>
+      )}
+
       {/* Pin list */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-8">
             <MapPin size={20} className="mx-auto text-gray-700 mb-2" />
             <p className="text-[10px] text-gray-600">
@@ -213,7 +255,7 @@ export function PinEditor({ pins, onPinsChanged, camera, controls, onClose }: Pi
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-white truncate">{pin.label || 'Sin nombre'}</p>
+                  <p className="text-[11px] text-white truncate">{pin.title || 'Sin nombre'}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[8px] text-gray-500 uppercase">
                       {PIN_TYPE_LABELS[pin.pin_type || ''] || pin.pin_type}

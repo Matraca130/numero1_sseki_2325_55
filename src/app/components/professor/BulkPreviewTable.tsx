@@ -10,17 +10,9 @@ import {
   Trash2, Check, AlertTriangle, XCircle,
   ChevronDown, Tag, CheckSquare, Square, Loader2,
 } from 'lucide-react';
+import type { Subtopic } from '@/app/types/flashcard-manager';
 
 // ── Types ─────────────────────────────────────────────────
-
-interface Subtopic {
-  id: string;
-  keyword_id: string;
-  name: string;
-  order_index: number;
-  is_active?: boolean;
-  deleted_at?: string | null;
-}
 
 interface Keyword {
   id: string;

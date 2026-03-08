@@ -5,8 +5,8 @@
 // Adds: file upload with validation, progress tracking.
 //
 // Upload flow:
-//   1. Validate format (.glb/.gltf) + size (≤100MB) client-side
-//   2. POST /upload-model-3d (multipart/form-data) → { data: { file_url, file_size_bytes, file_format } }
+//   1. Validate format (.glb/.gltf) + size (<=100MB) client-side
+//   2. POST /upload-model-3d (multipart/form-data) -> { data: { file_url, file_size_bytes, file_format } }
 //   3. POST /models-3d { topic_id, title, file_url, file_format, file_size_bytes }
 //
 // If upload endpoint is unavailable, professor can paste URL manually.
@@ -20,19 +20,67 @@ import {
   updateModel3D,
   deleteModel3D,
   restoreModel3D,
+  getModel3DPins,
+  createModel3DPin,
+  updateModel3DPin,
+  deleteModel3DPin,
+  getModel3DNotes,
+  createModel3DNote,
+  updateModel3DNote,
+  deleteModel3DNote,
+  restoreModel3DNote,
+  getModelLayers,
+  createModelLayer,
+  updateModelLayer,
+  deleteModelLayer,
+  getModelParts,
+  createModelPart,
+  updateModelPart,
+  deleteModelPart,
+  getModels3DBatch,
+  invalidateModelsCache,
 } from '@/app/services/models3dApi';
-import type { Model3D } from '@/app/services/models3dApi';
+import type { Model3D, Model3DPin, Model3DNote, ModelLayer, ModelPart } from '@/app/services/models3dApi';
 
-// Re-export CRUD functions as-is
-export { getModels3D, getModel3DById, createModel3D, updateModel3D, deleteModel3D, restoreModel3D };
-export type { Model3D };
+// Re-export all CRUD functions (models + pins + notes + layers + parts + batch)
+export {
+  getModels3D, getModel3DById, createModel3D, updateModel3D, deleteModel3D, restoreModel3D,
+  getModel3DPins, createModel3DPin, updateModel3DPin, deleteModel3DPin,
+  getModel3DNotes, createModel3DNote, updateModel3DNote, deleteModel3DNote, restoreModel3DNote,
+  getModelLayers, createModelLayer, updateModelLayer, deleteModelLayer,
+  getModelParts, createModelPart, updateModelPart, deleteModelPart,
+  getModels3DBatch, invalidateModelsCache,
+};
+export type { Model3D, Model3DPin, Model3DNote, ModelLayer, ModelPart };
+
+// ── Error message extraction ──────────────────────────────
+// Centralizes safe message extraction from `catch (err: unknown)`.
+// Avoids `err: any` across upload/validation code.
+
+function extractErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+// ── Auth Headers (XHR) ────────────────────────────────────
+// XHR is required for upload progress tracking (xhr.upload.progress).
+// fetch() / apiCall() don't support upload progress events.
+// This helper centralizes header construction for XHR requests.
+
+function buildAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${ANON_KEY}`,
+  };
+  const token = getAccessToken();
+  if (token) headers['X-Access-Token'] = token;
+  return headers;
+}
 
 // ── Constants ─────────────────────────────────────────────
 
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const WARN_FILE_SIZE_BYTES = 50 * 1024 * 1024;  // 50 MB warning threshold
 const ALLOWED_EXTENSIONS = ['.glb', '.gltf'];
-const GLB_MAGIC_BYTES = [0x67, 0x6C, 0x54, 0x46]; // "glTF" — first 4 bytes of .glb
+const GLB_MAGIC_BYTES = [0x67, 0x6C, 0x54, 0x46]; // "glTF" -- first 4 bytes of .glb
 
 // ── Validation ────────────────────────────────────────────
 
@@ -124,8 +172,8 @@ export async function uploadAndCreateModel(
   report({ phase: 'validating', percent: 0, message: 'Validando archivo...' });
   const validation = await validateModelFile(file);
   if (!validation.valid) {
-    const err: UploadProgress = { phase: 'error', percent: 0, message: validation.error!, error: validation.error };
-    report(err);
+    const errProgress: UploadProgress = { phase: 'error', percent: 0, message: validation.error!, error: validation.error };
+    report(errProgress);
     throw new Error(validation.error);
   }
 
@@ -138,14 +186,8 @@ export async function uploadAndCreateModel(
   const formData = new FormData();
   formData.append('file', file, sanitizedName);
 
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${ANON_KEY}`,
-  };
-  const token = getAccessToken();
-  if (token) {
-    headers['X-Access-Token'] = token;
-  }
-  // NOTE: Do NOT set Content-Type — browser sets it with multipart boundary
+  const headers = buildAuthHeaders();
+  // NOTE: Do NOT set Content-Type -- browser sets it with multipart boundary
 
   let uploadResponse: { file_url: string; file_size_bytes: number; file_format: string };
 
@@ -157,6 +199,13 @@ export async function uploadAndCreateModel(
           const pct = Math.round((e.loaded / e.total) * 80) + 10; // 10-90%
           report({ phase: 'uploading', percent: pct, message: `Subiendo... ${Math.round((e.loaded / e.total) * 100)}%` });
         }
+      });
+
+      // All bytes sent -> server is now processing (saving to Storage).
+      // Without this, the UI freezes at 90% / "Subiendo... 100%"
+      // while waiting for the backend response.
+      xhr.upload.addEventListener('load', () => {
+        report({ phase: 'uploading', percent: 91, message: 'Procesando en el servidor...' });
       });
 
       xhr.addEventListener('load', () => {
@@ -190,8 +239,9 @@ export async function uploadAndCreateModel(
       Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
       xhr.send(formData);
     });
-  } catch (err: any) {
-    report({ phase: 'error', percent: 0, message: err.message, error: err.message });
+  } catch (err: unknown) {
+    const msg = extractErrorMessage(err);
+    report({ phase: 'error', percent: 0, message: msg, error: msg });
     throw err;
   }
 
@@ -209,8 +259,9 @@ export async function uploadAndCreateModel(
 
     report({ phase: 'done', percent: 100, message: 'Modelo creado exitosamente' });
     return { model, file_url: uploadResponse.file_url };
-  } catch (err: any) {
-    report({ phase: 'error', percent: 0, message: err.message, error: err.message });
+  } catch (err: unknown) {
+    const msg = extractErrorMessage(err);
+    report({ phase: 'error', percent: 0, message: msg, error: msg });
     throw err;
   }
 }

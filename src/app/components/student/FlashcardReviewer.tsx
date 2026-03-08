@@ -4,8 +4,18 @@
 // Receives summaryId. Full review flow:
 // 1. Load active flashcards for summary
 // 2. Start study session (POST /study-sessions)
-// 3. Flip cards, grade 1-4, submit reviews
-// 4. Close session with stats
+// 3. Flip cards, grade 1-4, queue reviews locally (zero POSTs)
+// 4. At session end: submit ALL reviews in ONE batch POST
+// 5. Close session with stats
+//
+// v4.4.4 — Migrated to useReviewBatch:
+//   Previously used persistCardReview (3×N POSTs per session)
+//   + submitReview (1×N POSTs). Now uses queueReview (sync,
+//   zero network) during session and submitBatch (1 POST) at end.
+//   Total: N×4 POSTs → 2 POSTs (batch + close).
+//
+//   Intra-session BKT accumulation (Fase 2) now works
+//   automatically via useReviewBatch's sessionBktRef.
 //
 // Supports all 6 card types (text, text_image, image_text,
 // image_image, text_both, cloze).
@@ -16,11 +26,6 @@
 // States: idle → reviewing → finished
 // Used in SummaryView (EV-2) or standalone.
 // Backend: FLAT routes via studySessionApi + flashcardApi.
-//
-// FIX RT-001, RT-003 (2025-02-27):
-//   - completed_at (not ended_at)
-//   - removed duration_seconds
-//   - removed response_time_ms from submitReview
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,60 +34,66 @@ import * as flashcardApi from '@/app/services/flashcardApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 import type { Keyword } from '@/app/types/platform';
-import { FlashcardCard, detectCardType } from './FlashcardCard';
-import type { CardType } from './FlashcardCard';
+import { FlashcardCard } from './FlashcardCard';
+import { detectCardType } from '@/app/lib/flashcard-utils';
+import type { CardType } from '@/app/lib/flashcard-utils';
 import { FlashcardImageZoom } from './FlashcardImageZoom';
-import { computeFsrsUpdate, getInitialFsrsState } from '@/app/lib/fsrs-engine';
-import type { FsrsState } from '@/app/lib/fsrs-engine';
-import { updateBKT } from '@/app/lib/bkt-engine';
+import { useReviewBatch } from '@/app/hooks/useReviewBatch';
 import {
   CreditCard, Play, Loader2, X, RotateCcw,
   Trophy, BarChart3, ChevronRight, Type, Image as ImageIcon,
   TextCursorInput,
 } from 'lucide-react';
-
-// ── Grade definitions ─────────────────────────────────────────
-
-const GRADES = [
-  { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabia' },
-  { value: 2, label: 'Dificil', color: 'bg-orange-500 hover:bg-orange-600', desc: 'Con mucho esfuerzo' },
-  { value: 3, label: 'Bien', color: 'bg-emerald-500 hover:bg-emerald-600', desc: 'Con algo de esfuerzo' },
-  { value: 4, label: 'Facil', color: 'bg-blue-500 hover:bg-blue-600', desc: 'Muy facil' },
-] as const;
+import { GRADES } from '@/app/hooks/flashcard-types';
 
 // ── Props ─────────────────────────────────────────────────
 
 interface FlashcardReviewerProps {
   summaryId: string;
   onClose?: () => void;
+  /**
+   * Optional mastery map: flashcard_id → { p_know }.
+   * If provided, queueReview uses real p_know values for BKT.
+   * If omitted, defaults to 0 (first pass) — intra-session
+   * accumulation still works via useReviewBatch's sessionBktRef.
+   */
+  masteryMap?: Map<string, { p_know: number }>;
 }
 
-// ── Review state type ─────────────────────────────────────────
+// ── Review state type ─────────────────────────────────────
 
 type ReviewPhase = 'idle' | 'reviewing' | 'finished';
 
-// ── Component ───────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────
 
-export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps) {
+export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardReviewerProps) {
   // ── Data ────────────────────────────────────────────────
   const [flashcards, setFlashcards] = useState<FlashcardItem[]>([]);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Session state ───────────────────────────────────────────
+  // ── Session state ───────────────────────────────────────
   const [phase, setPhase] = useState<ReviewPhase>('idle');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [grades, setGrades] = useState<number[]>([]);
-  const [submittingGrade, setSubmittingGrade] = useState(false);
   const sessionStartRef = useRef<Date | null>(null);
 
-  // ── Image zoom state ──────────────────────────────────────────
+  // ── Timing per card (for response_time_ms) ──────────────
+  const cardStartTime = useRef<number>(Date.now());
+
+  // ── Image zoom state ────────────────────────────────────
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
-  // ── Cloze state ─────────────────────────────────────────────
+  // ── Cloze state ────────────────────────────────────────
   const [clozeReady, setClozeReady] = useState(false);
+
+  // ── Batch review hook ───────────────────────────────────
+  // Replaces the old persistCardReview + submitReview pattern.
+  // queueReview: sync, zero POSTs — queues locally
+  // submitBatch: async, 1 POST /review-batch at session end
+  const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
 
   // ── Current card (must be before currentCardType) ───────
   const currentCard = flashcards[currentIndex] || null;
@@ -123,57 +134,6 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     }
   }, [phase, currentIndex, flashcards]);
 
-  // ── FSRS/BKT tracking (non-blocking) ───────────────────
-  const handleTrackingUpdate = useCallback(async (
-    flashcard: FlashcardItem,
-    grade: 1 | 2 | 3 | 4
-  ) => {
-    // 1. FSRS update (card-level scheduling)
-    const fsrsInput = getInitialFsrsState();
-    const fsrsResult = computeFsrsUpdate(fsrsInput, grade);
-    try {
-      await apiCall('/fsrs-states', {
-        method: 'POST',
-        body: JSON.stringify({
-          flashcard_id: flashcard.id,
-          stability: fsrsResult.stability,
-          difficulty: fsrsResult.difficulty,
-          state: fsrsResult.state,
-          reps: fsrsResult.reps,
-          lapses: fsrsResult.lapses,
-          due_at: fsrsResult.due_at,
-          last_review_at: new Date().toISOString(),
-        }),
-      });
-    } catch (err) {
-      console.error('[FlashcardReviewer] FSRS update failed (non-blocking):', err);
-    }
-
-    // 2. BKT update (concept-level, solo si tiene subtopic_id)
-    if (flashcard.subtopic_id) {
-      const isCorrect = grade >= 3;
-      const newP = updateBKT(0, isCorrect, 'flashcard');
-      try {
-        await apiCall('/bkt-states', {
-          method: 'POST',
-          body: JSON.stringify({
-            subtopic_id: flashcard.subtopic_id,
-            p_know: newP,
-            p_transit: 0.1,
-            p_slip: 0.1,
-            p_guess: 0.25,
-            delta: newP,
-            total_attempts: 1,
-            correct_attempts: isCorrect ? 1 : 0,
-            last_attempt_at: new Date().toISOString(),
-          }),
-        });
-      } catch (err) {
-        console.error('[FlashcardReviewer] BKT update failed (non-blocking):', err);
-      }
-    }
-  }, []);
-
   // ── Load flashcards + keywords ──────────────────────────
   useEffect(() => {
     if (!summaryId) return;
@@ -201,7 +161,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
       .finally(() => setLoading(false));
   }, [summaryId]);
 
-  // ── Keyword lookup ──────────────────────────────────────────
+  // ── Keyword lookup ──────────────────────────────────────
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
@@ -210,7 +170,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     return map;
   }, [keywords]);
 
-  // ── Start session ───────────────────────────────────────────
+  // ── Start session ───────────────────────────────────────
   const startReview = useCallback(async () => {
     try {
       const session = await sessionApi.createStudySession({
@@ -218,42 +178,69 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
       });
       setSessionId(session.id);
       sessionStartRef.current = new Date();
+      cardStartTime.current = Date.now();
       setCurrentIndex(0);
       setIsFlipped(false);
       setGrades([]);
+      batchReset();
       setPhase('reviewing');
     } catch (err: any) {
       console.error('[FlashcardReviewer] Session create error:', err);
     }
-  }, []);
+  }, [batchReset]);
 
-  // ── Grade a card ────────────────────────────────────────────
-  const handleGrade = useCallback(async (grade: number) => {
-    if (!sessionId || !currentCard || submittingGrade) return;
-    setSubmittingGrade(true);
-    try {
-      // POST /reviews — create-only, item_id is polymorphic (flashcard_id)
-      await sessionApi.submitReview({
-        session_id: sessionId,
-        item_id: currentCard.id,
-        instrument_type: 'flashcard',
-        grade,
-      });
+  // ── Grade a card ────────────────────────────────────────
+  // NOW SYNC: queueReview does zero network calls.
+  // Batch submission happens ONLY at session end.
+  const handleGrade = useCallback((grade: number) => {
+    if (!sessionId || !currentCard) return;
 
-      const newGrades = [...grades, grade];
-      setGrades(newGrades);
+    // 1. Compute response time
+    const responseTimeMs = Date.now() - cardStartTime.current;
 
-      // Move to next card or finish
-      if (currentIndex + 1 < totalCards) {
-        setCurrentIndex(currentIndex + 1);
-        setIsFlipped(false);
-      } else {
-        // Session complete — close it
+    // 2. Queue review via useReviewBatch (sync, zero POSTs)
+    //    The hook handles: grade clamping, FSRS+BKT computation,
+    //    intra-session BKT accumulation, BatchReviewItem queuing.
+    const masteryEntry = masteryMap?.get(currentCard.id);
+    queueReview({
+      card: currentCard,
+      grade,
+      responseTimeMs,
+      // existingFsrs: undefined — FlashcardReviewer doesn't have FSRS state;
+      // useReviewBatch will use initial FSRS state for computation.
+      currentPKnow: masteryEntry?.p_know,
+    });
+
+    // 3. Update local grades state
+    const newGrades = [...grades, grade];
+    setGrades(newGrades);
+
+    // 4. Move to next card or finish
+    if (currentIndex + 1 < totalCards) {
+      // ── Next card ──
+      setCurrentIndex(currentIndex + 1);
+      setIsFlipped(false);
+      cardStartTime.current = Date.now();
+    } else {
+      // ── Session complete ──
+      setPhase('finished');
+
+      // Fire batch submit + close in background (non-blocking)
+      const sid = sessionId;
+      const startTime = sessionStartRef.current;
+      (async () => {
+        // Submit all reviews in ONE batch request
+        await submitBatch(sid);
+
+        // Close session on backend
         const now = new Date();
+        const durationSeconds = startTime
+          ? Math.round((now.getTime() - startTime.getTime()) / 1000)
+          : 0;
         const correctReviews = newGrades.filter(g => g >= 3).length;
 
         try {
-          await sessionApi.closeStudySession(sessionId, {
+          await sessionApi.closeStudySession(sid, {
             completed_at: now.toISOString(),
             total_reviews: totalCards,
             correct_reviews: correctReviews,
@@ -261,20 +248,11 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
         } catch (err) {
           console.error('[FlashcardReviewer] Session close error:', err);
         }
-
-        setPhase('finished');
-      }
-
-      // Non-blocking tracking update
-      handleTrackingUpdate(currentCard, grade);
-    } catch (err: any) {
-      console.error('[FlashcardReviewer] Review submit error:', err);
-    } finally {
-      setSubmittingGrade(false);
+      })();
     }
-  }, [sessionId, currentCard, currentIndex, totalCards, grades, submittingGrade, handleTrackingUpdate]);
+  }, [sessionId, currentCard, currentIndex, totalCards, grades, queueReview, submitBatch, masteryMap]);
 
-  // ── Keyboard shortcuts ────────────────────────────────────────
+  // ── Keyboard shortcuts ──────────────────────────────────
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const handler = (e: KeyboardEvent) => {
@@ -307,7 +285,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
       }
 
       // Number keys 1-4 for grading (only when flipped)
-      if (isFlipped && !submittingGrade) {
+      if (isFlipped) {
         const num = parseInt(e.key);
         if (num >= 1 && num <= 4) {
           e.preventDefault();
@@ -330,9 +308,9 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [phase, isFlipped, submittingGrade, handleGrade, zoomImageUrl, isClozeCard, currentCard]);
+  }, [phase, isFlipped, handleGrade, zoomImageUrl, isClozeCard, currentCard]);
 
-  // ── Restart ───────────────────────────────────────────────
+  // ── Restart ─────────────────────────────────────────────
   const restartReview = useCallback(() => {
     setPhase('idle');
     setSessionId(null);
@@ -340,7 +318,8 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     setIsFlipped(false);
     setGrades([]);
     sessionStartRef.current = null;
-  }, []);
+    batchReset();
+  }, [batchReset]);
 
   // ── Grade distribution for summary ─────────────────────
   const gradeDistribution = useMemo(() => {
@@ -377,7 +356,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
 
   const totalCardTypes = Object.values(cardTypeDistribution).reduce((sum, count) => sum + count, 0);
 
-  // ── Loading ───────────────────────────────────────────────
+  // ── Loading ─────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -386,7 +365,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
     );
   }
 
-  // ── No flashcards ───────────────────────────────────────────
+  // ── No flashcards ───────────────────────────────────────
   if (totalCards === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
@@ -535,8 +514,7 @@ export function FlashcardReviewer({ summaryId, onClose }: FlashcardReviewerProps
                   <button
                     key={g.value}
                     onClick={() => handleGrade(g.value)}
-                    disabled={submittingGrade}
-                    className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl text-white font-semibold transition-all disabled:opacity-50 ${g.color} shadow-lg`}
+                    className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl text-white font-semibold transition-all ${g.color} shadow-lg`}
                   >
                     <span className="text-sm">{g.label}</span>
                     <span className="text-[10px] opacity-70">{g.value}</span>

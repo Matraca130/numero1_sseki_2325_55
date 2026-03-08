@@ -5,9 +5,14 @@
 // Shows: Course/Semester dropdowns → Section → Topic → Summary tree.
 // Click a summary to load it in the editor (no navigation).
 //
+// React Query migration (S1): uses queryClient.ensureQueryData
+// for summary fetches so they share cache with
+// queryKeys.topicSummaries(topicId).
+//
 // Width: ~220px open / ~40px collapsed.
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   ChevronRight, ChevronDown, ChevronLeft,
@@ -22,13 +27,9 @@ import {
 import * as summariesApi from '@/app/services/summariesApi';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ContentTree, TreeCourse, TreeSemester, TreeSection, TreeTopic } from '@/app/services/contentTreeApi';
-
-// ── Helper ────────────────────────────────────────────────
-function extractItems<T>(result: any): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.items)) return result.items;
-  return [];
-}
+import { extractItems } from '@/app/lib/api-helpers';
+import { queryKeys } from '@/app/hooks/queries/queryKeys';
+import { PROFESSOR_CONTENT_STALE } from '@/app/hooks/queries/staleTimes';
 
 // ── Types ─────────────────────────────────────────────────
 interface EditorSidebarProps {
@@ -54,6 +55,8 @@ export function EditorSidebar({
   onSelectSummary,
   onBackToCurriculum,
 }: EditorSidebarProps) {
+  const queryClient = useQueryClient();
+
   // ── Course/Semester selection ────────────────────────────
   const courses = useMemo(() => tree?.courses || [], [tree]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
@@ -92,7 +95,7 @@ export function EditorSidebar({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
 
-  // ── Summaries cache per topic ───────────────────────────
+  // ── Summaries cache per topic ──────────────────────────
   const [summariesByTopic, setSummariesByTopic] = useState<Record<string, Summary[]>>({});
   const [loadingTopics, setLoadingTopics] = useState<Set<string>>(new Set());
 
@@ -123,11 +126,21 @@ export function EditorSidebar({
   const fetchSummariesForTopic = useCallback(async (topicId: string) => {
     setLoadingTopics(prev => new Set(prev).add(topicId));
     try {
-      const result = await summariesApi.getSummaries(topicId);
-      const items = extractItems<Summary>(result)
-        .filter(s => s.is_active)
-        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-      setSummariesByTopic(prev => ({ ...prev, [topicId]: items }));
+      // Use ensureQueryData to share cache with topicSummaries(topicId)
+      const allItems = await queryClient.ensureQueryData({
+        queryKey: queryKeys.topicSummaries(topicId),
+        queryFn: async () => {
+          const result = await summariesApi.getSummaries(topicId);
+          return extractItems<Summary>(result)
+            .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+        },
+        staleTime: PROFESSOR_CONTENT_STALE,
+      });
+      // Sidebar only shows active summaries for navigation
+      setSummariesByTopic(prev => ({
+        ...prev,
+        [topicId]: allItems.filter(s => s.is_active),
+      }));
     } catch {
       setSummariesByTopic(prev => ({ ...prev, [topicId]: [] }));
     } finally {
@@ -137,7 +150,7 @@ export function EditorSidebar({
         return next;
       });
     }
-  }, []);
+  }, [queryClient]);
 
   // Auto-expand to show the active summary
   useEffect(() => {
@@ -251,12 +264,12 @@ export function EditorSidebar({
       <div className="flex-1 overflow-y-auto py-1">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={16} className="animate-spin text-zinc-600" />
+            <Loader2 size={16} className="animate-spin text-zinc-500" />
           </div>
         ) : sections.length === 0 ? (
           <div className="px-3 py-6 text-center">
-            <GraduationCap size={20} className="text-zinc-700 mx-auto mb-2" />
-            <p className="text-[10px] text-zinc-600">
+            <GraduationCap size={20} className="text-zinc-500 mx-auto mb-2" />
+            <p className="text-[10px] text-zinc-400">
               {!selectedCourseId ? 'Selecciona un curso' :
                !selectedSemesterId ? 'Selecciona un semestre' :
                'Sin secciones'}
@@ -312,15 +325,15 @@ function SectionNode({
         className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left hover:bg-white/[0.04] transition-colors group"
       >
         {expanded ? (
-          <ChevronDown size={11} className="text-zinc-600 shrink-0" />
+          <ChevronDown size={11} className="text-zinc-500 shrink-0" />
         ) : (
-          <ChevronRight size={11} className="text-zinc-600 shrink-0" />
+          <ChevronRight size={11} className="text-zinc-500 shrink-0" />
         )}
         <FolderOpen size={12} className="text-amber-500/70 shrink-0" />
         <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 truncate">
           {section.name}
         </span>
-        <span className="text-[9px] text-zinc-700 ml-auto shrink-0">
+        <span className="text-[9px] text-zinc-500 ml-auto shrink-0">
           {section.topics.length}
         </span>
       </button>
@@ -336,7 +349,7 @@ function SectionNode({
           >
             {section.topics.length === 0 ? (
               <div className="pl-8 pr-2 py-1">
-                <span className="text-[10px] text-zinc-700">Sin temas</span>
+                <span className="text-[10px] text-zinc-500">Sin temas</span>
               </div>
             ) : (
               section.topics.map(topic => (
@@ -384,16 +397,16 @@ function TopicNode({
         className="w-full flex items-center gap-1.5 pl-6 pr-2.5 py-1.5 text-left hover:bg-white/[0.04] transition-colors group"
       >
         {expanded ? (
-          <ChevronDown size={10} className="text-zinc-600 shrink-0" />
+          <ChevronDown size={10} className="text-zinc-500 shrink-0" />
         ) : (
-          <ChevronRight size={10} className="text-zinc-600 shrink-0" />
+          <ChevronRight size={10} className="text-zinc-500 shrink-0" />
         )}
         <BookOpen size={11} className="text-teal-500/70 shrink-0" />
         <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 truncate">
           {topic.name}
         </span>
         {isLoading && (
-          <Loader2 size={9} className="animate-spin text-zinc-600 ml-auto shrink-0" />
+          <Loader2 size={9} className="animate-spin text-zinc-500 ml-auto shrink-0" />
         )}
       </button>
 
@@ -408,11 +421,11 @@ function TopicNode({
           >
             {isLoading ? (
               <div className="pl-10 pr-2 py-1.5">
-                <span className="text-[10px] text-zinc-700">Cargando...</span>
+                <span className="text-[10px] text-zinc-500">Cargando...</span>
               </div>
             ) : !summaries || summaries.length === 0 ? (
               <div className="pl-10 pr-2 py-1.5">
-                <span className="text-[10px] text-zinc-700">Sin resumenes</span>
+                <span className="text-[10px] text-zinc-500">Sin resumenes</span>
               </div>
             ) : (
               summaries.map(s => (
@@ -423,12 +436,12 @@ function TopicNode({
                     'w-full flex items-center gap-1.5 pl-10 pr-2.5 py-1.5 text-left transition-colors group/summary',
                     s.id === activeSummaryId
                       ? 'bg-violet-500/15 text-violet-300'
-                      : 'hover:bg-white/[0.04] text-zinc-500 hover:text-zinc-300'
+                      : 'hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-300'
                   )}
                 >
                   <FileText size={10} className={clsx(
                     'shrink-0',
-                    s.id === activeSummaryId ? 'text-violet-400' : 'text-zinc-600'
+                    s.id === activeSummaryId ? 'text-violet-400' : 'text-zinc-500'
                   )} />
                   <span className="text-[10px] truncate">
                     {s.title || 'Sin titulo'}

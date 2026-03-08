@@ -13,6 +13,10 @@
 //   2. Controlled mode (TipTap editor provides selectedText externally)
 //
 // Routes: POST /keywords { summary_id, name, definition?, priority }
+//
+// S-1: After creating a keyword, invalidates the shared
+// queryKeys.summaryKeywords cache → KeywordsManager (React Query)
+// auto-refreshes without needing an onKeywordCreated callback.
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,7 +26,7 @@ import {
   Tag, Loader2, X,
 } from 'lucide-react';
 import clsx from 'clsx';
-import * as api from '@/app/services/summariesApi';
+import { useCreateKeywordMutation } from '@/app/hooks/queries/useKeywordsManagerQueries';
 
 // ── Priority config ───────────────────────────────────────
 const priorities: { value: number; label: string; color: string; bg: string }[] = [
@@ -45,7 +49,7 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
   const [name, setName] = useState(initialName);
   const [definition, setDefinition] = useState('');
   const [priority, setPriority] = useState(2);
-  const [saving, setSaving] = useState(false);
+  const createMutation = useCreateKeywordMutation(summaryId);
   const formRef = useRef<HTMLDivElement>(null);
 
   // Close on click outside
@@ -74,9 +78,8 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!name.trim()) {
-      toast.error('El nombre es obligatorio');
       return;
     }
     if (existingKeywordNames && existingKeywordNames.some(
@@ -85,22 +88,15 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
       toast.error(`La keyword "${name.trim()}" ya existe`);
       return;
     }
-    setSaving(true);
-    try {
-      await api.createKeyword({
-        summary_id: summaryId,
-        name: name.trim(),
-        definition: definition.trim() || undefined,
-        priority,
-      });
-      toast.success(`Keyword "${name.trim()}" creada`);
-      onCreated(name.trim());
-      onClose();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al crear keyword');
-    } finally {
-      setSaving(false);
-    }
+    createMutation.mutate(
+      { name: name.trim(), definition: definition.trim() || undefined, priority },
+      {
+        onSuccess: () => {
+          onCreated(name.trim());
+          onClose();
+        },
+      },
+    );
   };
 
   // Clamp position to viewport
@@ -196,16 +192,16 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
         </span>
         <button
           onClick={handleCreate}
-          disabled={saving || !name.trim()}
+          disabled={createMutation.isPending || !name.trim()}
           className={clsx(
             'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs transition-all',
-            saving || !name.trim()
+            createMutation.isPending || !name.trim()
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-violet-600 text-white hover:bg-violet-700 shadow-sm active:scale-[0.97]'
           )}
           style={{ fontWeight: 600 }}
         >
-          {saving ? (
+          {createMutation.isPending ? (
             <><Loader2 size={12} className="animate-spin" /> Creando...</>
           ) : (
             <><Tag size={12} /> Crear</>
@@ -359,7 +355,9 @@ export function QuickKeywordCreator({
     setSelectedText('');
   };
 
-  const handleCreated = (name: string) => {
+  const handleCreated = (_name: string) => {
+    // S-1: CreateForm uses useCreateKeywordMutation which auto-invalidates
+    // the shared keyword cache. Legacy callback kept for parent coordination.
     onKeywordCreated?.();
   };
 

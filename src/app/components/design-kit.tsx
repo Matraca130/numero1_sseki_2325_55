@@ -1,8 +1,33 @@
 /**
+ * ════════════════════════════════════════════════════════════════════════
  * AXON v4.4 — DESIGN KIT PORTABLE
+ * ════════════════════════════════════════════════════════════════════════
+ *
+ * INSTRUCCIONES DE USO:
+ * 1. Copia este archivo al otro Figma Make project → /src/app/components/design-kit.tsx
+ * 2. Asegurate de tener instalado "motion" (motion/react) y "lucide-react"
+ * 3. Importa lo que necesites:
+ *    import { AppNavbar, ProgressBar, HeroSection, ... } from "./design-kit";
+ * 4. Los componentes son WRAPPERS — envolvelos alrededor de tu logica E2E existente
+ * 5. NO reescribas tus conexiones de backend — solo cambia el layout visual
+ *
+ * CONTENIDO:
+ * ├── 1. TOKENS — colores, sombras, bordes (constantes reutilizables)
+ * ├── 2. UTILIDADES — focusRing, fadeUp, stagger animation helpers
+ * ├── 3. PRIMITIVOS — ProgressBar, ProgressRing, UserAvatar, StreakBadge, XpCounter
+ * ├── 4. NAVEGACION — AppNavbar, Breadcrumb
+ * ├── 5. LAYOUTS — HeroSection, ContentCard, StatCard, SectionHeader
+ * ├─ 6. VIDEO — VideoThumbnail, VideoBanner (para integrar con tu Mux E2E)
+ * ├── 7. FEEDBACK — XpToast, CompletionCard, Confetti, MasteryBadge
+ * ├── 8. SIDEBAR — CollapsibleSidebar, SidebarTreeNode
+ * ├── 9. READER — PageDots, PageNavigation, KeywordPill (para SummaryReader)
+ * ├── 10. INTERACTION — CollapsibleSection, CountBadge, SectionLabel, CommentTagBadge, useDismiss
+ * └── 11. RECETAS — ejemplos de composicion (comentados)
+ *
+ * ════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode, type RefObject } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import {
   Menu,
@@ -31,10 +56,11 @@ import {
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════════
-   1. TOKENS
-   ═══════════════════════════════════════════════════════════════════════ */
+   1. TOKENS — La paleta dopaminergica
+   ═════════════════════════════════════════════════════════════════════ */
 
 export const tokens = {
+  // Fondos
   bg: {
     page: "bg-zinc-50",
     card: "bg-white",
@@ -42,6 +68,7 @@ export const tokens = {
     cardDark: "bg-white/[0.07] backdrop-blur-md",
     sidebar: "bg-white",
   },
+  // Bordes
   border: {
     default: "border-zinc-200",
     card: "border border-zinc-200",
@@ -52,12 +79,14 @@ export const tokens = {
     amber: "border-amber-400/15",
     amberHover: "hover:border-amber-400/30",
   },
+  // Radios
   radius: {
     card: "rounded-2xl",
     button: "rounded-xl",
     pill: "rounded-full",
     small: "rounded-lg",
   },
+  // Sombras
   shadow: {
     card: "shadow-sm",
     cardHover: "hover:shadow-xl hover:shadow-zinc-900/5",
@@ -65,11 +94,13 @@ export const tokens = {
     amber: "shadow-xl shadow-amber-500/25",
     amberHover: "hover:shadow-amber-500/40",
   },
+  // Colores de estado
   status: {
     completed: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300", accent: "bg-emerald-500" },
     inProgress: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", accent: "bg-teal-500" },
     notStarted: { bg: "bg-zinc-100", text: "text-zinc-500", border: "border-zinc-200", accent: "bg-zinc-300" },
   },
+  // Colores de mastery (para keywords)
   mastery: {
     new: { bg: "bg-zinc-100", text: "text-zinc-600", border: "border-zinc-300", label: "Nuevo" },
     learning: { bg: "bg-red-100", text: "text-red-700", border: "border-red-300", label: "Aprendiendo" },
@@ -77,14 +108,36 @@ export const tokens = {
     known: { bg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", label: "Conocido" },
     mastered: { bg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300", label: "Dominado" },
   },
+  // Colores semanticos de seccion
+  section: {
+    professor:  { icon: "text-indigo-600", bg: "bg-indigo-50/60",  border: "border-indigo-200/60", badge: { bg: "bg-indigo-100", text: "text-indigo-600" } },
+    student:    { icon: "text-teal-600",   bg: "bg-teal-50",       border: "border-teal-200",      badge: { bg: "bg-teal-100",   text: "text-teal-600"   } },
+    connection: { icon: "text-violet-600",  bg: "bg-violet-50",     border: "border-violet-200",    badge: { bg: "bg-violet-100", text: "text-violet-600" } },
+    crossRef:   { icon: "text-blue-600",   bg: "bg-blue-50",       border: "border-blue-200",      badge: { bg: "bg-blue-100",   text: "text-blue-600"   } },
+    note:       { icon: "text-amber-600",  bg: "bg-amber-50",      border: "border-amber-200",     badge: { bg: "bg-amber-100",  text: "text-amber-600"  } },
+    ai:         { icon: "text-sky-600",    bg: "bg-sky-50",        border: "border-sky-200/60",     badge: { bg: "bg-sky-100",    text: "text-sky-600"    } },
+  },
+  // Tags de comentarios del profesor
+  commentTag: {
+    tip:        { label: "Tip",         bg: "bg-blue-100",   text: "text-blue-700"   },
+    mnemonic:   { label: "Mnemotecnia", bg: "bg-purple-100", text: "text-purple-700" },
+    clinical:   { label: "Clinica",     bg: "bg-rose-100",   text: "text-rose-700"   },
+    correction: { label: "Correccion",  bg: "bg-orange-100", text: "text-orange-700" },
+  },
 } as const;
 
 /* ═══════════════════════════════════════════════════════════════════════
-   2. UTILIDADES
+   2. UTILIDADES — Helpers de animacion y accesibilidad
    ═══════════════════════════════════════════════════════════════════════ */
 
+/** Clase de focus ring accesible — aplicar a todo boton/link interactivo */
 export const focusRing = "focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none";
 
+/**
+ * fadeUp — animacion de entrada escalonada.
+ * USO: <motion.div {...fadeUp(0.3)}>
+ * Respeta prefers-reduced-motion automaticamente.
+ */
 export function useFadeUp() {
   const shouldReduce = useReducedMotion();
   return useCallback(
@@ -100,12 +153,14 @@ export function useFadeUp() {
   );
 }
 
+/** Hook que respeta prefers-reduced-motion. */
 export { useReducedMotion as useReducedMotionSafe } from "motion/react";
 
 /* ═══════════════════════════════════════════════════════════════════════
-   3. PRIMITIVOS
+   3. PRIMITIVOS — Componentes atomicos reutilizables
    ═══════════════════════════════════════════════════════════════════════ */
 
+/** Barra de progreso animada con soporte dark mode */
 export function ProgressBar({
   value,
   color = "bg-teal-500",
@@ -136,6 +191,7 @@ export function ProgressBar({
   );
 }
 
+/** Anillo de progreso circular (para secciones en StudyPlan) */
 export function ProgressRing({
   value,
   size = 40,
@@ -167,7 +223,7 @@ export function ProgressRing({
           transition={{ duration: 1, ease: "easeOut" }}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
         {filled ? (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.5 }}>
             <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
@@ -182,6 +238,7 @@ export function ProgressRing({
   );
 }
 
+/** Avatar circular del usuario */
 export function UserAvatar({ initials, size = "md" }: { initials: string; size?: "sm" | "md" | "lg" }) {
   const sizes = { sm: "w-6 h-6 text-[10px]", md: "w-8 h-8 text-xs", lg: "w-11 h-11 text-sm" };
   return (
@@ -194,6 +251,7 @@ export function UserAvatar({ initials, size = "md" }: { initials: string; size?:
   );
 }
 
+/** Badge de racha (streak) con llama animada */
 export function StreakBadge({ days }: { days: number }) {
   const shouldReduce = useReducedMotion();
   return (
@@ -214,6 +272,7 @@ export function StreakBadge({ days }: { days: number }) {
   );
 }
 
+/** Contador de XP con animacion de conteo */
 export function XpCounter({ value }: { value: number }) {
   const [displayValue, setDisplayValue] = useState(0);
   const shouldReduce = useReducedMotion();
@@ -252,9 +311,91 @@ export function XpCounter({ value }: { value: number }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   4. NAVEGACION
+   4. NAVEGACION — Navbar y Breadcrumb
    ═══════════════════════════════════════════════════════════════════════ */
 
+/** Navbar principal — sticky, glass effect, slots configurables */
+export function AppNavbar({
+  leftAction,
+  breadcrumb,
+  rightSlot,
+  showStreak = true,
+  streakDays = 3,
+  showXp = false,
+  xpValue = 0,
+  showNotifications = true,
+  notificationCount = 0,
+  compact = false,
+  onMenuClick,
+}: {
+  leftAction?: ReactNode;
+  breadcrumb?: ReactNode;
+  rightSlot?: ReactNode;
+  showStreak?: boolean;
+  streakDays?: number;
+  showXp?: boolean;
+  xpValue?: number;
+  showNotifications?: boolean;
+  notificationCount?: number;
+  compact?: boolean;
+  onMenuClick?: () => void;
+}) {
+  const shouldReduce = useReducedMotion();
+
+  return (
+    <nav
+      className={`${compact ? "h-12" : "h-14"} bg-white/80 backdrop-blur-xl border-b border-zinc-200 px-6 flex items-center gap-4 sticky top-0 z-50`}
+    >
+      {leftAction || (
+        <button
+          onClick={onMenuClick}
+          className={`p-1.5 hover:bg-zinc-100 rounded-lg cursor-pointer ${focusRing}`}
+          aria-label="Menu"
+        >
+          <Menu className="w-5 h-5 text-zinc-700" />
+        </button>
+      )}
+
+      {/* Logo */}
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 bg-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+          <span className="text-white text-xs" style={{ fontWeight: 700 }}>A</span>
+        </div>
+        <span className="text-sm text-zinc-900 tracking-tight" style={{ fontWeight: 700 }}>AXON</span>
+      </div>
+
+      {breadcrumb}
+      <div className="flex-1" />
+
+      {showXp && <XpCounter value={xpValue} />}
+      {showStreak && <StreakBadge days={streakDays} />}
+
+      {showNotifications && (
+        <button
+          className={`relative p-1.5 hover:bg-zinc-100 rounded-lg cursor-pointer ${focusRing}`}
+          aria-label={`Notificaciones${notificationCount > 0 ? ` (${notificationCount} nuevas)` : ""}`}
+        >
+          <Bell className="w-5 h-5 text-zinc-500" />
+          {notificationCount > 0 && (
+            <motion.span
+              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center"
+              initial={shouldReduce ? false : { scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, delay: 0.8 }}
+              style={{ fontWeight: 700 }}
+            >
+              {notificationCount}
+            </motion.span>
+          )}
+        </button>
+      )}
+
+      {rightSlot}
+    </nav>
+  );
+}
+
+/** Breadcrumb — lista de segmentos con chevrons */
 export function Breadcrumb({
   items,
   onItemClick,
@@ -292,9 +433,10 @@ export function Breadcrumb({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   5. LAYOUTS
-   ═══════════════════════════════════════════════════════════════════════ */
+   5. LAYOUTS — Componentes de estructura
+   ══════════════════════════════════════════════════════════════════════ */
 
+/** HeroSection — gradiente teal con orbs animados. */
 export function HeroSection({ children }: { children: ReactNode }) {
   const shouldReduce = useReducedMotion();
 
@@ -327,6 +469,7 @@ export function HeroSection({ children }: { children: ReactNode }) {
   );
 }
 
+/** ContentCard — la card elevada premium. */
 export function ContentCard({
   children,
   accentColor,
@@ -357,14 +500,10 @@ export function ContentCard({
       className={`bg-white ${borderClass} rounded-2xl p-5 text-left ${tokens.shadow.cardHover} transition-all relative overflow-hidden group ${onClick ? `cursor-pointer ${focusRing}` : ""} ${className}`}
       whileHover={shouldReduce ? undefined : { y: onClick ? -4 : 0 }}
     >
-      {accentColor && (
-        <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accentColor }} />
-      )}
+      {accentColor && <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accentColor }} />}
       {status === "completed" && <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />}
       {status === "in-progress" && <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500" />}
-
       {children}
-
       {onClick && (
         <motion.div className="absolute bottom-4 right-4 w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <ArrowRight className="w-4 h-4 text-zinc-600" />
@@ -374,6 +513,7 @@ export function ContentCard({
   );
 }
 
+/** StatCard — card de estadistica para el hero (sobre fondo oscuro). */
 export function StatCard({
   label,
   value,
@@ -405,6 +545,7 @@ export function StatCard({
   );
 }
 
+/** SectionHeader — encabezado de seccion con icono + titulo + accion opcional. */
 export function SectionHeader({
   icon,
   iconBg = "bg-zinc-900",
@@ -434,120 +575,11 @@ export function SectionHeader({
   );
 }
 
-export function ContinueReadingCard({
-  title,
-  breadcrumbItems,
-  currentPage,
-  totalPages,
-  estimatedMinutes,
-  lastReadAt,
-  onClick,
-}: {
-  title: string;
-  breadcrumbItems: string[];
-  currentPage: number;
-  totalPages: number;
-  estimatedMinutes: number;
-  lastReadAt: string;
-  onClick?: () => void;
-}) {
-  const shouldReduce = useReducedMotion();
-  const fadeUp = useFadeUp();
-  const progress = currentPage / totalPages;
-
-  return (
-    <motion.button
-      onClick={onClick}
-      className={`w-full text-left mt-8 bg-white/[0.07] backdrop-blur-md border border-amber-400/15 rounded-2xl p-6 hover:bg-white/[0.12] hover:border-amber-400/30 transition-all group cursor-pointer relative overflow-hidden ${focusRing}`}
-      {...fadeUp(0.4)}
-      whileHover={shouldReduce ? undefined : { y: -3 }}
-    >
-      <div className="flex items-start gap-6 pl-4">
-        <div className="absolute left-2.5 top-5 bottom-5 flex flex-col items-center gap-1.5">
-          {Array.from({ length: totalPages }, (_, i) => {
-            const isRead = i < currentPage;
-            const isCurrent = i === currentPage - 1;
-            return (
-              <motion.div
-                key={i}
-                className={`w-1.5 flex-1 rounded-full ${
-                  isRead ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]" : "bg-white/10"
-                }`}
-                initial={shouldReduce ? false : { scaleY: 0 }}
-                animate={{
-                  scaleY: 1,
-                  opacity: isCurrent && !shouldReduce ? [0.6, 1, 0.6] : 1,
-                }}
-                transition={{
-                  scaleY: { delay: 0.5 + i * 0.08, duration: 0.3 },
-                  opacity: isCurrent ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined,
-                }}
-                style={{ originY: 0 }}
-              />
-            );
-          })}
-        </div>
-
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            <span
-              className="text-xs text-amber-200 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/20"
-              style={{ fontWeight: 600 }}
-            >
-              Continuar leyendo
-            </span>
-            <span className="text-xs text-zinc-400 ml-auto">{lastReadAt}</span>
-          </div>
-
-          <h2 className="text-lg text-white mb-1.5 tracking-tight" style={{ fontWeight: 700 }}>
-            {title}
-          </h2>
-
-          <Breadcrumb items={breadcrumbItems} className="mb-5 text-zinc-400" />
-
-          <div className="flex items-center gap-5">
-            <div className="flex-1 max-w-xs">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-zinc-300" style={{ fontWeight: 500 }}>
-                  Pagina {currentPage} de {totalPages}
-                </span>
-                <span className="text-amber-400" style={{ fontWeight: 700 }}>
-                  {Math.round(progress * 100)}%
-                </span>
-              </div>
-              <ProgressBar
-                value={progress}
-                color="bg-gradient-to-r from-amber-400 to-amber-500"
-                className="h-2"
-                animated
-                dark
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400" style={{ fontWeight: 500 }}>
-              <Clock className="w-3.5 h-3.5" />
-              ~{estimatedMinutes} min
-            </div>
-          </div>
-        </div>
-
-        <motion.div
-          className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shrink-0 shadow-xl shadow-amber-500/25 group-hover:shadow-amber-500/40 transition-shadow"
-          whileHover={shouldReduce ? undefined : { scale: 1.08, rotate: 3 }}
-          whileTap={shouldReduce ? undefined : { scale: 0.95 }}
-        >
-          <ArrowRight className="w-7 h-7 text-white" />
-        </motion.div>
-      </div>
-    </motion.button>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════════════════
-   6. VIDEO
+   6. VIDEO — Integrar con tu Mux E2E existente
    ═══════════════════════════════════════════════════════════════════════ */
 
+/** VideoThumbnail — estilo YouTube con progreso, duracion, badge de "visto". */
 export function VideoThumbnail({
   title,
   thumbnailUrl,
@@ -571,19 +603,11 @@ export function VideoThumbnail({
       <div className="relative w-28 h-16 rounded-lg overflow-hidden bg-zinc-900 shrink-0">
         <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover/video:bg-black/40 transition-colors">
-          <motion.div
-            className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-lg"
-            whileHover={{ scale: 1.15 }}
-          >
+          <motion.div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-lg" whileHover={{ scale: 1.15 }}>
             <Play className="w-3.5 h-3.5 text-zinc-900 ml-0.5" />
           </motion.div>
         </div>
-        <span
-          className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/80 text-white text-[10px] rounded"
-          style={{ fontWeight: 600 }}
-        >
-          {duration}
-        </span>
+        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/80 text-white text-[10px] rounded" style={{ fontWeight: 600 }}>{duration}</span>
         {watchedPercent > 0 && watchedPercent < 100 && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-600">
             <div className="h-full bg-red-500" style={{ width: `${watchedPercent}%` }} />
@@ -595,20 +619,13 @@ export function VideoThumbnail({
           </div>
         )}
       </div>
-
       <div className="flex-1 min-w-0 py-0.5">
-        <p className="text-xs text-zinc-900 leading-snug line-clamp-2" style={{ fontWeight: 600 }}>
-          {title}
-        </p>
+        <p className="text-xs text-zinc-900 leading-snug line-clamp-2" style={{ fontWeight: 600 }}>{title}</p>
         <div className="flex items-center gap-2 mt-1.5">
           {watchedPercent === 100 ? (
-            <span className="flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded" style={{ fontWeight: 600 }}>
-              <Eye className="w-3 h-3" /> Visto
-            </span>
+            <span className="flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded" style={{ fontWeight: 600 }}><Eye className="w-3 h-3" />Visto</span>
           ) : watchedPercent > 0 ? (
-            <span className="flex items-center gap-1 text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded" style={{ fontWeight: 600 }}>
-              <Clock className="w-3 h-3" /> {watchedPercent}% visto
-            </span>
+            <span className="flex items-center gap-1 text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded" style={{ fontWeight: 600 }}><Clock className="w-3 h-3" />{watchedPercent}% visto</span>
           ) : (
             <span className="text-[10px] text-zinc-500" style={{ fontWeight: 500 }}>{duration}</span>
           )}
@@ -618,6 +635,7 @@ export function VideoThumbnail({
   );
 }
 
+/** VideoBanner — banner violeta para SummaryReader. */
 export function VideoBanner({
   title,
   duration,
@@ -638,29 +656,14 @@ export function VideoBanner({
           <Video className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-white truncate" style={{ fontWeight: 600 }}>
-            Video disponible: {title}
-          </p>
-          {subtitle && (
-            <p className="text-xs text-violet-200" style={{ fontWeight: 500 }}>
-              {duration} · {subtitle}
-            </p>
-          )}
+          <p className="text-sm text-white truncate" style={{ fontWeight: 600 }}>Video disponible: {title}</p>
+          {subtitle && <p className="text-xs text-violet-200" style={{ fontWeight: 500 }}>{duration} · {subtitle}</p>}
         </div>
-        <motion.button
-          onClick={onPlay}
-          className="flex items-center gap-2 px-4 py-2 bg-white text-violet-800 rounded-lg text-sm cursor-pointer shadow-md hover:bg-violet-50 shrink-0"
-          style={{ fontWeight: 700 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Play className="w-4 h-4" />
-          Ver video
+        <motion.button onClick={onPlay} className="flex items-center gap-2 px-4 py-2 bg-white text-violet-800 rounded-lg text-sm cursor-pointer shadow-md hover:bg-violet-50 shrink-0" style={{ fontWeight: 700 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Play className="w-4 h-4" />Ver video
         </motion.button>
         {onDismiss && (
-          <button onClick={onDismiss} className="p-1 hover:bg-white/10 rounded cursor-pointer">
-            <X className="w-4 h-4 text-violet-200" />
-          </button>
+          <button onClick={onDismiss} className="p-1 hover:bg-white/10 rounded cursor-pointer"><X className="w-4 h-4 text-violet-200" /></button>
         )}
       </div>
     </div>
@@ -668,9 +671,10 @@ export function VideoBanner({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   7. FEEDBACK
+   7. FEEDBACK — Toasts, celebraciones, mastery
    ═══════════════════════════════════════════════════════════════════════ */
 
+/** Toast de XP */
 export function XpToast({ amount, show }: { amount: number; show: boolean }) {
   return (
     <AnimatePresence>
@@ -684,13 +688,13 @@ export function XpToast({ amount, show }: { amount: number; show: boolean }) {
         >
           <Zap className="w-4 h-4" />
           <span className="text-sm" style={{ fontWeight: 700 }}>+{amount} XP</span>
-          <span className="text-xs opacity-90">Pagina completada!</span>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
+/** Confetti — particulas de celebracion al completar */
 export function Confetti({ show }: { show: boolean }) {
   if (!show) return null;
   const particles = Array.from({ length: 24 }, (_, i) => ({
@@ -717,6 +721,7 @@ export function Confetti({ show }: { show: boolean }) {
   );
 }
 
+/** CompletionCard — card de celebracion */
 export function CompletionCard({
   title,
   subtitle,
@@ -738,49 +743,21 @@ export function CompletionCard({
       transition={{ type: "spring", stiffness: 200 }}
     >
       {showConfetti && <Confetti show />}
-      <motion.div
-        initial={{ scale: 0, rotate: -180 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-      >
+      <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 300, delay: 0.2 }}>
         <PartyPopper className="w-10 h-10 text-emerald-700 mx-auto mb-3" />
       </motion.div>
-      <motion.p className="text-base text-emerald-900 mb-1" style={{ fontWeight: 800 }} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-        {title}
-      </motion.p>
-      {subtitle && (
-        <motion.p className="text-sm text-emerald-700 mb-2" style={{ fontWeight: 500 }} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-          {subtitle}
-        </motion.p>
-      )}
+      <motion.p className="text-base text-emerald-900 mb-1" style={{ fontWeight: 800 }} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>{title}</motion.p>
+      {subtitle && <motion.p className="text-sm text-emerald-700 mb-2" style={{ fontWeight: 500 }} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>{subtitle}</motion.p>}
       {xpEarned && (
-        <motion.div
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 text-amber-900 rounded-full mb-4 shadow-md shadow-amber-400/30"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", delay: 0.6 }}
-        >
-          <Zap className="w-4 h-4" />
-          <span className="text-sm" style={{ fontWeight: 700 }}>+{xpEarned} XP ganados</span>
+        <motion.div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 text-amber-900 rounded-full mb-4 shadow-md shadow-amber-400/30" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.6 }}>
+          <Zap className="w-4 h-4" /><span className="text-sm" style={{ fontWeight: 700 }}>+{xpEarned} XP ganados</span>
         </motion.div>
       )}
       {actions.length > 0 && (
         <motion.div className="flex items-center justify-center gap-3" initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}>
           {actions.map((action) => (
-            <motion.button
-              key={action.label}
-              onClick={action.onClick}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm cursor-pointer ${
-                action.variant === "secondary"
-                  ? "bg-white border-2 border-emerald-400 text-emerald-800 hover:bg-emerald-50"
-                  : "bg-emerald-700 text-white hover:bg-emerald-800 shadow-lg shadow-emerald-700/25"
-              }`}
-              style={{ fontWeight: 600 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <action.icon className="w-4 h-4" />
-              {action.label}
+            <motion.button key={action.label} onClick={action.onClick} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm cursor-pointer ${action.variant === "secondary" ? "bg-white border-2 border-emerald-400 text-emerald-800 hover:bg-emerald-50" : "bg-emerald-700 text-white hover:bg-emerald-800 shadow-lg shadow-emerald-700/25"}`} style={{ fontWeight: 600 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <action.icon className="w-4 h-4" />{action.label}
             </motion.button>
           ))}
         </motion.div>
@@ -789,6 +766,7 @@ export function CompletionCard({
   );
 }
 
+/** MasteryBadge — pill de mastery coloreada para keywords */
 export function MasteryBadge({
   level,
   label,
@@ -798,19 +776,17 @@ export function MasteryBadge({
 }) {
   const m = tokens.mastery[level];
   return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 text-[10px] rounded ${m.bg} ${m.text} border ${m.border}`}
-      style={{ fontWeight: 600 }}
-    >
+    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] rounded ${m.bg} ${m.text} border ${m.border}`} style={{ fontWeight: 600 }}>
       {label || m.label}
     </span>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   8. SIDEBAR
+   8. SIDEBAR — Sidebar colapsable con arbol de navegacion
    ═══════════════════════════════════════════════════════════════════════ */
 
+/** Sidebar colapsable con animacion */
 export function CollapsibleSidebar({
   isOpen,
   children,
@@ -841,18 +817,11 @@ export function CollapsibleSidebar({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   9. READER
+   9. READER — Componentes del lector de resumen
    ═══════════════════════════════════════════════════════════════════════ */
 
-export function PageDots({
-  total,
-  current,
-  onPageClick,
-}: {
-  total: number;
-  current: number;
-  onPageClick: (index: number) => void;
-}) {
+/** Dots de navegacion de paginas */
+export function PageDots({ total, current, onPageClick }: { total: number; current: number; onPageClick: (index: number) => void }) {
   return (
     <div className="flex items-center gap-2" role="navigation" aria-label="Paginas del resumen">
       {Array.from({ length: total }, (_, i) => (
@@ -861,13 +830,7 @@ export function PageDots({
           onClick={() => onPageClick(i)}
           aria-label={`Ir a pagina ${i + 1}`}
           aria-current={i === current ? "page" : undefined}
-          className={`rounded-full transition-all cursor-pointer ${focusRing} ${
-            i === current
-              ? "bg-teal-600 w-8 h-3"
-              : i < current
-                ? "bg-teal-400 w-3 h-3 hover:bg-teal-500"
-                : "bg-zinc-300 w-3 h-3 hover:bg-zinc-400"
-          }`}
+          className={`rounded-full transition-all cursor-pointer ${focusRing} ${i === current ? "bg-teal-600 w-8 h-3" : i < current ? "bg-teal-400 w-3 h-3 hover:bg-teal-500" : "bg-zinc-300 w-3 h-3 hover:bg-zinc-400"}`}
           layout
           transition={{ duration: 0.2 }}
           whileHover={{ scale: 1.3 }}
@@ -877,87 +840,34 @@ export function PageDots({
   );
 }
 
-export function PageNavigation({
-  currentPage,
-  totalPages,
-  onPrev,
-  onNext,
-  onPageClick,
-}: {
-  currentPage: number;
-  totalPages: number;
-  onPrev: () => void;
-  onNext: () => void;
-  onPageClick: (index: number) => void;
-}) {
+/** Navegacion prev/next de paginas */
+export function PageNavigation({ currentPage, totalPages, onPrev, onNext, onPageClick }: { currentPage: number; totalPages: number; onPrev: () => void; onNext: () => void; onPageClick: (index: number) => void }) {
   return (
     <div className="mt-10 pt-6 border-t border-zinc-300">
       <div className="flex items-center justify-between">
-        <motion.button
-          onClick={onPrev}
-          disabled={currentPage === 0}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm cursor-pointer transition-colors ${
-            currentPage === 0
-              ? "text-zinc-300 cursor-default"
-              : "text-zinc-700 hover:bg-zinc-200 border border-zinc-300"
-          }`}
-          style={{ fontWeight: 500 }}
-          whileHover={currentPage > 0 ? { x: -3 } : undefined}
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Anterior
+        <motion.button onClick={onPrev} disabled={currentPage === 0} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm cursor-pointer transition-colors ${currentPage === 0 ? "text-zinc-300 cursor-default" : "text-zinc-700 hover:bg-zinc-200 border border-zinc-300"}`} style={{ fontWeight: 500 }} whileHover={currentPage > 0 ? { x: -3 } : undefined}>
+          <ChevronLeft className="w-4 h-4" />Anterior
         </motion.button>
-
         <PageDots total={totalPages} current={currentPage} onPageClick={onPageClick} />
-
-        <motion.button
-          onClick={onNext}
-          disabled={currentPage === totalPages - 1}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm cursor-pointer transition-all ${
-            currentPage === totalPages - 1
-              ? "text-zinc-300 cursor-default"
-              : "bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-600/25"
-          }`}
-          style={{ fontWeight: 600 }}
-          whileHover={currentPage < totalPages - 1 ? { scale: 1.03, x: 3 } : undefined}
-          whileTap={currentPage < totalPages - 1 ? { scale: 0.97 } : undefined}
-        >
-          Siguiente
-          <ChevronRight className="w-4 h-4" />
+        <motion.button onClick={onNext} disabled={currentPage === totalPages - 1} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm cursor-pointer transition-all ${currentPage === totalPages - 1 ? "text-zinc-300 cursor-default" : "bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-600/25"}`} style={{ fontWeight: 600 }} whileHover={currentPage < totalPages - 1 ? { scale: 1.03, x: 3 } : undefined} whileTap={currentPage < totalPages - 1 ? { scale: 0.97 } : undefined}>
+          Siguiente<ChevronRight className="w-4 h-4" />
         </motion.button>
       </div>
     </div>
   );
 }
 
-export function KeywordPill({
-  name,
-  definition,
-  mastery = "new",
-  delay = 0,
-}: {
-  name: string;
-  definition?: string;
-  mastery?: "new" | "learning" | "reviewing" | "known" | "mastered";
-  delay?: number;
-}) {
+/** KeywordPill — pill interactiva de keyword con color de mastery. */
+export function KeywordPill({ name, definition, mastery = "new", delay = 0 }: { name: string; definition?: string; mastery?: "new" | "learning" | "reviewing" | "known" | "mastered"; delay?: number }) {
   const m = tokens.mastery[mastery];
   return (
-    <motion.button
-      className={`px-3 py-1.5 rounded-lg text-xs border ${m.bg} ${m.text} ${m.border} cursor-pointer`}
-      title={definition}
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ delay }}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.95 }}
-      style={{ fontWeight: 600 }}
-    >
+    <motion.button className={`px-3 py-1.5 rounded-lg text-xs border ${m.bg} ${m.text} ${m.border} cursor-pointer`} title={definition} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }} style={{ fontWeight: 600 }}>
       {name}
     </motion.button>
   );
 }
 
+/** Prose styles para HTML renderizado (TipTap output) */
 export const proseClasses = `prose prose-zinc max-w-none
   [&_h2]:text-xl [&_h2]:text-zinc-900 [&_h2]:mb-4 [&_h2]:mt-0
   [&_h3]:text-base [&_h3]:text-zinc-800 [&_h3]:mb-3 [&_h3]:mt-6
@@ -967,3 +877,67 @@ export const proseClasses = `prose prose-zinc max-w-none
   [&_li]:leading-relaxed
   [&_strong]:text-zinc-900
   [&_em]:text-zinc-600`;
+
+/* ═══════════════════════════════════════════════════════════════════════
+   10. INTERACTION — Componentes de interaccion
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** CollapsibleSection — wrapper colapsable para secciones de paneles/popovers. */
+export function CollapsibleSection({ icon, title, badge, children, defaultOpen = false, id }: { icon: ReactNode; title: string; badge?: ReactNode; children: ReactNode; defaultOpen?: boolean; id?: string }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const sectionId = id || `section-${title.toLowerCase().replace(/\s+/g, "-")}`;
+
+  return (
+    <div className="border-b border-zinc-100">
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-zinc-50/80 cursor-pointer transition-colors" aria-expanded={isOpen} aria-controls={sectionId}>
+        {icon}
+        <span className="text-[11px] text-zinc-700 flex-1 text-left" style={{ fontWeight: 700 }}>{title}</span>
+        {badge}
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div id={sectionId} initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2, ease: "easeInOut" }} className="overflow-hidden">
+            <div className="px-4 pb-3">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** CountBadge — pill con numero/texto para headers */
+export function CountBadge({ count, bg = "bg-zinc-100", color = "text-zinc-600" }: { count: number | string; bg?: string; color?: string }) {
+  return (
+    <span className={`text-[9px] ${color} ${bg} px-1.5 py-0.5 rounded-full`} style={{ fontWeight: 600 }}>{count}</span>
+  );
+}
+
+/** SectionLabel — etiqueta de seccion en uppercase */
+export function SectionLabel({ icon, label }: { icon?: ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-2.5">
+      {icon}
+      <span className="text-[11px] text-zinc-700" style={{ fontWeight: 700 }}>{label}</span>
+    </div>
+  );
+}
+
+/** CommentTagBadge — badge para tags de comentarios del profesor. */
+export function CommentTagBadge({ tag }: { tag: "tip" | "mnemonic" | "clinical" | "correction" }) {
+  const t = tokens.commentTag[tag];
+  return <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${t.bg} ${t.text}`} style={{ fontWeight: 600 }}>{t.label}</span>;
+}
+
+/** useDismiss — hook para dismiss con Escape + click afuera. */
+export function useDismissEffect(ref: RefObject<HTMLElement | null>, onClose: () => void) {
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => { document.removeEventListener("mousedown", handleMouseDown); document.removeEventListener("keydown", handleKeyDown); };
+  }, [ref, onClose]);
+}
