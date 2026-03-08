@@ -36,7 +36,7 @@ const masteryDisplay: Record<string, { underlineClass: string; bgLight: string; 
 //
 // Componente de keyword interativo no texto de resumo. Ao clicar, abre um
 // pop-up portal com definição, FAQ, perguntas ao MedBot, e anotações
-// pessoais. Extraído de SummarySessionNew.tsx para legibilidade.
+// pessoais.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface EditableKeywordProps {
