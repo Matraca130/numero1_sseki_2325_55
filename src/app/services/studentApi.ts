@@ -191,8 +191,9 @@ export async function getProfile(_studentId?: string): Promise<StudentProfile | 
     const raw = await apiCall<any>('/me');
     if (!raw) return null;
     return mapProfileFromBackend(raw);
-  } catch (err: any) {
-    if (err.message?.includes('404') || err.message?.includes('401')) return null;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('404') || msg.includes('401')) return null;
     throw err;
   }
 }
@@ -222,8 +223,9 @@ export async function getStats(_studentId?: string): Promise<StudentStats | null
     const raw = await apiCall<any>('/student-stats');
     if (!raw) return null;
     return mapStatsFromBackend(raw);
-  } catch (err: any) {
-    if (err.message?.includes('404')) return null;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('404')) return null;
     throw err;
   }
 }
@@ -267,23 +269,20 @@ export async function updateStats(
 // when the result is empty or imprecise.
 //
 // Cached for 5 minutes to avoid redundant aggregation.
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 
 export async function getAllCourseProgress(_studentId?: string): Promise<CourseProgress[]> {
-  // Return cached result if valid
   if (isCacheValid(_courseProgressCache.entry)) {
     return _courseProgressCache.entry.data;
   }
 
   try {
-    // ── Step 1: Fetch all three data sources in parallel ──
     const [sessionsResult, fsrsResult, bktResult] = await Promise.allSettled([
       apiCall<any>('/study-sessions?limit=200'),
       apiCall<any>('/fsrs-states?limit=500'),
       apiCall<any>('/bkt-states?limit=500'),
     ]);
 
-    // Extract data from settled promises
     const sessionsRaw = sessionsResult.status === 'fulfilled'
       ? (Array.isArray(sessionsResult.value) ? sessionsResult.value : sessionsResult.value?.items || [])
       : [];
@@ -294,13 +293,11 @@ export async function getAllCourseProgress(_studentId?: string): Promise<CourseP
       ? (Array.isArray(bktResult.value) ? bktResult.value : bktResult.value?.items || [])
       : [];
 
-    // If no sessions exist, the student hasn't studied yet
     if (sessionsRaw.length === 0 && fsrsRaw.length === 0) {
       _courseProgressCache.entry = { data: [], expiresAt: Date.now() + CACHE_TTL_MS };
       return [];
     }
 
-    // ── Step 2: Group sessions by course_id ───────────────
     interface CourseAgg {
       courseId: string;
       sessionCount: number;
@@ -313,13 +310,9 @@ export async function getAllCourseProgress(_studentId?: string): Promise<CourseP
     for (const s of sessionsRaw) {
       const cid = s.course_id;
       if (!cid) continue;
-
       const existing = courseMap.get(cid) || {
-        courseId: cid,
-        sessionCount: 0,
-        totalReviews: 0,
-        correctReviews: 0,
-        lastAccessedAt: '',
+        courseId: cid, sessionCount: 0, totalReviews: 0,
+        correctReviews: 0, lastAccessedAt: '',
       };
       existing.sessionCount += 1;
       existing.totalReviews += s.total_reviews || 0;
@@ -329,43 +322,29 @@ export async function getAllCourseProgress(_studentId?: string): Promise<CourseP
       courseMap.set(cid, existing);
     }
 
-    // ── Step 3: Compute global FSRS flashcard stats ───────
-    // We can't map flashcard_id → course without the content tree,
-    // so we compute global totals and distribute proportionally.
     let totalCards = fsrsRaw.length;
-    let masteredCards = 0;  // state = 'review' with high stability
-    let learningCards = 0;  // state = 'learning' or 'relearning'
-    let newCards = 0;       // state = 'new'
+    let masteredCards = 0;
+    let learningCards = 0;
+    let newCards = 0;
 
     for (const fs of fsrsRaw) {
       const state = fs.state || 'new';
-      if (state === 'review' && (fs.stability || 0) >= 10) {
-        masteredCards++;
-      } else if (state === 'learning' || state === 'relearning') {
-        learningCards++;
-      } else if (state === 'new') {
-        newCards++;
-      }
+      if (state === 'review' && (fs.stability || 0) >= 10) masteredCards++;
+      else if (state === 'learning' || state === 'relearning') learningCards++;
+      else if (state === 'new') newCards++;
     }
 
-    // ── Step 4: Compute global BKT mastery average ────────
     let bktMasteryAvg = 0;
     if (bktRaw.length > 0) {
       const totalPKnow = bktRaw.reduce((sum: number, b: any) => sum + (b.p_know || 0), 0);
       bktMasteryAvg = totalPKnow / bktRaw.length;
     }
 
-    // ── Step 5: Resolve course names ──────────────────────
-    // GET /courses/:id works without institution_id (CRUD factory
-    // GET by ID bypasses parentKey). Max ~4 courses typically.
     const uniqueCourseIds = Array.from(courseMap.keys());
-
     const courseNames = new Map<string, string>();
     if (uniqueCourseIds.length > 0 && uniqueCourseIds.length <= 10) {
       const nameResults = await Promise.allSettled(
-        uniqueCourseIds.map(cid =>
-          apiCall<any>(`/courses/${cid}`)
-        )
+        uniqueCourseIds.map(cid => apiCall<any>(`/courses/${cid}`))
       );
       for (let i = 0; i < uniqueCourseIds.length; i++) {
         const r = nameResults[i];
@@ -375,48 +354,36 @@ export async function getAllCourseProgress(_studentId?: string): Promise<CourseP
       }
     }
 
-    // ── Step 6: Build CourseProgress[] ─────────────────────
-    // Distribute flashcard stats proportionally by session reviews
     const totalGlobalReviews = Array.from(courseMap.values())
       .reduce((s, c) => s + c.totalReviews, 0) || 1;
 
     const progress: CourseProgress[] = uniqueCourseIds.map(cid => {
       const agg = courseMap.get(cid)!;
       const courseName = courseNames.get(cid) || `Curso ${cid.slice(0, 6)}`;
-
-      // Proportional share of flashcard stats based on review count
       const share = agg.totalReviews / totalGlobalReviews;
       const courseFlashcardsTotal = Math.round(totalCards * share) || 0;
       const courseFlashcardsMastered = Math.round(masteredCards * share) || 0;
-
-      // Quiz average from session accuracy
       const quizAvg = agg.totalReviews > 0
-        ? Math.round((agg.correctReviews / agg.totalReviews) * 100)
-        : 0;
-
-      // Overall mastery: blend BKT average with FSRS mastery ratio
+        ? Math.round((agg.correctReviews / agg.totalReviews) * 100) : 0;
       const fsrsMasteryRatio = totalCards > 0 ? (masteredCards / totalCards) : 0;
       const masteryPercent = Math.round(
         ((bktMasteryAvg * 0.6) + (fsrsMasteryRatio * 0.4)) * 100
       );
 
       return {
-        courseId: cid,
-        courseName,
+        courseId: cid, courseName,
         masteryPercent: Math.min(100, masteryPercent),
         lessonsCompleted: agg.sessionCount,
-        lessonsTotal: Math.max(agg.sessionCount, agg.sessionCount + 5), // estimate
+        lessonsTotal: Math.max(agg.sessionCount, agg.sessionCount + 5),
         flashcardsMastered: courseFlashcardsMastered,
         flashcardsTotal: Math.max(courseFlashcardsTotal, courseFlashcardsMastered),
         quizAverageScore: quizAvg,
         lastAccessedAt: agg.lastAccessedAt || new Date().toISOString(),
-        topicProgress: [], // Would require content tree traversal
+        topicProgress: [],
       };
     });
 
-    // Sort by lastAccessedAt (most recent first)
     progress.sort((a, b) => b.lastAccessedAt.localeCompare(a.lastAccessedAt));
-
     _courseProgressCache.entry = { data: progress, expiresAt: Date.now() + CACHE_TTL_MS };
     return progress;
 
@@ -424,7 +391,6 @@ export async function getAllCourseProgress(_studentId?: string): Promise<CourseP
     if (import.meta.env.DEV) {
       console.warn('[studentApi] getAllCourseProgress aggregation failed:', err);
     }
-    // Graceful degradation: return empty, dashboard uses mock data
     return [];
   }
 }
@@ -442,7 +408,6 @@ export async function updateCourseProgress(
   data: Partial<CourseProgress>,
   _studentId?: string
 ): Promise<CourseProgress> {
-  // Invalidate cache so next read re-aggregates
   _courseProgressCache.entry = null;
   return data as CourseProgress;
 }
@@ -490,32 +455,15 @@ export async function logSession(
     method: 'POST',
     body: JSON.stringify(payload),
   });
-
-  // Invalidate course progress cache (new session changes aggregation)
   _courseProgressCache.entry = null;
-
   return mapSessionFromBackend(raw);
 }
 
 // ═══════════════════════════════════════════════════════════
 // 6. FLASHCARD REVIEWS — Bulk Save via studySessionApi
-//
-// The real backend flow is:
-//   1. POST /study-sessions → create session (gets session_id)
-//   2. For each review: POST /reviews { session_id, item_id, grade }
-//   3. For each card:   POST /fsrs-states { flashcard_id, ... }
-//
-// Components (FlashcardReviewer, ReviewSessionView) use
-// studySessionApi directly for the real flow. This saveReviews()
-// is a legacy bridge from StudentDataContext.
-//
-// We implement it properly to avoid silent data loss: create a
-// session, submit each review, and return the count.
 // ═══════════════════════════════════════════════════════════
 
 export async function getReviews(_studentId?: string): Promise<FlashcardReview[]> {
-  // Backend requires session_id to list reviews — can't list all.
-  // Return empty; aggregate data comes from /student-stats.
   return [];
 }
 
@@ -533,7 +481,6 @@ export async function saveReviews(
   if (!reviews || reviews.length === 0) return { saved: 0 };
 
   try {
-    // Step 1: Create a study session to hold these reviews
     const session = await apiCall<any>('/study-sessions', {
       method: 'POST',
       body: JSON.stringify({
@@ -549,7 +496,6 @@ export async function saveReviews(
       return { saved: 0 };
     }
 
-    // Step 2: Submit each review with controlled concurrency
     const reviewTasks = reviews.map(review => () =>
       apiCall<any>('/reviews', {
         method: 'POST',
@@ -565,7 +511,6 @@ export async function saveReviews(
     const results = await parallelWithLimit(reviewTasks, 4);
     const savedCount = results.filter(r => r.status === 'fulfilled').length;
 
-    // Step 3: Close the session with summary
     const correctCount = reviews.filter(r => r.rating >= 3).length;
     try {
       await apiCall<any>(`/study-sessions/${session.id}`, {
@@ -577,12 +522,10 @@ export async function saveReviews(
         }),
       });
     } catch {
-      // Non-critical: session close failure doesn't lose review data
+      // Non-critical
     }
 
-    // Invalidate caches
     _courseProgressCache.entry = null;
-
     return { saved: savedCount };
   } catch (err) {
     if (import.meta.env.DEV) {
@@ -594,8 +537,6 @@ export async function saveReviews(
 
 // ═══════════════════════════════════════════════════════════
 // 7. STUDY SUMMARIES
-// Summaries are CONTENT items (not student data).
-// Backend: GET /summaries?topic_id=xxx (via CRUD factory)
 // ═══════════════════════════════════════════════════════════
 
 export async function getStudySummary(
@@ -637,35 +578,16 @@ export async function deleteStudySummary(
   _studentId: string,
   _courseId: string,
   _topicId: string
-): Promise<void> {
-  // No-op — summaries managed via content CRUD
-}
+): Promise<void> {}
 
 // ═══════════════════════════════════════════════════════════
 // 8. KEYWORDS — Per-topic with Cache + BKT Enrichment
-//
-// Keywords are CONTENT items (per summary, not per student).
-// The chain is: topic → summaries → keywords (per summary).
-//
-// Backend endpoints used:
-//   GET /topic-progress?topic_id=xxx  → summaries for topic
-//   GET /keywords?summary_id=xxx      → keywords per summary
-//   GET /bkt-states                   → subtopic mastery (p_know)
-//   GET /subtopics?keyword_id=xxx     → subtopics per keyword
-//
-// Optimization:
-//   - TTL cache (5min) keyed by topicId
-//   - Concurrency limiter (max 4 parallel keyword fetches)
-//   - BKT states fetched once and cross-referenced for mastery
-//   - Cache automatically expires, no manual invalidation needed
 // ═══════════════════════════════════════════════════════════
 
 export async function getKeywords(
   _courseId: string,
   _studentId?: string
 ): Promise<any> {
-  // Can't list all keywords for a course without knowing summary_ids.
-  // Return empty; components should use getTopicKeywords instead.
   return { keywords: {} };
 }
 
@@ -674,7 +596,6 @@ export async function getTopicKeywords(
   topicId: string,
   _studentId?: string
 ): Promise<any> {
-  // ── Check cache ─────────────────────────────────────────
   const cacheKey = `topic-kw-${topicId}`;
   const cached = _keywordCache.get(cacheKey);
   if (isCacheValid(cached)) {
@@ -682,9 +603,6 @@ export async function getTopicKeywords(
   }
 
   try {
-    // ── Step 1: Get all summaries for this topic ──────────
-    // topic-progress returns summaries + reading_states + flashcard_counts
-    // in a single request (replaces the old N+1 pattern).
     const topicData = await apiCall<any>(`/topic-progress?topic_id=${topicId}`);
     const summaries: any[] = topicData?.summaries || [];
 
@@ -694,18 +612,12 @@ export async function getTopicKeywords(
       return empty;
     }
 
-    // ── Step 2: Fetch keywords for each summary ───────────
-    // Use concurrency limiter (max 4) to prevent backend overload.
-    // The CRUD factory /keywords?summary_id=xxx returns { items: [...] }.
     const summaryIds = summaries.map((s: any) => s.id);
     const keywordTasks = summaryIds.map((sid: string) => () =>
       apiCall<any>(`/keywords?summary_id=${sid}`)
     );
     const kwResults = await parallelWithLimit(keywordTasks, 4);
 
-    // ── Step 3: Also fetch BKT states for mastery colors ──
-    // BKT states are per-subtopic. We need subtopic→keyword mapping
-    // to enrich keywords with mastery data. This is best-effort.
     let bktMap: Map<string, number> | null = null;
     try {
       const bktRaw = await apiCall<any>('/bkt-states?limit=500');
@@ -713,18 +625,11 @@ export async function getTopicKeywords(
       if (bktItems.length > 0) {
         bktMap = new Map();
         for (const b of bktItems) {
-          if (b.subtopic_id) {
-            bktMap.set(b.subtopic_id, b.p_know || 0);
-          }
+          if (b.subtopic_id) bktMap.set(b.subtopic_id, b.p_know || 0);
         }
       }
-    } catch {
-      // BKT fetch failure is non-critical; keywords work without mastery
-    }
+    } catch {}
 
-    // ── Step 4: Aggregate keywords with deduplication ─────
-    // Same keyword name can appear in multiple summaries.
-    // We keep the richest definition and aggregate mastery.
     const keywords: Record<string, any> = {};
     const keywordSubtopicIds: Record<string, string[]> = {};
 
@@ -744,25 +649,18 @@ export async function getTopicKeywords(
             masteryLevel: 'red' as const,
             aiQuestions: [],
             category: undefined,
-            // Extra metadata for internal use
             _keywordId: kw.id,
             _priority: kw.priority || 1,
           };
           keywordSubtopicIds[name] = [];
         }
-        // Keep the longer definition
         if (kw.definition && kw.definition.length > (keywords[name].definition?.length || 0)) {
           keywords[name].definition = kw.definition;
         }
       }
     }
 
-    // ── Step 5: Enrich with BKT mastery if available ──────
-    // For each keyword, fetch subtopics and look up BKT p_know.
-    // Mastery color = AVG(subtopics BKT p_know):
-    //   🟢 >= 0.80 | 🟡 >= 0.50 | 🔴 < 0.50
     if (bktMap && bktMap.size > 0) {
-      // Fetch subtopics for keywords that have IDs
       const kwIds = Object.values(keywords)
         .filter((kw: any) => kw._keywordId)
         .map((kw: any) => kw._keywordId);
@@ -773,12 +671,9 @@ export async function getTopicKeywords(
         );
         const subtopicResults = await parallelWithLimit(subtopicTasks, 4);
 
-        // Build keyword → subtopic_ids mapping
         const kwIdToName: Record<string, string> = {};
         for (const [name, kw] of Object.entries(keywords)) {
-          if ((kw as any)._keywordId) {
-            kwIdToName[(kw as any)._keywordId] = name;
-          }
+          if ((kw as any)._keywordId) kwIdToName[(kw as any)._keywordId] = name;
         }
 
         for (let i = 0; i < kwIds.length; i++) {
@@ -788,15 +683,11 @@ export async function getTopicKeywords(
           const kwName = kwIdToName[kwIds[i]];
           if (!kwName) continue;
 
-          // Compute average p_know for this keyword's subtopics
           let pKnowSum = 0;
           let pKnowCount = 0;
           for (const st of subtopics) {
             const pk = bktMap.get(st.id);
-            if (pk !== undefined) {
-              pKnowSum += pk;
-              pKnowCount++;
-            }
+            if (pk !== undefined) { pKnowSum += pk; pKnowCount++; }
           }
 
           if (pKnowCount > 0) {
@@ -809,7 +700,6 @@ export async function getTopicKeywords(
       }
     }
 
-    // Clean up internal metadata before returning
     for (const kw of Object.values(keywords)) {
       delete (kw as any)._keywordId;
       delete (kw as any)._priority;
@@ -848,54 +738,98 @@ export async function saveCourseKeywords(
 // 9. SEED (removed)
 // ═══════════════════════════════════════════════════════════
 
-export async function seedDemoData(_studentId?: string): Promise<void> {
-  // No-op — /seed endpoint does not exist in real backend
-}
+export async function seedDemoData(_studentId?: string): Promise<void> {}
 
 // ═══════════════════════════════════════════════════════════
 // 10. AI FEATURES
+//
+// BUG-011: aiGenerateFlashcards was using /ai/flashcards (404).
+//   Backend route is POST /ai/generate with action: 'flashcard'.
+//   But backend expects summary_id (UUID), NOT topic (string).
+//   → These functions are now DEPRECATED. Use aiService.ts instead.
+//
+// BUG-012: aiGenerateQuiz was using /ai/quiz (404).
+//   Backend route is POST /ai/generate with action: 'quiz_question'.
+//
+// BUG-013: aiExplain was using /ai/explain (404).
+//   Backend route is POST /ai/rag-chat.
+//
+// All functions below are kept for backward compat but delegate
+// to aiService.ts which has the correct routes and field names.
 // ═══════════════════════════════════════════════════════════
 
 export async function aiChat(
   messages: Array<{ role: string; content: string }>,
   context?: any
 ): Promise<{ reply: string }> {
-  return apiCall<{ reply: string }>('/ai/chat', {
+  // BUG-013 FIX: /ai/chat → /ai/rag-chat
+  // BUG-015 FIX: Backend expects { message, history?, summary_id? }
+  //   NOT { messages, context }. Returns { response } NOT { reply }.
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+  const message = lastUserMsg?.content || '';
+  const history = messages.slice(0, -1);
+
+  const data = await apiCall<{ response: string }>('/ai/rag-chat', {
     method: 'POST',
-    body: JSON.stringify({ messages, context }),
+    body: JSON.stringify({
+      message,
+      history: history.length > 0 ? history : undefined,
+      summary_id: context?.summaryId || context?.summary_id || undefined,
+    }),
   });
+  return { reply: data.response };
 }
 
+/**
+ * @deprecated Use aiService.generateFlashcard({ summaryId }) instead.
+ * Backend requires summary_id (UUID), not topic (string).
+ * This legacy signature can't provide summary_id, so it returns empty.
+ */
 export async function aiGenerateFlashcards(
-  topic: string,
-  count = 5,
-  context?: any
+  _topic: string,
+  _count = 5,
+  _context?: any
 ): Promise<{ flashcards: any[] }> {
-  return apiCall<{ flashcards: any[] }>('/ai/flashcards', {
-    method: 'POST',
-    body: JSON.stringify({ topic, count, context }),
-  });
+  console.warn(
+    '[studentApi] aiGenerateFlashcards() is DEPRECATED and non-functional. ' +
+    'Backend POST /ai/generate requires summary_id (UUID). ' +
+    'Use aiService.generateFlashcard({ summaryId }) or aiService.generateSmart({ summaryId }) instead.'
+  );
+  return { flashcards: [] };
 }
 
+/**
+ * @deprecated Use aiService.generateQuizQuestion({ summaryId }) instead.
+ */
 export async function aiGenerateQuiz(
-  topic: string,
-  count = 3,
-  difficulty = 'intermediate'
+  _topic: string,
+  _count = 3,
+  _difficulty = 'intermediate'
 ): Promise<{ questions: any[] }> {
-  return apiCall<{ questions: any[] }>('/ai/quiz', {
-    method: 'POST',
-    body: JSON.stringify({ topic, count, difficulty }),
-  });
+  console.warn(
+    '[studentApi] aiGenerateQuiz() is DEPRECATED. ' +
+    'Use aiService.generateQuizQuestion({ summaryId }) instead.'
+  );
+  return { questions: [] };
 }
 
+/**
+ * @deprecated Use aiService.explainConcept() instead.
+ */
 export async function aiExplain(
   concept: string,
   context?: any
 ): Promise<{ explanation: string }> {
-  return apiCall<{ explanation: string }>('/ai/explain', {
+  // BUG-013 + BUG-015 FIX: /ai/explain → /ai/rag-chat
+  const message = context
+    ? `Explica el siguiente concepto en el contexto de "${context}": ${concept}`
+    : `Explica el siguiente concepto de forma clara y concisa: ${concept}`;
+
+  const data = await apiCall<{ response: string }>('/ai/rag-chat', {
     method: 'POST',
-    body: JSON.stringify({ concept, context }),
+    body: JSON.stringify({ message }),
   });
+  return { explanation: data.response };
 }
 
 // ═══════════════════════════════════════════════════════════
