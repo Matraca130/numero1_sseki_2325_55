@@ -22,7 +22,7 @@
 //   Previously used persistCardReview (3×N POSTs) + submitReview
 //   (1×N POSTs) = 4×N total. Now: queueReview (sync) during
 //   session + submitBatch (1 POST) at end.
-//   Also passes REAL existingFsrs from FsrsState (unlike
+//   Also passes REAL existingFsrs from FsrsStateRow (unlike
 //   FlashcardReviewer which passes undefined for new-card state).
 //
 // Backend: FLAT routes via studySessionApi + flashcardApi + apiCall.
@@ -33,7 +33,7 @@ import { apiCall } from '@/app/lib/api';
 import * as flashcardApi from '@/app/services/flashcardApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
-import type { FsrsState } from '@/app/services/studySessionApi';
+import type { FsrsStateRow } from '@/app/services/studySessionApi';
 import { FlashcardCard } from '@/app/components/student/FlashcardCard';
 import { useReviewBatch } from '@/app/hooks/useReviewBatch';
 import {
@@ -47,7 +47,7 @@ import { GRADES } from '@/app/hooks/flashcard-types';
 
 interface ReviewQueueItem {
   card: FlashcardItem;
-  fsrsState: FsrsState;
+  fsrsState: FsrsStateRow;
 }
 
 // ── Props ─────────────────────────────────────────────────
@@ -223,7 +223,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
 
     // 2. Queue review via useReviewBatch (sync, zero POSTs)
     //    ADVANTAGE over FlashcardReviewer: we have REAL FSRS state
-    //    from the FsrsState, so scheduling is accurate.
+    //    from the FsrsStateRow, so scheduling is accurate.
     const masteryEntry = masteryMap?.get(currentItem.card.id);
     queueReview({
       card: currentItem.card,

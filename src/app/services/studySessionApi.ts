@@ -14,7 +14,7 @@
 //
 // FIX BA-03,BA-05 (2026-03-01):
 //   - getStudySessions: handle CRUD factory paginated response
-//   - FsrsState: user_id → student_id (matches DB column)
+//   - FsrsStateRow: user_id → student_id (matches DB column)
 //
 // PERF v4.4.3 (2026-03-07):
 //   - Added BatchReviewItem, BatchReviewResponse types
@@ -41,7 +41,7 @@ export interface StudySessionRecord {
   updated_at?: string;
 }
 
-export interface FsrsState {
+export interface FsrsStateRow {
   id: string;
   student_id?: string;  // FIX BA-05: was 'user_id', real DB column is 'student_id'
   flashcard_id: string;
@@ -166,7 +166,7 @@ export async function getFsrsStates(params?: {
   due_before?: string;
   state?: string;
   limit?: number;
-}): Promise<FsrsState[]> {
+}): Promise<FsrsStateRow[]> {
   const qs = new URLSearchParams();
   if (params?.due_before) qs.set('due_before', params.due_before);
   if (params?.state) qs.set('state', params.state);
@@ -186,8 +186,8 @@ export async function upsertFsrsState(data: {
   reps: number;
   lapses: number;
   state: 'new' | 'learning' | 'review' | 'relearning';
-}): Promise<FsrsState> {
-  return apiCall<FsrsState>('/fsrs-states', {
+}): Promise<FsrsStateRow> {
+  return apiCall<FsrsStateRow>('/fsrs-states', {
     method: 'POST',
     body: JSON.stringify(data),
   });
