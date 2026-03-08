@@ -13,3 +13,11 @@ export interface SavedAnswer {
   answered: boolean;
   timeTakenMs: number;
 }
+
+/** Aggregated stats per keyword group (used by QuizResults + KeywordMasterySection) */
+export interface GroupStat {
+  keywordId: string;
+  label: string;
+  total: number;
+  correct: number;
+}

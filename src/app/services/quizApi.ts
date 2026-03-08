@@ -1,14 +1,13 @@
 // ============================================================
-// Axon — Quiz Questions API Service
+// Axon — Quiz API Service (unified)
 //
 // Endpoints (flat routes with query params):
-//   GET    /quiz-questions?summary_id=xxx&keyword_id=xxx(op)&question_type=xxx(op)&difficulty=xxx(op)
-//          → { data: { items: [...], total, limit, offset } }
-//   GET    /quiz-questions/:id → { data: { ... } }
-//   POST   /quiz-questions    → create
-//   PUT    /quiz-questions/:id → update
-//   DELETE /quiz-questions/:id → soft-delete
-//   PUT    /quiz-questions/:id/restore → restore
+//   /quiz-questions — CRUD via factory (summary_id parentKey)
+//   /quizzes        — CRUD via factory (summary_id parentKey)
+//   /study-sessions — CRUD via factory (scopeToUser: student_id)
+//   /quiz-attempts  — Custom POST/GET (routes/study/reviews.ts)
+//   /reviews        — Custom POST/GET (routes/study/reviews.ts)
+//   /bkt-states     — Custom POST/GET upsert (routes/study/spaced-rep.ts)
 //
 // Uses apiCall() from lib/api.ts (handles Authorization + X-Access-Token)
 // ============================================================
@@ -35,6 +34,9 @@ export interface QuizEntity {
   created_at: string;
   updated_at?: string;
 }
+
+/** Convenience alias used by QuizQuestionsEditor and other consumers */
+export type Quiz = QuizEntity;
 
 export interface QuizEntityListResponse {
   items: QuizEntity[];
@@ -73,6 +75,7 @@ export interface CreateQuizQuestionPayload {
   summary_id: string;
   keyword_id: string;
   subtopic_id?: string;  // optional — omit if no subtopic selected
+  quiz_id?: string;      // FIX BA-04: backend accepts quiz_id in createFields
   question_type: QuestionType;
   question: string;
   correct_answer: string;
@@ -91,6 +94,8 @@ export interface UpdateQuizQuestionPayload {
   difficulty?: number;
   source?: QuestionSource;
   is_active?: boolean;
+  subtopic_id?: string;  // FIX BA-05: backend accepts in updateFields
+  quiz_id?: string;      // FIX BA-05: backend accepts in updateFields
 }
 
 // ── API Functions ─────────────────────────────────────────
@@ -169,7 +174,83 @@ export async function restoreQuizQuestion(id: string): Promise<QuizQuestion> {
   });
 }
 
+// ── Quizzes (entity CRUD) ─────────────────────────────────
+// Backend: routes-student.tsx registerCrud({ table: "quizzes", slug: "quizzes", parentKey: "summary_id" })
+// requiredFields: ["title", "source"]
+// createFields: ["title", "description", "source"]
+// updateFields: ["title", "description", "is_active"]
+
+export interface CreateQuizPayload {
+  summary_id: string;
+  title: string;
+  description?: string | null;
+  source: 'manual' | 'ai';
+}
+
+export interface UpdateQuizPayload {
+  title?: string;
+  description?: string | null;
+  is_active?: boolean;
+}
+
+/**
+ * List quizzes for a summary.
+ * CRUD factory returns { items, total, limit, offset }.
+ */
+export async function getQuizzes(
+  summaryId: string,
+  filters?: { source?: string; is_active?: boolean; limit?: number; offset?: number }
+): Promise<QuizEntityListResponse> {
+  const params = new URLSearchParams();
+  params.set('summary_id', summaryId);
+  if (filters?.source) params.set('source', filters.source);
+  if (filters?.is_active != null) params.set('is_active', String(filters.is_active));
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  if (filters?.offset) params.set('offset', String(filters.offset));
+  return apiCall<QuizEntityListResponse>(`/quizzes?${params}`);
+}
+
+/**
+ * Create a new quiz entity.
+ */
+export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
+  return apiCall<QuizEntity>('/quizzes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Update a quiz entity.
+ */
+export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<QuizEntity> {
+  return apiCall<QuizEntity>(`/quizzes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Soft-delete a quiz entity.
+ */
+export async function deleteQuiz(id: string): Promise<void> {
+  await apiCall(`/quizzes/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * Restore a soft-deleted quiz entity.
+ */
+export async function restoreQuiz(id: string): Promise<QuizEntity> {
+  return apiCall<QuizEntity>(`/quizzes/${id}/restore`, {
+    method: 'PUT',
+  });
+}
+
 // ── Study Sessions ────────────────────────────────────────
+// Backend: routes-student.tsx registerCrud({ table: "study_sessions", slug: "study-sessions", scopeToUser: "student_id" })
+// requiredFields: ["session_type"]
+// createFields: ["session_type", "course_id"]
+// updateFields: ["completed_at", "total_reviews", "correct_reviews"]
 
 export interface StudySession {
   id: string;
@@ -214,8 +295,8 @@ export async function closeStudySession(id: string, data: {
 
 /**
  * Get study sessions (e.g. for history).
- * FIX BA-02: study-sessions is CRUD factory → returns { items, total, limit, offset }
- * after apiCall unwraps .data. Handle both formats defensively.
+ * FIX BA-02: CRUD factory returns { items, total, limit, offset },
+ * not a plain array. Handle both formats defensively.
  */
 export async function getStudySessions(filters?: {
   session_type?: string;
@@ -227,7 +308,7 @@ export async function getStudySessions(filters?: {
   if (filters?.course_id) params.set('course_id', filters.course_id);
   if (filters?.limit) params.set('limit', String(filters.limit));
   const qs = params.toString() ? `?${params}` : '';
-  const result = await apiCall<any>(`/study-sessions${qs}`);
+  const result = await apiCall<{ items: StudySession[]; total: number } | StudySession[]>(`/study-sessions${qs}`);
   // CRUD factory returns { items, total, limit, offset }, not a plain array
   return Array.isArray(result) ? result : result?.items || [];
 }
@@ -237,7 +318,7 @@ export async function getStudySessions(filters?: {
 export interface QuizAttempt {
   id: string;
   quiz_question_id: string;
-  user_id?: string;
+  student_id?: string;
   answer: string;
   is_correct: boolean;
   session_id?: string | null;
@@ -273,4 +354,191 @@ export async function getQuizAttempts(filters: {
   if (filters.session_id) params.set('session_id', filters.session_id);
   if (filters.quiz_question_id) params.set('quiz_question_id', filters.quiz_question_id);
   return apiCall<QuizAttempt[]>(`/quiz-attempts?${params}`);
+}
+
+// ── Reviews ───────────────────────────────────────────────
+// Backend: routes/study/reviews.ts (custom, NOT CRUD factory)
+// Required: session_id (UUID), item_id (UUID), instrument_type (string), grade (0-5)
+// Optional: response_time_ms (non-negative int)
+
+export interface ReviewPayload {
+  session_id: string;
+  item_id: string;
+  instrument_type: string;
+  grade: number;
+  response_time_ms?: number;
+}
+
+export interface Review {
+  id: string;
+  session_id: string;
+  item_id: string;
+  instrument_type: string;
+  grade: number;
+  response_time_ms?: number | null;
+  created_at: string;
+}
+
+/**
+ * Create a review record for a study session item.
+ * Backend verifies session ownership (O-3 FIX).
+ */
+export async function createReview(data: ReviewPayload): Promise<Review> {
+  return apiCall<Review>('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ── BKT States ────────────────────────────────────────────
+// Backend: routes/study/spaced-rep.ts (custom upsert on student_id + subtopic_id)
+// M-1 FIX: total_attempts/correct_attempts are INCREMENTED server-side.
+
+export interface BktStatePayload {
+  subtopic_id: string;
+  p_know: number;
+  p_transit: number;
+  p_slip: number;
+  p_guess: number;
+  delta: number;
+  total_attempts: number;
+  correct_attempts: number;
+  last_attempt_at: string;
+}
+
+export interface BktState {
+  id: string;
+  student_id: string;
+  subtopic_id: string;
+  p_know: number;
+  p_transit: number;
+  p_slip: number;
+  p_guess: number;
+  delta: number;
+  total_attempts: number;
+  correct_attempts: number;
+  last_attempt_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Upsert a BKT state for a subtopic.
+ * Backend increments total_attempts/correct_attempts (M-1 FIX).
+ * student_id is auto-set from auth token.
+ */
+export async function upsertBktState(data: BktStatePayload): Promise<BktState> {
+  return apiCall<BktState>('/bkt-states', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Fetch BKT states for the authenticated student.
+ *
+ * Supports two filter modes (mutually exclusive per backend M-5 FIX):
+ * - subtopic_id: single subtopic filter
+ * - subtopic_ids: batch filter (comma-separated, max 200)
+ *
+ * The batch mode (subtopic_ids) is preferred for quiz results:
+ * instead of fetching ALL student BKT states and filtering client-side,
+ * send only the subtopic IDs relevant to the current quiz/summary.
+ *
+ * @example
+ * // Single subtopic
+ * const states = await getBktStates({ subtopic_id: '...' });
+ *
+ * @example
+ * // Batch for quiz results (all subtopics from a summary)
+ * const states = await getBktStates({
+ *   subtopic_ids: ['uuid1', 'uuid2', 'uuid3'],
+ *   limit: 200,
+ * });
+ */
+export async function getBktStates(filters?: {
+  subtopic_id?: string;
+  subtopic_ids?: string[];
+  limit?: number;
+  offset?: number;
+}): Promise<BktState[]> {
+  const params = new URLSearchParams();
+  if (filters?.subtopic_id) params.set('subtopic_id', filters.subtopic_id);
+  if (filters?.subtopic_ids && filters.subtopic_ids.length > 0) {
+    params.set('subtopic_ids', filters.subtopic_ids.join(','));
+  }
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  if (filters?.offset) params.set('offset', String(filters.offset));
+  const qs = params.toString() ? `?${params}` : '';
+  return apiCall<BktState[]>(`/bkt-states${qs}`);
+}
+
+// ── Smart (Adaptive) Quiz Generation ──────────────────────
+// Backend: routes/ai/generate-smart.ts (Fase 8A + 8E)
+// Uses RPC get_smart_generate_target() → picks weakest subtopics by BKT
+// Then generates AI quiz questions scoped to those subtopics
+
+export interface SmartGenerateParams {
+  action: 'quiz_question' | 'flashcard';
+  institution_id?: string;
+  summary_id?: string;
+  count?: number;    // 1-10, default 1
+  quiz_id?: string;  // auto-link generated questions to quiz entity
+  auto_create_quiz?: boolean;  // Fase 8G: server-side quiz creation
+  quiz_title?: string;         // Fase 8G: title for auto-created quiz
+}
+
+export interface SmartGenerateItem {
+  type: string;
+  id: string;
+  keyword_id: string;
+  keyword_name: string;
+  summary_id: string;
+  _smart: {
+    p_know: number;
+    need_score: number;
+    primary_reason: string;
+    target_subtopic: string | null;
+  };
+}
+
+export interface SmartGenerateError {
+  keyword_id: string;
+  keyword_name: string;
+  error: string;
+}
+
+export interface SmartGenerateResponse {
+  items: SmartGenerateItem[];
+  errors: SmartGenerateError[];
+  _meta: {
+    model: string;
+    action: string;
+    summary_id?: string;
+    quiz_id?: string;
+    total_attempted: number;
+    total_generated: number;
+    total_failed: number;
+    total_targets_available: number;
+  };
+}
+
+/**
+ * Generate adaptive quiz questions using AI.
+ * Backend auto-selects weakest subtopics via BKT analysis.
+ *
+ * Flow:
+ *   1. Create a quiz entity via createQuiz()
+ *   2. Call generateSmartQuiz() with the quiz_id + count
+ *   3. Backend generates questions and auto-links them to the quiz
+ *   4. Navigate to QuizTaker with the quiz_id
+ *
+ * Timeout is 120s (bulk AI generation can be slow).
+ */
+export async function generateSmartQuiz(params: SmartGenerateParams): Promise<SmartGenerateResponse> {
+  return apiCall<SmartGenerateResponse>('/ai/generate-smart', {
+    method: 'POST',
+    body: JSON.stringify(params),
+    timeoutMs: 120_000, // 2 min for bulk AI generation
+  });
 }

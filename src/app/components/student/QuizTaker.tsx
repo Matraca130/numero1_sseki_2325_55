@@ -20,7 +20,7 @@
 // ============================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { INT_TO_DIFFICULTY } from '@/app/services/quizConstants';
+import { normalizeDifficulty } from '@/app/services/quizConstants';
 import { QuizResults } from '@/app/components/student/QuizResults';
 import type { QuizQuestion } from '@/app/services/quizApi';
 import { motion, AnimatePresence } from 'motion/react';
@@ -71,13 +71,17 @@ interface QuizTakerProps {
 // ── Main Component ───────────────────────────────────────
 
 export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, onBack, onComplete }: QuizTakerProps) {
+  // ── Adaptive quiz: allow in-place quiz swap ─────────────
+  const [activeQuizId, setActiveQuizId] = useState(quizId);
+  const [activeTitle, setActiveTitle] = useState(quizTitle);
+
   // ── Session lifecycle (hook) ─────────────────────────────
   const {
     phase, questions, sessionStartTime, errorMsg, backendWarning,
     submitting, closingSession, savedAnswers, keywordMap,
     correctCount, wrongCount, answeredCount,
     submitAnswer, finishQuiz, restartSession, reviewSession,
-  } = useQuizSession(quizId, summaryId, preloadedQuestions);
+  } = useQuizSession(activeQuizId, summaryId, preloadedQuestions);
 
   // ── Local UI state (navigation + live input) ────────────
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -158,6 +162,19 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     restartSession();
   }, [restartSession]);
 
+  // ── Adaptive quiz ready (swap to new quiz in-place) ────
+
+  const handleAdaptiveQuizReady = useCallback((newQuizId: string, newTitle: string) => {
+    setCurrentIdx(0);
+    setNavDirection('forward');
+    setLiveSelectedOption(null);
+    setLiveTextInput('');
+    setLiveTFAnswer(null);
+    setActiveQuizId(newQuizId);
+    setActiveTitle(newTitle);
+    // useQuizSession's useEffect will auto-reset savedAnswers + load new questions
+  }, []);
+
   // ── Review (go back to session from results to navigate answers) ──
 
   const handleReview = useCallback(() => {
@@ -220,11 +237,12 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           questions={questions}
           savedAnswers={savedAnswers}
           sessionStartTime={sessionStartTime}
-          quizTitle={quizTitle}
+          quizTitle={activeTitle}
           keywordMap={keywordMap}
           onRestart={handleRestart}
           onBack={onBack}
           onReview={handleReview}
+          onAdaptiveQuizReady={handleAdaptiveQuizReady}
         />
       </QuizErrorBoundary>
     );
@@ -244,7 +262,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const tfAnswer = isReviewing ? saved.answer : liveTFAnswer;
   const isCorrectResult = isReviewing ? saved.correct : false;
 
-  const diffKey = INT_TO_DIFFICULTY[currentQ.difficulty] || 'medium';
+  const diffKey = normalizeDifficulty(currentQ.difficulty);
 
   const slideVariants = SLIDE_VARIANTS[navDirection];
 
@@ -278,7 +296,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
         {/* ── Top Bar ── */}
         <QuizTopBar
-          quizTitle={quizTitle}
+          quizTitle={activeTitle}
           diffKey={diffKey}
           questionStartTime={questionStartTime}
           isReviewing={isReviewing}
@@ -345,5 +363,3 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     </QuizErrorBoundary>
   );
 }
-
-export default QuizTaker;
