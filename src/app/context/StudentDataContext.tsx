@@ -1,5 +1,5 @@
 // ============================================================
-// Axon — Student Data Context v2 (Coordinator commit)
+// Axon — Student Data Context v2.1
 // ============================================================
 // MIGRATION: studentApi → platformApi for stats/daily/bkt
 // - Profile: constructed from AuthContext (no API call)
@@ -10,7 +10,8 @@
 // - Legacy mutators: noop with console.warn
 //
 // BACKWARDS COMPATIBLE: All 9 existing consumers keep working.
-// NEW: bktStates, rawStats, recordSessionComplete
+// NEW v2: bktStates, rawStats, recordSessionComplete
+// NEW v2.1: rawDaily (raw DailyActivityRecord[] for dashboard dedup)
 // ============================================================
 
 import React, {
@@ -134,6 +135,8 @@ export interface StudentDataState {
   // ── NEW (v2) ──
   bktStates: BktStateRecord[];
   rawStats: StudentStatsRecord | null;
+  // ── NEW (v2.1) ──
+  rawDaily: DailyActivityRecord[];
 }
 
 interface StudentDataContextType extends StudentDataState {
@@ -176,6 +179,7 @@ const StudentDataContext = createContext<StudentDataContextType>({
   reviews: [],
   bktStates: [],
   rawStats: null,
+  rawDaily: [],
   loading: true,
   error: null,
   isConnected: false,
@@ -206,6 +210,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
     reviews: [],
     bktStates: [],
     rawStats: null,
+    rawDaily: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -268,6 +273,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         reviews: [], // legacy — reviews submitted via platformApi.submitReview
         bktStates,
         rawStats,
+        rawDaily,
       });
 
       setLoading(false);
@@ -358,6 +364,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         reviews: [],
         bktStates: [],
         rawStats: null,
+        rawDaily: [],
       });
       hasAttemptedLoad.current = false;
       lastLoadedUserId.current = userId;
