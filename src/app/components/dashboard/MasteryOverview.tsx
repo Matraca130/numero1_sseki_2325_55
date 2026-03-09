@@ -5,6 +5,7 @@
 //
 // PERF: Uses StudentDataContext for BKT states (no duplicate call)
 //       Uses /subtopics-batch for batched subtopic loading
+// FIX:  Handles { items: [] } response shape from crud-factory LIST
 // ============================================================
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -77,6 +78,22 @@ interface SubtopicMastery {
   pKnow: number | null;
 }
 
+// ── Response shape helper ─────────────────────────────────
+// crud-factory LIST returns { items: [...], total, limit, offset }
+// apiCall unwraps .data → { items: [...] }
+// Some wrappers (e.g. getTopicSummaries) may extract .items already.
+// This helper handles both shapes safely.
+
+function extractItems<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object') {
+    const obj = result as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
+  }
+  return [];
+}
+
 // ── Mastery color helpers ──────────────────────────────────
 
 function getMasteryColor(pKnow: number | null) {
@@ -125,9 +142,8 @@ function matchesFilter(pKnow: number | null, filter: MasteryFilter): boolean {
 
 // ── Batch helpers ────────────────────────────────────────
 
-const SUBTOPICS_BATCH_SIZE = 50; // backend max per request
+const SUBTOPICS_BATCH_SIZE = 50;
 
-/** Chunk array into groups of `size` */
 function chunk<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) {
@@ -136,7 +152,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-/** Fetch subtopics for multiple keyword IDs using /subtopics-batch */
 async function fetchSubtopicsBatch(keywordIds: string[]): Promise<SubtopicRaw[]> {
   if (keywordIds.length === 0) return [];
 
@@ -145,7 +160,9 @@ async function fetchSubtopicsBatch(keywordIds: string[]): Promise<SubtopicRaw[]>
     batches.map(async (batch) => {
       try {
         const ids = batch.join(',');
-        return await apiCall<SubtopicRaw[]>(`/subtopics-batch?keyword_ids=${ids}`);
+        // /subtopics-batch is a custom endpoint that returns a flat array (NOT { items }).
+        const result = await apiCall<SubtopicRaw[]>(`/subtopics-batch?keyword_ids=${ids}`);
+        return extractItems<SubtopicRaw>(result);
       } catch {
         return [];
       }
@@ -186,7 +203,6 @@ export function MasteryOverview() {
   const loadData = useCallback(async () => {
     const instId = selectedInstitution?.id;
     if (!instId) return;
-    // Wait for StudentDataContext to finish loading BKT states
     if (ctxLoading) return;
 
     setLoading(true);
@@ -196,7 +212,7 @@ export function MasteryOverview() {
       // 1. Content tree (1 API call)
       const tree = await getContentTree(instId);
 
-      // PERF: Use BKT states from StudentDataContext (0 API calls — already loaded)
+      // PERF: Use BKT states from StudentDataContext (0 API calls)
       const bktMap = new Map<string, number>();
       for (const s of bktStatesFromCtx) {
         bktMap.set(s.subtopic_id, s.p_know);
@@ -219,16 +235,19 @@ export function MasteryOverview() {
       }
 
       // 3. Get summaries for all topics in parallel (N API calls)
+      // FIX: extractItems handles both array and { items: [] } shapes
       const summaryResults = await Promise.all(
         topicRefs.map(async (t) => {
           try {
-            const sums = await getTopicSummaries(t.id);
+            const raw = await getTopicSummaries(t.id);
+            const sums = extractItems<any>(raw);
             return sums.map((s: any) => ({
               id: s.id,
               title: s.title,
               topic_id: t.id,
             }));
-          } catch {
+          } catch (err) {
+            console.error(`[MasteryOverview] Failed to get summaries for topic ${t.id}:`, err);
             return [];
           }
         })
@@ -244,12 +263,19 @@ export function MasteryOverview() {
       }
 
       // 4. Get keywords for all summaries in parallel (M API calls)
+      // FIX: extractItems handles both array and { items: [] } shapes
       const keywordResults = await Promise.all(
         allSummaries.map(async (sum) => {
+          if (!sum.id) {
+            console.error('[MasteryOverview] Summary has no id, skipping keywords fetch');
+            return [];
+          }
           try {
-            const kws = await apiCall<KeywordRaw[]>(`/keywords?summary_id=${sum.id}`);
-            return (kws || []).map((kw) => ({ ...kw, summary_id: sum.id }));
-          } catch {
+            const raw = await apiCall<unknown>(`/keywords?summary_id=${sum.id}`);
+            const kws = extractItems<KeywordRaw>(raw);
+            return kws.map((kw) => ({ ...kw, summary_id: sum.id }));
+          } catch (err) {
+            console.error(`[MasteryOverview] Failed to get keywords for summary ${sum.id}:`, err);
             return [];
           }
         })
@@ -258,8 +284,6 @@ export function MasteryOverview() {
       const allKeywords: KeywordRaw[] = keywordResults.flat();
 
       // 5. PERF: Batch-fetch ALL subtopics at once using /subtopics-batch
-      //    Before: K individual GET /subtopics?keyword_id= calls
-      //    After:  ceil(K/50) batch calls via GET /subtopics-batch?keyword_ids=
       const allKeywordIds = allKeywords.map((kw) => kw.id);
       const allSubtopics = await fetchSubtopicsBatch(allKeywordIds);
 
@@ -335,12 +359,10 @@ export function MasteryOverview() {
   const filtered = useMemo(() => {
     let items = keywords;
 
-    // Apply mastery filter
     if (filter !== 'all') {
       items = items.filter((k) => matchesFilter(k.pKnow, filter));
     }
 
-    // Apply search
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       items = items.filter(
@@ -354,7 +376,6 @@ export function MasteryOverview() {
     return items;
   }, [keywords, filter, debouncedSearch]);
 
-  // Group by course > topic, sorted by worst keyword avg
   const grouped = useMemo(() => {
     const groups = new Map<string, { courseName: string; topicName: string; items: KeywordMastery[] }>();
 
@@ -370,12 +391,10 @@ export function MasteryOverview() {
       groups.get(key)!.items.push(item);
     }
 
-    // Sort items within each group by p_know ASC (weakest first, nulls first)
     for (const group of groups.values()) {
       group.items.sort((a, b) => (a.pKnow ?? -1) - (b.pKnow ?? -1));
     }
 
-    // Sort groups by worst avg p_know
     const groupArr = Array.from(groups.entries()).map(([key, group]) => {
       const withData = group.items.filter((i) => i.pKnow !== null);
       const avgPKnow =
@@ -418,8 +437,6 @@ export function MasteryOverview() {
     });
   }, []);
 
-  // ── Clear filters ──────────────────────────────────────
-
   const hasActiveFilters = filter !== 'all' || debouncedSearch.length > 0;
 
   const clearFilters = useCallback(() => {
@@ -427,7 +444,6 @@ export function MasteryOverview() {
     setSearchQuery('');
   }, []);
 
-  // Close dropdown on outside click
   const dropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -493,7 +509,6 @@ export function MasteryOverview() {
         <h3 className="text-sm font-semibold text-zinc-100">Dominio de Conceptos</h3>
 
         <div className="flex items-center gap-2">
-          {/* Filter dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
@@ -529,7 +544,6 @@ export function MasteryOverview() {
             )}
           </div>
 
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
             <input
@@ -579,7 +593,6 @@ export function MasteryOverview() {
           <span className="text-zinc-500">· {kpiCounts.total} total</span>
         </div>
 
-        {/* Distribution bar */}
         {kpiCounts.total > 0 && (
           <div className="flex h-2 rounded-full overflow-hidden bg-zinc-700 gap-px">
             {kpiCounts.critical > 0 && (
@@ -604,7 +617,6 @@ export function MasteryOverview() {
         )}
       </div>
 
-      {/* Active filter badge */}
       {hasActiveFilters && (
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-zinc-400">
@@ -622,7 +634,6 @@ export function MasteryOverview() {
         </div>
       )}
 
-      {/* ── All mastered celebration ── */}
       {allMastered && !hasActiveFilters && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 mb-4">
           <Sparkles className="w-6 h-6 text-emerald-400 shrink-0" />
@@ -632,7 +643,6 @@ export function MasteryOverview() {
         </div>
       )}
 
-      {/* ── Sorted hint ── */}
       {!hasActiveFilters && !allMastered && (
         <p className="text-[11px] text-zinc-600 mb-3">Ordenado por: necesidad de repaso</p>
       )}
@@ -646,12 +656,10 @@ export function MasteryOverview() {
         ) : (
           grouped.map((group) => (
             <div key={group.key}>
-              {/* Group header */}
               <p className="text-[11px] font-medium text-zinc-500 mb-2 uppercase tracking-wider">
                 {group.courseName} › {group.topicName}
               </p>
 
-              {/* Keywords in group */}
               <div className="space-y-1">
                 {group.items.map((item) => (
                   <KeywordRow
@@ -690,14 +698,12 @@ function KeywordRow({
 
   return (
     <div className="rounded-lg overflow-hidden">
-      {/* Main row */}
       <div
         onClick={item.subtopicCount > 0 ? onToggle : undefined}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
           item.subtopicCount > 0 ? 'cursor-pointer hover:bg-zinc-800/60' : ''
         } ${expanded ? 'bg-zinc-800/40' : ''}`}
       >
-        {/* Expand icon */}
         <div className="w-4 shrink-0">
           {item.subtopicCount > 0 ? (
             expanded ? (
@@ -708,18 +714,14 @@ function KeywordRow({
           ) : null}
         </div>
 
-        {/* Color dot */}
         <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getMasteryDot(item.pKnow)}`} />
 
-        {/* Name */}
         <span className="text-sm text-zinc-200 flex-1 truncate">{item.keyword.name}</span>
 
-        {/* Percentage */}
         <span className={`text-xs font-medium w-10 text-right shrink-0 ${mc.text}`}>
           {pct !== null ? `${pct}%` : '—'}
         </span>
 
-        {/* Progress bar */}
         <div className="w-20 sm:w-28 h-2 rounded-full bg-zinc-700 shrink-0 overflow-hidden">
           {pct !== null && (
             <div
@@ -729,14 +731,12 @@ function KeywordRow({
           )}
         </div>
 
-        {/* Subtopic count */}
         {item.subtopicCount > 0 && (
           <span className="text-[11px] text-zinc-500 w-16 sm:w-20 text-right shrink-0 hidden sm:block">
             {item.subtopicCount} subtopic{item.subtopicCount !== 1 ? 's' : ''}
           </span>
         )}
 
-        {/* Repeat button */}
         {showRepeat && (
           <button
             onClick={(e) => {
@@ -752,7 +752,6 @@ function KeywordRow({
         )}
       </div>
 
-      {/* Expanded subtopics */}
       <AnimatePresence>
         {expanded && subtopics && (
           <motion.div
