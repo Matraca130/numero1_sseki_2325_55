@@ -23,6 +23,7 @@ import React, {
   useRef,
 } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
+import { getAxonToday } from '@/app/utils/constants';
 
 // ── Platform API (real backend) ──
 import {
@@ -61,7 +62,7 @@ function adaptStats(
 
   // Build weeklyActivity from daily activities (Mon=0 ... Sun=6)
   const weekActivity = [0, 0, 0, 0, 0, 0, 0];
-  const now = new Date();
+  const now = getAxonToday();
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const startOfWeek = new Date(now);
@@ -224,7 +225,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
       email: user.email || '',
       avatarUrl: meta.avatar_url || undefined,
       enrolledCourseIds: [],
-      createdAt: (user as any).created_at || new Date().toISOString(),
+      createdAt: (user as any).created_at || getAxonToday().toISOString(),
       preferences: DEFAULT_PREFERENCES,
     };
   }, [user]);
@@ -234,10 +235,10 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
-        .toISOString()
-        .slice(0, 10);
+      const today = getAxonToday().toISOString().slice(0, 10);
+      const thirtyDaysAgoDate = getAxonToday();
+      thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
+      const thirtyDaysAgo = thirtyDaysAgoDate.toISOString().slice(0, 10);
 
       const [rawStatsResult, rawDailyResult, bktResult] =
         await Promise.allSettled([

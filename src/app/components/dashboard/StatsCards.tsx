@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { Flame, BookOpen, Target, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { components } from '@/app/design-system';
+import { getAxonToday } from '@/app/utils/constants';
 import {
   getStudentStatsReal,
   getDailyActivities,
@@ -25,7 +26,7 @@ function formatTime(seconds: number): string {
 }
 
 function todayISO(): string {
-  const d = new Date();
+  const d = getAxonToday();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
@@ -33,7 +34,7 @@ function todayISO(): string {
 }
 
 function yesterdayISO(): string {
-  const d = new Date();
+  const d = getAxonToday();
   d.setDate(d.getDate() - 1);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -42,7 +43,7 @@ function yesterdayISO(): string {
 }
 
 function weekAgoISO(): string {
-  const d = new Date();
+  const d = getAxonToday();
   d.setDate(d.getDate() - 6);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');

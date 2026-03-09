@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { getAxonToday } from '@/app/utils/constants';
 import {
   getFsrsStates,
   getFlashcards,
@@ -106,7 +107,7 @@ function groupFsrsByTopic(
   fsrsStates: FsrsStateRecord[],
   flashcardToTopic: Map<string, string>,
 ): Map<string, TopicFsrsAggregate> {
-  const now = new Date().toISOString();
+  const now = getAxonToday().toISOString();
   const map = new Map<string, TopicFsrsAggregate>();
 
   for (const s of fsrsStates) {
