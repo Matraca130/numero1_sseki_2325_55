@@ -3,12 +3,15 @@
 //
 // NO imports from /utils/supabase/info.
 // All values are hardcoded per backend spec.
+//
+// FE-BUG-004 fix: Updated apiBaseUrl from stale Figma Make sandbox
+// URL (make-server-6569f786) to production endpoint (server).
 // ============================================================
 
 export const supabaseUrl = 'https://xdnciktarvxyhkrokbng.supabase.co';
 
 export const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkbmNpa3RhcnZ4eWhrcm9rYm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMTM4NjAsImV4cCI6MjA4Njc4OTg2MH0._nCGOiOh1bMWvqtQ62d368LlYj5xPI6e7pcsdjDEiYQ';
 
-export const apiBaseUrl = 'https://xdnciktarvxyhkrokbng.supabase.co/functions/v1/make-server-6569f786';
+export const apiBaseUrl = 'https://xdnciktarvxyhkrokbng.supabase.co/functions/v1/server';
 
-export const environment = 'FIGMA_MAKE';
+export const environment = 'production';
