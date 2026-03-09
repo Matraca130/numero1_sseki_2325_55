@@ -5,9 +5,9 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
 import { assert } from "https://deno.land/std@0.224.0/assert/assert.ts";
 import {
-  isStr, isNonEmpty, isNum, isBool, isObj,
+  isNonEmpty, isNum, isBool, isObj,
   isUuid, isEmail, isIsoTs, isDateOnly,
-  inRange, isNonNeg, isNonNegInt, isProbability,
+  inRange, isNonNegInt, isProbability,
   isOneOf, validateFields,
 } from "../../supabase/functions/server/validate.ts";
 import type { FieldRule } from "../../supabase/functions/server/validate.ts";

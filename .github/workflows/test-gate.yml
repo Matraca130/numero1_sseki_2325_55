@@ -7,9 +7,13 @@ on:
     paths:
       - 'supabase/functions/server/**'
       - 'tests/**'
+      - '.github/workflows/test-gate.yml'
   pull_request:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
+  checks: write
 jobs:
   unit-tests:
     name: Unit Tests (no network)
@@ -19,7 +23,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: v2.1.x
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            ~/.deno
+          key: deno-${{ runner.os }}-${{ hashFiles('**/deno.lock', '**/deno.json') }}
+          restore-keys: deno-${{ runner.os }}-
       - name: Run all unit tests
         run: deno test tests/unit/ --no-check
   integration-tests:
@@ -39,7 +51,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: v2.1.x
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            ~/.deno
+          key: deno-${{ runner.os }}-${{ hashFiles('**/deno.lock', '**/deno.json') }}
+          restore-keys: deno-${{ runner.os }}-
       - name: Check secrets
         run: |
           if [ -z "$TEST_SUPABASE_URL" ]; then

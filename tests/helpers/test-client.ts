@@ -2,6 +2,9 @@
  * tests/helpers/test-client.ts — Shared test utilities
  * Used by ALL integration tests. Provides login(), api helpers, ENV config.
  */
+// ═══ CONFIG ═══
+const REQUEST_TIMEOUT_MS = 15_000;
+
 // ═══ ENV CONFIG ═══
 export const ENV = {
   SUPABASE_URL: Deno.env.get("TEST_SUPABASE_URL") ?? "",
@@ -12,6 +15,11 @@ export const ENV = {
   ADMIN_PASSWORD: Deno.env.get("TEST_ADMIN_PASSWORD") ?? "",
   INSTITUTION_ID: Deno.env.get("TEST_INSTITUTION_ID") ?? "",
 };
+
+export function assertEnvReady(): void {
+  const missing = Object.entries(ENV).filter(([_, v]) => !v).map(([k]) => k);
+  if (missing.length) throw new Error(`Missing env vars: ${missing.join(", ")}`);
+}
 export function apiBase(): string {
   return `${ENV.SUPABASE_URL}/functions/v1/server`;
 }
@@ -29,6 +37,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
       "apikey": ENV.ANON_KEY,
     },
     body: JSON.stringify({ email, password }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Login failed for ${email}: ${res.status}`);
   return res.json();
@@ -59,6 +68,7 @@ async function request<T = unknown>(
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   let raw: any;
   try { raw = await res.json(); } catch { raw = null; }

@@ -140,7 +140,6 @@ Deno.test("daily-activities upsert with valid YYYY-MM-DD date", async () => {
     time_spent_seconds: 1800, sessions_count: 1,
   });
   if (!r.ok) { console.warn("[SKIP] daily-activities:", r.error); return; }
-  assert(r.ok, "daily-activities upsert should succeed");
 });
 Deno.test("daily-activities rejects invalid date format", async () => {
   await setup();
