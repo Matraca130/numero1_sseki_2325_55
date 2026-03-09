@@ -5,6 +5,7 @@
 // ============================================================
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
+import { getAxonToday } from '@/app/utils/constants';
 import {
   getDailyActivities,
   type DailyActivityRecord,
@@ -158,9 +159,9 @@ export function ActivityHeatMap() {
   const [loading, setLoading] = useState(true);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
-  // Date range: 26 weeks back
+  // Date range: 26 weeks back from AXON_TODAY
   const { from, to } = useMemo(() => {
-    const today = new Date();
+    const today = getAxonToday();
     const start = new Date(today);
     start.setDate(start.getDate() - 26 * 7);
     return { from: start, to: today };
@@ -173,7 +174,6 @@ export function ActivityHeatMap() {
       try {
         const fromStr = toISO(from);
         const toStr = toISO(to);
-        console.log(`[HeatMap] GET /daily-activities?from=${fromStr}&to=${toStr}`);
         const result = await getDailyActivities(fromStr, toStr, 200);
         if (!cancelled) setData(result);
       } catch (err) {

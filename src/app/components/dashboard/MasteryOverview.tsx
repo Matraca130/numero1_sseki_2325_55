@@ -2,6 +2,9 @@
 // Axon — MasteryOverview (EV-7 Prompt C)
 // Shows all student keywords sorted by mastery (weakest first).
 // Data: content-tree + summaries + keywords + bkt-states
+//
+// PERF: Uses StudentDataContext for BKT states (no duplicate call)
+//       Uses /subtopics-batch for batched subtopic loading
 // ============================================================
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,10 +21,10 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
+import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { apiCall } from '@/app/lib/api';
 import {
   getTopicSummaries,
-  getAllBktStates,
   type BktStateRecord,
 } from '@/app/services/platformApi';
 import {
@@ -74,7 +77,7 @@ interface SubtopicMastery {
   pKnow: number | null;
 }
 
-// ── Mastery color helpers ────────────────────────────────
+// ── Mastery color helpers ──────────────────────────────────
 
 function getMasteryColor(pKnow: number | null) {
   if (pKnow === null) return { bg: 'bg-zinc-700/40', text: 'text-zinc-500', bar: 'bg-zinc-600', label: 'Sin datos' };
@@ -120,10 +123,43 @@ function matchesFilter(pKnow: number | null, filter: MasteryFilter): boolean {
   }
 }
 
+// ── Batch helpers ────────────────────────────────────────
+
+const SUBTOPICS_BATCH_SIZE = 50; // backend max per request
+
+/** Chunk array into groups of `size` */
+function chunk<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/** Fetch subtopics for multiple keyword IDs using /subtopics-batch */
+async function fetchSubtopicsBatch(keywordIds: string[]): Promise<SubtopicRaw[]> {
+  if (keywordIds.length === 0) return [];
+
+  const batches = chunk(keywordIds, SUBTOPICS_BATCH_SIZE);
+  const results = await Promise.all(
+    batches.map(async (batch) => {
+      try {
+        const ids = batch.join(',');
+        return await apiCall<SubtopicRaw[]>(`/subtopics-batch?keyword_ids=${ids}`);
+      } catch {
+        return [];
+      }
+    })
+  );
+
+  return results.flat();
+}
+
 // ── Main Component ───────────────────────────────────────
 
 export function MasteryOverview() {
   const { selectedInstitution } = useAuth();
+  const { bktStates: bktStatesFromCtx, loading: ctxLoading } = useStudentDataContext();
   const [keywords, setKeywords] = useState<KeywordMastery[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,20 +186,19 @@ export function MasteryOverview() {
   const loadData = useCallback(async () => {
     const instId = selectedInstitution?.id;
     if (!instId) return;
+    // Wait for StudentDataContext to finish loading BKT states
+    if (ctxLoading) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Content tree + BKT states in parallel
-      const [tree, bktStates] = await Promise.all([
-        getContentTree(instId),
-        getAllBktStates(undefined, 500),
-      ]);
+      // 1. Content tree (1 API call)
+      const tree = await getContentTree(instId);
 
-      // Build BKT lookup: subtopic_id → p_know
+      // PERF: Use BKT states from StudentDataContext (0 API calls — already loaded)
       const bktMap = new Map<string, number>();
-      for (const s of bktStates) {
+      for (const s of bktStatesFromCtx) {
         bktMap.set(s.subtopic_id, s.p_know);
       }
 
@@ -183,7 +218,7 @@ export function MasteryOverview() {
         }
       }
 
-      // 3. Get summaries for all topics in parallel
+      // 3. Get summaries for all topics in parallel (N API calls)
       const summaryResults = await Promise.all(
         topicRefs.map(async (t) => {
           try {
@@ -208,7 +243,7 @@ export function MasteryOverview() {
         }
       }
 
-      // 4. Get keywords for all summaries in parallel (batched)
+      // 4. Get keywords for all summaries in parallel (M API calls)
       const keywordResults = await Promise.all(
         allSummaries.map(async (sum) => {
           try {
@@ -222,23 +257,18 @@ export function MasteryOverview() {
 
       const allKeywords: KeywordRaw[] = keywordResults.flat();
 
-      // 5. Get subtopic counts per keyword (we need to know how many subtopics each has)
-      // Fetch all subtopics for all keywords in parallel
-      const subtopicResults = await Promise.all(
-        allKeywords.map(async (kw) => {
-          try {
-            const subs = await apiCall<SubtopicRaw[]>(`/subtopics?keyword_id=${kw.id}`);
-            return { keywordId: kw.id, subtopics: subs || [] };
-          } catch {
-            return { keywordId: kw.id, subtopics: [] };
-          }
-        })
-      );
+      // 5. PERF: Batch-fetch ALL subtopics at once using /subtopics-batch
+      //    Before: K individual GET /subtopics?keyword_id= calls
+      //    After:  ceil(K/50) batch calls via GET /subtopics-batch?keyword_ids=
+      const allKeywordIds = allKeywords.map((kw) => kw.id);
+      const allSubtopics = await fetchSubtopicsBatch(allKeywordIds);
 
-      // Build subtopic count and BKT aggregation per keyword
+      // Group subtopics by keyword_id (client-side)
       const subtopicsByKeyword = new Map<string, SubtopicRaw[]>();
-      for (const r of subtopicResults) {
-        subtopicsByKeyword.set(r.keywordId, r.subtopics);
+      for (const sub of allSubtopics) {
+        const list = subtopicsByKeyword.get(sub.keyword_id) || [];
+        list.push(sub);
+        subtopicsByKeyword.set(sub.keyword_id, list);
       }
 
       // 6. Build KeywordMastery items
@@ -271,13 +301,13 @@ export function MasteryOverview() {
         };
       });
 
-      // Pre-cache subtopics for all keywords (we already fetched them)
+      // Pre-cache subtopics for expand/collapse (already fetched)
       const cache = new Map<string, SubtopicMastery[]>();
-      for (const r of subtopicResults) {
-        const item = masteryItems.find((m) => m.keyword.id === r.keywordId);
+      for (const kw of allKeywords) {
+        const subs = subtopicsByKeyword.get(kw.id) || [];
         cache.set(
-          r.keywordId,
-          r.subtopics
+          kw.id,
+          subs
             .map((sub) => ({
               subtopic: sub,
               pKnow: bktMap.get(sub.id) ?? null,
@@ -294,7 +324,7 @@ export function MasteryOverview() {
     } finally {
       setLoading(false);
     }
-  }, [selectedInstitution?.id]);
+  }, [selectedInstitution?.id, bktStatesFromCtx, ctxLoading]);
 
   useEffect(() => {
     loadData();
@@ -411,7 +441,7 @@ export function MasteryOverview() {
 
   // ── Render ─────────────────────────────────────────────
 
-  if (loading) {
+  if (loading || ctxLoading) {
     return (
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 min-h-[288px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
