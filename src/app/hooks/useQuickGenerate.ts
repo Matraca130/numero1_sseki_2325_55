@@ -5,12 +5,20 @@
 // POST /ai/generate-smart with BKT targeting. Designed for
 // the professor toolbar "Generar 1 con IA" button.
 //
+// Differences from useSmartGeneration (batch):
+//   - Always count=1 (no progress bar needed)
+//   - Returns the generated card directly
+//   - Simpler phase model (no "generating 3 of 10" state)
+//   - Double-fire guard via useRef
+//
 // Dependencies:
-//   - aiService.generateSmart()
+//   - aiService.generateSmart() — handles double-token + rate limit
 // ============================================================
 
 import { useState, useCallback, useRef } from 'react';
 import { generateSmart, type SmartTargetMeta } from '@/app/services/aiService';
+
+// ── Types ─────────────────────────────────────────────────
 
 export type QuickGeneratePhase = 'idle' | 'generating' | 'done' | 'error';
 
@@ -28,6 +36,8 @@ interface QuickGenerateParams {
   summaryId: string;
   institutionId?: string;
 }
+
+// ── Hook ──────────────────────────────────────────────────
 
 export function useQuickGenerate() {
   const [phase, setPhase] = useState<QuickGeneratePhase>('idle');
@@ -49,6 +59,10 @@ export function useQuickGenerate() {
         summaryId: params.summaryId,
         institutionId: params.institutionId,
         related: true,
+        // count:1 is intentionally passed here. aiService.generateSmart strips
+        // count<=1 from the body (line 327), so the backend receives NO count
+        // param → returns a single item object (not SmartBulkResponse).
+        // This is correct and matches the validation below (response.id/front/back).
         count: 1,
       });
 
