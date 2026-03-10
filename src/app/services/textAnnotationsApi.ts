@@ -18,7 +18,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────
 
 export interface TextAnnotation {
   id: string;
@@ -59,7 +59,7 @@ export interface UpdateAnnotationInput {
   annotation_type?: 'highlight' | 'note' | 'question';
 }
 
-// ── Helpers ───────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 
 function unwrapItems(result: unknown): TextAnnotation[] {
   if (Array.isArray(result)) return result;
@@ -73,7 +73,7 @@ function unwrapItems(result: unknown): TextAnnotation[] {
   return [];
 }
 
-// ── API Functions ─────────────────────────────────────
+// ── API Functions ─────────────────────────────────────────
 
 /**
  * Get all annotations for a summary.

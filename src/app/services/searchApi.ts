@@ -10,7 +10,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────
 
 export type SearchType = 'all' | 'summaries' | 'keywords' | 'videos';
 
@@ -26,7 +26,7 @@ export interface SearchResponse {
   results: SearchResult[];
 }
 
-// ── API call ──────────────────────────────────────────
+// ── API call ──────────────────────────────────────────────
 
 /**
  * Search across content (summaries, keywords, videos).

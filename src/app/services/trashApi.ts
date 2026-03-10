@@ -12,7 +12,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────
 
 export type TrashType = 'all' | 'summaries' | 'keywords' | 'flashcards' | 'quiz-questions' | 'videos';
 
@@ -32,7 +32,7 @@ export interface RestoreResponse {
   item: Record<string, unknown>;
 }
 
-// ── API calls ─────────────────────────────────────────
+// ── API calls ─────────────────────────────────────────────
 
 /**
  * List soft-deleted items (institution-scoped).

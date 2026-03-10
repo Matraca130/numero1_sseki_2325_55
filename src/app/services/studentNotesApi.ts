@@ -15,7 +15,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────
 
 export interface StudentNote {
   id: string;
@@ -38,7 +38,7 @@ export interface UpdateStudentNoteInput {
   note_type?: 'note' | 'question' | 'mnemonic';
 }
 
-// ── Helpers ───────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 
 function unwrapItems(result: unknown): StudentNote[] {
   if (Array.isArray(result)) return result;
@@ -52,7 +52,7 @@ function unwrapItems(result: unknown): StudentNote[] {
   return [];
 }
 
-// ── API Functions ─────────────────────────────────────
+// ── API Functions ─────────────────────────────────────────
 
 /**
  * Get all student notes for a keyword.

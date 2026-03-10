@@ -12,7 +12,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────
 
 export interface FlashcardMapping {
   id: string;
@@ -27,7 +27,7 @@ export interface FlashcardMappingResponse {
   offset: number;
 }
 
-// ── API call ──────────────────────────────────────────
+// ── API call ──────────────────────────────────────────────
 
 /**
  * Get lightweight flashcard mappings (id, subtopic_id, keyword_id only).
