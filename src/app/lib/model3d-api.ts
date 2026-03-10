@@ -53,7 +53,7 @@ export {
 };
 export type { Model3D, Model3DPin, Model3DNote, ModelLayer, ModelPart };
 
-// ── Error message extraction ──────────────────────────────
+// ── Error message extraction ──────────────────────────
 // Centralizes safe message extraction from `catch (err: unknown)`.
 // Avoids `err: any` across upload/validation code.
 
@@ -61,7 +61,7 @@ function extractErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-// ── Auth Headers (XHR) ────────────────────────────────────
+// ── Auth Headers (XHR) ────────────────────────────────
 // XHR is required for upload progress tracking (xhr.upload.progress).
 // fetch() / apiCall() don't support upload progress events.
 // This helper centralizes header construction for XHR requests.
@@ -75,14 +75,14 @@ function buildAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-// ── Constants ─────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────
 
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const WARN_FILE_SIZE_BYTES = 50 * 1024 * 1024;  // 50 MB warning threshold
 const ALLOWED_EXTENSIONS = ['.glb', '.gltf'];
 const GLB_MAGIC_BYTES = [0x67, 0x6C, 0x54, 0x46]; // "glTF" -- first 4 bytes of .glb
 
-// ── Validation ────────────────────────────────────────────
+// ── Validation ────────────────────────────────────────
 
 export interface ValidationResult {
   valid: boolean;
@@ -137,7 +137,7 @@ export async function validateModelFile(file: File): Promise<ValidationResult> {
   return { valid: true, warning };
 }
 
-// ── Upload ────────────────────────────────────────────────
+// ── Upload ────────────────────────────────────────────
 
 export interface UploadProgress {
   phase: 'validating' | 'uploading' | 'saving' | 'done' | 'error';
@@ -266,7 +266,7 @@ export async function uploadAndCreateModel(
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────
 
 /** Format bytes to human-readable string */
 export function formatFileSize(bytes: number): string {
@@ -288,4 +288,43 @@ function sanitizeFilename(name: string): string {
     .replace(/^-|-$/g, '')
     .substring(0, 60);
   return `${sanitized || 'model'}${ext.toLowerCase()}`;
+}
+
+// ── Thumbnail Upload ──────────────────────────────────
+
+/**
+ * Upload a thumbnail image (PNG) for a 3D model.
+ * Reuses the /upload-model-3d storage endpoint.
+ *
+ * This is called automatically by ModelViewer3D after the first
+ * stable render (3DP-2: auto-thumbnail generation).
+ *
+ * @param file    PNG Blob/File of the thumbnail
+ * @param modelId Model ID (used for filename)
+ * @returns       The public URL of the uploaded thumbnail
+ */
+export async function uploadThumbnail(
+  file: File,
+  modelId: string,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file, `thumb-${modelId}.png`);
+
+  const headers = buildAuthHeaders();
+  // NOTE: Do NOT set Content-Type — browser sets it with multipart boundary
+
+  const res = await fetch(`${API_BASE}/upload-model-3d`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error || 'Thumbnail upload failed');
+
+  // Handle both envelope shapes: { data: { file_url } } or { file_url }
+  const fileUrl = json?.data?.file_url || json?.file_url;
+  if (!fileUrl) throw new Error('No file_url in thumbnail response');
+
+  return fileUrl;
 }
