@@ -12,7 +12,7 @@ import { ChevronLeft, Check, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { focusRing } from '@/app/components/design-kit';
 
-// ── Props ────────────────────────────────────────────────
+// ── Props ──────────────────────────────────────────────
 
 export interface QuizBottomBarProps {
   currentIdx: number;
