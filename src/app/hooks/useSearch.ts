@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { search as searchApi } from '@/app/services/searchApi';
 import type { SearchResult, SearchType } from '@/app/services/searchApi';
 
-// ── Types ─────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────
 
 export interface UseSearchReturn {
   query: string;
@@ -22,7 +22,7 @@ export interface UseSearchReturn {
   clear: () => void;
 }
 
-// ── Hook ──────────────────────────────────────────────
+// ── Hook ──────────────────────────────────────────────────
 
 export function useSearch(debounceMs: number = 300): UseSearchReturn {
   const [query, setQuery] = useState('');
