@@ -12,14 +12,16 @@
 // Props:
 //   modelId    — ID of the model_3d record
 //   modelName  — display name
+//   fileUrl    — optional URL to a .glb/.gltf file for direct single-file loading
 //   mode       — "view" (student) or "edit" (professor)
 // ============================================================
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import clsx from 'clsx';
-import { Loader2, List, Layers, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, List, Layers, AlertTriangle, RefreshCw, Keyboard } from 'lucide-react';
 import { PinSystem } from '@/app/components/viewer3d/PinSystem';
 import type { PinMode } from '@/app/components/viewer3d/PinSystem';
 import { PinEditor } from '@/app/components/viewer3d/PinEditor';
@@ -29,6 +31,7 @@ import { ModelPartLoader, getStoredParts, getStoredLayers, fetchPartsFromAPI, fe
 import type { ModelLayerConfig } from '@/app/components/viewer3d/ModelPartMesh';
 import { disposeMaterialTextures } from '@/app/components/viewer3d/three-utils';
 import { logger } from '@/app/lib/logger';
+import { uploadThumbnail, updateModel3D } from '@/app/lib/model3d-api';
 
 // ── Model Data by topic (procedural fallback) ──
 const MODEL_CONFIGS: Record<string, {
@@ -284,10 +287,12 @@ function buildHeartModel(scene: THREE.Scene) {
 interface ModelViewer3DProps {
   modelId: string;
   modelName: string;
+  /** Optional URL to a .glb/.gltf file for direct single-file loading */
+  fileUrl?: string;
   mode?: PinMode; // "view" (student default) | "edit" (professor)
 }
 
-export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer3DProps) {
+export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: ModelViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -314,6 +319,53 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
   const [layerUpdateKey, setLayerUpdateKey] = useState(0);
   const [storedLayers, setStoredLayersState] = useState<ModelLayerConfig[]>([]);
   const [hasMultiPart, setHasMultiPart] = useState(false);
+  /** True while a single-file GLB is being downloaded */
+  const [glbLoading, setGlbLoading] = useState(false);
+
+  // ── F3 audit: keyboard shortcut visibility toggles ──
+  // These allow P and N shortcuts to hide/show pins and notes without
+  // adding new UI buttons (MISMA UI rule). Default: visible.
+  const [showPins, setShowPins] = useState(true);
+  const [showNotes, setShowNotes] = useState(true);
+  const [showShortcutHint, setShowShortcutHint] = useState(false);
+
+  // ── 3DP-2: Auto-thumbnail capture ──
+  // After first stable render, captures the canvas as PNG and uploads it.
+  // Only in 'edit' mode (professor) and only once per mount.
+  const thumbnailCapturedRef = useRef(false);
+
+  const captureThumbnail = useCallback(() => {
+    // Guard: only capture once, only in professor mode
+    if (mode !== 'edit' || thumbnailCapturedRef.current) return;
+    thumbnailCapturedRef.current = true;
+
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !scene || !camera) return;
+
+    // Force one clean render before capture
+    renderer.render(scene, camera);
+    const dataUrl = renderer.domElement.toDataURL('image/png');
+
+    // Convert data URL to File for upload
+    fetch(dataUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], `thumb-${modelId}.png`, { type: 'image/png' });
+        return uploadThumbnail(file, modelId);
+      })
+      .then(thumbnailUrl => {
+        return updateModel3D(modelId, { thumbnail_url: thumbnailUrl });
+      })
+      .then(() => {
+        logger.info('ModelViewer3D', `Thumbnail auto-captured for model ${modelId}`);
+      })
+      .catch(err => {
+        // Non-critical: if thumbnail fails, the model still works
+        logger.warn('ModelViewer3D', 'Auto-thumbnail capture failed (non-critical):', err);
+      });
+  }, [modelId, mode]);
 
   // ── WebGL context loss recovery (G1) ──
   // When GPU runs out of VRAM or browser reclaims context, the canvas goes black.
@@ -405,8 +457,71 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
       loader.init(storedParts);
       loader.loadAllVisible();
       partLoaderRef.current = loader;
+      // 3DP-2: Capture thumbnail after multi-part model loads
+      setTimeout(captureThumbnail, 1500);
+    } else if (fileUrl) {
+      // ── Single-file mode: load real GLB/GLTF directly ──
+      // This path is used when a professor uploads a model file
+      // but hasn't configured multi-part layers yet.
+      setHasMultiPart(false);
+      setGlbLoading(true);
+
+      const gltfLoader = new GLTFLoader();
+      gltfLoader.load(
+        fileUrl,
+        (gltf) => {
+          const modelGroup = gltf.scene;
+          scene.add(modelGroup);
+
+          // Collect meshes for raycasting (pins, notes)
+          const meshes: THREE.Object3D[] = [];
+          modelGroup.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) meshes.push(obj);
+          });
+          modelMeshesRef.current = meshes;
+
+          // Auto-fit camera to model bounding box
+          const box = new THREE.Box3().setFromObject(modelGroup);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const distance = maxDim * 2;
+
+          camera.position.set(
+            center.x + distance * 0.5,
+            center.y + distance * 0.3,
+            center.z + distance * 0.5,
+          );
+          controls.target.copy(center);
+          controls.minDistance = maxDim * 0.5;
+          controls.maxDistance = maxDim * 5;
+          controls.update();
+
+          // Adjust grid to model scale
+          gridHelper.position.y = box.min.y - 0.1;
+
+          setGlbLoading(false);
+          logger.info('ModelViewer3D', `GLB loaded: ${fileUrl}`);
+          // 3DP-2: Capture thumbnail after GLB finishes loading
+          setTimeout(captureThumbnail, 500);
+        },
+        undefined, // onProgress — XHR progress not useful for Three.js managed loading
+        (err) => {
+          logger.error('ModelViewer3D', 'GLB load error:', err);
+          setGlbLoading(false);
+          // Fallback to procedural model so the viewer isn't empty
+          const fallbackGroup = new THREE.Group();
+          config.buildModel(fallbackGroup);
+          scene.add(fallbackGroup);
+          const meshes: THREE.Object3D[] = [];
+          fallbackGroup.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) meshes.push(obj);
+          });
+          modelMeshesRef.current = meshes;
+        },
+      );
     } else {
-      // ── V1 mode: procedural model (backwards compatible) ──
+      // ── V1 mode: procedural model (no file_url, no parts) ──
       setHasMultiPart(false);
       const modelGroup = new THREE.Group();
       config.buildModel(modelGroup);
@@ -513,7 +628,7 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
         }
       });
     };
-  }, [modelId, config, sceneKey]);
+  }, [modelId, fileUrl, config, sceneKey]);
 
   // ── Async API fetch: update parts/layers from backend ──
   // Runs after initial sync localStorage init. If API returns data,
@@ -554,13 +669,108 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
     return () => { cancelled = true; };
   }, [modelId, sceneReady, sceneKey]);
 
+  // ── F3 audit: Keyboard shortcuts ──
+  // R = reset camera, F = focus/fit model, L = layers, P = pins, N = notes
+  // Shortcuts are disabled while user types in inputs (PinEditor, Notes, etc.)
+  // or when modifier keys are held (Ctrl+R = browser reload, not our reset).
+  const resetCamera = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+    camera.position.set(...config.cameraPos);
+    controls.target.set(0, 0.5, 0);
+    controls.update();
+  }, [config]);
+
+  const focusModel = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+    const meshes = modelMeshesRef.current;
+    if (meshes.length === 0) return;
+
+    // Compute bounding box of all model meshes
+    const box = new THREE.Box3();
+    meshes.forEach(mesh => box.expandByObject(mesh));
+    if (box.isEmpty()) return;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    // Distance = enough to frame the entire model in the viewport
+    const distance = maxDim * 2;
+
+    camera.position.set(
+      center.x + distance * 0.5,
+      center.y + distance * 0.3,
+      center.z + distance * 0.5,
+    );
+    controls.target.copy(center);
+    controls.update();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Guard: skip when user is typing in form fields
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Guard: skip when modifier keys held (avoid hijacking Ctrl+R, Cmd+F, etc.)
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Guard: skip during context loss (no scene to interact with)
+      if (contextLost) return;
+
+      switch (e.key.toLowerCase()) {
+        case 'r':
+          e.preventDefault();
+          resetCamera();
+          break;
+        case 'f':
+          e.preventDefault();
+          focusModel();
+          break;
+        case 'l':
+          if (hasMultiPart) {
+            e.preventDefault();
+            setShowLayerPanel(prev => !prev);
+          }
+          break;
+        case 'p':
+          e.preventDefault();
+          if (mode === 'edit') {
+            // Toggle PinEditor panel + refresh pins on open
+            setShowPinEditor(prev => {
+              if (!prev) handlePinsChanged();
+              return !prev;
+            });
+          } else {
+            // View mode: toggle pin marker visibility
+            setShowPins(prev => !prev);
+          }
+          break;
+        case 'n':
+          if (mode === 'view') {
+            e.preventDefault();
+            setShowNotes(prev => !prev);
+          }
+          break;
+        case '?':
+          // Toggle shortcut hint overlay
+          setShowShortcutHint(prev => !prev);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, hasMultiPart, contextLost, resetCamera, focusModel, handlePinsChanged]);
+
   return (
     <div className="relative w-full h-full">
       {/* Three.js canvas container */}
       <div ref={containerRef} className="absolute inset-0" />
 
       {/* ── Pin System (handles markers + overlays) ── */}
-      {sceneReady && (
+      {sceneReady && showPins && (
         <PinSystem
           modelId={modelId}
           mode={mode}
@@ -574,7 +784,7 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
       )}
 
       {/* ── Student Notes (spatial + text) ── */}
-      {sceneReady && mode === 'view' && (
+      {sceneReady && mode === 'view' && showNotes && (
         <StudentNotes3D
           modelId={modelId}
           scene={sceneRef.current}
@@ -640,10 +850,56 @@ export function ModelViewer3D({ modelId, modelName, mode = 'view' }: ModelViewer
         />
       )}
 
-      {/* Model name watermark */}
-      <div className="absolute bottom-3 left-3 z-10">
+      {/* Model name watermark + shortcut hint */}
+      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-3">
         <p className="text-[9px] text-gray-600 font-medium uppercase tracking-widest">{modelName}</p>
+        <button
+          onClick={() => setShowShortcutHint(prev => !prev)}
+          className="flex items-center gap-1 text-[9px] text-gray-600 hover:text-gray-400 transition-colors"
+          title="Atajos de teclado (?)"
+        >
+          <Keyboard size={10} />
+          <span>?</span>
+        </button>
       </div>
+
+      {/* ── F3: Keyboard shortcut hint overlay ── */}
+      {showShortcutHint && (
+        <div className="absolute bottom-12 left-3 z-30 p-3 rounded-lg bg-black/80 backdrop-blur-sm border border-white/10 text-[10px] space-y-1.5">
+          <p className="text-gray-300 font-semibold mb-2">Atajos de teclado</p>
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-gray-400">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">R</kbd>
+            <span>Reset camara</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">F</kbd>
+            <span>Enfocar modelo</span>
+            {hasMultiPart && (<>
+              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">L</kbd>
+              <span>Capas</span>
+            </>)}
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">P</kbd>
+            <span>{mode === 'edit' ? 'Panel Pins' : 'Mostrar/Ocultar Pins'}</span>
+            {mode === 'view' && (<>
+              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">N</kbd>
+              <span>Mostrar/Ocultar Notas</span>
+            </>)}
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">Esc</kbd>
+            <span>Volver</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── GLB loading overlay ── */}
+      {glbLoading && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
+          <div className="text-center space-y-2 p-5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10">
+            <Loader2 size={24} className="animate-spin text-teal-400 mx-auto" />
+            <p className="text-[10px] text-gray-300">Cargando modelo 3D...</p>
+            {fileUrl && (
+              <p className="text-[8px] text-gray-600 max-w-[200px] truncate">{fileUrl.split('/').pop()}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── WebGL context loss overlay ── */}
       {contextLost && (
