@@ -3,13 +3,10 @@
 //
 // Displays question statistics badges (total, active, by type,
 // by difficulty). Pure presentational component.
-// Extracted from ProfessorQuizzesPage in Phase 4 refactor.
 // ============================================================
 
 import React from 'react';
 import clsx from 'clsx';
-
-// ── Types ─────────────────────────────────────────────────
 
 export interface QuizStats {
   total: number;
@@ -21,8 +18,6 @@ export interface QuizStats {
 interface QuizStatsBarProps {
   stats: QuizStats;
 }
-
-// ── Component ─────────────────────────────────────────────
 
 export const QuizStatsBar = React.memo(function QuizStatsBar({ stats }: QuizStatsBarProps) {
   return (
@@ -43,8 +38,6 @@ export const QuizStatsBar = React.memo(function QuizStatsBar({ stats }: QuizStat
     </div>
   );
 });
-
-// ── Stat Badge ────────────────────────────────────────────
 
 function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
   return (
