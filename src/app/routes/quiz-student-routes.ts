@@ -5,11 +5,12 @@
 // student-routes.ts importa este archivo automaticamente.
 // ============================================================
 import type { RouteObject } from 'react-router';
+import { withBoundary } from '@/app/lib/withBoundary';
 
 export const quizStudentRoutes: RouteObject[] = [
   {
     path: 'quiz',
-    lazy: () => import('@/app/components/content/QuizView').then(m => ({ Component: m.QuizView })),
+    lazy: () => import('@/app/components/content/QuizView').then(m => ({ Component: withBoundary(m.QuizView, 'Error al cargar quiz') })),
   },
   // Agent 1: agrega nuevas rutas de quiz aqui
 ];
