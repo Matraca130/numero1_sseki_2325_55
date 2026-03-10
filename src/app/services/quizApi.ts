@@ -4,10 +4,13 @@
 // Endpoints (flat routes with query params):
 //   /quiz-questions — CRUD via factory (summary_id parentKey)
 //   /quizzes        — CRUD via factory (summary_id parentKey)
-//   /study-sessions — CRUD via factory (scopeToUser: student_id)
 //   /quiz-attempts  — Custom POST/GET (routes/study/reviews.ts)
 //   /reviews        — Custom POST/GET (routes/study/reviews.ts)
-//   /bkt-states     — Custom POST/GET upsert (routes/study/spaced-rep.ts)
+//
+// Study Sessions & BKT States extracted to separate files (P2-S01):
+//   /study-sessions → studySessionApi.ts
+//   /bkt-states     → bktApi.ts
+// Re-exported here for backwards compatibility.
 //
 // Uses apiCall() from lib/api.ts (handles Authorization + X-Access-Token)
 // ============================================================
@@ -15,6 +18,14 @@
 import { apiCall } from '@/app/lib/api';
 import { DIFFICULTY_TO_INT } from '@/app/services/quizConstants';
 import type { QuestionType, Difficulty } from '@/app/services/quizConstants';
+
+// ── Re-exports for backwards compatibility (P2-S01) ──────
+// StudySessionRecord is the canonical type in studySessionApi.ts;
+// we alias it as StudySession for quiz-domain consumers.
+export type { StudySessionRecord as StudySession } from '@/app/services/studySessionApi';
+export { createStudySession, closeStudySession, getStudySessions } from '@/app/services/studySessionApi';
+export type { BktStatePayload, BktState } from '@/app/services/bktApi';
+export { upsertBktState, getBktStates } from '@/app/services/bktApi';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -111,6 +122,7 @@ export async function getQuizQuestions(
     keyword_id?: string;
     question_type?: QuestionType;
     difficulty?: Difficulty | number;
+    quiz_id?: string;
     limit?: number;
     offset?: number;
   }
@@ -126,6 +138,7 @@ export async function getQuizQuestions(
       : DIFFICULTY_TO_INT[filters.difficulty as Difficulty];
     if (diffInt) params.set('difficulty', String(diffInt));
   }
+  if (filters?.quiz_id) params.set('quiz_id', filters.quiz_id);
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.offset) params.set('offset', String(filters.offset));
   return apiCall<QuizQuestionListResponse>(`/quiz-questions?${params}`);
@@ -174,11 +187,7 @@ export async function restoreQuizQuestion(id: string): Promise<QuizQuestion> {
   });
 }
 
-// ── Quizzes (entity CRUD) ─────────────────────────────────
-// Backend: routes-student.tsx registerCrud({ table: "quizzes", slug: "quizzes", parentKey: "summary_id" })
-// requiredFields: ["title", "source"]
-// createFields: ["title", "description", "source"]
-// updateFields: ["title", "description", "is_active"]
+// ── Quizzes (entity CRUD) ───────────────────────────────
 
 export interface CreateQuizPayload {
   summary_id: string;
@@ -210,9 +219,6 @@ export async function getQuizzes(
   return apiCall<QuizEntityListResponse>(`/quizzes?${params}`);
 }
 
-/**
- * Create a new quiz entity.
- */
 export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
   return apiCall<QuizEntity>('/quizzes', {
     method: 'POST',
@@ -220,9 +226,6 @@ export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
   });
 }
 
-/**
- * Update a quiz entity.
- */
 export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<QuizEntity> {
   return apiCall<QuizEntity>(`/quizzes/${id}`, {
     method: 'PUT',
@@ -230,87 +233,14 @@ export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<Q
   });
 }
 
-/**
- * Soft-delete a quiz entity.
- */
 export async function deleteQuiz(id: string): Promise<void> {
   await apiCall(`/quizzes/${id}`, { method: 'DELETE' });
 }
 
-/**
- * Restore a soft-deleted quiz entity.
- */
 export async function restoreQuiz(id: string): Promise<QuizEntity> {
   return apiCall<QuizEntity>(`/quizzes/${id}/restore`, {
     method: 'PUT',
   });
-}
-
-// ── Study Sessions ────────────────────────────────────────
-// Backend: routes-student.tsx registerCrud({ table: "study_sessions", slug: "study-sessions", scopeToUser: "student_id" })
-// requiredFields: ["session_type"]
-// createFields: ["session_type", "course_id"]
-// updateFields: ["completed_at", "total_reviews", "correct_reviews"]
-
-export interface StudySession {
-  id: string;
-  student_id?: string;
-  session_type: string;
-  course_id?: string;
-  started_at: string;
-  completed_at?: string | null;
-  total_reviews?: number | null;
-  correct_reviews?: number | null;
-  created_at: string;
-  updated_at?: string;
-}
-
-/**
- * Create a new study session (e.g. session_type: "quiz").
- */
-export async function createStudySession(data: {
-  session_type: string;
-  course_id?: string;
-}): Promise<StudySession> {
-  return apiCall<StudySession>('/study-sessions', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-/**
- * Close a study session with final stats.
- * FIX RT-001: uses completed_at (not ended_at), no duration_seconds.
- */
-export async function closeStudySession(id: string, data: {
-  completed_at: string;
-  total_reviews: number;
-  correct_reviews: number;
-}): Promise<StudySession> {
-  return apiCall<StudySession>(`/study-sessions/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-/**
- * Get study sessions (e.g. for history).
- * FIX BA-02: CRUD factory returns { items, total, limit, offset },
- * not a plain array. Handle both formats defensively.
- */
-export async function getStudySessions(filters?: {
-  session_type?: string;
-  course_id?: string;
-  limit?: number;
-}): Promise<StudySession[]> {
-  const params = new URLSearchParams();
-  if (filters?.session_type) params.set('session_type', filters.session_type);
-  if (filters?.course_id) params.set('course_id', filters.course_id);
-  if (filters?.limit) params.set('limit', String(filters.limit));
-  const qs = params.toString() ? `?${params}` : '';
-  const result = await apiCall<{ items: StudySession[]; total: number } | StudySession[]>(`/study-sessions${qs}`);
-  // CRUD factory returns { items, total, limit, offset }, not a plain array
-  return Array.isArray(result) ? result : result?.items || [];
 }
 
 // ── Quiz Attempts ─────────────────────────────────────────
@@ -326,10 +256,6 @@ export interface QuizAttempt {
   created_at: string;
 }
 
-/**
- * Record a quiz attempt.
- * is_correct is computed FRONTEND-side by comparing answer vs correct_answer.
- */
 export async function createQuizAttempt(data: {
   quiz_question_id: string;
   answer: string;
@@ -343,9 +269,6 @@ export async function createQuizAttempt(data: {
   });
 }
 
-/**
- * Get quiz attempts (array plano).
- */
 export async function getQuizAttempts(filters: {
   session_id?: string;
   quiz_question_id?: string;
@@ -357,9 +280,6 @@ export async function getQuizAttempts(filters: {
 }
 
 // ── Reviews ───────────────────────────────────────────────
-// Backend: routes/study/reviews.ts (custom, NOT CRUD factory)
-// Required: session_id (UUID), item_id (UUID), instrument_type (string), grade (0-5)
-// Optional: response_time_ms (non-negative int)
 
 export interface ReviewPayload {
   session_id: string;
@@ -379,10 +299,6 @@ export interface Review {
   created_at: string;
 }
 
-/**
- * Create a review record for a study session item.
- * Backend verifies session ownership (O-3 FIX).
- */
 export async function createReview(data: ReviewPayload): Promise<Review> {
   return apiCall<Review>('/reviews', {
     method: 'POST',
@@ -390,102 +306,16 @@ export async function createReview(data: ReviewPayload): Promise<Review> {
   });
 }
 
-// ── BKT States ────────────────────────────────────────────
-// Backend: routes/study/spaced-rep.ts (custom upsert on student_id + subtopic_id)
-// M-1 FIX: total_attempts/correct_attempts are INCREMENTED server-side.
-
-export interface BktStatePayload {
-  subtopic_id: string;
-  p_know: number;
-  p_transit: number;
-  p_slip: number;
-  p_guess: number;
-  delta: number;
-  total_attempts: number;
-  correct_attempts: number;
-  last_attempt_at: string;
-}
-
-export interface BktState {
-  id: string;
-  student_id: string;
-  subtopic_id: string;
-  p_know: number;
-  p_transit: number;
-  p_slip: number;
-  p_guess: number;
-  delta: number;
-  total_attempts: number;
-  correct_attempts: number;
-  last_attempt_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Upsert a BKT state for a subtopic.
- * Backend increments total_attempts/correct_attempts (M-1 FIX).
- * student_id is auto-set from auth token.
- */
-export async function upsertBktState(data: BktStatePayload): Promise<BktState> {
-  return apiCall<BktState>('/bkt-states', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-/**
- * Fetch BKT states for the authenticated student.
- *
- * Supports two filter modes (mutually exclusive per backend M-5 FIX):
- * - subtopic_id: single subtopic filter
- * - subtopic_ids: batch filter (comma-separated, max 200)
- *
- * The batch mode (subtopic_ids) is preferred for quiz results:
- * instead of fetching ALL student BKT states and filtering client-side,
- * send only the subtopic IDs relevant to the current quiz/summary.
- *
- * @example
- * // Single subtopic
- * const states = await getBktStates({ subtopic_id: '...' });
- *
- * @example
- * // Batch for quiz results (all subtopics from a summary)
- * const states = await getBktStates({
- *   subtopic_ids: ['uuid1', 'uuid2', 'uuid3'],
- *   limit: 200,
- * });
- */
-export async function getBktStates(filters?: {
-  subtopic_id?: string;
-  subtopic_ids?: string[];
-  limit?: number;
-  offset?: number;
-}): Promise<BktState[]> {
-  const params = new URLSearchParams();
-  if (filters?.subtopic_id) params.set('subtopic_id', filters.subtopic_id);
-  if (filters?.subtopic_ids && filters.subtopic_ids.length > 0) {
-    params.set('subtopic_ids', filters.subtopic_ids.join(','));
-  }
-  if (filters?.limit) params.set('limit', String(filters.limit));
-  if (filters?.offset) params.set('offset', String(filters.offset));
-  const qs = params.toString() ? `?${params}` : '';
-  return apiCall<BktState[]>(`/bkt-states${qs}`);
-}
-
 // ── Smart (Adaptive) Quiz Generation ──────────────────────
-// Backend: routes/ai/generate-smart.ts (Fase 8A + 8E)
-// Uses RPC get_smart_generate_target() → picks weakest subtopics by BKT
-// Then generates AI quiz questions scoped to those subtopics
 
 export interface SmartGenerateParams {
   action: 'quiz_question' | 'flashcard';
   institution_id?: string;
   summary_id?: string;
-  count?: number;    // 1-10, default 1
-  quiz_id?: string;  // auto-link generated questions to quiz entity
-  auto_create_quiz?: boolean;  // Fase 8G: server-side quiz creation
-  quiz_title?: string;         // Fase 8G: title for auto-created quiz
+  count?: number;
+  quiz_id?: string;
+  auto_create_quiz?: boolean;
+  quiz_title?: string;
 }
 
 export interface SmartGenerateItem {
@@ -527,18 +357,25 @@ export interface SmartGenerateResponse {
  * Generate adaptive quiz questions using AI.
  * Backend auto-selects weakest subtopics via BKT analysis.
  *
- * Flow:
- *   1. Create a quiz entity via createQuiz()
- *   2. Call generateSmartQuiz() with the quiz_id + count
- *   3. Backend generates questions and auto-links them to the quiz
- *   4. Navigate to QuizTaker with the quiz_id
- *
  * Timeout is 120s (bulk AI generation can be slow).
+ * Uses AbortController since apiCall doesn't support timeoutMs.
  */
 export async function generateSmartQuiz(params: SmartGenerateParams): Promise<SmartGenerateResponse> {
-  return apiCall<SmartGenerateResponse>('/ai/generate-smart', {
-    method: 'POST',
-    body: JSON.stringify(params),
-    timeoutMs: 120_000, // 2 min for bulk AI generation
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    return await apiCall<SmartGenerateResponse>('/ai/generate-smart', {
+      method: 'POST',
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Timeout: la generacion adaptativa tardo mas de 2 minutos. Intenta con menos preguntas.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
