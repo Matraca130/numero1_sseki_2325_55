@@ -1,11 +1,18 @@
 // ============================================================
 // Axon — Student Quiz: True/False Renderer (M-3 Extraction)
+//
+// Renders Verdadero/Falso options with selection state,
+// correct/incorrect feedback, and FeedbackBlock integration.
+//
+// Extracted from QuestionRenderer.tsx for per-type extensibility.
 // ============================================================
 
 import React from 'react';
 import clsx from 'clsx';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { FeedbackBlock } from '@/app/components/student/FeedbackBlock';
+
+// ── Props ──────────────────────────────────────────────
 
 export interface TrueFalseRendererProps {
   correctAnswer: string;
@@ -16,8 +23,15 @@ export interface TrueFalseRendererProps {
   onSelectTF: (val: string) => void;
 }
 
+// ── Component ────────────────────────────────────────────
+
 export const TrueFalseRenderer = React.memo(function TrueFalseRenderer({
-  correctAnswer, explanation, tfAnswer, showResult, isReviewing, onSelectTF,
+  correctAnswer,
+  explanation,
+  tfAnswer,
+  showResult,
+  isReviewing,
+  onSelectTF,
 }: TrueFalseRendererProps) {
   return (
     <div className="space-y-3 mb-6" role="radiogroup" aria-label="Verdadero o Falso">
@@ -28,6 +42,7 @@ export const TrueFalseRenderer = React.memo(function TrueFalseRenderer({
         const isCorrectOption = val === correctAnswer;
         const wasSelectedWrong = showResult && isSelected && !isCorrectOption;
         const wasCorrect = showResult && isCorrectOption;
+
         return (
           <button
             key={val}
@@ -49,14 +64,26 @@ export const TrueFalseRenderer = React.memo(function TrueFalseRenderer({
               <span className={clsx(
                 'shrink-0',
                 wasCorrect ? 'text-emerald-600' : wasSelectedWrong ? 'text-rose-500' : isSelected ? 'text-teal-600' : 'text-gray-400'
-              )}>{icon}</span>
+              )}>
+                {icon}
+              </span>
               <span className={clsx(
                 'text-base',
                 wasCorrect ? 'text-gray-800' : wasSelectedWrong ? 'text-gray-700' : isSelected ? 'text-gray-800' : 'text-gray-600'
-              )} style={{ fontWeight: 600 }}>{label}</span>
+              )} style={{ fontWeight: 600 }}>
+                {label}
+              </span>
             </div>
-            {wasSelectedWrong && <FeedbackBlock correct={false} explanation={explanation} correctAnswer={correctAnswer === 'true' ? 'Verdadero' : 'Falso'} />}
-            {wasCorrect && showResult && <FeedbackBlock correct={true} explanation={explanation} />}
+            {wasSelectedWrong && (
+              <FeedbackBlock
+                correct={false}
+                explanation={explanation}
+                correctAnswer={correctAnswer === 'true' ? 'Verdadero' : 'Falso'}
+              />
+            )}
+            {wasCorrect && showResult && (
+              <FeedbackBlock correct={true} explanation={explanation} />
+            )}
           </button>
         );
       })}

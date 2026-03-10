@@ -1,7 +1,13 @@
 // ============================================================
 // Axon — Quiz Session: Pure Helper Functions (P3-S01)
 //
-// Pure async/sync functions — no React state, no hooks.
+// Extracted from useQuizSession.ts to keep it under the
+// 500-line Architecture Practices limit.
+//
+// These are PURE async/sync functions — no React state, no hooks.
+// They receive data, return results. The hook sets state from
+// the returned results.
+//
 // Functions:
 //   loadAndNormalizeQuestions() — fetch/preload + normalize + shuffle
 //   checkAndProcessBackup()   — validate localStorage backup
@@ -18,6 +24,8 @@ import {
 import type { QuizBackupData } from '@/app/components/student/useQuizBackup';
 import { logger } from '@/app/lib/logger';
 import { getErrorMsg } from '@/app/lib/error-utils';
+
+// ── Load & Normalize Questions ───────────────────────────
 
 export interface LoadQuestionsResult {
   items: QuizQuestion[];
@@ -51,12 +59,17 @@ export async function loadAndNormalizeQuestions(
         else if (res?.items) items = res.items;
       }
     } catch (err: unknown) {
-      logger.warn('[QuizSession] quiz_id filter failed:', getErrorMsg(err));
-      warning = 'El filtro quiz_id puede no estar disponible aun.';
+      logger.warn(
+        '[QuizSession] quiz_id filter failed:',
+        getErrorMsg(err),
+      );
+      warning = 'El filtro quiz_id puede no estar disponible aun. Intentando cargar preguntas...';
       items = [];
     }
   } else if (!preloadedQuestions || preloadedQuestions.length === 0) {
-    if (!hasUsedPreloaded) throw new Error('No se proporcionaron preguntas ni quiz ID.');
+    if (!hasUsedPreloaded) {
+      throw new Error('No se proporcionaron preguntas ni quiz ID.');
+    }
     return { items: [], warning: null, usedPreloaded };
   }
 
@@ -74,6 +87,8 @@ export async function loadAndNormalizeQuestions(
   return { items, warning, usedPreloaded };
 }
 
+// ── Backup Recovery Check ────────────────────────────────
+
 export interface BackupRecoveryResult {
   backup: QuizBackupData;
   reorderedItems: QuizQuestion[];
@@ -85,15 +100,19 @@ export function checkAndProcessBackup(
 ): BackupRecoveryResult | null {
   const backup = loadQuizBackup(quizId);
   if (!backup) return null;
+
   const validated = validateAndReorderBackup(backup, items);
   if (!validated) {
+    logger.debug('[QuizSession] backup stale, discarding', quizId);
     clearQuizBackup(quizId);
     return null;
   }
+
   const itemMap = new Map(items.map(q => [q.id, q]));
   const reorderedItems = validated.reorderedIds
     .map(id => itemMap.get(id))
     .filter((q): q is QuizQuestion => !!q);
+
   const validatedBackup: QuizBackupData = {
     quizId: backup.quizId,
     quizTitle: backup.quizTitle,
@@ -102,8 +121,11 @@ export function checkAndProcessBackup(
     currentIdx: validated.recoveryIdx,
     savedAt: backup.savedAt,
   };
+
   return { backup: validatedBackup, reorderedItems };
 }
+
+// ── Keyword Names Loader ─────────────────────────────────
 
 export async function loadKeywordNames(
   summaryId: string,
@@ -114,7 +136,9 @@ export async function loadKeywordNames(
     >(`/keywords?summary_id=${summaryId}`);
     const kwItems = Array.isArray(kwRes) ? kwRes : kwRes?.items || [];
     const map: Record<string, string> = {};
-    for (const kw of kwItems) map[kw.id] = kw.term || kw.id.substring(0, 8);
+    for (const kw of kwItems) {
+      map[kw.id] = kw.term || kw.id.substring(0, 8);
+    }
     return map;
   } catch {
     return {};

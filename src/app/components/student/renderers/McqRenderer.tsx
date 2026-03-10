@@ -1,11 +1,18 @@
 // ============================================================
 // Axon — Student Quiz: MCQ Renderer (M-3 Extraction)
+//
+// Renders multiple-choice answer options with selection state,
+// correct/incorrect feedback, and FeedbackBlock integration.
+//
+// Extracted from QuestionRenderer.tsx for per-type extensibility.
 // ============================================================
 
 import React from 'react';
 import clsx from 'clsx';
 import { FeedbackBlock } from '@/app/components/student/FeedbackBlock';
 import { LETTERS } from '@/app/lib/quiz-utils';
+
+// ── Props ──────────────────────────────────────────────
 
 export interface McqRendererProps {
   options: string[];
@@ -17,9 +24,16 @@ export interface McqRendererProps {
   onSelectOption: (option: string) => void;
 }
 
+// ── Component ────────────────────────────────────────────
+
 export const McqRenderer = React.memo(function McqRenderer({
-  options, correctAnswer, explanation, selectedAnswer,
-  showResult, isReviewing, onSelectOption,
+  options,
+  correctAnswer,
+  explanation,
+  selectedAnswer,
+  showResult,
+  isReviewing,
+  onSelectOption,
 }: McqRendererProps) {
   return (
     <div className="space-y-3 mb-6" role="radiogroup" aria-label="Opciones de respuesta">
@@ -28,6 +42,7 @@ export const McqRenderer = React.memo(function McqRenderer({
         const isCorrectOption = option === correctAnswer;
         const wasSelectedWrong = showResult && isSelected && !isCorrectOption;
         const wasCorrect = showResult && isCorrectOption;
+
         return (
           <button
             key={oi}
@@ -49,14 +64,23 @@ export const McqRenderer = React.memo(function McqRenderer({
               <span className={clsx(
                 'text-sm shrink-0 mt-0.5',
                 wasCorrect ? 'text-emerald-600' : wasSelectedWrong ? 'text-rose-500' : isSelected ? 'text-teal-600' : 'text-gray-400'
-              )} style={{ fontWeight: 600 }}>{LETTERS[oi]}.</span>
+              )} style={{ fontWeight: 600 }}>
+                {LETTERS[oi]}.
+              </span>
               <span className={clsx(
                 'text-sm',
                 wasCorrect ? 'text-gray-800' : wasSelectedWrong ? 'text-gray-700' : isSelected ? 'text-gray-800' : 'text-gray-600'
-              )}>{option}</span>
+              )}>
+                {option}
+              </span>
             </div>
-            {wasSelectedWrong && <FeedbackBlock correct={false} explanation={explanation} correctAnswer={correctAnswer} />}
-            {wasCorrect && showResult && <FeedbackBlock correct={true} explanation={explanation} />}
+
+            {wasSelectedWrong && (
+              <FeedbackBlock correct={false} explanation={explanation} correctAnswer={correctAnswer} />
+            )}
+            {wasCorrect && showResult && (
+              <FeedbackBlock correct={true} explanation={explanation} />
+            )}
           </button>
         );
       })}

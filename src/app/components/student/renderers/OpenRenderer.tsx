@@ -1,10 +1,17 @@
 // ============================================================
 // Axon — Student Quiz: Open / Fill-Blank Renderer (M-3 Extraction)
+//
+// Renders a textarea input for open-ended and fill-in-the-blank
+// question types, with correct/incorrect feedback.
+//
+// Extracted from QuestionRenderer.tsx for per-type extensibility.
 // ============================================================
 
 import React from 'react';
 import clsx from 'clsx';
 import { FeedbackBlock } from '@/app/components/student/FeedbackBlock';
+
+// ── Props ──────────────────────────────────────────────
 
 export interface OpenRendererProps {
   questionType: 'open' | 'fill_blank';
@@ -18,9 +25,18 @@ export interface OpenRendererProps {
   onSubmitText: () => void;
 }
 
+// ── Component ────────────────────────────────────────────
+
 export const OpenRenderer = React.memo(function OpenRenderer({
-  questionType, correctAnswer, explanation, textAnswer,
-  showResult, isCorrectResult, isReviewing, onChangeText, onSubmitText,
+  questionType,
+  correctAnswer,
+  explanation,
+  textAnswer,
+  showResult,
+  isCorrectResult,
+  isReviewing,
+  onChangeText,
+  onSubmitText,
 }: OpenRendererProps) {
   return (
     <div className="mb-6">
@@ -45,9 +61,11 @@ export const OpenRenderer = React.memo(function OpenRenderer({
         />
         {showResult && (
           <div className="px-5 pb-4">
-            {isCorrectResult
-              ? <FeedbackBlock correct={true} explanation={explanation} />
-              : <FeedbackBlock correct={false} explanation={explanation} correctAnswer={correctAnswer} inline />}
+            {isCorrectResult ? (
+              <FeedbackBlock correct={true} explanation={explanation} />
+            ) : (
+              <FeedbackBlock correct={false} explanation={explanation} correctAnswer={correctAnswer} inline />
+            )}
           </div>
         )}
       </div>
