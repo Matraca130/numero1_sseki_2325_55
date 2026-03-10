@@ -2,21 +2,12 @@
 // Axon — Student: QuizTaker (EV-3 Prompt B)
 //
 // Takes a specific quiz by quiz_id.
-// Flow:
-//   1. POST /study-sessions { session_type: "quiz" } → session_id
-//   2. GET /quiz-questions?quiz_id=xxx → questions
-//   3. Show question-by-question with timer
-//   4. On confirm:
-//      a. POST /quiz-attempts { quiz_question_id, answer, is_correct, session_id, time_taken_ms }
-//      b. POST /reviews { session_id, item_id, instrument_type: "quiz", grade: 0|1 }
-//   5. Immediate feedback (correct/incorrect + explanation)
-//   6. When done → QuizResults
-//
-// Design: teal accent (matching existing QuizView), motion animations
-//
 // Phase 3 refactor: renderers extracted to sub-components
 // Phase 6b refactor: session lifecycle extracted to useQuizSession hook
 // Phase 7b refactor: error boundary added
+// P1-S03: localStorage recovery UI (recovery phase)
+// P2-S02: DRY live input reset helper
+// P7: Countdown timer
 // ============================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -25,20 +16,18 @@ import { QuizResults } from '@/app/components/student/QuizResults';
 import type { QuizQuestion } from '@/app/services/quizApi';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lightbulb, Loader2, AlertTriangle } from 'lucide-react';
+import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
 
-// ── Sub-components (Phase 3 extractions) ─────────────────
 import { QuestionRenderer } from '@/app/components/student/QuestionRenderer';
 import { QuizProgressBar } from '@/app/components/student/QuizProgressBar';
 import { QuizTopBar } from '@/app/components/student/QuizTopBar';
 import { QuizBottomBar } from '@/app/components/student/QuizBottomBar';
 
-// ── Session hook (Phase 6b extraction) ───────────────────
 import { useQuizSession } from '@/app/components/student/useQuizSession';
-
-// ── Error boundary (Phase 7b) ────────────────────────────
+import { clearQuizBackup, saveQuizBackup } from '@/app/components/student/useQuizBackup';
+import { QuizRecoveryPrompt } from '@/app/components/student/QuizRecoveryPrompt';
 import { QuizErrorBoundary } from '@/app/components/student/QuizErrorBoundary';
 
-// Re-export for backward compatibility (external consumers may import from here)
 export type { SavedAnswer } from '@/app/components/student/quiz-types';
 
 // ── Animation variants (stable reference) ────────────────
@@ -55,12 +44,10 @@ const SLIDE_VARIANTS = {
   },
 } as const;
 
-// ── Props ───────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────
 
 interface QuizTakerProps {
-  /** Standalone mode: load questions by quizId */
   quizId?: string;
-  /** Preloaded mode: pass questions directly (from QuizSelection) */
   preloadedQuestions?: QuizQuestion[];
   quizTitle: string;
   summaryId?: string;
@@ -71,19 +58,17 @@ interface QuizTakerProps {
 // ── Main Component ───────────────────────────────────────
 
 export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, onBack, onComplete }: QuizTakerProps) {
-  // ── Adaptive quiz: allow in-place quiz swap ─────────────
   const [activeQuizId, setActiveQuizId] = useState(quizId);
   const [activeTitle, setActiveTitle] = useState(quizTitle);
 
-  // ── Session lifecycle (hook) ─────────────────────────────
   const {
     phase, questions, sessionStartTime, errorMsg, backendWarning,
     submitting, closingSession, savedAnswers, keywordMap,
     correctCount, wrongCount, answeredCount,
+    pendingBackup, restoreFromBackup, dismissBackup,
     submitAnswer, finishQuiz, restartSession, reviewSession,
-  } = useQuizSession(activeQuizId, summaryId, preloadedQuestions);
+  } = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
 
-  // ── Local UI state (navigation + live input) ────────────
   const [currentIdx, setCurrentIdx] = useState(0);
   const [navDirection, setNavDirection] = useState<'forward' | 'back'>('forward');
 
@@ -93,12 +78,21 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
 
-  // Reset timer on question change
   useEffect(() => {
     setQuestionStartTime(Date.now());
   }, [currentIdx]);
 
-  // ── Submit wrappers (thin — delegate to hook) ──────────
+  const resetLiveInputs = useCallback((saved?: { answered: boolean; selectedOption: string | null; answer: string }) => {
+    if (saved?.answered) {
+      setLiveSelectedOption(saved.selectedOption);
+      setLiveTextInput(saved.answer);
+      setLiveTFAnswer(saved.answer);
+    } else {
+      setLiveSelectedOption(null);
+      setLiveTextInput('');
+      setLiveTFAnswer(null);
+    }
+  }, []);
 
   const doSubmit = useCallback(
     (answer: string, optionText: string | null) => {
@@ -122,20 +116,20 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     if (liveTextInput.trim()) doSubmit(liveTextInput.trim(), null);
   };
 
-  // ── Navigation ──────────────────────────────────────────
-
   const goToQuestion = (idx: number, dir: 'forward' | 'back') => {
     setNavDirection(dir);
     setCurrentIdx(idx);
-    const s = savedAnswers[idx];
-    if (s?.answered) {
-      setLiveSelectedOption(s.selectedOption);
-      setLiveTextInput(s.answer);
-      setLiveTFAnswer(s.answer);
-    } else {
-      setLiveSelectedOption(null);
-      setLiveTextInput('');
-      setLiveTFAnswer(null);
+    resetLiveInputs(savedAnswers[idx]);
+
+    if (activeQuizId && Object.keys(savedAnswers).length > 0) {
+      saveQuizBackup({
+        quizId: activeQuizId,
+        quizTitle: activeTitle,
+        questionIds: questions.map(q => q.id),
+        savedAnswers,
+        currentIdx: idx,
+        savedAt: 0,
+      });
     }
   };
 
@@ -151,48 +145,45 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     if (currentIdx > 0) goToQuestion(currentIdx - 1, 'back');
   };
 
-  // ── Restart (hook resets session + local resets UI) ─────
-
   const handleRestart = useCallback(() => {
     setCurrentIdx(0);
     setNavDirection('forward');
-    setLiveSelectedOption(null);
-    setLiveTextInput('');
-    setLiveTFAnswer(null);
+    resetLiveInputs();
     restartSession();
-  }, [restartSession]);
-
-  // ── Adaptive quiz ready (swap to new quiz in-place) ────
+  }, [restartSession, resetLiveInputs]);
 
   const handleAdaptiveQuizReady = useCallback((newQuizId: string, newTitle: string) => {
+    if (activeQuizId) clearQuizBackup(activeQuizId);
     setCurrentIdx(0);
     setNavDirection('forward');
-    setLiveSelectedOption(null);
-    setLiveTextInput('');
-    setLiveTFAnswer(null);
+    resetLiveInputs();
     setActiveQuizId(newQuizId);
     setActiveTitle(newTitle);
-    // useQuizSession's useEffect will auto-reset savedAnswers + load new questions
-  }, []);
+  }, [activeQuizId, resetLiveInputs]);
 
-  // ── Review (go back to session from results to navigate answers) ──
+  const handleAcceptRecovery = useCallback(() => {
+    if (pendingBackup) {
+      const idx = pendingBackup.currentIdx;
+      setCurrentIdx(idx);
+      setNavDirection('forward');
+      resetLiveInputs(pendingBackup.savedAnswers[idx]);
+    }
+    restoreFromBackup();
+  }, [pendingBackup, restoreFromBackup, resetLiveInputs]);
+
+  const handleDismissRecovery = useCallback(() => {
+    setCurrentIdx(0);
+    setNavDirection('forward');
+    resetLiveInputs();
+    dismissBackup();
+  }, [dismissBackup, resetLiveInputs]);
 
   const handleReview = useCallback(() => {
     setCurrentIdx(0);
     setNavDirection('forward');
-    // Restore first question's saved state
-    const s = savedAnswers[0];
-    if (s?.answered) {
-      setLiveSelectedOption(s.selectedOption);
-      setLiveTextInput(s.answer);
-      setLiveTFAnswer(s.answer);
-    } else {
-      setLiveSelectedOption(null);
-      setLiveTextInput('');
-      setLiveTFAnswer(null);
-    }
+    resetLiveInputs(savedAnswers[0]);
     reviewSession();
-  }, [savedAnswers, reviewSession]);
+  }, [savedAnswers, reviewSession, resetLiveInputs]);
 
   // ── PHASE: loading ─────────────────────────────────────
 
@@ -204,8 +195,6 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
       </div>
     );
   }
-
-  // ── PHASE: error ────────────────────────────────────────
 
   if (phase === 'error') {
     return (
@@ -228,7 +217,16 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: results ──────────────────────────────────────
+  if (phase === 'recovery' && pendingBackup) {
+    return (
+      <QuizRecoveryPrompt
+        backup={pendingBackup}
+        onAccept={handleAcceptRecovery}
+        onDismiss={handleDismissRecovery}
+        onBack={onBack}
+      />
+    );
+  }
 
   if (phase === 'results') {
     return (
@@ -239,6 +237,9 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           sessionStartTime={sessionStartTime}
           quizTitle={activeTitle}
           keywordMap={keywordMap}
+          correctCount={correctCount}
+          wrongCount={wrongCount}
+          answeredCount={answeredCount}
           onRestart={handleRestart}
           onBack={onBack}
           onReview={handleReview}
@@ -266,14 +267,12 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
   const slideVariants = SLIDE_VARIANTS[navDirection];
 
-  // Compute canSubmit for bottom bar (decouples it from question type)
   const canSubmit = !submitting && (
     currentQ.question_type === 'mcq' ? liveSelectedOption !== null :
     currentQ.question_type === 'true_false' ? !!liveTFAnswer :
     !!liveTextInput.trim()
   );
 
-  // Compute unified submit handler for bottom bar
   const handleSubmit =
     currentQ.question_type === 'mcq' ? handleSubmitMC :
     currentQ.question_type === 'true_false' ? handleSubmitTF :
@@ -286,28 +285,26 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
         animate={{ opacity: 1 }}
         className="flex flex-col h-full bg-zinc-50 overflow-hidden"
       >
-        {/* Backend warning */}
         {backendWarning && (
-          <div className="mx-4 mt-2 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-[11px]">
+          <div className={`mx-4 mt-2 ${BANNER_WARNING} text-[11px]`}>
             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
             {backendWarning}
           </div>
         )}
 
-        {/* ── Top Bar ── */}
         <QuizTopBar
           quizTitle={activeTitle}
           diffKey={diffKey}
           questionStartTime={questionStartTime}
           isReviewing={isReviewing}
           onBack={onBack}
+          answeredCount={answeredCount}
+          totalQuestions={questions.length}
+          sessionStartTime={sessionStartTime}
         />
 
-        {/* ── Content ── */}
         <div className="flex-1 overflow-y-auto custom-scrollbar-light">
           <div className="max-w-3xl mx-auto w-full px-6 md:px-10 py-6 md:py-8">
-
-            {/* Progress Bar */}
             <QuizProgressBar
               totalQuestions={questions.length}
               savedAnswers={savedAnswers}
@@ -317,7 +314,6 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
               onGoToQuestion={goToQuestion}
             />
 
-            {/* Question */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIdx}
@@ -346,7 +342,6 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           </div>
         </div>
 
-        {/* ── Bottom Bar ── */}
         <QuizBottomBar
           currentIdx={currentIdx}
           questionsLength={questions.length}
