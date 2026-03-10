@@ -10,15 +10,12 @@
 // Students can highlight text and add notes on summaries.
 // Annotations are private to each student (RLS enforced).
 //
-// UI consumer: TextAnnotationsPanel.tsx (already exists, uses
-// local state — this service wires it to the backend).
-//
 // Uses apiCall() from lib/api.ts (double-token convention).
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────
 
 export interface TextAnnotation {
   id: string;
@@ -59,7 +56,7 @@ export interface UpdateAnnotationInput {
   annotation_type?: 'highlight' | 'note' | 'question';
 }
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────
 
 function unwrapItems(result: unknown): TextAnnotation[] {
   if (Array.isArray(result)) return result;
