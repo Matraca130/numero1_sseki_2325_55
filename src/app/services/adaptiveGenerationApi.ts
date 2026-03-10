@@ -20,14 +20,14 @@
 // FLOW:
 //   1. Build array of N async tasks (each calls aiService.generateSmart)
 //   2. Execute with parallelWithLimit(tasks, MAX_CONCURRENT=3)
-//   3. Collect successes → AdaptiveFlashcard[], failures → errors[]
+//   3. Collect successes -> AdaptiveFlashcard[], failures -> errors[]
 //   4. Report progress via onProgress callback (for UI loading bar)
 //   5. Compute aggregate stats (uniqueKeywords, avgPKnow, tokens)
 //   6. Return AdaptiveGenerationResult
 //
 // CONCURRENCY DESIGN:
 //   MAX_CONCURRENT = 3 to avoid saturating the Gemini API.
-//   Each call takes ~2-5s (Gemini latency), so 15 cards ≈ 10-25s.
+//   Each call takes ~2-5s (Gemini latency), so 15 cards = ~10-25s.
 //   The backend's 2h dedup window per keyword ensures variety for
 //   the first ~5 cards; beyond that, cards may cluster on the
 //   weakest keyword (see DEDUP LIMITATION below).
@@ -54,33 +54,22 @@
 // DEPENDENCIES:
 //   - aiService.generateSmart() (existing, aiService.ts:249)
 //   - Flashcard type (existing, types/content.ts:14)
+//   - parallelWithLimit() (existing, lib/concurrency.ts:10)
 // ============================================================
 
 import { generateSmart } from '@/app/services/aiService';
+import type { SmartTargetMeta } from '@/app/services/aiService';
 import type { Flashcard } from '@/app/types/content';
+import { parallelWithLimit } from '@/app/lib/concurrency';
 
-// ── Constants ─────────────────────────────────────────────
+// ── Constants ───────────────────────────────────────────
 
 export const MAX_CONCURRENT_GENERATIONS = 3;
 export const RECOMMENDED_MAX_BATCH = 10;
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────
 
-export interface SmartMetadata {
-  target_keyword: string;
-  target_summary: string;
-  target_subtopic: string | null;
-  p_know: number;
-  need_score: number;
-  primary_reason:
-    | 'new_concept'
-    | 'low_mastery'
-    | 'needs_review'
-    | 'moderate_mastery'
-    | 'reinforcement';
-  was_deduped: boolean;
-  candidates_evaluated: number;
-}
+export type SmartMetadata = Required<SmartTargetMeta>;
 
 export interface GenerationMeta {
   model: string;
@@ -139,38 +128,13 @@ export type ProgressCallback = (progress: {
 export interface AdaptiveBatchParams {
   count: number;
   institutionId?: string;
+  summaryIds?: string[];
   related?: boolean;
   onProgress?: ProgressCallback;
+  signal?: AbortSignal;
 }
 
 // ── Internal Helpers ──────────────────────────────────────
-
-async function parallelWithLimit<T>(
-  tasks: (() => Promise<T>)[],
-  limit: number
-): Promise<PromiseSettledResult<T>[]> {
-  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
-  let nextIndex = 0;
-
-  async function runNext(): Promise<void> {
-    while (nextIndex < tasks.length) {
-      const idx = nextIndex++;
-      try {
-        const value = await tasks[idx]();
-        results[idx] = { status: 'fulfilled', value };
-      } catch (reason: any) {
-        results[idx] = { status: 'rejected', reason };
-      }
-    }
-  }
-
-  const workers = Array.from(
-    { length: Math.min(limit, tasks.length) },
-    () => runNext()
-  );
-  await Promise.all(workers);
-  return results;
-}
 
 function extractTokenCount(tokens: GenerationMeta['tokens']): number {
   if (typeof tokens === 'number') return tokens;
@@ -207,12 +171,13 @@ function computeBatchStats(
   };
 }
 
-// ── Public API ────────────────────────────────────────────
+// ── Public API ──────────────────────────────────────────
 
 export async function generateAdaptiveBatch(
   params: AdaptiveBatchParams
 ): Promise<AdaptiveGenerationResult> {
-  const { count, institutionId, related, onProgress } = params;
+  const { count, institutionId, summaryIds, related, onProgress, signal } =
+    params;
 
   if (count <= 0) {
     return {
@@ -237,10 +202,24 @@ export async function generateAdaptiveBatch(
 
   const tasks = Array.from({ length: count }, (_, index) => {
     return async (): Promise<void> => {
+      if (signal?.aborted) {
+        completedCount++;
+        onProgress?.({
+          completed: completedCount,
+          total: count,
+          generated: cards.length,
+          failed: errors.length,
+        });
+        return;
+      }
+
       try {
         const response = await generateSmart({
           action: 'flashcard',
           institutionId,
+          summaryId: summaryIds && summaryIds.length > 0
+            ? summaryIds[index % summaryIds.length]
+            : undefined,
           related: related ?? true,
         }) as AdaptiveFlashcard;
 
@@ -251,6 +230,7 @@ export async function generateAdaptiveBatch(
         }
 
         cards.push(response);
+
         completedCount++;
         onProgress?.({
           completed: completedCount,
@@ -301,7 +281,7 @@ export async function generateAdaptiveBatch(
   return { cards, errors, stats };
 }
 
-// ── Mapping: AdaptiveFlashcard → Flashcard (UI type) ──────
+// ── Mapping: AdaptiveFlashcard -> Flashcard (UI type) ──────
 
 export function mapToFlashcard(card: AdaptiveFlashcard): Flashcard {
   return {
@@ -327,7 +307,7 @@ export function mapBatchToFlashcards(
   return result.cards.map(mapToFlashcard);
 }
 
-// ── Utility: Human-readable reason text ─────────────────
+// ── Utility: Human-readable reason text ───────────────────
 
 export function getReasonText(reason: SmartMetadata['primary_reason'], pKnow: number): string {
   const pct = Math.round(pKnow * 100);
