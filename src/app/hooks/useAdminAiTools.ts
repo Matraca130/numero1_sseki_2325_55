@@ -6,8 +6,24 @@
 //   - Re-chunking (force re-chunk + re-embed a summary)
 //
 // BACKEND ROUTES:
-//   POST /ai/ingest-embeddings
-//   POST /ai/re-chunk
+//   POST /ai/ingest-embeddings — Batch embedding generation
+//     - target: 'chunks' | 'summaries'
+//     - batch_size: 1-100 (default 50)
+//     - Optional summary_id scoping
+//
+//   POST /ai/re-chunk — Manual re-chunking (Fase 5)
+//     - summary_id + institution_id required
+//     - Optional chunking params (maxChunkSize, minChunkSize, overlapSize)
+//     - Triggers autoChunkAndEmbed()
+//
+// PATTERN:
+//   - Independent phase tracking per operation (both can run simultaneously)
+//   - Job history for recent operations (local, non-persisted)
+//   - Long timeouts (120s embeddings, 60s re-chunk)
+//
+// DEPENDENCIES:
+//   - aiService: ingestEmbeddings, reChunk
+//   - Types: IngestResult, ReChunkResult, ReChunkOptions, IngestTarget
 // ============================================================
 
 import { useState, useCallback, useRef } from 'react';
@@ -19,6 +35,8 @@ import {
   type ReChunkOptions,
   type IngestTarget,
 } from '@/app/services/aiService';
+
+// ── Types ─────────────────────────────────────────────────
 
 export type ToolPhase = 'idle' | 'running' | 'done' | 'error';
 
@@ -32,17 +50,22 @@ export interface JobRecord {
   params: Record<string, unknown>;
 }
 
+// ── Hook ──────────────────────────────────────────────────
+
 export function useAdminAiTools(institutionId: string) {
+  // ── Ingest state ───────────────────────────────
   const [ingestPhase, setIngestPhase] = useState<ToolPhase>('idle');
   const [ingestResult, setIngestResult] = useState<IngestResult | null>(null);
   const [ingestError, setIngestError] = useState<string | null>(null);
   const ingestRunningRef = useRef(false);
 
+  // ── Re-chunk state ─────────────────────────────
   const [reChunkPhase, setReChunkPhase] = useState<ToolPhase>('idle');
   const [reChunkResult, setReChunkResult] = useState<ReChunkResult | null>(null);
   const [reChunkError, setReChunkError] = useState<string | null>(null);
   const reChunkRunningRef = useRef(false);
 
+  // ── Job history (local) ────────────────────────
   const [jobHistory, setJobHistory] = useState<JobRecord[]>([]);
   const jobIdCounter = useRef(0);
 
@@ -61,8 +84,10 @@ export function useAdminAiTools(institutionId: string) {
       error,
       params,
     };
-    setJobHistory(prev => [job, ...prev].slice(0, 20));
+    setJobHistory(prev => [job, ...prev].slice(0, 20)); // Keep last 20
   }, []);
+
+  // ── Run embedding ingestion ────────────────────
 
   const runIngest = useCallback(async (
     opts?: {
@@ -103,6 +128,8 @@ export function useAdminAiTools(institutionId: string) {
     }
   }, [institutionId, addJob]);
 
+  // ── Run re-chunking ────────────────────────────
+
   const runReChunk = useCallback(async (
     summaryId: string,
     options?: ReChunkOptions
@@ -116,7 +143,11 @@ export function useAdminAiTools(institutionId: string) {
     setReChunkError(null);
     setReChunkResult(null);
 
-    const params = { summaryId, institutionId, options };
+    const params = {
+      summaryId,
+      institutionId,
+      options,
+    };
 
     try {
       const result = await reChunk(params);
@@ -134,6 +165,8 @@ export function useAdminAiTools(institutionId: string) {
       reChunkRunningRef.current = false;
     }
   }, [institutionId, addJob]);
+
+  // ── Reset individual tools ─────────────────────
 
   const resetIngest = useCallback(() => {
     setIngestPhase('idle');
@@ -154,13 +187,30 @@ export function useAdminAiTools(institutionId: string) {
     resetReChunk();
   }, [resetIngest, resetReChunk]);
 
+  // ── Computed ───────────────────────────────────────
+
   const isAnyRunning = ingestPhase === 'running' || reChunkPhase === 'running';
 
   return {
-    ingestPhase, ingestResult, ingestError,
-    reChunkPhase, reChunkResult, reChunkError,
-    jobHistory, isAnyRunning,
-    runIngest, runReChunk,
-    resetIngest, resetReChunk, resetAll,
+    // Ingest state
+    ingestPhase,
+    ingestResult,
+    ingestError,
+
+    // Re-chunk state
+    reChunkPhase,
+    reChunkResult,
+    reChunkError,
+
+    // Shared
+    jobHistory,
+    isAnyRunning,
+
+    // Actions
+    runIngest,
+    runReChunk,
+    resetIngest,
+    resetReChunk,
+    resetAll,
   };
 }
