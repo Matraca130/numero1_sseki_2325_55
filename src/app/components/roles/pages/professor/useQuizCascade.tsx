@@ -4,12 +4,6 @@
 // Encapsulates the full cascade selection logic:
 //   Institution → Course → Semester → Section → Topic → Summary
 //
-// Manages content-tree loading, derived data, cascade change
-// handlers with downstream resets, keyword loading, and the
-// CascadeLevelConfig[] array for CascadeSelector.
-//
-// Extracted from ProfessorQuizzesPage in Phase 4 refactor.
-//
 // Fix H-1: cascadeLevels is now useMemo'd with stable icon
 // constants, making React.memo on CascadeSelector effective.
 // ============================================================
@@ -24,56 +18,21 @@ import {
 } from 'lucide-react';
 import { logger } from '@/app/lib/logger';
 
-// ── Stable icon constants (fix H-1: avoids recreating JSX) ──
-
 const ICON_COURSE = <BookOpen size={12} className="text-purple-500 shrink-0" />;
 const ICON_SEMESTER = <GraduationCap size={12} className="text-gray-400 shrink-0" />;
 const ICON_SECTION = <Layers size={12} className="text-gray-400 shrink-0" />;
 const ICON_TOPIC = <FileText size={12} className="text-gray-400 shrink-0" />;
 const ICON_SUMMARY = <ClipboardList size={12} className="text-purple-500 shrink-0" />;
 
-// ── Content-tree types (nested shape from /content-tree) ──
+interface ContentTreeTopic { id: string; name: string; order_index?: number; }
+interface ContentTreeSection { id: string; name: string; order_index?: number; topics: ContentTreeTopic[]; }
+interface ContentTreeSemester { id: string; name: string; order_index?: number; sections: ContentTreeSection[]; }
+interface ContentTreeCourse { id: string; name: string; semesters: ContentTreeSemester[]; }
+interface MembershipLite { id: string; course_id: string; role: string; }
 
-interface ContentTreeTopic {
-  id: string;
-  name: string;
-  order_index?: number;
-}
-
-interface ContentTreeSection {
-  id: string;
-  name: string;
-  order_index?: number;
-  topics: ContentTreeTopic[];
-}
-
-interface ContentTreeSemester {
-  id: string;
-  name: string;
-  order_index?: number;
-  sections: ContentTreeSection[];
-}
-
-interface ContentTreeCourse {
-  id: string;
-  name: string;
-  semesters: ContentTreeSemester[];
-}
-
-interface MembershipLite {
-  id: string;
-  course_id: string;
-  role: string;
-}
-
-// ── Helper ────────────────────────────────────────────────
-
-/** Normalize ambiguous API responses: { items: T[] } | T[] → T[] */
 function extractItems<T>(res: { items: T[] } | T[]): T[] {
   return Array.isArray(res) ? res : res.items;
 }
-
-// ── Return type ───────────────────────────────────────────
 
 export interface UseQuizCascadeReturn {
   selectedSummaryId: string | null;
@@ -84,13 +43,10 @@ export interface UseQuizCascadeReturn {
   breadcrumbItems: string[];
 }
 
-// ── Hook ──────────────────────────────────────────────────
-
 export function useQuizCascade(): UseQuizCascadeReturn {
   const { selectedInstitution } = useAuth();
   const institutionId = selectedInstitution?.id || null;
 
-  // ── Content-tree + cascade selection state ───────────────
   const [contentTree, setContentTree] = useState<ContentTreeCourse[]>([]);
   const [treeLoading, setTreeLoading] = useState(true);
   const [summaries, setSummaries] = useState<Summary[]>([]);
@@ -103,13 +59,8 @@ export function useQuizCascade(): UseQuizCascadeReturn {
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null);
 
-  // ── 1. Load content-tree + memberships (single load) ────
   useEffect(() => {
-    if (!institutionId) {
-      setContentTree([]);
-      setTreeLoading(false);
-      return;
-    }
+    if (!institutionId) { setContentTree([]); setTreeLoading(false); return; }
     let cancelled = false;
     setTreeLoading(true);
     (async () => {
@@ -119,13 +70,8 @@ export function useQuizCascade(): UseQuizCascadeReturn {
           apiCall<MembershipLite[]>(`/memberships?institution_id=${institutionId}`),
         ]);
         if (cancelled) return;
-
         const allCourses = Array.isArray(tree) ? tree : [];
-        const profCourseIds = (memberships || [])
-          .filter(m => m.role?.toLowerCase() === 'professor')
-          .map(m => m.course_id)
-          .filter(Boolean);
-
+        const profCourseIds = (memberships || []).filter(m => m.role?.toLowerCase() === 'professor').map(m => m.course_id).filter(Boolean);
         const professorCourses = allCourses.filter(c => profCourseIds.includes(c.id));
         setContentTree(professorCourses.length > 0 ? professorCourses : allCourses);
       } catch (err) {
@@ -138,58 +84,36 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return () => { cancelled = true; };
   }, [institutionId]);
 
-  // ── Derived data from tree (instant, no API calls) ──────
-  const courses = useMemo(() =>
-    contentTree.map(c => ({ id: c.id, name: c.name })),
-    [contentTree]
-  );
-
+  const courses = useMemo(() => contentTree.map(c => ({ id: c.id, name: c.name })), [contentTree]);
   const semesters = useMemo(() => {
     if (!selectedCourseId) return [];
-    const course = contentTree.find(c => c.id === selectedCourseId);
-    return course?.semesters || [];
+    return contentTree.find(c => c.id === selectedCourseId)?.semesters || [];
   }, [contentTree, selectedCourseId]);
-
   const sections = useMemo(() => {
     if (!selectedSemesterId) return [];
-    const sem = semesters.find(s => s.id === selectedSemesterId);
-    return sem?.sections || [];
+    return semesters.find(s => s.id === selectedSemesterId)?.sections || [];
   }, [semesters, selectedSemesterId]);
-
   const topics = useMemo(() => {
     if (!selectedSectionId) return [];
-    const sec = sections.find(s => s.id === selectedSectionId);
-    return sec?.topics || [];
+    return sections.find(s => s.id === selectedSectionId)?.topics || [];
   }, [sections, selectedSectionId]);
 
-  // ── Cascade change handlers (reset downstream) ─────────
   const handleCourseChange = useCallback((id: string) => {
-    setSelectedCourseId(id);
-    setSelectedSemesterId(''); setSelectedSectionId('');
-    setSelectedTopicId(''); setSummaries([]); setSelectedSummaryId(null);
+    setSelectedCourseId(id); setSelectedSemesterId(''); setSelectedSectionId(''); setSelectedTopicId(''); setSummaries([]); setSelectedSummaryId(null);
   }, []);
-
   const handleSemesterChange = useCallback((id: string) => {
-    setSelectedSemesterId(id);
-    setSelectedSectionId(''); setSelectedTopicId('');
-    setSummaries([]); setSelectedSummaryId(null);
+    setSelectedSemesterId(id); setSelectedSectionId(''); setSelectedTopicId(''); setSummaries([]); setSelectedSummaryId(null);
   }, []);
-
   const handleSectionChange = useCallback((id: string) => {
-    setSelectedSectionId(id);
-    setSelectedTopicId(''); setSummaries([]); setSelectedSummaryId(null);
+    setSelectedSectionId(id); setSelectedTopicId(''); setSummaries([]); setSelectedSummaryId(null);
   }, []);
-
   const handleTopicChange = useCallback((id: string) => {
-    setSelectedTopicId(id);
-    setSummaries([]); setSelectedSummaryId(null);
+    setSelectedTopicId(id); setSummaries([]); setSelectedSummaryId(null);
   }, []);
-
   const handleSummaryChange = useCallback((id: string) => {
     setSelectedSummaryId(id || null);
   }, []);
 
-  // ── 2. Load summaries when topic changes ────────────────
   useEffect(() => {
     if (!selectedTopicId) { setSummaries([]); setSelectedSummaryId(null); return; }
     let cancelled = false;
@@ -213,7 +137,6 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return () => { cancelled = true; };
   }, [selectedTopicId]);
 
-  // ── 3. Load keywords when summary changes ───────────────
   useEffect(() => {
     setKeywords([]);
     if (!selectedSummaryId) return;
@@ -231,12 +154,9 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return () => { cancelled = true; };
   }, [selectedSummaryId]);
 
-  // ── Keyword helpers ─────────────────────────────────────
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
-    for (const kw of keywords) {
-      map.set(kw.id, kw.term || kw.id.substring(0, 8) + '...');
-    }
+    for (const kw of keywords) { map.set(kw.id, kw.term || kw.id.substring(0, 8) + '...'); }
     return map;
   }, [keywords]);
 
@@ -244,13 +164,11 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return keywordMap.get(kwId) || kwId.substring(0, 8) + '...';
   }, [keywordMap]);
 
-  // ── Selected summary ────────────────────────────────────
   const selectedSummary = useMemo(() => {
     if (!selectedSummaryId) return null;
     return summaries.find(s => s.id === selectedSummaryId) || null;
   }, [summaries, selectedSummaryId]);
 
-  // ── Breadcrumb items ────────────────────────────────────
   const breadcrumbItems = useMemo(() => {
     return [
       courses.find(c => c.id === selectedCourseId)?.name,
@@ -260,81 +178,18 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     ].filter(Boolean) as string[];
   }, [courses, selectedCourseId, semesters, selectedSemesterId, sections, selectedSectionId, topics, selectedTopicId]);
 
-  // ── Cascade levels (memoized — fix H-1) ────────────────
   const cascadeLevels: CascadeLevelConfig[] = useMemo(() => {
     const courseName = courses.find(c => c.id === selectedCourseId)?.name || '';
     const semesterName = semesters.find(s => s.id === selectedSemesterId)?.name || '';
     const sectionName = sections.find(s => s.id === selectedSectionId)?.name || '';
     const topicName = topics.find(t => t.id === selectedTopicId)?.name || '';
-
-    const summaryItems = summaries.map(s => ({
-      id: s.id,
-      name: `${s.title || `Resumen ${s.id.substring(0, 8)}`} (${s.status || 'draft'})`,
-    }));
-
+    const summaryItems = summaries.map(s => ({ id: s.id, name: `${s.title || `Resumen ${s.id.substring(0, 8)}`} (${s.status || 'draft'})` }));
     return [
-      {
-        key: 'course',
-        label: 'Curso',
-        icon: ICON_COURSE,
-        items: courses,
-        selectedId: selectedCourseId,
-        onChange: handleCourseChange,
-        placeholder: '-- Seleccionar curso --',
-        emptyMessage: 'Sin cursos asignados como profesor',
-        loading: treeLoading,
-        loadingMessage: 'Cargando cursos...',
-        selectedDisplayName: courseName,
-      },
-      {
-        key: 'semester',
-        label: 'Semestre',
-        icon: ICON_SEMESTER,
-        items: semesters.map(s => ({ id: s.id, name: s.name })),
-        selectedId: selectedSemesterId,
-        onChange: handleSemesterChange,
-        placeholder: '-- Seleccionar semestre --',
-        emptyMessage: 'Sin semestres',
-        visible: !!selectedCourseId,
-        selectedDisplayName: semesterName,
-      },
-      {
-        key: 'section',
-        label: 'Seccion',
-        icon: ICON_SECTION,
-        items: sections.map(s => ({ id: s.id, name: s.name })),
-        selectedId: selectedSectionId,
-        onChange: handleSectionChange,
-        placeholder: '-- Seleccionar seccion --',
-        emptyMessage: 'Sin secciones',
-        visible: !!selectedSemesterId,
-        selectedDisplayName: sectionName,
-      },
-      {
-        key: 'topic',
-        label: 'Topico',
-        icon: ICON_TOPIC,
-        items: topics.map(t => ({ id: t.id, name: t.name })),
-        selectedId: selectedTopicId,
-        onChange: handleTopicChange,
-        placeholder: '-- Seleccionar topico --',
-        emptyMessage: 'Sin topicos',
-        visible: !!selectedSectionId,
-        selectedDisplayName: topicName,
-      },
-      {
-        key: 'summary',
-        label: 'Resumen',
-        icon: ICON_SUMMARY,
-        items: summaryItems,
-        selectedId: selectedSummaryId || '',
-        onChange: handleSummaryChange,
-        placeholder: '-- Seleccionar resumen --',
-        emptyMessage: 'Sin resumenes en este topico',
-        loading: summariesLoading,
-        visible: !!selectedTopicId,
-        selectedDisplayName: selectedSummary?.title || undefined,
-      },
+      { key: 'course', label: 'Curso', icon: ICON_COURSE, items: courses, selectedId: selectedCourseId, onChange: handleCourseChange, placeholder: '-- Seleccionar curso --', emptyMessage: 'Sin cursos asignados como profesor', loading: treeLoading, loadingMessage: 'Cargando cursos...', selectedDisplayName: courseName },
+      { key: 'semester', label: 'Semestre', icon: ICON_SEMESTER, items: semesters.map(s => ({ id: s.id, name: s.name })), selectedId: selectedSemesterId, onChange: handleSemesterChange, placeholder: '-- Seleccionar semestre --', emptyMessage: 'Sin semestres', visible: !!selectedCourseId, selectedDisplayName: semesterName },
+      { key: 'section', label: 'Seccion', icon: ICON_SECTION, items: sections.map(s => ({ id: s.id, name: s.name })), selectedId: selectedSectionId, onChange: handleSectionChange, placeholder: '-- Seleccionar seccion --', emptyMessage: 'Sin secciones', visible: !!selectedSemesterId, selectedDisplayName: sectionName },
+      { key: 'topic', label: 'Topico', icon: ICON_TOPIC, items: topics.map(t => ({ id: t.id, name: t.name })), selectedId: selectedTopicId, onChange: handleTopicChange, placeholder: '-- Seleccionar topico --', emptyMessage: 'Sin topicos', visible: !!selectedSectionId, selectedDisplayName: topicName },
+      { key: 'summary', label: 'Resumen', icon: ICON_SUMMARY, items: summaryItems, selectedId: selectedSummaryId || '', onChange: handleSummaryChange, placeholder: '-- Seleccionar resumen --', emptyMessage: 'Sin resumenes en este topico', loading: summariesLoading, visible: !!selectedTopicId, selectedDisplayName: selectedSummary?.title || undefined },
     ];
   }, [
     courses, selectedCourseId, handleCourseChange, treeLoading,
@@ -344,12 +199,5 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     summaries, selectedSummaryId, handleSummaryChange, summariesLoading, selectedSummary,
   ]);
 
-  return {
-    selectedSummaryId,
-    selectedSummary,
-    keywords,
-    getKeywordName,
-    cascadeLevels,
-    breadcrumbItems,
-  };
+  return { selectedSummaryId, selectedSummary, keywords, getKeywordName, cascadeLevels, breadcrumbItems };
 }
