@@ -1,14 +1,16 @@
 // ============================================================
-// Axon — Quiz Questions API Service
+// Axon — Quiz API Service (unified)
 //
 // Endpoints (flat routes with query params):
-//   GET    /quiz-questions?summary_id=xxx&keyword_id=xxx(op)&question_type=xxx(op)&difficulty=xxx(op)
-//          → { data: { items: [...], total, limit, offset } }
-//   GET    /quiz-questions/:id → { data: { ... } }
-//   POST   /quiz-questions    → create
-//   PUT    /quiz-questions/:id → update
-//   DELETE /quiz-questions/:id → soft-delete
-//   PUT    /quiz-questions/:id/restore → restore
+//   /quiz-questions — CRUD via factory (summary_id parentKey)
+//   /quizzes        — CRUD via factory (summary_id parentKey)
+//   /quiz-attempts  — Custom POST/GET (routes/study/reviews.ts)
+//   /reviews        — Custom POST/GET (routes/study/reviews.ts)
+//
+// Study Sessions & BKT States extracted to separate files (P2-S01):
+//   /study-sessions → studySessionApi.ts
+//   /bkt-states     → bktApi.ts
+// Re-exported here for backwards compatibility.
 //
 // Uses apiCall() from lib/api.ts (handles Authorization + X-Access-Token)
 // ============================================================
@@ -16,6 +18,14 @@
 import { apiCall } from '@/app/lib/api';
 import { DIFFICULTY_TO_INT } from '@/app/services/quizConstants';
 import type { QuestionType, Difficulty } from '@/app/services/quizConstants';
+
+// ── Re-exports for backwards compatibility (P2-S01) ──────
+// StudySessionRecord is the canonical type in studySessionApi.ts;
+// we alias it as StudySession for quiz-domain consumers.
+export type { StudySessionRecord as StudySession } from '@/app/services/studySessionApi';
+export { createStudySession, closeStudySession, getStudySessions } from '@/app/services/studySessionApi';
+export type { BktStatePayload, BktState } from '@/app/services/bktApi';
+export { upsertBktState, getBktStates } from '@/app/services/bktApi';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -35,6 +45,9 @@ export interface QuizEntity {
   created_at: string;
   updated_at?: string;
 }
+
+/** Convenience alias used by QuizQuestionsEditor and other consumers */
+export type Quiz = QuizEntity;
 
 export interface QuizEntityListResponse {
   items: QuizEntity[];
@@ -73,6 +86,7 @@ export interface CreateQuizQuestionPayload {
   summary_id: string;
   keyword_id: string;
   subtopic_id?: string;  // optional — omit if no subtopic selected
+  quiz_id?: string;      // FIX BA-04: backend accepts quiz_id in createFields
   question_type: QuestionType;
   question: string;
   correct_answer: string;
@@ -91,6 +105,8 @@ export interface UpdateQuizQuestionPayload {
   difficulty?: number;
   source?: QuestionSource;
   is_active?: boolean;
+  subtopic_id?: string;  // FIX BA-05: backend accepts in updateFields
+  quiz_id?: string;      // FIX BA-05: backend accepts in updateFields
 }
 
 // ── API Functions ─────────────────────────────────────────
@@ -106,6 +122,7 @@ export async function getQuizQuestions(
     keyword_id?: string;
     question_type?: QuestionType;
     difficulty?: Difficulty | number;
+    quiz_id?: string;
     limit?: number;
     offset?: number;
   }
@@ -121,6 +138,7 @@ export async function getQuizQuestions(
       : DIFFICULTY_TO_INT[filters.difficulty as Difficulty];
     if (diffInt) params.set('difficulty', String(diffInt));
   }
+  if (filters?.quiz_id) params.set('quiz_id', filters.quiz_id);
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.offset) params.set('offset', String(filters.offset));
   return apiCall<QuizQuestionListResponse>(`/quiz-questions?${params}`);
@@ -169,67 +187,60 @@ export async function restoreQuizQuestion(id: string): Promise<QuizQuestion> {
   });
 }
 
-// ── Study Sessions ────────────────────────────────────────
+// ── Quizzes (entity CRUD) ───────────────────────────────
 
-export interface StudySession {
-  id: string;
-  student_id?: string;
-  session_type: string;
-  course_id?: string;
-  started_at: string;
-  completed_at?: string | null;
-  total_reviews?: number | null;
-  correct_reviews?: number | null;
-  created_at: string;
-  updated_at?: string;
+export interface CreateQuizPayload {
+  summary_id: string;
+  title: string;
+  description?: string | null;
+  source: 'manual' | 'ai';
+}
+
+export interface UpdateQuizPayload {
+  title?: string;
+  description?: string | null;
+  is_active?: boolean;
 }
 
 /**
- * Create a new study session (e.g. session_type: "quiz").
+ * List quizzes for a summary.
+ * CRUD factory returns { items, total, limit, offset }.
  */
-export async function createStudySession(data: {
-  session_type: string;
-  course_id?: string;
-}): Promise<StudySession> {
-  return apiCall<StudySession>('/study-sessions', {
+export async function getQuizzes(
+  summaryId: string,
+  filters?: { source?: string; is_active?: boolean; limit?: number; offset?: number }
+): Promise<QuizEntityListResponse> {
+  const params = new URLSearchParams();
+  params.set('summary_id', summaryId);
+  if (filters?.source) params.set('source', filters.source);
+  if (filters?.is_active != null) params.set('is_active', String(filters.is_active));
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  if (filters?.offset) params.set('offset', String(filters.offset));
+  return apiCall<QuizEntityListResponse>(`/quizzes?${params}`);
+}
+
+export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
+  return apiCall<QuizEntity>('/quizzes', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-/**
- * Close a study session with final stats.
- * FIX RT-001: uses completed_at (not ended_at), no duration_seconds.
- */
-export async function closeStudySession(id: string, data: {
-  completed_at: string;
-  total_reviews: number;
-  correct_reviews: number;
-}): Promise<StudySession> {
-  return apiCall<StudySession>(`/study-sessions/${id}`, {
+export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<QuizEntity> {
+  return apiCall<QuizEntity>(`/quizzes/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
-/**
- * Get study sessions (e.g. for history).
- * FIX BA-02: study-sessions is CRUD factory → returns { items, total, limit, offset }
- * after apiCall unwraps .data. Handle both formats defensively.
- */
-export async function getStudySessions(filters?: {
-  session_type?: string;
-  course_id?: string;
-  limit?: number;
-}): Promise<StudySession[]> {
-  const params = new URLSearchParams();
-  if (filters?.session_type) params.set('session_type', filters.session_type);
-  if (filters?.course_id) params.set('course_id', filters.course_id);
-  if (filters?.limit) params.set('limit', String(filters.limit));
-  const qs = params.toString() ? `?${params}` : '';
-  const result = await apiCall<any>(`/study-sessions${qs}`);
-  // CRUD factory returns { items, total, limit, offset }, not a plain array
-  return Array.isArray(result) ? result : result?.items || [];
+export async function deleteQuiz(id: string): Promise<void> {
+  await apiCall(`/quizzes/${id}`, { method: 'DELETE' });
+}
+
+export async function restoreQuiz(id: string): Promise<QuizEntity> {
+  return apiCall<QuizEntity>(`/quizzes/${id}/restore`, {
+    method: 'PUT',
+  });
 }
 
 // ── Quiz Attempts ─────────────────────────────────────────
@@ -237,7 +248,7 @@ export async function getStudySessions(filters?: {
 export interface QuizAttempt {
   id: string;
   quiz_question_id: string;
-  user_id?: string;
+  student_id?: string;
   answer: string;
   is_correct: boolean;
   session_id?: string | null;
@@ -245,10 +256,6 @@ export interface QuizAttempt {
   created_at: string;
 }
 
-/**
- * Record a quiz attempt.
- * is_correct is computed FRONTEND-side by comparing answer vs correct_answer.
- */
 export async function createQuizAttempt(data: {
   quiz_question_id: string;
   answer: string;
@@ -262,9 +269,6 @@ export async function createQuizAttempt(data: {
   });
 }
 
-/**
- * Get quiz attempts (array plano).
- */
 export async function getQuizAttempts(filters: {
   session_id?: string;
   quiz_question_id?: string;
@@ -273,4 +277,105 @@ export async function getQuizAttempts(filters: {
   if (filters.session_id) params.set('session_id', filters.session_id);
   if (filters.quiz_question_id) params.set('quiz_question_id', filters.quiz_question_id);
   return apiCall<QuizAttempt[]>(`/quiz-attempts?${params}`);
+}
+
+// ── Reviews ───────────────────────────────────────────────
+
+export interface ReviewPayload {
+  session_id: string;
+  item_id: string;
+  instrument_type: string;
+  grade: number;
+  response_time_ms?: number;
+}
+
+export interface Review {
+  id: string;
+  session_id: string;
+  item_id: string;
+  instrument_type: string;
+  grade: number;
+  response_time_ms?: number | null;
+  created_at: string;
+}
+
+export async function createReview(data: ReviewPayload): Promise<Review> {
+  return apiCall<Review>('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Smart (Adaptive) Quiz Generation ──────────────────────
+
+export interface SmartGenerateParams {
+  action: 'quiz_question' | 'flashcard';
+  institution_id?: string;
+  summary_id?: string;
+  count?: number;
+  quiz_id?: string;
+  auto_create_quiz?: boolean;
+  quiz_title?: string;
+}
+
+export interface SmartGenerateItem {
+  type: string;
+  id: string;
+  keyword_id: string;
+  keyword_name: string;
+  summary_id: string;
+  _smart: {
+    p_know: number;
+    need_score: number;
+    primary_reason: string;
+    target_subtopic: string | null;
+  };
+}
+
+export interface SmartGenerateError {
+  keyword_id: string;
+  keyword_name: string;
+  error: string;
+}
+
+export interface SmartGenerateResponse {
+  items: SmartGenerateItem[];
+  errors: SmartGenerateError[];
+  _meta: {
+    model: string;
+    action: string;
+    summary_id?: string;
+    quiz_id?: string;
+    total_attempted: number;
+    total_generated: number;
+    total_failed: number;
+    total_targets_available: number;
+  };
+}
+
+/**
+ * Generate adaptive quiz questions using AI.
+ * Backend auto-selects weakest subtopics via BKT analysis.
+ *
+ * Timeout is 120s (bulk AI generation can be slow).
+ * Uses AbortController since apiCall doesn't support timeoutMs.
+ */
+export async function generateSmartQuiz(params: SmartGenerateParams): Promise<SmartGenerateResponse> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    return await apiCall<SmartGenerateResponse>('/ai/generate-smart', {
+      method: 'POST',
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Timeout: la generacion adaptativa tardo mas de 2 minutos. Intenta con menos preguntas.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
