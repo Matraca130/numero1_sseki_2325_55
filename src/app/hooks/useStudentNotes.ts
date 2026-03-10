@@ -26,12 +26,14 @@ export function useStudentNotes() {
   const [error, setError] = useState<string | null>(null);
   const activeKeywordRef = useRef<string | null>(null);
 
+  // ── Load notes for a keyword ────────────────────────
   const loadNotes = useCallback(async (keywordId: string) => {
     activeKeywordRef.current = keywordId;
     setPhase('loading');
     setError(null);
     try {
       const result = await getNotesByKeyword(keywordId);
+      // Guard: only apply if still on the same keyword
       if (activeKeywordRef.current !== keywordId) return;
       setNotes(result);
       setPhase('ready');
@@ -42,6 +44,7 @@ export function useStudentNotes() {
     }
   }, []);
 
+  // ── Create a note ───────────────────────────────
   const addNote = useCallback(async (input: CreateStudentNoteInput): Promise<StudentNote | null> => {
     try {
       const newNote = await createNote(input);
@@ -53,6 +56,7 @@ export function useStudentNotes() {
     }
   }, []);
 
+  // ── Update a note ───────────────────────────────
   const editNote = useCallback(async (noteId: string, input: UpdateStudentNoteInput): Promise<boolean> => {
     try {
       const updated = await updateNote(noteId, input);
@@ -64,7 +68,9 @@ export function useStudentNotes() {
     }
   }, []);
 
+  // ── Delete a note ───────────────────────────────
   const removeNote = useCallback(async (noteId: string): Promise<boolean> => {
+    // Optimistic removal
     const previous = notes;
     setNotes(prev => prev.filter(n => n.id !== noteId));
     try {
@@ -72,11 +78,13 @@ export function useStudentNotes() {
       return true;
     } catch (err: any) {
       console.error('[useStudentNotes] Delete error:', err);
+      // Revert on failure
       setNotes(previous);
       return false;
     }
   }, [notes]);
 
+  // ── Reset ───────────────────────────────────────
   const reset = useCallback(() => {
     setNotes([]);
     setPhase('idle');
