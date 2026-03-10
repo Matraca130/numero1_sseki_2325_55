@@ -11,7 +11,7 @@
 
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 
-// ── CSV Helper ──────────────────────────────────────────────
+// ── CSV Helper ────────────────────────────────────────────
 
 /**
  * Escape a value for CSV format.
@@ -27,7 +27,7 @@ function csvEscape(value: string | null | undefined): string {
   return str;
 }
 
-// ── Export Functions ─────────────────────────────────────────
+// ── Export Functions ───────────────────────────────────────
 
 /**
  * Convert flashcards array to CSV string.
