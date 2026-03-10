@@ -24,12 +24,12 @@
 //   instead of duplicating getTimeMultiplier/interleave/distribute.
 // ============================================================
 
-import type { StudyPlanTask, StudyPlan } from '@/app/context/AppContext';
+import type { StudyPlanTask, StudyPlan } from '@/app/types/study-plan';
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
 import { getAxonToday } from './constants';
 import { getTimeMultiplier, interleaveByPriority, distributeAcrossDays } from './planSchedulingUtils';
 
-// ── Types ────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────
 
 export interface RescheduleInput {
   plan: StudyPlan;
@@ -65,7 +65,7 @@ function getTaskPriority(task: StudyPlanTask, mastery: Map<string, TopicMasteryI
   return m?.priorityScore ?? 50;
 }
 
-// ── Main engine ──────────────────────────────────────────────
+// ── Main engine ──────────────────────────────────────────
 
 export function rescheduleRemainingTasks(input: RescheduleInput): RescheduleResult {
   const { plan, topicMastery, getTimeEstimate, today = getAxonToday() } = input;
