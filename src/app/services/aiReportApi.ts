@@ -7,20 +7,6 @@
 //   GET   /ai/report-stats — Aggregate quality metrics (RPC)
 //   GET   /ai/reports      — Paginated report listing
 //
-// ARCHITECTURE: This is the backend's quality feedback loop.
-// Unlike the RAG feedback (PATCH /ai/rag-feedback which updates rag_query_log),
-// this system targets AI-generated quiz_questions and flashcards.
-//
-// The backend enforces:
-//   - Only source='ai' content can be reported (P1)
-//   - UNIQUE(content_type, content_id, reported_by) — no duplicates
-//   - institution_id resolved server-side from content's summary chain
-//   - ANY active member can POST, only CONTENT_WRITE_ROLES can PATCH
-//
-// PATCH /ai/report/:id uses a nested REST path. This is the BACKEND's
-// route design, not our frontend routing. Our Guidelines rule about
-// "JAMAS rutas REST anidadas" applies to React Router, not API calls.
-//
 // Extracted from aiApi.ts to keep under 500-line architectural limit.
 // ============================================================
 
@@ -39,7 +25,7 @@ export type AiReportReason =
 
 export type AiReportStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
 
-// ── Display Constants ───────────────────────────────────
+// ── Display Constants ─────────────────────────────────────
 
 export const REPORT_REASON_LABELS: Record<AiReportReason, string> = {
   incorrect: 'Respuesta incorrecta',
@@ -63,9 +49,8 @@ export const REPORT_STATUS_COLORS: Record<AiReportStatus, string> = {
   dismissed: 'bg-zinc-100 text-zinc-500 border-zinc-200',
 };
 
-// ── Interfaces ──────────────────────────────────────────
+// ── Interfaces ────────────────────────────────────────────
 
-/** Shape of a report returned by the backend */
 export interface AiContentReport {
   id: string;
   content_type: AiReportContentType;
@@ -93,7 +78,6 @@ export interface ResolveAiReportParams {
   resolution_note?: string;
 }
 
-/** Aggregate stats from GET /ai/report-stats RPC */
 export interface AiReportStats {
   total_reports: number;
   pending_count: number;
@@ -127,19 +111,8 @@ export interface AiReportsListParams {
   offset?: number;
 }
 
-// ── Service Functions ───────────────────────────────────
+// ── Service Functions ─────────────────────────────────────
 
-/**
- * Report an AI-generated quiz question or flashcard.
- *
- * Backend validates:
- * - Content exists and source='ai' (404 if manual or not found)
- * - User hasn't already reported this content (409 if duplicate)
- * - User has active membership in the content's institution
- *
- * @throws 409 if user already reported this content
- * @throws 404 if content not found or not AI-generated
- */
 export async function createAiReport(
   params: CreateAiReportParams
 ): Promise<AiContentReport> {
@@ -149,16 +122,6 @@ export async function createAiReport(
   });
 }
 
-/**
- * Resolve, review, or dismiss an AI content report.
- * Only accessible by professors, admins, and owners.
- *
- * Status transitions:
- * - pending → reviewed (admin looked at it, no decision yet)
- * - pending/reviewed → resolved (content was fixed or confirmed wrong)
- * - pending/reviewed → dismissed (report was invalid)
- * - resolved/dismissed → pending (re-open)
- */
 export async function resolveAiReport(
   reportId: string,
   params: ResolveAiReportParams
@@ -169,12 +132,6 @@ export async function resolveAiReport(
   });
 }
 
-/**
- * Fetch aggregate report quality metrics for an institution.
- * Returns 14 flat columns from the get_ai_report_stats RPC.
- *
- * Only accessible by professors/admins/owners (CONTENT_WRITE_ROLES).
- */
 export async function getAiReportStats(
   institutionId: string,
   from?: string,
@@ -186,12 +143,6 @@ export async function getAiReportStats(
   return apiCall<AiReportStats>(`/ai/report-stats?${params.toString()}`);
 }
 
-/**
- * Fetch paginated list of AI content reports for an institution.
- * Supports filtering by status, reason, and content_type.
- *
- * Only accessible by professors/admins/owners (CONTENT_WRITE_ROLES).
- */
 export async function getAiReports(
   params: AiReportsListParams
 ): Promise<AiReportsListResponse> {

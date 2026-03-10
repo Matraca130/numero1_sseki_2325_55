@@ -7,33 +7,21 @@
 //   POST /ai/pre-generate   — Bulk: professor fills coverage gaps (up to 5)
 //
 // Each endpoint auto-inserts generated content into quiz_questions or flashcards.
-// The backend handles ALL intelligence:
-//   - BKT mastery context (p_know, total_attempts, correct_attempts)
-//   - Student knowledge profile (RPC get_student_knowledge_context)
-//   - Professor notes (kw_prof_notes table)
-//   - Adaptive temperature (0.5 low mastery → 0.85 high mastery)
-//   - NeedScore ranking (1 - p_know, top 5 candidates)
-//   - Dedup check (no repeat keywords within 2h window)
-//   - Institution scoping + auth verification BEFORE Gemini call
-//
 // This service only transports typed parameters and returns typed responses.
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
 import type { QuizQuestion } from '@/app/services/quizApi';
 
-// ── Shared Types ──────────────────────────────────────
+// ── Shared Types ──────────────────────────────────────────
 
-/** Actions supported by all AI generation endpoints */
 export type AiAction = 'quiz_question' | 'flashcard';
 
-/** Token usage returned by Gemini */
 export interface AiTokenUsage {
   input: number;
   output: number;
 }
 
-/** Metadata included in every AI generation response */
 export interface AiMeta {
   model: string;
   tokens: AiTokenUsage;
@@ -206,7 +194,7 @@ export function isAiSmartFlashcardResult(
   return 'front' in result && 'back' in result;
 }
 
-// ── Utility: Map primary_reason to Spanish ─────────────────
+// ── Utility: Reason labels (Spanish) ─────────────────────
 
 const REASON_LABELS: Record<AiSmartInfo['primary_reason'], string> = {
   new_concept: 'Concepto nuevo que aun no has estudiado',
@@ -245,7 +233,7 @@ export function getMasteryLevel(pKnow: number): {
   return { level: 'low', color: '#ef4444', label: 'Necesita refuerzo' };
 }
 
-// ── Fase D: AI Content Reports (re-exported from aiReportApi.ts) ──
+// ── Re-exports from aiReportApi.ts ────────────────────────
 
 export {
   createAiReport,
