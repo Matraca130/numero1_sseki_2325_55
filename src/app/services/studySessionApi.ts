@@ -9,16 +9,19 @@
 //   - completed_at (not ended_at)
 //   - removed duration_seconds (column doesn't exist)
 //   - added 'reading' to session_type
-//   - instrument_type: 'flashcard' | 'quiz'
+//   - instrument_type: 'flashcard' | 'quiz' (was 'flashcard' only)
+//   - response_time_ms: M-2 FIX confirms backend persists this column
 //
 // FIX BA-03,BA-05 (2026-03-01):
 //   - getStudySessions: handle CRUD factory paginated response
 //   - FsrsStateRow: user_id → student_id (matches DB column)
 //
-// PERF v4.4.3:
-//   [M1] Added submitReviewBatch() — single POST for all reviews
-//        in a session instead of 3×N individual POSTs.
-//   [M1] Added fallbackToIndividualPosts() — graceful degradation.
+// PERF v4.4.3 (2026-03-07):
+//   - Added BatchReviewItem, BatchReviewResponse types
+//   - Added submitReviewBatch() — single POST for all reviews
+//     in a session instead of 3×N individual POSTs.
+//   - Added fallbackToIndividualPosts() for resilience
+//   - computeFsrsUpdate moved to lib/fsrs-engine.ts (canonical)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -31,13 +34,12 @@ export interface StudySessionRecord {
   session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
   course_id?: string;
   started_at: string;
-  completed_at?: string | null;  // FIX RT-001: was 'ended_at', real DB column is 'completed_at'
+  completed_at?: string | null;  // FIX RT-001: was 'ended_at'
   total_reviews?: number;
   correct_reviews?: number;
   created_at?: string;
   updated_at?: string;
-  // NOTE: duration_seconds does NOT exist in DB — computed from
-  // created_at → completed_at on read if needed.
+  // NOTE: duration_seconds does NOT exist in DB
 }
 
 export interface FsrsStateRow {
@@ -61,11 +63,11 @@ export interface ReviewRecord {
   item_id: string;
   instrument_type: 'flashcard' | 'quiz';
   grade: number;
-  response_time_ms?: number;
+  response_time_ms?: number;  // M-2 FIX: backend now persists this column
   created_at?: string;
 }
 
-// ── PERF M1: Batch Review Submission ────────────────────
+// ── PERF M1: Batch Review Submission ──────────────────────
 
 export interface BatchReviewItem {
   item_id: string;
@@ -112,7 +114,7 @@ export async function submitReviewBatch(
   });
 }
 
-// ── Study Sessions ──────────────────────────────────────
+// ── Study Sessions ────────────────────────────────────────
 
 export async function createStudySession(data: {
   session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
@@ -159,7 +161,7 @@ export async function getStudySessions(filters?: {
   return Array.isArray(result) ? result : result?.items || [];
 }
 
-// ── FSRS States ────────────────────────────────────────
+// ── FSRS States ─────────────────────────────────────────
 
 export async function getFsrsStates(params?: {
   due_before?: string;
@@ -192,14 +194,14 @@ export async function upsertFsrsState(data: {
   });
 }
 
-// ── Reviews ───────────────────────────────────────────
+// ── Reviews ─────────────────────────────────────────────
 
 export async function submitReview(data: {
   session_id: string;
   item_id: string;
-  instrument_type: 'flashcard';
+  instrument_type: 'flashcard' | 'quiz';
   grade: number;
-  response_time_ms?: number;
+  response_time_ms?: number;  // M-2 FIX: persisted by backend
 }): Promise<ReviewRecord> {
   return apiCall<ReviewRecord>('/reviews', {
     method: 'POST',
@@ -261,10 +263,10 @@ export async function fallbackToIndividualPosts(
   await Promise.allSettled(promises);
 }
 
-// ── FSRS Algorithm ──────────────────────────────────────
-// DEPRECATED: The old computeFsrsUpdate that lived here used a DIFFERENT
+// ── FSRS Algorithm ────────────────────────────────────────
+// DEPRECATED inline: The old computeFsrsUpdate that lived here used a DIFFERENT
 // formula than lib/fsrs-engine.ts, causing scheduling inconsistencies.
 // All consumers now use the canonical implementation from lib/fsrs-engine.ts.
-// Re-exported here ONLY for backward compatibility of the type.
+// Re-exported here ONLY for backward compatibility.
 export type { FsrsUpdate } from '@/app/lib/fsrs-engine';
 export { computeFsrsUpdate } from '@/app/lib/fsrs-engine';
