@@ -7,10 +7,11 @@
 //   /quiz-attempts  — Custom POST/GET (routes/study/reviews.ts)
 //   /reviews        — Custom POST/GET (routes/study/reviews.ts)
 //
-// Study Sessions & BKT States extracted to separate files (P2-S01):
-//   /study-sessions → studySessionApi.ts
-//   /bkt-states     → bktApi.ts
-// Re-exported here for backwards compatibility.
+// Study Sessions: kept INLINE here for backward compatibility.
+//   DO NOT extract to studySessionApi.ts — that file belongs to the
+//   flashcard domain and contains FSRS/Reviews/BatchReview.
+//
+// BKT States: extracted to bktApi.ts (P2-S01), re-exported here.
 //
 // Uses apiCall() from lib/api.ts (handles Authorization + X-Access-Token)
 // ============================================================
@@ -19,13 +20,59 @@ import { apiCall } from '@/app/lib/api';
 import { DIFFICULTY_TO_INT } from '@/app/services/quizConstants';
 import type { QuestionType, Difficulty } from '@/app/services/quizConstants';
 
-// ── Re-exports for backwards compatibility (P2-S01) ──────
-// StudySessionRecord is the canonical type in studySessionApi.ts;
-// we alias it as StudySession for quiz-domain consumers.
-export type { StudySessionRecord as StudySession } from '@/app/services/studySessionApi';
-export { createStudySession, closeStudySession, getStudySessions } from '@/app/services/studySessionApi';
+// ── Re-exports: BKT States (from bktApi.ts, P2-S01) ────────
 export type { BktStatePayload, BktState } from '@/app/services/bktApi';
 export { upsertBktState, getBktStates } from '@/app/services/bktApi';
+
+// ── Study Sessions (inline — shared with flashcard consumers) ──
+
+export interface StudySession {
+  id: string;
+  student_id?: string;
+  session_type: string;
+  course_id?: string;
+  started_at: string;
+  completed_at?: string | null;
+  total_reviews?: number | null;
+  correct_reviews?: number | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export async function createStudySession(data: {
+  session_type: string;
+  course_id?: string;
+}): Promise<StudySession> {
+  return apiCall<StudySession>('/study-sessions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function closeStudySession(id: string, data: {
+  completed_at: string;
+  total_reviews: number;
+  correct_reviews: number;
+}): Promise<StudySession> {
+  return apiCall<StudySession>(`/study-sessions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getStudySessions(filters?: {
+  session_type?: string;
+  course_id?: string;
+  limit?: number;
+}): Promise<StudySession[]> {
+  const params = new URLSearchParams();
+  if (filters?.session_type) params.set('session_type', filters.session_type);
+  if (filters?.course_id) params.set('course_id', filters.course_id);
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  const qs = params.toString() ? `?${params}` : '';
+  const result = await apiCall<{ items: StudySession[]; total: number } | StudySession[]>(`/study-sessions${qs}`);
+  return Array.isArray(result) ? result : result?.items || [];
+}
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -60,7 +107,7 @@ export interface QuizQuestion {
   id: string;
   summary_id: string;
   keyword_id: string;
-  subtopic_id?: string | null;  // null when DB column is NULL, undefined when field absent
+  subtopic_id?: string | null;
   question_type: QuestionType;
   question: string;
   options: string[] | null;
@@ -82,11 +129,10 @@ export interface QuizQuestionListResponse {
 }
 
 export interface CreateQuizQuestionPayload {
-  // FIX BA-01: removed 'name' — quiz_questions table has NO 'name' column
   summary_id: string;
   keyword_id: string;
-  subtopic_id?: string;  // optional — omit if no subtopic selected
-  quiz_id?: string;      // FIX BA-04: backend accepts quiz_id in createFields
+  subtopic_id?: string;
+  quiz_id?: string;
   question_type: QuestionType;
   question: string;
   correct_answer: string;
@@ -105,17 +151,12 @@ export interface UpdateQuizQuestionPayload {
   difficulty?: number;
   source?: QuestionSource;
   is_active?: boolean;
-  subtopic_id?: string;  // FIX BA-05: backend accepts in updateFields
-  quiz_id?: string;      // FIX BA-05: backend accepts in updateFields
+  subtopic_id?: string;
+  quiz_id?: string;
 }
 
 // ── API Functions ─────────────────────────────────────────
 
-/**
- * List quiz questions for a summary, with optional filters.
- * Backend returns { data: { items, total, limit, offset } }.
- * apiCall() unwraps .data, so we get { items, total, limit, offset }.
- */
 export async function getQuizQuestions(
   summaryId: string,
   filters?: {
@@ -132,7 +173,6 @@ export async function getQuizQuestions(
   if (filters?.keyword_id) params.set('keyword_id', filters.keyword_id);
   if (filters?.question_type) params.set('question_type', filters.question_type);
   if (filters?.difficulty != null) {
-    // Accept both string ('easy') and integer (1) — always send integer to backend
     const diffInt = typeof filters.difficulty === 'number'
       ? filters.difficulty
       : DIFFICULTY_TO_INT[filters.difficulty as Difficulty];
@@ -144,16 +184,10 @@ export async function getQuizQuestions(
   return apiCall<QuizQuestionListResponse>(`/quiz-questions?${params}`);
 }
 
-/**
- * Get a single quiz question by ID.
- */
 export async function getQuizQuestion(id: string): Promise<QuizQuestion> {
   return apiCall<QuizQuestion>(`/quiz-questions/${id}`);
 }
 
-/**
- * Create a new quiz question.
- */
 export async function createQuizQuestion(data: CreateQuizQuestionPayload): Promise<QuizQuestion> {
   return apiCall<QuizQuestion>('/quiz-questions', {
     method: 'POST',
@@ -161,9 +195,6 @@ export async function createQuizQuestion(data: CreateQuizQuestionPayload): Promi
   });
 }
 
-/**
- * Update an existing quiz question.
- */
 export async function updateQuizQuestion(id: string, data: UpdateQuizQuestionPayload): Promise<QuizQuestion> {
   return apiCall<QuizQuestion>(`/quiz-questions/${id}`, {
     method: 'PUT',
@@ -171,23 +202,17 @@ export async function updateQuizQuestion(id: string, data: UpdateQuizQuestionPay
   });
 }
 
-/**
- * Soft-delete a quiz question.
- */
 export async function deleteQuizQuestion(id: string): Promise<void> {
   await apiCall(`/quiz-questions/${id}`, { method: 'DELETE' });
 }
 
-/**
- * Restore a soft-deleted quiz question.
- */
 export async function restoreQuizQuestion(id: string): Promise<QuizQuestion> {
   return apiCall<QuizQuestion>(`/quiz-questions/${id}/restore`, {
     method: 'PUT',
   });
 }
 
-// ── Quizzes (entity CRUD) ───────────────────────────────
+// ── Quizzes (entity CRUD) ─────────────────────────────────
 
 export interface CreateQuizPayload {
   summary_id: string;
@@ -202,10 +227,6 @@ export interface UpdateQuizPayload {
   is_active?: boolean;
 }
 
-/**
- * List quizzes for a summary.
- * CRUD factory returns { items, total, limit, offset }.
- */
 export async function getQuizzes(
   summaryId: string,
   filters?: { source?: string; is_active?: boolean; limit?: number; offset?: number }
@@ -279,7 +300,7 @@ export async function getQuizAttempts(filters: {
   return apiCall<QuizAttempt[]>(`/quiz-attempts?${params}`);
 }
 
-// ── Reviews ───────────────────────────────────────────────
+// ── Reviews ─────────────────────────────────────────────
 
 export interface ReviewPayload {
   session_id: string;
@@ -353,13 +374,6 @@ export interface SmartGenerateResponse {
   };
 }
 
-/**
- * Generate adaptive quiz questions using AI.
- * Backend auto-selects weakest subtopics via BKT analysis.
- *
- * Timeout is 120s (bulk AI generation can be slow).
- * Uses AbortController since apiCall doesn't support timeoutMs.
- */
 export async function generateSmartQuiz(params: SmartGenerateParams): Promise<SmartGenerateResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120_000);

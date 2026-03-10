@@ -38,31 +38,15 @@ export const QUESTION_TYPE_LABELS_SHORT: Record<QuestionType, string> = {
   open: 'Abierta',
 };
 
-// ── AUD-01 FIX: question_type normalizer ──────────────────
-//
-// WHY: Backend AI endpoints generate.ts, pre-generate.ts, and
-// generate-smart.ts all prompt Gemini with:
-//   "question_type": "multiple_choice"
-// and store: g.question_type || "multiple_choice"
-//
-// But our type system uses "mcq" (from the original schema).
-// This map handles the backend→frontend translation without
-// touching the backend code (which is in a separate repo).
-//
-// The DB may contain BOTH "mcq" (from manual CRUD) AND
-// "multiple_choice" (from AI generation). This normalizer
-// ensures both render correctly.
+// ── AUD-01 FIX: question_type normalizer ────────────────────
 
 const QUESTION_TYPE_ALIASES: Record<string, QuestionType> = {
-  // Standard types (pass-through)
   mcq: 'mcq',
   true_false: 'true_false',
   fill_blank: 'fill_blank',
   open: 'open',
-  // Backend AI aliases
   multiple_choice: 'mcq',
-  'multiple-choice': 'mcq',  // defensive: in case of slug-format
-  // Other possible Gemini outputs (defensive)
+  'multiple-choice': 'mcq',
   true_or_false: 'true_false',
   'true/false': 'true_false',
   fill_in_blank: 'fill_blank',
@@ -70,20 +54,10 @@ const QUESTION_TYPE_ALIASES: Record<string, QuestionType> = {
   open_ended: 'open',
 };
 
-/**
- * Normalize a question_type from the database to our QuestionType enum.
- * Handles both standard types ("mcq") and AI-generated aliases ("multiple_choice").
- *
- * @example
- * normalizeQuestionType("multiple_choice") // → "mcq"
- * normalizeQuestionType("mcq")             // → "mcq"
- * normalizeQuestionType("true_false")      // → "true_false"
- * normalizeQuestionType("banana")          // → "mcq" (safe fallback)
- */
 export function normalizeQuestionType(raw: string | undefined | null): QuestionType {
   if (!raw) return 'mcq';
   const normalized = QUESTION_TYPE_ALIASES[raw.toLowerCase().trim()];
-  return normalized || 'mcq'; // fallback to mcq for unknown types
+  return normalized || 'mcq';
 }
 
 // ── Difficulty Labels & Colors ────────────────────────────
@@ -100,53 +74,27 @@ export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   hard: 'bg-red-100 text-red-700 border-red-200',
 };
 
-// ── Difficulty ↔ Integer Mapping (DB stores 1/2/3) ────────
+// ── Difficulty <-> Integer Mapping (DB stores 1/2/3) ────────
 
 export const DIFFICULTY_TO_INT: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
 export const INT_TO_DIFFICULTY: Record<number, Difficulty> = { 1: 'easy', 2: 'medium', 3: 'hard' };
 
-// ── AUD-02 FIX: difficulty normalizer ─────────────────────
-//
-// WHY: The DB may contain BOTH formats:
-//   - INTEGER (1/2/3) from manual CRUD via QuestionFormModal
-//   - STRING ("easy"/"medium"/"hard") from AI generation
-//
-// The backend AI endpoints insert: g.difficulty || "medium"
-// where Gemini returns string values. The CRUD manual path
-// converts via DIFFICULTY_TO_INT before sending.
-//
-// This normalizer handles both formats so components don't
-// need to care about the source of the question.
+// ── AUD-02 FIX: difficulty normalizer ───────────────────────
 
 const STRING_TO_DIFFICULTY: Record<string, Difficulty> = {
   easy: 'easy',
   medium: 'medium',
   hard: 'hard',
-  // Possible Spanish variants from Gemini (defensive)
   facil: 'easy',
   media: 'medium',
   dificil: 'hard',
 };
 
-/**
- * Normalize a difficulty value (int OR string) to our Difficulty type.
- *
- * @example
- * normalizeDifficulty(1)         // → "easy"
- * normalizeDifficulty(2)         // → "medium"
- * normalizeDifficulty("hard")    // → "hard"
- * normalizeDifficulty("medium")  // → "medium"
- * normalizeDifficulty(undefined) // → "medium" (safe fallback)
- */
 export function normalizeDifficulty(raw: number | string | undefined | null): Difficulty {
   if (raw == null) return 'medium';
-
-  // Integer path (manual CRUD)
   if (typeof raw === 'number') {
     return INT_TO_DIFFICULTY[raw] || 'medium';
   }
-
-  // String path (AI generation)
   const normalized = STRING_TO_DIFFICULTY[raw.toLowerCase().trim()];
   return normalized || 'medium';
 }
