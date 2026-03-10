@@ -15,13 +15,14 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { realRequest, ApiError } from '@/app/services/apiConfig';
 import { logger } from '@/app/lib/logger';
 
 // ── Types (canonical definitions in types/model3d.ts) ─────
 import type { Model3D, Model3DPin, Model3DNote, ModelLayer, ModelPart, PaginatedResponse } from '@/app/types/model3d';
 export type { Model3D, Model3DPin, Model3DNote, ModelLayer, ModelPart, PaginatedResponse };
 
-// ── Models 3D ─────────────────────────────────────────────
+// ── Models 3D ─────────────────────────────────────────
 
 export async function getModels3D(topicId: string): Promise<PaginatedResponse<Model3D>> {
   return apiCall<PaginatedResponse<Model3D>>(`/models-3d?topic_id=${topicId}`);
@@ -69,7 +70,7 @@ export async function restoreModel3D(id: string): Promise<Model3D> {
   return apiCall<Model3D>(`/models-3d/${id}/restore`, { method: 'PUT' });
 }
 
-// ── Model 3D Pins ─────────────────────────────────────────
+// ── Model 3D Pins ─────────────────────────────────────
 
 export async function getModel3DPins(modelId: string, keywordId?: string): Promise<PaginatedResponse<Model3DPin>> {
   let path = `/model-3d-pins?model_id=${modelId}`;
@@ -114,7 +115,7 @@ export async function deleteModel3DPin(id: string): Promise<void> {
   return apiCall(`/model-3d-pins/${id}`, { method: 'DELETE' });
 }
 
-// ── Model 3D Notes (Student) ──────────────────────────────
+// ── Model 3D Notes (Student) ──────────────────────────
 
 export async function getModel3DNotes(modelId: string): Promise<PaginatedResponse<Model3DNote>> {
   return apiCall<PaginatedResponse<Model3DNote>>(`/model-3d-notes?model_id=${modelId}`);
@@ -149,7 +150,7 @@ export async function restoreModel3DNote(id: string): Promise<Model3DNote> {
   return apiCall<Model3DNote>(`/model-3d-notes/${id}/restore`, { method: 'PUT' });
 }
 
-// ── Model Layers ──────────────────────────────────────────
+// ── Model Layers ──────────────────────────────────────
 
 export async function getModelLayers(modelId: string): Promise<PaginatedResponse<ModelLayer>> {
   return apiCall<PaginatedResponse<ModelLayer>>(`/model-layers?model_id=${modelId}`);
@@ -182,7 +183,7 @@ export async function deleteModelLayer(id: string): Promise<void> {
   return apiCall(`/model-layers/${id}`, { method: 'DELETE' });
 }
 
-// ── Model Parts ───────────────────────────────────────────
+// ── Model Parts ───────────────────────────────────────
 
 export async function getModelParts(modelId: string): Promise<PaginatedResponse<ModelPart>> {
   return apiCall<PaginatedResponse<ModelPart>>(`/model-parts?model_id=${modelId}`);
@@ -239,7 +240,7 @@ export async function deleteModelPart(id: string): Promise<void> {
 //      per-topic calls with max 6 concurrent (browser limit)
 // ════════════════════════════════════════════════════════════
 
-// ── In-memory cache ───────────────────────────────────────
+// ── In-memory cache ───────────────────────────────────
 
 interface CacheEntry {
   data: Model3D[];
@@ -299,10 +300,14 @@ async function throttledAll<T>(
   return results;
 }
 
-// ── Batch endpoint ────────────────────────────────────────
+// ── Batch endpoint ────────────────────────────────────
 
 /** Flag: set to true once the batch endpoint returns 404 to avoid retrying */
 let _batchEndpointUnavailable = false;
+/** Timestamp when the flag was set — resets after BATCH_UNAVAIL_TTL_MS */
+let _batchDisabledAt = 0;
+/** TTL for the batch-unavailable flag: retry after 10 minutes */
+const BATCH_UNAVAIL_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Batch-fetch models for multiple topics in a single request.
@@ -339,10 +344,14 @@ export async function getModels3DBatch(
   }
 
   // 2. Try batch endpoint (unless previously 404'd)
+  if (_batchEndpointUnavailable && Date.now() - _batchDisabledAt > BATCH_UNAVAIL_TTL_MS) {
+    _batchEndpointUnavailable = false;
+    logger.debug('Models3D', 'Batch unavailable TTL expired, retrying batch endpoint');
+  }
   if (!_batchEndpointUnavailable && uncached.length > 1) {
     try {
       const qs = uncached.join(',');
-      const batchResult = await apiCall<Record<string, Model3D[]>>(
+      const batchResult = await realRequest<Record<string, Model3D[]>>(
         `/models-3d/batch?topic_ids=${qs}`,
       );
 
@@ -356,13 +365,14 @@ export async function getModels3DBatch(
       logger.debug('Models3D', `Batch endpoint: ${uncached.length} topics in 1 request`);
       return result;
     } catch (err: unknown) {
-      // apiCall throws plain Error(msg) — parse status from message
-      // Format: "API Error 404" or json.error string
-      const errMsg = String((err as Error)?.message || '');
-      const is404or405 = errMsg.includes('404') || errMsg.includes('405') || errMsg.includes('Not Found');
+      // 3DP-3: Type-safe error detection via instanceof ApiError
+      // realRequest() throws ApiError with .status, so we can check
+      // the actual HTTP status instead of fragile string matching.
+      const is404or405 = err instanceof ApiError && (err.status === 404 || err.status === 405);
       if (is404or405) {
-        // Batch endpoint not deployed yet — fall back permanently for this session
+        // Batch endpoint not deployed yet — fall back for this TTL window
         _batchEndpointUnavailable = true;
+        _batchDisabledAt = Date.now();
         logger.info('Models3D', 'Batch endpoint not available, using throttled fallback');
       } else {
         // Other error (network, 500) — still fall back but don't mark permanently
