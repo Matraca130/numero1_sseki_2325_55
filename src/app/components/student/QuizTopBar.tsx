@@ -7,13 +7,13 @@
 // ============================================================
 
 import React from 'react';
-import type { Difficulty } from '@/app/services/quizApi';
+import type { Difficulty } from '@/app/services/quizConstants';
 import { DIFFICULTY_LABELS } from '@/app/services/quizConstants';
 import { ChevronLeft, BookOpen, X } from 'lucide-react';
 import clsx from 'clsx';
 import { TimerDisplay } from '@/app/components/student/TimerDisplay';
 
-// ── Props ────────────────────────────────────────────────
+// ── Props ────────────────────────────────────────────
 
 export interface QuizTopBarProps {
   quizTitle: string;
@@ -23,7 +23,7 @@ export interface QuizTopBarProps {
   onBack: () => void;
 }
 
-// ── Component ────────────────────────────────────────────
+// ── Component ────────────────────────────────────────
 
 export const QuizTopBar = React.memo(function QuizTopBar({
   quizTitle,

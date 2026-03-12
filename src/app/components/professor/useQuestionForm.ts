@@ -233,7 +233,7 @@ export function useQuestionForm({
         }
 
         const payload: CreateQuizQuestionPayload = {
-          name: questionText.trim().substring(0, 80),
+          // FIX BA-03: removed 'name' — field does not exist in quiz_questions table
           summary_id: summaryId,
           keyword_id: resolvedKeywordId,
           question_type: questionType,
