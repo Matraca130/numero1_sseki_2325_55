@@ -4,7 +4,7 @@
 // Receives summaryId. Full review flow:
 // 1. Load active flashcards for summary
 // 2. Start study session (POST /study-sessions)
-// 3. Flip cards, grade 1-4, queue reviews locally (zero POSTs)
+// 3. Flip cards, grade 1-5, queue reviews locally (zero POSTs)
 // 4. At session end: submit ALL reviews in ONE batch POST
 // 5. Close session with stats
 //
@@ -30,6 +30,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiCall } from '@/app/lib/api';
+import { postSessionAnalytics } from '@/app/lib/sessionAnalytics';
 import * as flashcardApi from '@/app/services/flashcardApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
@@ -38,25 +39,20 @@ import { FlashcardCard } from './FlashcardCard';
 import { detectCardType } from '@/app/lib/flashcard-utils';
 import type { CardType } from '@/app/lib/flashcard-utils';
 import { FlashcardImageZoom } from './FlashcardImageZoom';
-import { useReviewBatch } from '@/app/hooks/useReviewBatch';
+import { useReviewBatch, retryPendingBatches } from '@/app/hooks/useReviewBatch';
 import {
   CreditCard, Play, Loader2, X, RotateCcw,
   Trophy, BarChart3, ChevronRight, Type, Image as ImageIcon,
-  TextCursorInput,
+  TextCursorInput, Stethoscope,
 } from 'lucide-react';
-import { GRADES } from '@/app/hooks/flashcard-types';
+import { RATINGS } from '@/app/hooks/flashcard-types';
+import { ReportContentButton } from '@/app/components/shared/ReportContentButton';
 
 // ── Props ─────────────────────────────────────────────────
 
 interface FlashcardReviewerProps {
   summaryId: string;
   onClose?: () => void;
-  /**
-   * Optional mastery map: flashcard_id → { p_know }.
-   * If provided, queueReview uses real p_know values for BKT.
-   * If omitted, defaults to 0 (first pass) — intra-session
-   * accumulation still works via useReviewBatch's sessionBktRef.
-   */
   masteryMap?: Map<string, { p_know: number }>;
 }
 
@@ -64,7 +60,7 @@ interface FlashcardReviewerProps {
 
 type ReviewPhase = 'idle' | 'reviewing' | 'finished';
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardReviewerProps) {
   // ── Data ────────────────────────────────────────────────
@@ -72,7 +68,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Session state ───────────────────────────────────────
+  // ── Session state ─────────────────────────────────────────
   const [phase, setPhase] = useState<ReviewPhase>('idle');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -80,7 +76,10 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   const [grades, setGrades] = useState<number[]>([]);
   const sessionStartRef = useRef<Date | null>(null);
 
-  // ── Timing per card (for response_time_ms) ──────────────
+  // ── gradesRef: avoids handleGrade re-creation on every grade ──
+  const gradesRef = useRef<number[]>([]);
+
+  // ── Timing per card (for response_time_ms) ─────────────────
   const cardStartTime = useRef<number>(Date.now());
 
   // ── Image zoom state ────────────────────────────────────
@@ -89,18 +88,20 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   // ── Cloze state ────────────────────────────────────────
   const [clozeReady, setClozeReady] = useState(false);
 
-  // ── Batch review hook ───────────────────────────────────
-  // Replaces the old persistCardReview + submitReview pattern.
-  // queueReview: sync, zero POSTs — queues locally
-  // submitBatch: async, 1 POST /review-batch at session end
+  // ── Batch review hook ─────────────────────────────────────
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
 
-  // ── Current card (must be before currentCardType) ───────
+  // ── Retry pending batches from previous failed sessions ──
+  useEffect(() => {
+    retryPendingBatches();
+  }, []);
+
+  // ── Current card (must be before currentCardType) ─────────
   const currentCard = flashcards[currentIndex] || null;
   const totalCards = flashcards.length;
   const reviewedCount = grades.length;
 
-  // ── Current card type helper ────────────────────────────
+  // ── Current card type helper ──────────────────────────────
   const currentCardType = useMemo(() => {
     if (!currentCard) return 'text' as CardType;
     return detectCardType(currentCard.front, currentCard.back);
@@ -108,22 +109,19 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
 
   const isClozeCard = currentCardType === 'cloze';
 
-  // ── Reset cloze state on card change ────────────────────
+  // ── Reset cloze state on card change ──────────────────────
   useEffect(() => {
     setClozeReady(false);
   }, [currentIndex]);
 
-  // ── Image preloading for next card ──────────────────────
+  // ── Image preloading for next card ────────────────────────
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const nextCard = flashcards[currentIndex + 1];
     if (!nextCard) return;
-    // Preload images from next card
     const urls: string[] = [];
-    // Explicit image URLs from backend columns
     if (nextCard.front_image_url) urls.push(nextCard.front_image_url);
     if (nextCard.back_image_url) urls.push(nextCard.back_image_url);
-    // Content-embedded images
     const imgRegex = /!\[img\]\(([^)]+)\)/g;
     let match;
     while ((match = imgRegex.exec(nextCard.front)) !== null) urls.push(match[1]);
@@ -134,7 +132,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
     }
   }, [phase, currentIndex, flashcards]);
 
-  // ── Load flashcards + keywords ──────────────────────────
+  // ── Load flashcards + keywords ────────────────────────────
   useEffect(() => {
     if (!summaryId) return;
     setLoading(true);
@@ -144,7 +142,6 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
     ])
       .then(([fcResult, kwResult]) => {
         const fcItems = Array.isArray(fcResult) ? fcResult : fcResult.items || [];
-        // Filter only active, non-deleted
         const active = fcItems.filter(
           (c: FlashcardItem) => c.is_active && !c.deleted_at
         );
@@ -161,16 +158,27 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
       .finally(() => setLoading(false));
   }, [summaryId]);
 
-  // ── Keyword lookup ──────────────────────────────────────
+  // ── Keyword lookup ────────────────────────────────────────
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
-      map.set(kw.id, kw.term);
+      map.set(kw.id, kw.name || kw.term);
     }
     return map;
   }, [keywords]);
 
-  // ── Start session ───────────────────────────────────────
+  // ── v4.2: Keyword priority lookup ─────────────────────────
+  const keywordPriorityMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const kw of keywords) {
+      if (kw.clinical_priority && kw.clinical_priority > 0) {
+        map.set(kw.id, kw.clinical_priority);
+      }
+    }
+    return map;
+  }, [keywords]);
+
+  // ── Start session ─────────────────────────────────────────
   const startReview = useCallback(async () => {
     try {
       const session = await sessionApi.createStudySession({
@@ -182,61 +190,45 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
       setCurrentIndex(0);
       setIsFlipped(false);
       setGrades([]);
+      gradesRef.current = [];
       batchReset();
       setPhase('reviewing');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[FlashcardReviewer] Session create error:', err);
     }
   }, [batchReset]);
 
-  // ── Grade a card ────────────────────────────────────────
-  // NOW SYNC: queueReview does zero network calls.
-  // Batch submission happens ONLY at session end.
+  // ── Grade a card ──────────────────────────────────────────
   const handleGrade = useCallback((grade: number) => {
     if (!sessionId || !currentCard) return;
 
-    // 1. Compute response time
     const responseTimeMs = Date.now() - cardStartTime.current;
 
-    // 2. Queue review via useReviewBatch (sync, zero POSTs)
-    //    The hook handles: grade clamping, FSRS+BKT computation,
-    //    intra-session BKT accumulation, BatchReviewItem queuing.
     const masteryEntry = masteryMap?.get(currentCard.id);
     queueReview({
       card: currentCard,
       grade,
       responseTimeMs,
-      // existingFsrs: undefined — FlashcardReviewer doesn't have FSRS state;
-      // useReviewBatch will use initial FSRS state for computation.
       currentPKnow: masteryEntry?.p_know,
     });
 
-    // 3. Update local grades state
-    const newGrades = [...grades, grade];
+    const newGrades = [...gradesRef.current, grade];
+    gradesRef.current = newGrades;
     setGrades(newGrades);
 
-    // 4. Move to next card or finish
     if (currentIndex + 1 < totalCards) {
-      // ── Next card ──
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
       cardStartTime.current = Date.now();
     } else {
-      // ── Session complete ──
       setPhase('finished');
 
-      // Fire batch submit + close in background (non-blocking)
       const sid = sessionId;
       const startTime = sessionStartRef.current;
       (async () => {
-        // Submit all reviews in ONE batch request
         await submitBatch(sid);
 
-        // Close session on backend
         const now = new Date();
-        const durationSeconds = startTime
-          ? Math.round((now.getTime() - startTime.getTime()) / 1000)
-          : 0;
         const correctReviews = newGrades.filter(g => g >= 3).length;
 
         try {
@@ -248,52 +240,49 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
         } catch (err) {
           console.error('[FlashcardReviewer] Session close error:', err);
         }
+
+        const durationSeconds = startTime
+          ? Math.round((now.getTime() - startTime.getTime()) / 1000)
+          : 0;
+        await postSessionAnalytics({
+          totalReviews: totalCards,
+          correctReviews,
+          durationSeconds,
+        });
       })();
     }
-  }, [sessionId, currentCard, currentIndex, totalCards, grades, queueReview, submitBatch, masteryMap]);
+  }, [sessionId, currentCard, currentIndex, totalCards, queueReview, submitBatch, masteryMap]);
 
-  // ── Keyboard shortcuts ──────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
     if (phase !== 'reviewing') return;
     const handler = (e: KeyboardEvent) => {
-      // Don't handle if zoom modal is open
       if (zoomImageUrl) return;
 
-      // Space: flip card (non-cloze) or reveal all (cloze)
       if (e.key === ' ') {
         e.preventDefault();
-        if (!isFlipped) {
-          setIsFlipped(true);
-        }
+        if (!isFlipped) setIsFlipped(true);
       }
 
-      // Enter: for non-cloze, flip; for cloze, handled by ClozeInteraction
       if (e.key === 'Enter' && !isClozeCard) {
         e.preventDefault();
-        if (!isFlipped) {
-          setIsFlipped(true);
-        }
+        if (!isFlipped) setIsFlipped(true);
       }
 
-      // Tab: for cloze cards, reveal all blanks (triggers clozeComplete → flip)
       if (e.key === 'Tab' && isClozeCard && !isFlipped) {
         e.preventDefault();
-        // ClozeInteraction handles its own reveal-all via the button
-        // We trigger flip + clozeReady as a shortcut
         setClozeReady(true);
         setIsFlipped(true);
       }
 
-      // Number keys 1-4 for grading (only when flipped)
       if (isFlipped) {
         const num = parseInt(e.key);
-        if (num >= 1 && num <= 4) {
+        if (num >= 1 && num <= 5) {
           e.preventDefault();
           handleGrade(num);
         }
       }
 
-      // Z: zoom current card's image (if it has one)
       if (e.key === 'z' || e.key === 'Z') {
         if (currentCard) {
           const imgRegex = /!\[img\]\(([^)]+)\)/;
@@ -317,15 +306,16 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
     setCurrentIndex(0);
     setIsFlipped(false);
     setGrades([]);
+    gradesRef.current = [];
     sessionStartRef.current = null;
     batchReset();
   }, [batchReset]);
 
-  // ── Grade distribution for summary ─────────────────────
+  // ── Grade distribution for summary ───────────────────────
   const gradeDistribution = useMemo(() => {
-    const dist = [0, 0, 0, 0]; // indices 0-3 for grades 1-4
+    const dist = [0, 0, 0, 0, 0];
     for (const g of grades) {
-      if (g >= 1 && g <= 4) dist[g - 1]++;
+      if (g >= 1 && g <= 5) dist[g - 1]++;
     }
     return dist;
   }, [grades]);
@@ -335,21 +325,15 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
     return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100);
   }, [grades]);
 
-  // ── Card type distribution ─────────────────────────────
+  // ── Card type distribution ───────────────────────────────
   const cardTypeDistribution = useMemo(() => {
     const dist: { [key in CardType]: number } = {
-      text: 0,
-      text_image: 0,
-      image_text: 0,
-      image_image: 0,
-      text_both: 0,
-      cloze: 0,
+      text: 0, text_image: 0, image_text: 0,
+      image_image: 0, text_both: 0, cloze: 0,
     };
     for (const card of flashcards) {
       const type = detectCardType(card.front, card.back);
-      if (type in dist) {
-        dist[type]++;
-      }
+      if (type in dist) dist[type]++;
     }
     return dist;
   }, [flashcards]);
@@ -389,7 +373,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   }
 
   // ══════════════════════════════════════════
-  // PHASE: IDLE — Show card count + start
+  // PHASE: IDLE
   // ══════════════════════════════════════════
   if (phase === 'idle') {
     return (
@@ -426,14 +410,14 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   }
 
   // ══════════════════════════════════════════
-  // PHASE: REVIEWING — Flip cards + grade
+  // PHASE: REVIEWING
   // ══════════════════════════════════════════
   if (phase === 'reviewing' && currentCard) {
     const progressPercent = (reviewedCount / totalCards) * 100;
 
     return (
       <div className="flex flex-col h-full min-h-0 bg-[#0a0a0f]">
-        {/* ── Top bar ── */}
+        {/* Top bar */}
         <div className="shrink-0 px-5 py-3 flex items-center justify-between">
           <button
             onClick={() => {
@@ -453,11 +437,22 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
             </span>
           </div>
 
-          <div className="w-10" /> {/* spacer */}
+          <ReportContentButton
+            contentType="flashcard"
+            contentId={currentCard.id}
+          />
         </div>
 
-        {/* ── Progress bar ── */}
+        {/* Progress bar */}
         <div className="shrink-0 px-5 pb-4">
+          {currentCard && keywordPriorityMap.get(currentCard.keyword_id) != null && (
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20" style={{ fontWeight: 600 }}>
+                <Stethoscope size={10} />
+                Prioridad clinica: {Math.round((keywordPriorityMap.get(currentCard.keyword_id) || 0) * 100)}%
+              </span>
+            </div>
+          )}
           <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full"
@@ -468,7 +463,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
           </div>
         </div>
 
-        {/* ── Card area ── */}
+        {/* Card area */}
         <div className="flex-1 flex items-center justify-center px-5 min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
@@ -499,7 +494,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
           </AnimatePresence>
         </div>
 
-        {/* ── Grade buttons (only visible when flipped) ── */}
+        {/* Grade buttons (only visible when flipped) */}
         <div className="shrink-0 px-5 pb-6 pt-4">
           <AnimatePresence>
             {isFlipped && (
@@ -510,11 +505,11 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
                 transition={{ duration: 0.2 }}
                 className="flex items-center justify-center gap-3"
               >
-                {GRADES.map((g) => (
+                {RATINGS.map((g) => (
                   <button
                     key={g.value}
                     onClick={() => handleGrade(g.value)}
-                    className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl text-white font-semibold transition-all ${g.color} shadow-lg`}
+                    className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl text-white font-semibold transition-all ${g.color} ${g.hover} shadow-lg`}
                   >
                     <span className="text-sm">{g.label}</span>
                     <span className="text-[10px] opacity-70">{g.value}</span>
@@ -533,7 +528,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
           )}
         </div>
 
-        {/* ── Image Zoom Modal ── */}
+        {/* Image Zoom Modal */}
         <FlashcardImageZoom
           imageUrl={zoomImageUrl}
           onClose={() => setZoomImageUrl(null)}
@@ -543,7 +538,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   }
 
   // ══════════════════════════════════════════
-  // PHASE: FINISHED — Summary screen
+  // PHASE: FINISHED
   // ══════════════════════════════════════════
   if (phase === 'finished') {
     const durationSeconds = sessionStartRef.current
@@ -620,17 +615,12 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
             </span>
           </div>
           <div className="space-y-2.5">
-            {GRADES.map((g, idx) => (
+            {RATINGS.map((g, idx) => (
               <div key={g.value} className="flex items-center gap-3">
                 <span className="text-xs text-zinc-400 w-16 shrink-0">{g.label}</span>
                 <div className="flex-1 h-5 bg-zinc-800 rounded-full overflow-hidden">
                   <motion.div
-                    className={`h-full rounded-full ${
-                      g.value === 1 ? 'bg-red-500' :
-                      g.value === 2 ? 'bg-orange-500' :
-                      g.value === 3 ? 'bg-emerald-500' :
-                      'bg-blue-500'
-                    }`}
+                    className={`h-full rounded-full ${g.color}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${(gradeDistribution[idx] / maxGradeCount) * 100}%` }}
                     transition={{ duration: 0.5, delay: 0.5 + idx * 0.1 }}
@@ -660,9 +650,9 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
           <div className="space-y-2.5">
             {([
               { type: 'text' as CardType, label: 'Texto', color: 'bg-violet-500', icon: <Type size={12} /> },
-              { type: 'text_image' as CardType, label: 'Txt→Img', color: 'bg-indigo-500', icon: <Type size={12} /> },
-              { type: 'image_text' as CardType, label: 'Img→Txt', color: 'bg-sky-500', icon: <ImageIcon size={12} /> },
-              { type: 'image_image' as CardType, label: 'Img→Img', color: 'bg-teal-500', icon: <ImageIcon size={12} /> },
+              { type: 'text_image' as CardType, label: 'Txt\u2192Img', color: 'bg-indigo-500', icon: <Type size={12} /> },
+              { type: 'image_text' as CardType, label: 'Img\u2192Txt', color: 'bg-sky-500', icon: <ImageIcon size={12} /> },
+              { type: 'image_image' as CardType, label: 'Img\u2192Img', color: 'bg-teal-500', icon: <ImageIcon size={12} /> },
               { type: 'text_both' as CardType, label: 'Mixto', color: 'bg-purple-500', icon: <Type size={12} /> },
               { type: 'cloze' as CardType, label: 'Cloze', color: 'bg-cyan-500', icon: <TextCursorInput size={12} /> },
             ])
