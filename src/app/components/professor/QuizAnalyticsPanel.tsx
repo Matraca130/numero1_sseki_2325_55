@@ -95,7 +95,7 @@ export function QuizAnalyticsPanel({
     return () => { cancelled = true; };
   }, [quizId, summaryId]);
 
-  // ── Computed analytics ───────────────────────────────
+  // ── Computed analytics ─────────────────────────────────
 
   // Difficulty distribution
   const diffData = useMemo(() => {
@@ -312,7 +312,7 @@ export function QuizAnalyticsPanel({
   );
 }
 
-// ── Stat Card ────────────────────────────────────────────
+// ── Stat Card ───────────────────────────────────────────
 
 function StatCard({ icon, label, value, color }: {
   icon: React.ReactNode; label: string; value: string; color: string;
