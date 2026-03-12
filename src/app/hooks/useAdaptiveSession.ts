@@ -9,16 +9,30 @@
 //   those, generate more, and so on until satisfied.
 //
 // SESSION LIFECYCLE:
-//   idle -> reviewing(professor) -> partial-summary
-//     -> generating -> reviewing(ai) -> partial-summary
-//     -> generating -> reviewing(ai) -> partial-summary  (repeatable)
-//     -> completed (final submit + close)
+//   idle → reviewing(professor) → partial-summary
+//     → generating → reviewing(ai) → partial-summary
+//     → generating → reviewing(ai) → partial-summary  (repeatable)
+//     → completed (final submit + close)
+//
+// WHY NOT wrap useFlashcardEngine:
+//   useFlashcardEngine creates ONE session and submits ONE batch
+//   when the last card is rated. It also closes the session
+//   automatically. In the adaptive flow, we need:
+//     - ONE backend session spanning ALL rounds
+//     - ONE batch accumulating ALL reviews across rounds
+//     - Multiple "rounds" of card review
+//   Modifying useFlashcardEngine's lifecycle would violate rule S2
+//   (don't change its signature). Instead, we compose DIRECTLY
+//   over useReviewBatch (the shared batch hook) and implement
+//   our own card navigation (~50 lines). This gives us full
+//   control over when the batch is submitted and when the
+//   session is closed.
 //
 // COMPOSITION:
-//   useReviewBatch   -> batch queue + FSRS/BKT compute + submit
-//   Fase 1 services  -> keyword mastery aggregation + local updates
-//   Fase 2 services  -> AI adaptive batch generation
-//   Card navigation  -> implemented inline (simple state machine)
+//   useReviewBatch   → batch queue + BKT heuristic + submit
+//   Fase 1 services  → keyword mastery aggregation + local updates
+//   Fase 2 services  → AI adaptive batch generation
+//   Card navigation  → implemented inline (simple state machine)
 //
 // SAFETY:
 //   - New file, zero risk of regression
@@ -34,7 +48,6 @@
 //   - keywordMasteryApi (services/keywordMasteryApi.ts) [Fase 1]
 //   - adaptiveGenerationApi (services/adaptiveGenerationApi.ts) [Fase 2]
 //   - studySessionApi (services/studySessionApi.ts)
-//   - buildExistingFsrs (lib/fsrs-helpers.ts)
 //   - Flashcard type (types/content.ts)
 //   - StudyQueueItem type (lib/studyQueueApi.ts)
 // ============================================================
@@ -42,12 +55,13 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import type { Flashcard } from '@/app/types/content';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
-import { buildExistingFsrs } from '@/app/lib/fsrs-helpers';
 import * as sessionApi from '@/app/services/studySessionApi';
 import {
   useReviewBatch,
   type QueueReviewResult,
 } from './useReviewBatch';
+import { postSessionAnalytics } from '@/app/lib/sessionAnalytics';
+import { estimateOptimisticDueAt } from './useFlashcardEngine';
 import {
   fetchKeywordMasteryByTopic,
   computeLocalKeywordMastery,
@@ -94,72 +108,51 @@ export interface UseAdaptiveSessionOpts {
   masteryMap?: Map<string, StudyQueueItem>;
 }
 
-// ── Constants ───────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────
 
 const POST_PERSIST_GRACE_MS = 400;
 const CARD_ADVANCE_DELAY_MS = 200;
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // HOOK
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
 export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
   const { studentId, courseId, topicId, institutionId, masteryMap } = opts;
 
-  // ── Phase state ───────────────────────────────────────────
   const [phase, setPhase] = useState<AdaptivePhase>('idle');
-
-  // ── Card navigation state ─────────────────────────────────
   const [roundCards, setRoundCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
-
-  // ── Round tracking ────────────────────────────────────────
   const [completedRounds, setCompletedRounds] = useState<RoundInfo[]>([]);
   const currentRoundRef = useRef<RoundInfo | null>(null);
-
-  // ── Accumulated stats (cross-round) ───────────────────────
   const allStatsRef = useRef<number[]>([]);
   const currentRoundStatsRef = useRef<number[]>([]);
-
-  // ── Timing refs ───────────────────────────────────────────
   const cardStartTimeRef = useRef<number>(Date.now());
-
-  // ── Backend session ───────────────────────────────────────
+  const sessionStartTimeRef = useRef<number>(Date.now());
   const sessionIdRef = useRef<string | null>(null);
-
-  // ── Guards ────────────────────────────────────────────────
   const isFinishingRoundRef = useRef(false);
   const isFinishingSessionRef = useRef(false);
   const isStartingRef = useRef(false);
   const isGeneratingRef = useRef(false);
-
-  // ── Cross-round accumulators ───────────────────────────────
   const optimisticRef = useRef<Map<string, OptimisticCardUpdate>>(new Map());
   const masteryDeltasRef = useRef<CardMasteryDelta[]>([]);
   const bktUpdatesRef = useRef<Map<string, number>>(new Map());
   const summaryIdsRef = useRef<string[]>([]);
   const generationAbortRef = useRef<AbortController | null>(null);
 
-  // ── Keyword mastery state ─────────────────────────────────
   const [initialMastery, setInitialMastery] = useState<KeywordMasteryMap>(new Map());
   const [currentMastery, setCurrentMastery] = useState<KeywordMasteryMap>(new Map());
   const [masteryLoading, setMasteryLoading] = useState(false);
-
-  // ── Generation state ──────────────────────────────────────
   const [generationProgress, setGenerationProgress] = useState<GenerationProgressInfo | null>(null);
   const [lastGenerationResult, setLastGenerationResult] = useState<AdaptiveGenerationResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
-
-  // ── Snapshots for UI ──────────────────────────────────────
   const [allStatsSnapshot, setAllStatsSnapshot] = useState<number[]>([]);
   const [snapshotReviewCount, setSnapshotReviewCount] = useState(0);
   const [snapshotCorrectCount, setSnapshotCorrectCount] = useState(0);
 
-  // ── Batch review hook ──────────────────────────────────────
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
 
-  // ── Derived ───────────────────────────────────────────────
   const topicSummary = useMemo<TopicMasterySummary | null>(() => {
     if (currentMastery.size === 0) return null;
     return computeTopicMasterySummary(currentMastery);
@@ -169,50 +162,38 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     ? roundCards[currentIndex] ?? null
     : null;
 
-  // ── Helper: recompute keyword mastery ─────────────────────
   const recomputeMastery = useCallback(() => {
     if (initialMastery.size === 0) return;
     const updated = computeLocalKeywordMastery(initialMastery, bktUpdatesRef.current);
     setCurrentMastery(updated);
   }, [initialMastery]);
 
-  // ── Helper: finish current round ──────────────────────────
   const finishCurrentRound = useCallback(() => {
     const round = currentRoundRef.current;
     if (round) {
       round.ratings = [...currentRoundStatsRef.current];
       setCompletedRounds(prev => [...prev, { ...round }]);
     }
-
     recomputeMastery();
-
     setAllStatsSnapshot([...allStatsRef.current]);
     setSnapshotReviewCount(allStatsRef.current.length);
     setSnapshotCorrectCount(countCorrect(allStatsRef.current));
-
     currentRoundStatsRef.current = [];
     isFinishingRoundRef.current = false;
-
     setPhase('partial-summary');
   }, [recomputeMastery]);
 
-  // ══════════════════════════════════════════════════════════
-  // PUBLIC: startSession
-  // ══════════════════════════════════════════════════════════
+  // ══ PUBLIC: startSession ══
 
   const startSession = useCallback(async (professorCards: Flashcard[]) => {
     if (professorCards.length === 0) return;
     if (!studentId) {
-      if (import.meta.env.DEV) {
-        console.warn('[AdaptiveSession] startSession called without studentId');
-      }
+      if (import.meta.env.DEV) console.warn('[AdaptiveSession] startSession called without studentId');
       return;
     }
-
     if (isStartingRef.current) return;
     isStartingRef.current = true;
 
-    // Reset all state
     setRoundCards(professorCards);
     setCurrentIndex(0);
     setIsRevealed(false);
@@ -231,71 +212,38 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     isFinishingSessionRef.current = false;
     batchReset();
 
-    // Initialize round 1
     currentRoundRef.current = {
-      roundNumber: 1,
-      source: 'professor',
-      cardCount: professorCards.length,
-      ratings: [],
+      roundNumber: 1, source: 'professor', cardCount: professorCards.length, ratings: [],
     };
 
     cardStartTimeRef.current = Date.now();
+    sessionStartTimeRef.current = Date.now();
 
-    // Create backend session
     try {
-      const session = await sessionApi.createStudySession({
-        session_type: 'flashcard',
-        course_id: courseId || undefined,
-      });
+      const session = await sessionApi.createStudySession({ session_type: 'flashcard', course_id: courseId || undefined });
       sessionIdRef.current = session.id;
-      if (import.meta.env.DEV) {
-        console.log(`[AdaptiveSession] Session created: ${session.id}`);
-      }
+      if (import.meta.env.DEV) console.log(`[AdaptiveSession] Session created: ${session.id}`);
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.warn('[AdaptiveSession] Session creation failed (continuing offline):', err);
-      }
+      if (import.meta.env.DEV) console.warn('[AdaptiveSession] Session creation failed (continuing offline):', err);
       sessionIdRef.current = `local-${Date.now()}`;
     }
 
-    // Fetch initial keyword mastery (parallel, non-blocking)
     if (topicId) {
       setMasteryLoading(true);
       fetchKeywordMasteryByTopic(topicId)
-        .then((mastery) => {
-          setInitialMastery(mastery);
-          setCurrentMastery(mastery);
-          if (import.meta.env.DEV) {
-            console.log(`[AdaptiveSession] Keyword mastery loaded: ${mastery.size} keywords`);
-          }
-        })
-        .catch((err) => {
-          if (import.meta.env.DEV) {
-            console.warn('[AdaptiveSession] Keyword mastery fetch failed:', err);
-          }
-        })
+        .then((mastery) => { setInitialMastery(mastery); setCurrentMastery(mastery); })
+        .catch((err) => { if (import.meta.env.DEV) console.warn('[AdaptiveSession] Keyword mastery fetch failed:', err); })
         .finally(() => setMasteryLoading(false));
     }
 
-    // Extract unique summary IDs for AI generation scoping
-    const uniqueSummaryIds = [...new Set(
-      professorCards
-        .map(card => card.summary_id)
-        .filter((id): id is string => !!id)
-    )];
+    const uniqueSummaryIds = [...new Set(professorCards.map(card => card.summary_id).filter((id): id is string => !!id))];
     summaryIdsRef.current = uniqueSummaryIds;
-
-    if (import.meta.env.DEV && uniqueSummaryIds.length > 0) {
-      console.log(`[AdaptiveSession] Topic scoping: ${uniqueSummaryIds.length} unique summaries`);
-    }
 
     setPhase('reviewing');
     isStartingRef.current = false;
   }, [courseId, topicId, batchReset, studentId]);
 
-  // ══════════════════════════════════════════════════════════
-  // PUBLIC: handleRate
-  // ══════════════════════════════════════════════════════════
+  // ══ PUBLIC: handleRate ══
 
   const handleRate = useCallback((rating: number) => {
     if (phase !== 'reviewing') return;
@@ -305,46 +253,32 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     if (!card) return;
 
     const responseTimeMs = Date.now() - cardStartTimeRef.current;
-
-    const existingFsrs = buildExistingFsrs(card, masteryMap);
     const sq = masteryMap?.get(card.id);
 
     const result: QueueReviewResult = queueReview({
-      card,
-      grade: rating,
-      responseTimeMs,
-      existingFsrs,
-      currentPKnow: sq?.p_know,
+      card, grade: rating, responseTimeMs, currentPKnow: sq?.p_know,
     });
 
-    // Track optimistic updates
     optimisticRef.current.set(card.id, {
       flashcard_id: card.id,
-      p_know: result.newPKnow,
-      fsrs_state: result.fsrsUpdate.state,
-      stability: result.fsrsUpdate.stability,
-      difficulty: result.fsrsUpdate.difficulty,
-      due_at: result.fsrsUpdate.due_at,
+      p_know: result.estimatedPKnow,
+      fsrs_state: sq?.fsrs_state === 'new' ? 'learning' : 'review',
+      stability: sq?.stability ?? 0,
+      difficulty: sq?.difficulty ?? 0,
+      due_at: estimateOptimisticDueAt(rating),
     });
 
-    // Track mastery deltas
     masteryDeltasRef.current.push({
-      cardId: card.id,
-      before: result.previousPKnow,
-      after: result.newPKnow,
-      grade: rating,
+      cardId: card.id, before: result.previousPKnow, after: result.estimatedPKnow, grade: rating,
     });
 
-    // Track BKT updates for local keyword mastery
     if (card.subtopic_id) {
-      bktUpdatesRef.current.set(card.subtopic_id, result.newPKnow);
+      bktUpdatesRef.current.set(card.subtopic_id, result.estimatedPKnow);
     }
 
-    // Update stats
     allStatsRef.current.push(rating);
     currentRoundStatsRef.current.push(rating);
 
-    // Check if last card
     const isLast = currentIndex >= roundCards.length - 1;
 
     if (isLast) {
@@ -359,18 +293,13 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     }
   }, [phase, roundCards, currentIndex, masteryMap, queueReview, finishCurrentRound]);
 
-  // ══════════════════════════════════════════════════════════
-  // PUBLIC: generateMore
-  // ══════════════════════════════════════════════════════════
+  // ══ PUBLIC: generateMore ══
 
   const generateMore = useCallback(async (count: number) => {
     if (phase !== 'partial-summary') {
-      if (import.meta.env.DEV) {
-        console.warn(`[AdaptiveSession] generateMore called in wrong phase: ${phase}`);
-      }
+      if (import.meta.env.DEV) console.warn(`[AdaptiveSession] generateMore called in wrong phase: ${phase}`);
       return;
     }
-
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
 
@@ -383,51 +312,26 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
 
     try {
       const result = await generateAdaptiveBatch({
-        count,
-        institutionId,
-        related: true,
-        signal,
+        count, institutionId, related: true, signal,
         onProgress: (progress) => {
-          setGenerationProgress({
-            completed: progress.completed,
-            total: progress.total,
-            generated: progress.generated,
-            failed: progress.failed,
-          });
+          setGenerationProgress({ completed: progress.completed, total: progress.total, generated: progress.generated, failed: progress.failed });
         },
         summaryIds: summaryIdsRef.current,
       });
 
-      if (signal.aborted) {
-        if (import.meta.env.DEV) {
-          console.log('[AdaptiveSession] Generation was aborted, discarding results');
-        }
-        return;
-      }
+      if (signal.aborted) return;
 
       setLastGenerationResult(result);
-
       const aiCards = mapBatchToFlashcards(result);
 
       if (aiCards.length === 0) {
-        if (import.meta.env.DEV) {
-          console.warn('[AdaptiveSession] Generation produced 0 cards');
-        }
-        setGenerationError(
-          'No se pudieron generar flashcards v\u00E1lidas. Int\u00E9ntalo de nuevo.'
-        );
+        setGenerationError('No se pudieron generar flashcards v\u00E1lidas. Int\u00E9ntalo de nuevo.');
         setPhase('partial-summary');
         return;
       }
 
-      // Initialize new AI round
       const nextRoundNumber = (currentRoundRef.current?.roundNumber ?? 0) + 1;
-      currentRoundRef.current = {
-        roundNumber: nextRoundNumber,
-        source: 'ai',
-        cardCount: aiCards.length,
-        ratings: [],
-      };
+      currentRoundRef.current = { roundNumber: nextRoundNumber, source: 'ai', cardCount: aiCards.length, ratings: [] };
 
       setRoundCards(aiCards);
       setCurrentIndex(0);
@@ -439,15 +343,10 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       setPhase('reviewing');
 
       if (import.meta.env.DEV) {
-        console.log(
-          `[AdaptiveSession] AI round ${nextRoundNumber}: ${aiCards.length} cards ` +
-          `(${result.stats.uniqueKeywords} unique keywords, ${result.stats.failed} failed)`
-        );
+        console.log(`[AdaptiveSession] AI round ${nextRoundNumber}: ${aiCards.length} cards (${result.stats.uniqueKeywords} unique keywords, ${result.stats.failed} failed)`);
       }
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.error('[AdaptiveSession] Generation failed:', err);
-      }
+      if (import.meta.env.DEV) console.error('[AdaptiveSession] Generation failed:', err);
       setGenerationError('La generaci\u00F3n de flashcards fall\u00F3. Int\u00E9ntalo de nuevo.');
       setPhase('partial-summary');
     } finally {
@@ -456,37 +355,27 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     }
   }, [phase, institutionId]);
 
-  // ══════════════════════════════════════════════════════════
-  // PUBLIC: abortGeneration
-  // ══════════════════════════════════════════════════════════
+  // ══ PUBLIC: abortGeneration ══
 
   const abortGeneration = useCallback(() => {
     if (phase !== 'generating') return;
-
     const controller = generationAbortRef.current;
     if (controller) {
       controller.abort();
-      if (import.meta.env.DEV) {
-        console.log('[AdaptiveSession] Generation aborted');
-      }
+      if (import.meta.env.DEV) console.log('[AdaptiveSession] Generation aborted');
     }
-
     setPhase('partial-summary');
     setGenerationProgress(null);
     setGenerationError(null);
   }, [phase]);
 
-  // ══════════════════════════════════════════════════════════
-  // PUBLIC: finishSession
-  // ══════════════════════════════════════════════════════════
+  // ══ PUBLIC: finishSession ══
 
   const finishSession = useCallback(async () => {
     if (isFinishingSessionRef.current) return;
     if (phase !== 'partial-summary' && phase !== 'reviewing') return;
-
     isFinishingSessionRef.current = true;
 
-    // If finishing from reviewing, finalize current round
     if (phase === 'reviewing' && currentRoundRef.current) {
       const round = currentRoundRef.current;
       round.ratings = [...currentRoundStatsRef.current];
@@ -495,8 +384,6 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     }
 
     setPhase('completed');
-
-    // Snapshot final stats
     setAllStatsSnapshot([...allStatsRef.current]);
     setSnapshotReviewCount(allStatsRef.current.length);
     setSnapshotCorrectCount(countCorrect(allStatsRef.current));
@@ -507,14 +394,25 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     // 1. Submit ALL reviews in ONE batch
     if (sessionId) {
       try {
-        await submitBatch(sessionId);
-        if (import.meta.env.DEV) {
-          console.log(`[AdaptiveSession] Batch submitted for session ${sessionId}`);
+        const batchResult = await submitBatch(sessionId);
+        // FASE 5: Patch optimisticRef with real FSRS values from backend
+        if (batchResult?.computedResults) {
+          for (const [itemId, computed] of batchResult.computedResults) {
+            const existing = optimisticRef.current.get(itemId);
+            if (existing && computed.fsrs) {
+              existing.fsrs_state = computed.fsrs.state;
+              existing.stability = computed.fsrs.stability;
+              existing.difficulty = computed.fsrs.difficulty;
+              existing.due_at = computed.fsrs.due_at;
+            }
+            if (existing && computed.bkt) {
+              existing.p_know = computed.bkt.p_know;
+            }
+          }
         }
+        if (import.meta.env.DEV) console.log(`[AdaptiveSession] Batch submitted for session ${sessionId}`);
       } catch (err) {
-        if (import.meta.env.DEV) {
-          console.error('[AdaptiveSession] Batch submission failed:', err);
-        }
+        if (import.meta.env.DEV) console.error('[AdaptiveSession] Batch submission failed:', err);
       }
     }
 
@@ -527,62 +425,52 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
           total_reviews: allStats.length,
           correct_reviews: correctReviews,
         });
-        if (import.meta.env.DEV) {
-          console.log(`[AdaptiveSession] Session closed: ${sessionId}`);
-        }
+        if (import.meta.env.DEV) console.log(`[AdaptiveSession] Session closed: ${sessionId}`);
       } catch (err) {
-        if (import.meta.env.DEV) {
-          console.warn('[AdaptiveSession] Session close failed:', err);
-        }
+        if (import.meta.env.DEV) console.warn('[AdaptiveSession] Session close failed:', err);
       }
     }
 
     // 3. Grace period for Supabase eventual consistency
     await new Promise(r => setTimeout(r, POST_PERSIST_GRACE_MS));
+
+    // 4. GAP 1+2+3 FIX: Post daily-activities + student-stats (READ-THEN-INCREMENT)
+    const durationSeconds = Math.round((Date.now() - sessionStartTimeRef.current) / 1000);
+    const correctForAnalytics = countCorrect(allStats);
+    await postSessionAnalytics({
+      totalReviews: allStats.length,
+      correctReviews: correctForAnalytics,
+      durationSeconds,
+    });
   }, [phase, submitBatch, recomputeMastery]);
 
-  // ══════════════════════════════════════════════════════════
-  // RETURN
-  // ══════════════════════════════════════════════════════════
+  // ══ RETURN ══
 
   return {
-    // Phase & lifecycle
     phase,
     startSession,
     generateMore,
     abortGeneration,
     finishSession,
-
-    // Card navigation (valid during 'reviewing')
     currentCard,
     currentIndex,
     totalCards: roundCards.length,
     isRevealed,
     setIsRevealed,
     handleRate,
-
-    // Round tracking
     currentRound: currentRoundRef.current,
     currentRoundSource: currentRoundRef.current?.source ?? null,
     completedRounds,
     roundCount: completedRounds.length + (phase === 'reviewing' ? 1 : 0),
-
-    // Stats (cross-round)
     allStats: allStatsSnapshot,
     allReviewCount: snapshotReviewCount,
     allCorrectCount: snapshotCorrectCount,
-
-    // Keyword mastery (Fase 1)
     keywordMastery: currentMastery,
     topicSummary,
     masteryLoading,
-
-    // Generation (Fase 2)
     generationProgress,
     lastGenerationResult,
     generationError,
-
-    // Compatibility with FlashcardView/SummaryScreen
     optimisticUpdates: optimisticRef,
     masteryDeltas: masteryDeltasRef,
     sessionCards: roundCards,
