@@ -42,8 +42,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/app/lib/logger';
-import { getErrorMsg } from '@/app/lib/error-utils';
-import { formatDateCompact } from '@/app/lib/date-utils';
+import { getErrorMsg, formatDateCompact } from '@/app/lib/error-utils';
 import { BANNER_ERROR } from '@/app/services/quizDesignTokens';
 
 // ── Props ─────────────────────────────────────────────────
@@ -88,7 +87,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
   // Reset page when filters change
   useEffect(() => { setPage(0); }, [filterStatus, filterReason]);
 
-  // ── Fetch stats ────────────────────────────────────────
+  // ── Fetch stats ──────────────────────────────────────
   const fetchStats = useCallback(async () => {
     if (!institutionId) return;
     setStatsLoading(true);
@@ -146,6 +145,10 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
       });
 
       // Post-success: sync local state with backend response.
+      // NOT optimistic — we waited for the backend to confirm above.
+      // Must mirror the backend's P7 logic for field resets:
+      //   - Terminal states (resolved/dismissed) → set resolved_at
+      //   - Re-open (pending) → clear resolved_at, resolved_by, resolution_note
       setReports(prev =>
         prev.map(r => {
           if (r.id !== reportId) return r;
@@ -177,11 +180,11 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
     }
   }, [fetchStats]);
 
-  // ── Computed: has any data ───────────────────────────
+  // ── Computed: has any data ─────────────────────────────
   const hasData = stats != null && stats.total_reports > 0;
   const pendingCount = stats?.pending_count || 0;
 
-  // ── Reason breakdown for stats ───────────────────────
+  // ── Reason breakdown for stats ─────────────────────────
   const reasonBreakdown = useMemo(() => {
     if (!stats) return [];
     return [
@@ -285,6 +288,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                     color="#22c55e"
                     subValue={stats.dismissed_count > 0 ? `${stats.dismissed_count} descartados` : undefined}
                   />
+                  {/* Backend RPC returns resolution_rate in 0.0-1.0 scale (resolved/total) */}
                   <StatCard
                     label="Tasa resolucion"
                     value={`${Math.round((stats.resolution_rate || 0) * 100)}%`}
@@ -437,7 +441,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
               )}
             </AnimatePresence>
 
-            {/* Pagination UI */}
+            {/* Pagination UI — only shown when there are multiple pages */}
             {reportsTotal > PAGE_SIZE && (
               <div className="flex items-center justify-between pt-2 mt-2 border-t border-zinc-100">
                 <button
