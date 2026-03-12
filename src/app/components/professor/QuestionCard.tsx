@@ -11,7 +11,8 @@ import {
   QUESTION_TYPE_LABELS,
   DIFFICULTY_LABELS,
   DIFFICULTY_COLORS,
-  INT_TO_DIFFICULTY,
+  normalizeQuestionType,
+  normalizeDifficulty,
 } from '@/app/services/quizConstants';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -21,7 +22,7 @@ import {
   ChevronDown, ChevronUp,
 } from 'lucide-react';
 
-// ── Question Type Icons ───────────────────────────────────
+// ── Question Type Icons ─────────────────────────────────
 
 const QUESTION_TYPE_ICONS: Record<QuestionType, React.ReactNode> = {
   mcq: <CircleDot size={14} />,
@@ -30,7 +31,7 @@ const QUESTION_TYPE_ICONS: Record<QuestionType, React.ReactNode> = {
   open: <MessageSquare size={14} />,
 };
 
-// ── Props ─────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────
 
 interface QuestionCardProps {
   question: QuizQuestion;
@@ -41,7 +42,7 @@ interface QuestionCardProps {
   onRestore: () => void;
 }
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────
 
 export const QuestionCard = React.memo(function QuestionCard({
   question: q,
@@ -52,7 +53,8 @@ export const QuestionCard = React.memo(function QuestionCard({
   onRestore,
 }: QuestionCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const diffKey = INT_TO_DIFFICULTY[q.difficulty] || 'medium';
+  const diffKey = normalizeDifficulty(q.difficulty);
+  const normalizedType = normalizeQuestionType(q.question_type);
 
   return (
     <motion.div
@@ -77,8 +79,8 @@ export const QuestionCard = React.memo(function QuestionCard({
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             {/* Type badge */}
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px]" style={{ fontWeight: 600 }}>
-              {QUESTION_TYPE_ICONS[q.question_type]}
-              {QUESTION_TYPE_LABELS[q.question_type]}
+              {QUESTION_TYPE_ICONS[normalizedType]}
+              {QUESTION_TYPE_LABELS[normalizedType]}
             </span>
             {/* Difficulty badge */}
             <span className={clsx('px-2 py-0.5 rounded-md border text-[10px]', DIFFICULTY_COLORS[diffKey])} style={{ fontWeight: 600 }}>
@@ -154,7 +156,7 @@ export const QuestionCard = React.memo(function QuestionCard({
           >
             <div className="px-4 pb-3 ml-10 border-t border-gray-100 mt-1 pt-3 space-y-2.5">
               {/* Options (multiple choice) */}
-              {q.question_type === 'mcq' && q.options && (
+              {normalizedType === 'mcq' && q.options && (
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5" style={{ fontWeight: 700 }}>Opciones</p>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -181,13 +183,13 @@ export const QuestionCard = React.memo(function QuestionCard({
               )}
 
               {/* Correct answer (true/false, open, fill_blank) */}
-              {q.question_type !== 'mcq' && (
+              {normalizedType !== 'mcq' && (
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1" style={{ fontWeight: 700 }}>Respuesta correcta</p>
                   <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px]">
                     <Check size={12} />
                     <span style={{ fontWeight: 600 }}>
-                      {q.question_type === 'true_false'
+                      {normalizedType === 'true_false'
                         ? (q.correct_answer === 'true' ? 'Verdadero' : 'Falso')
                         : q.correct_answer
                       }
