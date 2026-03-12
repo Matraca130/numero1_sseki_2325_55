@@ -156,8 +156,11 @@ export function useKeywordNavigation({
           // Same topic but somehow not in the published list — try anyway
           setSelectedSummaryId(targetSummaryId);
         }
-      } catch (err: any) {
-        console.error('[useKeywordNavigation] Navigate error:', err);
+      } catch (err: unknown) {
+        // PN-15: catch(err:any) → catch(err:unknown) + DEV guard
+        if (import.meta.env.DEV) {
+          console.error('[useKeywordNavigation] Navigate error:', err);
+        }
         setIsPendingNav(false);
         toast.error('No se pudo navegar al resumen');
       }

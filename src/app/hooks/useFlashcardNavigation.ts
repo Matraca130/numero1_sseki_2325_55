@@ -109,11 +109,15 @@ async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
     return items
       .filter((card: any) => card.is_active !== false && !card.deleted_at)
       .map(mapApiCard);
-  } catch (batchErr: any) {
+  } catch (batchErr: unknown) {
+    // PN-15: catch(err:any) → catch(err:unknown)
     // If it's a 404 (endpoint not deployed yet), fall through to N+1.
     // For other errors, also fall through — the N+1 is our safety net.
     if (import.meta.env.DEV) {
-      console.warn(`[FlashcardNav] Batch endpoint failed for topic ${topicId}, falling back to N+1:`, batchErr?.message);
+      console.warn(
+        `[FlashcardNav] Batch endpoint failed for topic ${topicId}, falling back to N+1:`,
+        batchErr instanceof Error ? batchErr.message : batchErr,
+      );
     }
   }
 
@@ -353,10 +357,12 @@ export function useFlashcardNavigation() {
   );
 
   // Reset on course change
+  // PN-9: Also clear enrichedTopicCache — stale cross-course data should not persist
   useEffect(() => {
     setViewState('hub');
     setSelectedSection(null);
     setSelectedTopic(null);
+    enrichedTopicCache.current.clear();
   }, [currentCourse.id]);
 
   // ── Actions ──
