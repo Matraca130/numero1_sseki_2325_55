@@ -26,7 +26,7 @@
 //   await refreshPlans();                     // refresh cache
 // ============================================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import * as api from '@/app/services/platformApi';
 import type {
@@ -241,6 +241,11 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // ── Stable refresh wrapper ──────────────────────────────
+  const refresh = useCallback(async () => {
+    if (institutionId) await fetchAll(institutionId);
+  }, [institutionId, fetchAll]);
+
   // ── Auto-load when institution changes ──────────────────
   useEffect(() => {
     if (status === 'loading') return;
@@ -265,26 +270,32 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     fetchAll(institutionId);
   }, [fetchAll, institutionId, status]);
 
+  // ── PERF-01: Memoize context value to prevent cascading re-renders ──
+  const contextValue = useMemo<PlatformDataContextType>(() => ({
+    ...data,
+    loading,
+    error,
+    institutionId,
+    refresh,
+    refreshInstitution,
+    refreshMembers,
+    refreshPlans,
+    refreshStats,
+    refreshSubscription,
+    refreshCourses,
+    inviteMember,
+    removeMember,
+    toggleMember,
+    changeRole,
+  }), [
+    data, loading, error, institutionId,
+    refresh, refreshInstitution, refreshMembers, refreshPlans,
+    refreshStats, refreshSubscription, refreshCourses,
+    inviteMember, removeMember, toggleMember, changeRole,
+  ]);
+
   return (
-    <PlatformDataContext.Provider
-      value={{
-        ...data,
-        loading,
-        error,
-        institutionId,
-        refresh: async () => { if (institutionId) await fetchAll(institutionId); },
-        refreshInstitution,
-        refreshMembers,
-        refreshPlans,
-        refreshStats,
-        refreshSubscription,
-        refreshCourses,
-        inviteMember,
-        removeMember,
-        toggleMember,
-        changeRole,
-      }}
-    >
+    <PlatformDataContext.Provider value={contextValue}>
       {children}
     </PlatformDataContext.Provider>
   );

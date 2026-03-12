@@ -11,7 +11,7 @@
 // Must be wrapped inside AuthProvider (needs selectedInstitution + role).
 // ============================================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import * as api from '@/app/services/contentTreeApi';
@@ -105,7 +105,9 @@ export function ContentTreeProvider({ children }: { children: ReactNode }) {
           })) : [],
         })),
       };
-      console.log(`[ContentTree] Loaded: ${data.courses.length} courses`);
+      if (import.meta.env.DEV) {
+        console.log(`[ContentTree] Loaded: ${data.courses.length} courses`);
+      }
       setTree(data);
     } catch (err: any) {
       console.error('[ContentTree] Fetch error:', err);
@@ -200,22 +202,30 @@ export function ContentTreeProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  // ── PERF-01: Memoize context value to prevent cascading re-renders ──
+  const contextValue = useMemo<ContentTreeContextType>(() => ({
+    tree,
+    loading,
+    error,
+    canEdit,
+    selectedTopicId,
+    refresh,
+    selectTopic: setSelectedTopicId,
+    addCourse, editCourse, removeCourse,
+    addSemester, editSemester, removeSemester,
+    addSection, editSection, removeSection,
+    addTopic, editTopic, removeTopic,
+  }), [
+    tree, loading, error, canEdit, selectedTopicId,
+    refresh,
+    addCourse, editCourse, removeCourse,
+    addSemester, editSemester, removeSemester,
+    addSection, editSection, removeSection,
+    addTopic, editTopic, removeTopic,
+  ]);
+
   return (
-    <ContentTreeContext.Provider
-      value={{
-        tree,
-        loading,
-        error,
-        canEdit,
-        selectedTopicId,
-        refresh,
-        selectTopic: setSelectedTopicId,
-        addCourse, editCourse, removeCourse,
-        addSemester, editSemester, removeSemester,
-        addSection, editSection, removeSection,
-        addTopic, editTopic, removeTopic,
-      }}
-    >
+    <ContentTreeContext.Provider value={contextValue}>
       {children}
     </ContentTreeContext.Provider>
   );

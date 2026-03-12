@@ -20,6 +20,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
   useRef,
 } from 'react';
@@ -302,10 +303,12 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
       // The DB triggers (trg_review_inserted + trg_study_session_completed)
       // handle all writes to student-stats and daily-activities tables.
       // We just need to refresh the data to reflect the updated state.
-      console.log(
-        '[StudentDataContext] Session complete, refreshing data...',
-        _session.type
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          '[StudentDataContext] Session complete, refreshing data...',
+          _session.type
+        );
+      }
       await fetchAll();
     },
     [fetchAll]
@@ -374,9 +377,11 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
       if (hasAttemptedLoad.current) return;
       hasAttemptedLoad.current = true;
 
-      console.log(
-        `[StudentDataContext] Loading data for user: ${userId || 'anonymous (fallback)'}`
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          `[StudentDataContext] Loading data for user: ${userId || 'anonymous (fallback)'}`
+        );
+      }
       try {
         await fetchAll();
       } catch (err: any) {
@@ -390,23 +395,28 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
   // isConnected = true if we have a user AND stats loaded from backend
   const isConnected = !!data.profile && data.rawStats !== null;
 
+  // ── PERF-01: Memoize context value to prevent cascading re-renders ──
+  const contextValue = useMemo<StudentDataContextType>(() => ({
+    ...data,
+    loading,
+    error,
+    isConnected,
+    studentId: userId || null,
+    refresh: fetchAll,
+    seedAndLoad,
+    updateProfile: updateProfileFn,
+    updateStats: updateStatsFn,
+    logSession: logSessionFn,
+    saveReviews: saveReviewsFn,
+    recordSessionComplete,
+  }), [
+    data, loading, error, isConnected, userId,
+    fetchAll, seedAndLoad, updateProfileFn, updateStatsFn,
+    logSessionFn, saveReviewsFn, recordSessionComplete,
+  ]);
+
   return (
-    <StudentDataContext.Provider
-      value={{
-        ...data,
-        loading,
-        error,
-        isConnected,
-        studentId: userId || null,
-        refresh: fetchAll,
-        seedAndLoad,
-        updateProfile: updateProfileFn,
-        updateStats: updateStatsFn,
-        logSession: logSessionFn,
-        saveReviews: saveReviewsFn,
-        recordSessionComplete,
-      }}
-    >
+    <StudentDataContext.Provider value={contextValue}>
       {children}
     </StudentDataContext.Provider>
   );
