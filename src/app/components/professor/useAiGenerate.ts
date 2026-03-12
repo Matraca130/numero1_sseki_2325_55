@@ -151,7 +151,7 @@ export function useAiGenerate(
     }
   }, [summaryId, count, assignQuizId, onGenerated]);
 
-  // ── Dispatch ──────────────────────────────────────────
+  // ── Dispatch ────────────────────────────────────────
   const handleGenerate = useCallback(() => {
     if (mode === 'manual') handleManualGenerate();
     else handleBulkGenerate();
