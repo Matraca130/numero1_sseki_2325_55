@@ -20,9 +20,7 @@ import { DIFFICULTY_TO_INT } from '@/app/services/quizConstants';
 import type { QuestionType, Difficulty } from '@/app/services/quizConstants';
 
 // ── Re-exports for backwards compatibility (P2-S01) ──────
-// StudySessionRecord is the canonical type in studySessionApi.ts;
-// we alias it as StudySession for quiz-domain consumers.
-export type { StudySessionRecord as StudySession } from '@/app/services/studySessionApi';
+export type { StudySession } from '@/app/services/studySessionApi';
 export { createStudySession, closeStudySession, getStudySessions } from '@/app/services/studySessionApi';
 export type { BktStatePayload, BktState } from '@/app/services/bktApi';
 export { upsertBktState, getBktStates } from '@/app/services/bktApi';
@@ -33,7 +31,7 @@ export { upsertBktState, getBktStates } from '@/app/services/bktApi';
 export type { QuestionType, Difficulty } from '@/app/services/quizConstants';
 export type QuestionSource = 'manual' | 'ai';
 
-// ── Quiz Entity (matches backend /quizzes) ────────────
+// ── Quiz Entity (matches backend /quizzes) ────────────────
 export interface QuizEntity {
   id: string;
   summary_id: string;
