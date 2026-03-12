@@ -26,7 +26,7 @@ import type {
 } from '@/app/services/quizApi';
 import {
   DIFFICULTY_TO_INT,
-  INT_TO_DIFFICULTY,
+  normalizeDifficulty,
 } from '@/app/services/quizConstants';
 import type { Difficulty } from '@/app/services/quizConstants';
 import { QuestionCard } from '@/app/components/professor/QuestionCard';
@@ -44,17 +44,17 @@ import { toast } from 'sonner';
 import { Breadcrumb } from '@/app/components/design-kit';
 import { logger } from '@/app/lib/logger';
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────
 
 /** Safe error message extraction from unknown catch value */
 function getErrorMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-// ── Main Page ─────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────
 
 export function ProfessorQuizzesPage() {
-  // ── Cascade selection (hook) ────────────────────────────
+  // ── Cascade selection (hook) ────────────────────────
   const {
     selectedSummaryId,
     selectedSummary,
@@ -64,21 +64,21 @@ export function ProfessorQuizzesPage() {
     breadcrumbItems,
   } = useQuizCascade();
 
-  // ── Data state ──────────────────────────────────────────
+  // ── Data state ────────────────────────────────────────
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
 
-  // ── Filters ─────────────────────────────────────────────
+  // ── Filters ─────────────────────────────────────────
   const [filterType, setFilterType] = useState<QuestionType | ''>('');
   const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | ''>('');
   const [filterKeywordId, setFilterKeywordId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ── Modal state ─────────────────────────────────────────
+  // ── Modal state ───────────────────────────────────────
   const [showCreateEdit, setShowCreateEdit] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
 
-  // ── Sidebar collapse state ──────────────────────────────
+  // ── Sidebar collapse state ────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ── Reset keyword filter when summary changes ───────────
@@ -118,7 +118,7 @@ export function ProfessorQuizzesPage() {
     loadQuestions();
   }, [loadQuestions]);
 
-  // ── Filtered by search ──────────────────────────────────
+  // ── Filtered by search ─────────────────────────────────
   const filteredQuestions = useMemo(() => {
     if (!searchQuery.trim()) return questions;
     const q = searchQuery.toLowerCase();
@@ -128,21 +128,21 @@ export function ProfessorQuizzesPage() {
     );
   }, [questions, searchQuery]);
 
-  // ── Stats ──────────────────────────────────────────────
+  // ── Stats ──────────────────────────────────────────
   const stats = useMemo(() => {
     const byType: Record<string, number> = { mcq: 0, true_false: 0, fill_blank: 0, open: 0 };
     const byDiff: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
     let active = 0;
     for (const q of questions) {
       byType[q.question_type] = (byType[q.question_type] || 0) + 1;
-      const diffKey = INT_TO_DIFFICULTY[q.difficulty] || 'medium';
+      const diffKey = normalizeDifficulty(q.difficulty);
       byDiff[diffKey] = (byDiff[diffKey] || 0) + 1;
       if (q.is_active) active++;
     }
     return { total: questions.length, active, byType, byDiff };
   }, [questions]);
 
-  // ── CRUD handlers ───────────────────────────────────────
+  // ── CRUD handlers ─────────────────────────────────────
   const handleDelete = async (id: string) => {
     try {
       await quizApi.deleteQuizQuestion(id);
@@ -179,7 +179,7 @@ export function ProfessorQuizzesPage() {
     loadQuestions();
   };
 
-  // ── Render ──────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────
 
   return (
     <div className="flex h-full">
@@ -320,7 +320,7 @@ export function ProfessorQuizzesPage() {
         )}
       </div>
 
-      {/* ── Create/Edit Modal ───────────────────────────────────── */}
+      {/* ── Create/Edit Modal ─────────────────────────────────────── */}
 
       <AnimatePresence>
         {showCreateEdit && selectedSummaryId && (
