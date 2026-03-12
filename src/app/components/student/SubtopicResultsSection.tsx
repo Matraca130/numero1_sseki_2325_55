@@ -48,10 +48,10 @@ export const SubtopicResultsSection = React.memo(function SubtopicResultsSection
 }: SubtopicResultsSectionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // ── BKT states (M-2: shared hook) ─────────────────
+  // ── BKT states (M-2: shared hook) ───────────────────
   const { bktStates, bktBySubtopic, hasBktData: hasSubtopics } = useBktStates(questions);
 
-  // ── Build subtopic groups ─────────────────────────
+  // ── Build subtopic groups ───────────────────────────
   const groups = useMemo(() => {
     const map = new Map<string, SubtopicGroup>();
     questions.forEach((q, idx) => {
