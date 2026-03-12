@@ -33,7 +33,7 @@ export { upsertBktState, getBktStates } from '@/app/services/bktApi';
 export type { QuestionType, Difficulty } from '@/app/services/quizConstants';
 export type QuestionSource = 'manual' | 'ai';
 
-// ── Quiz Entity (matches backend /quizzes) ────────────────
+// ── Quiz Entity (matches backend /quizzes) ────────────
 export interface QuizEntity {
   id: string;
   summary_id: string;
@@ -136,7 +136,7 @@ export async function getQuizQuestions(
     const diffInt = typeof filters.difficulty === 'number'
       ? filters.difficulty
       : DIFFICULTY_TO_INT[filters.difficulty as Difficulty];
-    if (diffInt) params.set('difficulty', String(diffInt));
+    if (diffInt != null) params.set('difficulty', String(diffInt));
   }
   if (filters?.quiz_id) params.set('quiz_id', filters.quiz_id);
   if (filters?.limit) params.set('limit', String(filters.limit));
@@ -188,6 +188,10 @@ export async function restoreQuizQuestion(id: string): Promise<QuizQuestion> {
 }
 
 // ── Quizzes (entity CRUD) ───────────────────────────────
+// Backend: routes-student.tsx registerCrud({ table: "quizzes", slug: "quizzes", parentKey: "summary_id" })
+// requiredFields: ["title", "source"]
+// createFields: ["title", "description", "source"]
+// updateFields: ["title", "description", "is_active"]
 
 export interface CreateQuizPayload {
   summary_id: string;
@@ -219,6 +223,9 @@ export async function getQuizzes(
   return apiCall<QuizEntityListResponse>(`/quizzes?${params}`);
 }
 
+/**
+ * Create a new quiz entity.
+ */
 export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
   return apiCall<QuizEntity>('/quizzes', {
     method: 'POST',
@@ -226,6 +233,9 @@ export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
   });
 }
 
+/**
+ * Update a quiz entity.
+ */
 export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<QuizEntity> {
   return apiCall<QuizEntity>(`/quizzes/${id}`, {
     method: 'PUT',
@@ -233,10 +243,16 @@ export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<Q
   });
 }
 
+/**
+ * Soft-delete a quiz entity.
+ */
 export async function deleteQuiz(id: string): Promise<void> {
   await apiCall(`/quizzes/${id}`, { method: 'DELETE' });
 }
 
+/**
+ * Restore a soft-deleted quiz entity.
+ */
 export async function restoreQuiz(id: string): Promise<QuizEntity> {
   return apiCall<QuizEntity>(`/quizzes/${id}/restore`, {
     method: 'PUT',
@@ -256,6 +272,10 @@ export interface QuizAttempt {
   created_at: string;
 }
 
+/**
+ * Record a quiz attempt.
+ * is_correct is computed FRONTEND-side by comparing answer vs correct_answer.
+ */
 export async function createQuizAttempt(data: {
   quiz_question_id: string;
   answer: string;
@@ -269,6 +289,9 @@ export async function createQuizAttempt(data: {
   });
 }
 
+/**
+ * Get quiz attempts (array plano).
+ */
 export async function getQuizAttempts(filters: {
   session_id?: string;
   quiz_question_id?: string;
@@ -279,7 +302,10 @@ export async function getQuizAttempts(filters: {
   return apiCall<QuizAttempt[]>(`/quiz-attempts?${params}`);
 }
 
-// ── Reviews ───────────────────────────────────────────────
+// ── Reviews ─────────────────────────────────────────────
+// Backend: routes/study/reviews.ts (custom, NOT CRUD factory)
+// Required: session_id (UUID), item_id (UUID), instrument_type (string), grade (0-5)
+// Optional: response_time_ms (non-negative int)
 
 export interface ReviewPayload {
   session_id: string;
@@ -299,6 +325,10 @@ export interface Review {
   created_at: string;
 }
 
+/**
+ * Create a review record for a study session item.
+ * Backend verifies session ownership (O-3 FIX).
+ */
 export async function createReview(data: ReviewPayload): Promise<Review> {
   return apiCall<Review>('/reviews', {
     method: 'POST',
@@ -306,16 +336,19 @@ export async function createReview(data: ReviewPayload): Promise<Review> {
   });
 }
 
-// ── Smart (Adaptive) Quiz Generation ──────────────────────
+// ── Smart (Adaptive) Quiz Generation ────────────────────
+// Backend: routes/ai/generate-smart.ts (Fase 8A + 8E)
+// Uses RPC get_smart_generate_target() → picks weakest subtopics by BKT
+// Then generates AI quiz questions scoped to those subtopics
 
 export interface SmartGenerateParams {
   action: 'quiz_question' | 'flashcard';
   institution_id?: string;
   summary_id?: string;
-  count?: number;
-  quiz_id?: string;
-  auto_create_quiz?: boolean;
-  quiz_title?: string;
+  count?: number;    // 1-10, default 1
+  quiz_id?: string;  // auto-link generated questions to quiz entity
+  auto_create_quiz?: boolean;  // Fase 8G: server-side quiz creation
+  quiz_title?: string;         // Fase 8G: title for auto-created quiz
 }
 
 export interface SmartGenerateItem {
@@ -357,12 +390,19 @@ export interface SmartGenerateResponse {
  * Generate adaptive quiz questions using AI.
  * Backend auto-selects weakest subtopics via BKT analysis.
  *
+ * Flow:
+ *   1. Create a quiz entity via createQuiz()
+ *   2. Call generateSmartQuiz() with the quiz_id + count
+ *   3. Backend generates questions and auto-links them to the quiz
+ *   4. Navigate to QuizTaker with the quiz_id
+ *
  * Timeout is 120s (bulk AI generation can be slow).
- * Uses AbortController since apiCall doesn't support timeoutMs.
  */
 export async function generateSmartQuiz(params: SmartGenerateParams): Promise<SmartGenerateResponse> {
+  // FIX: apiCall does NOT support timeoutMs — implement AbortController timeout
+  // for bulk AI generation which can take 60-120s
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120_000);
+  const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 min
 
   try {
     return await apiCall<SmartGenerateResponse>('/ai/generate-smart', {
@@ -371,6 +411,7 @@ export async function generateSmartQuiz(params: SmartGenerateParams): Promise<Sm
       signal: controller.signal,
     });
   } catch (err) {
+    // Convert AbortError to a more descriptive timeout message
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error('Timeout: la generacion adaptativa tardo mas de 2 minutos. Intenta con menos preguntas.');
     }
