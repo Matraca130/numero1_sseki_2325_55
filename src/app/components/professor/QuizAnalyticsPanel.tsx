@@ -312,7 +312,7 @@ export function QuizAnalyticsPanel({
   );
 }
 
-// ── Stat Card ───────────────────────────────────────────
+// ── Stat Card ──────────────────────────────────────────
 
 function StatCard({ icon, label, value, color }: {
   icon: React.ReactNode; label: string; value: string; color: string;

@@ -17,6 +17,7 @@ import {
   Sparkles, Wand2, X, Loader2, AlertTriangle,
   CheckCircle2, Zap, Hash,
 } from 'lucide-react';
+import { QuizErrorBoundary } from '@/app/components/shared/QuizErrorBoundary';
 import type { KeywordRef } from '@/app/types/platform';
 import { useAiGenerate } from '@/app/components/professor/useAiGenerate';
 
