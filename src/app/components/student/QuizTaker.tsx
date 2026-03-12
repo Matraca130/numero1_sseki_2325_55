@@ -17,6 +17,9 @@
 // Phase 3 refactor: renderers extracted to sub-components
 // Phase 6b refactor: session lifecycle extracted to useQuizSession hook
 // Phase 7b refactor: error boundary added
+// P1-S03: localStorage recovery UI (recovery phase)
+// P2-S02: DRY live input reset helper
+// P7: Countdown timer
 // ============================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -25,6 +28,7 @@ import { QuizResults } from '@/app/components/student/QuizResults';
 import type { QuizQuestion } from '@/app/services/quizApi';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lightbulb, Loader2, AlertTriangle } from 'lucide-react';
+import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
 
 // ── Sub-components (Phase 3 extractions) ─────────────────
 import { QuestionRenderer } from '@/app/components/student/QuestionRenderer';
@@ -35,13 +39,19 @@ import { QuizBottomBar } from '@/app/components/student/QuizBottomBar';
 // ── Session hook (Phase 6b extraction) ───────────────────
 import { useQuizSession } from '@/app/components/student/useQuizSession';
 
-// ── Error boundary (Phase 7b) ────────────────────────────
+// ── Backup (P1-S03) ─────────────────────────────────
+import { clearQuizBackup, saveQuizBackup } from '@/app/components/student/useQuizBackup';
+
+// ── Recovery prompt (P1-S03) ─────────────────────────
+import { QuizRecoveryPrompt } from '@/app/components/student/QuizRecoveryPrompt';
+
+// ── Error boundary (Phase 7b) ────────────────────────
 import { QuizErrorBoundary } from '@/app/components/student/QuizErrorBoundary';
 
 // Re-export for backward compatibility (external consumers may import from here)
 export type { SavedAnswer } from '@/app/components/student/quiz-types';
 
-// ── Animation variants (stable reference) ────────────────
+// ── Animation variants (stable reference) ────────────────────
 const SLIDE_VARIANTS = {
   forward: {
     enter: { opacity: 0, y: 16 },
@@ -55,7 +65,7 @@ const SLIDE_VARIANTS = {
   },
 } as const;
 
-// ── Props ───────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────
 
 interface QuizTakerProps {
   /** Standalone mode: load questions by quizId */
@@ -68,20 +78,21 @@ interface QuizTakerProps {
   onComplete?: () => void;
 }
 
-// ── Main Component ───────────────────────────────────────
+// ── Main Component ─────────────────────────────────────
 
 export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, onBack, onComplete }: QuizTakerProps) {
-  // ── Adaptive quiz: allow in-place quiz swap ─────────────
+  // ── Adaptive quiz: allow in-place quiz swap ───────────
   const [activeQuizId, setActiveQuizId] = useState(quizId);
   const [activeTitle, setActiveTitle] = useState(quizTitle);
 
-  // ── Session lifecycle (hook) ─────────────────────────────
+  // ── Session lifecycle (hook) ─────────────────────────
   const {
     phase, questions, sessionStartTime, errorMsg, backendWarning,
     submitting, closingSession, savedAnswers, keywordMap,
     correctCount, wrongCount, answeredCount,
+    pendingBackup, restoreFromBackup, dismissBackup,
     submitAnswer, finishQuiz, restartSession, reviewSession,
-  } = useQuizSession(activeQuizId, summaryId, preloadedQuestions);
+  } = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
 
   // ── Local UI state (navigation + live input) ────────────
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -97,6 +108,20 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   useEffect(() => {
     setQuestionStartTime(Date.now());
   }, [currentIdx]);
+
+  // ── Live input reset helper (DRY — P2-S02) ─────────────
+
+  const resetLiveInputs = useCallback((saved?: { answered: boolean; selectedOption: string | null; answer: string }) => {
+    if (saved?.answered) {
+      setLiveSelectedOption(saved.selectedOption);
+      setLiveTextInput(saved.answer);
+      setLiveTFAnswer(saved.answer);
+    } else {
+      setLiveSelectedOption(null);
+      setLiveTextInput('');
+      setLiveTFAnswer(null);
+    }
+  }, []);
 
   // ── Submit wrappers (thin — delegate to hook) ──────────
 
@@ -127,15 +152,18 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const goToQuestion = (idx: number, dir: 'forward' | 'back') => {
     setNavDirection(dir);
     setCurrentIdx(idx);
-    const s = savedAnswers[idx];
-    if (s?.answered) {
-      setLiveSelectedOption(s.selectedOption);
-      setLiveTextInput(s.answer);
-      setLiveTFAnswer(s.answer);
-    } else {
-      setLiveSelectedOption(null);
-      setLiveTextInput('');
-      setLiveTFAnswer(null);
+    resetLiveInputs(savedAnswers[idx]);
+
+    // P1-S03: Persist navigation position to backup (only if answers exist)
+    if (activeQuizId && Object.keys(savedAnswers).length > 0) {
+      saveQuizBackup({
+        quizId: activeQuizId,
+        quizTitle: activeTitle,
+        questionIds: questions.map(q => q.id),
+        savedAnswers,
+        currentIdx: idx,
+        savedAt: 0, // overwritten by saveQuizBackup
+      });
     }
   };
 
@@ -156,45 +184,52 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const handleRestart = useCallback(() => {
     setCurrentIdx(0);
     setNavDirection('forward');
-    setLiveSelectedOption(null);
-    setLiveTextInput('');
-    setLiveTFAnswer(null);
+    resetLiveInputs();
     restartSession();
-  }, [restartSession]);
+  }, [restartSession, resetLiveInputs]);
 
   // ── Adaptive quiz ready (swap to new quiz in-place) ────
 
   const handleAdaptiveQuizReady = useCallback((newQuizId: string, newTitle: string) => {
+    // P1-S03: Clear old quiz backup before swapping
+    if (activeQuizId) clearQuizBackup(activeQuizId);
     setCurrentIdx(0);
     setNavDirection('forward');
-    setLiveSelectedOption(null);
-    setLiveTextInput('');
-    setLiveTFAnswer(null);
+    resetLiveInputs();
     setActiveQuizId(newQuizId);
     setActiveTitle(newTitle);
     // useQuizSession's useEffect will auto-reset savedAnswers + load new questions
-  }, []);
+  }, [activeQuizId, resetLiveInputs]);
+
+  // ── Recovery handlers (P1-S03) ─────────────────────────
+
+  const handleAcceptRecovery = useCallback(() => {
+    if (pendingBackup) {
+      const idx = pendingBackup.currentIdx;
+      setCurrentIdx(idx);
+      setNavDirection('forward');
+      resetLiveInputs(pendingBackup.savedAnswers[idx]);
+    }
+    restoreFromBackup();
+  }, [pendingBackup, restoreFromBackup, resetLiveInputs]);
+
+  const handleDismissRecovery = useCallback(() => {
+    setCurrentIdx(0);
+    setNavDirection('forward');
+    resetLiveInputs();
+    dismissBackup();
+  }, [dismissBackup, resetLiveInputs]);
 
   // ── Review (go back to session from results to navigate answers) ──
 
   const handleReview = useCallback(() => {
     setCurrentIdx(0);
     setNavDirection('forward');
-    // Restore first question's saved state
-    const s = savedAnswers[0];
-    if (s?.answered) {
-      setLiveSelectedOption(s.selectedOption);
-      setLiveTextInput(s.answer);
-      setLiveTFAnswer(s.answer);
-    } else {
-      setLiveSelectedOption(null);
-      setLiveTextInput('');
-      setLiveTFAnswer(null);
-    }
+    resetLiveInputs(savedAnswers[0]);
     reviewSession();
-  }, [savedAnswers, reviewSession]);
+  }, [savedAnswers, reviewSession, resetLiveInputs]);
 
-  // ── PHASE: loading ─────────────────────────────────────
+  // ── PHASE: loading ───────────────────────────────────
 
   if (phase === 'loading') {
     return (
@@ -205,7 +240,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: error ────────────────────────────────────────
+  // ── PHASE: error ──────────────────────────────────────
 
   if (phase === 'error') {
     return (
@@ -228,7 +263,20 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: results ──────────────────────────────────────
+  // ── PHASE: recovery (P1-S03) ──────────────────────────
+
+  if (phase === 'recovery' && pendingBackup) {
+    return (
+      <QuizRecoveryPrompt
+        backup={pendingBackup}
+        onAccept={handleAcceptRecovery}
+        onDismiss={handleDismissRecovery}
+        onBack={onBack}
+      />
+    );
+  }
+
+  // ── PHASE: results ────────────────────────────────────
 
   if (phase === 'results') {
     return (
@@ -239,6 +287,9 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           sessionStartTime={sessionStartTime}
           quizTitle={activeTitle}
           keywordMap={keywordMap}
+          correctCount={correctCount}
+          wrongCount={wrongCount}
+          answeredCount={answeredCount}
           onRestart={handleRestart}
           onBack={onBack}
           onReview={handleReview}
@@ -248,7 +299,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: session ─────────────────────────────────────
+  // ── PHASE: session ───────────────────────────────────
 
   const currentQ = questions[currentIdx];
   if (!currentQ) return null;
@@ -288,7 +339,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
       >
         {/* Backend warning */}
         {backendWarning && (
-          <div className="mx-4 mt-2 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-[11px]">
+          <div className={`mx-4 mt-2 ${BANNER_WARNING} text-[11px]`}>
             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
             {backendWarning}
           </div>
@@ -301,6 +352,9 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           questionStartTime={questionStartTime}
           isReviewing={isReviewing}
           onBack={onBack}
+          answeredCount={answeredCount}
+          totalQuestions={questions.length}
+          sessionStartTime={sessionStartTime}
         />
 
         {/* ── Content ── */}

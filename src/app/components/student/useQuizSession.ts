@@ -3,27 +3,40 @@
 //
 // Extracted from QuizTaker.tsx (Phase 6b).
 // Manages: session init, answer submission (+ BKT fire-and-forget),
-//          session close, restart.
+//          session close, restart, localStorage backup & recovery.
 //
 // savedAnswers lives HERE to avoid stale-closure issues in
 // finishQuiz / submitAnswer.
+//
+// P1-S03: Added localStorage backup integration
+// P3-S01: Init helpers extracted to quiz-session-helpers.ts
 //
 // The component owns: navigation, live-input state, rendering.
 // ============================================================
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { apiCall } from '@/app/lib/api';
 import * as quizApi from '@/app/services/quizApi';
-import type { QuizQuestion, QuizQuestionListResponse } from '@/app/services/quizApi';
+import type { QuizQuestion } from '@/app/services/quizApi';
 import type { SavedAnswer } from '@/app/components/student/quiz-types';
-import { updateBKT } from '@/app/lib/bkt-engine';
 import { logger } from '@/app/lib/logger';
+import { getErrorMsg } from '@/app/lib/error-utils';
 import { checkAnswer } from '@/app/lib/quiz-utils';
-import { normalizeQuestionType, normalizeDifficulty } from '@/app/services/quizConstants';
+import {
+  saveQuizBackup, clearQuizBackup, cleanExpiredBackups,
+} from '@/app/components/student/useQuizBackup';
+import type { QuizBackupData } from '@/app/components/student/useQuizBackup';
+
+// P3-S01: Pure helper functions (no React state)
+import {
+  loadAndNormalizeQuestions,
+  checkAndProcessBackup,
+  loadKeywordNames,
+} from '@/app/components/student/quiz-session-helpers';
+import { useQuizBkt } from '@/app/components/student/useQuizBkt';
 
 // ── Return type ──────────────────────────────────────────
 
-export type QuizPhase = 'loading' | 'session' | 'results' | 'error';
+export type QuizPhase = 'loading' | 'recovery' | 'session' | 'results' | 'error';
 
 export interface UseQuizSessionReturn {
   // State
@@ -44,6 +57,11 @@ export interface UseQuizSessionReturn {
   wrongCount: number;
   answeredCount: number;
 
+  // Recovery (P1-S03)
+  pendingBackup: QuizBackupData | null;
+  restoreFromBackup: () => void;
+  dismissBackup: () => void;
+
   // Actions
   submitAnswer: (
     question: QuizQuestion,
@@ -57,17 +75,19 @@ export interface UseQuizSessionReturn {
   reviewSession: () => void;
 }
 
-// ── Hook ─────────────────────────────────────────────────
+// ── Hook ───────────────────────────────────────────────
 
 export function useQuizSession(
   quizId: string | undefined,
   summaryId?: string,
   preloadedQuestions?: QuizQuestion[],
+  quizTitle?: string,
 ): UseQuizSessionReturn {
   const [phase, setPhase] = useState<QuizPhase>('loading');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sessionStartTime] = useState(Date.now());
+  // E31 FIX: sessionStartTime must reset on adaptive quiz swap
+  const [sessionStartTime, setSessionStartTime] = useState(Date.now());
   const [errorMsg, setErrorMsg] = useState('');
   const [backendWarning, setBackendWarning] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -77,9 +97,11 @@ export function useQuizSession(
   // Keyword labels for QuizResults display (loaded non-blocking)
   const [keywordMap, setKeywordMap] = useState<Record<string, string>>({});
 
-  // Running BKT mastery per subtopic (accumulates across questions)
-  const bktMasteryRef = useRef<Record<string, number>>({});
-  const bktMaxMasteryRef = useRef<Record<string, number>>({});
+  // Recovery state (P1-S03)
+  const [pendingBackup, setPendingBackup] = useState<QuizBackupData | null>(null);
+
+  // BKT tracking (M-5: extracted to hook)
+  const { handleBktUpdate, resetBkt } = useQuizBkt();
 
   // Immediate guard against double-submit (React state is async)
   const submittingRef = useRef(false);
@@ -90,6 +112,9 @@ export function useQuizSession(
   // Prevent double session-close
   const sessionClosedRef = useRef(false);
 
+  // Ref-mirror for savedAnswers — avoids stale closures in submitAnswer (P1-S03)
+  const savedAnswersRef = useRef<Record<number, SavedAnswer>>({});
+
   // ── Initialize: create session + load questions ─────────
 
   useEffect(() => {
@@ -97,107 +122,68 @@ export function useQuizSession(
 
     // Reset state when quizId changes (e.g. adaptive quiz navigation)
     setSavedAnswers({});
-    bktMasteryRef.current = {};
-    bktMaxMasteryRef.current = {};
+    savedAnswersRef.current = {};
+    resetBkt();
     sessionClosedRef.current = false;
     setBackendWarning(null);
+    setPendingBackup(null);
     setPhase('loading');
+    // E31 FIX: reset session timer on quiz swap
+    setSessionStartTime(Date.now());
+
+    // Lazy cleanup of any expired localStorage backups (P1-S03)
+    cleanExpiredBackups();
 
     (async () => {
       try {
-        // 1. Create study session (always)
-        const session = await quizApi.createStudySession({ session_type: 'quiz' });
+        // E16 FIX: Run session creation and question loading in PARALLEL
+        // These are independent — questions don't need sessionId to load
+        const [session, result] = await Promise.all([
+          quizApi.createStudySession({ session_type: 'quiz' }),
+          loadAndNormalizeQuestions(
+            quizId, summaryId, preloadedQuestions, preloadedUsedRef.current,
+          ),
+        ]);
         if (cancelled) return;
         setSessionId(session.id);
         sessionClosedRef.current = false;
+        preloadedUsedRef.current = result.usedPreloaded;
+        if (result.warning) setBackendWarning(result.warning);
 
-        // 2. Get questions: preloaded mode OR fetch by quizId
-        let items: QuizQuestion[] = [];
-
-        if (preloadedQuestions && preloadedQuestions.length > 0 && !preloadedUsedRef.current) {
-          // PRELOADED MODE: use questions passed directly
-          preloadedUsedRef.current = true;
-          items = [...preloadedQuestions];
-        } else if (quizId) {
-          // STANDALONE MODE: fetch by quizId
-          try {
-            const qs = summaryId
-              ? `/quiz-questions?summary_id=${summaryId}&quiz_id=${quizId}`
-              : `/quiz-questions?quiz_id=${quizId}`;
-            const res = await apiCall<QuizQuestionListResponse | QuizQuestion[]>(qs);
-            if (Array.isArray(res)) {
-              items = res;
-            } else if (res?.items) {
-              items = res.items;
-            }
-          } catch (err: unknown) {
-            logger.warn(
-              '[QuizTaker] quiz_id filter failed:',
-              err instanceof Error ? err.message : String(err),
-            );
-            setBackendWarning(
-              'El filtro quiz_id puede no estar disponible aun. Intentando cargar preguntas...',
-            );
-            items = [];
-          }
-        } else if (!preloadedQuestions || preloadedQuestions.length === 0) {
-          // Neither preloaded nor quizId
-          if (!preloadedUsedRef.current) {
-            setErrorMsg('No se proporcionaron preguntas ni quiz ID.');
-            setPhase('error');
-            return;
-          }
-          return; // Already initialized via preloaded
-        }
-
-        // 3. Filter active + normalize + shuffle
-        // FIX H-CRIT-1: Normalize question_type and difficulty at the DATA LAYER
-        // so all downstream logic (QuestionRenderer branching, checkAnswer,
-        // QuizTaker canSubmit/handleSubmit) uses canonical values.
-        // Without this, AI-generated questions with "multiple_choice" type
-        // would not match === 'mcq' checks and render as open text inputs.
-        items = items
-          .filter((q) => q.is_active)
-          .map((q) => ({
-            ...q,
-            question_type: normalizeQuestionType(q.question_type),
-            difficulty: typeof q.difficulty === 'string'
-              ? ({ easy: 1, medium: 2, hard: 3 }[q.difficulty as string] ?? 2)
-              : q.difficulty,
-          }));
-        items = items.sort(() => Math.random() - 0.5);
-
-        if (cancelled) return;
-
+        let items = result.items;
         if (items.length === 0) {
           setErrorMsg('Este quiz no tiene preguntas activas.');
           setPhase('error');
           return;
         }
 
-        setQuestions(items);
-        setPhase('session');
-
-        // 4. Non-blocking: load keyword names for QuizResults display
-        const effectiveSummaryId = summaryId || (items[0]?.summary_id);
-        if (effectiveSummaryId) {
-          try {
-            const kwRes = await apiCall<
-              { items: Array<{ id: string; term: string }> } | Array<{ id: string; term: string }>
-            >(`/keywords?summary_id=${effectiveSummaryId}`);
-            const kwItems = Array.isArray(kwRes) ? kwRes : kwRes?.items || [];
-            const map: Record<string, string> = {};
-            for (const kw of kwItems) {
-              map[kw.id] = kw.term || kw.id.substring(0, 8);
-            }
-            if (!cancelled) setKeywordMap(map);
-          } catch {
-            // Non-blocking — QuizResults falls back to truncated IDs
+        // 3. Backup recovery check (P3-S01: extracted)
+        let isRecovery = false;
+        if (quizId) {
+          const recovery = checkAndProcessBackup(quizId, items);
+          if (recovery) {
+            items = recovery.reorderedItems;
+            setQuestions(items);
+            setPendingBackup(recovery.backup);
+            setPhase('recovery');
+            isRecovery = true;
           }
+        }
+
+        if (!isRecovery) {
+          setQuestions(items);
+          setPhase('session');
+        }
+
+        // 4. Non-blocking: load keyword names (P3-S01: extracted)
+        const effectiveSummaryId = summaryId || items[0]?.summary_id;
+        if (effectiveSummaryId) {
+          const kwMap = await loadKeywordNames(effectiveSummaryId);
+          if (!cancelled) setKeywordMap(kwMap);
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setErrorMsg(err instanceof Error ? err.message : 'Error al iniciar el quiz');
+          setErrorMsg(getErrorMsg(err));
           setPhase('error');
         }
       }
@@ -224,40 +210,6 @@ export function useQuizSession(
     return { correctCount: correct, wrongCount: wrong, answeredCount: answered };
   }, [savedAnswers]);
 
-  // ── BKT update (fire-and-forget helper) ─────────────────
-
-  const handleBktUpdate = async (question: QuizQuestion, isCorrect: boolean) => {
-    const subtopicId = question.subtopic_id;
-    if (!subtopicId) return;
-
-    const prevMastery = bktMasteryRef.current[subtopicId] ?? 0;
-    const prevMax = bktMaxMasteryRef.current[subtopicId] ?? 0;
-    const newP = updateBKT(
-      prevMastery,
-      isCorrect,
-      'quiz',
-      prevMax > prevMastery ? prevMax : undefined,
-    );
-    bktMasteryRef.current[subtopicId] = newP;
-    bktMaxMasteryRef.current[subtopicId] = Math.max(prevMax, newP);
-
-    try {
-      await quizApi.upsertBktState({
-        subtopic_id: subtopicId,
-        p_know: newP,
-        p_transit: 0.1,
-        p_slip: 0.1,
-        p_guess: 0.25,
-        delta: newP - prevMastery,
-        total_attempts: 1,
-        correct_attempts: isCorrect ? 1 : 0,
-        last_attempt_at: new Date().toISOString(),
-      });
-    } catch (err) {
-      logger.error('[QuizTaker] BKT update failed (non-blocking):', err);
-    }
-  };
-
   // ── Submit answer ───────────────────────────────────────
 
   const submitAnswer = useCallback(
@@ -274,17 +226,29 @@ export function useQuizSession(
 
       const correct = checkAnswer(question, answer);
 
-      // Persist in local state
-      setSavedAnswers((prev) => ({
-        ...prev,
-        [questionIdx]: {
-          answer,
-          selectedOption: optionText,
-          correct,
-          answered: true,
-          timeTakenMs,
-        },
-      }));
+      // Compute new savedAnswers from ref (avoids stale closure)
+      const newAnswer: SavedAnswer = {
+        answer,
+        selectedOption: optionText,
+        correct,
+        answered: true,
+        timeTakenMs,
+      };
+      const updatedAnswers = { ...savedAnswersRef.current, [questionIdx]: newAnswer };
+      savedAnswersRef.current = updatedAnswers;
+      setSavedAnswers(updatedAnswers);
+
+      // P1-S03: Persist backup to localStorage (never throws)
+      if (quizId) {
+        saveQuizBackup({
+          quizId,
+          quizTitle: quizTitle || '',
+          questionIds: questions.map(q => q.id),
+          savedAnswers: updatedAnswers,
+          currentIdx: questionIdx,
+          savedAt: 0, // overwritten by saveQuizBackup
+        });
+      }
 
       // Fire-and-forget: attempt + review + BKT
       const attemptPromise = quizApi
@@ -312,13 +276,16 @@ export function useQuizSession(
       submittingRef.current = false;
       setSubmitting(false);
     },
-    [sessionId],
+    [sessionId, quizId, quizTitle, questions],
   );
 
   // ── Finish quiz (close study session) ───────────────────
 
   const finishQuiz = useCallback(async () => {
     setClosingSession(true);
+
+    // P1-S03: Clear backup — quiz completed successfully
+    if (quizId) clearQuizBackup(quizId);
 
     const totalCorrect = Object.values(savedAnswers).filter(
       (a) => a.answered && a.correct,
@@ -342,18 +309,22 @@ export function useQuizSession(
 
     setClosingSession(false);
     setPhase('results');
-  }, [savedAnswers, sessionId]);
+  }, [savedAnswers, sessionId, quizId]);
 
   // ── Restart session ─────────────────────────────────────
 
   const restartSession = useCallback(() => {
     setSavedAnswers({});
-    bktMasteryRef.current = {};
-    bktMaxMasteryRef.current = {};
+    savedAnswersRef.current = {};
+    resetBkt();
     sessionClosedRef.current = false;
     preloadedUsedRef.current = false;
     setBackendWarning(null);
     setPhase('session');
+
+    // P1-S03: Clear backup — user chose fresh start
+    if (quizId) clearQuizBackup(quizId);
+
     quizApi
       .createStudySession({ session_type: 'quiz' })
       .then((s) => setSessionId(s.id))
@@ -364,7 +335,26 @@ export function useQuizSession(
           'No se pudo crear una nueva sesion de estudio. Tus respuestas se registraran sin sesion asociada.',
         );
       });
-  }, []);
+  }, [quizId]);
+
+  // ── Recovery actions (P1-S03) ───────────────────────────
+
+  const restoreFromBackup = useCallback(() => {
+    if (!pendingBackup) return;
+    savedAnswersRef.current = pendingBackup.savedAnswers;
+    setSavedAnswers(pendingBackup.savedAnswers);
+    setPendingBackup(null);
+    setPhase('session');
+    logger.debug('[QuizSession] recovery accepted', pendingBackup.quizId,
+      Object.values(pendingBackup.savedAnswers).filter(a => a.answered).length, 'answers restored');
+  }, [pendingBackup]);
+
+  const dismissBackup = useCallback(() => {
+    if (quizId) clearQuizBackup(quizId);
+    setPendingBackup(null);
+    setPhase('session');
+    logger.debug('[QuizSession] recovery dismissed, starting fresh');
+  }, [quizId]);
 
   // ── Review session ──────────────────────────────────────
 
@@ -387,6 +377,9 @@ export function useQuizSession(
     correctCount,
     wrongCount,
     answeredCount,
+    pendingBackup,
+    restoreFromBackup,
+    dismissBackup,
     submitAnswer,
     finishQuiz,
     restartSession,
