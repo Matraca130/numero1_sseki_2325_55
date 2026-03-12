@@ -1,64 +1,52 @@
 // ============================================================
 // useReviewBatch — Reusable batch review queue + submission
 //
-// Extracts the batch pattern (Fase 1 + Fase 2) from
-// useFlashcardEngine into a hook that ANY review consumer
-// can use: useFlashcardEngine, FlashcardReviewer,
-// ReviewSessionView, or any future review flow.
+// PATH B (v4.5): Frontend solo encola grade + subtopic_id.
+// El backend computa FSRS v4 Petrick + BKT v4 Recovery.
+//
+// La heuristica BKT local (3 lineas) es SOLO para feedback
+// visual instantaneo durante la sesion. Los valores REALES
+// los computa el backend al procesar el batch.
 //
 // Responsibilities:
 //   1. Queue reviews during a session (zero network calls)
-//   2. Compute FSRS + BKT per card (via computeCardReviewData)
-//   3. Track intra-session BKT accumulation (Fase 2 fix)
+//   2. Estimate BKT visually (heuristic, NOT persisted)
+//   3. Track intra-session BKT estimation accumulation
 //   4. Submit all reviews in ONE POST /review-batch at end
-//   5. Fallback to individual POSTs if batch fails
+//   5. Parse computed results from enriched response
+//   6. Fallback to individual POSTs if batch fails
+//   7. Persist pending batch to localStorage for offline resilience
+//   8. Retry pending batches on app mount via retryPendingBatches()
 //
 // NOT responsible for:
+//   - Computing FSRS (backend does this)
+//   - Computing real BKT (backend does this)
 //   - Creating / closing backend sessions
 //   - Optimistic UI updates (consumer handles these)
-//   - Session-specific state (timer, grade history, etc.)
-//
-// Usage:
-//   const { queueReview, submitBatch, reset } = useReviewBatch();
-//
-//   // During session — per card, sync, zero network:
-//   const result = queueReview({ card, grade, responseTimeMs, existingFsrs, currentPKnow });
-//
-//   // At session end — one network call:
-//   const batchResult = await submitBatch(sessionId);
-//
-//   // On restart:
-//   reset();
 // ============================================================
 
 import { useRef, useCallback } from 'react';
 import * as sessionApi from '@/app/services/studySessionApi';
-import type { BatchReviewItem, BatchReviewResponse } from '@/app/services/studySessionApi';
-import type { FsrsState } from '@/app/lib/fsrs-engine';
-import type { FsrsUpdate } from '@/app/lib/fsrs-engine';
-import { computeCardReviewData } from '@/app/lib/tracking';
+import type {
+  BatchReviewItem,
+  BatchReviewResponse,
+  BatchComputedResult,
+} from '@/app/services/studySessionApi';
 
 // ── Minimal card interface ────────────────────────────────
-// Accepts both Flashcard (useFlashcardEngine) and
-// FlashcardItem (FlashcardReviewer, ReviewSessionView)
-// without coupling to either type.
-
 export interface ReviewableCard {
   id: string;
   subtopic_id?: string | null;
 }
 
-// ── queueReview input ─────────────────────────────────────
-
+// ── queueReview input ─────────────────────────────────
 export interface QueueReviewParams {
   /** Card being reviewed — only needs id + subtopic_id */
   card: ReviewableCard;
-  /** Original grade from the UI (1-5 or 1-4). Clamped to 1-4 for FSRS. */
+  /** Grade from the UI (1-5). */
   grade: number;
   /** Time in ms the student took to respond */
   responseTimeMs: number;
-  /** Existing FSRS state from masteryMap / fsrsState. Omit for new cards. */
-  existingFsrs?: FsrsState;
   /**
    * Current BKT p_know for this card's subtopic (0-1).
    * Overridden by the intra-session accumulator if we already
@@ -66,179 +54,203 @@ export interface QueueReviewParams {
    * Defaults to 0 if omitted (safe for first review).
    */
   currentPKnow?: number;
+  // NOTE: existingFsrs is NO LONGER accepted.
+  // PATH B: the backend reads FSRS state from the DB.
 }
 
-// ── queueReview output ────────────────────────────────────
-// Returned synchronously so consumers can build optimistic
-// updates without duplicating computation.
-
+// ── queueReview output ────────────────────────────────
 export interface QueueReviewResult {
-  /** BKT p_know AFTER this review (0-1) */
-  newPKnow: number;
-  /** BKT p_know BEFORE this review (0-1) — the resolved value used for computation */
-  previousPKnow: number;
-  /** Full FSRS scheduling update */
-  fsrsUpdate: FsrsUpdate;
-  /** Whether grade >= 3 */
+  /** Whether grade >= 3 (Good or Easy) */
   isCorrect: boolean;
+  /**
+   * ESTIMATED BKT p_know after this review.
+   * This is a lightweight heuristic for instant visual feedback.
+   * The REAL value is computed by the backend with BKT v4 Recovery.
+   */
+  estimatedPKnow: number;
+  /** BKT p_know BEFORE this review (the resolved value) */
+  previousPKnow: number;
 }
 
-// ══════════════════════════════════════════════════════════
+// ── submitBatch output ────────────────────────────────
+export interface BatchSubmitResult {
+  response: BatchReviewResponse;
+  /**
+   * Per-item computed values from the backend (PATH B).
+   * Map key = item_id. Only present if backend returns results.
+   */
+  computedResults: Map<string, BatchComputedResult>;
+}
+
+// ── BKT Visual Heuristic Constants ──────────────────────
+const P_LEARN_ESTIMATE = 0.18;
+const P_FORGET_ESTIMATE = 0.25;
+
+// ════════════════════════════════════════════════════════
+// LOCALSTORAGE PERSISTENCE — Offline resilience
+// ════════════════════════════════════════════════════════
+
+const LS_KEY = 'axon_pending_review_batch';
+
+interface PendingBatch {
+  sessionId: string;
+  items: BatchReviewItem[];
+  savedAt: string;
+}
+
+function savePendingBatch(sessionId: string, items: BatchReviewItem[]): void {
+  try {
+    const pending: PendingBatch = { sessionId, items, savedAt: new Date().toISOString() };
+    localStorage.setItem(LS_KEY, JSON.stringify(pending));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
+function clearPendingBatch(): void {
+  try { localStorage.removeItem(LS_KEY); } catch { /* silent */ }
+}
+
+function loadPendingBatch(): PendingBatch | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingBatch;
+    const age = Date.now() - new Date(parsed.savedAt).getTime();
+    if (age > 24 * 60 * 60 * 1000) { clearPendingBatch(); return null; }
+    return parsed;
+  } catch { clearPendingBatch(); return null; }
+}
+
+export async function retryPendingBatches(): Promise<boolean> {
+  const pending = loadPendingBatch();
+  if (!pending || pending.items.length === 0) return false;
+
+  if (import.meta.env.DEV) {
+    console.log(`[ReviewBatch] Found pending batch: ${pending.items.length} reviews from session ${pending.sessionId} (saved ${pending.savedAt})`);
+  }
+
+  try {
+    await sessionApi.submitReviewBatch(pending.sessionId, pending.items);
+    clearPendingBatch();
+    if (import.meta.env.DEV) console.log('[ReviewBatch] Pending batch retried successfully');
+    return true;
+  } catch (batchErr) {
+    try {
+      await sessionApi.fallbackToIndividualPosts(pending.sessionId, pending.items);
+      clearPendingBatch();
+      if (import.meta.env.DEV) console.log('[ReviewBatch] Pending batch retried via individual fallback');
+      return true;
+    } catch {
+      if (import.meta.env.DEV) console.warn('[ReviewBatch] Pending batch retry failed again, keeping in localStorage');
+      return false;
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // HOOK
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
 export function useReviewBatch() {
-  // ── Batch queue: collects BatchReviewItems during session ──
   const batchQueueRef = useRef<BatchReviewItem[]>([]);
-
-  // ── Intra-session BKT accumulator (Fase 2) ──────────────
-  // Maps subtopic_id → latest p_know within THIS session.
-  // When multiple cards share a subtopic, the 2nd card sees
-  // the accumulated p_know from the 1st, not the stale
-  // study-queue value.
   const sessionBktRef = useRef<Map<string, number>>(new Map());
 
-  // ── queueReview ─────────────────────────────────────────
-  // Pure computation + queue push. ZERO network calls.
-  // Returns computed values for optional consumer use.
-
   const queueReview = useCallback((params: QueueReviewParams): QueueReviewResult => {
-    const { card, grade, responseTimeMs, existingFsrs, currentPKnow } = params;
+    const { card, grade, responseTimeMs, currentPKnow } = params;
 
-    // 1. Clamp grade to FSRS range (1-4)
-    const fsrsGrade = Math.max(1, Math.min(4, Math.round(grade))) as 1 | 2 | 3 | 4;
+    const isCorrect = grade >= 3;
 
-    // 2. Resolve p_know: intra-session accumulator > caller param > 0
-    //    Priority: sessionBktRef (most recent) > currentPKnow (study-queue) > 0
-    const sessionPKnow = card.subtopic_id
-      ? sessionBktRef.current.get(card.subtopic_id)
-      : undefined;
+    const sessionPKnow = card.subtopic_id ? sessionBktRef.current.get(card.subtopic_id) : undefined;
     const resolvedPKnow = sessionPKnow ?? currentPKnow ?? 0;
 
-    // 3. Pure FSRS + BKT computation (NO network calls)
-    const computed = computeCardReviewData({
-      flashcardId: card.id,
-      subtopicId: card.subtopic_id || null,
-      grade: fsrsGrade,
-      existingFsrsState: existingFsrs,
-      currentPKnow: resolvedPKnow,
-    });
+    const estimatedPKnow = isCorrect
+      ? resolvedPKnow + (1 - resolvedPKnow) * P_LEARN_ESTIMATE
+      : resolvedPKnow * (1 - P_FORGET_ESTIMATE);
 
-    // 4. Update intra-session BKT accumulator (Fase 2)
     if (card.subtopic_id) {
-      sessionBktRef.current.set(card.subtopic_id, computed.newPKnow);
+      sessionBktRef.current.set(card.subtopic_id, estimatedPKnow);
     }
 
-    // 5. Build BatchReviewItem
     const batchItem: BatchReviewItem = {
       item_id: card.id,
       instrument_type: 'flashcard',
-      grade,  // original grade (preserves 1-5 if engine uses RATINGS)
+      grade,
       response_time_ms: responseTimeMs,
-      fsrs_update: {
-        stability: computed.fsrsUpdate.stability,
-        difficulty: computed.fsrsUpdate.difficulty,
-        due_at: computed.fsrsUpdate.due_at,
-        last_review_at: new Date().toISOString(),
-        reps: computed.fsrsUpdate.reps,
-        lapses: computed.fsrsUpdate.lapses,
-        state: computed.fsrsUpdate.state as 'new' | 'learning' | 'review' | 'relearning',
-      },
     };
 
-    // 6. Add BKT update if card has a subtopic
     if (card.subtopic_id) {
-      batchItem.bkt_update = {
-        subtopic_id: card.subtopic_id,
-        p_know: computed.newPKnow,
-        p_transit: 0.1,
-        p_slip: 0.1,
-        p_guess: 0.25,
-        delta: computed.newPKnow - resolvedPKnow,
-        total_attempts: 1,
-        correct_attempts: computed.isCorrect ? 1 : 0,
-        last_attempt_at: new Date().toISOString(),
-      };
+      batchItem.subtopic_id = card.subtopic_id;
     }
 
-    // 7. Push to queue
     batchQueueRef.current.push(batchItem);
 
-    // 8. Return computed values for consumer use
-    return {
-      newPKnow: computed.newPKnow,
-      previousPKnow: resolvedPKnow,
-      fsrsUpdate: computed.fsrsUpdate,
-      isCorrect: computed.isCorrect,
-    };
+    return { isCorrect, estimatedPKnow, previousPKnow: resolvedPKnow };
   }, []);
 
-  // ── submitBatch ─────────────────────────────────────────
-  // Sends all queued reviews in ONE POST /review-batch.
-  // Falls back to individual POSTs if batch endpoint fails.
-  // Clears the queue after submission (success or fallback).
-  // Returns null if nothing to submit or if fallback was used.
+  const submitBatch = useCallback(async (sessionId: string): Promise<BatchSubmitResult | null> => {
+    const batchItems = [...batchQueueRef.current];
 
-  const submitBatch = useCallback(async (
-    sessionId: string,
-  ): Promise<BatchReviewResponse | null> => {
-    const batchItems = [...batchQueueRef.current]; // snapshot
-
-    // Guard: nothing to submit
     if (!sessionId || sessionId.startsWith('local-') || batchItems.length === 0) {
       batchQueueRef.current = [];
       return null;
     }
 
+    savePendingBatch(sessionId, batchItems);
+
     try {
-      const result = await sessionApi.submitReviewBatch(sessionId, batchItems);
+      const response = await sessionApi.submitReviewBatch(sessionId, batchItems);
 
       if (import.meta.env.DEV) {
         console.log(
-          `[ReviewBatch] Batch submitted: ${result.reviews_created} reviews, ` +
-          `${result.fsrs_updated} FSRS, ${result.bkt_updated} BKT`,
+          `[ReviewBatch] Batch submitted: ${response.reviews_created} reviews, ` +
+          `${response.fsrs_updated} FSRS, ${response.bkt_updated} BKT` +
+          (response.results ? ` (${response.results.length} computed results)` : ''),
         );
-        if (result.errors?.length) {
-          console.warn(
-            `[ReviewBatch] Batch had ${result.errors.length} partial errors:`,
-            result.errors,
-          );
+        if (response.errors?.length) {
+          console.warn(`[ReviewBatch] Batch had ${response.errors.length} partial errors:`, response.errors);
         }
       }
 
+      const computedResults = new Map<string, BatchComputedResult>();
+      if (response.results) {
+        for (const result of response.results) {
+          computedResults.set(result.item_id, result);
+        }
+      }
+
+      clearPendingBatch();
       batchQueueRef.current = [];
-      return result;
+      return { response, computedResults };
     } catch (batchErr) {
-      // ── FALLBACK: batch failed → fire individual POSTs ──
       if (import.meta.env.DEV) {
         console.warn('[ReviewBatch] Batch failed, falling back to individual POSTs:', batchErr);
       }
 
-      await sessionApi.fallbackToIndividualPosts(sessionId, batchItems);
+      try {
+        await sessionApi.fallbackToIndividualPosts(sessionId, batchItems);
+        clearPendingBatch();
+      } catch (fallbackErr) {
+        console.error(
+          '[ReviewBatch] Both batch and fallback failed. ' +
+          `${batchItems.length} reviews saved to localStorage for retry.`,
+          fallbackErr,
+        );
+      }
+
       batchQueueRef.current = [];
       return null;
     }
   }, []);
-
-  // ── reset ───────────────────────────────────────────────
-  // Clears all internal state. Call on session restart.
 
   const reset = useCallback(() => {
     batchQueueRef.current = [];
     sessionBktRef.current = new Map();
   }, []);
 
-  // ── getBatchSize ────────────────────────────────────────
-  // Utility for logging / debugging.
-
   const getBatchSize = useCallback((): number => {
     return batchQueueRef.current.length;
   }, []);
 
-  return {
-    queueReview,
-    submitBatch,
-    reset,
-    getBatchSize,
-  };
+  return { queueReview, submitBatch, reset, getBatchSize };
 }
