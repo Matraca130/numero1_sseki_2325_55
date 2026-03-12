@@ -83,7 +83,7 @@ export function useKeywordNavigation({
     pendingNavRef.current = null;
     if (summaries.some(s => s.id === targetId)) {
       setSelectedSummaryId(targetId);
-    } else {
+    } else if (import.meta.env.DEV) {
       console.warn(
         '[useKeywordNavigation] Pending nav target not found in topic summaries:',
         targetId,

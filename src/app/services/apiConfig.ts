@@ -65,7 +65,9 @@ export async function realRequest<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
-  console.log(`[API] ${options?.method || 'GET'} ${path}`);
+  if (import.meta.env.DEV) {
+    console.log(`[API] ${options?.method || 'GET'} ${path}`);
+  }
 
   const res = await fetch(url, {
     ...options,
@@ -80,13 +82,17 @@ export async function realRequest<T>(
   try {
     body = JSON.parse(text);
   } catch {
-    console.error(`[API] Non-JSON response from ${path}:`, text.substring(0, 300));
+    if (import.meta.env.DEV) {
+      console.error(`[API] Non-JSON response from ${path}:`, text.substring(0, 300));
+    }
     throw new ApiError(`Failed to parse response from ${path}`, 'PARSE_ERROR', res.status);
   }
 
   if (!res.ok) {
     const msg = body?.error || `API error ${res.status} at ${path}`;
-    console.error(`[API] Error ${res.status}: ${msg}`);
+    if (import.meta.env.DEV) {
+      console.error(`[API] Error ${res.status}: ${msg}`);
+    }
     throw new ApiError(msg, 'API_ERROR', res.status);
   }
 
@@ -110,7 +116,9 @@ export async function figmaRequest<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
-  console.log(`[FigmaAPI] ${options?.method || 'GET'} ${path}`);
+  if (import.meta.env.DEV) {
+    console.log(`[FigmaAPI] ${options?.method || 'GET'} ${path}`);
+  }
 
   const res = await fetch(url, {
     ...options,
