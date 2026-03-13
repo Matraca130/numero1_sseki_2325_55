@@ -2,7 +2,7 @@
 // Axon — Student: QuizResults (EV-3 Prompt B)
 //
 // Shows quiz results with:
-//   - Score circle (X/Y + percentage)
+//   - Score circle (X/Y + percentage) → R3: extracted to QuizScoreCircle
 //   - Grouped by keyword (and subtopic if available)
 //   - Detail: each question with your answer vs correct
 //   - BKT mastery level per keyword (green/yellow/red)
@@ -16,6 +16,7 @@
 //
 // P1-S01: AdaptiveQuizModal extracted to AdaptiveQuizModal.tsx
 // P2-S02: useAdaptiveQuiz hook + QuizAnswerDetail extracted
+// R3: QuizScoreCircle extracted to QuizScoreCircle.tsx
 //
 // Design: teal accent, motion animations (matching QuizView)
 // ============================================================
@@ -39,6 +40,7 @@ import { QuizAnswerDetail } from '@/app/components/student/QuizAnswerDetail';
 import { SubtopicResultsSection } from '@/app/components/student/SubtopicResultsSection';
 import { QuizHistoryPanel } from '@/app/components/student/QuizHistoryPanel';
 import { QuizCertificate } from '@/app/components/student/QuizCertificate';
+import { QuizScoreCircle } from '@/app/components/student/QuizScoreCircle';
 
 // ── Hooks (P2-S02 extraction) ──────────────────────────
 import { useAdaptiveQuiz } from '@/app/components/student/useAdaptiveQuiz';
@@ -159,41 +161,14 @@ export function QuizResults({
             </p>
           </div>
 
-          {/* ── Score Circle ── */}
+          {/* ── Score Circle (R3: extracted) ── */}
           <div className="flex justify-center mb-8">
-            <motion.div
-              className="relative w-48 h-48"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4, type: 'spring' }}
-            >
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="96" cy="96" r="84" stroke="#e4e4e7" strokeWidth="12" fill="none" />
-                <motion.circle
-                  cx="96" cy="96" r="84"
-                  stroke={performanceColor}
-                  strokeWidth="12" fill="none" strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 84}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 84 }}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 84 * (1 - pct / 100) }}
-                  transition={{ duration: 1.5, ease: 'easeOut' }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <motion.span
-                  className="text-4xl text-zinc-900"
-                  style={{ fontWeight: 700 }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  {pct.toFixed(0)}%
-                </motion.span>
-                <span className="text-xs text-zinc-400 uppercase tracking-wider mt-1" style={{ fontWeight: 700 }}>
-                  {correctCount}/{total}
-                </span>
-              </div>
-            </motion.div>
+            <QuizScoreCircle
+              pct={pct}
+              color={performanceColor}
+              correctCount={correctCount}
+              total={total}
+            />
           </div>
 
           {/* ── Summary Stats ── */}
