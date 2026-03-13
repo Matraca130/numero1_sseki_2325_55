@@ -52,10 +52,10 @@ import { XPPopup } from '@/app/components/gamification/XPPopup';
 import { ComboIndicator } from '@/app/components/gamification/ComboIndicator';
 import { SessionXPSummary } from '@/app/components/gamification/SessionXPSummary';
 import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
 
-// ── Props ─────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────
 
 interface FlashcardReviewerProps {
   summaryId: string;
@@ -231,12 +231,12 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
 
   const totalCardTypes = Object.values(cardTypeDistribution).reduce((sum, count) => sum + count, 0);
 
-  // ── Loading ─────────────────────────────────────────────
+  // ── Loading ─────────────────────────────────────────────────────
   if (loading) {
     return (<div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-[#2a8c7a]" /></div>);
   }
 
-  // ── No flashcards ───────────────────────────────────────
+  // ── No flashcards ─────────────────────────────────────────────────
   if (totalCards === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
