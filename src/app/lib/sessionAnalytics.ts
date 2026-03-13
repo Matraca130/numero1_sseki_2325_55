@@ -26,7 +26,7 @@
 
 import { apiCall } from './api';
 
-// ── Module-level mutex ──────────────────────────────────────
+// ── Module-level mutex ──────────────────────────────────
 // Each call chains on the previous one. This guarantees serial
 // execution of READ-THEN-INCREMENT even if called concurrently.
 let pendingChain: Promise<void> = Promise.resolve();
@@ -161,7 +161,7 @@ async function incrementDailyActivities(input: SessionAnalyticsInput): Promise<v
   }
 }
 
-// ── Public entry point ────────────────────────────────────
+// ── Public entry point ──────────────────────────────────
 
 /**
  * Post session analytics: student-stats + daily-activities.
