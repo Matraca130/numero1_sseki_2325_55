@@ -193,7 +193,9 @@ export function StudyHubView() {
   const handleContinue = () => {
     if (isAutoSelected && effectiveTopic) {
       selectTopic(effectiveTopic.id);
-      setCurrentTopic({ id: effectiveTopic.id, title: (effectiveTopic as any).title } as any);
+      // `effectiveTopic` should already be of type `Topic`.
+      // Using `as any` here bypasses crucial type checks.
+      setCurrentTopic(effectiveTopic);
     }
     navigateTo('study');
   };
