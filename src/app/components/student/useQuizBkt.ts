@@ -11,9 +11,8 @@
 //
 // Architecture: stateless refs → Promise-based API
 //
-// BKT v3.1 computation is inlined below (previously imported from
-// bkt-engine.ts, which was deprecated in PATH B migration and
-// threw unconditionally — silently breaking BKT persistence).
+// BKT v3.1 computation is inlined below. Server-side BKT runs
+// in backend batch-review.ts (PATH B).
 // ============================================================
 
 import { useRef, useCallback } from 'react';
@@ -23,7 +22,6 @@ import { logger } from '@/app/lib/logger';
 
 // ── BKT v3.1 Inline Computation ─────────────────────────
 // Parameters match what we send to upsertBktState.
-// Previously lived in bkt-engine.ts (now deleted).
 
 const P_TRANSIT = 0.1;
 const P_SLIP = 0.1;

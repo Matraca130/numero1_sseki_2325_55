@@ -103,7 +103,6 @@ src/
     │   ├── config.ts                 # Environment config (hardcoded)
     │   ├── supabase.ts               # Supabase client
     │   ├── fsrs-engine.ts            # Spaced repetition (FSRS)
-    │   ├── bkt-engine.ts             # Bayesian Knowledge Tracing
     │   ├── mastery-helpers.ts
     │   └── logger.ts
     ├── hooks/                        # Custom React hooks
@@ -124,6 +123,8 @@ src/
     ├── DEVELOPER_CONTRACT.tsx        # Guide for Owner/Admin/Professor pages
     └── STUDENT_VIEW_CONTRACT.tsx     # Guide for Student views
 ```
+
+> **Note**: `bkt-engine.ts` was deleted (TD-3). BKT computation is now inlined in `src/app/components/student/useQuizBkt.ts` and runs server-side in backend `batch-review.ts`.
 
 ## Architecture Patterns
 
