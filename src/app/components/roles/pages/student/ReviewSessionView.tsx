@@ -41,7 +41,7 @@ import { XPPopup } from '@/app/components/gamification/XPPopup';
 import { ComboIndicator } from '@/app/components/gamification/ComboIndicator';
 import { SessionXPSummary } from '@/app/components/gamification/SessionXPSummary';
 import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
 
 interface ReviewQueueItem { card: FlashcardItem; fsrsState: StudyQueueItem; }
