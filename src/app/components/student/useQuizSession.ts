@@ -75,7 +75,7 @@ export interface UseQuizSessionReturn {
   reviewSession: () => void;
 }
 
-// ── Hook ───────────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────────
 
 export function useQuizSession(
   quizId: string | undefined,
@@ -287,10 +287,12 @@ export function useQuizSession(
     // P1-S03: Clear backup — quiz completed successfully
     if (quizId) clearQuizBackup(quizId);
 
-    const totalCorrect = Object.values(savedAnswers).filter(
+    // P-PERF: Use ref to avoid savedAnswers state in dependency array
+    const currentAnswers = savedAnswersRef.current;
+    const totalCorrect = Object.values(currentAnswers).filter(
       (a) => a.answered && a.correct,
     ).length;
-    const totalReviews = Object.values(savedAnswers).filter(
+    const totalReviews = Object.values(currentAnswers).filter(
       (a) => a.answered,
     ).length;
 
@@ -309,7 +311,7 @@ export function useQuizSession(
 
     setClosingSession(false);
     setPhase('results');
-  }, [savedAnswers, sessionId, quizId]);
+  }, [sessionId, quizId]);
 
   // ── Restart session ─────────────────────────────────────
 
