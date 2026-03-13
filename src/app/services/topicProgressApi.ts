@@ -32,8 +32,9 @@ function unwrapPaginated<T>(result: unknown): T[] {
 }
 
 /** Check if an error is a 404 (endpoint not yet deployed) */
-function is404(err: any): boolean {
-  return err.message?.includes('404') || err.message?.includes('Not Found');
+function is404(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.includes('404') || message.includes('Not Found');
 }
 
 /** Shared fallback wrapper: try unified, fallback on 404 */
@@ -44,7 +45,7 @@ async function withFallback<T>(
 ): Promise<T> {
   try {
     return await unifiedFn();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (is404(err)) {
       console.warn(`[topicProgressApi] ${label} unavailable, using N+1 fallback`);
       return await fallbackFn();
@@ -67,7 +68,7 @@ export interface EnrichedSummary {
   flashcardCount: number;
 }
 
-// ── Unified endpoint ──────────────────────────────────────
+// ── Unified endpoint ────────────────────────────────────
 
 async function fetchTopicProgressUnified(topicId: string): Promise<TopicProgressResponse> {
   return apiCall<TopicProgressResponse>(`/topic-progress?topic_id=${topicId}`);
@@ -111,7 +112,7 @@ async function fetchTopicProgressFallback(topicId: string): Promise<TopicProgres
   };
 }
 
-// ── Public API ────────────────────────────────────────────
+// ── Public API ──────────────────────────────────────────
 
 /**
  * Fetch all topic progress data in a single call.

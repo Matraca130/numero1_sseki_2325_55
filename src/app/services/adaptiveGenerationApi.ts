@@ -62,7 +62,7 @@ import type { SmartTargetMeta } from '@/app/services/aiService';
 import type { Flashcard } from '@/app/types/content';
 import { parallelWithLimit } from '@/app/lib/concurrency';
 
-// ── Constants ───────────────────────────────────────────────
+// ── Constants ───────────────────────────────────────────
 
 export const MAX_CONCURRENT_GENERATIONS = 3;
 export const RECOMMENDED_MAX_BATCH = 10;
@@ -134,7 +134,7 @@ export interface AdaptiveBatchParams {
   signal?: AbortSignal;
 }
 
-// ── Internal Helpers ──────────────────────────────────────
+// ── Internal Helpers ────────────────────────────────────
 
 function extractTokenCount(tokens: GenerationMeta['tokens']): number {
   if (typeof tokens === 'number') return tokens;
@@ -171,7 +171,7 @@ function computeBatchStats(
   };
 }
 
-// ── Public API ────────────────────────────────────────────
+// ── Public API ──────────────────────────────────────────
 
 export async function generateAdaptiveBatch(
   params: AdaptiveBatchParams
@@ -239,10 +239,11 @@ export async function generateAdaptiveBatch(
           failed: errors.length,
           latestCard: response,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         const genError: AdaptiveGenerationError = {
           index,
-          message: err?.message || 'Unknown generation error',
+          message: errMsg || 'Unknown generation error',
           error: err,
         };
         errors.push(genError);
@@ -250,7 +251,7 @@ export async function generateAdaptiveBatch(
         if (import.meta.env.DEV) {
           console.warn(
             `[AdaptiveGeneration] Card ${index + 1}/${count} failed:`,
-            err?.message || err
+            errMsg || err
           );
         }
 
