@@ -221,7 +221,10 @@ export interface Summary {
 export interface Keyword {
   id: UUID;
   institution_id: UUID;
+  /** @deprecated Use `name` instead. Backend DB column is `name`. */
   term: string;
+  /** Backend DB column name. Use this over `term`. */
+  name?: string;
   definition: string | null;
   priority: number;
   status?: string;
