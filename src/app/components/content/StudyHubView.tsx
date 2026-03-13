@@ -17,13 +17,17 @@ import type { TreeSection } from '@/app/services/contentTreeApi';
 import { HeroSection } from '@/app/components/design-kit';
 import { useLastStudiedTopic } from '@/app/hooks/useLastStudiedTopic';
 
-// ── Extracted sub-components ─────────────────────────────────
+// ── Extracted sub-components ─────────────────────────────
 import { StudyHubHero } from './StudyHubHero';
 import { StudyHubSections } from './StudyHubSections';
 import { WeeklyActivityChart } from './WeeklyActivityChart';
 import { formatRelativeTime, computeSectionProgress } from './studyhub-helpers';
 
-// ── Main export ──────────────────────────────────────────────
+// ── Gamification widgets ───────────────────────────────
+import { GamificationCard } from '../gamification/GamificationCard';
+import { DailyGoalWidget } from '../gamification/DailyGoalWidget';
+
+// ── Main export ────────────────────────────────────────
 
 export function StudyHubView() {
   const { currentTopic, setCurrentTopic } = useApp();
@@ -35,7 +39,7 @@ export function StudyHubView() {
   const course = tree?.courses?.[0] ?? null;
   const semesters = course?.semesters ?? [];
 
-  // ── Derive the "effective topic" for the hero ──────────────
+  // ── Derive the "effective topic" for the hero ────────────
   const lastStudied = useLastStudiedTopic(semesters, sessions);
 
   const effectiveTopic = useMemo(() => {
@@ -59,7 +63,7 @@ export function StudyHubView() {
     return ids;
   }, [courseProgress]);
 
-  // ── Section progress map ───────────────────────────────────
+  // ── Section progress map ───────────────────────────────
   const sectionProgressMap = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computeSectionProgress>>();
     for (const sem of semesters) {
@@ -82,7 +86,7 @@ export function StudyHubView() {
     return result;
   }, [semesters]);
 
-  // ── Totals ─────────────────────────────────────────────────
+  // ── Totals ─────────────────────────────────────────
   const totalSections = semesters.reduce((acc, s) => acc + (s.sections?.length ?? 0), 0);
   const totalTopics = semesters.reduce(
     (acc, s) => acc + (s.sections ?? []).reduce((a, sec) => a + (sec.topics?.length ?? 0), 0),
@@ -92,7 +96,7 @@ export function StudyHubView() {
   const streakDays = stats?.currentStreak ?? 0;
   const studyMinutesToday = stats?.totalStudyMinutes ? Math.round(stats.totalStudyMinutes / 60) : 0;
 
-  // ── Hero-specific derivations ──────────────────────────────
+  // ── Hero-specific derivations ────────────────────────────
 
   const lastTopicSession = useMemo(() => {
     if (!effectiveTopic?.id) return null;
@@ -162,7 +166,7 @@ export function StudyHubView() {
 
   const userName = profile?.name?.split(' ')[0] || '';
 
-  // ── Weekly activity (last 7 days) ──────────────────────────
+  // ── Weekly activity (last 7 days) ──────────────────────
   const weeklyActivity = useMemo(() => {
     const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
     const today = new Date();
@@ -189,7 +193,7 @@ export function StudyHubView() {
   const goalMinutes = profile?.preferences?.dailyGoalMinutes ?? 120;
   const todayMinutes = todayStats.minutes > 0 ? todayStats.minutes : studyMinutesToday > 0 ? studyMinutesToday : 0;
 
-  // ── Hero CTA callback ─────────────────────────────────────
+  // ── Hero CTA callback ───────────────────────────────
   const handleContinue = () => {
     if (isAutoSelected && effectiveTopic) {
       selectTopic(effectiveTopic.id);
@@ -200,7 +204,7 @@ export function StudyHubView() {
     navigateTo('study');
   };
 
-  // ── Loading ────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────
   if (loading) {
     return (
       <div className="h-full flex flex-col bg-zinc-50">
@@ -220,7 +224,7 @@ export function StudyHubView() {
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────
+  // ── Error ──────────────────────────────────────────
   if (error) {
     return (
       <div className="h-full flex flex-col bg-zinc-50">
@@ -237,7 +241,7 @@ export function StudyHubView() {
     );
   }
 
-  // ── Empty ──────────────────────────────────────────────────
+  // ── Empty ──────────────────────────────────────────
   if (!course || semesters.length === 0) {
     return (
       <div className="h-full flex flex-col bg-zinc-50">
@@ -257,7 +261,7 @@ export function StudyHubView() {
     );
   }
 
-  // ── Main render ────────────────────────────────────────────
+  // ── Main render ──────────────────────────────────────
   return (
     <div className="h-full overflow-y-auto bg-zinc-50">
       <StudyHubHero
@@ -296,6 +300,12 @@ export function StudyHubView() {
           goalMinutes={goalMinutes}
           todayMinutes={todayMinutes}
         />
+
+        {/* ── Gamification widgets (v4.4.5) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+          <GamificationCard />
+          <DailyGoalWidget />
+        </div>
       </main>
     </div>
   );
