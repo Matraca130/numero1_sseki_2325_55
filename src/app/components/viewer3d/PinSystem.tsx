@@ -4,19 +4,19 @@
 // React component managing pin interactions in the 3D viewer.
 //
 // PROFESSOR mode="edit":
-//   Click surface → raycast → get geometry + normal → inline form → POST /model-3d-pins
+//   Click surface -> raycast -> get geometry + normal -> inline form -> POST /model-3d-pins
 //
 // STUDENT mode="view":
-//   See pin markers, hover tooltip, click → popup with info
+//   See pin markers, hover tooltip, click -> popup with info
 //
 // Pin geometry types (DB CHECK): "point" | "line" | "area"
 // Currently only "point" is implemented in the UI.
 // The color selector in the creation form is UI-only (stored in `color` column).
 //
-// Renders HTML overlays positioned via 3D→2D projection.
+// Renders HTML overlays positioned via 3D->2D projection.
 // Uses PinMarkerManager to render 3D meshes in the scene.
 //
-// PERFORMANCE (Paso 1★):
+// PERFORMANCE (Paso 1):
 //   - Overlay positions updated imperatively via DOM refs (no setState per frame)
 //   - Reuses module-level _tempVec3/_ndcVec2 to avoid GC pressure
 //   - Registers projection callback via registerFrameCallback (no DOM hacking)
@@ -26,7 +26,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import clsx from 'clsx';
-import { MapPin, X, Save, Loader2, Info, Tag, FileText, Zap } from 'lucide-react';
+import { MapPin, X, Save, Loader2, Info, Tag, FileText, Zap, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/app/lib/logger';
 import {
@@ -35,6 +35,8 @@ import {
 import type { Model3DPin } from '@/app/lib/model3d-api';
 import { PinMarkerManager } from './PinMarker3D';
 import type { PinMarkerData } from './PinMarker3D';
+// DIFF 9: Import KeywordAutocomplete for F1
+import { KeywordAutocomplete } from './KeywordAutocomplete';
 
 // ── Reusable temp objects (module-level, zero GC pressure) ──
 const _tempVec3 = new THREE.Vector3();
@@ -44,8 +46,10 @@ const _ndcVec2 = new THREE.Vector2();
 
 export type PinMode = 'view' | 'edit';
 
+// DIFF 10: Added topicId to PinSystemProps
 interface PinSystemProps {
   modelId: string;
+  topicId?: string;
   mode: PinMode;
   scene: THREE.Scene | null;
   camera: THREE.PerspectiveCamera | null;
@@ -54,13 +58,11 @@ interface PinSystemProps {
   modelMeshes: THREE.Object3D[];
   /** Register a callback to be called every animation frame (from ModelViewer3D) */
   registerFrameCallback: (cb: () => void) => () => void;
-  /** Incremented by parent when external pin CRUD occurs → triggers refetch */
+  /** Incremented by parent when external pin CRUD occurs -> triggers refetch */
   refreshKey?: number;
 }
 
 // Pin type config — UI-only color categories.
-// The actual pin_type sent to DB is always 'point' (geometry type).
-// The selected color is stored in the `color` column.
 const PIN_TYPES = [
   { value: 'info', label: 'Info', icon: Info, color: '#60a5fa' },
   { value: 'keyword', label: 'Keyword', icon: Tag, color: '#a78bfa' },
@@ -68,7 +70,7 @@ const PIN_TYPES = [
   { value: 'quiz', label: 'Quiz', icon: Zap, color: '#fbbf24' },
 ] as const;
 
-// DB pin_type → friendly label (for display of existing pins)
+// DB pin_type -> friendly label (for display of existing pins)
 const PIN_TYPE_DISPLAY: Record<string, string> = {
   point: 'Punto',
   line:  'Linea',
@@ -79,7 +81,7 @@ const PIN_TYPE_DISPLAY: Record<string, string> = {
 // ── PinSystem Component ──
 // ══════════════════════════════════════════════
 
-export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMeshes, registerFrameCallback, refreshKey }: PinSystemProps) {
+export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef, modelMeshes, registerFrameCallback, refreshKey }: PinSystemProps) {
   const [pins, setPins] = useState<Model3DPin[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePin, setActivePin] = useState<string | null>(null);
@@ -91,7 +93,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
   const [showForm, setShowForm] = useState(false);
 
   // ── Imperative overlay positioning (PERFORMANCE: no setState per frame) ──
-  // Refs to pin overlay DOM elements — updated imperatively in projectPins
   const pinOverlayRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Pin marker manager ref
@@ -99,9 +100,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
   const raycasterRef = useRef(new THREE.Raycaster());
 
   // ── Mousemove throttle (G4) ──
-  // Caps raycast-on-hover to ~30fps. Native mousemove fires at display refresh rate
-  // (60-240Hz). At 100+ pins, unthrottled raycasting is measurable.
-  // 32ms delay is imperceptible for cursor/tooltip changes.
   const lastMoveTimeRef = useRef(0);
   const MOVE_THROTTLE_MS = 32; // ~30fps
 
@@ -148,9 +146,7 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
     };
   }, [scene, pins]);
 
-  // ── Project pins to 2D each frame (imperatively via DOM refs) ──
-  // PERFORMANCE: No setState here. Positions updated via style.transform directly.
-  // React only re-renders when hover/active changes (user interaction).
+  // ── Project pins to 2D each frame ──
   const projectPins = useCallback(() => {
     if (!camera || !containerRef.current || pins.length === 0) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -170,7 +166,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
       }
     });
 
-    // Update billboard rotations
     markerManagerRef.current?.updateBillboards(camera);
   }, [camera, containerRef, pins]);
 
@@ -184,7 +179,7 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
     markerManagerRef.current?.setHover(hoveredPin);
   }, [hoveredPin]);
 
-  // ── Mouse → NDC conversion (reuses _ndcVec2) ──
+  // ── Mouse -> NDC conversion ──
   const getMouseNDC = useCallback((e: MouseEvent | React.MouseEvent): THREE.Vector2 => {
     if (!containerRef.current) return _ndcVec2.set(0, 0);
     const rect = containerRef.current.getBoundingClientRect();
@@ -194,14 +189,13 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
     );
   }, [containerRef]);
 
-  // ── Click handler (edit mode: place pin / view mode: select pin) ──
+  // ── Click handler ──
   const handleCanvasClick = useCallback((e: MouseEvent) => {
     if (!camera || !scene) return;
 
     const ndc = getMouseNDC(e);
     raycasterRef.current.setFromCamera(ndc, camera);
 
-    // First check if we hit a pin marker
     if (markerManagerRef.current) {
       const hitPinId = markerManagerRef.current.getHitPin(raycasterRef.current);
       if (hitPinId) {
@@ -210,7 +204,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
       }
     }
 
-    // In edit mode with placing active: raycast against model surface
     if (mode === 'edit' && isPlacing && modelMeshes.length > 0) {
       const hits = raycasterRef.current.intersectObjects(modelMeshes, true);
       if (hits.length > 0) {
@@ -223,7 +216,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
         setIsPlacing(false);
       }
     } else {
-      // Click on empty space → deselect
       setActivePin(null);
     }
   }, [camera, scene, mode, isPlacing, modelMeshes, activePin, getMouseNDC]);
@@ -241,7 +233,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
     const hitId = markerManagerRef.current.getHitPin(raycasterRef.current);
     setHoveredPin(hitId);
 
-    // Cursor hint
     if (containerRef.current) {
       if (isPlacing) {
         containerRef.current.style.cursor = 'crosshair';
@@ -267,12 +258,13 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
     };
   }, [handleCanvasClick, handleCanvasMouseMove, containerRef]);
 
-  // ── Create pin ──
+  // ── Create pin (DIFF 9: added keyword_id support) ──
   const handleCreatePin = useCallback(async (formData: {
     label: string;
     description: string;
     pin_type: string;
     color: string;
+    keyword_id?: string;
   }) => {
     if (!placementPoint) return;
 
@@ -291,8 +283,9 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
         },
         title: formData.label,
         description: formData.description,
-        pin_type: 'point', // DB CHECK: point|line|area — UI only creates point pins
+        pin_type: 'point',
         color: formData.color,
+        keyword_id: formData.keyword_id,
       });
       setPins(prev => [...prev, created]);
       toast.success('Pin creado');
@@ -378,9 +371,6 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
       )}
 
       {/* ── Pin overlays (2D projected via imperative DOM positioning) ── */}
-      {/* Container divs are ALWAYS mounted for all pins (so refs exist).
-          Visibility is controlled imperatively via style.display in projectPins.
-          Content (tooltip/popup) is React state-driven — only re-renders on hover/active change. */}
       {pins.map(pin => {
         const isActive = activePin === pin.id;
         const isHovered = hoveredPin === pin.id;
@@ -390,7 +380,7 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
             key={pin.id}
             ref={setPinOverlayRef(pin.id)}
             className="absolute left-0 top-0 z-10 pointer-events-none"
-            style={{ display: 'none' /* initial hidden, projectPins will show */ }}
+            style={{ display: 'none' }}
           >
             {/* Label on hover */}
             {(isHovered && !isActive && pin.title) && (
@@ -424,6 +414,16 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
                   <p className="text-[10px] text-gray-400 leading-relaxed mb-2">{pin.description}</p>
                 )}
 
+                {/* DIFF 9: F1 Keyword link badge */}
+                {pin.keyword_id && (
+                  <div className="mb-2 px-2 py-1 rounded-md bg-violet-500/10 border border-violet-500/20">
+                    <span className="text-[8px] text-violet-400 flex items-center gap-1">
+                      <Link2 size={8} />
+                      Keyword vinculado
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
                   {pin.pin_type && (
                     <span className="text-[8px] text-gray-500 uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded">
@@ -446,11 +446,13 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
       })}
 
       {/* ── Pin creation form (professor) ── */}
+      {/* DIFF 10: Pass topicId to PinCreationForm */}
       {showForm && placementPoint && (
         <PinCreationForm
           onSubmit={handleCreatePin}
           onCancel={() => { setShowForm(false); setPlacementPoint(null); }}
           geometry={placementPoint.geometry}
+          topicId={topicId}
         />
       )}
     </>
@@ -462,19 +464,23 @@ export function PinSystem({ modelId, mode, scene, camera, containerRef, modelMes
 // ── Pin Creation Form (inline floating) ──
 // ══════════════════════════════════════════════
 
+// DIFF 9: Updated form to include keyword_id and topicId
 function PinCreationForm({
   onSubmit,
   onCancel,
   geometry,
+  topicId,
 }: {
-  onSubmit: (data: { label: string; description: string; pin_type: string; color: string }) => Promise<void>;
+  onSubmit: (data: { label: string; description: string; pin_type: string; color: string; keyword_id?: string }) => Promise<void>;
   onCancel: () => void;
   geometry: THREE.Vector3;
+  topicId?: string;
 }) {
   const [label, setLabel] = useState('');
   const [description, setDescription] = useState('');
   const [pinType, setPinType] = useState('info');
   const [saving, setSaving] = useState(false);
+  const [keywordId, setKeywordId] = useState<string | null>(null);
 
   const selectedType = PIN_TYPES.find(t => t.value === pinType) || PIN_TYPES[0];
 
@@ -488,6 +494,7 @@ function PinCreationForm({
         description: description.trim(),
         pin_type: pinType,
         color: selectedType.color,
+        keyword_id: keywordId || undefined,
       });
     } finally {
       setSaving(false);
@@ -536,6 +543,13 @@ function PinCreationForm({
             </button>
           ))}
         </div>
+
+        {/* F1: Keyword linking (DIFF 9) */}
+        <KeywordAutocomplete
+          topicId={topicId}
+          value={keywordId}
+          onChange={(id) => setKeywordId(id)}
+        />
 
         {/* Label */}
         <input
