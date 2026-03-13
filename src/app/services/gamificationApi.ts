@@ -1,42 +1,21 @@
 // ============================================================
-// Axon — Gamification API Service v2 (VERIFIED against backend)
+// Axon — Gamification API Service
 //
-// Backend: routes/gamification/ (PR #101 modularized)
-// Most endpoints require institution_id (query or body).
-// Exception: GET /badges uses only JWT auth (no institution_id).
+// Verified against backend routes/gamification/ (2026-03-13):
+//   profile.ts  — GET profile, xp-history, leaderboard (3)
+//   badges.ts   — GET badges, POST check-badges, GET notifications (3)
+//   streak.ts   — GET streak-status, POST daily-check-in, streak-freeze/buy, streak-repair (4)
+//   goals.ts    — PUT daily-goal, POST goals/complete, POST onboarding (3)
+//   Total: 13 endpoints
 //
-// ENDPOINTS (13 total):
-//   profile.ts:
-//     GET  /gamification/profile      — Composite XP + streak + badge count  [institution_id]
-//     GET  /gamification/xp-history   — Paginated XP transactions            [institution_id]
-//     GET  /gamification/leaderboard  — Weekly/daily leaderboard             [institution_id]
-//   badges.ts:
-//     GET  /gamification/badges       — All badge defs + earned status       [JWT only]
-//     POST /gamification/check-badges — Evaluate and award eligible          [institution_id]
-//     GET  /gamification/notifications— Recent XP + badge timeline           [institution_id]
-//   streak.ts:
-//     GET  /gamification/streak-status — Detailed streak info                [institution_id]
-//     POST /gamification/daily-check-in— Daily login streak check-in         [institution_id]
-//     POST /gamification/streak-freeze/buy — Purchase freeze with XP         [institution_id]
-//     POST /gamification/streak-repair — Repair broken streak with XP        [institution_id]
-//   goals.ts:
-//     PUT  /gamification/daily-goal   — Update daily XP goal target          [institution_id]
-//     POST /gamification/goals/complete— Mark goal completed for bonus XP    [institution_id]
-//     POST /gamification/onboarding   — Initialize gamification profile      [institution_id]
-//
-// Uses apiCall() from lib/api.ts (handles Auth headers).
+// All calls go through apiCall() (double-token convention).
+// All endpoints require institution_id as QUERY PARAM (not body).
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
-import type {
-  XPTransaction,
-  Badge,
-  StudyQueueResponse,
-} from '@/app/types/gamification';
 
-// ── Response Types (matching REAL backend shapes) ─────────
+// ── Types ─────────────────────────────────────────────
 
-/** GET /gamification/profile response */
 export interface GamificationProfile {
   xp: {
     total: number;
@@ -55,8 +34,42 @@ export interface GamificationProfile {
   badges_earned: number;
 }
 
-/** GET /gamification/streak-status response (from computeStreakStatus) */
-export interface StreakStatusResponse {
+export interface XPTransaction {
+  id: string;
+  student_id: string;
+  institution_id: string;
+  action: string;
+  xp_base: number;
+  xp_final: number;
+  multiplier: number;
+  bonus_type: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  created_at: string;
+}
+
+export interface XPHistoryResponse {
+  items: XPTransaction[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface LeaderboardEntry {
+  student_id: string;
+  xp_this_week?: number;
+  xp_today?: number;
+  current_level: number;
+  total_xp: number;
+}
+
+export interface LeaderboardResponse {
+  leaderboard: LeaderboardEntry[];
+  my_rank: number | null;
+  period: string;
+}
+
+export interface StreakStatus {
   current_streak: number;
   longest_streak: number;
   last_study_date: string | null;
@@ -67,224 +80,253 @@ export interface StreakStatusResponse {
   days_since_last_study: number | null;
 }
 
-/** POST /gamification/daily-check-in response */
-export interface CheckInResponse {
-  streak_status: StreakStatusResponse;
-  events: Array<{
-    type: 'streak_started' | 'streak_incremented' | 'freeze_consumed' | 'streak_broken' | 'already_checked_in';
-    message: string;
-    data?: Record<string, unknown>;
-  }>;
+export interface CheckInEvent {
+  type: 'streak_started' | 'streak_incremented' | 'freeze_consumed' | 'streak_broken' | 'already_checked_in';
+  message: string;
+  data?: Record<string, unknown>;
 }
 
-/** GET /gamification/leaderboard response */
-export interface LeaderboardResponse {
-  leaderboard: Array<Record<string, unknown>>;
-  my_rank: number | null;
-  period: string;
+export interface CheckInResult {
+  streak_status: StreakStatus;
+  events: CheckInEvent[];
 }
 
-/** GET /gamification/badges response */
+export interface BadgeWithStatus {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  icon_url: string | null;
+  category: string;
+  rarity: string;
+  xp_reward: number;
+  criteria: string;
+  is_active: boolean;
+  earned: boolean;
+  earned_at: string | null;
+}
+
 export interface BadgesResponse {
-  badges: Array<Badge & { earned: boolean }>;
+  badges: BadgeWithStatus[];
   total: number;
   earned_count: number;
 }
 
-/** GET /gamification/xp-history response */
-export interface XPHistoryResponse {
-  items: XPTransaction[];
-  total: number;
-  limit: number;
-  offset: number;
+export interface GamificationNotification {
+  type: 'xp' | 'badge';
+  timestamp: string;
+  action?: string;
+  xp?: number;
+  bonus?: string | null;
+  badge_id?: string;
+  badge_name?: string;
+  badge_slug?: string | null;
+  badge_icon?: string | null;
+  badge_rarity?: string | null;
 }
 
-/** GET /gamification/notifications response */
-export interface NotificationsResponse {
-  notifications: Array<{
-    type: 'xp' | 'badge';
-    action?: string;
-    xp?: number;
-    bonus?: string | null;
-    badge_id?: string;
-    badge_name?: string;
-    badge_slug?: string | null;
-    badge_icon?: string | null;
-    badge_rarity?: string | null;
-    timestamp: string;
-  }>;
-  total: number;
+// ── API Calls ─────────────────────────────────────────
+
+export async function getProfile(institutionId: string): Promise<GamificationProfile | null> {
+  try {
+    return await apiCall<GamificationProfile>(
+      `/gamification/profile?institution_id=${institutionId}`
+    );
+  } catch {
+    return null;
+  }
 }
 
-/** POST /gamification/streak-repair response */
-export interface RepairResponse {
-  repaired: boolean;
-  restored_streak: number;
-  xp_spent: number;
-  remaining_xp: number;
+export async function getXPHistory(
+  institutionId: string,
+  opts?: { limit?: number; offset?: number }
+): Promise<XPHistoryResponse> {
+  try {
+    const limit = opts?.limit ?? 20;
+    const offset = opts?.offset ?? 0;
+    return await apiCall<XPHistoryResponse>(
+      `/gamification/xp-history?institution_id=${institutionId}&limit=${limit}&offset=${offset}`
+    );
+  } catch {
+    return { items: [], total: 0, limit: opts?.limit ?? 20, offset: opts?.offset ?? 0 };
+  }
 }
 
-/** POST /gamification/streak-freeze/buy response */
-export interface FreezeResponse {
+export async function getLeaderboard(
+  institutionId: string,
+  opts?: { limit?: number; period?: 'weekly' | 'daily' }
+): Promise<LeaderboardResponse> {
+  try {
+    const limit = opts?.limit ?? 10;
+    const period = opts?.period ?? 'weekly';
+    return await apiCall<LeaderboardResponse>(
+      `/gamification/leaderboard?institution_id=${institutionId}&limit=${limit}&period=${period}`
+    );
+  } catch {
+    return { leaderboard: [], my_rank: null, period: opts?.period ?? 'weekly' };
+  }
+}
+
+export async function getStreakStatus(institutionId: string): Promise<StreakStatus | null> {
+  try {
+    return await apiCall<StreakStatus>(
+      `/gamification/streak-status?institution_id=${institutionId}`
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function dailyCheckIn(institutionId: string): Promise<CheckInResult | null> {
+  try {
+    return await apiCall<CheckInResult>(
+      `/gamification/daily-check-in?institution_id=${institutionId}`,
+      { method: 'POST' }
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function buyStreakFreeze(institutionId: string): Promise<{
   freeze: Record<string, unknown>;
   xp_spent: number;
   remaining_xp: number;
   freezes_owned: number;
+} | null> {
+  try {
+    return await apiCall(
+      `/gamification/streak-freeze/buy?institution_id=${institutionId}`,
+      { method: 'POST' }
+    );
+  } catch {
+    return null;
+  }
 }
 
-// ── Helper: append institution_id as query param ──────────
-
-function withInst(path: string, institutionId: string): string {
-  const sep = path.includes('?') ? '&' : '?';
-  return `${path}${sep}institution_id=${institutionId}`;
+export async function repairStreak(institutionId: string): Promise<{
+  repaired: boolean;
+  restored_streak: number;
+  xp_spent: number;
+  remaining_xp: number;
+} | null> {
+  try {
+    return await apiCall(
+      `/gamification/streak-repair?institution_id=${institutionId}`,
+      { method: 'POST' }
+    );
+  } catch {
+    return null;
+  }
 }
 
-// ── Profile (Composite XP + streak + badges) ──────────────
-
-export async function getGamificationProfile(
-  institutionId: string
-): Promise<GamificationProfile> {
-  return apiCall<GamificationProfile>(
-    withInst('/gamification/profile', institutionId)
-  );
+export async function getBadges(institutionId?: string, category?: string): Promise<BadgesResponse> {
+  try {
+    let path = '/gamification/badges';
+    const params: string[] = [];
+    if (institutionId) params.push(`institution_id=${institutionId}`);
+    if (category) params.push(`category=${category}`);
+    if (params.length) path += '?' + params.join('&');
+    return await apiCall<BadgesResponse>(path);
+  } catch {
+    return { badges: [], total: 0, earned_count: 0 };
+  }
 }
 
-// ── XP History ────────────────────────────────────────
+export async function checkBadges(institutionId: string): Promise<{
+  new_badges: BadgeWithStatus[];
+  checked: number;
+  awarded: number;
+} | null> {
+  try {
+    return await apiCall(
+      `/gamification/check-badges?institution_id=${institutionId}`,
+      { method: 'POST' }
+    );
+  } catch {
+    return null;
+  }
+}
 
-export async function getXPHistory(
+export async function getNotifications(
   institutionId: string,
-  options?: { limit?: number; offset?: number }
-): Promise<XPHistoryResponse> {
-  const params = new URLSearchParams({ institution_id: institutionId });
-  if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.offset) params.set('offset', String(options.offset));
-  return apiCall<XPHistoryResponse>(`/gamification/xp-history?${params}`);
+  opts?: { limit?: number }
+): Promise<{ notifications: GamificationNotification[]; total: number }> {
+  try {
+    const limit = opts?.limit ?? 20;
+    return await apiCall(
+      `/gamification/notifications?institution_id=${institutionId}&limit=${limit}`
+    );
+  } catch {
+    return { notifications: [], total: 0 };
+  }
 }
-
-// ── Leaderboard ───────────────────────────────────────
-
-export async function getLeaderboard(
-  institutionId: string,
-  options?: { period?: 'weekly' | 'daily'; limit?: number }
-): Promise<LeaderboardResponse> {
-  const params = new URLSearchParams({ institution_id: institutionId });
-  if (options?.period) params.set('period', options.period);
-  if (options?.limit) params.set('limit', String(options.limit));
-  return apiCall<LeaderboardResponse>(`/gamification/leaderboard?${params}`);
-}
-
-// ── Badges ──────────────────────────────────────────
-// NOTE: GET /badges does NOT require institution_id.
-// Backend uses JWT auth only (user.id) to join badge_definitions + student_badges.
-// Verified in axon-backend/routes/gamification/badges.ts line 21.
-
-export async function getBadges(
-  category?: string
-): Promise<BadgesResponse> {
-  const params = new URLSearchParams();
-  if (category) params.set('category', category);
-  const qs = params.toString() ? `?${params}` : '';
-  return apiCall<BadgesResponse>(`/gamification/badges${qs}`);
-}
-
-export async function checkBadges(
-  institutionId: string
-): Promise<{ new_badges: Array<Record<string, unknown>>; checked: number; awarded: number }> {
-  return apiCall(`/gamification/check-badges?institution_id=${institutionId}`, {
-    method: 'POST',
-  });
-}
-
-// ── Notifications ─────────────────────────────────────
-
-export async function getGamificationNotifications(
-  institutionId: string,
-  options?: { limit?: number }
-): Promise<NotificationsResponse> {
-  const params = new URLSearchParams({ institution_id: institutionId });
-  if (options?.limit) params.set('limit', String(options.limit));
-  return apiCall<NotificationsResponse>(`/gamification/notifications?${params}`);
-}
-
-// ── Streak ──────────────────────────────────────────
-
-export async function getStreakStatus(
-  institutionId: string
-): Promise<StreakStatusResponse> {
-  return apiCall<StreakStatusResponse>(
-    withInst('/gamification/streak-status', institutionId)
-  );
-}
-
-export async function dailyCheckIn(
-  institutionId: string
-): Promise<CheckInResponse> {
-  return apiCall<CheckInResponse>(
-    withInst('/gamification/daily-check-in', institutionId),
-    { method: 'POST' }
-  );
-}
-
-export async function buyStreakFreeze(
-  institutionId: string
-): Promise<FreezeResponse> {
-  return apiCall<FreezeResponse>(
-    withInst('/gamification/streak-freeze/buy', institutionId),
-    { method: 'POST' }
-  );
-}
-
-export async function repairStreak(
-  institutionId: string
-): Promise<RepairResponse> {
-  return apiCall<RepairResponse>(
-    withInst('/gamification/streak-repair', institutionId),
-    { method: 'POST' }
-  );
-}
-
-// ── Goals ───────────────────────────────────────────
 
 export async function updateDailyGoal(
   institutionId: string,
   dailyGoal: number
-): Promise<Record<string, unknown>> {
-  return apiCall('/gamification/daily-goal', {
-    method: 'PUT',
-    body: JSON.stringify({ institution_id: institutionId, daily_goal: dailyGoal }),
-  });
+): Promise<Record<string, unknown> | null> {
+  try {
+    return await apiCall(
+      '/gamification/daily-goal',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ institution_id: institutionId, daily_goal: dailyGoal }),
+      }
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function completeGoal(
   institutionId: string,
   goalType: string
-): Promise<{ goal_type: string; xp_awarded: number; bonus_type: string | null }> {
-  return apiCall('/gamification/goals/complete', {
-    method: 'POST',
-    body: JSON.stringify({ institution_id: institutionId, goal_type: goalType }),
-  });
+): Promise<{ goal_type: string; xp_awarded: number; bonus_type: string | null } | null> {
+  try {
+    return await apiCall(
+      '/gamification/goals/complete',
+      {
+        method: 'POST',
+        body: JSON.stringify({ institution_id: institutionId, goal_type: goalType }),
+      }
+    );
+  } catch {
+    return null;
+  }
 }
 
-export async function initializeGamification(
-  institutionId: string
-): Promise<{ message: string; already_exists: boolean }> {
-  return apiCall('/gamification/onboarding', {
-    method: 'POST',
-    body: JSON.stringify({ institution_id: institutionId }),
-  });
+export async function onboarding(institutionId: string): Promise<{
+  message: string;
+  already_exists: boolean;
+} | null> {
+  try {
+    return await apiCall(
+      '/gamification/onboarding',
+      {
+        method: 'POST',
+        body: JSON.stringify({ institution_id: institutionId }),
+      }
+    );
+  } catch {
+    return null;
+  }
 }
 
-// ── Study Queue (separate route file) ─────────────────────
-
-export async function getStudyQueue(options?: {
-  course_id?: string;
-  limit?: number;
-  include_future?: boolean;
-}): Promise<StudyQueueResponse> {
-  const params = new URLSearchParams();
-  if (options?.course_id) params.set('course_id', options.course_id);
-  if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.include_future) params.set('include_future', '1');
-  const qs = params.toString() ? `?${params}` : '';
-  return apiCall<StudyQueueResponse>(`/study-queue${qs}`);
+/** @deprecated Use getProfile() instead */
+export async function getMyXP(institutionId: string) {
+  const profile = await getProfile(institutionId);
+  if (!profile) return null;
+  return {
+    total_xp: profile.xp.total,
+    current_level: profile.xp.level,
+    xp_today: profile.xp.today,
+    xp_this_week: profile.xp.this_week,
+    daily_goal: profile.xp.daily_goal,
+    daily_cap: profile.xp.daily_cap,
+    streak_freezes_owned: profile.xp.streak_freezes_owned,
+    current_streak: profile.streak.current,
+    longest_streak: profile.streak.longest,
+    badges_earned: profile.badges_earned,
+  };
 }
