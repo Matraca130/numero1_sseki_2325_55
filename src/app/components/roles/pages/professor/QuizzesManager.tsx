@@ -8,16 +8,17 @@
 //   DELETE /quizzes/:id (soft delete)
 //
 // Uses typed service functions from quizApi.ts
+// R5 refactor: QuizEntityCard extracted with React.memo
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
 import * as quizApi from '@/app/services/quizApi';
-import type { Quiz, QuizEntityListResponse } from '@/app/services/quizApi';
-import { motion, AnimatePresence } from 'motion/react';
+import type { Quiz } from '@/app/services/quizApi';
+import { AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import {
-  ClipboardList, Plus, Pencil, Trash2,
-  Loader2, AlertTriangle, BookOpen, Eye, EyeOff, ChevronRight,
+  ClipboardList, Plus,
+  Loader2, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
@@ -27,11 +28,12 @@ import { logger } from '@/app/lib/logger';
 import { ApiError, getErrorMsg } from '@/app/lib/error-utils';
 import { QuizFormModal } from './QuizFormModal';
 import { QuizAnalyticsPanel } from '@/app/components/professor/QuizAnalyticsPanel';
+import { QuizEntityCard } from './QuizEntityCard';
 
-// ── Error boundary (Phase 7c) ────────────────────────
+// ── Error boundary (Phase 7c) ────────────────────
 import { QuizErrorBoundary } from '@/app/components/shared/QuizErrorBoundary';
 
-// ── Props ─────────────────────────────────────────────────
+// ── Props ───────────────────────────────────────────────
 
 interface QuizzesManagerProps {
   summaryId: string;
@@ -59,14 +61,13 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
   // Analytics modal (P4)
   const [analyticsQuiz, setAnalyticsQuiz] = useState<Quiz | null>(null);
 
-  // ── Load quizzes ─────────────────────────────────────
+  // ── Load quizzes ───────────────────────────────────
   const loadQuizzes = useCallback(async () => {
     if (!summaryId) return;
     setLoading(true);
     setBackendError(null);
     try {
       const res = await quizApi.getQuizzes(summaryId);
-      // Handle both paginated and array responses
       if (Array.isArray(res)) {
         setQuizzes(res);
       } else if (res && typeof res === 'object' && 'items' in res) {
@@ -77,8 +78,6 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     } catch (err: unknown) {
       const errMsg = getErrorMsg(err);
       logger.warn('[QuizzesManager] Load error:', errMsg);
-      // FIX H6-3: Use ApiError.status for structured detection
-      // instead of fragile string matching on error messages
       if (err instanceof ApiError && err.status === 404) {
         setBackendError(
           'Las rutas CRUD de /quizzes aun no existen en el backend. ' +
@@ -97,7 +96,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     loadQuizzes();
   }, [loadQuizzes]);
 
-  // ── Handlers ──────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────
   const handleCreate = () => {
     setEditingQuiz(null);
     setShowModal(true);
@@ -135,11 +134,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     loadQuizzes();
   };
 
-  const handleOpenQuestions = (quiz: Quiz) => {
-    setSelectedQuiz(quiz);
-  };
-
-  // ── If viewing questions editor ───────────────────────
+  // ── If viewing questions editor ─────────────────────
   if (selectedQuiz) {
     return (
       <QuizQuestionsEditor
@@ -151,7 +146,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     );
   }
 
-  // ── Render ────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────
   return (
     <QuizErrorBoundary label="Gestion de Quizzes" accentColor="purple">
       <div className="flex flex-col h-full">
@@ -221,138 +216,18 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
           ) : (
             <div className="space-y-3 max-w-3xl">
               {quizzes.map((quiz) => (
-                <motion.div
+                <QuizEntityCard
                   key={quiz.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -2 }}
-                  className={clsx(
-                    'bg-white rounded-2xl border px-5 py-4 transition-all',
-                    quiz.is_active
-                      ? 'border-zinc-200 hover:border-purple-200 hover:shadow-xl hover:shadow-zinc-900/5'
-                      : 'border-red-200 bg-red-50/30 opacity-75'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Icon */}
-                    <div className={clsx(
-                      'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                      quiz.is_active ? 'bg-purple-50' : 'bg-red-50'
-                    )}>
-                      <ClipboardList size={17} className={quiz.is_active ? 'text-purple-500' : 'text-red-400'} />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="text-[13px] text-gray-800 truncate" style={{ fontWeight: 600 }}>
-                          {quiz.title}
-                        </h3>
-                        <span className={clsx(
-                          'px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider shrink-0',
-                          quiz.source === 'ai'
-                            ? 'bg-violet-100 text-violet-600'
-                            : 'bg-gray-100 text-gray-500'
-                        )} style={{ fontWeight: 700 }}>
-                          {quiz.source}
-                        </span>
-                        {!quiz.is_active && (
-                          <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[9px] uppercase shrink-0" style={{ fontWeight: 700 }}>
-                            Inactivo
-                          </span>
-                        )}
-                      </div>
-                      {quiz.description && (
-                        <p className="text-[11px] text-gray-400 truncate">{quiz.description}</p>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* Open questions */}
-                      <button
-                        onClick={() => handleOpenQuestions(quiz)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-purple-600 hover:bg-purple-50 transition-colors"
-                        style={{ fontWeight: 600 }}
-                        title="Editar preguntas"
-                      >
-                        <BookOpen size={13} />
-                        Preguntas
-                        <ChevronRight size={12} />
-                      </button>
-
-                      {/* Analytics (P4) */}
-                      <button
-                        onClick={() => setAnalyticsQuiz(quiz)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Analytics"
-                      >
-                        <Eye size={14} />
-                      </button>
-
-                      {/* Toggle active */}
-                      <button
-                        onClick={() => handleToggleActive(quiz)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                        title={quiz.is_active ? 'Desactivar' : 'Activar'}
-                      >
-                        {quiz.is_active ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
-
-                      {/* Edit */}
-                      <button
-                        onClick={() => handleEdit(quiz)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil size={14} />
-                      </button>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => setDeletingId(quiz.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Delete confirmation */}
-                  <AnimatePresence>
-                    {deletingId === quiz.id && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                          <p className="text-[11px] text-red-600">
-                            Confirmar eliminacion de "{quiz.title}"?
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setDeletingId(null)}
-                              className="px-2.5 py-1 rounded-lg text-[11px] text-gray-500 hover:bg-gray-100 transition-colors"
-                              style={{ fontWeight: 500 }}
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={() => handleDelete(quiz.id)}
-                              className="px-2.5 py-1 rounded-lg text-[11px] text-white bg-red-500 hover:bg-red-600 transition-colors"
-                              style={{ fontWeight: 600 }}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+                  quiz={quiz}
+                  isDeleting={deletingId === quiz.id}
+                  onOpenQuestions={() => setSelectedQuiz(quiz)}
+                  onAnalytics={() => setAnalyticsQuiz(quiz)}
+                  onToggleActive={() => handleToggleActive(quiz)}
+                  onEdit={() => handleEdit(quiz)}
+                  onRequestDelete={() => setDeletingId(quiz.id)}
+                  onConfirmDelete={() => handleDelete(quiz.id)}
+                  onCancelDelete={() => setDeletingId(null)}
+                />
               ))}
             </div>
           )}
