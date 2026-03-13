@@ -1,10 +1,10 @@
 // ============================================================
 // Axon — Professor: useQuizCascade Hook
 // C3 cleanup: kw.term → kw.name || kw.term
+// R16 refactor: content tree loading extracted to useContentTree
 // ============================================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/app/context/AuthContext';
 import { apiCall } from '@/app/lib/api';
 import type { CascadeLevelConfig } from '@/app/components/professor/CascadeSelector';
 import type { Summary, Keyword } from '@/app/types/platform';
@@ -12,6 +12,7 @@ import {
   BookOpen, FileText, ClipboardList, GraduationCap, Layers,
 } from 'lucide-react';
 import { logger } from '@/app/lib/logger';
+import { useContentTree } from '@/app/hooks/useContentTree';
 
 // ── Stable icon constants (fix H-1) ──
 
@@ -20,40 +21,6 @@ const ICON_SEMESTER = <GraduationCap size={12} className="text-gray-400 shrink-0
 const ICON_SECTION = <Layers size={12} className="text-gray-400 shrink-0" />;
 const ICON_TOPIC = <FileText size={12} className="text-gray-400 shrink-0" />;
 const ICON_SUMMARY = <ClipboardList size={12} className="text-purple-500 shrink-0" />;
-
-// ── Content-tree types ──
-
-interface ContentTreeTopic {
-  id: string;
-  name: string;
-  order_index?: number;
-}
-
-interface ContentTreeSection {
-  id: string;
-  name: string;
-  order_index?: number;
-  topics: ContentTreeTopic[];
-}
-
-interface ContentTreeSemester {
-  id: string;
-  name: string;
-  order_index?: number;
-  sections: ContentTreeSection[];
-}
-
-interface ContentTreeCourse {
-  id: string;
-  name: string;
-  semesters: ContentTreeSemester[];
-}
-
-interface MembershipLite {
-  id: string;
-  course_id: string;
-  role: string;
-}
 
 function extractItems<T>(res: { items: T[] } | T[]): T[] {
   return Array.isArray(res) ? res : res.items;
@@ -73,11 +40,9 @@ export interface UseQuizCascadeReturn {
 // ── Hook ──
 
 export function useQuizCascade(): UseQuizCascadeReturn {
-  const { selectedInstitution } = useAuth();
-  const institutionId = selectedInstitution?.id || null;
+  // R16: content tree loaded by shared hook
+  const { contentTree, treeLoading } = useContentTree();
 
-  const [contentTree, setContentTree] = useState<ContentTreeCourse[]>([]);
-  const [treeLoading, setTreeLoading] = useState(true);
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [summariesLoading, setSummariesLoading] = useState(false);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
@@ -87,41 +52,6 @@ export function useQuizCascade(): UseQuizCascadeReturn {
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null);
-
-  // 1. Load content-tree
-  useEffect(() => {
-    if (!institutionId) {
-      setContentTree([]);
-      setTreeLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setTreeLoading(true);
-    (async () => {
-      try {
-        const [tree, memberships] = await Promise.all([
-          apiCall<ContentTreeCourse[]>(`/content-tree?institution_id=${institutionId}`),
-          apiCall<MembershipLite[]>(`/memberships?institution_id=${institutionId}`),
-        ]);
-        if (cancelled) return;
-
-        const allCourses = Array.isArray(tree) ? tree : [];
-        const profCourseIds = (memberships || [])
-          .filter(m => m.role?.toLowerCase() === 'professor')
-          .map(m => m.course_id)
-          .filter(Boolean);
-
-        const professorCourses = allCourses.filter(c => profCourseIds.includes(c.id));
-        setContentTree(professorCourses.length > 0 ? professorCourses : allCourses);
-      } catch (err) {
-        logger.error('[Quiz] Content tree load error:', err);
-        if (!cancelled) setContentTree([]);
-      } finally {
-        if (!cancelled) setTreeLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [institutionId]);
 
   const courses = useMemo(() =>
     contentTree.map(c => ({ id: c.id, name: c.name })),
@@ -215,8 +145,6 @@ export function useQuizCascade(): UseQuizCascadeReturn {
   }, [selectedSummaryId]);
 
   // C3: kw.name || kw.term for DB column compatibility
-  // Type-safe cast: Keyword.name may exist in DB but isn't in
-  // the TS type yet. Avoids `as any` per Gemini review.
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
