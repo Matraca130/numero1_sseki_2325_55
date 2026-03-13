@@ -1,9 +1,11 @@
 // ============================================================
-// Axon — Dashboard View (Modularized)
+// Axon — Dashboard View (RESPONSIVE VERSION)
 //
-// Sub-components extracted to:
-//   /src/app/components/dashboard/DashboardCharts.tsx
-//   /src/app/components/dashboard/DashboardStudyPlans.tsx
+// Changes from original:
+//   1. px-6 py-6 → layout.content tokens (px-4 lg:px-6)
+//   2. Action button (time range toggle) stacks on mobile via AxonPageHeader responsive
+//   3. Subject progress header wraps on mobile
+//   4. EmptyState action button full-width on mobile
 // ============================================================
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
@@ -24,7 +26,7 @@ import {
 import clsx from 'clsx';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { KPICard, TrendBadge } from '@/app/components/shared/KPICard';
-import { colors, components, headingStyle } from '@/app/design-system';
+import { colors, components, headingStyle, layout } from '@/app/design-system';
 import { EmptyState } from '@/app/components/shared/PageStates';
 
 // ── Extracted modules ──
@@ -116,13 +118,13 @@ export function DashboardView() {
           <div className="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200/60 shrink-0">
             <button
               onClick={() => setTimeRange('week')}
-              className={clsx("px-4 py-2 text-sm font-medium rounded-md transition-all", timeRange === 'week' ? components.filterButton.active : components.filterButton.inactive)}
+              className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap", timeRange === 'week' ? components.filterButton.active : components.filterButton.inactive)}
             >
               Esta Semana
             </button>
             <button
               onClick={() => setTimeRange('month')}
-              className={clsx("px-4 py-2 text-sm font-medium rounded-md transition-all", timeRange === 'month' ? components.filterButton.active : components.filterButton.inactive)}
+              className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap", timeRange === 'month' ? components.filterButton.active : components.filterButton.inactive)}
             >
               Este Mes
             </button>
@@ -130,9 +132,9 @@ export function DashboardView() {
         }
       />
 
-      {/* Content */}
-      <div className="px-6 py-6 bg-surface-dashboard">
-        <div className="max-w-7xl mx-auto space-y-8">
+      {/* Content — uses responsive layout tokens */}
+      <div className={`${layout.content.paddingX} ${layout.content.paddingY} bg-surface-dashboard`}>
+        <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
 
           {/* Onboarding empty state */}
           {isConnected && bktStates.length === 0 && dailyActivity.length === 0 && (
@@ -147,7 +149,7 @@ export function DashboardView() {
             />
           )}
 
-          {/* KPI Cards */}
+          {/* KPI Cards — already responsive grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
               icon={<Layers className="w-5 h-5 text-[#2a8c7a]" />}
@@ -179,29 +181,29 @@ export function DashboardView() {
             />
           </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Charts Section — already responsive grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             <ActivityChart data={activityData} />
             <MasteryDonut data={masteryData} totalCards={totalCards} />
           </div>
 
           {/* Subject Progress */}
           <div className={components.chartCard.base}>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h3 className="text-lg font-semibold text-gray-900" style={headingStyle}>Progreso por Materia</h3>
-              <button className="text-sm text-[#2a8c7a] font-medium hover:text-[#1B3B36]">Ver Reporte Completo</button>
+              <button className="text-sm text-[#2a8c7a] font-medium hover:text-[#1B3B36] whitespace-nowrap">Ver Reporte Completo</button>
             </div>
             <div className="space-y-6">
               {subjectProgress.map((subject, idx) => {
                 const percentage = subject.total > 0 ? Math.round((subject.completed / subject.total) * 100) : 0;
                 return (
                   <div key={`${subject.name}-${idx}`} className="relative">
-                    <div className="flex items-end justify-between mb-2">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{subject.name}</h4>
+                    <div className="flex items-end justify-between mb-2 gap-2">
+                      <div className="min-w-0">
+                        <h4 className="font-semibold text-gray-900 truncate">{subject.name}</h4>
                         <p className="text-xs text-gray-500 mt-0.5">{subject.completed} de {subject.total} temas dominados</p>
                       </div>
-                      <span className="text-lg font-bold text-gray-900">{percentage}%</span>
+                      <span className="text-lg font-bold text-gray-900 shrink-0">{percentage}%</span>
                     </div>
                     <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
                       <motion.div
