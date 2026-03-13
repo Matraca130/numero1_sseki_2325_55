@@ -8,6 +8,7 @@
 // P4-S01: Added question count badge (answered/total)
 // P4-S02: Added global session timer
 // P7: Added per-question countdown timer
+// Q-A11Y: Enhanced aria-labels, header landmark
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -39,7 +40,7 @@ export interface QuizTopBarProps {
   onCountdownTimeout?: () => void;
 }
 
-// ── Global Timer (P4-S02) ──────────────────────────────
+// ── Global Timer (P4-S02) ────────────────────────────
 
 function SessionTimer({ startTime }: { startTime: number }) {
   const [elapsed, setElapsed] = useState(0);
@@ -78,10 +79,11 @@ export const QuizTopBar = React.memo(function QuizTopBar({
   onCountdownTimeout,
 }: QuizTopBarProps) {
   return (
-    <div className="h-14 flex items-center justify-between px-5 border-b border-zinc-200 shrink-0 bg-white/80 backdrop-blur-xl z-10">
+    <header className="h-14 flex items-center justify-between px-5 border-b border-zinc-200 shrink-0 bg-white/80 backdrop-blur-xl z-10" aria-label="Barra del quiz">
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
+          aria-label="Salir del quiz"
           className="flex items-center gap-1 p-1.5 -ml-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors"
         >
           <ChevronLeft size={18} />
@@ -125,10 +127,10 @@ export const QuizTopBar = React.memo(function QuizTopBar({
             compact
           />
         )}
-        <button onClick={onBack} className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
+        <button onClick={onBack} aria-label="Cerrar quiz" className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
           <X size={18} />
         </button>
       </div>
-    </div>
+    </header>
   );
 });
