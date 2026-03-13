@@ -2,7 +2,7 @@
 // Axon — Professor: useQuizQuestionsLoader Hook (R19 Extraction)
 //
 // Shared hook that encapsulates the question-loading pattern
-// used by both ProfessorQuizzesPage and QuizQuestionsEditor.
+// used by QuizQuestionsEditor (and potentially others).
 //
 // Handles:
 //   - summaryId-gated loading (null → empty questions)
@@ -11,9 +11,8 @@
 //   - Backend warning state for UI feedback
 //   - Stable reload() callback for CRUD refresh
 //
-// Consumers:
-//   ProfessorQuizzesPage.tsx  — filters by type/difficulty/keyword
-//   QuizQuestionsEditor.tsx   — filters by quiz_id with fallback
+// Consumer:
+//   QuizQuestionsEditor.tsx — filters by quiz_id with fallback
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -59,7 +58,9 @@ export function useQuizQuestionsLoader({
   label = 'Quiz',
 }: UseQuizQuestionsLoaderOptions): UseQuizQuestionsLoaderReturn {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [loading, setLoading] = useState(false);
+  // FIX: Start loading=true when summaryId is present to match original
+  // QuizQuestionsEditor behavior (avoids 1-frame empty state flash)
+  const [loading, setLoading] = useState(!!summaryId);
   const [backendWarning, setBackendWarning] = useState<string | null>(null);
 
   // Ref-mirror filters to avoid stale closure in reload()
@@ -73,6 +74,7 @@ export function useQuizQuestionsLoader({
     const sid = summaryIdRef.current;
     if (!sid) {
       setQuestions([]);
+      setLoading(false);
       setBackendWarning(null);
       return;
     }
