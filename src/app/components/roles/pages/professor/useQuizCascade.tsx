@@ -215,10 +215,12 @@ export function useQuizCascade(): UseQuizCascadeReturn {
   }, [selectedSummaryId]);
 
   // C3: kw.name || kw.term for DB column compatibility
+  // Type-safe cast: Keyword.name may exist in DB but isn't in
+  // the TS type yet. Avoids `as any` per Gemini review.
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
-      map.set(kw.id, (kw as any).name || kw.term || kw.id.substring(0, 8) + '...');
+      map.set(kw.id, (kw as Keyword & { name?: string }).name || kw.term || kw.id.substring(0, 8) + '...');
     }
     return map;
   }, [keywords]);
