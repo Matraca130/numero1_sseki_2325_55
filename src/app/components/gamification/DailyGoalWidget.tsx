@@ -14,7 +14,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Target, Check, Loader2 } from 'lucide-react';
 import * as gamificationApi from '@/app/services/gamificationApi';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { DAILY_CAP } from '@/app/lib/xp-constants';
 
 const GOAL_PRESETS = [50, 100, 150, 200, 300, 500];
