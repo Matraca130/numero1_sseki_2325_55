@@ -1,11 +1,12 @@
 // ============================================================
-// Axon — Welcome View (Modularized)
+// Axon — Welcome View (RESPONSIVE VERSION)
 //
-// Sub-components extracted to:
-//   /src/app/components/welcome/welcomeData.ts
-//   /src/app/components/welcome/WelcomePerformanceSidebar.tsx
-//   /src/app/components/welcome/QuickShortcuts.tsx
-//   /src/app/components/shared/CircularProgress.tsx
+// Changes from original:
+//   1. 2-col layout → flex-col lg:flex-row (stacks on mobile)
+//   2. Right sidebar: w-full lg:w-[360px] (full-width on mobile)
+//   3. Content padding responsive via layout tokens
+//   4. Time filter buttons scrollable on mobile
+//   5. "Ver Todas" button adapted for mobile
 // ============================================================
 import React, { useState, useMemo, useCallback } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -69,12 +70,12 @@ export function WelcomeView() {
             : '"La excelencia no es un acto, sino un habito." \u2014 Aristoteles'
         }
         statsLeft={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mb-1">
             {(['today', 'week', 'month'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setTimeFilter(f)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                   timeFilter === f
                     ? components.filterButton.activeDark
                     : components.filterButton.inactiveDark
@@ -90,23 +91,23 @@ export function WelcomeView() {
       {/* Main scrollable content */}
       <div className={`flex-1 ${layout.content.paddingX} ${layout.content.paddingY} space-y-6 overflow-y-auto custom-scrollbar-light`}>
 
-        {/* Two-column layout: courses + sidebar */}
-        <div className="flex gap-6">
+        {/* Two-column layout: courses + sidebar → stacks on mobile */}
+        <div className="flex flex-col lg:flex-row gap-5 lg:gap-6">
           {/* Left Content - Courses */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-axon-accent" />
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide" style={headingStyle}>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-3 h-3 rounded-full bg-axon-accent shrink-0" />
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide truncate" style={headingStyle}>
                   Disciplinas en Curso
                 </h3>
-                <div className="flex-1 h-px bg-gray-200" />
+                <div className="flex-1 h-px bg-gray-200 hidden sm:block" />
               </div>
               <button
                 onClick={() => navigateTo('study-hub')}
                 className="text-axon-accent hover:text-axon-hover font-semibold text-xs flex items-center gap-1 ml-4 flex-shrink-0"
               >
-                Ver Todas
+                <span className="hidden sm:inline">Ver Todas</span>
                 <ArrowRight size={12} />
               </button>
             </div>
@@ -129,8 +130,8 @@ export function WelcomeView() {
             </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div className={`${layout.rightPanel.width} space-y-5 flex-shrink-0`}>
+          {/* Right Sidebar → full width on mobile, fixed on desktop */}
+          <div className="w-full lg:w-[360px] space-y-5 lg:flex-shrink-0">
             <WelcomePerformanceSidebar
               timeFilter={timeFilter}
               dailyPerformance={dailyPerformance}
