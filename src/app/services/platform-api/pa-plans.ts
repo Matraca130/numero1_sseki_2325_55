@@ -3,7 +3,7 @@
 // Extracted from platformApi.ts (zero functional changes)
 // ============================================================
 
-import { realRequest } from '@/app/services/apiConfig';
+import { apiCall } from '@/app/lib/api';
 import type {
   UUID,
   PlatformPlan,
@@ -11,7 +11,7 @@ import type {
   InstitutionSubscription,
 } from '@/app/types/platform';
 
-const request = realRequest;
+const request = apiCall;
 
 // ============================================================
 // PLATFORM PLANS (Axon sells to institutions)

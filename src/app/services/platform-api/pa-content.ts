@@ -4,7 +4,7 @@
 // NOTE: Semester/Section/Topic CRUD is in contentTreeApi.ts
 // ============================================================
 
-import { realRequest } from '@/app/services/apiConfig';
+import { apiCall } from '@/app/lib/api';
 import type {
   UUID,
   Course,
@@ -13,7 +13,7 @@ import type {
   Keyword,
 } from '@/app/types/platform';
 
-const request = realRequest;
+const request = apiCall;
 
 // ============================================================
 // CONTENT — Courses
