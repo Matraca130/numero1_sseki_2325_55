@@ -45,4 +45,9 @@ export const professorChildren: RouteObject[] = [
     path: 'summary/:topicId',
     lazy: () => import('@/app/components/content/SummaryView').then(m => ({ Component: m.SummaryView })),
   },
+  // ── G7: Professor Gamification View (lazy-loaded) ──
+  {
+    path: 'gamification',
+    lazy: () => import('@/app/components/professor/ProfessorGamificationPage').then(m => ({ Component: m.ProfessorGamificationPage })),
+  },
 ];
