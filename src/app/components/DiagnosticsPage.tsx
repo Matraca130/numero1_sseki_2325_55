@@ -1,10 +1,11 @@
 // ============================================================
 // Backend Diagnostics — Verifies all endpoints are working
 // Route: /diagnostics (no auth required)
+// C2 cleanup: migrated from apiConfig → api.ts imports
 // ============================================================
 
 import React, { useState, useCallback } from 'react';
-import { FIGMA_BACKEND_URL, publicAnonKey } from '@/app/services/apiConfig';
+import { API_BASE, ANON_KEY } from '@/app/lib/api';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -30,13 +31,13 @@ async function hit(
   path: string,
   body?: any
 ): Promise<{ ok: boolean; status: number; data: any; ms: number }> {
-  const url = `${FIGMA_BACKEND_URL}${path}`;
+  const url = `${API_BASE}${path}`;
   const t0 = performance.now();
   const res = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${publicAnonKey}`,
+      Authorization: `Bearer ${ANON_KEY}`,
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -52,7 +53,7 @@ interface TestDef {
   endpoint: string;
   method: string;
   body?: any;
-  validate?: (data: any) => string | null; // return error msg or null
+  validate?: (data: any) => string | null;
 }
 
 const TESTS: TestDef[] = [
@@ -141,7 +142,6 @@ const TESTS: TestDef[] = [
     name: 'GET Summaries (all)',
     endpoint: `/student/${STUDENT_ID}/summaries`,
     method: 'GET',
-    // Summaries may be empty if none saved — that's OK
     validate: (d) =>
       Array.isArray(d)
         ? null
@@ -207,7 +207,6 @@ export function DiagnosticsPage() {
     for (let i = 0; i < TESTS.length; i++) {
       const test = TESTS[i];
 
-      // Mark running
       setResults((prev) =>
         prev.map((r, j) => (j === i ? { ...r, status: 'running' } : r))
       );
@@ -253,7 +252,6 @@ export function DiagnosticsPage() {
         );
       }
 
-      // small delay for visual effect
       await new Promise((r) => setTimeout(r, 100));
     }
 
@@ -303,9 +301,9 @@ export function DiagnosticsPage() {
                 Backend Diagnostics
               </h1>
               <p className="text-gray-400 text-sm mt-1">
-                Figma Make Backend &middot;{' '}
+                Real Backend &middot;{' '}
                 <code className="text-xs bg-gray-700 px-2 py-0.5 rounded">
-                  /make-server-6569f786
+                  /server
                 </code>
               </p>
             </div>
@@ -325,7 +323,6 @@ export function DiagnosticsPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Summary bar */}
         {phase === 'done' && (
           <div className="mb-6 flex gap-4">
             <div className="flex-1 bg-emerald-900/40 border border-emerald-700/50 rounded-lg p-4 text-center">
@@ -347,7 +344,6 @@ export function DiagnosticsPage() {
           </div>
         )}
 
-        {/* Idle state */}
         {phase === 'idle' && (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">&#128269;</div>
@@ -366,7 +362,6 @@ export function DiagnosticsPage() {
           </div>
         )}
 
-        {/* Results list */}
         {results.length > 0 && (
           <div className="space-y-2">
             {results.map((r, i) => (
@@ -404,7 +399,6 @@ export function DiagnosticsPage() {
                   </div>
                 </div>
 
-                {/* Error line */}
                 {r.error && (
                   <div className="px-4 pb-2 ml-20">
                     <span className="text-xs text-red-700 bg-red-100 px-2 py-0.5 rounded">
@@ -413,7 +407,6 @@ export function DiagnosticsPage() {
                   </div>
                 )}
 
-                {/* Expanded response */}
                 {expandedIdx === i && r.response && (
                   <div className="px-4 pb-3 ml-20">
                     <pre className="text-xs bg-gray-800 text-green-300 p-3 rounded overflow-auto max-h-64 font-mono">
@@ -433,29 +426,16 @@ export function DiagnosticsPage() {
           </h3>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <div className="text-gray-400 mb-1">Figma Make Backend (this test)</div>
-              <code className="text-blue-300 bg-gray-900 px-2 py-1 rounded block">
-                /make-server-6569f786
-              </code>
-              <div className="text-gray-500 mt-1">KV store, publicAnonKey, student data + AI</div>
-            </div>
-            <div>
-              <div className="text-gray-400 mb-1">Real Backend (not tested here)</div>
+              <div className="text-gray-400 mb-1">Real Backend (Edge Function)</div>
               <code className="text-purple-300 bg-gray-900 px-2 py-1 rounded block">
                 /server
               </code>
-              <div className="text-gray-500 mt-1">SQL + KV, JWT auth, RBAC, platform data</div>
+              <div className="text-gray-500 mt-1">SQL + Hono, JWT auth, RBAC</div>
             </div>
             <div>
-              <div className="text-gray-400 mb-1">KV Prefix</div>
-              <code className="text-amber-300 bg-gray-900 px-2 py-1 rounded block">
-                const APP = "axon" {"-->"} {`\${APP}:entity:id`}
-              </code>
-            </div>
-            <div>
-              <div className="text-gray-400 mb-1">Shared KV Table</div>
-              <code className="text-amber-300 bg-gray-900 px-2 py-1 rounded block">
-                kv_store_6e4db60a
+              <div className="text-gray-400 mb-1">API Base URL</div>
+              <code className="text-blue-300 bg-gray-900 px-2 py-1 rounded block text-[10px] break-all">
+                {API_BASE}
               </code>
             </div>
           </div>

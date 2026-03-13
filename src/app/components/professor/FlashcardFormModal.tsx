@@ -1,14 +1,6 @@
 // ============================================================
 // FlashcardFormModal — Create / Edit modal for flashcards
-// Extracted from FlashcardsManager.tsx (refactoring #6)
-//
-// Card type semantics (front → back):
-//   text        = text → text
-//   cloze       = text with {{blanks}} → auto-generated text
-//   text_image  = text → image
-//   image_text  = image → text
-//   image_image = image → image
-//   text_both   = text+image → text+image (mixed)
+// C3 cleanup: kw.term → kw.name || kw.term
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,14 +21,17 @@ import {
 import { toast } from 'sonner';
 
 // ── Content encoding helpers ──────────────────────────────
-// Backend stores front/back as text. We encode images as ![img](URL)
-// and detect card type from content patterns on load.
 
 function encodeContent(text: string, imageUrl: string): string {
   const parts: string[] = [];
   if (text.trim()) parts.push(text.trim());
   if (imageUrl.trim()) parts.push(`![img](${imageUrl.trim()})`);
   return parts.join('\n\n');
+}
+
+// ── Helper: get keyword display name (C3) ─────────────────
+function kwDisplay(kw: Keyword): string {
+  return (kw as any).name || kw.term || kw.id?.substring(0, 8) || '?';
 }
 
 // ── Image URL inline input ────────────────────────────────
@@ -136,7 +131,6 @@ export function FlashcardFormModal({
   const currentSubtopics = keywordId ? (subtopicsMap.get(keywordId) || []) : [];
   const selectedKeyword = keywords.find(k => k.id === keywordId);
 
-  // ── Cloze auto-back ─────────────────────────────────────
   const clozeAutoBack = useMemo(() => {
     if (cardType !== 'cloze') return '';
     return frontText.replace(/\{\{([^}]+)\}\}/g, '$1');
@@ -148,7 +142,6 @@ export function FlashcardFormModal({
     }
   }, [clozeAutoBack, cardType, isEditing]);
 
-  // ── Init from editing card ──────────────────────────────
   useEffect(() => {
     if (editingCard) {
       const detected = detectCardType(editingCard.front, editingCard.back);
@@ -190,7 +183,6 @@ export function FlashcardFormModal({
     }
   };
 
-  // ── Type change with warnings ───────────────────────────
   const handleTypeChange = (newType: CardType) => {
     const oldType = cardType;
     if ((oldType === 'text' || oldType === 'cloze') && (newType === 'image_image')) {
@@ -211,10 +203,6 @@ export function FlashcardFormModal({
     setCardType(newType);
   };
 
-  // ── Build final front/back for saving ───────────────────
-  // Semantics: type name = "front_back"
-  //   text_image → front=text, back=image
-  //   image_text → front=image, back=text
   const buildSaveContent = (): { front: string; back: string } => {
     switch (cardType) {
       case 'text':
@@ -289,7 +277,6 @@ export function FlashcardFormModal({
 
   if (!isOpen) return null;
 
-  // ── Which sides need text / image inputs ─────────────────
   const frontNeedsText = ['text', 'text_image', 'text_both', 'cloze'].includes(cardType);
   const frontNeedsImage = ['image_text', 'image_image', 'text_both'].includes(cardType);
   const backNeedsText = ['text', 'image_text', 'text_both', 'cloze'].includes(cardType);
@@ -329,12 +316,11 @@ export function FlashcardFormModal({
             </button>
           </div>
 
-          {/* Modal body - split view */}
+          {/* Modal body */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto min-h-0">
             <div className="flex flex-col lg:flex-row min-h-0">
-              {/* ── Left: Editor ── */}
+              {/* Left: Editor */}
               <div className="flex-1 p-6 space-y-4 overflow-y-auto border-r border-gray-100">
-                {/* Card type selector */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
                     Tipo de tarjeta
@@ -342,7 +328,6 @@ export function FlashcardFormModal({
                   <FlashcardTypeSelector value={cardType} onChange={handleTypeChange} compact />
                 </div>
 
-                {/* Keyword + Subtopic row */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
@@ -358,7 +343,7 @@ export function FlashcardFormModal({
                     >
                       <option value="">General</option>
                       {keywords.map(kw => (
-                        <option key={kw.id} value={kw.id}>{kw.term}</option>
+                        <option key={kw.id} value={kw.id}>{kwDisplay(kw)}</option>
                       ))}
                     </select>
                   </div>
@@ -393,7 +378,7 @@ export function FlashcardFormModal({
                   </div>
                 </div>
 
-                {/* ── FRONT content ── */}
+                {/* FRONT content */}
                 <div className="space-y-2">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-purple-500">
                     Frente {cardType === 'cloze' ? '(con {{blancos}})' : ''}
@@ -420,7 +405,6 @@ export function FlashcardFormModal({
                     </div>
                   )}
 
-                  {/* Image upload — always available */}
                   <FlashcardImageUpload
                     side="front"
                     currentImageUrl={frontImageUrl || null}
@@ -430,7 +414,7 @@ export function FlashcardFormModal({
                   />
                 </div>
 
-                {/* ── BACK content ── */}
+                {/* BACK content */}
                 <div className="space-y-2">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-emerald-500">
                     Reverso {cardType === 'cloze' ? '(auto-generado)' : ''}
@@ -452,7 +436,6 @@ export function FlashcardFormModal({
                     />
                   )}
 
-                  {/* Image upload — always available */}
                   <FlashcardImageUpload
                     side="back"
                     currentImageUrl={backImageUrl || null}
@@ -491,7 +474,6 @@ export function FlashcardFormModal({
                   </div>
                 </div>
 
-                {/* Error */}
                 {error && (
                   <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-lg px-3 py-2 text-sm">
                     <AlertCircle size={14} />
@@ -500,7 +482,7 @@ export function FlashcardFormModal({
                 )}
               </div>
 
-              {/* ── Right: Preview ── */}
+              {/* Right: Preview */}
               <div className="w-full lg:w-80 shrink-0 p-6 bg-gray-50/50">
                 <FlashcardPreview
                   front={frontText}
@@ -508,7 +490,7 @@ export function FlashcardFormModal({
                   frontImageUrl={frontImageUrl}
                   backImageUrl={backImageUrl}
                   cardType={cardType}
-                  keywordName={selectedKeyword?.term || null}
+                  keywordName={selectedKeyword ? kwDisplay(selectedKeyword) : null}
                 />
               </div>
             </div>

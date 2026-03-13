@@ -1,9 +1,6 @@
 // ============================================================
 // Axon — BulkPreviewTable (Editable preview table for bulk import)
-//
-// Shows parsed flashcard rows before importing.
-// Columns: # | Front | Back | Keyword | Subtopic | Status
-// Supports inline editing, bulk keyword assignment, row deletion.
+// C3 cleanup: kw.term → kw.name || kw.term
 // ============================================================
 import React, { useState, useMemo, useCallback } from 'react';
 import {
@@ -16,7 +13,8 @@ import type { Subtopic } from '@/app/types/flashcard-manager';
 
 interface Keyword {
   id: string;
-  term: string;
+  name?: string;
+  term?: string;
   definition?: string;
 }
 
@@ -87,6 +85,11 @@ function EditableCell({
   );
 }
 
+// ── Helper: get keyword display name ──────────────────────
+function kwDisplay(kw: Keyword): string {
+  return kw.name || kw.term || kw.id.substring(0, 8);
+}
+
 // ── Main Component ────────────────────────────────────────
 
 export function BulkPreviewTable({
@@ -107,7 +110,6 @@ export function BulkPreviewTable({
   const selectedCount = rows.filter(r => r.selected).length;
   const allSelected = rows.length > 0 && selectedCount === rows.length;
 
-  // Stats
   const stats = useMemo(() => {
     const ok = rows.filter(r => r.status === 'ok').length;
     const noKw = rows.filter(r => r.status === 'no_keyword').length;
@@ -148,12 +150,10 @@ export function BulkPreviewTable({
           )}
         </div>
 
-        {/* Bulk actions */}
         {selectedCount > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">{selectedCount} seleccionada{selectedCount !== 1 ? 's' : ''}</span>
 
-            {/* Bulk keyword dropdown */}
             <div className="relative">
               <button
                 onClick={() => setBulkKeywordOpen(!bulkKeywordOpen)}
@@ -176,7 +176,7 @@ export function BulkPreviewTable({
                         }}
                         className="w-full text-left px-3 py-2 text-xs hover:bg-purple-50 text-gray-700 transition-colors"
                       >
-                        {kw.term}
+                        {kwDisplay(kw)}
                       </button>
                     ))}
                     {keywords.length === 0 && (
@@ -225,7 +225,6 @@ export function BulkPreviewTable({
                       row.selected ? 'bg-purple-50/30' : 'hover:bg-gray-50/50'
                     }`}
                   >
-                    {/* Checkbox */}
                     <td className="px-3 py-2">
                       <button
                         onClick={() => onToggleSelect(row.id)}
@@ -234,11 +233,7 @@ export function BulkPreviewTable({
                         {row.selected ? <CheckSquare size={14} className="text-purple-600" /> : <Square size={14} />}
                       </button>
                     </td>
-
-                    {/* Row number */}
                     <td className="px-2 py-2 text-[10px] text-gray-400 font-mono">{idx + 1}</td>
-
-                    {/* Front (editable) */}
                     <td className="px-2 py-1">
                       <EditableCell
                         value={row.front}
@@ -246,8 +241,6 @@ export function BulkPreviewTable({
                         placeholder="Frente..."
                       />
                     </td>
-
-                    {/* Back (editable) */}
                     <td className="px-2 py-1">
                       <EditableCell
                         value={row.back}
@@ -255,8 +248,6 @@ export function BulkPreviewTable({
                         placeholder="Reverso..."
                       />
                     </td>
-
-                    {/* Keyword dropdown */}
                     <td className="px-2 py-1">
                       <select
                         value={row.keywordId}
@@ -269,12 +260,10 @@ export function BulkPreviewTable({
                       >
                         <option value="">— Seleccionar —</option>
                         {keywords.map(kw => (
-                          <option key={kw.id} value={kw.id}>{kw.term}</option>
+                          <option key={kw.id} value={kw.id}>{kwDisplay(kw)}</option>
                         ))}
                       </select>
                     </td>
-
-                    {/* Subtopic dropdown */}
                     <td className="px-2 py-1">
                       {row.keywordId ? (
                         currentSubtopics.length > 0 ? (
@@ -295,8 +284,6 @@ export function BulkPreviewTable({
                         <span className="text-[10px] text-gray-300 italic px-2">—</span>
                       )}
                     </td>
-
-                    {/* Status */}
                     <td className="px-3 py-2 text-center">
                       {row.status === 'ok' && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium">
@@ -314,8 +301,6 @@ export function BulkPreviewTable({
                         </span>
                       )}
                     </td>
-
-                    {/* Delete */}
                     <td className="px-2 py-2">
                       <button
                         onClick={() => onDeleteRow(row.id)}

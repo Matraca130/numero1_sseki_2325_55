@@ -5,6 +5,7 @@
 // and "Nueva pregunta" create button. Controlled component —
 // state lives in parent.
 // Extracted from ProfessorQuizzesPage in Phase 4 refactor.
+// C3 cleanup: kw.term → kw.name || kw.term
 // ============================================================
 
 import React from 'react';
@@ -23,7 +24,7 @@ export interface QuizFiltersBarProps {
   filterDifficulty: Difficulty | '';
   filterKeywordId: string;
   searchQuery: string;
-  keywords: ReadonlyArray<{ id: string; term?: string }>;
+  keywords: ReadonlyArray<{ id: string; name?: string; term?: string }>;
   onFilterTypeChange: (v: QuestionType | '') => void;
   onFilterDifficultyChange: (v: Difficulty | '') => void;
   onFilterKeywordChange: (v: string) => void;
@@ -82,7 +83,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         >
           <option value="">Todas las keywords</option>
           {keywords.map(kw => (
-            <option key={kw.id} value={kw.id}>{kw.term}</option>
+            <option key={kw.id} value={kw.id}>{kw.name || kw.term}</option>
           ))}
         </select>
 

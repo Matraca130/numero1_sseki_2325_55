@@ -15,7 +15,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
-import { realRequest, ApiError } from '@/app/services/apiConfig';
+import { ApiError } from '@/app/services/apiConfig';
 import { logger } from '@/app/lib/logger';
 
 // ── Types (canonical definitions in types/model3d.ts) ─────
@@ -226,18 +226,6 @@ export async function deleteModelPart(id: string): Promise<void> {
 
 // ════════════════════════════════════════════════════════════
 // ── Batch Fetch: getModels3DBatch (H2 audit fix) ──────────
-//
-// PROBLEM:
-//   ThreeDView fetches models for EVERY topic in the content tree
-//   individually (N requests for N topics). With 100 topics = 100
-//   parallel requests → saturates network, hits rate limits.
-//
-// SOLUTION (3-tier):
-//   1. In-memory cache (5 min TTL) — instant for repeat visits
-//   2. Batch endpoint GET /models-3d/batch?topic_ids=a,b,c
-//      → 1 request instead of N (backend PR#39 in axon-backend)
-//   3. Throttled fallback — if batch 404s, falls back to
-//      per-topic calls with max 6 concurrent (browser limit)
 // ════════════════════════════════════════════════════════════
 
 // ── In-memory cache ───────────────────────────────────
@@ -302,24 +290,13 @@ async function throttledAll<T>(
 
 // ── Batch endpoint ────────────────────────────────────
 
-/** Flag: set to true once the batch endpoint returns 404 to avoid retrying */
 let _batchEndpointUnavailable = false;
-/** Timestamp when the flag was set — resets after BATCH_UNAVAIL_TTL_MS */
 let _batchDisabledAt = 0;
-/** TTL for the batch-unavailable flag: retry after 10 minutes */
 const BATCH_UNAVAIL_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Batch-fetch models for multiple topics in a single request.
- *
- * Strategy:
- *   1. Return cached results instantly for topics already in cache
- *   2. Try batch endpoint for remaining topic IDs (1 request)
- *   3. If batch 404s → fall back to throttled per-topic calls (max 6)
- *
- * @param topicIds - Array of topic UUIDs to fetch models for
- * @param signal   - Optional AbortSignal for cancellation
- * @returns Map of topicId → Model3D[] (empty array if no models for that topic)
+ * C2 cleanup: migrated from realRequest → apiCall.
  */
 export async function getModels3DBatch(
   topicIds: string[],
@@ -351,11 +328,11 @@ export async function getModels3DBatch(
   if (!_batchEndpointUnavailable && uncached.length > 1) {
     try {
       const qs = uncached.join(',');
-      const batchResult = await realRequest<Record<string, Model3D[]>>(
+      // C2: migrated from realRequest → apiCall
+      const batchResult = await apiCall<Record<string, Model3D[]>>(
         `/models-3d/batch?topic_ids=${qs}`,
       );
 
-      // batchResult shape: { [topicId]: Model3D[] }
       for (const tid of uncached) {
         const models = batchResult[tid] || [];
         result[tid] = models;
@@ -366,22 +343,18 @@ export async function getModels3DBatch(
       return result;
     } catch (err: unknown) {
       // 3DP-3: Type-safe error detection via instanceof ApiError
-      // realRequest() throws ApiError with .status, so we can check
-      // the actual HTTP status instead of fragile string matching.
       const is404or405 = err instanceof ApiError && (err.status === 404 || err.status === 405);
       if (is404or405) {
-        // Batch endpoint not deployed yet — fall back for this TTL window
         _batchEndpointUnavailable = true;
         _batchDisabledAt = Date.now();
         logger.info('Models3D', 'Batch endpoint not available, using throttled fallback');
       } else {
-        // Other error (network, 500) — still fall back but don't mark permanently
         logger.warn('Models3D', 'Batch endpoint error, falling back to per-topic:', err);
       }
     }
   }
 
-  // 3. Throttled fallback: max 6 concurrent (matches browser HTTP/2 connection limit)
+  // 3. Throttled fallback: max 6 concurrent
   if (signal?.aborted) return result;
 
   const MAX_CONCURRENT = 6;
