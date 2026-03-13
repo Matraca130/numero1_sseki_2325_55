@@ -30,7 +30,7 @@ import clsx from 'clsx';
 import {
   Trophy, CheckCircle2, XCircle, RotateCw, ChevronLeft,
   Clock, AlertCircle, ChevronDown, ChevronRight,
-  Sparkles, Brain, Zap, Flame,
+  Sparkles, Brain, Flame,
 } from 'lucide-react';
 import { Confetti, focusRing } from '@/app/components/design-kit';
 import { AiPracticeModal } from '@/app/components/student/AiPracticeModal';
@@ -42,10 +42,10 @@ import { SubtopicResultsSection } from '@/app/components/student/SubtopicResults
 import { QuizHistoryPanel } from '@/app/components/student/QuizHistoryPanel';
 import { QuizCertificate } from '@/app/components/student/QuizCertificate';
 
-// ── Hooks (P2-S02 extraction) ────────────────────────────
+// ── Hooks (P2-S02 extraction) ────────────────────────
 import { useAdaptiveQuiz } from '@/app/components/student/useAdaptiveQuiz';
 
-// ── R13: QuizScoreCircle component ─────────────────────
+// ── R13: QuizScoreCircle component ───────────────────
 import { QuizScoreCircle } from '@/app/components/student/QuizScoreCircle';
 
 // ── Gamification bridge (G4 → Q-UX1 Premium) ────────────
@@ -58,7 +58,7 @@ import { QuizXpConfirmedCard } from '@/app/components/student/QuizXpConfirmedCar
 import { BadgeEarnedToast } from '@/app/components/gamification/BadgeEarnedToast';
 import { LevelUpCelebration } from '@/app/components/gamification/LevelUpCelebration';
 
-// ── Props ────────────────────────────────────────────────
+// ── Props ────────────────────────────────────────────
 
 interface QuizResultsProps {
   questions: QuizQuestion[];
