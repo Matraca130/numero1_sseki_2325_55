@@ -29,19 +29,19 @@ const calloutIcons: Record<string, React.ReactNode> = {
   info: <Info size={16} className="text-blue-500 shrink-0" />,
   warning: <AlertTriangle size={16} className="text-amber-500 shrink-0" />,
   success: <CheckCircle size={16} className="text-emerald-500 shrink-0" />,
-  tip: <Lightbulb size={16} className="text-violet-500 shrink-0" />,
+  tip: <Lightbulb size={16} className="text-teal-500 shrink-0" />,
 };
 
 const calloutBg: Record<string, string> = {
   info: 'bg-blue-50 border-blue-200',
   warning: 'bg-amber-50 border-amber-200',
   success: 'bg-emerald-50 border-emerald-200',
-  tip: 'bg-violet-50 border-violet-200',
+  tip: 'bg-teal-50 border-teal-200',
 };
 
 // ── Component ─────────────────────────────────────────────
 
-export function ViewerBlock({
+export const ViewerBlock = React.memo(function ViewerBlock({
   block,
   isMobile,
   onImageClick,
@@ -70,10 +70,10 @@ export function ViewerBlock({
       const text = c.text || '';
       const Tag = (`h${Math.min(Math.max(level, 1), 4)}`) as keyof JSX.IntrinsicElements;
       const headingStyles: Record<number, string> = {
-        1: 'text-2xl font-bold text-gray-900 border-b-2 border-violet-600 pb-2 mb-4',
-        2: 'text-xl font-semibold text-gray-800 border-l-3 border-violet-500 pl-3 mb-3',
-        3: 'text-lg font-semibold text-indigo-700 mb-2',
-        4: 'text-base font-semibold italic text-gray-500 mb-2',
+        1: 'text-2xl font-bold text-teal-900 border-b-2 border-teal-600 pb-2 mb-4',
+        2: 'text-xl font-semibold text-teal-800 border-l-3 border-teal-500 pl-3 mb-3',
+        3: 'text-lg font-semibold text-teal-700 mb-2',
+        4: 'text-base font-semibold italic text-gray-600 mb-2',
       };
       return (
         <Tag className={headingStyles[level] || headingStyles[2]}>
@@ -195,7 +195,7 @@ export function ViewerBlock({
               href={pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] text-violet-600 hover:text-violet-700"
+              className="flex items-center gap-1 text-[10px] text-teal-600 hover:text-teal-700"
             >
               <Download size={10} />
               Descargar
@@ -271,9 +271,9 @@ export function ViewerBlock({
           onClick={() => onKeywordClick?.(keywordId)}
           className={clsx(
             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs',
-            'bg-violet-50 text-violet-700 border border-violet-200',
-            'hover:bg-violet-100 hover:border-violet-300 transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-1',
+            'bg-teal-50 text-teal-700 border border-teal-200',
+            'hover:bg-teal-100 hover:border-teal-300 transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-1',
           )}
         >
           <Tag size={11} className="shrink-0" />
@@ -292,4 +292,6 @@ export function ViewerBlock({
         </div>
       );
   }
-}
+});
+
+ViewerBlock.displayName = 'ViewerBlock';
