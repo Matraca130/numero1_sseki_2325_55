@@ -65,7 +65,7 @@ export function ClippingPlaneControls({
         max: maxDim * 0.6 + (orientation === 'axial' ? center.y : orientation === 'sagittal' ? center.x : center.z),
       };
     }
-  }, [modelMeshes, orientation]);
+  }, [modelMeshes, modelMeshes.length, orientation]);
 
   // Update clipping plane when params change
   useEffect(() => {
