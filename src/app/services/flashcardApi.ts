@@ -17,7 +17,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────
 
 export interface FlashcardItem {
   id: string;
@@ -73,13 +73,13 @@ export async function getFlashcardsByTopic(
   return apiCall<FlashcardListResponse>(`/flashcards-by-topic?${params}`);
 }
 
-// ── GET /flashcards/:id ───────────────────────────────────
+// ── GET /flashcards/:id ───────────────────────────────
 
 export async function getFlashcard(id: string): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}`);
 }
 
-// ── POST /flashcards ──────────────────────────────────────
+// ── POST /flashcards ──────────────────────────────────
 
 export async function createFlashcard(data: {
   summary_id: string;
@@ -97,7 +97,7 @@ export async function createFlashcard(data: {
   });
 }
 
-// ── PUT /flashcards/:id ───────────────────────────────────
+// ── PUT /flashcards/:id ───────────────────────────────
 
 export async function updateFlashcard(
   id: string,
@@ -115,7 +115,7 @@ export async function deleteFlashcard(id: string): Promise<void> {
   await apiCall(`/flashcards/${id}`, { method: 'DELETE' });
 }
 
-// ── PUT /flashcards/:id/restore ───────────────────────────
+// ── PUT /flashcards/:id/restore ───────────────────────
 
 export async function restoreFlashcard(id: string): Promise<FlashcardItem> {
   return apiCall<FlashcardItem>(`/flashcards/${id}/restore`, {

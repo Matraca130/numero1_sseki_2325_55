@@ -23,7 +23,7 @@
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────
 
 export interface StudySessionRecord {
   id: string;
@@ -119,7 +119,7 @@ export async function submitReviewBatch(
   });
 }
 
-// ── Study Sessions ────────────────────────────────────────
+// ── Study Sessions ──────────────────────────────────────
 
 export async function createStudySession(data: {
   session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
@@ -166,7 +166,7 @@ export async function getStudySessions(filters?: {
   return Array.isArray(result) ? result : result?.items || [];
 }
 
-// ── FSRS States ──────────────────────────────────────────
+// ── FSRS States ────────────────────────────────────────
 
 export async function getFsrsStates(params?: {
   due_before?: string;
@@ -199,7 +199,7 @@ export async function upsertFsrsState(data: {
   });
 }
 
-// ── Reviews ─────────────────────────────────────────────
+// ── Reviews ───────────────────────────────────────────
 
 export async function submitReview(data: {
   session_id: string;

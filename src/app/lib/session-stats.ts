@@ -16,7 +16,7 @@
 import type { TopicMasterySummary } from '@/app/services/keywordMasteryApi';
 import type { CardMasteryDelta } from '@/app/hooks/useFlashcardEngine';
 
-// ── Correct count ─────────────────────────────────────────
+// ── Correct count ───────────────────────────────────────
 
 /**
  * Count ratings considered "correct" (grade >= 3).
@@ -33,7 +33,7 @@ export function countCorrect(ratings: number[]): number {
   return ratings.filter(s => s >= 3).length;
 }
 
-// ── Mastery percentage ────────────────────────────────────
+// ── Mastery percentage ──────────────────────────────────
 
 /**
  * Compute the overall mastery percentage from topic summary or rating fallback.
@@ -56,7 +56,7 @@ export function computeMasteryPct(
   return Math.round((avg / 5) * 100);
 }
 
-// ── Delta statistics ──────────────────────────────────────
+// ── Delta statistics ────────────────────────────────────
 
 export interface DeltaStats {
   improved: number;

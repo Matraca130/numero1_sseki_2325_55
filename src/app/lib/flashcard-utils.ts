@@ -10,7 +10,7 @@
 //   FlashcardTypeSelector, FlashcardReviewer, FlashcardsManager
 // ============================================================
 
-// ── CardType ──────────────────────────────────────────────
+// ── CardType ──────────────────────────────────────────
 
 export type CardType =
   | 'text'
@@ -20,7 +20,7 @@ export type CardType =
   | 'text_both'
   | 'cloze';
 
-// ── Content Parsing ───────────────────────────────────────
+// ── Content Parsing ─────────────────────────────────────
 
 /** Extract image URL from content: ![img](URL) or standalone URL */
 export function extractImageUrl(content: string): string | null {
@@ -38,7 +38,7 @@ export function extractText(content: string): string {
   return content.replace(/!\[img\]\([^)]+\)/g, '').trim();
 }
 
-// ── Card Type Detection ───────────────────────────────────
+// ── Card Type Detection ─────────────────────────────────
 
 /** Auto-detect card type from front/back content encoding */
 export function detectCardType(front: string, back: string): CardType {
