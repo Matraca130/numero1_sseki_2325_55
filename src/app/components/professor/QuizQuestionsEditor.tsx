@@ -11,16 +11,16 @@
 //   - question_type → "mcq"|"true_false"|"fill_blank"|"open"
 //
 // Graceful error handling: shows error banner with fallback loading.
+// R19 refactor: question loading extracted to useQuizQuestionsLoader.
 // ============================================================
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import * as quizApi from '@/app/services/quizApi';
-import type { QuizQuestion } from '@/app/services/quizApi';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { KeywordRef } from '@/app/types/platform';
 import { QuestionCard } from '@/app/components/professor/QuestionCard';
 import { QuestionFormModal } from '@/app/components/professor/QuestionFormModal';
 import { QuizFiltersBar } from '@/app/components/professor/QuizFiltersBar';
 import { useQuestionCrud } from '@/app/components/professor/useQuestionCrud';
+import { useQuizQuestionsLoader } from '@/app/components/professor/useQuizQuestionsLoader';
 import { AnimatePresence } from 'motion/react';
 import {
   ArrowLeft, Plus,
@@ -28,8 +28,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { Quiz } from '@/app/services/quizApi';
-import { logger } from '@/app/lib/logger';
-import { getErrorMsg } from '@/app/lib/error-utils';
 import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
 import { AiGeneratePanel } from '@/app/components/professor/AiGeneratePanel';
 import { QuizErrorBoundary } from '@/app/components/shared/QuizErrorBoundary';
@@ -39,7 +37,7 @@ import { useQuizBulkOps } from '@/app/components/professor/useQuizBulkOps';
 import { useQuizFilters } from '@/app/components/professor/useQuizFilters';
 import clsx from 'clsx';
 
-// ── Props ─────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────
 
 interface QuizQuestionsEditorProps {
   quiz: Quiz;
@@ -48,7 +46,7 @@ interface QuizQuestionsEditorProps {
   onBack: () => void;
 }
 
-// ── Main Component ──────────────────────────────────────
+// ── Main Component ────────────────────────────────────
 
 export function QuizQuestionsEditor({
   quiz,
@@ -56,51 +54,31 @@ export function QuizQuestionsEditor({
   keywords,
   onBack,
 }: QuizQuestionsEditorProps) {
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [backendWarning, setBackendWarning] = useState<string | null>(null);
-
   // AI Generate Panel
   const [showAiPanel, setShowAiPanel] = useState(false);
 
   // Export/Import modal (P8)
   const [showExportImport, setShowExportImport] = useState(false);
 
-  // ── Load questions ──────────────────────────────────────
-  const loadQuestions = useCallback(async () => {
-    setLoading(true);
-    setBackendWarning(null);
-    try {
-      // R9 FIX: use service layer instead of raw apiCall — quiz_id now in getQuizQuestions filters
-      const res = await quizApi.getQuizQuestions(summaryId, { quiz_id: quiz.id });
-      setQuestions(res.items || []);
-    } catch (err: unknown) {
-      logger.warn('[QuizQuestionsEditor] Failed to load questions:', getErrorMsg(err));
-      // FIX BA-06: quiz_id IS in optionalFilters — this is a genuine API error, not a missing feature
-      setBackendWarning(
-        'Error al cargar preguntas del quiz. Se muestran todas las del resumen como fallback.'
-      );
-      // Fallback: load all questions for the summary
-      try {
-        const fallback = await quizApi.getQuizQuestions(summaryId, { limit: 200 });
-        setQuestions(fallback.items || []);
-      } catch (fallbackErr: unknown) {
-        logger.error('[QuizQuestionsEditor] Fallback also failed:', getErrorMsg(fallbackErr));
-        setQuestions([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [quiz.id, summaryId]);
+  // ── Question loading (R19: shared hook with fallback) ───
+  const quizFilters = useMemo(() => ({ quiz_id: quiz.id }), [quiz.id]);
 
-  useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
+  const {
+    questions,
+    loading,
+    backendWarning,
+    reload: loadQuestions,
+  } = useQuizQuestionsLoader({
+    summaryId,
+    filters: quizFilters,
+    fallbackOnError: true,
+    label: 'QuizQuestionsEditor',
+  });
 
   // ── CRUD handlers (R4: extracted to hook) ─────────────
   const crud = useQuestionCrud(loadQuestions);
 
-  // ── Filters (M-4: extracted to hook) ──────────────────
+  // ── Filters (M-4: extracted to hook) ────────────────
   const filters = useQuizFilters(questions);
 
   // ── Bulk operations (M-1: extracted to hook) ────────────
@@ -119,7 +97,7 @@ export function QuizQuestionsEditor({
     return keywordMap.get(kwId) || kwId.substring(0, 8) + '...';
   }, [keywordMap]);
 
-  // ── Render ─────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
       {/* Header with back button */}

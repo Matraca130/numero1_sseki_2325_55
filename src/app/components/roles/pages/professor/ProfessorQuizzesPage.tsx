@@ -50,11 +50,11 @@ import { getErrorMsg } from '@/app/lib/error-utils';
 // ── Main Page ─────────────────────────────────────────
 
 export function ProfessorQuizzesPage() {
-  // ── Auth: institution_id for dashboard ─────────────
+  // ── Auth: institution_id for dashboard ───────────
   const { selectedInstitution } = useAuth();
   const institutionId = selectedInstitution?.id || null;
 
-  // ── Cascade selection (hook) ────────────────────────
+  // ── Cascade selection (hook) ────────────────────
   const {
     selectedSummaryId,
     selectedSummary,
@@ -64,14 +64,14 @@ export function ProfessorQuizzesPage() {
     breadcrumbItems,
   } = useQuizCascade();
 
-  // ── Data state ────────────────────────────────────────
+  // ── Data state ────────────────────────────────────
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
 
-  // ── Filters + Stats (R4: unified hook) ─────────────────
+  // ── Filters + Stats (R4: unified hook) ───────────────
   const filters = useQuizFilters(questions);
 
-  // ── Sidebar collapse state ────────────────────────────
+  // ── Sidebar collapse state ────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ── Reset keyword filter when summary changes ───────────
@@ -114,7 +114,7 @@ export function ProfessorQuizzesPage() {
   // ── CRUD handlers (R4: extracted to hook) ─────────────
   const crud = useQuestionCrud(loadQuestions);
 
-  // ── Render ──────────────────────────────────────────
+  // ── Render ────────────────────────────────────────
 
   return (
     <div className="flex h-full">
@@ -262,7 +262,7 @@ export function ProfessorQuizzesPage() {
         )}
       </div>
 
-      {/* ── Create/Edit Modal ─────────────────────────────────────── */}
+      {/* ── Create/Edit Modal ───────────────────────────────────────────── */}
 
       <AnimatePresence>
         {crud.showModal && selectedSummaryId && (
