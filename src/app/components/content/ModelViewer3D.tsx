@@ -8,12 +8,17 @@
 //   - StudentNotes3D: student spatial + text notes
 //   - LayerPanel: professor side panel for layer management
 //   - ModelPartLoader: loads and manages model parts and layers
+//   - AnimationControls: F3 GLTF animation play/pause/timeline
+//   - ClippingPlaneControls: F4 anatomical cross-section clipping
+//   - CaptureViewDialog: F5 screenshot -> flashcard creation
+//   - ExplodeControl: F6 exploded view for multi-part models
 //
 // Props:
 //   modelId    — ID of the model_3d record
 //   modelName  — display name
 //   fileUrl    — optional URL to a .glb/.gltf file for direct single-file loading
 //   mode       — "view" (student) or "edit" (professor)
+//   topicId    — optional topic ID for keyword autocomplete + flashcard creation
 // ============================================================
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
@@ -32,6 +37,12 @@ import type { ModelLayerConfig } from '@/app/components/viewer3d/ModelPartMesh';
 import { disposeMaterialTextures } from '@/app/components/viewer3d/three-utils';
 import { logger } from '@/app/lib/logger';
 import { uploadThumbnail, updateModel3D } from '@/app/lib/model3d-api';
+// DIFF 2: New imports for F3/F4/F5/F6
+import { AnimationControls } from '@/app/components/viewer3d/AnimationControls';
+import type { AnimationInfo } from '@/app/components/viewer3d/AnimationControls';
+import { ClippingPlaneControls } from '@/app/components/viewer3d/ClippingPlaneControls';
+import { CaptureViewDialog } from '@/app/components/viewer3d/CaptureViewDialog';
+import { ExplodeControl } from '@/app/components/viewer3d/ExplodeControl';
 
 // ── Model Data by topic (procedural fallback) ──
 const MODEL_CONFIGS: Record<string, {
@@ -284,15 +295,18 @@ function buildHeartModel(scene: THREE.Scene) {
 // ══════════════════════════════════════════════
 // ── ModelViewer3D Component ──
 // ══════════════════════════════════════════════
+// DIFF 1: Added topicId to props
 interface ModelViewer3DProps {
   modelId: string;
   modelName: string;
   /** Optional URL to a .glb/.gltf file for direct single-file loading */
   fileUrl?: string;
   mode?: PinMode; // "view" (student default) | "edit" (professor)
+  /** Topic ID for keyword autocomplete (F1) + flashcard creation (F5) */
+  topicId?: string;
 }
 
-export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: ModelViewer3DProps) {
+export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topicId }: ModelViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -303,8 +317,6 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
   const partLoaderRef = useRef<ModelPartLoader | null>(null);
 
   // ── Frame callback registry (replaces DOM hacking) ──
-  // Children register projection callbacks via registerFrameCallback.
-  // The animation loop iterates the set each frame with try/catch per callback.
   const frameCallbacksRef = useRef<Set<() => void>>(new Set());
 
   const registerFrameCallback = useCallback((cb: () => void) => {
@@ -323,19 +335,27 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
   const [glbLoading, setGlbLoading] = useState(false);
 
   // ── F3 audit: keyboard shortcut visibility toggles ──
-  // These allow P and N shortcuts to hide/show pins and notes without
-  // adding new UI buttons (MISMA UI rule). Default: visible.
   const [showPins, setShowPins] = useState(true);
   const [showNotes, setShowNotes] = useState(true);
   const [showShortcutHint, setShowShortcutHint] = useState(false);
 
+  // ── F3: GLTF Animation state (DIFF 3) ──
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const animActionsRef = useRef<THREE.AnimationAction[]>([]);
+  const [animationInfos, setAnimationInfos] = useState<AnimationInfo[]>([]);
+  const [currentAnimIndex, setCurrentAnimIndex] = useState(0);
+  const [isAnimPlaying, setIsAnimPlaying] = useState(false);
+  const [animCurrentTime, setAnimCurrentTime] = useState(0);
+  const [animDuration, setAnimDuration] = useState(0);
+  const [animSpeed, setAnimSpeed] = useState(1);
+  const clockRef = useRef(new THREE.Clock());
+  const lastAnimTimeUpdateRef = useRef(0);
+  const ANIM_TIME_THROTTLE_MS = 250; // ~4fps for timeline UI (B2 fix)
+
   // ── 3DP-2: Auto-thumbnail capture ──
-  // After first stable render, captures the canvas as PNG and uploads it.
-  // Only in 'edit' mode (professor) and only once per mount.
   const thumbnailCapturedRef = useRef(false);
 
   const captureThumbnail = useCallback(() => {
-    // Guard: only capture once, only in professor mode
     if (mode !== 'edit' || thumbnailCapturedRef.current) return;
     thumbnailCapturedRef.current = true;
 
@@ -344,11 +364,9 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     const camera = cameraRef.current;
     if (!renderer || !scene || !camera) return;
 
-    // Force one clean render before capture
     renderer.render(scene, camera);
     const dataUrl = renderer.domElement.toDataURL('image/png');
 
-    // Convert data URL to File for upload
     fetch(dataUrl)
       .then(res => res.blob())
       .then(blob => {
@@ -362,29 +380,24 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
         logger.info('ModelViewer3D', `Thumbnail auto-captured for model ${modelId}`);
       })
       .catch(err => {
-        // Non-critical: if thumbnail fails, the model still works
         logger.warn('ModelViewer3D', 'Auto-thumbnail capture failed (non-critical):', err);
       });
   }, [modelId, mode]);
 
   // ── WebGL context loss recovery (G1) ──
-  // When GPU runs out of VRAM or browser reclaims context, the canvas goes black.
-  // We detect this, show an overlay, and attempt recovery via full remount.
   const [contextLost, setContextLost] = useState(false);
   const [sceneKey, setSceneKey] = useState(0);
   const contextLossCountRef = useRef(0);
   const contextLossTimestampRef = useRef(0);
-  const MAX_CONTEXT_LOSSES = 2;        // max recoveries in TIME_WINDOW
-  const CONTEXT_LOSS_WINDOW_MS = 30000; // 30 seconds
+  const MAX_CONTEXT_LOSSES = 2;
+  const CONTEXT_LOSS_WINDOW_MS = 30000;
 
-  // ── Pin refresh key (invalidation signal for PinSystem + PinEditor) ──
-  // Incremented when any component performs pin CRUD → both consumers refetch.
+  // ── Pin refresh key ──
   const [pinRefreshKey, setPinRefreshKey] = useState(0);
   const handlePinsChanged = useCallback(() => {
     setPinRefreshKey(k => k + 1);
   }, []);
 
-  // Use procedural config if available, otherwise default
   const config = MODEL_CONFIGS[modelId] || DEFAULT_CONFIG;
 
   useEffect(() => {
@@ -403,13 +416,13 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
-      powerPreference: 'high-performance', // hint: use discrete GPU on dual-GPU laptops
+      powerPreference: 'high-performance',
     });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
-    renderer.outputColorSpace = THREE.SRGBColorSpace; // explicit: correct for GLTF sRGB textures
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -441,28 +454,21 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     gridHelper.position.y = -3;
     scene.add(gridHelper);
 
-    // Check for multi-part config in localStorage
     const storedParts = getStoredParts(modelId);
     const layers = getStoredLayers(modelId);
     setStoredLayersState(layers);
 
     if (storedParts.length > 0) {
-      // ── Multi-part mode: load GLB parts via ModelPartLoader ──
       setHasMultiPart(true);
       const loader = new ModelPartLoader(scene, () => {
         setLayerUpdateKey(k => k + 1);
-        // Update raycasting meshes from loaded parts
         modelMeshesRef.current = loader.getAllMeshes();
       });
       loader.init(storedParts);
       loader.loadAllVisible();
       partLoaderRef.current = loader;
-      // 3DP-2: Capture thumbnail after multi-part model loads
       setTimeout(captureThumbnail, 1500);
     } else if (fileUrl) {
-      // ── Single-file mode: load real GLB/GLTF directly ──
-      // This path is used when a professor uploads a model file
-      // but hasn't configured multi-part layers yet.
       setHasMultiPart(false);
       setGlbLoading(true);
 
@@ -473,12 +479,30 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
           const modelGroup = gltf.scene;
           scene.add(modelGroup);
 
-          // Collect meshes for raycasting (pins, notes)
           const meshes: THREE.Object3D[] = [];
           modelGroup.traverse((obj) => {
             if (obj instanceof THREE.Mesh) meshes.push(obj);
           });
           modelMeshesRef.current = meshes;
+
+          // DIFF 5: Detect and setup GLTF animations
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(modelGroup);
+            mixerRef.current = mixer;
+            clockRef.current.start();
+
+            const infos: AnimationInfo[] = gltf.animations.map((clip: THREE.AnimationClip, i: number) => ({
+              name: clip.name || `Animation ${i + 1}`,
+              duration: clip.duration,
+              index: i,
+            }));
+            setAnimationInfos(infos);
+            setAnimDuration(infos[0]?.duration || 0);
+
+            const actions = gltf.animations.map((clip: THREE.AnimationClip) => mixer.clipAction(clip));
+            animActionsRef.current = actions;
+            logger.info('ModelViewer3D', `Found ${infos.length} GLTF animation(s)`);
+          }
 
           // Auto-fit camera to model bounding box
           const box = new THREE.Box3().setFromObject(modelGroup);
@@ -497,19 +521,16 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
           controls.maxDistance = maxDim * 5;
           controls.update();
 
-          // Adjust grid to model scale
           gridHelper.position.y = box.min.y - 0.1;
 
           setGlbLoading(false);
           logger.info('ModelViewer3D', `GLB loaded: ${fileUrl}`);
-          // 3DP-2: Capture thumbnail after GLB finishes loading
           setTimeout(captureThumbnail, 500);
         },
-        undefined, // onProgress — XHR progress not useful for Three.js managed loading
+        undefined,
         (err) => {
           logger.error('ModelViewer3D', 'GLB load error:', err);
           setGlbLoading(false);
-          // Fallback to procedural model so the viewer isn't empty
           const fallbackGroup = new THREE.Group();
           config.buildModel(fallbackGroup);
           scene.add(fallbackGroup);
@@ -521,13 +542,11 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
         },
       );
     } else {
-      // ── V1 mode: procedural model (no file_url, no parts) ──
       setHasMultiPart(false);
       const modelGroup = new THREE.Group();
       config.buildModel(modelGroup);
       scene.add(modelGroup);
 
-      // Collect model meshes for raycasting
       const meshes: THREE.Object3D[] = [];
       modelGroup.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
@@ -544,6 +563,19 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
       animFrameRef.current = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
+
+      // DIFF 4: F3 Update animation mixer (with B2 throttle fix)
+      if (mixerRef.current) {
+        const delta = clockRef.current.getDelta();
+        mixerRef.current.update(delta);
+        // Throttle time state update to ~4fps (avoid 60fps React re-renders)
+        const now = performance.now();
+        if (now - lastAnimTimeUpdateRef.current > ANIM_TIME_THROTTLE_MS) {
+          lastAnimTimeUpdateRef.current = now;
+          const action = animActionsRef.current[currentAnimIndex];
+          if (action) setAnimCurrentTime(action.time);
+        }
+      }
 
       // Call projection callbacks from PinSystem and StudentNotes3D
       frameCallbacksRef.current.forEach(cb => {
@@ -569,20 +601,17 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     resizeObserver.observe(container);
 
     // ── WebGL context loss/restore handlers ──
-    // Without preventDefault(), browser won't attempt to restore context.
     const canvas = renderer.domElement;
 
     const handleContextLost = (e: Event) => {
-      e.preventDefault(); // opt-in: tell browser we want restoration
+      e.preventDefault();
       cancelAnimationFrame(animFrameRef.current);
       setSceneReady(false);
       setContextLost(true);
       logger.warn('ModelViewer3D', 'WebGL context lost');
 
-      // Check if we've exceeded max recoveries in the time window
       const now = Date.now();
       if (now - contextLossTimestampRef.current > CONTEXT_LOSS_WINDOW_MS) {
-        // Reset count — outside the window
         contextLossCountRef.current = 0;
         contextLossTimestampRef.current = now;
       }
@@ -594,11 +623,8 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
       setContextLost(false);
 
       if (contextLossCountRef.current <= MAX_CONTEXT_LOSSES) {
-        // Trigger full remount by changing sceneKey → useEffect cleanup + re-run
         setSceneKey(k => k + 1);
       }
-      // If exceeded, contextLost stays false but we don't remount —
-      // the overlay will show "Recargar pagina" button instead
     };
 
     canvas.addEventListener('webglcontextlost', handleContextLost);
@@ -614,6 +640,10 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
       renderer.dispose();
       partLoaderRef.current?.dispose();
       partLoaderRef.current = null;
+      // DIFF 6: Cleanup animation mixer
+      mixerRef.current?.stopAllAction();
+      mixerRef.current = null;
+      animActionsRef.current = [];
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
@@ -622,7 +652,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
           obj.geometry.dispose();
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
           mats.forEach(m => {
-            disposeMaterialTextures(m); // free GPU VRAM for textures
+            disposeMaterialTextures(m);
             m.dispose();
           });
         }
@@ -631,8 +661,6 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
   }, [modelId, fileUrl, config, sceneKey]);
 
   // ── Async API fetch: update parts/layers from backend ──
-  // Runs after initial sync localStorage init. If API returns data,
-  // reinitializes the ModelPartLoader with fresh data from DB.
   useEffect(() => {
     if (!sceneReady || !sceneRef.current) return;
     let cancelled = false;
@@ -646,12 +674,10 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
 
       setStoredLayersState(apiLayers);
 
-      // If API returned parts and we have a scene, reinitialize loader
       if (apiParts.length > 0 && sceneRef.current) {
         setHasMultiPart(true);
         const scene = sceneRef.current;
 
-        // Dispose existing loader if any
         if (partLoaderRef.current) {
           partLoaderRef.current.dispose();
         }
@@ -669,10 +695,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     return () => { cancelled = true; };
   }, [modelId, sceneReady, sceneKey]);
 
-  // ── F3 audit: Keyboard shortcuts ──
-  // R = reset camera, F = focus/fit model, L = layers, P = pins, N = notes
-  // Shortcuts are disabled while user types in inputs (PinEditor, Notes, etc.)
-  // or when modifier keys are held (Ctrl+R = browser reload, not our reset).
+  // ── Keyboard shortcuts ──
   const resetCamera = useCallback(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
@@ -689,7 +712,6 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     const meshes = modelMeshesRef.current;
     if (meshes.length === 0) return;
 
-    // Compute bounding box of all model meshes
     const box = new THREE.Box3();
     meshes.forEach(mesh => box.expandByObject(mesh));
     if (box.isEmpty()) return;
@@ -697,7 +719,6 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    // Distance = enough to frame the entire model in the viewport
     const distance = maxDim * 2;
 
     camera.position.set(
@@ -709,14 +730,57 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
     controls.update();
   }, []);
 
+  // ── F3: Animation handlers (DIFF 7) ──
+  const handleAnimPlay = useCallback(() => {
+    const action = animActionsRef.current[currentAnimIndex];
+    if (action && mixerRef.current) {
+      action.play();
+      action.paused = false;
+      setIsAnimPlaying(true);
+    }
+  }, [currentAnimIndex]);
+
+  const handleAnimPause = useCallback(() => {
+    const action = animActionsRef.current[currentAnimIndex];
+    if (action) {
+      action.paused = true;
+      setIsAnimPlaying(false);
+    }
+  }, [currentAnimIndex]);
+
+  const handleAnimSeek = useCallback((time: number) => {
+    const action = animActionsRef.current[currentAnimIndex];
+    if (action && mixerRef.current) {
+      action.time = time;
+      mixerRef.current.update(0);
+      setAnimCurrentTime(time);
+    }
+  }, [currentAnimIndex]);
+
+  const handleAnimSelect = useCallback((index: number) => {
+    animActionsRef.current.forEach(a => a.stop());
+    setCurrentAnimIndex(index);
+    setAnimDuration(animationInfos[index]?.duration || 0);
+    setAnimCurrentTime(0);
+    setIsAnimPlaying(false);
+  }, [animationInfos]);
+
+  const handleAnimSpeedChange = useCallback((speed: number) => {
+    setAnimSpeed(speed);
+    if (mixerRef.current) mixerRef.current.timeScale = speed;
+  }, []);
+
+  const handleAnimReset = useCallback(() => {
+    animActionsRef.current.forEach(a => a.stop());
+    setAnimCurrentTime(0);
+    setIsAnimPlaying(false);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Guard: skip when user is typing in form fields
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      // Guard: skip when modifier keys held (avoid hijacking Ctrl+R, Cmd+F, etc.)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      // Guard: skip during context loss (no scene to interact with)
       if (contextLost) return;
 
       switch (e.key.toLowerCase()) {
@@ -737,13 +801,11 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
         case 'p':
           e.preventDefault();
           if (mode === 'edit') {
-            // Toggle PinEditor panel + refresh pins on open
             setShowPinEditor(prev => {
               if (!prev) handlePinsChanged();
               return !prev;
             });
           } else {
-            // View mode: toggle pin marker visibility
             setShowPins(prev => !prev);
           }
           break;
@@ -754,7 +816,6 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
           }
           break;
         case '?':
-          // Toggle shortcut hint overlay
           setShowShortcutHint(prev => !prev);
           break;
       }
@@ -770,9 +831,11 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
       <div ref={containerRef} className="absolute inset-0" />
 
       {/* ── Pin System (handles markers + overlays) ── */}
+      {/* DIFF 11: Pass topicId to PinSystem */}
       {sceneReady && showPins && (
         <PinSystem
           modelId={modelId}
+          topicId={topicId}
           mode={mode}
           scene={sceneRef.current}
           camera={cameraRef.current}
@@ -848,6 +911,59 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view' }: Mo
           updateKey={layerUpdateKey}
           onClose={() => setShowLayerPanel(false)}
         />
+      )}
+
+      {/* ── F3: Animation Controls (DIFF 8) ── */}
+      {sceneReady && animationInfos.length > 0 && (
+        <AnimationControls
+          animations={animationInfos}
+          currentIndex={currentAnimIndex}
+          isPlaying={isAnimPlaying}
+          currentTime={animCurrentTime}
+          duration={animDuration}
+          speed={animSpeed}
+          onPlay={handleAnimPlay}
+          onPause={handleAnimPause}
+          onSeek={handleAnimSeek}
+          onSelectAnimation={handleAnimSelect}
+          onSpeedChange={handleAnimSpeedChange}
+          onReset={handleAnimReset}
+        />
+      )}
+
+      {/* ── F4: Clipping Plane ── */}
+      {sceneReady && (
+        <ClippingPlaneControls
+          renderer={rendererRef.current}
+          scene={sceneRef.current}
+          modelMeshes={modelMeshesRef.current}
+          registerFrameCallback={registerFrameCallback}
+        />
+      )}
+
+      {/* ── F5: Capture View (professor only) ── */}
+      {mode === 'edit' && sceneReady && (
+        <div className="absolute top-3 z-20" style={{ left: hasMultiPart ? 360 : 260 }}>
+          <CaptureViewDialog
+            modelId={modelId}
+            modelName={modelName}
+            topicId={topicId}
+            renderer={rendererRef.current}
+            scene={sceneRef.current}
+            camera={cameraRef.current}
+          />
+        </div>
+      )}
+
+      {/* ── F6: Explode View (multi-part only) ── */}
+      {hasMultiPart && sceneReady && partLoaderRef.current && (
+        <div className="absolute bottom-12 right-3 z-20">
+          <ExplodeControl
+            partLoader={partLoaderRef.current}
+            scene={sceneRef.current}
+            modelMeshes={modelMeshesRef.current}
+          />
+        </div>
       )}
 
       {/* Model name watermark + shortcut hint */}

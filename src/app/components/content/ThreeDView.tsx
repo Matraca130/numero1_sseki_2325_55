@@ -4,9 +4,9 @@
 // 3-level navigation for 3D anatomical models:
 //   Level 1: Atlas grid (AtlasScreen — extracted to AtlasScreen.tsx)
 //   Level 2: Section detail (SectionScreen)
-//   Level 3: 3D viewer (ViewerScreen → ModelViewer3D)
+//   Level 3: 3D viewer (ViewerScreen -> ModelViewer3D)
 //
-// Data flow: ContentTree → fetch models per topic → group by section
+// Data flow: ContentTree -> fetch models per topic -> group by section
 // ============================================================
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -238,7 +238,6 @@ function ThreeDErrorFallback() {
 function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; onBack: () => void }) {
   return (
     <div className="flex flex-col h-full bg-[#111118] relative overflow-hidden">
-      {/* Header */}
       <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118]/80 backdrop-blur-lg border-b border-white/10">
         <div className="flex items-center gap-4">
           <button
@@ -259,7 +258,6 @@ function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; on
         </div>
       </div>
 
-      {/* 3D Viewport — ModelViewer3D fills remaining space */}
       <div className="flex-1 relative z-10">
         <div className="flex flex-col items-center justify-center h-full text-gray-400">
           <AlertTriangle size={32} className="text-red-500" />
@@ -400,7 +398,8 @@ function ViewerScreen({
         <ErrorBoundary
           fallback={<ModelViewerErrorFallback modelName={model.title} onBack={onBack} />}
         >
-          <ModelViewer3D modelId={model.id} modelName={model.title} />
+          {/* DIFF 12 (CRITICAL): Pass topicId to enable F1 KeywordAutocomplete + F5 CaptureViewDialog */}
+          <ModelViewer3D modelId={model.id} modelName={model.title} topicId={model.topic_id} />
         </ErrorBoundary>
       </div>
     </div>
