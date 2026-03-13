@@ -36,7 +36,7 @@ export function getAxonToday(): Date {
  */
 export const AXON_TODAY = new Date(2026, 1, 7);
 
-// ── Method Time Defaults ─────────────────────────────────
+// ── Method Time Defaults ─────────────────────────────────────
 // Single source of truth for per-method time estimates (minutes).
 // Used by: wizard, useStudyPlans (backend mapping), rescheduleEngine,
 //          useStudyTimeEstimates (static fallback).
@@ -53,7 +53,7 @@ export const METHOD_TIME_DEFAULTS: Record<string, number> = {
   reading: 30,
 };
 
-// ── Method → Backend session_type mapping ────────────────
+// ── Method → Backend session_type mapping ────────────────────
 // The DB `study_plan_tasks.item_type` CHECK constraint accepts:
 //   'flashcard' | 'quiz' | 'reading' | 'keyword'
 // Wizard methods 'video', 'resumo', '3d' must map to valid values
@@ -68,7 +68,7 @@ export const METHOD_TO_BACKEND_ITEM_TYPE: Record<string, string> = {
   reading: 'reading',
 };
 
-// ── Backend item_type → Display method mapping ───────────
+// ── Backend item_type → Display method mapping ───────────────
 // Inverse of above for backend→frontend reconstruction.
 // Since multiple frontend methods map to 'reading', we can't
 // perfectly reconstruct — default to 'reading' for ambiguous.
