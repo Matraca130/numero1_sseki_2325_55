@@ -135,8 +135,8 @@ export async function apiCall<T = any>(
       }
 
       return json as T;
-    } catch (err: any) {
-      if (err.name === 'AbortError' && timeoutMs > 0) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError' && timeoutMs > 0) {
         throw new Error(`Request timeout after ${timeoutMs}ms: ${method} ${path}`);
       }
       throw err;
