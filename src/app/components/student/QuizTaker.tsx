@@ -26,6 +26,7 @@
 //      QuizResults via useQuizGamificationFeedback (Q-UX1 premium layer)
 //      to avoid duplicate toasts/modals.
 // TD-7: onComplete prop now wired to fire on results phase.
+// PALETTE: Axon Medical Academy brand colors applied.
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -36,31 +37,28 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Lightbulb, Loader2, AlertTriangle } from 'lucide-react';
 import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
 
-// ── Sub-components (Phase 3 extractions) ───────────────
+// ── Sub-components (Phase 3 extractions) ─────────────────
 import { QuestionRenderer } from '@/app/components/student/QuestionRenderer';
 import { QuizProgressBar } from '@/app/components/student/QuizProgressBar';
 import { QuizTopBar } from '@/app/components/student/QuizTopBar';
 import { QuizBottomBar } from '@/app/components/student/QuizBottomBar';
 
-// ── Session hook (Phase 6b extraction) ─────────────────
+// ── Session hook (Phase 6b extraction) ───────────────────
 import { useQuizSession } from '@/app/components/student/useQuizSession';
 
-// ── Backup (P1-S03) ───────────────────────────────
+// ── Backup (P1-S03) ─────────────────────────────────────
 import { clearQuizBackup, saveQuizBackup } from '@/app/components/student/useQuizBackup';
 
-// ── Recovery prompt (P1-S03) ───────────────────────
+// ── Recovery prompt (P1-S03) ─────────────────────────────
 import { QuizRecoveryPrompt } from '@/app/components/student/QuizRecoveryPrompt';
 
-// ── Error boundary (Phase 7b) ──────────────────────
+// ── Error boundary (Phase 7b) ────────────────────────────
 import { QuizErrorBoundary } from '@/app/components/student/QuizErrorBoundary';
 
-// ── Gamification bridge (G4) ─────────────────────────
-// NOTE: useGamification is still needed here to trigger refresh() +
-// triggerBadgeCheck() on quiz completion. This populates the context
-// data that QuizResults reads via useQuizGamificationFeedback (Q-UX1).
-// Celebrations (LevelUpCelebration, BadgeEarnedToast) are rendered
-// EXCLUSIVELY in QuizResults to avoid duplicates.
-import { useGamification } from '@/app/context/GamificationContext';
+// ── Gamification bridge (G4) ─────────────────────────────
+// NOTE: gamification refresh + badge check are handled EXCLUSIVELY
+// by useQuizGamificationFeedback inside QuizResults (Q-UX1).
+// useGamification import removed — no longer called in QuizTaker.
 
 // Re-export for backward compatibility (external consumers may import from here)
 export type { SavedAnswer } from '@/app/components/student/quiz-types';
@@ -89,7 +87,6 @@ interface QuizTakerProps {
   quizTitle: string;
   summaryId?: string;
   onBack: () => void;
-  /** Called once when quiz transitions to results phase (TD-7: now wired) */
   onComplete?: () => void;
   /** Q-UX2: Per-question time limit in seconds (0 or undefined = no limit) */
   timeLimitSeconds?: number;
@@ -102,15 +99,14 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const [activeQuizId, setActiveQuizId] = useState(quizId);
   const [activeTitle, setActiveTitle] = useState(quizTitle);
 
-  // ── Gamification bridge (G4) ────────────────────────
-  const gamification = useGamification();
+  // ── G4: Guard for onComplete notification (fire once) ───
   const gamificationRefreshedRef = useRef(false);
 
   // ── Stable ref for onComplete to avoid useEffect dep churn ──
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // ── Session lifecycle (hook) ─────────────────────────
+  // ── Session lifecycle (hook) ─────────────────────────────
   const {
     phase, questions, sessionStartTime, errorMsg, backendWarning,
     submitting, closingSession, savedAnswers, keywordMap,
@@ -119,24 +115,20 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     submitAnswer, finishQuiz, restartSession, reviewSession,
   } = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
 
-  // ── G4: Refresh gamification + notify parent on quiz completion ──
-  // Fire-and-forget: refresh XP profile + trigger badge check.
-  // This populates the GamificationContext that QuizResults'
-  // useQuizGamificationFeedback hook reads from.
-  // TD-7: Also fires onComplete callback to notify parent.
+  // ── G4: Notify parent on quiz completion ─────────────────
+  // NOTE: gamification refresh + badge check are handled EXCLUSIVELY
+  // by useQuizGamificationFeedback inside QuizResults (Q-UX1).
+  // That hook waits 800ms for backend afterWrite hooks to complete
+  // before fetching, ensuring accurate XP data. Calling refresh()
+  // here would be redundant (3 wasted API calls with stale data).
+  // TD-7: onComplete callback still fires here immediately.
   useEffect(() => {
     if (phase !== 'results' || gamificationRefreshedRef.current) return;
     gamificationRefreshedRef.current = true;
 
-    // Fire-and-forget: refresh gamification profile (triggers XP bar + level-up detection)
-    gamification.refresh().catch(() => {});
-
-    // Fire-and-forget: check if quiz completion earned any badges (stores in context)
-    gamification.triggerBadgeCheck().catch(() => {});
-
     // TD-7: Notify parent that quiz reached results phase
     onCompleteRef.current?.();
-  }, [phase, gamification]);
+  }, [phase]);
 
   // Reset gamification refresh flag when quiz restarts
   useEffect(() => {
@@ -198,9 +190,9 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     if (liveTextInput.trim()) doSubmit(liveTextInput.trim(), null);
   };
 
-  // ── Navigation ────────────────────────────────────────
+  // ── Navigation (P-PERF: wrapped in useCallback to preserve React.memo) ──
 
-  const goToQuestion = (idx: number, dir: 'forward' | 'back') => {
+  const goToQuestion = useCallback((idx: number, dir: 'forward' | 'back') => {
     setNavDirection(dir);
     setCurrentIdx(idx);
     resetLiveInputs(savedAnswers[idx]);
@@ -216,19 +208,19 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
         savedAt: 0, // overwritten by saveQuizBackup
       });
     }
-  };
+  }, [savedAnswers, activeQuizId, activeTitle, questions, resetLiveInputs]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIdx < questions.length - 1) {
       goToQuestion(currentIdx + 1, 'forward');
     } else {
       finishQuiz();
     }
-  };
+  }, [currentIdx, questions.length, goToQuestion, finishQuiz]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (currentIdx > 0) goToQuestion(currentIdx - 1, 'back');
-  };
+  }, [currentIdx, goToQuestion]);
 
   // ── Restart (hook resets session + local resets UI) ─────
 
@@ -252,7 +244,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     // useQuizSession's useEffect will auto-reset savedAnswers + load new questions
   }, [activeQuizId, resetLiveInputs]);
 
-  // ── Recovery handlers (P1-S03) ─────────────────────
+  // ── Recovery handlers (P1-S03) ─────────────────────────
 
   const handleAcceptRecovery = useCallback(() => {
     if (pendingBackup) {
@@ -302,31 +294,31 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     });
   }, [questions, currentIdx, savedAnswers, questionStartTime, submitAnswer, finishQuiz, resetLiveInputs]);
 
-  // ── PHASE: loading ─────────────────────────────────
+  // ── PHASE: loading ─────────────────────────────────────
 
   if (phase === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <Loader2 className="animate-spin text-teal-500" size={32} />
+        <Loader2 className="animate-spin text-axon-accent" size={32} />
         <p className="text-sm text-gray-500">Preparando quiz...</p>
       </div>
     );
   }
 
-  // ── PHASE: error ────────────────────────────────────
+  // ── PHASE: error ────────────────────────────────────────
 
   if (phase === 'error') {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
         <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Lightbulb size={40} className="text-teal-300" />
+          <div className="w-20 h-20 bg-axon-accent-10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lightbulb size={40} className="text-axon-accent" />
           </div>
           <h2 className="text-xl text-gray-900 mb-3" style={{ fontWeight: 700 }}>Quiz no disponible</h2>
           <p className="text-gray-500 mb-6 text-sm">{errorMsg}</p>
           <button
             onClick={onBack}
-            className="text-teal-600 hover:underline text-sm"
+            className="text-axon-accent hover:underline text-sm"
             style={{ fontWeight: 600 }}
           >
             Volver
@@ -336,7 +328,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: recovery (P1-S03) ──────────────────────
+  // ── PHASE: recovery (P1-S03) ────────────────────────────
 
   if (phase === 'recovery' && pendingBackup) {
     return (
@@ -349,7 +341,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: results ──────────────────────────────────
+  // ── PHASE: results ──────────────────────────────────────
   // NOTE: Gamification celebrations (LevelUpCelebration, BadgeEarnedToast)
   // are rendered EXCLUSIVELY inside QuizResults via useQuizGamificationFeedback
   // (Q-UX1 premium layer). Do NOT add them here to avoid duplicates.
@@ -375,7 +367,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     );
   }
 
-  // ── PHASE: session ─────────────────────────────────
+  // ── PHASE: session ─────────────────────────────────────
 
   const currentQ = questions[currentIdx];
   if (!currentQ) return null;
@@ -411,7 +403,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex flex-col h-full bg-zinc-50 overflow-hidden"
+        className="flex flex-col h-full bg-axon-page overflow-hidden"
       >
         {/* Backend warning */}
         {backendWarning && (

@@ -6,6 +6,7 @@
 // and completion status. Fetched from /study-sessions.
 //
 // Design: teal accent, collapsible, sorted by date descending.
+// P-PERF: Lazy loading — only fetches when panel is opened.
 // ============================================================
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -61,6 +62,9 @@ export const QuizHistoryPanel = React.memo(function QuizHistoryPanel({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // P-PERF: Lazy load — only fetch when panel is opened
+    if (!open) return;
+
     let cancelled = false;
     setLoading(true);
     getStudySessions({ session_type: 'quiz', limit: 20 })
@@ -79,7 +83,7 @@ export const QuizHistoryPanel = React.memo(function QuizHistoryPanel({
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [refreshKey, open]);
 
   // Stats summary
   const stats = useMemo(() => {
@@ -100,7 +104,7 @@ export const QuizHistoryPanel = React.memo(function QuizHistoryPanel({
       {/* Toggle button */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 transition-colors mx-auto px-4 py-2 rounded-xl hover:bg-teal-50"
+        className="flex items-center gap-2 text-sm text-axon-accent hover:text-axon-hover transition-colors mx-auto px-4 py-2 rounded-xl hover:bg-axon-accent-10"
         style={{ fontWeight: 600 }}
       >
         <History size={16} />
@@ -130,7 +134,7 @@ export const QuizHistoryPanel = React.memo(function QuizHistoryPanel({
               {stats.total > 0 && (
                 <div className="flex items-center justify-center gap-4 mb-3">
                   <span className="text-[11px] text-zinc-500 flex items-center gap-1">
-                    <Trophy size={12} className="text-teal-500" />
+                    <Trophy size={12} className="text-axon-accent" />
                     {stats.completed} completados
                   </span>
                   <span className="text-[11px] text-zinc-500 flex items-center gap-1">
@@ -142,7 +146,7 @@ export const QuizHistoryPanel = React.memo(function QuizHistoryPanel({
 
               {loading ? (
                 <div className="flex items-center justify-center py-8 gap-2">
-                  <Loader2 size={16} className="animate-spin text-teal-500" />
+                  <Loader2 size={16} className="animate-spin text-axon-accent" />
                   <span className="text-[12px] text-zinc-400">Cargando historial...</span>
                 </div>
               ) : sessions.length === 0 ? (

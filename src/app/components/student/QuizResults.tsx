@@ -42,10 +42,10 @@ import { SubtopicResultsSection } from '@/app/components/student/SubtopicResults
 import { QuizHistoryPanel } from '@/app/components/student/QuizHistoryPanel';
 import { QuizCertificate } from '@/app/components/student/QuizCertificate';
 
-// ── Hooks (P2-S02 extraction) ────────────────────────
+// ── Hooks (P2-S02 extraction) ────────────────────────────
 import { useAdaptiveQuiz } from '@/app/components/student/useAdaptiveQuiz';
 
-// ── R13: QuizScoreCircle component ───────────────────
+// ── R13: QuizScoreCircle component ─────────────────────
 import { QuizScoreCircle } from '@/app/components/student/QuizScoreCircle';
 
 // ── Gamification bridge (G4 → Q-UX1 Premium) ────────────
@@ -58,7 +58,29 @@ import { QuizXpConfirmedCard } from '@/app/components/student/QuizXpConfirmedCar
 import { BadgeEarnedToast } from '@/app/components/gamification/BadgeEarnedToast';
 import { LevelUpCelebration } from '@/app/components/gamification/LevelUpCelebration';
 
-// ── Props ────────────────────────────────────────────
+// ── P-PERF: Stable style constants for streak badges ─────
+const STREAK_STYLE_ACTIVE = {
+  background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
+  border: '1px solid #86efac',
+  color: '#16a34a',
+  fontWeight: 600,
+} as const;
+
+const STREAK_STYLE_AT_RISK = {
+  background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
+  border: '1px solid #fca5a5',
+  color: '#dc2626',
+  fontWeight: 600,
+} as const;
+
+const STREAK_STYLE_DEFAULT = {
+  background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
+  border: '1px solid #fdba74',
+  color: '#ea580c',
+  fontWeight: 600,
+} as const;
+
+// ── Props ────────────────────────────────────────────────
 
 interface QuizResultsProps {
   questions: QuizQuestion[];
@@ -76,7 +98,7 @@ interface QuizResultsProps {
   onAdaptiveQuizReady?: (quizId: string, quizTitle: string) => void;
 }
 
-// ── Main Component ───────────────────────────────────────
+// ── Main Component ─────────────────────────────────────
 
 export function QuizResults({
   questions, savedAnswers, sessionStartTime, quizTitle,
@@ -143,7 +165,7 @@ export function QuizResults({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col h-full overflow-y-auto custom-scrollbar-light bg-zinc-50"
+      className="flex flex-col h-full overflow-y-auto custom-scrollbar-light bg-axon-page"
     >
       <div className="flex-1 flex flex-col items-center px-6 py-8">
         <div className="w-full max-w-2xl">
@@ -164,7 +186,7 @@ export function QuizResults({
             <motion.div
               className={clsx(
                 'w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl',
-                pct >= 70 ? 'bg-gradient-to-br from-teal-500 to-emerald-600 shadow-teal-500/30' :
+                pct >= 70 ? 'bg-gradient-to-br from-axon-ring-start to-axon-ring-end shadow-axon-ring-end/30' :
                 pct >= 40 ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/25' :
                 'bg-gradient-to-br from-rose-400 to-red-500 shadow-rose-500/25'
               )}
@@ -183,12 +205,12 @@ export function QuizResults({
             </p>
           </div>
 
-          {/* ── Score Circle (FIX: use correct prop names pct/total) ── */}
+          {/* ── Score Circle ── */}
           <div className="flex justify-center mb-8">
             <QuizScoreCircle
-              pct={pct}
+              percentage={pct}
               correctCount={correctCount}
-              total={total}
+              totalCount={total}
               color={performanceColor}
             />
           </div>
@@ -213,12 +235,7 @@ export function QuizResults({
             >
               {gamification.streak.studied_today ? (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
-                  style={{
-                    background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-                    border: '1px solid #86efac',
-                    color: '#16a34a',
-                    fontWeight: 600,
-                  }}
+                  style={STREAK_STYLE_ACTIVE}
                 >
                   <Flame size={12} />
                   <span>Racha: {gamification.streak.current_streak} {gamification.streak.current_streak === 1 ? 'dia' : 'dias'}</span>
@@ -226,24 +243,14 @@ export function QuizResults({
                 </div>
               ) : gamification.streak.streak_at_risk ? (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
-                  style={{
-                    background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
-                    border: '1px solid #fca5a5',
-                    color: '#dc2626',
-                    fontWeight: 600,
-                  }}
+                  style={STREAK_STYLE_AT_RISK}
                 >
                   <Flame size={12} />
                   <span>Racha en riesgo! Estudia hoy</span>
                 </div>
               ) : gamification.streak.current_streak > 0 ? (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
-                  style={{
-                    background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
-                    border: '1px solid #fdba74',
-                    color: '#ea580c',
-                    fontWeight: 600,
-                  }}
+                  style={STREAK_STYLE_DEFAULT}
                 >
                   <Flame size={12} />
                   <span>Racha: {gamification.streak.current_streak} {gamification.streak.current_streak === 1 ? 'dia' : 'dias'}</span>
@@ -277,7 +284,7 @@ export function QuizResults({
           {onReview && (
             <button
               onClick={onReview}
-              className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 transition-colors mb-2 mx-auto px-4 py-2 rounded-xl hover:bg-teal-50"
+              className="flex items-center gap-2 text-sm text-axon-accent hover:text-axon-hover transition-colors mb-2 mx-auto px-4 py-2 rounded-xl hover:bg-axon-accent-10"
               style={{ fontWeight: 600 }}
             >
               Revisar respuestas
@@ -297,7 +304,7 @@ export function QuizResults({
           {/* ── Detail Toggle ── */}
           <button
             onClick={() => setShowDetail(!showDetail)}
-            className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 transition-colors mb-4 mx-auto px-4 py-2 rounded-xl hover:bg-teal-50"
+            className="flex items-center gap-2 text-sm text-axon-accent hover:text-axon-hover transition-colors mb-4 mx-auto px-4 py-2 rounded-xl hover:bg-axon-accent-10"
             style={{ fontWeight: 600 }}
           >
             {showDetail ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -339,7 +346,7 @@ export function QuizResults({
             </motion.button>
             <motion.button
               onClick={onRestart}
-              className={`px-8 py-3 rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-600/25 transition-all inline-flex items-center gap-3 ${focusRing}`}
+              className={`px-8 py-3 rounded-xl text-white bg-axon-dark hover:bg-axon-hover shadow-lg shadow-axon-dark/25 transition-all inline-flex items-center gap-3 ${focusRing}`}
               style={{ fontWeight: 700 }}
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.97 }}

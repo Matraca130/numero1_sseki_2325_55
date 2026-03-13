@@ -63,7 +63,7 @@ export class QuizErrorBoundary extends Component<
     const iconColor = isPurple ? 'text-purple-400' : 'text-rose-400';
     const btnBg = isPurple
       ? 'bg-purple-600 hover:bg-purple-700'
-      : 'bg-teal-600 hover:bg-teal-700';
+      : 'bg-axon-accent hover:bg-axon-hover';
 
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
