@@ -9,6 +9,7 @@
 // R4: filterDifficulty/onFilterDifficultyChange/onCreate now
 // optional — QuizQuestionsEditor doesn't use difficulty filter
 // or the inline create button.
+// C3: kw.term → kw.name || kw.term for DB column compatibility
 // ============================================================
 
 import React from 'react';
@@ -27,7 +28,7 @@ export interface QuizFiltersBarProps {
   filterDifficulty?: Difficulty | '';     // optional: omitted in QuizQuestionsEditor
   filterKeywordId: string;
   searchQuery: string;
-  keywords: ReadonlyArray<{ id: string; term?: string }>;
+  keywords: ReadonlyArray<{ id: string; name?: string; term?: string }>;  // C3: added name?
   onFilterTypeChange: (v: QuestionType | '') => void;
   onFilterDifficultyChange?: (v: Difficulty | '') => void;  // optional
   onFilterKeywordChange: (v: string) => void;
@@ -89,7 +90,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         >
           <option value="">Todas las keywords</option>
           {keywords.map(kw => (
-            <option key={kw.id} value={kw.id}>{kw.term}</option>
+            <option key={kw.id} value={kw.id}>{kw.name || kw.term}</option>
           ))}
         </select>
 
