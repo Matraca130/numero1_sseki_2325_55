@@ -30,8 +30,10 @@ function encodeContent(text: string, imageUrl: string): string {
 }
 
 // ── Helper: get keyword display name (C3) ─────────────────
+// Keyword.name is now in the TS type (platform.ts).
+// Falls back to kw.term for backward compat with older data.
 function kwDisplay(kw: Keyword): string {
-  return (kw as any).name || kw.term || kw.id?.substring(0, 8) || '?';
+  return kw.name || kw.term || kw.id?.substring(0, 8) || '?';
 }
 
 // ── Image URL inline input ────────────────────────────────
