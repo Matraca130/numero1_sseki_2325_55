@@ -13,12 +13,11 @@
 //
 // BKT v3.1 computation is inlined below. Server-side BKT runs
 // in backend batch-review.ts (PATH B).
-// Q-UX2 FIX: Import changed from quizApi re-export to direct bktApi.
 // ============================================================
 
 import { useRef, useCallback } from 'react';
 import type { QuizQuestion } from '@/app/services/quizApi';
-import { upsertBktState } from '@/app/services/bktApi';
+import { upsertBktState } from '@/app/services/quizApi';
 import { logger } from '@/app/lib/logger';
 
 // ── BKT v3.1 Inline Computation ─────────────────────
