@@ -1,10 +1,19 @@
 // ============================================================
-// Axon — Default Schedule View (no study plans)
-// Shown when the user has no active study plans.
-// Extracted from ScheduleView.tsx for modularization.
+// Axon — Default Schedule View (no study plans) — RESPONSIVE
+//
+// RESPONSIVE CHANGES (Phase 1C):
+//   1. 2-column → stacked on mobile (sidebar below calendar)
+//   2. Calendar cells: min-h-[60px] mobile → min-h-[100px] desktop
+//   3. Calendar day headers: abbreviated on mobile (D, L, M...)
+//   4. Right sidebar: hidden lg:flex on desktop, full-width below on mobile
+//   5. Header action area: stacks on mobile, touch targets 44px
+//   6. Calendar area: p-4 mobile → p-8 desktop
+//   7. Calendar events in cells: hidden on mobile (dot only)
+//   8. Touch targets: min-h-[44px] on all interactive elements
 // ============================================================
 import React, { useState } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { motion, AnimatePresence } from 'motion/react';
 import { headingStyle } from '@/app/design-system';
 import {
@@ -45,6 +54,7 @@ const SCHEDULE_EVENTS = buildFallbackEvents();
 
 export function DefaultScheduleView() {
   const { navigateTo } = useStudentNav();
+  const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(getAxonToday());
   const [selectedDate, setSelectedDate] = useState<Date>(getAxonToday());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -82,18 +92,18 @@ export function DefaultScheduleView() {
             </p>
           }
           actionButton={
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 shrink-0">
               <button
                 onClick={() => navigateTo('organize-study')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-axon-accent hover:bg-axon-hover rounded-full text-white font-semibold text-sm transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
+                className="flex items-center justify-center gap-2 px-4 lg:px-6 py-2.5 min-h-[44px] bg-axon-accent hover:bg-axon-hover rounded-full text-white font-semibold text-sm transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
               >
                 <Plus size={15} /> Organizar Estudio
               </button>
-              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm self-start">
                 <button
                   onClick={() => setViewMode('month')}
                   className={clsx(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    "px-3 lg:px-4 py-2 min-h-[40px] rounded-lg text-sm font-medium transition-all",
                     viewMode === 'month' ? "bg-gray-900 text-white shadow-md" : "text-gray-500 hover:bg-gray-50"
                   )}
                 >
@@ -102,7 +112,7 @@ export function DefaultScheduleView() {
                 <button
                   onClick={() => setViewMode('week')}
                   className={clsx(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    "px-3 lg:px-4 py-2 min-h-[40px] rounded-lg text-sm font-medium transition-all",
                     viewMode === 'week' ? "bg-gray-900 text-white shadow-md" : "text-gray-500 hover:bg-gray-50"
                   )}
                 >
@@ -114,34 +124,40 @@ export function DefaultScheduleView() {
         />
       </div>
 
-      {/* 2-Column Layout */}
-      <div className="flex w-full">
+      {/* Layout: stacked on mobile, 2-col on desktop */}
+      <div className="flex flex-col lg:flex-row w-full">
         {/* Main Calendar Area */}
-        <div className="flex-1 flex flex-col min-w-0 p-8">
+        <div className="flex-1 flex flex-col min-w-0 p-4 lg:p-8">
           {/* Calendar Controls */}
-          <div className="bg-white rounded-t-2xl border border-gray-100 border-b-0 p-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 capitalize flex items-center gap-2" style={headingStyle}>
-              <CalendarIcon size={20} className="text-axon-accent" />
-              {format(currentDate, 'MMMM yyyy', { locale: es })}
+          <div className="bg-white rounded-t-2xl border border-gray-100 border-b-0 p-3 lg:p-4 flex items-center justify-between">
+            <h2 className="text-base lg:text-lg font-semibold text-gray-900 capitalize flex items-center gap-2" style={headingStyle}>
+              <CalendarIcon size={18} className="text-axon-accent" />
+              {isMobile
+                ? format(currentDate, 'MMM yyyy', { locale: es })
+                : format(currentDate, 'MMMM yyyy', { locale: es })
+              }
             </h2>
-            <div className="flex items-center gap-2">
-              <button onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-full text-gray-500 transition-colors">
+            <div className="flex items-center gap-1 lg:gap-2">
+              <button onClick={prevMonth} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-50 rounded-full text-gray-500 transition-colors">
                 <ChevronLeft size={20} />
               </button>
-              <button onClick={() => setCurrentDate(getAxonToday())} className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+              <button onClick={() => setCurrentDate(getAxonToday())} className="px-3 py-1.5 min-h-[40px] text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
                 Hoy
               </button>
-              <button onClick={nextMonth} className="p-2 hover:bg-gray-50 rounded-full text-gray-500 transition-colors">
+              <button onClick={nextMonth} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-50 rounded-full text-gray-500 transition-colors">
                 <ChevronRight size={20} />
               </button>
             </div>
           </div>
 
           {/* Calendar Grid */}
-          <div className="bg-white border border-gray-100 border-t-gray-200/60 rounded-b-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden min-h-[500px]">
+          <div className="bg-white border border-gray-100 border-t-gray-200/60 rounded-b-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
-              {['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'].map(day => (
-                <div key={day} className="py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              {(isMobile
+                ? ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+                : ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+              ).map((day, idx) => (
+                <div key={idx} className="py-2 lg:py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   {day}
                 </div>
               ))}
@@ -162,13 +178,13 @@ export function DefaultScheduleView() {
                     key={i}
                     onClick={() => setSelectedDate(day)}
                     className={clsx(
-                      "bg-white p-2 min-h-[100px] cursor-pointer transition-colors relative hover:bg-gray-50",
+                      "bg-white p-1.5 lg:p-2 min-h-[56px] lg:min-h-[100px] cursor-pointer transition-colors relative hover:bg-gray-50",
                       isSelected && "bg-[#e6f5f1]/30"
                     )}
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-1 lg:mb-2">
                       <span className={clsx(
-                        "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium transition-all",
+                        "w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-full text-xs lg:text-sm font-medium transition-all",
                         isTodayDate
                           ? "bg-axon-accent text-white shadow-md"
                           : isSelected
@@ -182,7 +198,8 @@ export function DefaultScheduleView() {
                       )}
                     </div>
 
-                    <div className="space-y-1">
+                    {/* Event labels — desktop only */}
+                    <div className="hidden lg:block space-y-1">
                       {dayEvents.map((event, idx) => (
                         <div
                           key={idx}
@@ -206,19 +223,19 @@ export function DefaultScheduleView() {
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-96 bg-[#2d3e50] border-l border-white/10 shadow-xl flex flex-col z-10 sticky top-0 self-start max-h-screen">
-          <div className="p-6 border-b border-white/10 flex items-center justify-between bg-[#263545]">
-            <h3 className="font-semibold text-white text-lg" style={headingStyle}>Detalles del Dia</h3>
+        {/* Right Sidebar — Desktop: fixed width, Mobile: full-width below */}
+        <div className="w-full lg:w-96 bg-[#2d3e50] lg:border-l border-white/10 shadow-xl flex flex-col lg:sticky lg:top-0 lg:self-start lg:max-h-screen">
+          <div className="p-4 lg:p-6 border-b border-white/10 flex items-center justify-between bg-[#263545]">
+            <h3 className="font-semibold text-white text-base lg:text-lg" style={headingStyle}>Detalles del Dia</h3>
             <span className="text-sm font-medium text-[#99d7c7] bg-axon-accent/20 px-3 py-1 rounded-full">
               {format(selectedDate, "d 'de' MMMM", { locale: es })}
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar-light p-6 space-y-8 bg-[#2d3e50]">
+          <div className="flex-1 overflow-y-auto custom-scrollbar-light p-4 lg:p-6 space-y-6 lg:space-y-8 bg-[#2d3e50]">
             {/* What to study today */}
             <section>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3 lg:mb-4">
                 <BookOpen size={18} className="text-axon-accent" />
                 <h4 className="font-semibold text-white text-sm uppercase tracking-wide" style={headingStyle}>Que estudiar hoy</h4>
               </div>
@@ -226,7 +243,7 @@ export function DefaultScheduleView() {
               {selectedEvents.length > 0 ? (
                 <div className="space-y-3">
                   {selectedEvents.map((event, i) => (
-                    <div key={i} className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all group relative overflow-hidden">
+                    <div key={i} className="p-3 lg:p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all group relative overflow-hidden">
                       <div className={clsx("absolute left-0 top-0 bottom-0 w-1", event.type === 'exam' ? 'bg-red-400' : 'bg-axon-accent')} />
                       <div className="flex justify-between items-start mb-2">
                         <span className={clsx(
@@ -235,7 +252,7 @@ export function DefaultScheduleView() {
                         )}>
                           {event.type === 'exam' ? 'Examen' : 'Estudio'}
                         </span>
-                        <button className="text-white/30 hover:text-white/60">
+                        <button className="text-white/30 hover:text-white/60 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                           <MoreVertical size={14} />
                         </button>
                       </div>
@@ -252,9 +269,9 @@ export function DefaultScheduleView() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 border-2 border-dashed border-white/15 rounded-2xl bg-white/5">
+                <div className="text-center py-6 lg:py-8 border-2 border-dashed border-white/15 rounded-2xl bg-white/5">
                   <p className="text-sm font-medium text-white/40">Nada planificado para este dia.</p>
-                  <button className="mt-2 text-xs font-medium text-axon-accent hover:text-[#99d7c7]">
+                  <button className="mt-2 text-xs font-medium text-axon-accent hover:text-[#99d7c7] min-h-[44px]">
                     + Agregar tarea
                   </button>
                 </div>
@@ -265,7 +282,7 @@ export function DefaultScheduleView() {
             <section>
               <button
                 onClick={() => toggleSection('provas')}
-                className="flex items-center gap-2 mb-4 w-full group cursor-pointer"
+                className="flex items-center gap-2 mb-3 lg:mb-4 w-full group cursor-pointer min-h-[44px]"
               >
                 <AlertCircle size={18} className="text-red-400" />
                 <h4 className="font-semibold text-white text-sm uppercase tracking-wide flex-1 text-left" style={headingStyle}>Proximos Examenes</h4>
@@ -303,7 +320,7 @@ export function DefaultScheduleView() {
             <section>
               <button
                 onClick={() => toggleSection('completado')}
-                className="flex items-center gap-2 mb-4 w-full group cursor-pointer"
+                className="flex items-center gap-2 mb-3 lg:mb-4 w-full group cursor-pointer min-h-[44px]"
               >
                 <CheckCircle2 size={18} className="text-axon-accent" />
                 <h4 className="font-semibold text-white text-sm uppercase tracking-wide flex-1 text-left" style={headingStyle}>Completado Recientemente</h4>
