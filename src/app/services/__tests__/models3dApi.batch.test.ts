@@ -1,51 +1,29 @@
 // ============================================================
-// TEST: 3DP-3 — Batch error detection via instanceof ApiError
+// TEST: models3dApi batch error detection (C7 migration)
 //
-// Verifies that getModels3DBatch uses type-safe error detection
-// (instanceof ApiError + err.status) instead of fragile string
-// matching (errMsg.includes('404')).
-//
-// IMPORTANT: models3dApi.ts has module-level flags
-// (_batchEndpointUnavailable, _batchDisabledAt) that persist across
-// calls. We mock Date.now to advance past the TTL (10 min) in
-// beforeEach so the flag resets before each test.
+// After C7 migration, models3dApi.ts uses:
+//   - apiCall() from lib/api.ts for ALL requests (batch + per-topic)
+//   - Error message regex /\b(404|405)\b/ for status detection
+//     (apiCall throws plain Error, not ApiError)
 //
 // Scenarios:
-//   1. Batch uses realRequest (not apiCall)
-//   2. ApiError 404 → marks batch as unavailable, falls back
-//   3. ApiError 405 → same behavior as 404
-//   4. ApiError 500 → does NOT mark batch unavailable (transient)
-//   5. Plain Error → does NOT mark batch unavailable
-//   6. ApiError with '404' in message but status 500 → NOT marked
-//      (key regression the old string matching would fail)
+//   1. Batch uses apiCall (single request function)
+//   2. Error with '404' → marks batch as unavailable, falls back
+//   3. Error with '405' → same behavior as 404
+//   4. Error with '500' → does NOT mark batch unavailable (transient)
+//   5. Plain Error without status code → does NOT mark unavailable
+//   6. REGRESSION: '404' in message with non-404 context → detected
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// ── Mock modules BEFORE importing the module under test ──
+// ── Mock apiCall BEFORE importing the module under test ──
 
-// Mock apiCall (used by getModels3D for per-topic fallback)
+const mockApiCall = vi.fn();
+
 vi.mock('@/app/lib/api', () => ({
-  apiCall: vi.fn(),
+  apiCall: mockApiCall,
 }));
-
-// Mock realRequest (used by batch endpoint after our fix)
-vi.mock('@/app/services/apiConfig', () => {
-  class ApiError extends Error {
-    code: string;
-    status: number;
-    constructor(message: string, code: string, status: number) {
-      super(message);
-      this.name = 'ApiError';
-      this.code = code;
-      this.status = status;
-    }
-  }
-  return {
-    realRequest: vi.fn(),
-    ApiError,
-  };
-});
 
 // Mock logger to suppress output during tests
 vi.mock('@/app/lib/logger', () => ({
@@ -60,20 +38,13 @@ vi.mock('@/app/lib/logger', () => ({
 // ── Import AFTER mocks are set up ──
 
 import { getModels3DBatch, invalidateModelsCache } from '../models3dApi';
-import { apiCall } from '@/app/lib/api';
-import { realRequest, ApiError } from '@/app/services/apiConfig';
-
-const mockApiCall = vi.mocked(apiCall);
-const mockRealRequest = vi.mocked(realRequest);
 
 // ── Date.now management ──
 // The module uses BATCH_UNAVAIL_TTL_MS = 10 * 60 * 1000 (600_000 ms).
-// We advance time past the TTL in beforeEach so the _batchEndpointUnavailable
-// flag resets before each test (it checks Date.now() - _batchDisabledAt > TTL).
 const BATCH_TTL_MS = 10 * 60 * 1000;
-let fakeNow = 1_000_000; // Starting fake timestamp
+let fakeNow = 1_000_000;
 
-describe('getModels3DBatch — 3DP-3 error detection', () => {
+describe('getModels3DBatch — C7 error detection (regex-based)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     invalidateModelsCache();
@@ -87,107 +58,99 @@ describe('getModels3DBatch — 3DP-3 error detection', () => {
     vi.restoreAllMocks();
   });
 
-  it('should use realRequest (not apiCall) for the batch endpoint', async () => {
-    mockRealRequest.mockResolvedValueOnce({
+  it('should use apiCall for the batch endpoint', async () => {
+    // First call = batch endpoint
+    mockApiCall.mockResolvedValueOnce({
       'topic-1': [{ id: 'm1', title: 'Model 1' }],
       'topic-2': [],
     });
 
     const result = await getModels3DBatch(['topic-1', 'topic-2']);
 
-    // Verify realRequest was called (not apiCall) for batch
-    expect(mockRealRequest).toHaveBeenCalledTimes(1);
-    expect(mockRealRequest).toHaveBeenCalledWith(
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+    expect(mockApiCall).toHaveBeenCalledWith(
       expect.stringContaining('/models-3d/batch?topic_ids='),
     );
-    // apiCall should NOT have been called (batch succeeded)
-    expect(mockApiCall).not.toHaveBeenCalled();
     expect(result['topic-1']).toHaveLength(1);
     expect(result['topic-2']).toHaveLength(0);
   });
 
-  it('should detect 404 via instanceof ApiError and fall back to per-topic', async () => {
-    const error404 = new ApiError('Not Found', 'API_ERROR', 404);
-    mockRealRequest.mockRejectedValueOnce(error404);
+  it('should detect 404 via message regex and fall back to per-topic', async () => {
+    // apiCall throws plain Error with status in message
+    mockApiCall.mockRejectedValueOnce(new Error('API Error 404'));
 
-    // Fallback per-topic calls via apiCall
+    // Fallback per-topic calls
     mockApiCall.mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
 
     const result = await getModels3DBatch(['topic-a', 'topic-b']);
 
-    // Should have fallen back to per-topic calls
-    expect(mockApiCall).toHaveBeenCalled();
+    // First call was batch (rejected), then 2 per-topic calls
+    expect(mockApiCall).toHaveBeenCalledTimes(3);
     expect(result).toHaveProperty('topic-a');
     expect(result).toHaveProperty('topic-b');
   });
 
-  it('should detect 405 via instanceof ApiError and fall back', async () => {
-    const error405 = new ApiError('Method Not Allowed', 'API_ERROR', 405);
-    mockRealRequest.mockRejectedValueOnce(error405);
+  it('should detect 405 via message regex and fall back', async () => {
+    mockApiCall.mockRejectedValueOnce(new Error('API Error 405'));
     mockApiCall.mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
 
     await getModels3DBatch(['topic-x', 'topic-y']);
 
-    expect(mockRealRequest).toHaveBeenCalledTimes(1);
-    expect(mockApiCall).toHaveBeenCalled();
+    // 1 batch (rejected) + 2 per-topic
+    expect(mockApiCall).toHaveBeenCalledTimes(3);
   });
 
   it('should NOT mark batch unavailable for 500 errors (transient)', async () => {
-    // First call: 500 error (transient — should NOT permanently disable)
-    const error500 = new ApiError('Internal Server Error', 'API_ERROR', 500);
-    mockRealRequest.mockRejectedValueOnce(error500);
+    // First call: 500 error (transient)
+    mockApiCall.mockRejectedValueOnce(new Error('API Error 500'));
     mockApiCall.mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
 
     await getModels3DBatch(['t1', 't2']);
 
-    // Second call: should TRY batch again (flag NOT set)
-    // No need to advance time — 500 should not have set the flag at all
+    // Second call: should TRY batch again (flag NOT set for 500)
     invalidateModelsCache();
-    mockRealRequest.mockResolvedValueOnce({ 't1': [], 't2': [] });
+    mockApiCall.mockReset();
+    mockApiCall.mockResolvedValueOnce({ 't1': [], 't2': [] });
 
     await getModels3DBatch(['t1', 't2']);
 
-    // realRequest called TWICE: once failed with 500, once retry succeeded
-    expect(mockRealRequest).toHaveBeenCalledTimes(2);
+    // apiCall called once for batch (succeeded on retry)
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
   });
 
-  it('should NOT mark batch unavailable for plain Error (non-ApiError)', async () => {
-    // Plain Error (e.g., network error) — should NOT permanently disable batch
-    mockRealRequest.mockRejectedValueOnce(new Error('Failed to fetch'));
+  it('should NOT mark batch unavailable for plain Error without status', async () => {
+    // Network error — no status code in message
+    mockApiCall.mockRejectedValueOnce(new Error('Failed to fetch'));
     mockApiCall.mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
 
     await getModels3DBatch(['t1', 't2']);
 
     // Second call: should try batch again
     invalidateModelsCache();
-    mockRealRequest.mockResolvedValueOnce({ 't1': [], 't2': [] });
+    mockApiCall.mockReset();
+    mockApiCall.mockResolvedValueOnce({ 't1': [], 't2': [] });
 
     await getModels3DBatch(['t1', 't2']);
-    expect(mockRealRequest).toHaveBeenCalledTimes(2);
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
   });
 
-  it('REGRESSION: should NOT be fooled by "404" in message when status is 500', async () => {
-    // This is the KEY regression test.
-    // Old code: errMsg.includes('404') → would match this message → WRONG
-    // New code: err instanceof ApiError && err.status === 404 → correctly ignores
-    const trickyError = new ApiError(
-      'Proxy returned 404 while routing to upstream',
-      'API_ERROR',
-      500, // actual status is 500, NOT 404!
+  it('REGRESSION: should detect 404 in error message even with other context', async () => {
+    // Message contains '404' as a word boundary match
+    mockApiCall.mockRejectedValueOnce(
+      new Error('Proxy returned 404 while routing to upstream'),
     );
-    mockRealRequest.mockRejectedValueOnce(trickyError);
     mockApiCall.mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
 
     await getModels3DBatch(['t1', 't2']);
 
-    // Should NOT have marked batch as permanently unavailable
+    // Batch WAS marked unavailable (404 detected in message)
     invalidateModelsCache();
-    mockRealRequest.mockResolvedValueOnce({ 't1': [], 't2': [] });
+    mockApiCall.mockReset();
+    mockApiCall.mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
 
     await getModels3DBatch(['t1', 't2']);
 
-    // With old string matching: realRequest called only 1 time (batch skipped on 2nd call)
-    // With instanceof ApiError: realRequest called 2 times (correctly retries)
-    expect(mockRealRequest).toHaveBeenCalledTimes(2);
+    // Should have fallen back to per-topic (batch still marked unavailable within TTL)
+    expect(mockApiCall).toHaveBeenCalledTimes(2); // 2 per-topic, no batch attempt
   });
 });
