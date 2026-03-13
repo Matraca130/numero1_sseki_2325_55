@@ -31,6 +31,12 @@ export interface StudyQueueItem {
   stability: number;
   difficulty: number;
   is_new: boolean;
+  /** Whether this card is flagged as a leech (consecutive_lapses >= threshold) */
+  is_leech: boolean;
+  /** Number of consecutive grade=1 (Again) lapses */
+  consecutive_lapses: number;
+  /** Professor-assigned clinical priority weight (0-1). 0 = no priority. */
+  clinical_priority: number;
 }
 
 export interface StudyQueueMeta {

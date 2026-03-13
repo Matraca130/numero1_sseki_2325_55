@@ -22,14 +22,16 @@ import { useState, useCallback, useRef } from 'react';
 import type { Flashcard } from '@/app/types/content';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import * as sessionApi from '@/app/services/studySessionApi';
-import type { FsrsState } from '@/app/lib/fsrs-engine';
 import { useReviewBatch } from './useReviewBatch';
+import { postSessionAnalytics } from '@/app/lib/sessionAnalytics';
 
 // ── Optimistic update type ────────────────────────────────
 
 export interface OptimisticCardUpdate {
   flashcard_id: string;
+  /** Estimated p_know from BKT heuristic (visual only) */
   p_know: number;
+  // PATH B placeholders — real values available after submitBatch().computedResults
   fsrs_state: string;
   stability: number;
   difficulty: number;
@@ -45,7 +47,7 @@ export interface CardMasteryDelta {
   grade: number;   // rating given (1-5)
 }
 
-// ── Hook options ──────────────────────────────────────────
+// ── Hook options ────────────────────────────────────────
 
 interface UseFlashcardEngineOpts {
   studentId: string | null;
@@ -60,9 +62,9 @@ interface UseFlashcardEngineOpts {
  *  Gives Supabase time to propagate writes for the subsequent GET. */
 const POST_PERSIST_GRACE_MS = 400;
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // HOOK
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 
 export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, onFinish }: UseFlashcardEngineOpts) {
   const [isRevealed, setIsRevealed] = useState(false);
@@ -90,10 +92,7 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
   // ── Per-card mastery deltas for SummaryScreen ──
   const masteryDeltasRef = useRef<CardMasteryDelta[]>([]);
 
-  // ── Batch review hook (queue + compute + submit) ──────────
-  // Replaces the old batchQueueRef + sessionBktRef + persistCardResult.
-  // All FSRS+BKT computation and intra-session BKT accumulation
-  // are now handled inside useReviewBatch.
+  // ── Batch review hook (queue + compute + submit) ──
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
 
   // ── Reset all per-session refs ──
@@ -137,43 +136,12 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
     }
   }, [courseId, resetSessionRefs]);
 
-  // ── Build real FSRS state from masteryMap or card fields ──
-
-  const buildExistingFsrs = useCallback((card: Flashcard): FsrsState | undefined => {
-    // 1. Try masteryMap (real values from study-queue)
-    const sq = masteryMap?.get(card.id);
-    if (sq) {
-      return {
-        stability: sq.stability,
-        difficulty: sq.difficulty,
-        reps: 0,     // study-queue doesn't expose reps/lapses; backend will merge
-        lapses: 0,
-        state: sq.fsrs_state,
-      };
-    }
-
-    // 2. Fallback: use card.fsrs_state if set (from enrichment)
-    if (card.fsrs_state) {
-      return {
-        stability: 1,
-        difficulty: 5,
-        reps: 0,
-        lapses: 0,
-        state: card.fsrs_state,
-      };
-    }
-
-    // 3. No data → undefined (computeCardReviewData will use initial state)
-    return undefined;
-  }, [masteryMap]);
-
   // ── Close session on backend ──
 
   const closeSession = useCallback(async (stats: number[]) => {
     const sessionId = sessionIdRef.current;
     if (!sessionId || sessionId.startsWith('local-')) return;
 
-    const durationSeconds = Math.round((Date.now() - sessionStartTime.current) / 1000);
     const correctReviews = stats.filter(s => s >= 3).length;
 
     try {
@@ -204,34 +172,34 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
     // ── Compute + queue via useReviewBatch (sync, zero network) ──
     if (card) {
       const sq = masteryMap?.get(card.id);
-      const existingFsrs = buildExistingFsrs(card);
 
-      // queueReview handles: grade clamping, FSRS+BKT computation,
+      // queueReview handles: BKT heuristic estimation,
       // intra-session BKT accumulation, and BatchReviewItem queuing.
-      // Returns computed values so we can build optimistic updates.
+      // PATH B: no FSRS computation — backend does this.
       const result = queueReview({
         card,
         grade: rating,
         responseTimeMs,
-        existingFsrs,
         currentPKnow: sq?.p_know,
       });
 
       // Build optimistic update (engine-specific, not in hook)
       optimisticRef.current.set(card.id, {
         flashcard_id: card.id,
-        p_know: result.newPKnow,
-        fsrs_state: result.fsrsUpdate.state,
-        stability: result.fsrsUpdate.stability,
-        difficulty: result.fsrsUpdate.difficulty,
-        due_at: result.fsrsUpdate.due_at,
+        p_know: result.estimatedPKnow,
+        // PATH B: optimistic estimates until submitBatch().computedResults
+        // or refreshMastery() replaces them with real backend values.
+        fsrs_state: sq?.fsrs_state === 'new' ? 'learning' : 'review',
+        stability: sq?.stability ?? 0,
+        difficulty: sq?.difficulty ?? 0,
+        due_at: estimateOptimisticDueAt(rating),
       });
 
       // Track mastery delta for SummaryScreen
       masteryDeltasRef.current.push({
         cardId: card.id,
         before: result.previousPKnow,
-        after: result.newPKnow,
+        after: result.estimatedPKnow,
         grade: rating,
       });
     }
@@ -253,18 +221,42 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
 
       (async () => {
         // 1. [M1] Submit all reviews in ONE batch request
-        //    submitBatch handles: local- guard, empty check, fallback to individual POSTs
         if (sessionId) {
-          await submitBatch(sessionId);
+          const batchResult = await submitBatch(sessionId);
+
+          // FASE 5: Patch optimisticRef with real FSRS values from backend
+          if (batchResult?.computedResults) {
+            for (const [itemId, computed] of batchResult.computedResults) {
+              const existing = optimisticRef.current.get(itemId);
+              if (existing && computed.fsrs) {
+                existing.fsrs_state = computed.fsrs.state;
+                existing.stability = computed.fsrs.stability;
+                existing.difficulty = computed.fsrs.difficulty;
+                existing.due_at = computed.fsrs.due_at;
+              }
+              if (existing && computed.bkt) {
+                existing.p_know = computed.bkt.p_know;
+              }
+            }
+          }
         }
 
         // 2. Close the session on backend
         await closeSession(allStats);
 
-        // 3. Grace period for Supabase eventual consistency
+        // 3. GAP 1+2+3 FIX: Post daily-activities + student-stats (READ-THEN-INCREMENT)
+        const durationSeconds = Math.round((Date.now() - sessionStartTime.current) / 1000);
+        const correctReviews = allStats.filter(s => s >= 3).length;
+        await postSessionAnalytics({
+          totalReviews: allStats.length,
+          correctReviews,
+          durationSeconds,
+        });
+
+        // 4. Grace period for Supabase eventual consistency
         await new Promise(r => setTimeout(r, POST_PERSIST_GRACE_MS));
 
-        // 4. NOW safe to refresh mastery from backend
+        // 5. NOW safe to refresh mastery from backend
         onFinish();
       })();
     } else {
@@ -273,7 +265,7 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
         cardStartTime.current = Date.now();
       }, 200);
     }
-  }, [sessionCards, currentIndex, queueReview, submitBatch, buildExistingFsrs, masteryMap, closeSession, onFinish]);
+  }, [sessionCards, currentIndex, queueReview, submitBatch, masteryMap, closeSession, onFinish]);
   // ^^^ [M2] sessionStats REMOVED from deps — uses sessionStatsRef instead
 
   // ── Restart / Exit ──
@@ -311,4 +303,16 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
     optimisticUpdates: optimisticRef,
     masteryDeltas: masteryDeltasRef,
   };
+}
+
+// ── Helper function to estimate due_at optimistically ──
+
+export function estimateOptimisticDueAt(grade: number): string {
+  const now = Date.now();
+  switch (grade) {
+    case 1: return new Date(now).toISOString();
+    case 2: return new Date(now + 300_000).toISOString();
+    case 3: return new Date(now + 86_400_000).toISOString();
+    default: return new Date(now + 4 * 86_400_000).toISOString();
+  }
 }

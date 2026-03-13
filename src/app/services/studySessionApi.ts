@@ -9,19 +9,16 @@
 //   - completed_at (not ended_at)
 //   - removed duration_seconds (column doesn't exist)
 //   - added 'reading' to session_type
-//   - instrument_type: 'flashcard' | 'quiz' (was 'flashcard' only)
-//   - removed response_time_ms from reviews (column doesn't exist)
+//   - instrument_type: 'flashcard' | 'quiz'
 //
 // FIX BA-03,BA-05 (2026-03-01):
 //   - getStudySessions: handle CRUD factory paginated response
 //   - FsrsStateRow: user_id → student_id (matches DB column)
 //
-// PERF v4.4.3 (2026-03-07):
-//   - Added BatchReviewItem, BatchReviewResponse types
-//   - Added submitReviewBatch() — single POST for all reviews
-//     in a session instead of 3×N individual POSTs.
-//   - Added fallbackToIndividualPosts() for resilience
-//   - computeFsrsUpdate moved to lib/fsrs-engine.ts (canonical)
+// PERF v4.4.3:
+//   [M1] Added submitReviewBatch() — single POST for all reviews
+//        in a session instead of 3×N individual POSTs.
+//   [M1] Added fallbackToIndividualPosts() — graceful degradation.
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -30,15 +27,17 @@ import { apiCall } from '@/app/lib/api';
 
 export interface StudySessionRecord {
   id: string;
-  student_id?: string;
+  student_id?: string;  // FIX BA-05: was 'user_id', real DB column is 'student_id'
   session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
   course_id?: string;
   started_at: string;
-  completed_at?: string | null;
+  completed_at?: string | null;  // FIX RT-001: was 'ended_at', real DB column is 'completed_at'
   total_reviews?: number;
   correct_reviews?: number;
   created_at?: string;
   updated_at?: string;
+  // NOTE: duration_seconds does NOT exist in DB — computed from
+  // created_at → completed_at on read if needed.
 }
 
 export interface FsrsStateRow {
@@ -62,7 +61,7 @@ export interface ReviewRecord {
   item_id: string;
   instrument_type: 'flashcard' | 'quiz';
   grade: number;
-  response_time_ms?: number;  // M-2 FIX: backend now persists this column
+  response_time_ms?: number;
   created_at?: string;
 }
 
@@ -70,28 +69,33 @@ export interface ReviewRecord {
 
 export interface BatchReviewItem {
   item_id: string;
-  instrument_type: 'flashcard';
+  instrument_type: 'flashcard' | 'quiz';
   grade: number;
   response_time_ms?: number;
-  fsrs_update?: {
+  /** Subtopic ID for server-side BKT computation (PATH B) */
+  subtopic_id?: string;
+  // PATH B: NO enviamos fsrs_update ni bkt_update.
+  // El backend lee el estado actual de fsrs_states/bkt_states
+  // y computa FSRS v4 Petrick + BKT v4 Recovery server-side.
+}
+
+export interface BatchComputedResult {
+  item_id: string;
+  fsrs?: {
     stability: number;
     difficulty: number;
     due_at: string;
-    last_review_at: string;
+    state: string;
     reps: number;
     lapses: number;
-    state: 'new' | 'learning' | 'review' | 'relearning';
+    consecutive_lapses: number;
+    is_leech: boolean;
   };
-  bkt_update?: {
+  bkt?: {
     subtopic_id: string;
     p_know: number;
-    p_transit: number;
-    p_slip: number;
-    p_guess: number;
+    max_p_know: number;
     delta: number;
-    total_attempts: number;
-    correct_attempts: number;
-    last_attempt_at: string;
   };
 }
 
@@ -101,6 +105,8 @@ export interface BatchReviewResponse {
   fsrs_updated: number;
   bkt_updated: number;
   errors?: { index: number; step: string; message: string }[];
+  /** Per-item computed values (only present for PATH B items) */
+  results?: BatchComputedResult[];
 }
 
 export async function submitReviewBatch(
@@ -160,7 +166,7 @@ export async function getStudySessions(filters?: {
   return Array.isArray(result) ? result : result?.items || [];
 }
 
-// ── FSRS States ─────────────────────────────────────────
+// ── FSRS States ──────────────────────────────────────────
 
 export async function getFsrsStates(params?: {
   due_before?: string;
@@ -198,9 +204,9 @@ export async function upsertFsrsState(data: {
 export async function submitReview(data: {
   session_id: string;
   item_id: string;
-  instrument_type: 'flashcard' | 'quiz';
+  instrument_type: 'flashcard';
   grade: number;
-  response_time_ms?: number;  // M-2 FIX: persisted by backend
+  response_time_ms?: number;
 }): Promise<ReviewRecord> {
   return apiCall<ReviewRecord>('/reviews', {
     method: 'POST',
@@ -209,10 +215,8 @@ export async function submitReview(data: {
 }
 
 // ── Fallback: fire individual POSTs when batch fails ──────
-// Maps BatchReviewItems back to the 3 individual endpoints.
-// All calls are fire-and-forget with error logging.
-// Shared by useFlashcardEngine, useReviewBatch, and any
-// future consumer of the batch submission pattern.
+// PATH B fallback: only submits reviews (no FSRS/BKT).
+// FSRS+BKT are recomputed on next normal batch session.
 
 export async function fallbackToIndividualPosts(
   sessionId: string,
@@ -221,7 +225,9 @@ export async function fallbackToIndividualPosts(
   const promises: Promise<void>[] = [];
 
   for (const item of items) {
-    // POST /reviews
+    // POST /reviews — lo unico que el fallback puede hacer en PATH B
+    // (FSRS y BKT se pierden — aceptable para fallback de emergencia;
+    //  se recomputan en la proxima sesion normal via PATH B batch)
     promises.push(
       submitReview({
         session_id: sessionId,
@@ -233,39 +239,7 @@ export async function fallbackToIndividualPosts(
         if (import.meta.env.DEV) console.warn('[Fallback] review failed:', err);
       }) as Promise<void>,
     );
-
-    // POST /fsrs-states
-    if (item.fsrs_update) {
-      promises.push(
-        upsertFsrsState({
-          flashcard_id: item.item_id,
-          ...item.fsrs_update,
-        }).catch(err => {
-          if (import.meta.env.DEV) console.warn('[Fallback] FSRS failed:', err);
-        }) as Promise<void>,
-      );
-    }
-
-    // POST /bkt-states
-    if (item.bkt_update) {
-      promises.push(
-        apiCall('/bkt-states', {
-          method: 'POST',
-          body: JSON.stringify(item.bkt_update),
-        }).catch(err => {
-          if (import.meta.env.DEV) console.warn('[Fallback] BKT failed:', err);
-        }) as Promise<void>,
-      );
-    }
   }
 
   await Promise.allSettled(promises);
 }
-
-// ── FSRS Algorithm ────────────────────────────────────────
-// DEPRECATED inline: The old computeFsrsUpdate that lived here used a DIFFERENT
-// formula than lib/fsrs-engine.ts, causing scheduling inconsistencies.
-// All consumers now use the canonical implementation from lib/fsrs-engine.ts.
-// Re-exported here ONLY for backward compatibility.
-export type { FsrsUpdate } from '@/app/lib/fsrs-engine';
-export { computeFsrsUpdate } from '@/app/lib/fsrs-engine';

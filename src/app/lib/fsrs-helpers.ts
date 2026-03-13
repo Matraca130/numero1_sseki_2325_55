@@ -1,79 +1,39 @@
 // ============================================================
-// Axon — FSRS Shared Helpers
+// @deprecated — PATH B MIGRATION (PR #30)
 //
-// Extracted from useFlashcardEngine and useAdaptiveSession where
-// buildExistingFsrs was duplicated identically (15 lines each).
+// This file has 0 importers after the PATH B migration.
+// buildExistingFsrs() was used by useFlashcardEngine and
+// useAdaptiveSession to build FsrsState from masteryMap.
+// In PATH B, the backend reads FSRS state from the DB
+// directly — the frontend never sends FSRS state.
 //
-// Single source of truth for building FsrsState from:
-//   1. Study-queue masteryMap (real FSRS values from backend)
-//   2. Card's fsrs_state field (from enrichment)
-//   3. undefined (new card, computeCardReviewData uses initial state)
+// Type exports preserved. Function throws deprecation error.
 //
-// Consumers:
-//   - useFlashcardEngine.ts (standard session)
-//   - useAdaptiveSession.ts (adaptive multi-round session)
+// Safe to delete once confirmed no external importers remain.
 // ============================================================
 
 import type { FsrsState } from './fsrs-engine';
 
-/**
- * Minimal interface for study-queue items used by buildExistingFsrs.
- * Accepts both StudyQueueItem (full) and any object with these fields.
- */
+/** @deprecated PATH B: backend reads FSRS state from DB. */
 export interface FsrsMasterySource {
   stability: number;
   difficulty: number;
   fsrs_state: string;
 }
 
-/**
- * Minimal interface for cards used by buildExistingFsrs.
- * Accepts both Flashcard (UI type) and any object with these fields.
- */
+/** @deprecated PATH B: backend reads FSRS state from DB. */
 export interface FsrsCardSource {
   id: string;
   fsrs_state?: string;
 }
 
-/**
- * Build an FsrsState from available data sources.
- *
- * Priority:
- *   1. masteryMap (real FSRS values from study-queue / backend)
- *   2. card.fsrs_state (from enrichment or API response)
- *   3. undefined (new card — computeCardReviewData will use getInitialFsrsState)
- *
- * @param card - Card with id and optional fsrs_state
- * @param masteryMap - Map of card ID → mastery source (study-queue item)
- * @returns FsrsState if data available, undefined for new cards
- */
+/** @deprecated PATH B: backend reads FSRS state from DB directly. */
 export function buildExistingFsrs(
-  card: FsrsCardSource,
-  masteryMap?: Map<string, FsrsMasterySource>,
+  _card: FsrsCardSource,
+  _masteryMap?: Map<string, FsrsMasterySource>,
 ): FsrsState | undefined {
-  // 1. Try masteryMap (real values from study-queue)
-  const sq = masteryMap?.get(card.id);
-  if (sq) {
-    return {
-      stability: sq.stability,
-      difficulty: sq.difficulty,
-      reps: 0,     // study-queue doesn't expose reps/lapses; backend will merge
-      lapses: 0,
-      state: sq.fsrs_state,
-    };
-  }
-
-  // 2. Fallback: use card.fsrs_state if set (from enrichment)
-  if (card.fsrs_state) {
-    return {
-      stability: 1,
-      difficulty: 5,
-      reps: 0,
-      lapses: 0,
-      state: card.fsrs_state,
-    };
-  }
-
-  // 3. No data → undefined (computeCardReviewData will use initial state)
-  return undefined;
+  throw new Error(
+    '[DEPRECATED] buildExistingFsrs() removed in PATH B migration. ' +
+    'Backend reads FSRS state from fsrs_states table directly.'
+  );
 }
