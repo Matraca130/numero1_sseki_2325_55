@@ -11,24 +11,29 @@
 //   Success: { "data": ... }
 //   Error:   { "error": "descriptive message" }
 //
-// SCALABILITY (v4.4.1):
+// PERF-AUDIT:
+//   - GET request deduplication (same path in-flight → reuse promise)
 //   - Request timeout (15s default) via AbortController
-//   - GET request deduplication (same URL in-flight → reuse promise)
 //   - Conditional logging (DEV only)
+//
+// SINGLE SOURCE OF TRUTH: Credentials come from @/app/lib/supabase.ts
 // ============================================================
 
-export const API_BASE = 'https://xdnciktarvxyhkrokbng.supabase.co/functions/v1/server';
-export const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkbmNpa3RhcnZ4eWhrcm9rYm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMTM4NjAsImV4cCI6MjA4Njc4OTg2MH0._nCGOiOh1bMWvqtQ62d368LlYj5xPI6e7pcsdjDEiYQ';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/app/lib/supabase';
+
+export const API_BASE = `${SUPABASE_URL}/functions/v1/server`;
+export const ANON_KEY = SUPABASE_ANON_KEY;
 
 /** Default request timeout in milliseconds */
 const DEFAULT_TIMEOUT_MS = 15_000;
 
-// ── Access token management ───────────────────────────────
+// ── Access token management ─────────────────────────────
 
 let _accessToken: string | null = null;
 
 export function setAccessToken(t: string | null) {
   _accessToken = t;
+  // Sync to localStorage for backward compat (apiConfig.ts getRealToken)
   if (t) {
     localStorage.setItem('axon_access_token', t);
   } else {
@@ -40,39 +45,35 @@ export function getAccessToken(): string | null {
   return _accessToken;
 }
 
-// ── GET request deduplication ─────────────────────────────
+// ── GET request deduplication ───────────────────────────
 // For identical GET requests in-flight, reuse the same promise.
-// This prevents N components mounting simultaneously from
-// triggering N identical network requests.
+// Prevents N components mounting simultaneously from triggering
+// N identical network requests.
 
 const _inflightGets = new Map<string, Promise<any>>();
 
-// ── API call ──────────────────────────────────────────────
-
-export interface ApiCallOptions extends RequestInit {
-  /** Timeout in ms. Defaults to 15000. Set 0 to disable. */
-  timeoutMs?: number;
-  /** Skip GET deduplication for this call */
-  skipDedup?: boolean;
-}
+// ── API call ──────────────────────────────────────────
 
 export async function apiCall<T = any>(
   path: string,
-  options: ApiCallOptions = {}
+  options: RequestInit & { timeoutMs?: number } = {}
 ): Promise<T> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, skipDedup = false, ...fetchOptions } = options;
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
   const method = (fetchOptions.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
 
   // Dedup: for GETs, reuse in-flight promise for the same path
-  if (isGet && !skipDedup) {
+  if (isGet) {
     const existing = _inflightGets.get(path);
-    if (existing) return existing as Promise<T>;
+    if (existing) {
+      if (import.meta.env.DEV) console.log(`[API] Dedup: reusing in-flight GET ${path}`);
+      return existing as Promise<T>;
+    }
   }
 
   const doFetch = async (): Promise<T> => {
     const headers: Record<string, string> = {
-      ...(!(fetchOptions?.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${ANON_KEY}`,
       ...((fetchOptions.headers as Record<string, string>) || {}),
     };
@@ -91,7 +92,6 @@ export async function apiCall<T = any>(
 
     if (timeoutMs > 0) {
       controller = new AbortController();
-      // Merge with caller's signal if provided
       if (fetchOptions.signal) {
         fetchOptions.signal.addEventListener('abort', () => controller!.abort());
       }
@@ -130,6 +130,7 @@ export async function apiCall<T = any>(
         return json.data as T;
       }
 
+      // If there's an error on 2xx (shouldn't happen, but defensive)
       if (json?.error) {
         throw new Error(json.error);
       }
@@ -151,32 +152,9 @@ export async function apiCall<T = any>(
   });
 
   // Register for dedup
-  if (isGet && !skipDedup) {
+  if (isGet) {
     _inflightGets.set(path, promise);
   }
 
   return promise;
-}
-
-// ── ensureGeneralKeyword ──────────────────────────────────
-// Idempotent: only ONE "General" keyword per summary. Never duplicates.
-
-export async function ensureGeneralKeyword(summaryId: string) {
-  const result = await apiCall<any>("/keywords?summary_id=" + summaryId);
-  const items = result?.items || result || [];
-  const existing = items.find(
-    (kw: any) => (kw.name === "General" || kw.term === "General") && kw.is_active !== false
-  );
-  if (existing) return existing;
-  const created = await apiCall<any>("/keywords", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      summary_id: summaryId,
-      name: "General",
-      definition: "Contenido general del resumen",
-      priority: 1,
-    }),
-  });
-  return created;
 }

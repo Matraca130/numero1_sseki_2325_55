@@ -15,7 +15,7 @@ import {
   type DailyActivityRecord,
 } from '@/app/services/platformApi';
 
-// ── Helpers ──────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────
 
 function formatTime(seconds: number): string {
   if (seconds <= 0) return '0m';
@@ -51,7 +51,7 @@ function weekAgoISO(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// ── Types ────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────
 
 interface StatsData {
   stats: StudentStatsRecord | null;
@@ -60,7 +60,7 @@ interface StatsData {
   weekTimeSeconds: number;
 }
 
-// ── Hook ─────────────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────
 
 export function useStudentDashboardStats() {
   const [data, setData] = useState<StatsData>({
@@ -96,7 +96,7 @@ export function useStudentDashboardStats() {
         weekTimeSeconds: weekTime,
       });
     } catch (err: unknown) {
-      console.error('[StatsCards] Failed to load stats:', err);
+      if (import.meta.env.DEV) console.error('[StatsCards] Failed to load stats:', err);
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ export function useStudentDashboardStats() {
   return { ...data, loading, error, refresh };
 }
 
-// ── Card subcomponent ────────────────────────────────────
+// ── Card subcomponent ──────────────────────────────────
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -119,7 +119,7 @@ interface StatCardProps {
   delay?: number;
 }
 
-function StatCard({ icon, iconBg, label, value, sub, delay = 0 }: StatCardProps) {
+const StatCard = React.memo(function StatCard({ icon, iconBg, label, value, sub, delay = 0 }: StatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -139,9 +139,9 @@ function StatCard({ icon, iconBg, label, value, sub, delay = 0 }: StatCardProps)
       </div>
     </motion.div>
   );
-}
+});
 
-// ── Skeleton ─────────────────────────────────────────────
+// ── Skeleton ─────────────────────────────────────────
 
 function StatCardSkeleton() {
   return (
@@ -158,7 +158,7 @@ function StatCardSkeleton() {
   );
 }
 
-// ── Main component ───────────────────────────────────────
+// ── Main component ─────────────────────────────────────
 
 interface StatsCardsProps {
   stats: StudentStatsRecord | null;
@@ -205,8 +205,8 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, weekTimeSe
         icon={<Flame className="w-5 h-5 text-amber-600" />}
         iconBg="bg-amber-50"
         label="Racha"
-        value={`${streak} días`}
-        sub={streak >= longestStreak && streak > 0 ? '¡Récord!' : `máx: ${longestStreak}`}
+        value={`${streak} d\u00edas`}
+        sub={streak >= longestStreak && streak > 0 ? '\u00a1R\u00e9cord!' : `m\u00e1x: ${longestStreak}`}
         delay={0}
       />
       <StatCard
@@ -220,7 +220,7 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, weekTimeSe
       <StatCard
         icon={<Target className="w-5 h-5 text-indigo-600" />}
         iconBg="bg-indigo-50"
-        label="Precisión"
+        label="Precisi\u00f3n"
         value={todayAccuracy !== null ? `${todayAccuracy}%` : '\u2014'}
         sub={accuracyDiff !== null ? `${parseFloat(accuracyDiff) >= 0 ? '+' : ''}${accuracyDiff}% vs ayer` : 'sin datos ayer'}
         delay={0.1}

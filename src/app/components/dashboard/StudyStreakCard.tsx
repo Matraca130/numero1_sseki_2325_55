@@ -23,7 +23,7 @@ function getStreakColor(streak: number): { icon: string; bg: string; glow: strin
   return { icon: 'text-gray-400', bg: 'bg-gray-100', glow: '' };
 }
 
-export function StudyStreakCard({ stats, studiedToday, loading }: StudyStreakCardProps) {
+export const StudyStreakCard = React.memo(function StudyStreakCard({ stats, studiedToday, loading }: StudyStreakCardProps) {
   const streak = stats?.current_streak ?? 0;
   const longest = stats?.longest_streak ?? 0;
   const color = getStreakColor(streak);
@@ -66,26 +66,26 @@ export function StudyStreakCard({ stats, studiedToday, loading }: StudyStreakCar
       </motion.span>
 
       <span className="text-sm text-gray-500 mt-1">
-        {streak === 1 ? 'día de racha' : 'días de racha'}
+        {streak === 1 ? 'd\u00eda de racha' : 'd\u00edas de racha'}
       </span>
 
       {/* Motivational text */}
       <p className="text-xs text-gray-500 mt-3 text-center px-4">
         {!studiedToday && streak > 0
-          ? '¡Estudiá hoy para mantener tu racha!'
+          ? '\u00a1Estudi\u00e1 hoy para mantener tu racha!'
           : streak >= 7
-            ? `¡${streak} días consecutivos!`
+            ? `\u00a1${streak} d\u00edas consecutivos!`
             : streak > 0
-              ? `Mejor racha: ${longest} días`
-              : 'Empezá a estudiar para iniciar tu racha'}
+              ? `Mejor racha: ${longest} d\u00edas`
+              : 'Empez\u00e1 a estudiar para iniciar tu racha'}
       </p>
 
       {/* Record badge */}
       {streak > 0 && streak >= longest && (
         <span className="mt-2 text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
-          Récord personal!
+          R\u00e9cord personal!
         </span>
       )}
     </motion.div>
   );
-}
+});

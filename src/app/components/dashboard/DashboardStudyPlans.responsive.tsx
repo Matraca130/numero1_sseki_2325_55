@@ -1,8 +1,12 @@
 // ============================================================
-// Axon — Dashboard Active Study Plans Section
-// Shows active study plans with progress, subject badges,
-// and today's tasks preview.
-// Extracted from DashboardView.tsx for modularization.
+// Axon — Dashboard Study Plans (RESPONSIVE VERSION)
+//
+// Changes from original:
+//   1. Header: flex-col sm:flex-row for mobile stacking
+//   2. "Crear Plan" button: full-width on mobile
+//   3. Plan card header: wraps on mobile
+//   4. "Ver plan" link: icon-only on mobile
+//   5. Touch-friendly task checkboxes (min-h-[44px] rows)
 // ============================================================
 import React from 'react';
 import { motion } from 'motion/react';
@@ -39,7 +43,8 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
       transition={{ delay: 0.3 }}
       className={components.chartCard.base}
     >
-      <div className="flex items-center justify-between mb-6">
+      {/* Header — stacks on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900" style={headingStyle}>Planes de Estudio Activos</h3>
           <p className="text-sm text-gray-500">
@@ -50,7 +55,7 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
         </div>
         <button
           onClick={() => navigateTo('organize-study')}
-          className="flex items-center gap-2 px-4 py-2 bg-axon-dark hover:bg-axon-hover rounded-lg text-white text-sm font-medium transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-axon-dark hover:bg-axon-hover rounded-lg text-white text-sm font-medium transition-colors w-full sm:w-auto min-h-[44px]"
         >
           <Plus size={14} />
           Crear Plan
@@ -73,21 +78,22 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
 
             return (
               <div key={`${plan.id}-${index}`} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#ccebe3] flex items-center justify-center">
+                {/* Plan header — wraps on mobile */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-[#ccebe3] flex items-center justify-center shrink-0">
                       <Target size={18} className="text-axon-accent" />
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{plan.name}</h4>
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-gray-900 truncate">{plan.name}</h4>
                       <p className="text-xs text-gray-500">{completed}/{total} tareas - {pct}% completo</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigateTo('schedule')}
-                    className="text-sm text-axon-accent font-medium hover:text-axon-hover flex items-center gap-1"
+                    className="text-sm text-axon-accent font-medium hover:text-axon-hover flex items-center gap-1 shrink-0 min-h-[44px] sm:min-h-0"
                   >
-                    Ver plan <ArrowUpRight size={14} />
+                    <span className="hidden sm:inline">Ver plan</span> <ArrowUpRight size={14} />
                   </button>
                 </div>
 
@@ -117,20 +123,20 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
 
                 {/* Today's tasks preview */}
                 {todayTasks.length > 0 && (
-                  <div className="border-t border-gray-200 pt-3 space-y-2">
+                  <div className="border-t border-gray-200 pt-3 space-y-1">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tareas de hoy</p>
                     {todayTasks.slice(0, 3).map((task, tIdx) => (
-                      <div key={`${task.id}-${tIdx}`} className="flex items-center gap-2">
+                      <div key={`${task.id}-${tIdx}`} className="flex items-center gap-3 min-h-[40px]">
                         <button
                           onClick={() => toggleTaskComplete(plan.id, task.id)}
                           className={clsx(
-                            "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
                             task.completed
                               ? "bg-emerald-500 border-emerald-500"
                               : "border-gray-300 hover:border-axon-accent"
                           )}
                         >
-                          {task.completed && <CheckCircle2 size={10} className="text-white" />}
+                          {task.completed && <CheckCircle2 size={12} className="text-white" />}
                         </button>
                         <span className={clsx("text-sm", task.completed ? "line-through text-gray-400" : "text-gray-700")}>
                           {task.title}
@@ -147,10 +153,10 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
         <div className="flex flex-col items-center justify-center py-8 text-gray-400">
           <CalendarIcon size={36} className="mb-3 text-gray-300" />
           <p className="font-medium text-gray-500">Ningun plan de estudio activo</p>
-          <p className="text-sm mt-1">Crea un plan para organizar tu estudio</p>
+          <p className="text-sm mt-1 text-center">Crea un plan para organizar tu estudio</p>
           <button
             onClick={() => navigateTo('organize-study')}
-            className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-axon-dark hover:bg-axon-hover rounded-lg text-white text-sm font-medium transition-colors"
+            className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-axon-dark hover:bg-axon-hover rounded-lg text-white text-sm font-medium transition-colors min-h-[44px]"
           >
             <Plus size={14} />
             Crear Plan de Estudio

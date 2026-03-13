@@ -9,9 +9,9 @@ import {
   getDailyActivities,
   type DailyActivityRecord,
 } from '@/app/services/platformApi';
-import { logger } from '@/app/lib/logger';
+import { devLog } from '@/app/utils/devLog';
 
-// ── Types ────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────
 
 interface DayCell {
   date: string; // YYYY-MM-DD
@@ -21,7 +21,7 @@ interface DayCell {
   sessions_count: number;
 }
 
-// ── Helpers ──────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────
 
 function toISO(d: Date): string {
   const yyyy = d.getFullYear();
@@ -63,7 +63,7 @@ function formatDate(dateStr: string): string {
   return `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]}, ${d.getFullYear()}`;
 }
 
-// ── Build grid ───────────────────────────────────────────
+// ── Build grid ─────────────────────────────────────────
 
 function buildWeeks(
   from: Date,
@@ -115,7 +115,7 @@ function getMonthLabels(weeks: DayCell[][]): { label: string; colIndex: number }
   return labels;
 }
 
-// ── Tooltip component ────────────────────────────────────
+// ── Tooltip component ──────────────────────────────────
 
 function CellTooltip({ cell }: { cell: DayCell }) {
   const pct =
@@ -137,10 +137,10 @@ function CellTooltip({ cell }: { cell: DayCell }) {
         ) : (
           <>
             <p className="text-zinc-300">
-              {cell.reviews_count} repasos · {cell.correct_count} correctos ({pct}%)
+              {cell.reviews_count} repasos \u00b7 {cell.correct_count} correctos ({pct}%)
             </p>
             <p className="text-zinc-400">
-              {cell.sessions_count} sesion{cell.sessions_count !== 1 ? 'es' : ''} ·{' '}
+              {cell.sessions_count} sesion{cell.sessions_count !== 1 ? 'es' : ''} \u00b7{' '}
               {formatMinutes(cell.time_spent_seconds)} estudiados
             </p>
           </>
@@ -152,7 +152,7 @@ function CellTooltip({ cell }: { cell: DayCell }) {
   );
 }
 
-// ── Main Component ───────────────────────────────────────
+// ── Main Component ─────────────────────────────────────
 
 export function ActivityHeatMap() {
   const [data, setData] = useState<DailyActivityRecord[]>([]);
@@ -174,11 +174,11 @@ export function ActivityHeatMap() {
       try {
         const fromStr = toISO(from);
         const toStr = toISO(to);
-        logger.debug('HeatMap', `GET /daily-activities?from=${fromStr}&to=${toStr}`);
+        devLog(`[HeatMap] GET /daily-activities?from=${fromStr}&to=${toStr}`);
         const result = await getDailyActivities(fromStr, toStr, 200);
         if (!cancelled) setData(result);
       } catch (err) {
-        console.error('[HeatMap] Failed to load daily activities:', err);
+        if (import.meta.env.DEV) console.error('[HeatMap] Failed to load daily activities:', err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -212,7 +212,7 @@ export function ActivityHeatMap() {
   const handleMouseEnter = useCallback((date: string) => setHoveredCell(date), []);
   const handleMouseLeave = useCallback(() => setHoveredCell(null), []);
 
-  // ── Render ──────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────
 
   if (loading) {
     return (
