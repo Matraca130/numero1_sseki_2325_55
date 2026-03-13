@@ -6,7 +6,7 @@
 // Real keyword data comes from the backend API.
 // ============================================================
 
-// ── Types ────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────
 
 export type MasteryLevel = 'red' | 'yellow' | 'green';
 
@@ -22,12 +22,16 @@ export interface KeywordData {
   masteryLevel: MasteryLevel;
   aiQuestions: AIQuestion[];
   category?: string;
+  // PATH B fields (from KeywordState in student.ts)
+  mastery?: number;       // 0-1
+  card_coverage?: number; // number of flashcards covering this keyword
+  color?: 'red' | 'yellow' | 'green';
 }
 
 /** Record<term, KeywordData> — used by SmartFlashcardGenerator */
 export type KeywordCollection = Record<string, KeywordData>;
 
-// ── Mastery Config ───────────────────────────────────────────
+// ── Mastery Config ───────────────────────────────────────────────
 
 export const masteryConfig: Record<MasteryLevel, {
   label: string;
@@ -71,9 +75,19 @@ export function getAllKeywordTerms(): string[] {
 
 // ── Stub functions (previously in services/keywordManager.ts) ─
 
+/**
+ * Get keywords that need more flashcard coverage.
+ * Returns items with { keyword, coverage, needScore }.
+ *
+ * @param _keywords - The keyword collection to analyze
+ * @param _targetCoverage - Min cards per keyword (default 3)
+ * @param _maxResults - Max keywords to return (default 10)
+ */
 export function getKeywordsNeedingCards(
   _keywords: KeywordCollection,
-): KeywordData[] {
+  _targetCoverage?: number,
+  _maxResults?: number,
+): { keyword: string; coverage: number; needScore: number }[] {
   return [];
 }
 
