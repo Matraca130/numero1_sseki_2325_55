@@ -183,12 +183,12 @@ export function QuizResults({
             </p>
           </div>
 
-          {/* ── Score Circle ── */}
+          {/* ── Score Circle (FIX: use correct prop names pct/total) ── */}
           <div className="flex justify-center mb-8">
             <QuizScoreCircle
-              percentage={pct}
+              pct={pct}
               correctCount={correctCount}
-              totalCount={total}
+              total={total}
               color={performanceColor}
             />
           </div>
