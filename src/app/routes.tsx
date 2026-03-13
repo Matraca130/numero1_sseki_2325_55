@@ -5,12 +5,12 @@
 //   This file is a THIN ASSEMBLER. It does NOT import page components.
 //   Each role has its own route file with page imports:
 //
-//     routes/student-routes.tsx   → /student/* children
-//     routes/owner-routes.tsx     → /owner/* children
-//     routes/admin-routes.tsx     → /admin/* children
-//     routes/professor-routes.tsx → /professor/* children
+//     routes/student-routes.ts    → /student/* children
+//     routes/owner-routes.ts      → /owner/* children
+//     routes/admin-routes.ts      → /admin/* children
+//     routes/professor-routes.ts  → /professor/* children
 //
-//   To add a new page, edit ONLY the corresponding routes/*.tsx file.
+//   To add a new page, edit ONLY the corresponding routes/*.ts file.
 //   This file rarely needs changes.
 //
 // ROLES:
@@ -30,11 +30,8 @@ import { RequireRole } from '@/app/components/auth/RequireRole';
 import { PostLoginRouter } from '@/app/components/auth/PostLoginRouter';
 import { SelectRolePage } from '@/app/components/auth/SelectRolePage';
 
-// Role Layouts (shared — rarely changes)
-import { OwnerLayout } from '@/app/components/roles/OwnerLayout';
-import { AdminLayout } from '@/app/components/roles/AdminLayout';
-import { ProfessorLayout } from '@/app/components/roles/ProfessorLayout';
-import { StudentLayout } from '@/app/components/roles/StudentLayout';
+// PERF-70: Role Layouts are lazy-loaded — each role only downloads its own layout + dependencies.
+// Eliminates cross-role bundle pollution (student no longer downloads admin/professor code).
 
 // Per-role children (one file per area — edit independently)
 import { studentChildren } from '@/app/routes/student-routes';
@@ -70,7 +67,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: 'owner',
-                Component: OwnerLayout,
+                lazy: () => import('@/app/components/roles/OwnerLayout').then(m => ({ Component: m.OwnerLayout })),
                 children: ownerChildren,
               },
             ],
@@ -82,7 +79,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: 'admin',
-                Component: AdminLayout,
+                lazy: () => import('@/app/components/roles/AdminLayout').then(m => ({ Component: m.AdminLayout })),
                 children: adminChildren,
               },
             ],
@@ -94,7 +91,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: 'professor',
-                Component: ProfessorLayout,
+                lazy: () => import('@/app/components/roles/ProfessorLayout').then(m => ({ Component: m.ProfessorLayout })),
                 children: professorChildren,
               },
             ],
@@ -104,7 +101,7 @@ export const router = createBrowserRouter([
           // Any authenticated role can view the student experience.
           {
             path: 'student',
-            Component: StudentLayout,
+            lazy: () => import('@/app/components/roles/StudentLayout').then(m => ({ Component: m.StudentLayout })),
             children: studentChildren,
           },
 
