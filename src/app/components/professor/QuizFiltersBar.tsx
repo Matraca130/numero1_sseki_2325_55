@@ -5,7 +5,10 @@
 // and "Nueva pregunta" create button. Controlled component —
 // state lives in parent.
 // Extracted from ProfessorQuizzesPage in Phase 4 refactor.
-// C3 cleanup: kw.term → kw.name || kw.term
+//
+// R4: filterDifficulty/onFilterDifficultyChange/onCreate now
+// optional — QuizQuestionsEditor doesn't use difficulty filter
+// or the inline create button.
 // ============================================================
 
 import React from 'react';
@@ -17,22 +20,22 @@ import {
 import type { Difficulty } from '@/app/services/quizConstants';
 import { Filter, Search, Plus } from 'lucide-react';
 
-// ── Props ─────────────────────────────────────────────────
+// ── Props ───────────────────────────────────────────────
 
 export interface QuizFiltersBarProps {
   filterType: QuestionType | '';
-  filterDifficulty: Difficulty | '';
+  filterDifficulty?: Difficulty | '';     // optional: omitted in QuizQuestionsEditor
   filterKeywordId: string;
   searchQuery: string;
-  keywords: ReadonlyArray<{ id: string; name?: string; term?: string }>;
+  keywords: ReadonlyArray<{ id: string; term?: string }>;
   onFilterTypeChange: (v: QuestionType | '') => void;
-  onFilterDifficultyChange: (v: Difficulty | '') => void;
+  onFilterDifficultyChange?: (v: Difficulty | '') => void;  // optional
   onFilterKeywordChange: (v: string) => void;
   onSearchChange: (v: string) => void;
-  onCreate: () => void;
+  onCreate?: () => void;  // optional: omitted in QuizQuestionsEditor
 }
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ───────────────────────────────────────────
 
 export const QuizFiltersBar = React.memo(function QuizFiltersBar({
   filterType,
@@ -65,16 +68,19 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
           ))}
         </select>
 
-        <select
-          value={filterDifficulty}
-          onChange={e => onFilterDifficultyChange(e.target.value as Difficulty | '')}
-          className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[110px]"
-        >
-          <option value="">Toda dificultad</option>
-          {(Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][]).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+        {/* Difficulty filter — only rendered when props provided */}
+        {onFilterDifficultyChange && (
+          <select
+            value={filterDifficulty ?? ''}
+            onChange={e => onFilterDifficultyChange(e.target.value as Difficulty | '')}
+            className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[110px]"
+          >
+            <option value="">Toda dificultad</option>
+            {(Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][]).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        )}
 
         <select
           value={filterKeywordId}
@@ -83,7 +89,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         >
           <option value="">Todas las keywords</option>
           {keywords.map(kw => (
-            <option key={kw.id} value={kw.id}>{kw.name || kw.term}</option>
+            <option key={kw.id} value={kw.id}>{kw.term}</option>
           ))}
         </select>
 
@@ -101,14 +107,17 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
 
         <div className="flex-1" />
 
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-xl text-[11px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-lg shadow-purple-600/25"
-          style={{ fontWeight: 600 }}
-        >
-          <Plus size={14} />
-          Nueva pregunta
-        </button>
+        {/* Create button — only rendered when callback provided */}
+        {onCreate && (
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-xl text-[11px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-lg shadow-purple-600/25"
+            style={{ fontWeight: 600 }}
+          >
+            <Plus size={14} />
+            Nueva pregunta
+          </button>
+        )}
       </div>
     </div>
   );
