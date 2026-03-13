@@ -38,7 +38,7 @@ const ACCENT_CLASSES: Record<string, { iconBg: string; iconText: string }> = {
   amber:  { iconBg: 'bg-amber-50',  iconText: 'text-amber-500' },
   blue:   { iconBg: 'bg-blue-50',   iconText: 'text-blue-500' },
   purple: { iconBg: 'bg-purple-50', iconText: 'text-purple-500' },
-  teal:   { iconBg: 'bg-teal-50',   iconText: 'text-teal-500' },
+  teal:   { iconBg: 'bg-[#e6f5f1]',   iconText: 'text-axon-accent' },
 };
 
 export function PageHeader({

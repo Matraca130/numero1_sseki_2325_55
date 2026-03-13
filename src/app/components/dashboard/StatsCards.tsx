@@ -1,23 +1,19 @@
 // ============================================================
 // Axon — StatsCards (4 KPI cards en fila)
-// PERF v2.1: Consumes rawStats + rawDaily from StudentDataContext
-//            instead of making duplicate API calls.
+// Fuente: GET /student-stats + GET /daily-activities?from=HOY&to=HOY
 // ============================================================
-import React, { useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Flame, BookOpen, Target, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { components } from '@/app/design-system';
-import { getAxonToday } from '@/app/utils/constants';
-import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import type {
-  StudentStatsRecord,
-  DailyActivityRecord,
+import { getErrorMessage } from '@/app/utils/getErrorMessage';
+import {
+  getStudentStatsReal,
+  getDailyActivities,
+  type StudentStatsRecord,
+  type DailyActivityRecord,
 } from '@/app/services/platformApi';
-
-// ── Types ────────────────────────────────────────────────
-
-export type DashboardTimeRange = 'week' | 'month';
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -29,57 +25,87 @@ function formatTime(seconds: number): string {
   return `${m}m`;
 }
 
-function toISO(d: Date): string {
+function todayISO(): string {
+  const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// ── Hook: useStudentDashboardStats ───────────────────────
-// PERF v2.1: Zero additional API calls — derives everything from
-// StudentDataContext which already fetches rawStats + rawDaily.
+function yesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
-export function useStudentDashboardStats(timeRange: DashboardTimeRange = 'week') {
-  const { rawStats, rawDaily, loading, error, refresh } = useStudentDataContext();
+function weekAgoISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 6);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
-  const derived = useMemo(() => {
-    const today = toISO(getAxonToday());
+// ── Types ────────────────────────────────────────────────
 
-    const yesterdayDate = getAxonToday();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = toISO(yesterdayDate);
+interface StatsData {
+  stats: StudentStatsRecord | null;
+  todayActivity: DailyActivityRecord | null;
+  yesterdayActivity: DailyActivityRecord | null;
+  weekTimeSeconds: number;
+}
 
-    // Compute range start based on timeRange
-    const rangeStartDate = getAxonToday();
-    if (timeRange === 'week') {
-      rangeStartDate.setDate(rangeStartDate.getDate() - 6);
-    } else {
-      rangeStartDate.setDate(rangeStartDate.getDate() - 29);
+// ── Hook ─────────────────────────────────────────────────
+
+export function useStudentDashboardStats() {
+  const [data, setData] = useState<StatsData>({
+    stats: null,
+    todayActivity: null,
+    yesterdayActivity: null,
+    weekTimeSeconds: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const today = todayISO();
+      const yesterday = yesterdayISO();
+      const weekAgo = weekAgoISO();
+
+      const [statsRes, weekRes] = await Promise.all([
+        getStudentStatsReal().catch(() => null),
+        getDailyActivities(weekAgo, today).catch(() => []),
+      ]);
+
+      const todayRec = weekRes.find(d => d.activity_date === today) || null;
+      const yesterdayRec = weekRes.find(d => d.activity_date === yesterday) || null;
+      const weekTime = weekRes.reduce((sum, d) => sum + (d.time_spent_seconds || 0), 0);
+
+      setData({
+        stats: statsRes,
+        todayActivity: todayRec,
+        yesterdayActivity: yesterdayRec,
+        weekTimeSeconds: weekTime,
+      });
+    } catch (err: unknown) {
+      console.error('[StatsCards] Failed to load stats:', err);
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
-    const rangeStart = toISO(rangeStartDate);
+  }, []);
 
-    // Filter rawDaily to range
-    const rangeRecords = rawDaily.filter(
-      (d) => d.activity_date >= rangeStart && d.activity_date <= today
-    );
+  useEffect(() => { refresh(); }, [refresh]);
 
-    const todayActivity = rawDaily.find((d) => d.activity_date === today) || null;
-    const yesterdayActivity = rawDaily.find((d) => d.activity_date === yesterday) || null;
-    const rangeTimeSeconds = rangeRecords.reduce(
-      (sum, d) => sum + (d.time_spent_seconds || 0),
-      0
-    );
-
-    return {
-      stats: rawStats,
-      todayActivity,
-      yesterdayActivity,
-      rangeTimeSeconds,
-    };
-  }, [rawStats, rawDaily, timeRange]);
-
-  return { ...derived, loading, error, refresh };
+  return { ...data, loading, error, refresh };
 }
 
 // ── Card subcomponent ────────────────────────────────────
@@ -108,14 +134,14 @@ function StatCard({ icon, iconBg, label, value, sub, delay = 0 }: StatCardProps)
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 truncate">{label}</p>
           <p className="text-2xl text-gray-900 mt-0.5 tabular-nums">{value}</p>
-          <p className="text-xs text-gray-400 mt-1 truncate">{sub}</p>
+          <p className="text-xs text-gray-500 mt-1 truncate">{sub}</p>
         </div>
       </div>
     </motion.div>
   );
 }
 
-// ── Skeleton ───────────────────────────────────────────
+// ── Skeleton ─────────────────────────────────────────────
 
 function StatCardSkeleton() {
   return (
@@ -132,18 +158,17 @@ function StatCardSkeleton() {
   );
 }
 
-// ── Main component ─────────────────────────────────────
+// ── Main component ───────────────────────────────────────
 
 interface StatsCardsProps {
   stats: StudentStatsRecord | null;
   todayActivity: DailyActivityRecord | null;
   yesterdayActivity: DailyActivityRecord | null;
-  rangeTimeSeconds: number;
-  timeRange: DashboardTimeRange;
+  weekTimeSeconds: number;
   loading?: boolean;
 }
 
-export function StatsCards({ stats, todayActivity, yesterdayActivity, rangeTimeSeconds, timeRange, loading }: StatsCardsProps) {
+export function StatsCards({ stats, todayActivity, yesterdayActivity, weekTimeSeconds, loading }: StatsCardsProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -172,8 +197,7 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, rangeTimeS
     : null;
 
   // Time
-  const timeFormatted = formatTime(rangeTimeSeconds);
-  const timeLabel = timeRange === 'week' ? 'esta semana' : 'este mes';
+  const weekTimeFormatted = formatTime(weekTimeSeconds);
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -181,32 +205,32 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, rangeTimeS
         icon={<Flame className="w-5 h-5 text-amber-600" />}
         iconBg="bg-amber-50"
         label="Racha"
-        value={`${streak} dias`}
-        sub={streak >= longestStreak && streak > 0 ? 'Recorde!' : `max: ${longestStreak}`}
+        value={`${streak} días`}
+        sub={streak >= longestStreak && streak > 0 ? '¡Récord!' : `máx: ${longestStreak}`}
         delay={0}
       />
       <StatCard
-        icon={<BookOpen className="w-5 h-5 text-teal-600" />}
-        iconBg="bg-teal-50"
+        icon={<BookOpen className="w-5 h-5 text-axon-accent" />}
+        iconBg="bg-[#e6f5f1]"
         label="Reviews"
-        value={totalReviews > 0 ? totalReviews.toLocaleString() : '\u2014'}
-        sub={todayReviews > 0 ? `+${todayReviews} hoje` : 'nenhum hoje'}
+        value={totalReviews > 0 ? totalReviews.toLocaleString('es-MX') : '\u2014'}
+        sub={todayReviews > 0 ? `+${todayReviews} hoy` : 'ninguno hoy'}
         delay={0.05}
       />
       <StatCard
         icon={<Target className="w-5 h-5 text-indigo-600" />}
         iconBg="bg-indigo-50"
-        label="Acuracia"
+        label="Precisión"
         value={todayAccuracy !== null ? `${todayAccuracy}%` : '\u2014'}
-        sub={accuracyDiff !== null ? `${parseFloat(accuracyDiff) >= 0 ? '+' : ''}${accuracyDiff}% vs ontem` : 'sem dados ontem'}
+        sub={accuracyDiff !== null ? `${parseFloat(accuracyDiff) >= 0 ? '+' : ''}${accuracyDiff}% vs ayer` : 'sin datos ayer'}
         delay={0.1}
       />
       <StatCard
         icon={<Clock className="w-5 h-5 text-cyan-600" />}
         iconBg="bg-cyan-50"
-        label="Tempo"
-        value={rangeTimeSeconds > 0 ? timeFormatted : '\u2014'}
-        sub={timeLabel}
+        label="Tiempo"
+        value={weekTimeSeconds > 0 ? weekTimeFormatted : '\u2014'}
+        sub="esta semana"
         delay={0.15}
       />
     </div>

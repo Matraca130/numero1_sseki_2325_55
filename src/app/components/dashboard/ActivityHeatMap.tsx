@@ -5,11 +5,11 @@
 // ============================================================
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { getAxonToday } from '@/app/utils/constants';
 import {
   getDailyActivities,
   type DailyActivityRecord,
 } from '@/app/services/platformApi';
+import { devLog } from '@/app/utils/devLog';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -31,11 +31,11 @@ function toISO(d: Date): string {
 }
 
 function getColor(count: number): string {
-  if (count === 0) return 'bg-zinc-800';
-  if (count <= 3) return 'bg-violet-900/60';
-  if (count <= 8) return 'bg-violet-700/80';
-  if (count <= 15) return 'bg-violet-500';
-  return 'bg-violet-400';
+  if (count === 0) return 'bg-gray-100';
+  if (count <= 3) return 'bg-[#99d7c7]';   // primary.200
+  if (count <= 8) return 'bg-axon-accent';  // primary.400/500
+  if (count <= 15) return 'bg-[#244e47]';   // primary.600
+  return 'bg-axon-dark';                     // primary.700
 }
 
 const MONTH_NAMES = [
@@ -159,9 +159,9 @@ export function ActivityHeatMap() {
   const [loading, setLoading] = useState(true);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
-  // Date range: 26 weeks back from AXON_TODAY
+  // Date range: 26 weeks back
   const { from, to } = useMemo(() => {
-    const today = getAxonToday();
+    const today = new Date();
     const start = new Date(today);
     start.setDate(start.getDate() - 26 * 7);
     return { from: start, to: today };
@@ -174,6 +174,7 @@ export function ActivityHeatMap() {
       try {
         const fromStr = toISO(from);
         const toStr = toISO(to);
+        devLog(`[HeatMap] GET /daily-activities?from=${fromStr}&to=${toStr}`);
         const result = await getDailyActivities(fromStr, toStr, 200);
         if (!cancelled) setData(result);
       } catch (err) {
@@ -215,10 +216,10 @@ export function ActivityHeatMap() {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 h-full min-h-[220px] flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 h-full min-h-[220px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 animate-pulse" />
-          <p className="text-sm text-zinc-500 animate-pulse">Cargando actividad...</p>
+          <div className="w-10 h-10 rounded-lg bg-gray-100 animate-pulse" />
+          <p className="text-sm text-gray-400 animate-pulse">Cargando actividad...</p>
         </div>
       </div>
     );
@@ -229,12 +230,12 @@ export function ActivityHeatMap() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.15 }}
-      className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 h-full"
+      className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 h-full"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-zinc-100">Actividad de estudio</h3>
-        <span className="text-xs text-zinc-500">Ultimos 6 meses</span>
+        <h3 className="text-sm font-semibold text-gray-900">Actividad de estudio</h3>
+        <span className="text-xs text-gray-500">Ultimos 6 meses</span>
       </div>
 
       {/* ── Desktop Grid (hidden on mobile) ── */}
@@ -264,18 +265,18 @@ export function ActivityHeatMap() {
       {/* Legend */}
       <div className="mt-4 flex items-center justify-between">
         {/* Color scale — hidden on mobile */}
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-500">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500">
           <span>Menos</span>
-          <div className="w-3 h-3 rounded-sm bg-zinc-800" />
-          <div className="w-3 h-3 rounded-sm bg-violet-900/60" />
-          <div className="w-3 h-3 rounded-sm bg-violet-700/80" />
-          <div className="w-3 h-3 rounded-sm bg-violet-500" />
-          <div className="w-3 h-3 rounded-sm bg-violet-400" />
+          <div className="w-3 h-3 rounded-sm bg-gray-100" />
+          <div className="w-3 h-3 rounded-sm bg-[#99d7c7]" />
+          <div className="w-3 h-3 rounded-sm bg-axon-accent" />
+          <div className="w-3 h-3 rounded-sm bg-[#244e47]" />
+          <div className="w-3 h-3 rounded-sm bg-axon-dark" />
           <span>Mas</span>
         </div>
 
-        <p className="text-xs text-zinc-400">
-          Total: <span className="font-semibold text-zinc-200">{totalReviews.toLocaleString()}</span> repasos
+        <p className="text-xs text-gray-500">
+          Total: <span className="font-semibold text-gray-900">{totalReviews.toLocaleString('es-MX')}</span> repasos
         </p>
       </div>
     </motion.div>
@@ -310,7 +311,7 @@ function HeatGrid({
           return (
             <div
               key={`${m.label}-${m.colIndex}`}
-              className="text-[10px] text-zinc-500"
+              className="text-[10px] text-gray-400"
               style={{ width: `${span * 14}px`, minWidth: `${span * 14}px` }}
             >
               {m.label}
@@ -329,7 +330,7 @@ function HeatGrid({
               className={`${cellSize} flex items-center justify-end`}
             >
               {DAY_LABELS[dayIdx] && (
-                <span className="text-[10px] text-zinc-500 leading-none">
+                <span className="text-[10px] text-gray-400 leading-none">
                   {DAY_LABELS[dayIdx]}
                 </span>
               )}
@@ -343,7 +344,7 @@ function HeatGrid({
             {week.map((cell, dIdx) => (
               <div key={cell.date} className="relative">
                 <div
-                  className={`${cellSize} rounded-sm ${getColor(cell.reviews_count)} cursor-pointer transition-all duration-100 hover:ring-1 hover:ring-zinc-500`}
+                  className={`${cellSize} rounded-sm ${getColor(cell.reviews_count)} cursor-pointer transition-all duration-100 hover:ring-1 hover:ring-gray-300`}
                   onMouseEnter={() => onEnter(cell.date)}
                   onMouseLeave={onLeave}
                 />
