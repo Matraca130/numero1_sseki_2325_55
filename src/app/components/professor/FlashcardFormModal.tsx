@@ -30,8 +30,10 @@ function encodeContent(text: string, imageUrl: string): string {
 }
 
 // ── Helper: get keyword display name (C3) ─────────────────
+// Type-safe cast: Keyword.name may exist in DB but isn't in
+// the TS type yet. Avoids `as any` per Gemini review.
 function kwDisplay(kw: Keyword): string {
-  return (kw as any).name || kw.term || kw.id?.substring(0, 8) || '?';
+  return (kw as Keyword & { name?: string }).name || kw.term || kw.id?.substring(0, 8) || '?';
 }
 
 // ── Image URL inline input ────────────────────────────────
