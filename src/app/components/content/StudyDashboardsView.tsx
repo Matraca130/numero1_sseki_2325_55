@@ -217,7 +217,6 @@ export function StudyDashboardsView() {
   const realSubjects: SubjectCard[] = useMemo(() => {
     if (!isConnected || bktStates.length === 0) return [];
 
-    // Group bkt states by section
     const sectionGroups = new Map<string, { name: string; department: string; states: typeof bktStates }>();
     bktStates.forEach(b => {
       const lookup = topicLookup.get(b.subtopic_id);
@@ -243,7 +242,6 @@ export function StudyDashboardsView() {
       const ringOffset = Math.round((1 - avgPKnow) * 125);
       const urgency = getUrgencyLevel(retention);
 
-      // Build mini-heatmap from individual topic mastery values
       const heatmap = group.states
         .map(b => {
           const pct = Math.round(b.p_know * 100);
@@ -255,11 +253,8 @@ export function StudyDashboardsView() {
         .concat(Array(Math.max(0, 20 - group.states.length)).fill(`bg-${c}-100`))
         .slice(0, 20);
 
-      // Consistency label
       const variance = group.states.reduce((s, b) => s + Math.abs(b.p_know - avgPKnow), 0) / group.states.length;
       const consistency = variance < 0.1 ? 'Estável' : variance < 0.2 ? 'Moderada' : 'Volátil';
-
-      // Next review estimation
       const hasDue = group.states.some(b => b.p_know < 0.5);
 
       return {
@@ -297,13 +292,14 @@ export function StudyDashboardsView() {
           subtitle="Visualize sua retenção e otimize intervalos de estudo"
           onBack={() => navigateTo('schedule')}
           statsRight={
-            <div className="flex bg-white/60 p-1 rounded-xl border border-gray-200/60 backdrop-blur-sm">
+            /* RESPONSIVE: overflow-x-auto para tabs, min-h touch target */
+            <div className="flex bg-white/60 p-1 rounded-xl border border-gray-200/60 backdrop-blur-sm overflow-x-auto">
               {TABS.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={clsx(
-                    "px-5 py-2 rounded-lg text-sm transition-all",
+                    "px-3 lg:px-5 py-2 rounded-lg text-sm transition-all whitespace-nowrap min-h-[44px]",
                     activeTab === tab.id
                       ? "bg-white shadow-sm text-violet-600"
                       : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
@@ -317,109 +313,108 @@ export function StudyDashboardsView() {
         />
       </div>
 
-      {/* Content */}
+      {/* Content — RESPONSIVE: px-4 lg:px-8 */}
       <div className="flex-1 overflow-y-auto custom-scrollbar-light relative">
         {/* Ambient blur */}
         <div className="absolute top-0 left-1/2 w-[800px] h-[500px] bg-violet-500/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
 
-        <div className="px-8 pb-12 space-y-8 relative z-10 pt-6">
+        <div className="px-4 lg:px-8 pb-8 lg:pb-12 space-y-6 lg:space-y-8 relative z-10 pt-4 lg:pt-6">
           {/* Global Forgetting Curve */}
           {activeTab === 'overview' && (
             <>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/65 backdrop-blur-xl rounded-2xl p-6 shadow-md border border-white/60 relative overflow-hidden"
+                className="bg-white/65 backdrop-blur-xl rounded-2xl p-4 lg:p-6 shadow-md border border-white/60 relative overflow-hidden"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-gray-800 text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Curva de Esquecimento Global</h3>
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-violet-500" />
-                      <span className="text-xs text-gray-400">Retenção Real</span>
+                {/* RESPONSIVE: flex-col sm:flex-row, legend flex-wrap */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 lg:mb-6">
+                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Curva de Esquecimento Global</h3>
+                  <div className="flex flex-wrap gap-2 lg:gap-4">
+                    <div className="flex items-center gap-1.5 lg:gap-2">
+                      <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-violet-500" />
+                      <span className="text-[10px] lg:text-xs text-gray-400">Retenção Real</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-blue-500" />
-                      <span className="text-xs text-gray-400">Decaimento Previsto</span>
+                    <div className="flex items-center gap-1.5 lg:gap-2">
+                      <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-blue-500" />
+                      <span className="text-[10px] lg:text-xs text-gray-400">Decaimento Previsto</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-gray-300 border border-gray-400" />
-                      <span className="text-xs text-gray-400">Limite Ideal</span>
+                    <div className="flex items-center gap-1.5 lg:gap-2">
+                      <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-gray-300 border border-gray-400" />
+                      <span className="text-[10px] lg:text-xs text-gray-400">Limite Ideal</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Chart */}
-                <div className="relative w-full h-80 bg-white/30 rounded-xl border border-white/50 p-4">
-                  {/* Y axis labels */}
-                  <div className="absolute left-4 top-4 bottom-8 flex flex-col justify-between text-xs text-gray-400 font-mono">
-                    <span>100%</span>
-                    <span>75%</span>
-                    <span>50%</span>
-                    <span>25%</span>
-                    <span>0%</span>
-                  </div>
-
-                  {/* Grid + Lines */}
-                  <div className="absolute left-12 right-4 top-4 bottom-8 border-l border-b border-gray-300">
-                    {/* Grid lines */}
-                    <div className="w-full border-b border-gray-100 border-dashed absolute top-0" style={{ height: '25%' }} />
-                    <div className="w-full border-b border-gray-100 border-dashed absolute top-1/4" style={{ height: '25%' }} />
-                    <div className="w-full border-b border-gray-100 border-dashed absolute top-2/4" style={{ height: '25%' }} />
-                    
-                    {/* Threshold line */}
-                    <div className="w-full border-b-2 border-dashed border-red-200 absolute group" style={{ top: '20%' }}>
-                      <span className="absolute right-0 -top-6 bg-red-50 text-red-500 text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                        Limite de Revisão
-                      </span>
+                {/* Chart — RESPONSIVE: overflow-x-auto, min-w for scrollable area */}
+                <div className="overflow-x-auto -mx-2 px-2">
+                  <div className="relative w-full min-w-[480px] h-60 lg:h-80 bg-white/30 rounded-xl border border-white/50 p-4">
+                    {/* Y axis labels */}
+                    <div className="absolute left-4 top-4 bottom-8 flex flex-col justify-between text-xs text-gray-400 font-mono">
+                      <span>100%</span>
+                      <span>75%</span>
+                      <span>50%</span>
+                      <span>25%</span>
+                      <span>0%</span>
                     </div>
 
-                    {/* Retention curve (SVG) */}
-                    <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
-                      {/* Actual retention */}
-                      <path
-                        d="M0,20 Q150,40 300,100 T600,160 T900,180"
-                        fill="none"
-                        stroke="#8b5cf6"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        className="drop-shadow-lg filter"
-                      />
-                      <circle cx="0" cy="20" r="4" fill="white" stroke="#8b5cf6" strokeWidth="2" />
-                      <circle cx="300" cy="100" r="4" fill="white" stroke="#8b5cf6" strokeWidth="2" className="cursor-pointer" />
-                      <circle cx="600" cy="160" r="4" fill="white" stroke="#8b5cf6" strokeWidth="2" className="cursor-pointer" />
+                    {/* Grid + Lines */}
+                    <div className="absolute left-12 right-4 top-4 bottom-8 border-l border-b border-gray-300">
+                      <div className="w-full border-b border-gray-100 border-dashed absolute top-0" style={{ height: '25%' }} />
+                      <div className="w-full border-b border-gray-100 border-dashed absolute top-1/4" style={{ height: '25%' }} />
+                      <div className="w-full border-b border-gray-100 border-dashed absolute top-2/4" style={{ height: '25%' }} />
+                      
+                      {/* Threshold line */}
+                      <div className="w-full border-b-2 border-dashed border-red-200 absolute group" style={{ top: '20%' }}>
+                        <span className="absolute right-0 -top-6 bg-red-50 text-red-500 text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                          Limite de Revisão
+                        </span>
+                      </div>
 
-                      {/* Predicted decay */}
-                      <path
-                        d="M0,20 Q120,80 250,150 T500,220"
-                        fill="none"
-                        stroke="#3B82F6"
-                        strokeWidth="3"
-                        strokeDasharray="8,4"
-                        strokeOpacity="0.6"
-                      />
-                    </svg>
-                  </div>
+                      {/* Retention curve (SVG) */}
+                      <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+                        <path
+                          d="M0,20 Q150,40 300,100 T600,160 T900,180"
+                          fill="none"
+                          stroke="#8b5cf6"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          className="drop-shadow-lg filter"
+                        />
+                        <circle cx="0" cy="20" r="4" fill="white" stroke="#8b5cf6" strokeWidth="2" />
+                        <circle cx="300" cy="100" r="4" fill="white" stroke="#8b5cf6" strokeWidth="2" className="cursor-pointer" />
+                        <circle cx="600" cy="160" r="4" fill="white" stroke="#8b5cf6" strokeWidth="2" className="cursor-pointer" />
+                        <path
+                          d="M0,20 Q120,80 250,150 T500,220"
+                          fill="none"
+                          stroke="#3B82F6"
+                          strokeWidth="3"
+                          strokeDasharray="8,4"
+                          strokeOpacity="0.6"
+                        />
+                      </svg>
+                    </div>
 
-                  {/* X axis labels */}
-                  <div className="absolute left-12 right-4 bottom-2 flex justify-between text-xs text-gray-400 font-mono">
-                    <span>Dia 0</span>
-                    <span>Dia 3</span>
-                    <span>Dia 7</span>
-                    <span>Dia 14</span>
-                    <span>Dia 30</span>
+                    {/* X axis labels */}
+                    <div className="absolute left-12 right-4 bottom-2 flex justify-between text-xs text-gray-400 font-mono">
+                      <span>Dia 0</span>
+                      <span>Dia 3</span>
+                      <span>Dia 7</span>
+                      <span>Dia 14</span>
+                      <span>Dia 30</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
 
               {/* Subject Performance Header */}
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-gray-800 text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Desempenho por Matéria</h3>
-                <div className="flex gap-2">
-                  <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors">
+                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Desempenho por Matéria</h3>
+                <div className="flex gap-1 lg:gap-2">
+                  <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <Filter size={18} />
                   </button>
-                  <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors">
+                  <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <ArrowUpDown size={18} />
                   </button>
                 </div>
@@ -427,9 +422,9 @@ export function StudyDashboardsView() {
             </>
           )}
 
-          {/* Subject Cards Grid */}
+          {/* Subject Cards Grid — RESPONSIVE: gap-4 lg:gap-6 */}
           {(activeTab === 'overview' || activeTab === 'subjects') && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {displaySubjects.map((subject, i) => (
                 <motion.div
                   key={subject.id}
@@ -437,7 +432,7 @@ export function StudyDashboardsView() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   className={clsx(
-                    "bg-white/65 backdrop-blur-xl rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden border border-white/60",
+                    "bg-white/65 backdrop-blur-xl rounded-2xl p-4 lg:p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden border border-white/60",
                     subject.isUrgent && "ring-2 ring-red-100"
                   )}
                 >
@@ -446,17 +441,17 @@ export function StudyDashboardsView() {
 
                   {/* Header */}
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={clsx("w-10 h-10 rounded-lg flex items-center justify-center", subject.iconBg, subject.iconColor)}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={clsx("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", subject.iconBg, subject.iconColor)}>
                         {subject.icon}
                       </div>
-                      <div>
-                        <h4 className="font-bold text-gray-800">{subject.name}</h4>
+                      <div className="min-w-0">
+                        <h4 className="text-gray-800 truncate" style={{ fontWeight: 700 }}>{subject.name}</h4>
                         <span className="text-xs text-gray-400">{subject.department}</span>
                       </div>
                     </div>
                     {/* Retention ring */}
-                    <div className="relative w-12 h-12 flex items-center justify-center">
+                    <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
                       <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
                         <circle cx="24" cy="24" r="20" fill="none" stroke="#E2E8F0" strokeWidth="4" />
                         <circle
@@ -469,7 +464,7 @@ export function StudyDashboardsView() {
                           strokeDashoffset={subject.ringOffset}
                         />
                       </svg>
-                      <span className={clsx("absolute text-xs font-bold", subject.retentionColor)}>{subject.retention}%</span>
+                      <span className={clsx("absolute text-xs", subject.retentionColor)} style={{ fontWeight: 700 }}>{subject.retention}%</span>
                     </div>
                   </div>
 
@@ -516,27 +511,27 @@ export function StudyDashboardsView() {
                 <div className="w-14 h-14 rounded-full bg-white/50 flex items-center justify-center text-gray-400 group-hover:bg-violet-50 group-hover:text-violet-500 transition-colors">
                   <Plus size={28} />
                 </div>
-                <span className="font-bold text-gray-400 group-hover:text-violet-500 transition-colors">Adicionar Matéria</span>
+                <span className="text-gray-400 group-hover:text-violet-500 transition-colors" style={{ fontWeight: 700 }}>Adicionar Matéria</span>
               </motion.button>
             </div>
           )}
 
-          {/* Settings tab */}
+          {/* Settings tab — RESPONSIVE: p-4 lg:p-8, full-width on mobile */}
           {activeTab === 'settings' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white/65 backdrop-blur-xl rounded-2xl p-8 shadow-md border border-white/60 max-w-2xl"
+              className="bg-white/65 backdrop-blur-xl rounded-2xl p-4 lg:p-8 shadow-md border border-white/60 max-w-2xl"
             >
               <div className="flex items-center gap-3 mb-6">
                 <Settings size={20} className="text-violet-500" />
-                <h3 className="font-bold text-gray-800 text-lg" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Configurações do Algoritmo</h3>
+                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Configurações do Algoritmo</h3>
               </div>
               <div className="space-y-6">
                 <div>
-                  <label className="text-sm font-bold text-gray-600 mb-2 block">Intervalo Mínimo de Revisão</label>
+                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Intervalo Mínimo de Revisão</label>
                   <p className="text-xs text-gray-400 mb-2">Tempo mínimo entre revisões de um mesmo card.</p>
-                  <select className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:ring-violet-500 focus:border-violet-500">
+                  <select className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:ring-violet-500 focus:border-violet-500 min-h-[44px]">
                     <option>15 minutos</option>
                     <option>1 hora</option>
                     <option>4 horas</option>
@@ -544,31 +539,31 @@ export function StudyDashboardsView() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-gray-600 mb-2 block">Limite de Retenção</label>
+                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Limite de Retenção</label>
                   <p className="text-xs text-gray-400 mb-2">Nível de retenção abaixo do qual o sistema agenda revisão automática.</p>
                   <input
                     type="range"
                     min="50"
                     max="95"
                     defaultValue="80"
-                    className="w-full accent-violet-500"
+                    className="w-full accent-violet-500 min-h-[44px]"
                   />
                   <div className="flex justify-between text-xs text-gray-400 mt-1">
                     <span>50%</span>
-                    <span className="text-violet-600 font-bold">80%</span>
+                    <span className="text-violet-600" style={{ fontWeight: 700 }}>80%</span>
                     <span>95%</span>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-gray-600 mb-2 block">Cards por Sessão</label>
+                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Cards por Sessão</label>
                   <p className="text-xs text-gray-400 mb-2">Número máximo de cards por sessão de revisão.</p>
                   <input
                     type="number"
                     defaultValue={20}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:ring-violet-500 focus:border-violet-500"
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:ring-violet-500 focus:border-violet-500 min-h-[44px]"
                   />
                 </div>
-                <button className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm rounded-lg shadow-md hover:brightness-110 transition-all">
+                <button className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm rounded-lg shadow-md hover:brightness-110 transition-all min-h-[44px]" style={{ fontWeight: 700 }}>
                   Salvar Configurações
                 </button>
               </div>
@@ -586,7 +581,7 @@ export function StudyDashboardsView() {
           {isConnected && bktStates.length > 0 && (
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
               <p className="text-xs text-emerald-600">
-                ✓ Dados conectados ao backend — {bktStates.length} estados de conhecimento, {dailyActivity.length} dias de atividade.
+                Dados conectados ao backend — {bktStates.length} estados de conhecimento, {dailyActivity.length} dias de atividade.
               </p>
             </div>
           )}

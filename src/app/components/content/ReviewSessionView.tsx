@@ -166,12 +166,10 @@ function buildDecksFromFsrs(
 
   const now = new Date();
 
-  // Group FSRS states by summary_id (or subtopic_id as fallback)
   const groups = new Map<string, { states: FsrsStateRecord[]; label: string }>();
   for (const s of fsrsStates) {
     const key = s.summary_id || s.subtopic_id || 'unknown';
     if (!groups.has(key)) {
-      // Try to find a name from the content tree
       let label = key;
       if (tree?.courses) {
         for (const c of tree.courses) {
@@ -198,13 +196,11 @@ function buildDecksFromFsrs(
     const avgDifficulty = states.reduce((sum, s) => sum + s.difficulty, 0) / totalCards;
     const easePercent = Math.round((1 - avgDifficulty / 10) * 100);
 
-    // Determine urgency
     let dueUrgency: Deck['dueUrgency'] = 'none';
     if (cardsDue > 20) dueUrgency = 'critical';
     else if (cardsDue > 5) dueUrgency = 'warning';
     else if (cardsDue > 0) dueUrgency = 'info';
 
-    // Next review: find nearest future review
     const futureReviews = states
       .map(s => new Date(s.next_review))
       .filter(d => d > now)
@@ -253,7 +249,7 @@ function buildDecksFromFsrs(
       icon: iconSet.icon,
       iconBg: iconSet.bg,
     };
-  }).sort((a, b) => b.cardsDue - a.cardsDue);  // Most urgent first
+  }).sort((a, b) => b.cardsDue - a.cardsDue);
 }
 
 export function ReviewSessionView() {
@@ -265,7 +261,6 @@ export function ReviewSessionView() {
   const [fsrsStates, setFsrsStates] = useState<FsrsStateRecord[]>([]);
   const [fsrsLoading, setFsrsLoading] = useState(true);
 
-  // Fetch FSRS states on mount
   useEffect(() => {
     if (!user?.id) { setFsrsLoading(false); return; }
     let cancelled = false;
@@ -282,7 +277,6 @@ export function ReviewSessionView() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  // Build decks from real FSRS data or fallback to mock
   const realDecks = useMemo(
     () => buildDecksFromFsrs(fsrsStates, tree),
     [fsrsStates, tree],
@@ -290,12 +284,10 @@ export function ReviewSessionView() {
   const decks = realDecks.length > 0 ? realDecks : MOCK_DECKS;
   const hasRealData = realDecks.length > 0;
 
-  // Pagination
   const pageSize = 5;
   const totalPages = Math.max(1, Math.ceil(decks.length / pageSize));
   const pagedDecks = decks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Build real stats from backend data
   const now = new Date();
   const totalDue = hasRealData
     ? fsrsStates.filter(s => new Date(s.next_review) <= now).length
@@ -331,23 +323,19 @@ export function ReviewSessionView() {
           actionButton={
             <button
               onClick={() => navigateTo('review-session')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-full text-sm shadow-sm transition-all active:scale-95"
+              className="flex items-center gap-2 px-4 lg:px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-full text-sm shadow-sm transition-all active:scale-95 min-h-[44px]"
             >
-              <PlayCircle size={16} /> Revisão Rápida
+              <PlayCircle size={16} /> <span className="hidden sm:inline">Revisão Rápida</span><span className="sm:hidden">Revisar</span>
             </button>
           }
         />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar-light p-6 space-y-6">
+      {/* Content — RESPONSIVE: p-4 lg:p-6 */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar-light p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Total Mastered */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <KPICard
               icon={<GraduationCap size={20} />}
               label="Cards Dominados"
@@ -355,31 +343,19 @@ export function ReviewSessionView() {
               trendSlot={<TrendBadge label={MOCK_STATS.masteredTrend} up />}
             />
           </motion.div>
-
-          {/* Today's Load */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <KPICard
               icon={<Layers size={20} />}
               label="Carga de Hoje"
               value={effectiveStats.todayLoad}
-              trendSlot={<span className="text-xs font-semibold text-teal-700">{effectiveStats.todayDone}/{effectiveStats.todayLoad}</span>}
+              trendSlot={<span className="text-xs text-teal-700" style={{ fontWeight: 600 }}>{effectiveStats.todayDone}/{effectiveStats.todayLoad}</span>}
             >
               <div className={`mt-3 ${components.progressBar.track}`} style={{ height: '6px' }}>
                 <div className={`${components.progressBar.colorDefault} h-1.5 rounded-full transition-all`} style={{ width: `${todayPct}%` }} />
               </div>
             </KPICard>
           </motion.div>
-
-          {/* Avg Retention */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <KPICard
               icon={<Brain size={20} />}
               label="Taxa de Retenção"
@@ -389,7 +365,7 @@ export function ReviewSessionView() {
           </motion.div>
         </div>
 
-        {/* Decks Table */}
+        {/* Decks Table / Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -397,20 +373,20 @@ export function ReviewSessionView() {
           className="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col overflow-hidden"
         >
           {/* Table header bar */}
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900" style={headingStyle}>Decks & Matérias Ativos</h3>
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-base lg:text-lg text-gray-900" style={{ ...headingStyle, fontWeight: 600 }}>Decks & Matérias Ativos</h3>
             <div className="flex gap-2">
-              <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors">
+              <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <Filter size={18} />
               </button>
-              <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors">
+              <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <MoreHorizontal size={18} />
               </button>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-auto">
+          {/* ── DESKTOP TABLE (hidden on mobile) ── */}
+          <div className="hidden lg:block overflow-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50/80 sticky top-0 z-10">
                 <tr>
@@ -436,19 +412,19 @@ export function ReviewSessionView() {
                           {deck.icon}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900 text-sm">{deck.name}</p>
+                          <p className="text-gray-900 text-sm" style={{ fontWeight: 600 }}>{deck.name}</p>
                           <p className="text-xs text-gray-500">{deck.category}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className={clsx("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", DUE_BADGE_STYLES[deck.dueUrgency])}>
+                      <span className={clsx("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs", DUE_BADGE_STYLES[deck.dueUrgency])} style={{ fontWeight: 500 }}>
                         {deck.cardsDue} Pendentes
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex flex-col items-center">
-                        <span className={clsx("text-sm font-semibold font-mono", deck.easeColor)}>{deck.easeFactor}%</span>
+                        <span className={clsx("text-sm font-mono", deck.easeColor)} style={{ fontWeight: 600 }}>{deck.easeFactor}%</span>
                         <div className="w-16 h-1 bg-gray-200 rounded-full mt-1 overflow-hidden">
                           <div
                             className={clsx("h-full rounded-full", deck.easeBarPct >= 80 ? 'bg-emerald-500' : deck.easeBarPct >= 50 ? 'bg-amber-500' : 'bg-orange-500')}
@@ -458,19 +434,19 @@ export function ReviewSessionView() {
                       </div>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <p className={clsx("text-sm font-medium", deck.nextReviewColor)}>{deck.nextReview}</p>
+                      <p className={clsx("text-sm", deck.nextReviewColor)} style={{ fontWeight: 500 }}>{deck.nextReview}</p>
                       <p className="text-xs text-gray-500">{deck.nextReviewSub}</p>
                     </td>
                     <td className="py-4 px-6 text-right">
                       {deck.cardsDue > 0 ? (
                         <button
                           onClick={() => navigateTo('flashcards')}
-                          className="text-teal-600 hover:text-teal-700 text-sm font-medium hover:underline"
+                          className="text-teal-600 hover:text-teal-700 text-sm hover:underline" style={{ fontWeight: 500 }}
                         >
                           Revisar
                         </button>
                       ) : (
-                        <button className="text-gray-400 hover:text-teal-600 text-sm font-medium transition-colors">
+                        <button className="text-gray-400 hover:text-teal-600 text-sm transition-colors" style={{ fontWeight: 500 }}>
                           Detalhes
                         </button>
                       )}
@@ -481,16 +457,82 @@ export function ReviewSessionView() {
             </table>
           </div>
 
-          {/* Table footer */}
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          {/* ── MOBILE CARD LIST (hidden on desktop) ── */}
+          <div className="lg:hidden divide-y divide-gray-100">
+            {pagedDecks.map((deck, i) => (
+              <motion.div
+                key={deck.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 + i * 0.04 }}
+                className="p-4 active:bg-gray-50/60 transition-colors"
+              >
+                {/* Row 1: Icon + Name + Due badge */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={clsx("w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm shrink-0", deck.iconBg)}>
+                    {deck.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-900 text-sm truncate" style={{ fontWeight: 600 }}>{deck.name}</p>
+                    <p className="text-xs text-gray-500">{deck.category}</p>
+                  </div>
+                  <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] shrink-0", DUE_BADGE_STYLES[deck.dueUrgency])} style={{ fontWeight: 500 }}>
+                    {deck.cardsDue}
+                  </span>
+                </div>
+
+                {/* Row 2: Stats row */}
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  {/* Ease factor */}
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-[10px] text-gray-400 uppercase">Facilidade</span>
+                    <span className={clsx("text-xs font-mono", deck.easeColor)} style={{ fontWeight: 600 }}>{deck.easeFactor}%</span>
+                    <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
+                      <div
+                        className={clsx("h-full rounded-full", deck.easeBarPct >= 80 ? 'bg-emerald-500' : deck.easeBarPct >= 50 ? 'bg-amber-500' : 'bg-orange-500')}
+                        style={{ width: `${deck.easeBarPct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Next review */}
+                  <div className="text-right">
+                    <p className={clsx("text-xs", deck.nextReviewColor)} style={{ fontWeight: 500 }}>{deck.nextReview}</p>
+                    <p className="text-[10px] text-gray-500">{deck.nextReviewSub}</p>
+                  </div>
+                </div>
+
+                {/* Row 3: Action */}
+                {deck.cardsDue > 0 ? (
+                  <button
+                    onClick={() => navigateTo('flashcards')}
+                    className="w-full py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-sm rounded-lg transition-colors min-h-[44px] flex items-center justify-center gap-2"
+                    style={{ fontWeight: 600 }}
+                  >
+                    <PlayCircle size={14} /> Revisar Agora
+                  </button>
+                ) : (
+                  <button
+                    className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-500 text-sm rounded-lg transition-colors min-h-[44px]"
+                    style={{ fontWeight: 500 }}
+                  >
+                    Ver Detalhes
+                  </button>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Table footer — RESPONSIVE */}
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-xs text-gray-400">
-              Mostrando {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, decks.length)} de {decks.length} decks
+              <span className="hidden sm:inline">Mostrando </span>{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, decks.length)} de {decks.length}
             </p>
             <div className="flex gap-1">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs disabled:opacity-40"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs disabled:opacity-40 min-h-[44px] min-w-[44px]"
               >
                 <ChevronLeft size={14} />
               </button>
@@ -499,7 +541,7 @@ export function ReviewSessionView() {
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
                   className={clsx(
-                    "w-8 h-8 flex items-center justify-center rounded-lg border text-xs",
+                    "w-8 h-8 flex items-center justify-center rounded-lg border text-xs min-h-[44px] min-w-[44px]",
                     currentPage === i + 1
                       ? "border-teal-500 bg-white text-teal-600"
                       : "border-gray-200 bg-white hover:bg-gray-50 text-gray-400"
@@ -511,7 +553,7 @@ export function ReviewSessionView() {
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs disabled:opacity-40"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 text-xs disabled:opacity-40 min-h-[44px] min-w-[44px]"
               >
                 <ChevronRight size={14} />
               </button>
