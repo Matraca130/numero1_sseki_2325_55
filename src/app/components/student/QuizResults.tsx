@@ -362,5 +362,3 @@ export function QuizResults({
     </motion.div>
   );
 }
-
-export default QuizResults;
