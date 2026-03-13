@@ -47,7 +47,7 @@ export interface CardMasteryDelta {
   grade: number;   // rating given (1-5)
 }
 
-// ── Hook options ────────────────────────────────────────
+// ── Hook options ──────────────────────────────────────────
 
 interface UseFlashcardEngineOpts {
   studentId: string | null;
@@ -62,9 +62,9 @@ interface UseFlashcardEngineOpts {
  *  Gives Supabase time to propagate writes for the subsequent GET. */
 const POST_PERSIST_GRACE_MS = 400;
 
-// ════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // HOOK
-// ═══════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════
 
 export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, onFinish }: UseFlashcardEngineOpts) {
   const [isRevealed, setIsRevealed] = useState(false);
@@ -92,7 +92,10 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
   // ── Per-card mastery deltas for SummaryScreen ──
   const masteryDeltasRef = useRef<CardMasteryDelta[]>([]);
 
-  // ── Batch review hook (queue + compute + submit) ──
+  // ── Batch review hook (queue + compute + submit) ────────
+  // Replaces the old batchQueueRef + sessionBktRef + persistCardResult.
+  // All FSRS+BKT computation and intra-session BKT accumulation
+  // are now handled inside useReviewBatch.
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
 
   // ── Reset all per-session refs ──
@@ -221,6 +224,7 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
 
       (async () => {
         // 1. [M1] Submit all reviews in ONE batch request
+        //    submitBatch handles: local- guard, empty check, fallback to individual POSTs
         if (sessionId) {
           const batchResult = await submitBatch(sessionId);
 
@@ -308,11 +312,18 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
 // ── Helper function to estimate due_at optimistically ──
 
 export function estimateOptimisticDueAt(grade: number): string {
+  // Approximate FSRS intervals for optimistic UI display.
+  // Real values come from the backend via submitBatch().computedResults
+  // or refreshMastery(). This bridges the gap for instant feedback.
   const now = Date.now();
   switch (grade) {
-    case 1: return new Date(now).toISOString();
-    case 2: return new Date(now + 300_000).toISOString();
-    case 3: return new Date(now + 86_400_000).toISOString();
-    default: return new Date(now + 4 * 86_400_000).toISOString();
+    case 1: // Again → immediately due (re-learning step)
+      return new Date(now).toISOString();
+    case 2: // Hard → due in 5 minutes (still "due today")
+      return new Date(now + 300_000).toISOString();
+    case 3: // Good → due tomorrow
+      return new Date(now + 86_400_000).toISOString();
+    default: // Easy (4+) → due in 4 days
+      return new Date(now + 4 * 86_400_000).toISOString();
   }
 }

@@ -27,14 +27,6 @@ export const RATINGS = [
   { value: 5, label: 'Perfeito', color: 'bg-emerald-500', hover: 'hover:bg-emerald-600', text: 'text-emerald-500', desc: 'Memorizado' },
 ] as const;
 
-/** FSRS 4-level grading scale (used by FlashcardReviewer + ReviewSessionView) */
-export const GRADES = [
-  { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabia' },
-  { value: 2, label: 'Dificil', color: 'bg-orange-500 hover:bg-orange-600', desc: 'Con mucho esfuerzo' },
-  { value: 3, label: 'Bien', color: 'bg-emerald-500 hover:bg-emerald-600', desc: 'Con algo de esfuerzo' },
-  { value: 4, label: 'Facil', color: 'bg-blue-500 hover:bg-blue-600', desc: 'Muy facil' },
-] as const;
-
 // ── Pure Utilities ──
 
 export function getMasteryStats(cards: Flashcard[]): MasteryStats {
