@@ -2,10 +2,12 @@
 // Axon — Quiz Design System Tokens
 //
 // Single source of truth for all quiz UI patterns.
-// Professor views use purple accent, Student views use teal.
+// Professor views use purple accent, Student views use Axon brand.
 //
 // Import these tokens instead of hardcoding Tailwind classes
 // to ensure visual consistency across all quiz components.
+//
+// PALETTE: Axon Medical Academy brand tokens (theme.css).
 // ============================================================
 
 // ── Role-based color tokens ──────────────────────────────
@@ -32,17 +34,17 @@ export const PROFESSOR_COLORS = {
 } as const;
 
 export const STUDENT_COLORS = {
-  primary: 'bg-teal-600',
-  primaryHover: 'hover:bg-teal-700',
-  primaryDisabled: 'bg-teal-400 cursor-wait',
-  accent: 'text-teal-600',
-  accentMuted: 'text-teal-500',
-  surfaceBold: 'bg-teal-100',
-  surface: 'bg-teal-50',
-  ring: 'focus:ring-teal-500/20 focus:border-teal-400',
-  hoverBg: 'hover:bg-teal-50',
-  badge: 'bg-teal-50 text-teal-700 border-teal-200',
-  borderHover: 'hover:border-teal-200',
+  primary: 'bg-axon-dark',
+  primaryHover: 'hover:bg-axon-hover',
+  primaryDisabled: 'bg-axon-accent/60 cursor-wait',
+  accent: 'text-axon-accent',
+  accentMuted: 'text-axon-ring-label',
+  surfaceBold: 'bg-axon-accent-20',
+  surface: 'bg-axon-accent-10',
+  ring: 'focus:ring-axon-accent/20 focus:border-axon-accent',
+  hoverBg: 'hover:bg-axon-accent-10',
+  badge: 'bg-axon-accent-10 text-axon-accent border-axon-accent/20',
+  borderHover: 'hover:border-axon-accent/20',
 } as const;
 
 // ── Shared component class strings ───────────────────────
