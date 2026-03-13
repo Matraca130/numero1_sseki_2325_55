@@ -11,7 +11,10 @@
 //             -> AppProvider         (course, topic, studyPlans, sidebar state)
 //                 -> StudentDataProvider  (profile, stats, sessions)
 //                     -> ContentTreeProvider (content tree state)
-//                         -> StudentShell     (sidebar + header + Outlet)
+//                         -> TopicMasteryProvider    (BKT + FSRS mastery)
+//                             -> StudyTimeEstimatesProvider (per-method time estimates)
+//                                 -> StudyPlansProvider      (study plans CRUD + reschedule)
+//                                     -> StudentShell     (sidebar + header + Outlet)
 //
 // ADDING A NEW VIEW:
 //   1. Create /src/app/components/content/MyNewView.tsx
@@ -22,10 +25,13 @@
 // ============================================================
 
 import React from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 import { AppProvider } from '@/app/context/AppContext';
 import { StudentDataProvider } from '@/app/context/StudentDataContext';
 import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
+import { StudyPlansProvider } from '@/app/context/StudyPlansContext';
+import { TopicMasteryProvider } from '@/app/context/TopicMasteryContext';
+import { StudyTimeEstimatesProvider } from '@/app/context/StudyTimeEstimatesContext';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { Sidebar } from '@/app/components/layout/Sidebar';
@@ -116,7 +122,13 @@ export function StudentLayout() {
     <AppProvider>
       <StudentDataProvider>
         <ContentTreeProvider>
-          <StudentShell />
+          <TopicMasteryProvider>
+            <StudyTimeEstimatesProvider>
+              <StudyPlansProvider>
+                <StudentShell />
+              </StudyPlansProvider>
+            </StudyTimeEstimatesProvider>
+          </TopicMasteryProvider>
         </ContentTreeProvider>
       </StudentDataProvider>
     </AppProvider>
