@@ -10,13 +10,12 @@
 //   Single shared hook that fetches once per course, with:
 //   - In-flight request deduplication (same courseId = same promise)
 //   - Configurable TTL cache (default 60s stale-while-revalidate)
-//   - Paginated fetching with cursor (max 200 per page)
 //   - AbortController for cleanup on unmount / course change
 //
 // CONSUMERS:
-//   useFlashcardNavigation → masteryMap (flashcard_id → item)
-//   useKeywordMastery      → keyword grouping from same data
-//   useTopicProgress       → topic aggregation from same data
+//   useFlashcardNavigation -> masteryMap (flashcard_id -> item)
+//   useKeywordMastery      -> keyword grouping from same data
+//   useTopicProgress       -> topic aggregation from same data
 //
 // FIX v4.4.2: Added applyOptimisticBatch() so callers can merge
 // locally-computed FSRS/BKT updates into the queue without waiting
@@ -27,10 +26,13 @@
 //   [L5] load() no longer depends on queue.length (uses ref).
 //        Prevents cascading callback re-creation in consumers.
 //
+// PERF v4.4.4:
+//   [PN-10] applyOptimisticBatch uses queueRef (no [queue] dep).
+//   [PN-13] Removed dead pagination loop (backend returns all in one request).
+//
 // SCALABILITY:
-//   100K users × 2000 cards = we page through in 200-item chunks
-//   instead of pulling 9999 at once. Cache prevents re-fetch on
-//   navigation between views within the same course.
+//   100K users x 2000 cards = fetched in a single request currently.
+//   When backend supports offset pagination, implement chunked fetch here.
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -49,7 +51,7 @@ interface CacheEntry {
 /** TTL in ms — data older than this triggers a background refresh */
 const CACHE_TTL_MS = 60_000; // 60 seconds
 
-/** Page size for paginated fetching */
+/** Page size for future paginated fetching */
 const PAGE_SIZE = 200;
 
 let _cache: CacheEntry | null = null;
@@ -63,8 +65,12 @@ function isCacheValid(courseId: string): boolean {
 }
 
 /**
- * Fetch all study-queue items for a course, paginated.
- * Returns a unified array. Deduplicates in-flight requests.
+ * Fetch all study-queue items for a course.
+ * Deduplicates in-flight requests for the same courseId.
+ *
+ * PN-13: Removed dead pagination loop. Backend currently returns all items
+ * in a single response. When offset pagination is supported, re-implement
+ * chunked fetching here.
  */
 async function fetchStudyQueue(
   courseId: string,
@@ -76,48 +82,24 @@ async function fetchStudyQueue(
   }
 
   const doFetch = async (): Promise<CacheEntry> => {
-    const allItems: StudyQueueItem[] = [];
-    let lastMeta: StudyQueueMeta | null = null;
-    let offset = 0;
-    let hasMore = true;
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-    while (hasMore) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const resp = await getStudyQueue({
+      course_id: courseId,
+      limit: PAGE_SIZE,
+      include_future: true,
+    });
 
-      const resp = await getStudyQueue({
-        course_id: courseId,
-        limit: PAGE_SIZE,
-        include_future: true,
-      });
+    const allItems = resp.queue || [];
+    const meta = resp.meta || null;
 
-      const items = resp.queue || [];
-      lastMeta = resp.meta || null;
-      allItems.push(...items);
-
-      // If we got fewer than PAGE_SIZE, we've reached the end
-      // Also stop if the backend reports total and we've fetched it all
-      if (items.length < PAGE_SIZE) {
-        hasMore = false;
-      } else {
-        offset += PAGE_SIZE;
-        // Safety: backend may not support offset — if returned same count
-        // as total, stop. Otherwise this would be infinite.
-        const total = lastMeta?.total_in_queue ?? Infinity;
-        if (allItems.length >= total) {
-          hasMore = false;
-        } else {
-          // Note: current backend doesn't support offset pagination
-          // for study-queue. When it does, pass offset. For now,
-          // we get everything in one request (backend returns all).
-          hasMore = false;
-        }
-      }
-    }
+    // TODO: When backend supports offset pagination, implement chunked
+    // fetching here (loop while items.length === PAGE_SIZE).
 
     const entry: CacheEntry = {
       courseId,
       queue: allItems,
-      meta: lastMeta,
+      meta,
       fetchedAt: Date.now(),
     };
 
@@ -140,28 +122,20 @@ export function invalidateStudyQueueCache(): void {
   _cache = null;
 }
 
-// ── Hook return type ──────────────────────────────────────
+// ── Hook return type ──────────────────────────────────
 
 export interface StudyQueueData {
-  /** All study-queue items for the current course */
   queue: StudyQueueItem[];
-  /** Backend meta (totals, algorithm info) */
   meta: StudyQueueMeta | null;
-  /** Map: flashcard_id → StudyQueueItem for O(1) lookup */
   byFlashcardId: Map<string, StudyQueueItem>;
-  /** Map: keyword_id → StudyQueueItem[] for keyword grouping */
   byKeywordId: Map<string, StudyQueueItem[]>;
-  /** Map: summary_id → StudyQueueItem[] for topic grouping */
   bySummaryId: Map<string, StudyQueueItem[]>;
-  /** Loading state */
   loading: boolean;
-  /** Refresh (force re-fetch, ignoring cache) */
   refresh: () => Promise<void>;
-  /** Apply optimistic batch updates */
   applyOptimisticBatch: (updates: StudyQueueItem[]) => void;
 }
 
-// ── Hook ──────────────────────────────────────────────────
+// ── Hook ──────────────────────────────────────────────
 
 export function useStudyQueueData(courseId: string | null): StudyQueueData {
   const [queue, setQueue] = useState<StudyQueueItem[]>([]);
@@ -172,7 +146,11 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
   const loadedCourseRef = useRef<string | null>(null);
   // [L5] Ref to track if queue has been populated, avoids queue.length in load deps
   const queuePopulatedRef = useRef(false);
+  // [PN-10] Ref mirror of queue for use in stable callbacks
+  const queueRef = useRef<StudyQueueItem[]>([]);
+  queueRef.current = queue;
 
+  // PN-10: catch(err:any) -> catch(err:unknown)
   const load = useCallback(async (forceRefresh = false) => {
     if (!courseId) {
       setQueue([]);
@@ -206,8 +184,10 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
         loadedCourseRef.current = courseId;
         queuePopulatedRef.current = entry.queue.length > 0;
       }
-    } catch (err: any) {
-      if (err.name !== 'AbortError' && import.meta.env.DEV) {
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // Expected: request was cancelled
+      } else if (import.meta.env.DEV) {
         console.error('[useStudyQueueData] fetch error:', err);
       }
     } finally {
@@ -268,8 +248,10 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
     bySummaryId.current = smMap;
   }
 
+  // PN-10: Uses queueRef instead of queue in closure -> stable [] deps
   const applyOptimisticBatch = useCallback((updates: StudyQueueItem[]) => {
-    const newQueue = [...queue];
+    const currentQueue = queueRef.current;
+    const newQueue = [...currentQueue];
     const updateMap = new Map<string, StudyQueueItem>();
 
     for (const update of updates) {
@@ -295,7 +277,7 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
     }
 
     setQueue(newQueue);
-  }, [queue]);
+  }, []); // PN-10: Empty deps! Uses queueRef for current queue value.
 
   return {
     queue,

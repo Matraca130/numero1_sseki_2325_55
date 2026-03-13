@@ -39,7 +39,7 @@ import type {
   Course,
 } from '@/app/types/platform';
 
-// ── State shape ───────────────────────────────────────────
+// ── State shape ─────────────────────────────────────────────
 
 interface PlatformDataState {
   institution: Institution | null;
@@ -55,9 +55,6 @@ interface PlatformDataContextType extends PlatformDataState {
   error: string | null;
   institutionId: string | null;
 
-  // Refresh functions — one per data slice so pages can
-  // call api.xxx() directly and then refresh only the cache
-  // they affected. This avoids pages needing to edit this file.
   refresh: () => Promise<void>;
   refreshInstitution: () => Promise<void>;
   refreshMembers: () => Promise<void>;
@@ -66,7 +63,6 @@ interface PlatformDataContextType extends PlatformDataState {
   refreshSubscription: () => Promise<void>;
   refreshCourses: () => Promise<void>;
 
-  // Mutation wrappers (call API + update local state)
   inviteMember: (data: CreateMemberPayload) => Promise<MemberListItem>;
   removeMember: (memberId: string) => Promise<void>;
   toggleMember: (memberId: string, active: boolean) => Promise<void>;
@@ -115,6 +111,7 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   // ── Fetch all platform data ─────────────────────────────
+  // PN-12: catch(err:any) -> catch(err:unknown) + DEV guard
   const fetchAll = useCallback(async (instId: string) => {
     setLoading(true);
     setError(null);
@@ -138,21 +135,26 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
         courses: courses.status === 'fulfilled' ? courses.value : [],
       });
       setLoading(false);
-    } catch (err: any) {
-      console.error('[PlatformDataContext] fetch error:', err);
-      setError(err.message);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] fetch error:', err);
+      }
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
   }, []);
 
   // ── Individual refresh functions ────────────────────────
+  // PN-12: All catch blocks: err:any -> err:unknown + DEV guard
   const refreshInstitution = useCallback(async () => {
     if (!institutionId) return;
     try {
       const institution = await api.getInstitution(institutionId);
       setData(prev => ({ ...prev, institution }));
-    } catch (err: any) {
-      console.error('[PlatformDataContext] refreshInstitution error:', err);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] refreshInstitution error:', err);
+      }
     }
   }, [institutionId]);
 
@@ -161,8 +163,10 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     try {
       const members = await api.getMembers(institutionId);
       setData(prev => ({ ...prev, members }));
-    } catch (err: any) {
-      console.error('[PlatformDataContext] refreshMembers error:', err);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] refreshMembers error:', err);
+      }
     }
   }, [institutionId]);
 
@@ -171,8 +175,10 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     try {
       const plans = await api.getInstitutionPlans(institutionId, true);
       setData(prev => ({ ...prev, plans }));
-    } catch (err: any) {
-      console.error('[PlatformDataContext] refreshPlans error:', err);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] refreshPlans error:', err);
+      }
     }
   }, [institutionId]);
 
@@ -181,8 +187,10 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     try {
       const dashboardStats = await api.getInstitutionDashboardStats(institutionId);
       setData(prev => ({ ...prev, dashboardStats }));
-    } catch (err: any) {
-      console.error('[PlatformDataContext] refreshStats error:', err);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] refreshStats error:', err);
+      }
     }
   }, [institutionId]);
 
@@ -191,8 +199,10 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     try {
       const subscription = await api.getInstitutionSubscription(institutionId);
       setData(prev => ({ ...prev, subscription }));
-    } catch (err: any) {
-      console.error('[PlatformDataContext] refreshSubscription error:', err);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] refreshSubscription error:', err);
+      }
     }
   }, [institutionId]);
 
@@ -201,8 +211,10 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
     try {
       const courses = await api.getCourses(institutionId);
       setData(prev => ({ ...prev, courses }));
-    } catch (err: any) {
-      console.error('[PlatformDataContext] refreshCourses error:', err);
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('[PlatformDataContext] refreshCourses error:', err);
+      }
     }
   }, [institutionId]);
 
@@ -254,7 +266,6 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Reset if institution changed
     if (lastInstId.current !== institutionId) {
       setData({
         institution: null,
@@ -301,7 +312,7 @@ export function PlatformDataProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// ── Hook ──────────────────────────────────────────────────
+// ── Hook ────────────────────────────────────────────────
 
 export function usePlatformData() {
   return useContext(PlatformDataContext);
