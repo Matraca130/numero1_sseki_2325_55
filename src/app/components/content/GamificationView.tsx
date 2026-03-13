@@ -357,7 +357,7 @@ export default function GamificationView() {
       checkIn.mutate(undefined, {
         onSuccess: (result) => {
           setCheckedIn(true);
-          const evt = result.events?.[0];
+          const evt = result?.events?.[0];
           if (evt && evt.type !== 'already_checked_in') {
             toast.success(evt.message, { duration: 3500 });
           }
@@ -371,7 +371,7 @@ export default function GamificationView() {
   const totalXP = profileData?.xp?.total ?? 0;
   const levelInfo = getLevelInfo(totalXP);
   const dailyUsed = profileData?.xp?.today ?? 0;
-  const dailyGoal = profileData?.xp?.daily_goal ?? 100;
+  const dailyGoal = profileData?.xp?.daily_goal_minutes ?? 100; // B-001 FIX: was daily_goal
   const badges = badgesResp?.badges ?? [];
   const earnedBadges = badgesResp?.earned_count ?? 0;
   const xpHistory = xpHistoryResp?.items ?? [];

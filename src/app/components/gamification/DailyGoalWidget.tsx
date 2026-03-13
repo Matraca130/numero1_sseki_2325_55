@@ -6,6 +6,8 @@
 // Reads current goal from GET /gamification/profile.
 //
 // Design: subtle, premium — matches "Frosted Glass on Teal".
+//
+// B-001 FIX: reads daily_goal_minutes (not daily_goal) from profile
 // ============================================================
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
@@ -40,7 +42,8 @@ export function DailyGoalWidget() {
     gamificationApi.getProfile(institutionId)
       .then((profile) => {
         if (profile) {
-          const goal = profile.xp.daily_goal || 100;
+          // B-001 FIX: backend returns daily_goal_minutes (not daily_goal)
+          const goal = profile.xp.daily_goal_minutes || 100;
           setCurrentGoal(goal);
           setSliderValue(goal);
           setXpToday(profile.xp.today);

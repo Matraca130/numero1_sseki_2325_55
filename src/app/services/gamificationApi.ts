@@ -10,6 +10,8 @@
 //
 // All calls go through apiCall() (double-token convention).
 // All endpoints require institution_id as QUERY PARAM (not body).
+//
+// FIX B-001: daily_goal → daily_goal_minutes (matches backend DB column)
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -23,7 +25,7 @@ export interface GamificationProfile {
     today: number;
     this_week: number;
     level: number;
-    daily_goal: number;
+    daily_goal_minutes: number; // B-001 FIX: was daily_goal, backend sends daily_goal_minutes
     daily_cap: number;
     streak_freezes_owned: number;
   };
@@ -272,7 +274,9 @@ export async function updateDailyGoal(
       '/gamification/daily-goal',
       {
         method: 'PUT',
-        body: JSON.stringify({ institution_id: institutionId, daily_goal: dailyGoal }),
+        // B-001 FIX: send daily_goal_minutes (canonical column name)
+        // Backend also accepts daily_goal as fallback
+        body: JSON.stringify({ institution_id: institutionId, daily_goal_minutes: dailyGoal }),
       }
     );
   } catch {
@@ -323,7 +327,7 @@ export async function getMyXP(institutionId: string) {
     current_level: profile.xp.level,
     xp_today: profile.xp.today,
     xp_this_week: profile.xp.this_week,
-    daily_goal: profile.xp.daily_goal,
+    daily_goal: profile.xp.daily_goal_minutes, // B-001: reads from daily_goal_minutes
     daily_cap: profile.xp.daily_cap,
     streak_freezes_owned: profile.xp.streak_freezes_owned,
     current_streak: profile.streak.current,
