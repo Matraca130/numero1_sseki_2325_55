@@ -25,6 +25,7 @@
 // FIX: G5 celebrations REMOVED here — now handled exclusively by
 //      QuizResults via useQuizGamificationFeedback (Q-UX1 premium layer)
 //      to avoid duplicate toasts/modals.
+// TD-7: onComplete prop now wired to fire on results phase.
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -88,6 +89,7 @@ interface QuizTakerProps {
   quizTitle: string;
   summaryId?: string;
   onBack: () => void;
+  /** Called once when quiz transitions to results phase (TD-7: now wired) */
   onComplete?: () => void;
   /** Q-UX2: Per-question time limit in seconds (0 or undefined = no limit) */
   timeLimitSeconds?: number;
@@ -104,6 +106,10 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const gamification = useGamification();
   const gamificationRefreshedRef = useRef(false);
 
+  // ── Stable ref for onComplete to avoid useEffect dep churn ──
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   // ── Session lifecycle (hook) ─────────────────────────
   const {
     phase, questions, sessionStartTime, errorMsg, backendWarning,
@@ -113,10 +119,11 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     submitAnswer, finishQuiz, restartSession, reviewSession,
   } = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
 
-  // ── G4: Refresh gamification on quiz completion ──────────
+  // ── G4: Refresh gamification + notify parent on quiz completion ──
   // Fire-and-forget: refresh XP profile + trigger badge check.
   // This populates the GamificationContext that QuizResults'
   // useQuizGamificationFeedback hook reads from.
+  // TD-7: Also fires onComplete callback to notify parent.
   useEffect(() => {
     if (phase !== 'results' || gamificationRefreshedRef.current) return;
     gamificationRefreshedRef.current = true;
@@ -126,6 +133,9 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
     // Fire-and-forget: check if quiz completion earned any badges (stores in context)
     gamification.triggerBadgeCheck().catch(() => {});
+
+    // TD-7: Notify parent that quiz reached results phase
+    onCompleteRef.current?.();
   }, [phase, gamification]);
 
   // Reset gamification refresh flag when quiz restarts
