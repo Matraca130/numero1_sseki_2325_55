@@ -6,10 +6,11 @@ interface NavItemProps {
   label: string;
   active?: boolean;
   onClick?: () => void;
+  /** Visual variant — 'dark' for dark sidebars, 'panel' for embedded panels */
   variant?: 'dark' | 'panel';
 }
 
-export function NavItem({ icon, label, active = false, onClick, variant = 'dark' }: NavItemProps) {
+export const NavItem = React.memo(function NavItem({ icon, label, active = false, onClick, variant = 'dark' }: NavItemProps) {
   const styles = {
     dark: {
       active: 'bg-[#34495e] text-white font-medium',
@@ -35,4 +36,4 @@ export function NavItem({ icon, label, active = false, onClick, variant = 'dark'
       <span>{label}</span>
     </button>
   );
-}
+});
