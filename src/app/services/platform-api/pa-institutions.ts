@@ -1,9 +1,10 @@
 // ============================================================
 // Axon — Platform API: Institutions & Members
-// Extracted from platformApi.ts (zero functional changes)
+// Extracted from platformApi.ts
+// C7-MIGRATION: realRequest → apiCall from lib/api.ts
 // ============================================================
 
-import { realRequest, REAL_BACKEND_URL, getRealToken, ApiError, publicAnonKey } from '@/app/services/apiConfig';
+import { apiCall } from '@/app/lib/api';
 import type {
   UUID,
   Institution,
@@ -13,10 +14,10 @@ import type {
   MembershipRole,
 } from '@/app/types/platform';
 
-const request = realRequest;
+const request = apiCall;
 
-// Re-export error class from config for backward compatibility
-export { ApiError as PlatformApiError } from '@/app/services/apiConfig';
+// Re-export error class from canonical source
+export { ApiError as PlatformApiError } from '@/app/lib/error-utils';
 
 // ============================================================
 // INSTITUTIONS

@@ -3,11 +3,11 @@
 // Extracted from platformApi.ts (zero functional changes)
 // ============================================================
 
-import { realRequest } from '@/app/services/apiConfig';
+import { apiCall } from '@/app/lib/api';
 import type { UUID } from '@/app/types/platform';
 import { hasHttpStatus } from '@/app/utils/getErrorMessage';
 
-const request = realRequest;
+const request = apiCall;
 
 // ============================================================
 // REVIEWS & SPACED REPETITION

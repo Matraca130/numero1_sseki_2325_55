@@ -1,9 +1,10 @@
 // ============================================================
 // Axon — Platform API: Admin Scopes, Access Rules, Admin Students
-// Extracted from platformApi.ts (zero functional changes)
+// Extracted from platformApi.ts
+// C7-MIGRATION: realRequest → apiCall, raw fetch → api.ts imports
 // ============================================================
 
-import { realRequest, REAL_BACKEND_URL, getRealToken, ApiError, publicAnonKey } from '@/app/services/apiConfig';
+import { apiCall, API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
 import type {
   UUID,
   AdminScope,
@@ -13,7 +14,7 @@ import type {
   ISODate,
 } from '@/app/types/platform';
 
-const request = realRequest;
+const request = apiCall;
 
 // ============================================================
 // ADMIN SCOPES
@@ -150,6 +151,12 @@ export interface PaginatedResponse<T> {
   };
 }
 
+/**
+ * Fetch admin student list with pagination.
+ * NOTE: This function uses raw fetch instead of apiCall because
+ * apiCall auto-unwraps { data: ... } which would lose the pagination envelope.
+ * Auth headers follow the canonical double-token convention from api.ts.
+ */
 export async function getAdminStudents(
   institutionId: UUID,
   options?: { page?: number; limit?: number; sort?: string; order?: 'asc' | 'desc' }
@@ -161,21 +168,19 @@ export async function getAdminStudents(
   if (options?.order) params.set('order', options.order);
   const qs = params.toString() ? `?${params}` : '';
 
-  const url = `${REAL_BACKEND_URL}/admin/students/${institutionId}${qs}`;
-  const token = getRealToken();
+  const url = `${API_BASE}/admin/students/${institutionId}${qs}`;
+  const token = getAccessToken();
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${publicAnonKey}`,
+      'Authorization': `Bearer ${ANON_KEY}`,
       ...(token ? { 'X-Access-Token': token } : {}),
     },
   });
   const body = await res.json();
   if (!res.ok || body?.error) {
-    throw new ApiError(
-      body?.error || `API error ${res.status}`,
-      'API_ERROR',
-      res.status
+    throw new Error(
+      body?.error || `API error ${res.status}`
     );
   }
   return { data: body.data, pagination: body.pagination };

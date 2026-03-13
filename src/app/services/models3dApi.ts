@@ -15,7 +15,6 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
-import { ApiError } from '@/app/services/apiConfig';
 import { logger } from '@/app/lib/logger';
 
 // ── Types (canonical definitions in types/model3d.ts) ─────
@@ -296,7 +295,7 @@ const BATCH_UNAVAIL_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Batch-fetch models for multiple topics in a single request.
- * C2 cleanup: migrated from realRequest → apiCall.
+ * C7-MIGRATION: ApiError instanceof → Error message regex (apiCall throws Error, not ApiError).
  */
 export async function getModels3DBatch(
   topicIds: string[],
@@ -328,7 +327,6 @@ export async function getModels3DBatch(
   if (!_batchEndpointUnavailable && uncached.length > 1) {
     try {
       const qs = uncached.join(',');
-      // C2: migrated from realRequest → apiCall
       const batchResult = await apiCall<Record<string, Model3D[]>>(
         `/models-3d/batch?topic_ids=${qs}`,
       );
@@ -342,8 +340,8 @@ export async function getModels3DBatch(
       logger.debug('Models3D', `Batch endpoint: ${uncached.length} topics in 1 request`);
       return result;
     } catch (err: unknown) {
-      // 3DP-3: Type-safe error detection via instanceof ApiError
-      const is404or405 = err instanceof ApiError && (err.status === 404 || err.status === 405);
+      // C7-MIGRATION: apiCall throws Error (not ApiError), detect status from message
+      const is404or405 = err instanceof Error && /\b(404|405)\b/.test(err.message);
       if (is404or405) {
         _batchEndpointUnavailable = true;
         _batchDisabledAt = Date.now();
