@@ -76,7 +76,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
   return (
     <div className="space-y-4">
       {/* Cloze text */}
-      <div className="text-lg text-zinc-100 text-center leading-relaxed">
+      <div className="text-lg text-gray-900 text-center leading-relaxed">
         {parts.map((part, i) => {
           if (part.startsWith('{{') && part.endsWith('}}')) {
             const word = part.slice(2, -2);
@@ -92,7 +92,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.15 }}
-                      className="inline-block px-2 py-0.5 bg-emerald-500/25 text-emerald-300 rounded font-semibold border-b-2 border-emerald-400/50"
+                      className="inline-block px-2 py-0.5 bg-emerald-500/20 text-emerald-700 rounded font-semibold border-b-2 border-emerald-400/50"
                     >
                       {word}
                     </motion.span>
@@ -104,7 +104,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
                         e.stopPropagation();
                         handleRevealOne(idx);
                       }}
-                      className="inline-block px-3 py-0.5 bg-cyan-500/15 border-b-2 border-cyan-400/50 text-cyan-300/60 rounded cursor-pointer hover:bg-cyan-500/25 hover:text-cyan-200 transition-all min-w-[3rem] text-center active:scale-95"
+                      className="inline-block px-3 py-0.5 bg-[#2a8c7a]/10 border-b-2 border-[#2a8c7a]/40 text-[#2a8c7a]/50 rounded cursor-pointer hover:bg-[#2a8c7a]/20 hover:text-[#2a8c7a] transition-all min-w-[3rem] text-center active:scale-95"
                       whileTap={{ scale: 0.95 }}
                     >
                       ____
@@ -121,7 +121,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
       {/* Controls */}
       <div className="flex items-center justify-center gap-4">
         {/* Counter */}
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-gray-400">
           {revealedCount}/{totalBlanks} revelado{revealedCount !== 1 ? 's' : ''}
         </span>
 
@@ -133,7 +133,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
               e.stopPropagation();
               handleRevealAll();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 text-xs font-medium hover:bg-cyan-500/25 transition-all border border-cyan-500/20"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2a8c7a]/10 text-[#2a8c7a] text-xs font-medium hover:bg-[#2a8c7a]/20 transition-all border border-[#2a8c7a]/20"
           >
             <Eye size={12} />
             Revelar todos
@@ -141,7 +141,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
         )}
 
         {allRevealed && (
-          <span className="text-xs text-emerald-400 font-medium">
+          <span className="text-xs text-emerald-600 font-medium">
             Todos revelados — califica abajo
           </span>
         )}

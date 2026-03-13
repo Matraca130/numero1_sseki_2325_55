@@ -87,30 +87,30 @@ export function FlashcardImageZoom({ imageUrl, onClose }: FlashcardImageZoomProp
           <div className="flex items-center gap-2">
             <button
               onClick={() => setScale(s => Math.min(5, s + 0.5))}
-              className="p-2 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 transition-all"
+              className="p-2 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 transition-all"
               title="Zoom in"
             >
               <ZoomIn size={18} />
             </button>
             <button
               onClick={() => setScale(s => Math.max(0.5, s - 0.5))}
-              className="p-2 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 transition-all"
+              className="p-2 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 transition-all"
               title="Zoom out"
             >
               <ZoomOut size={18} />
             </button>
             <button
               onClick={resetZoom}
-              className="p-2 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 transition-all"
+              className="p-2 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 transition-all"
               title="Reset"
             >
               <RotateCcw size={18} />
             </button>
-            <span className="text-xs text-zinc-500 ml-2">{Math.round(scale * 100)}%</span>
+            <span className="text-xs text-white/50 ml-2">{Math.round(scale * 100)}%</span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 transition-all"
+            className="p-2 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 transition-all"
           >
             <X size={20} />
           </button>
