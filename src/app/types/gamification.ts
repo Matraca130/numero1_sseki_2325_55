@@ -1,82 +1,116 @@
 // ============================================================
-// Axon — Gamification Types
-// Mirrors backend: routes/gamification/, xp-engine.ts,
-// streak-engine.ts, student_xp table, xp_transactions table
+// Axon v4.4 — Gamification Types
 //
-// NOTE: Response types for API calls live in gamificationApi.ts.
-// This file holds DB-level types, constants, and shared utilities.
+// Sprint G1 Foundation types matching backend contracts:
+//   - xp-engine.ts   → XP_TABLE, LEVEL_THRESHOLDS, AwardResult
+//   - streak-engine.ts → StreakStatus, CheckInResult, CheckInEvent
+//   - routes/gamification/ → Profile, Leaderboard, Badges
+//
+// AUDIT FIX: All types now match EXACT backend response shapes.
+// Backend wraps responses with ok(c, data) → { data: ... }
+// apiCall() unwraps { data } envelope automatically.
+//
+// NOTE: XP awarding is 100% server-side (afterWrite hooks).
+// Frontend NEVER calls POST /award-xp. These types are READ-ONLY.
 // ============================================================
 
-// ── XP Transactions ───────────────────────────────────────
+// ── GET /gamification/profile (COMPOSITE response) ────────
+// Backend profile.ts returns nested structure, NOT flat row.
 
-export interface XPTransaction {
-  id: string;
-  student_id: string;
-  institution_id: string;
-  action: string; // XPAction union + dynamic backend actions (badge_*, goal_*, streak_*)
-  xp_base: number;
-  xp_final: number;
-  multiplier: number;
-  bonus_type: string | null;
-  source_type: string | null;
-  source_id: string | null;
-  created_at: string;
+export interface GamificationProfileResponse {
+  xp: {
+    total: number;
+    today: number;
+    this_week: number;
+    level: number;
+    daily_goal: number;
+    daily_cap: number;
+    streak_freezes_owned: number;
+  };
+  streak: {
+    current: number;
+    longest: number;
+    last_study_date: string | null;
+  };
+  badges_earned: number;
 }
 
-// Known XP actions (frontend-triggered). Backend also generates
-// badge_*, goal_*, streak_freeze_buy, streak_repair actions.
-export type XPAction =
-  | 'review_flashcard'
-  | 'review_correct'
-  | 'quiz_answer'
-  | 'quiz_correct'
-  | 'complete_session'
-  | 'complete_reading'
-  | 'complete_video'
-  | 'streak_daily'
-  | 'complete_plan_task'
-  | 'complete_plan'
-  | 'rag_question';
+// ── Flattened profile for UI consumption ──────────────────────
+// Components use this normalized shape (mapped from response).
 
-// ── Level System ──────────────────────────────────────────
+export interface GamificationProfile {
+  total_xp: number;
+  xp_today: number;
+  xp_this_week: number;
+  current_level: number;
+  daily_goal_xp: number;
+  daily_cap: number;
+  streak_freezes_owned: number;
+  streak_current: number;
+  streak_longest: number;
+  last_study_date: string | null;
+  badges_earned: number;
+}
 
-export const LEVEL_THRESHOLDS: { xp: number; level: number; title: string }[] = [
-  { xp: 0,     level: 1,  title: 'Novato' },
-  { xp: 100,   level: 2,  title: 'Aprendiz' },
-  { xp: 300,   level: 3,  title: 'Practicante' },
-  { xp: 600,   level: 4,  title: 'Interno' },
-  { xp: 1000,  level: 5,  title: 'Residente Jr.' },
-  { xp: 1500,  level: 6,  title: 'Residente' },
-  { xp: 2200,  level: 7,  title: 'Residente Sr.' },
-  { xp: 3000,  level: 8,  title: 'Especialista Jr.' },
-  { xp: 4000,  level: 9,  title: 'Especialista' },
-  { xp: 5500,  level: 10, title: 'Subespecialista' },
-  { xp: 7500,  level: 11, title: 'Jefe de Servicio' },
-  { xp: 10000, level: 12, title: 'Catedratico' },
-];
+/** Maps backend composite response → flat UI profile */
+export function mapProfileResponse(
+  res: GamificationProfileResponse,
+): GamificationProfile {
+  return {
+    total_xp: res.xp.total,
+    xp_today: res.xp.today,
+    xp_this_week: res.xp.this_week,
+    current_level: res.xp.level,
+    daily_goal_xp: res.xp.daily_goal,
+    daily_cap: res.xp.daily_cap,
+    streak_freezes_owned: res.xp.streak_freezes_owned,
+    streak_current: res.streak.current,
+    streak_longest: res.streak.longest,
+    last_study_date: res.streak.last_study_date,
+    badges_earned: res.badges_earned,
+  };
+}
 
-export function getLevelInfo(totalXP: number) {
-  let current = LEVEL_THRESHOLDS[0];
-  let next = LEVEL_THRESHOLDS[1] ?? null;
+// ── Level Thresholds (synced from xp-engine.ts) ──────────────
+// Must stay in sync with backend LEVEL_THRESHOLDS constant.
 
-  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (totalXP >= LEVEL_THRESHOLDS[i].xp) {
-      current = LEVEL_THRESHOLDS[i];
-      next = LEVEL_THRESHOLDS[i + 1] ?? null;
-      break;
-    }
+export const LEVEL_THRESHOLDS: ReadonlyArray<{ level: number; xp: number }> = [
+  { level: 1, xp: 0 },
+  { level: 2, xp: 100 },
+  { level: 3, xp: 300 },
+  { level: 4, xp: 600 },
+  { level: 5, xp: 1000 },
+  { level: 6, xp: 1500 },
+  { level: 7, xp: 2200 },
+  { level: 8, xp: 3000 },
+  { level: 9, xp: 4000 },
+  { level: 10, xp: 5500 },
+  { level: 11, xp: 7500 },
+  { level: 12, xp: 10000 },
+] as const;
+
+/** XP needed for current → next level, and progress percentage */
+export function getLevelProgress(totalXp: number, currentLevel: number) {
+  const currentThreshold =
+    LEVEL_THRESHOLDS.find((t) => t.level === currentLevel)?.xp ?? 0;
+  const nextThreshold =
+    LEVEL_THRESHOLDS.find((t) => t.level === currentLevel + 1)?.xp ?? null;
+
+  // Max level reached
+  if (nextThreshold === null) {
+    return { current: totalXp, needed: totalXp, progress: 1, isMaxLevel: true };
   }
 
-  const xpInLevel = totalXP - current.xp;
-  const xpForNext = next ? next.xp - current.xp : 0;
-  const progress = next ? Math.min(1, xpInLevel / xpForNext) : 1;
+  const xpInLevel = totalXp - currentThreshold;
+  const xpNeeded = nextThreshold - currentThreshold;
+  const progress = Math.min(1, Math.max(0, xpInLevel / xpNeeded));
 
-  return { ...current, next, xpInLevel, xpForNext, progress };
+  return { current: xpInLevel, needed: xpNeeded, progress, isMaxLevel: false };
 }
 
-// ── XP Table (mirrors backend xp-engine.ts) ───────────────
+// ── XP Table (display-only, synced from xp-engine.ts) ────
 
-export const XP_TABLE: Record<XPAction, number> = {
+export const XP_TABLE: Readonly<Record<string, number>> = {
   review_flashcard: 5,
   review_correct: 10,
   quiz_answer: 5,
@@ -88,11 +122,35 @@ export const XP_TABLE: Record<XPAction, number> = {
   complete_plan_task: 15,
   complete_plan: 100,
   rag_question: 5,
-};
+} as const;
 
-export const XP_DAILY_CAP = 500;
+// ── XP Transaction (xp_transactions table) ───────────────
 
-// ── Streak ────────────────────────────────────────────────
+export interface XpTransaction {
+  id: string;
+  student_id: string;
+  institution_id: string;
+  action: string;
+  xp_base: number;
+  xp_final: number;
+  multiplier: number;
+  bonus_type: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  created_at: string;
+}
+
+// ── GET /gamification/xp-history response ─────────────────────
+// Backend returns paginated wrapper, not raw array.
+
+export interface XpHistoryResponse {
+  items: XpTransaction[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+// ── Streak (from streak-engine.ts) ───────────────────────
 
 export interface StreakStatus {
   current_streak: number;
@@ -105,65 +163,83 @@ export interface StreakStatus {
   days_since_last_study: number | null;
 }
 
-// ── Badges ────────────────────────────────────────────────
+export interface CheckInEvent {
+  type:
+    | 'streak_started'
+    | 'streak_incremented'
+    | 'freeze_consumed'
+    | 'streak_broken'
+    | 'already_checked_in';
+  message: string;
+  data?: Record<string, unknown>;
+}
 
-export interface Badge {
+export interface CheckInResult {
+  streak_status: StreakStatus;
+  events: CheckInEvent[];
+}
+
+// ── Badges ───────────────────────────────────────────
+
+export type BadgeCategory =
+  | 'consistency'
+  | 'study'
+  | 'mastery'
+  | 'exploration'
+  | 'social';
+
+export type BadgeRarity =
+  | 'common'
+  | 'uncommon'
+  | 'rare'
+  | 'epic'
+  | 'legendary';
+
+export interface BadgeWithEarnedStatus {
   id: string;
-  slug: string;
   name: string;
   description: string;
-  icon: string; // Lucide component name (e.g. 'Flame', 'Brain')
-  category: 'consistency' | 'study' | 'mastery' | 'exploration' | 'social';
-  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
-  xp_reward?: number;
+  slug?: string;
+  /** Lucide icon name (e.g. 'Flame', 'Crown', 'Trophy') */
+  icon: string;
+  category: BadgeCategory;
+  rarity: BadgeRarity;
+  xp_reward: number;
+  trigger_type: string;
+  trigger_config?: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  // Merged earned data from backend
+  earned: boolean;
   earned_at: string | null;
-  progress?: number;
-  requirement?: number;
 }
 
-// ── Study Queue ───────────────────────────────────────────
-
-export interface StudyQueueItem {
-  flashcard_id: string;
-  summary_id: string;
-  keyword_id: string;
-  subtopic_id: string | null;
-  front: string;
-  back: string;
-  front_image_url: string | null;
-  back_image_url: string | null;
-  need_score: number;
-  retention: number;
-  mastery_color: 'blue' | 'green' | 'yellow' | 'orange' | 'red' | 'gray';
-  p_know: number;
-  fsrs_state: string;
-  due_at: string | null;
-  stability: number;
-  difficulty: number;
-  is_new: boolean;
-  reps: number;
-  lapses: number;
-  last_review_at: string | null;
-  max_p_know: number;
-  clinical_priority: number;
-  consecutive_lapses: number;
-  is_leech: boolean;
+export interface BadgesResponse {
+  badges: BadgeWithEarnedStatus[];
+  total: number;
+  earned_count: number;
 }
 
-export interface StudyQueueMeta {
-  total_due: number;
-  total_new: number;
-  total_in_queue: number;
-  returned: number;
-  limit: number;
-  include_future: boolean;
-  course_id: string | null;
-  generated_at: string;
-  algorithm: string;
-  engine: 'sql' | 'js';
+// ── Leaderboard ──────────────────────────────────────
+
+export interface LeaderboardEntry {
+  student_id: string;
+  xp_this_week?: number;
+  xp_today?: number;
+  current_level: number;
+  total_xp: number;
 }
 
-export interface StudyQueueResponse {
-  queue: StudyQueueItem[];
-  meta: StudyQueueMeta;
+export interface LeaderboardResponse {
+  leaderboard: LeaderboardEntry[];
+  my_rank: number | null;
+  period: string;
+}
+
+export type LeaderboardPeriod = 'weekly' | 'daily';
+
+// ── Daily Goal ───────────────────────────────────────
+
+export interface DailyGoalUpdate {
+  daily_goal: number;
 }

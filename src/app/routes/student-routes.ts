@@ -1,33 +1,41 @@
 // ============================================================
-// Axon — Student Routes ASSEMBLER (PROTECTED — no agent touches this)
-//
-// This file ONLY imports and spreads per-agent route files.
-// Each agent owns their own route file and can modify it freely.
-//
-// ARCHITECTURE:
-//   quiz-student-routes.ts       → Agent 1 OWNER
-//   summary-student-routes.ts    → Agent 2 OWNER
-//   flashcard-student-routes.ts  → Agent 3 OWNER
-//   study-student-routes.ts      → Agent 5 OWNER
-//   threed-student-routes.ts     → Agent 6 OWNER
+// Axon — Student Routes (children of StudentLayout)
 // ============================================================
 import type { RouteObject } from 'react-router';
 
-import { quizStudentRoutes } from './quiz-student-routes';
-import { summaryStudentRoutes } from './summary-student-routes';
-import { flashcardStudentRoutes } from './flashcard-student-routes';
-import { studyStudentRoutes } from './study-student-routes';
-import { threeDStudentRoutes } from './threed-student-routes';
+import { WelcomeView } from '@/app/components/content/WelcomeView';
+import { DashboardView } from '@/app/components/content/DashboardView';
+import { StudyHubView } from '@/app/components/content/StudyHubView';
+import { QuizView } from '@/app/components/content/QuizView';
+import { PlaceholderPage } from '@/app/components/roles/PlaceholderPage';
 
 export const studentChildren: RouteObject[] = [
-  ...studyStudentRoutes,       // Agent 5 (includes index route)
-  ...quizStudentRoutes,        // Agent 1
-  ...summaryStudentRoutes,     // Agent 2
-  ...flashcardStudentRoutes,   // Agent 3
-  ...threeDStudentRoutes,      // Agent 6
-  // Catch-all — keep last
+  { index: true,                    Component: WelcomeView },
+  { path: 'dashboard',              Component: DashboardView },
+  { path: 'study-hub',              Component: StudyHubView },
+  { path: 'quiz',                   Component: QuizView },
+  // ── Podados (placeholder hasta reimplementar) ──
+  { path: 'study',                  Component: PlaceholderPage },
+  { path: 'flashcards',             Component: PlaceholderPage },
+  { path: '3d',                     Component: PlaceholderPage },
+  { path: 'schedule',               Component: PlaceholderPage },
+  { path: 'organize-study',         Component: PlaceholderPage },
+  { path: 'review-session',         Component: PlaceholderPage },
+  { path: 'study-dashboards',       Component: PlaceholderPage },
+  { path: 'knowledge-heatmap',      Component: PlaceholderPage },
+  { path: 'mastery-dashboard',      Component: PlaceholderPage },
+  { path: 'student-data',           Component: PlaceholderPage },
+  // ── G6: Gamification pages (lazy-loaded) ──
   {
-    path: '*',
-    lazy: () => import('@/app/components/content/WelcomeView').then(m => ({ Component: m.WelcomeView })),
+    path: 'badges',
+    lazy: () => import('@/app/components/gamification/pages/BadgesPage').then(m => ({ Component: m.BadgesPage })),
+  },
+  {
+    path: 'leaderboard',
+    lazy: () => import('@/app/components/gamification/pages/LeaderboardPage').then(m => ({ Component: m.LeaderboardPage })),
+  },
+  {
+    path: 'xp-history',
+    lazy: () => import('@/app/components/gamification/pages/XpHistoryPage').then(m => ({ Component: m.XpHistoryPage })),
   },
 ];
