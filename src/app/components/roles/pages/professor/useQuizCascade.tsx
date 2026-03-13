@@ -215,10 +215,12 @@ export function useQuizCascade(): UseQuizCascadeReturn {
   }, [selectedSummaryId]);
 
   // C3: kw.name || kw.term for DB column compatibility
+  // Keyword.name is now in the TS type (platform.ts).
+  // Falls back to kw.term for backward compat with older data.
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
-      map.set(kw.id, (kw as any).name || kw.term || kw.id.substring(0, 8) + '...');
+      map.set(kw.id, kw.name || kw.term || kw.id.substring(0, 8) + '...');
     }
     return map;
   }, [keywords]);
