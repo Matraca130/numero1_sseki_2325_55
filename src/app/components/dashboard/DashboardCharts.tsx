@@ -1,7 +1,12 @@
 // ============================================================
-// Axon — Dashboard Charts
-// Activity BarChart + Mastery Donut PieChart.
-// Extracted from DashboardView.tsx for modularization.
+// Axon — Dashboard Charts (RESPONSIVE VERSION)
+//
+// Changes from original:
+//   1. ActivityChart legend: flex-wrap for mobile
+//   2. ActivityChart header: stacks on mobile (flex-col sm:flex-row)
+//   3. Chart heights: min-h reduced on mobile
+//   4. MasteryDonut: responsive inner/outer radius not needed
+//      (ResponsiveContainer handles it)
 // ============================================================
 import React from 'react';
 import { motion } from 'motion/react';
@@ -45,12 +50,12 @@ export function ActivityChart({ data }: ActivityChartProps) {
       animate={{ opacity: 1, y: 0 }}
       className={`lg:col-span-2 ${components.chartCard.base} min-w-0`}
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900" style={headingStyle}>Actividad de Estudio</h3>
           <p className="text-sm text-gray-500">Comparativo de videos vs. flashcards</p>
         </div>
-        <div className="flex items-center gap-4 text-xs font-medium text-gray-500">
+        <div className="flex items-center gap-3 sm:gap-4 text-xs font-medium text-gray-500 flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-axon-accent" />
             Flashcards
@@ -62,7 +67,7 @@ export function ActivityChart({ data }: ActivityChartProps) {
         </div>
       </div>
 
-      <div className="h-[300px] w-full min-w-0" style={{ minHeight: '300px' }}>
+      <div className="h-[220px] sm:h-[300px] w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
           <BarChart data={data} barSize={24} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -110,17 +115,17 @@ export function MasteryDonut({ data, totalCards }: MasteryDonutProps) {
       className={`${components.chartCard.base} min-w-0`}
     >
       <h3 className="text-lg font-semibold text-gray-900 mb-1" style={headingStyle}>Nivel de Dominio</h3>
-      <p className="text-sm text-gray-500 mb-6">Basado en la metodologia SM2</p>
+      <p className="text-sm text-gray-500 mb-4 sm:mb-6">Basado en la metodologia SM2</p>
 
-      <div className="h-[220px] relative min-w-0" style={{ minHeight: '220px' }}>
+      <div className="h-[180px] sm:h-[220px] relative min-w-0">
         <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={80}
+              innerRadius="55%"
+              outerRadius="75%"
               paddingAngle={5}
               dataKey="value"
               stroke="none"
@@ -135,19 +140,19 @@ export function MasteryDonut({ data, totalCards }: MasteryDonutProps) {
 
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-3xl font-bold text-gray-900">{totalCards || '\u2014'}</span>
-          <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Temas</span>
+          <span className="text-2xl sm:text-3xl font-bold text-gray-900">{totalCards || '\u2014'}</span>
+          <span className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wide">Total Temas</span>
         </div>
       </div>
 
-      <div className="space-y-3 mt-4">
+      <div className="space-y-2 sm:space-y-3 mt-4">
         {data.map((item, index) => (
           <div key={`${item.name}-${index}`} className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="text-gray-600">{item.name}</span>
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+              <span className="text-gray-600 truncate">{item.name}</span>
             </div>
-            <span className="font-semibold text-gray-900">{totalCards > 0 ? Math.round((item.value / totalCards) * 100) : 0}%</span>
+            <span className="font-semibold text-gray-900 shrink-0 ml-2">{totalCards > 0 ? Math.round((item.value / totalCards) * 100) : 0}%</span>
           </div>
         ))}
       </div>
