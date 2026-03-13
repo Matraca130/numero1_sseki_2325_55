@@ -11,19 +11,20 @@
 //
 // Architecture: stateless refs → Promise-based API
 //
-// BKT v3.1 computation is inlined below (previously imported from
-// bkt-engine.ts, which was deprecated in PATH B migration and
-// threw unconditionally — silently breaking BKT persistence).
+// Q-UX2 FIX: BKT v3.1 computation is now INLINED here.
+// Previously imported from bkt-engine.ts, which was deprecated
+// in PATH B migration and threw unconditionally — silently
+// breaking BKT persistence. This matches GitHub main (commit 8e57c28).
 // ============================================================
 
 import { useRef, useCallback } from 'react';
 import type { QuizQuestion } from '@/app/services/quizApi';
-import { upsertBktState } from '@/app/services/quizApi';
+import { upsertBktState } from '@/app/services/bktApi';
 import { logger } from '@/app/lib/logger';
 
 // ── BKT v3.1 Inline Computation ─────────────────────────
 // Parameters match what we send to upsertBktState.
-// Previously lived in bkt-engine.ts (now deleted).
+// Previously lived in bkt-engine.ts (now a dead stub).
 
 const P_TRANSIT = 0.1;
 const P_SLIP = 0.1;
@@ -76,7 +77,7 @@ export interface UseQuizBktReturn {
   resetBkt: () => void;
 }
 
-// ── Hook ─────────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────────
 
 export function useQuizBkt(): UseQuizBktReturn {
   // Running BKT mastery per subtopic (accumulates across questions)
