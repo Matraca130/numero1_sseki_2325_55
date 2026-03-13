@@ -18,7 +18,7 @@ import * as gamificationApi from '@/app/services/gamificationApi';
 import type { GamificationProfile, LeaderboardResponse } from '@/app/services/gamificationApi';
 import { LevelProgressBar } from './LevelProgressBar';
 import { DAILY_CAP } from '@/app/lib/xp-constants';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 
 export function GamificationCard() {
   const { selectedInstitution } = useAuth();
