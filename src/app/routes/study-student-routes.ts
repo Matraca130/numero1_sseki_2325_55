@@ -56,5 +56,18 @@ export const studyStudentRoutes: RouteObject[] = [
     path: 'gamification',
     lazy: () => import('@/app/components/content/GamificationView').then(m => ({ Component: m.GamificationView })),
   },
+  // ── G6: Dedicated gamification sub-pages (lazy-loaded) ──
+  {
+    path: 'badges',
+    lazy: () => import('@/app/components/gamification/pages/BadgesPage').then(m => ({ Component: m.BadgesPage })),
+  },
+  {
+    path: 'leaderboard',
+    lazy: () => import('@/app/components/gamification/pages/LeaderboardPage').then(m => ({ Component: m.LeaderboardPage })),
+  },
+  {
+    path: 'xp-history',
+    lazy: () => import('@/app/components/gamification/pages/XpHistoryPage').then(m => ({ Component: m.XpHistoryPage })),
+  },
   // Agent 5: agrega nuevas rutas de study/dashboard aqui
 ];
