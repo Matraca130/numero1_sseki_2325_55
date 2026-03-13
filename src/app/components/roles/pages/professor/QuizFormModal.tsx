@@ -4,6 +4,8 @@
 // Extracted from QuizzesManager.tsx (Phase 6a).
 // Handles creating and editing Quiz entities (NOT questions).
 //
+// Q-UX2: Added time_limit_seconds configuration (per-question timer).
+//
 // Props:
 //   summaryId — parent summary to attach quiz to
 //   quiz      — null = create mode, Quiz = edit mode
@@ -12,14 +14,16 @@
 // ============================================================
 
 import { useState } from 'react';
-import { apiCall } from '@/app/lib/api';
+import * as quizApi from '@/app/services/quizApi';
 import { motion } from 'motion/react';
 import clsx from 'clsx';
+import { MODAL_OVERLAY, MODAL_CARD, MODAL_HEADER, MODAL_FOOTER, BTN_PRIMARY, BTN_GHOST, BTN_CLOSE, INPUT_BASE, TEXTAREA_BASE, LABEL, BANNER_ERROR, PROFESSOR_COLORS } from '@/app/services/quizDesignTokens';
 import {
-  Plus, Pencil, X, Check, AlertCircle, Loader2,
+  Plus, Pencil, X, Check, AlertCircle, Loader2, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { QuizEntity } from '@/app/services/quizApi';
+import { getErrorMsg } from '@/app/lib/error-utils';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -42,8 +46,21 @@ export function QuizFormModal({
 
   const [title, setTitle] = useState(quiz?.title || '');
   const [description, setDescription] = useState(quiz?.description || '');
+  const [timeLimitEnabled, setTimeLimitEnabled] = useState(
+    (quiz?.time_limit_seconds ?? 0) > 0
+  );
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(
+    Math.floor((quiz?.time_limit_seconds ?? 0) / 60)
+  );
+  const [timeLimitSeconds, setTimeLimitSeconds] = useState(
+    (quiz?.time_limit_seconds ?? 0) % 60
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const computedTimeLimitSeconds = timeLimitEnabled
+    ? timeLimitMinutes * 60 + timeLimitSeconds
+    : null;
 
   const handleSubmit = async () => {
     setError(null);
@@ -51,38 +68,33 @@ export function QuizFormModal({
       setError('El titulo es obligatorio');
       return;
     }
+    if (timeLimitEnabled && (timeLimitMinutes * 60 + timeLimitSeconds) < 5) {
+      setError('El tiempo minimo por pregunta es 5 segundos');
+      return;
+    }
 
     setSaving(true);
     try {
       if (isEdit && quiz) {
-        await apiCall(`/quizzes/${quiz.id}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            title: title.trim(),
-            description: description.trim() || null,
-          }),
+        await quizApi.updateQuiz(quiz.id, {
+          title: title.trim(),
+          description: description.trim() || null,
+          time_limit_seconds: computedTimeLimitSeconds,
         });
         toast.success('Quiz actualizado');
       } else {
-        await apiCall('/quizzes', {
-          method: 'POST',
-          body: JSON.stringify({
-            summary_id: summaryId,
-            title: title.trim(),
-            description: description.trim() || null,
-            source: 'manual',
-          }),
+        await quizApi.createQuiz({
+          summary_id: summaryId,
+          title: title.trim(),
+          description: description.trim() || null,
+          source: 'manual',
+          time_limit_seconds: computedTimeLimitSeconds,
         });
         toast.success('Quiz creado');
       }
       onSaved();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al guardar';
-      if (msg.includes('404') || msg.includes('Not Found')) {
-        setError('Ruta /quizzes aun no existe en el backend. Pendiente de despliegue.');
-      } else {
-        setError(msg);
-      }
+      setError(getErrorMsg(err));
     } finally {
       setSaving(false);
     }
@@ -93,7 +105,7 @@ export function QuizFormModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className={MODAL_OVERLAY}
       onClick={onClose}
     >
       <motion.div
@@ -102,10 +114,10 @@ export function QuizFormModal({
         exit={{ scale: 0.95, opacity: 0, y: 12 }}
         transition={{ duration: 0.2 }}
         onClick={e => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-[480px] flex flex-col overflow-hidden"
+        className={`${MODAL_CARD} w-full max-w-[480px] flex flex-col overflow-hidden`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className={MODAL_HEADER}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
               {isEdit ? <Pencil size={16} className="text-purple-600" /> : <Plus size={16} className="text-purple-600" />}
@@ -121,7 +133,7 @@ export function QuizFormModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+            className={BTN_CLOSE}
           >
             <X size={18} />
           </button>
@@ -130,14 +142,14 @@ export function QuizFormModal({
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[12px]">
+            <div className={BANNER_ERROR}>
               <AlertCircle size={14} />
               {error}
             </div>
           )}
 
           <div>
-            <label className="text-[11px] text-gray-500 mb-1 block" style={{ fontWeight: 600 }}>
+            <label className={LABEL} style={{ fontWeight: 600 }}>
               Titulo *
             </label>
             <input
@@ -145,13 +157,13 @@ export function QuizFormModal({
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Ej: Quiz de anatomia - Tema 3"
-              className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 placeholder:text-gray-300"
+              className={`${INPUT_BASE} ${PROFESSOR_COLORS.ring}`}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="text-[11px] text-gray-500 mb-1 block" style={{ fontWeight: 600 }}>
+            <label className={LABEL} style={{ fontWeight: 600 }}>
               Descripcion <span className="text-gray-400" style={{ fontWeight: 400 }}>(opcional)</span>
             </label>
             <textarea
@@ -159,16 +171,81 @@ export function QuizFormModal({
               onChange={e => setDescription(e.target.value)}
               placeholder="Descripcion breve del quiz..."
               rows={3}
-              className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 resize-none placeholder:text-gray-300"
+              className={`${TEXTAREA_BASE} ${PROFESSOR_COLORS.ring}`}
             />
+          </div>
+
+          {/* Q-UX2: Time limit per question */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className={LABEL} style={{ fontWeight: 600 }}>
+                <Clock size={12} className="inline mr-1 text-purple-500" />
+                Tiempo por pregunta
+              </label>
+              <button
+                type="button"
+                onClick={() => setTimeLimitEnabled(!timeLimitEnabled)}
+                className={clsx(
+                  'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                  timeLimitEnabled ? 'bg-purple-600' : 'bg-gray-300'
+                )}
+                aria-label={timeLimitEnabled ? 'Desactivar limite de tiempo' : 'Activar limite de tiempo'}
+              >
+                <span
+                  className={clsx(
+                    'inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm',
+                    timeLimitEnabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  )}
+                />
+              </button>
+            </div>
+
+            {timeLimitEnabled && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={timeLimitMinutes}
+                    onChange={e => setTimeLimitMinutes(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                    className={`w-16 text-center text-sm py-1.5 rounded-lg border border-gray-200 ${PROFESSOR_COLORS.ring}`}
+                    aria-label="Minutos"
+                  />
+                  <span className="text-[11px] text-gray-500">min</span>
+                </div>
+                <span className="text-gray-400">:</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={timeLimitSeconds}
+                    onChange={e => setTimeLimitSeconds(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                    className={`w-16 text-center text-sm py-1.5 rounded-lg border border-gray-200 ${PROFESSOR_COLORS.ring}`}
+                    aria-label="Segundos"
+                  />
+                  <span className="text-[11px] text-gray-500">seg</span>
+                </div>
+                {(timeLimitMinutes > 0 || timeLimitSeconds > 0) && (
+                  <span className="text-[10px] text-purple-500 ml-1" style={{ fontWeight: 500 }}>
+                    = {timeLimitMinutes * 60 + timeLimitSeconds}s por pregunta
+                  </span>
+                )}
+              </div>
+            )}
+
+            {!timeLimitEnabled && (
+              <p className="text-[10px] text-gray-400 mt-1">Sin limite — los alumnos responden a su ritmo</p>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/50">
+        <div className={MODAL_FOOTER}>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[12px] text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
+            className={BTN_GHOST}
             style={{ fontWeight: 500 }}
           >
             Cancelar
@@ -177,10 +254,10 @@ export function QuizFormModal({
             onClick={handleSubmit}
             disabled={saving}
             className={clsx(
-              'flex items-center gap-2 px-5 py-2 rounded-lg text-[12px] text-white transition-all shadow-sm',
+              BTN_PRIMARY,
               saving
-                ? 'bg-purple-400 cursor-wait'
-                : 'bg-purple-600 hover:bg-purple-700 active:scale-[0.97]'
+                ? PROFESSOR_COLORS.primaryDisabled
+                : `${PROFESSOR_COLORS.primary} ${PROFESSOR_COLORS.primaryHover} active:scale-[0.97]`
             )}
             style={{ fontWeight: 600 }}
           >
@@ -195,5 +272,3 @@ export function QuizFormModal({
     </motion.div>
   );
 }
-
-export default QuizFormModal;

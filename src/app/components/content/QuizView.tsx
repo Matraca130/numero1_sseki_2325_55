@@ -5,6 +5,7 @@
 //   1. QuizSelection — sidebar tree + quiz picker
 //   2. QuizTaker — active quiz session (Phase 11: unified system)
 //
+// Q-UX2: Threads timeLimitSeconds from QuizSelection to QuizTaker.
 // All logic lives in sub-components. This file stays < 100 lines.
 // ============================================================
 
@@ -54,7 +55,7 @@ class QuizErrorBoundary extends Component<EBProps, EBState> {
   }
 }
 
-// ── Main QuizView ────────────────────────────────────────
+// ── Main QuizView ──────────────────────────────────────
 
 export function QuizView() {
   const { navigateTo } = useStudentNav();
@@ -62,11 +63,13 @@ export function QuizView() {
   const [sessionQuestions, setSessionQuestions] = useState<QuizQuestion[]>([]);
   const [sessionSummaryTitle, setSessionSummaryTitle] = useState('');
   const [sessionSummaryId, setSessionSummaryId] = useState('');
+  const [sessionTimeLimitSeconds, setSessionTimeLimitSeconds] = useState<number | undefined>(undefined);
 
-  const handleStartQuiz = (questions: QuizQuestion[], summaryTitle: string, summaryId: string) => {
+  const handleStartQuiz = (questions: QuizQuestion[], summaryTitle: string, summaryId: string, timeLimitSeconds?: number) => {
     setSessionQuestions(questions);
     setSessionSummaryTitle(summaryTitle);
     setSessionSummaryId(summaryId);
+    setSessionTimeLimitSeconds(timeLimitSeconds ?? undefined);
     setViewState('session');
   };
 
@@ -91,6 +94,7 @@ export function QuizView() {
             preloadedQuestions={sessionQuestions}
             quizTitle={`Quiz: ${sessionSummaryTitle}`}
             summaryId={sessionSummaryId}
+            timeLimitSeconds={sessionTimeLimitSeconds}
             onBack={() => setViewState('selection')}
           />
         )}
