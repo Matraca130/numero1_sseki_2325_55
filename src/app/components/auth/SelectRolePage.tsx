@@ -7,7 +7,7 @@
 import React from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import { useAuth } from '@/app/context/AuthContext';
-import type { Membership } from '@/app/contexts/AuthContext';
+import type { Membership } from '@/app/context/AuthContext';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { motion } from 'motion/react';
 import {
