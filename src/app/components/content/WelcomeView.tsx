@@ -14,7 +14,7 @@ import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { components, headingStyle, layout } from '@/app/design-system';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Zap } from 'lucide-react';
 import { CourseCard } from '@/app/components/shared/CourseCard';
 
 // ── Extracted modules ──
@@ -142,6 +142,32 @@ export function WelcomeView() {
             />
           </div>
         </div>
+
+        {/* Gamification entry point */}
+        <button
+          onClick={() => navigateTo('gamification')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:opacity-90 transition-opacity active:scale-[0.99]"
+          style={{
+            background: 'linear-gradient(135deg, #1B3B36, #2a8c7a)',
+          }}
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+          >
+            <Zap className="w-4 h-4 text-emerald-300" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-xs text-white" style={{ fontWeight: 600 }}>
+              Tu Progreso XP
+            </p>
+            <p className="text-[10px] text-white/60">
+              {streakDays > 0 ? `${streakDays}d racha \u00B7 ` : ''}
+              {cardsReviewed > 0 ? `${cardsReviewed} cards revisadas` : 'Comienza a estudiar'}
+            </p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-white/40" />
+        </button>
 
         {/* Quick Shortcut Cards */}
         <QuickShortcuts onNavigate={navigateTo} />

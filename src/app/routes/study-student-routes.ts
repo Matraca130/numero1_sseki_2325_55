@@ -52,5 +52,9 @@ export const studyStudentRoutes: RouteObject[] = [
     path: 'student-data',
     lazy: () => import('@/app/components/content/StudentDataPanel').then(m => ({ Component: m.StudentDataPanel })),
   },
+  {
+    path: 'gamification',
+    lazy: () => import('@/app/components/content/GamificationView').then(m => ({ Component: m.GamificationView })),
+  },
   // Agent 5: agrega nuevas rutas de study/dashboard aqui
 ];

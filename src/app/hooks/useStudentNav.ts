@@ -14,7 +14,7 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 
-// ── ViewType (canonical definition) ──────────────────────────
+// ── ViewType (canonical definition) ────────────────────────────────
 
 export type ViewType =
   | 'home'
@@ -31,7 +31,8 @@ export type ViewType =
   | 'study-dashboards'
   | 'knowledge-heatmap'
   | 'mastery-dashboard'
-  | 'student-data';
+  | 'student-data'
+  | 'gamification';
 
 // ── Mapping helpers ──────────────────────────────────────────
 

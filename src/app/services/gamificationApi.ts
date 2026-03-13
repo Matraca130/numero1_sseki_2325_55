@@ -13,6 +13,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import type { StudyQueueResponse } from '@/app/types/gamification';
 
 // ── Types ─────────────────────────────────────────────
 
@@ -330,3 +331,43 @@ export async function getMyXP(institutionId: string) {
     badges_earned: profile.badges_earned,
   };
 }
+
+// ── Study Queue (separate backend route, not under /gamification) ─
+
+export async function getStudyQueue(
+  opts?: { course_id?: string; limit?: number }
+): Promise<StudyQueueResponse> {
+  try {
+    const params: string[] = [];
+    if (opts?.course_id) params.push(`course_id=${opts.course_id}`);
+    if (opts?.limit) params.push(`limit=${opts.limit}`);
+    const qs = params.length ? '?' + params.join('&') : '';
+    return await apiCall<StudyQueueResponse>(`/study-queue${qs}`);
+  } catch {
+    return {
+      queue: [],
+      meta: {
+        total_due: 0,
+        total_new: 0,
+        total_in_queue: 0,
+        returned: 0,
+        limit: opts?.limit ?? 20,
+        include_future: false,
+        course_id: opts?.course_id ?? null,
+        generated_at: new Date().toISOString(),
+        algorithm: 'fsrs',
+        engine: 'sql',
+      },
+    };
+  }
+}
+
+// ── Aliases for useGamification.ts hook imports ───────────────
+// These bridge the naming gap between the API layer and the hook layer.
+// The hooks were written with "gamification"-prefixed names; the API
+// uses shorter names. These aliases keep both layers working.
+
+export { getProfile as getGamificationProfile };
+export { getNotifications as getGamificationNotifications };
+export { onboarding as initializeGamification };
+export type { CheckInResult as CheckInResponse };
