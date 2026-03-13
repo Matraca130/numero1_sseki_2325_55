@@ -90,8 +90,9 @@ export function CaptureViewDialog({
         try {
           const { apiCall } = await import('@/app/lib/api');
           // Try to get a summary for this topic
-          const summaries = await apiCall<{ items?: Array<{ id: string }> }>(`/summaries?topic_id=${topicId}&limit=1`);
-          const summaryId = summaries?.items?.[0]?.id;
+          const summariesRes = await apiCall<{ items?: Array<{ id: string }> } | Array<{ id: string }>>(`/summaries?topic_id=${topicId}&limit=1`);
+          const summaries = Array.isArray(summariesRes) ? summariesRes : (summariesRes?.items || []);
+          const summaryId = summaries[0]?.id;
 
           if (summaryId) {
             // Get or create "General" keyword
