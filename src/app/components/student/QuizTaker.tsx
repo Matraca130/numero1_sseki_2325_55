@@ -22,7 +22,9 @@
 // P7: Countdown timer
 // Q-UX2: Timer configurable per-question via quiz entity
 // G4: Gamification bridge — refresh XP + check badges on quiz completion
-// G5: Celebrations (level-up + badge earned)
+// FIX: G5 celebrations REMOVED here — now handled exclusively by
+//      QuizResults via useQuizGamificationFeedback (Q-UX1 premium layer)
+//      to avoid duplicate toasts/modals.
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -51,11 +53,13 @@ import { QuizRecoveryPrompt } from '@/app/components/student/QuizRecoveryPrompt'
 // ── Error boundary (Phase 7b) ──────────────────────
 import { QuizErrorBoundary } from '@/app/components/student/QuizErrorBoundary';
 
-// ── Gamification bridge (G4 + G5) ────────────────────
+// ── Gamification bridge (G4) ─────────────────────────
+// NOTE: useGamification is still needed here to trigger refresh() +
+// triggerBadgeCheck() on quiz completion. This populates the context
+// data that QuizResults reads via useQuizGamificationFeedback (Q-UX1).
+// Celebrations (LevelUpCelebration, BadgeEarnedToast) are rendered
+// EXCLUSIVELY in QuizResults to avoid duplicates.
 import { useGamification } from '@/app/context/GamificationContext';
-
-// ── G5: Celebrations (level-up + badge earned) ───────────
-import { LevelUpCelebration, BadgeEarnedToast } from '@/app/components/gamification';
 
 // Re-export for backward compatibility (external consumers may import from here)
 export type { SavedAnswer } from '@/app/components/student/quiz-types';
@@ -96,7 +100,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const [activeQuizId, setActiveQuizId] = useState(quizId);
   const [activeTitle, setActiveTitle] = useState(quizTitle);
 
-  // ── Gamification bridge (G4 + G5) ───────────────────
+  // ── Gamification bridge (G4) ────────────────────────
   const gamification = useGamification();
   const gamificationRefreshedRef = useRef(false);
 
@@ -109,8 +113,10 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     submitAnswer, finishQuiz, restartSession, reviewSession,
   } = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
 
-  // ── G4+G5: Refresh gamification on quiz completion ───────
-  // Fire-and-forget: refresh XP profile + trigger badge check
+  // ── G4: Refresh gamification on quiz completion ──────────
+  // Fire-and-forget: refresh XP profile + trigger badge check.
+  // This populates the GamificationContext that QuizResults'
+  // useQuizGamificationFeedback hook reads from.
   useEffect(() => {
     if (phase !== 'results' || gamificationRefreshedRef.current) return;
     gamificationRefreshedRef.current = true;
@@ -334,43 +340,28 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   }
 
   // ── PHASE: results ──────────────────────────────────
+  // NOTE: Gamification celebrations (LevelUpCelebration, BadgeEarnedToast)
+  // are rendered EXCLUSIVELY inside QuizResults via useQuizGamificationFeedback
+  // (Q-UX1 premium layer). Do NOT add them here to avoid duplicates.
 
   if (phase === 'results') {
     return (
-      <>
-        <QuizErrorBoundary label="Resultados de Quiz">
-          <QuizResults
-            questions={questions}
-            savedAnswers={savedAnswers}
-            sessionStartTime={sessionStartTime}
-            quizTitle={activeTitle}
-            keywordMap={keywordMap}
-            correctCount={correctCount}
-            wrongCount={wrongCount}
-            answeredCount={answeredCount}
-            onRestart={handleRestart}
-            onBack={onBack}
-            onReview={handleReview}
-            onAdaptiveQuizReady={handleAdaptiveQuizReady}
-          />
-        </QuizErrorBoundary>
-
-        {/* G5: Level-Up Celebration (renders on top of results) */}
-        {gamification.levelUpEvent && (
-          <LevelUpCelebration
-            newLevel={gamification.levelUpEvent.newLevel}
-            previousLevel={gamification.levelUpEvent.previousLevel}
-            show={true}
-            onClose={gamification.dismissLevelUp}
-          />
-        )}
-
-        {/* G5: Badge Earned Toast (renders on top of results) */}
-        <BadgeEarnedToast
-          badges={gamification.newBadges}
-          onDismiss={gamification.dismissNewBadges}
+      <QuizErrorBoundary label="Resultados de Quiz">
+        <QuizResults
+          questions={questions}
+          savedAnswers={savedAnswers}
+          sessionStartTime={sessionStartTime}
+          quizTitle={activeTitle}
+          keywordMap={keywordMap}
+          correctCount={correctCount}
+          wrongCount={wrongCount}
+          answeredCount={answeredCount}
+          onRestart={handleRestart}
+          onBack={onBack}
+          onReview={handleReview}
+          onAdaptiveQuizReady={handleAdaptiveQuizReady}
         />
-      </>
+      </QuizErrorBoundary>
     );
   }
 
