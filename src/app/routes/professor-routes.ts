@@ -2,59 +2,21 @@
 // Axon — Professor Routes (children of ProfessorLayout)
 //
 // CODE SPLIT (BUG-014): Real components use React Router `lazy`.
-// Placeholders are inline (tiny, no benefit from splitting).
+// PN-11: Placeholders now lazy-loaded too (removes 5 lucide icon
+// imports from main bundle: LayoutDashboard, BookOpen, Users, Bot,
+// Settings). Placeholders extracted to professor-placeholders.tsx.
 // ============================================================
-import React from 'react';
 import type { RouteObject } from 'react-router';
 
-import { PlaceholderPage } from '@/app/components/roles/PlaceholderPage';
-import { LayoutDashboard, BookOpen, Users, Bot, Settings } from 'lucide-react';
-
-// Placeholder wrappers (inline — tiny, no need to lazy-load)
-function ProfessorDashboardPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'Dashboard del Profesor',
-    description: 'Panel principal del profesor — próximamente',
-    icon: React.createElement(LayoutDashboard, { size: 24 }),
-    accentColor: 'blue',
-  });
-}
-function ProfessorCoursesPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'Mis Cursos',
-    description: 'Gestión de cursos asignados — próximamente',
-    icon: React.createElement(BookOpen, { size: 24 }),
-    accentColor: 'teal',
-  });
-}
-function ProfessorStudentsPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'Estudiantes',
-    description: 'Gestión de estudiantes — próximamente',
-    icon: React.createElement(Users, { size: 24 }),
-    accentColor: 'blue',
-  });
-}
-function ProfessorAIPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'IA',
-    description: 'Herramientas de IA — próximamente',
-    icon: React.createElement(Bot, { size: 24 }),
-    accentColor: 'purple',
-  });
-}
-function ProfessorSettingsPlaceholder() {
-  return React.createElement(PlaceholderPage, {
-    title: 'Configuración',
-    description: 'Configuración del profesor — próximamente',
-    icon: React.createElement(Settings, { size: 24 }),
-    accentColor: 'teal',
-  });
-}
-
 export const professorChildren: RouteObject[] = [
-  { index: true,        Component: ProfessorDashboardPlaceholder },
-  { path: 'courses',    Component: ProfessorCoursesPlaceholder },
+  {
+    index: true,
+    lazy: () => import('@/app/routes/professor-placeholders').then(m => ({ Component: m.ProfessorDashboardPlaceholder })),
+  },
+  {
+    path: 'courses',
+    lazy: () => import('@/app/routes/professor-placeholders').then(m => ({ Component: m.ProfessorCoursesPlaceholder })),
+  },
   {
     path: 'curriculum',
     lazy: () => import('@/app/components/roles/pages/professor/ProfessorCurriculumPage').then(m => ({ Component: m.ProfessorCurriculumPage })),
@@ -67,9 +29,18 @@ export const professorChildren: RouteObject[] = [
     path: 'quizzes',
     lazy: () => import('@/app/components/roles/pages/professor/ProfessorQuizzesPage').then(m => ({ Component: m.ProfessorQuizzesPage })),
   },
-  { path: 'students',   Component: ProfessorStudentsPlaceholder },
-  { path: 'ai',         Component: ProfessorAIPlaceholder },
-  { path: 'settings',   Component: ProfessorSettingsPlaceholder },
+  {
+    path: 'students',
+    lazy: () => import('@/app/routes/professor-placeholders').then(m => ({ Component: m.ProfessorStudentsPlaceholder })),
+  },
+  {
+    path: 'ai',
+    lazy: () => import('@/app/routes/professor-placeholders').then(m => ({ Component: m.ProfessorAIPlaceholder })),
+  },
+  {
+    path: 'settings',
+    lazy: () => import('@/app/routes/professor-placeholders').then(m => ({ Component: m.ProfessorSettingsPlaceholder })),
+  },
   {
     path: 'summary/:topicId',
     lazy: () => import('@/app/components/content/SummaryView').then(m => ({ Component: m.SummaryView })),

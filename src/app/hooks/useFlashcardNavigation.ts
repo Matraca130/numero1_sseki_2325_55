@@ -10,12 +10,12 @@
 //
 // PERF v4.4.3:
 //   [C2] enrichedSections now uses granular per-topic memoization.
-//        Instead of re-enriching ALL cards when masteryMap changes,
-//        only topics whose mastery data actually changed are rebuilt.
-//        This reduces O(N×M) → O(changed×M) spreads after each session.
-//   [C1] loadFlashcardsForTopic now tries a batch endpoint first (1 request).
-//        Falls back to the old N+1 pattern if the endpoint doesn't exist (404)
-//        or fails for any reason. This allows gradual backend deployment.
+//   [C1] loadFlashcardsForTopic tries batch endpoint first.
+//
+// PERF v4.4.4:
+//   [PN-2] Removed eager auto-load of ALL topics on tree load.
+//          Cards now load on-demand when user opens section or deck.
+//   [PN-14] Removed dead 'summary'/'session' branches from goBack.
 //
 // CONNECTED TO REAL BACKEND:
 //   - Structure from ContentTreeContext (content-tree API)
@@ -36,18 +36,12 @@ import type { OptimisticCardUpdate } from './useFlashcardEngine';
 import type { Section, Topic, Flashcard, Course } from '@/app/types/content';
 import type { FlashcardViewState } from './flashcard-types';
 
-// ── Constants ─────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────
 
 /** Max topics to keep in cardCache before evicting oldest */
 const CARD_CACHE_MAX_TOPICS = 30;
 
-/** Batch size for loading flashcards (avoids saturating connections) */
-const LOAD_BATCH_SIZE = 5;
-
-/** Delay between batches (ms) */
-const LOAD_BATCH_DELAY = 200;
-
-// ── Helper: map API flashcard → UI Flashcard ──────────────
+// ── Helper: map API flashcard -> UI Flashcard ────────────
 
 function mapApiCard(card: any): Flashcard {
   return {
@@ -96,10 +90,8 @@ function enrichCardWithMastery(
   };
 }
 
-// ── Helper: load flashcards for a topic ───────────────────
+// ── Helper: load flashcards for a topic ─────────────────
 // [C1] PERF v4.4.3: Try the batch endpoint first (1 request).
-// Falls back to the old N+1 pattern if the endpoint doesn't exist (404)
-// or fails for any reason. This allows gradual backend deployment.
 
 async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
   // ── Strategy 1: Batch endpoint (PERF C1) ──
@@ -109,11 +101,12 @@ async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
     return items
       .filter((card: any) => card.is_active !== false && !card.deleted_at)
       .map(mapApiCard);
-  } catch (batchErr: any) {
-    // If it's a 404 (endpoint not deployed yet), fall through to N+1.
-    // For other errors, also fall through — the N+1 is our safety net.
+  } catch (batchErr: unknown) {
     if (import.meta.env.DEV) {
-      console.warn(`[FlashcardNav] Batch endpoint failed for topic ${topicId}, falling back to N+1:`, batchErr?.message);
+      console.warn(
+        `[FlashcardNav] Batch endpoint failed for topic ${topicId}, falling back to N+1:`,
+        batchErr instanceof Error ? batchErr.message : batchErr,
+      );
     }
   }
 
@@ -157,7 +150,7 @@ async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
   }
 }
 
-// ── Build Course from ContentTree ─────────────────────────
+// ── Build Course from ContentTree ─────────────────────
 
 function buildCourseFromTree(tree: any): Course {
   if (!tree || !tree.courses || tree.courses.length === 0) {
@@ -187,14 +180,14 @@ function buildCourseFromTree(tree: any): Course {
           id: t.id,
           title: t.name || 'Topico',
           summary: '',
-          flashcards: [], // will be loaded lazily
+          flashcards: [], // loaded on-demand via openSection/openDeck
         })),
       })),
     })),
   };
 }
 
-// ── LRU Card Cache ────────────────────────────────────────
+// ── LRU Card Cache ────────────────────────────────────
 
 interface LruCardCache {
   data: Map<string, Flashcard[]>;
@@ -225,9 +218,9 @@ function lruSet(cache: LruCardCache, key: string, value: Flashcard[]): LruCardCa
   return { data: newData, order: newOrder };
 }
 
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // HOOK
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 
 export function useFlashcardNavigation() {
   const { setCurrentTopic } = useApp();
@@ -253,7 +246,7 @@ export function useFlashcardNavigation() {
   // ── Shared study-queue data (single fetch for the course) ──
   const sqData = useStudyQueueData(currentCourse.id === 'empty' ? null : currentCourse.id);
 
-  // Backward-compat: expose masteryMap as flashcard_id → StudyQueueItem
+  // Backward-compat: expose masteryMap as flashcard_id -> StudyQueueItem
   const masteryMap = sqData.byFlashcardId;
 
   const refreshMastery = useCallback(async () => {
@@ -288,42 +281,12 @@ export function useFlashcardNavigation() {
     });
   }, []); // Stable — no dependencies that change
 
-  // Auto-load flashcards for all topics when tree loads
-  useEffect(() => {
-    if (treeLoading || !tree) return;
-    const topicIds: string[] = [];
-    for (const c of tree.courses || []) {
-      for (const s of c.semesters || []) {
-        for (const sec of s.sections || []) {
-          for (const t of sec.topics || []) {
-            topicIds.push(t.id);
-          }
-        }
-      }
-    }
-
-    // Load in batches to avoid overwhelming the API
-    let idx = 0;
-    let cancelled = false;
-    const loadBatch = () => {
-      if (cancelled) return;
-      const batch = topicIds.slice(idx, idx + LOAD_BATCH_SIZE);
-      batch.forEach(id => loadTopicCards(id));
-      idx += LOAD_BATCH_SIZE;
-      if (idx < topicIds.length) {
-        setTimeout(loadBatch, LOAD_BATCH_DELAY);
-      }
-    };
-    if (topicIds.length > 0) loadBatch();
-
-    return () => { cancelled = true; };
-  }, [tree, treeLoading, loadTopicCards]);
+  // PN-2: REMOVED eager auto-load of ALL topics.
+  // Cards are now loaded on-demand when user opens a section or deck.
+  // This eliminates N x batch API calls at startup for large courses.
 
   // ── Inject cached flashcards + mastery into sections ────
-  // [C2] Granular per-topic enrichment: uses a persistent cache keyed by
-  // (topicId, cardCache version, masteryMap version) so only topics whose
-  // underlying data actually changed get re-enriched. Stable references
-  // for unchanged topics avoid unnecessary child re-renders.
+  // [C2] Granular per-topic enrichment
 
   const enrichedTopicCache = useRef(new Map<string, { cards: Flashcard[]; cacheRef: Flashcard[]; mapRef: Map<string, StudyQueueItem> }>());
 
@@ -353,15 +316,18 @@ export function useFlashcardNavigation() {
   );
 
   // Reset on course change
+  // PN-9: Also clear enrichedTopicCache
   useEffect(() => {
     setViewState('hub');
     setSelectedSection(null);
     setSelectedTopic(null);
+    enrichedTopicCache.current.clear();
   }, [currentCourse.id]);
 
   // ── Actions ──
 
   const openSection = useCallback((section: Section, idx: number) => {
+    // PN-2: Load cards for section topics on demand
     section.topics.forEach(t => loadTopicCards(t.id));
     const enriched = enrichedSections.find(s => s.id === section.id) || section;
     setSelectedSection(enriched);
@@ -378,12 +344,10 @@ export function useFlashcardNavigation() {
     setViewState('deck');
   }, [cardCache, loadTopicCards, masteryMap]);
 
+  // PN-14: Removed dead 'summary'/'session' branches.
+  // FlashcardViewState is 'hub' | 'section' | 'deck' only.
   const goBack = useCallback(() => {
-    if (viewState === 'summary' || viewState === 'session') {
-      setViewState('hub');
-      setSelectedTopic(null);
-      setSelectedSection(null);
-    } else if (viewState === 'deck') {
+    if (viewState === 'deck') {
       setViewState('hub');
       setSelectedTopic(null);
       setSelectedSection(null);
@@ -433,21 +397,14 @@ export function useFlashcardNavigation() {
   }, [selectedTopic, cardCache, masteryMap]);
 
   // ── Apply optimistic mastery updates (from useFlashcardEngine) ──
-  // Merges locally-computed FSRS/BKT values into the study-queue data
-  // so that enrichedSections recalculates with updated mastery BEFORE
-  // the backend round-trip completes. The subsequent refreshMastery()
-  // call overwrites with authoritative backend data.
   const applyOptimisticMastery = useCallback(
     (updates: Map<string, OptimisticCardUpdate>) => {
       if (updates.size === 0) return;
 
-      // Build StudyQueueItems — use existing when available, create
-      // synthetic stubs for cards NOT yet in study-queue (new cards).
       const patchedItems: import('@/app/lib/studyQueueApi').StudyQueueItem[] = [];
       for (const [cardId, upd] of updates) {
         const existing = sqData.byFlashcardId.get(cardId);
         if (existing) {
-          // Merge optimistic values onto existing item
           patchedItems.push({
             ...existing,
             p_know: upd.p_know,
@@ -457,9 +414,6 @@ export function useFlashcardNavigation() {
             due_at: upd.due_at,
           });
         } else {
-          // Card has no study-queue entry yet (first review ever).
-          // Create a synthetic stub with required fields so the queue
-          // indexes pick it up for enrichCardWithMastery.
           patchedItems.push({
             flashcard_id: cardId,
             summary_id: '',
