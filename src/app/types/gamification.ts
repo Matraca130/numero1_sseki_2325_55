@@ -38,7 +38,7 @@ export type XPAction =
   | 'complete_plan'
   | 'rag_question';
 
-// ── Level System ──────────────────────────────────────────
+// ── Level System ────────────────────────────────────────
 
 export const LEVEL_THRESHOLDS: { xp: number; level: number; title: string }[] = [
   { xp: 0,     level: 1,  title: 'Novato' },
@@ -74,7 +74,7 @@ export function getLevelInfo(totalXP: number) {
   return { ...current, next, xpInLevel, xpForNext, progress };
 }
 
-// ── XP Table (mirrors backend xp-engine.ts) ───────────────
+// ── XP Table (mirrors backend xp-engine.ts) ─────────────
 
 export const XP_TABLE: Record<XPAction, number> = {
   review_flashcard: 5,
@@ -92,7 +92,7 @@ export const XP_TABLE: Record<XPAction, number> = {
 
 export const XP_DAILY_CAP = 500;
 
-// ── Streak ────────────────────────────────────────────────
+// ── Streak ────────────────────────────────────────────
 
 export interface StreakStatus {
   current_streak: number;
@@ -105,7 +105,7 @@ export interface StreakStatus {
   days_since_last_study: number | null;
 }
 
-// ── Badges ────────────────────────────────────────────────
+// ── Badges ────────────────────────────────────────────
 
 export interface Badge {
   id: string;
@@ -121,7 +121,15 @@ export interface Badge {
   requirement?: number;
 }
 
-// ── Study Queue ───────────────────────────────────────────
+/**
+ * Badge with guaranteed earned_at (used for display of earned badges).
+ * Used by useQuizGamificationFeedback and BadgeEarnedToast.
+ */
+export interface BadgeWithEarnedStatus extends Badge {
+  earned_at: string; // non-null: this badge has been earned
+}
+
+// ── Study Queue ─────────────────────────────────────────
 
 export interface StudyQueueItem {
   flashcard_id: string;
