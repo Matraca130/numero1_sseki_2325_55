@@ -34,7 +34,7 @@ export async function parallelWithLimit<T>(
       try {
         const value = await tasks[idx]();
         results[idx] = { status: 'fulfilled', value };
-      } catch (reason: any) {
+      } catch (reason: unknown) {
         results[idx] = { status: 'rejected', reason };
       }
     }

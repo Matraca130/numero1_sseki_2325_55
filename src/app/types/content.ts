@@ -29,6 +29,7 @@ export interface Flashcard {
   // Real backend fields (optional, for FSRS tracking)
   summary_id?: string;
   keyword_id?: string;
+  subtopic_id?: string | null;
   source?: string;
   fsrs_state?: 'new' | 'learning' | 'review' | 'relearning';
   due_at?: string;
@@ -65,8 +66,8 @@ export interface Semester {
 export interface Course {
   id: string;
   name: string;
-  color: string;       // Tailwind bg class, e.g. "bg-teal-500"
-  accentColor: string;  // Tailwind text class, e.g. "text-teal-500"
+  color: string;       // Tailwind bg class, e.g. "bg-[#2a8c7a]"
+  accentColor: string;  // Tailwind text class, e.g. "text-[#2a8c7a]"
   semesters: Semester[];
 }
 
@@ -77,9 +78,9 @@ export interface Course {
 export const courses: Course[] = [
   {
     id: 'anatomy',
-    name: 'Anatomia Humana',
-    color: 'bg-teal-500',
-    accentColor: 'text-teal-500',
+    name: 'Anatomía Humana',
+    color: 'bg-[#2a8c7a]',
+    accentColor: 'text-[#2a8c7a]',
     semesters: [
       {
         id: 'sem-1',
@@ -87,12 +88,12 @@ export const courses: Course[] = [
         sections: [
           {
             id: 'sec-1',
-            title: 'Introducao',
+            title: 'Introducción',
             topics: [
               {
                 id: 'topic-1',
-                title: 'Introducao a Anatomia',
-                summary: 'Fundamentos da anatomia humana.',
+                title: 'Introducción a la Anatomía',
+                summary: 'Fundamentos de la anatomía humana.',
                 flashcards: [],
               },
             ],
