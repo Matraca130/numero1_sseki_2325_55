@@ -33,17 +33,17 @@ export function Sidebar() {
   const navItems: NavItem[] = [
     { id: 'home', label: 'Inicio', icon: Home },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'study-hub', label: 'Estudar', icon: BookOpen, also: ['study'] },
+    { id: 'study-hub', label: 'Estudiar', icon: BookOpen, also: ['study'] },
     { id: 'schedule', label: 'Cronograma', icon: Calendar },
     { id: 'flashcards', label: 'Flashcards', icon: Layers },
     { id: '3d', label: 'Atlas 3D', icon: Box },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
-    { id: 'student-data', label: 'Meus Dados', icon: Database },
+    { id: 'student-data', label: 'Mis Datos', icon: Database },
   ];
 
   const secondaryItems: NavItem[] = [
-    { id: 'home' as ViewType, label: 'Comunidade', icon: Users },
-    { id: 'home' as ViewType, label: 'Configuracoes', icon: Settings },
+    { id: 'home' as ViewType, label: 'Comunidad', icon: Users },
+    { id: 'home' as ViewType, label: 'Configuración', icon: Settings },
   ];
 
   return (
@@ -61,9 +61,7 @@ export function Sidebar() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const to = viewToPath(item.id);
-            // 'end' makes the NavLink match exactly for the index route
             const isEnd = item.id === 'home';
-            // For study-hub, also highlight when on /student/study
             const alsoPatterns = item.also?.map(v => viewToPath(v)) ?? [];
 
             return (
@@ -73,7 +71,6 @@ export function Sidebar() {
                 end={isEnd}
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) => {
-                  // Check if any "also" path is active via the URL
                   const alsoActive = alsoPatterns.length > 0 && typeof window !== 'undefined'
                     ? alsoPatterns.some(p => window.location.pathname.startsWith(p))
                     : false;
@@ -113,7 +110,7 @@ export function Sidebar() {
 
         {/* Secondary Navigation */}
         <div className="space-y-1">
-          <p className={components.sidebar.sectionLabel}>Outros</p>
+          <p className={components.sidebar.sectionLabel}>Otros</p>
           {secondaryItems.map((item, idx) => {
             const Icon = item.icon;
             return (

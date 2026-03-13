@@ -13,10 +13,6 @@ interface CourseCardProps {
   onContinue: () => void;
 }
 
-/**
- * Shared CourseCard — unified across HomeView, WelcomeView & StudentDataPanel.
- * Uses design-system tokens (components.courseCard / progressBar / progressCircle).
- */
 export function CourseCard({
   title,
   module,
@@ -28,14 +24,12 @@ export function CourseCard({
   percentColor,
   onContinue,
 }: CourseCardProps) {
-  // SVG circle params
   const radius = 18;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
     <div className={components.courseCard.base}>
-      {/* Top row: icon + progress circle */}
       <div className="flex items-start justify-between mb-4">
         <div
           className={`${components.courseCard.iconSize} ${iconBg} flex items-center justify-center flex-shrink-0 text-2xl`}
@@ -71,7 +65,6 @@ export function CourseCard({
         </div>
       </div>
 
-      {/* Title */}
       <h4 className="font-bold text-gray-900 mb-1" style={headingStyle}>
         {title}
       </h4>
@@ -79,13 +72,11 @@ export function CourseCard({
         {module}
       </p>
 
-      {/* Progress row */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-gray-500">Progresso</span>
+        <span className="text-xs text-gray-500">Progreso</span>
         <span className="text-xs font-semibold text-gray-700">{progressText}</span>
       </div>
 
-      {/* Progress bar */}
       <div className={components.progressBar.track + ' mb-4'}>
         <div
           className={`${components.progressBar.fill} ${progressColor}`}
@@ -93,9 +84,8 @@ export function CourseCard({
         />
       </div>
 
-      {/* CTA button */}
       <button onClick={onContinue} className={components.courseCard.ctaButton}>
-        Continuar Estudo
+        Continuar Estudio
       </button>
     </div>
   );

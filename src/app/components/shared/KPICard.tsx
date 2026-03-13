@@ -3,34 +3,13 @@ import clsx from 'clsx';
 import { TrendingUp } from 'lucide-react';
 import { kpiCardClasses, iconBadgeClasses, components } from '@/app/design-system';
 
-// ─────────────────────────────────────────────
-// SHARED KPI CARD
-//
-// Consolida o padrão de card de KPI usado em
-// DashboardView e ReviewSessionView.
-//
-// Aceita:
-//   - icon + iconColorClass  (badge de ícone)
-//   - label + value          (texto principal)
-//   - trendSlot              (badge de tendência — flexível)
-//   - children               (conteúdo extra: progress bar, etc.)
-//   - className              (classes extras no wrapper)
-// ─────────────────────────────────────────────
-
 interface KPICardProps {
-  /** Ícone React (ex: <Flame size={20} />) */
   icon: React.ReactNode;
-  /** Label descritivo (ex: "Horas Estudadas") */
   label: string;
-  /** Valor principal (ex: "24h") */
   value: React.ReactNode;
-  /** Slot livre para o badge de trend (canto superior direito) */
   trendSlot?: React.ReactNode;
-  /** Classes Tailwind para o fundo do badge de ícone (ex: "bg-orange-100 text-orange-600") */
   iconColorClass?: string;
-  /** Conteúdo adicional abaixo de label+value (ex: progress bar) */
   children?: React.ReactNode;
-  /** Classes extras no wrapper (sem sobrescrever base) */
   className?: string;
 }
 
@@ -60,18 +39,9 @@ export function KPICard({
   );
 }
 
-// ─────────────────────────────────────────────
-// TREND BADGE — helper sub-componente
-//
-// Para o caso comum de "↑ +12%" verde ou "↓ -5%" vermelho.
-// ─────────────────────────────────────────────
-
 interface TrendBadgeProps {
-  /** Texto do trend (ex: "+12%") */
   label: string;
-  /** Direção: true = up (verde), false = down (vermelho) */
   up?: boolean;
-  /** Ícone custom (default: TrendingUp rotacionado) */
   icon?: React.ReactNode;
 }
 

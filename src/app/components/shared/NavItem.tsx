@@ -6,7 +6,6 @@ interface NavItemProps {
   label: string;
   active?: boolean;
   onClick?: () => void;
-  /** Visual variant — 'dark' for dark sidebars, 'panel' for embedded panels */
   variant?: 'dark' | 'panel';
 }
 

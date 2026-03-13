@@ -17,7 +17,7 @@ export function AxonPageHeader({
   title,
   subtitle,
   onBack,
-  backLabel = 'Voltar',
+  backLabel = 'Volver',
   actionButton,
   statsLeft,
   statsRight,

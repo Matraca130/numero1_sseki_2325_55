@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '@/app/context/AppContext';
-import { courses } from '@/app/types/legacy-stubs';
+import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 import { components, animation } from '@/app/design-system';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, BookOpen } from 'lucide-react';
@@ -8,6 +8,7 @@ import clsx from 'clsx';
 
 export function CourseSwitcher() {
   const { currentCourse, setCurrentCourse } = useApp();
+  const { courses } = useTreeCourses();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
