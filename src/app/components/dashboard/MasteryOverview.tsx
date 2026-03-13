@@ -1,18 +1,15 @@
 // ============================================================
-// Axon — MasteryOverview (EV-7 Prompt C)
-// Shows all student keywords sorted by mastery (weakest first).
-// Data: content-tree + summaries + keywords + bkt-states
+// Axon — MasteryOverview (EV-7 Prompt C) — Modularized
 //
-// PERF: Uses StudentDataContext for BKT states (no duplicate call)
-//       Uses /subtopics-batch for batched subtopic loading
-// FIX:  Handles { items: [] } response shape from crud-factory LIST
+// Shows all student keywords sorted by mastery (weakest first).
+// Sub-components extracted to:
+//   /src/app/components/dashboard/masteryOverviewTypes.ts
+//   /src/app/components/dashboard/useMasteryOverviewData.ts
+//   /src/app/components/dashboard/KeywordRow.tsx
 // ============================================================
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React from 'react';
+import { motion } from 'motion/react';
 import {
-  ChevronDown,
-  ChevronRight,
-  RotateCcw,
   Search,
   Filter,
   X,
@@ -21,448 +18,47 @@ import {
   RefreshCw,
   BookOpen,
 } from 'lucide-react';
-import { useAuth } from '@/app/context/AuthContext';
-import { useStudentDataContext } from '@/app/context/StudentDataContext';
-import { apiCall } from '@/app/lib/api';
-import {
-  getTopicSummaries,
-  type BktStateRecord,
-} from '@/app/services/platformApi';
-import {
-  getContentTree,
-  type TreeCourse,
-} from '@/app/services/contentTreeApi';
 
-// ── Types ────────────────────────────────────────────────
-
-interface KeywordRaw {
-  id: string;
-  name: string;
-  definition?: string | null;
-  summary_id: string;
-  priority: number;
-  is_active?: boolean;
-}
-
-interface SubtopicRaw {
-  id: string;
-  keyword_id: string;
-  name: string;
-  order_index: number;
-  is_active?: boolean;
-}
-
-interface SummaryRef {
-  id: string;
-  title?: string | null;
-  topic_id: string;
-}
-
-interface TopicRef {
-  id: string;
-  name: string;
-  courseName: string;
-}
-
-interface KeywordMastery {
-  keyword: KeywordRaw;
-  topicName: string;
-  courseName: string;
-  pKnow: number | null; // null = no data
-  subtopicCount: number;
-  subtopicBkt: Map<string, number>; // subtopic_id → p_know
-}
-
-interface SubtopicMastery {
-  subtopic: SubtopicRaw;
-  pKnow: number | null;
-}
-
-// ── Response shape helper ─────────────────────────────────
-// crud-factory LIST returns { items: [...], total, limit, offset }
-// apiCall unwraps .data → { items: [...] }
-// Some wrappers (e.g. getTopicSummaries) may extract .items already.
-// This helper handles both shapes safely.
-
-function extractItems<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result;
-  if (result && typeof result === 'object') {
-    const obj = result as Record<string, unknown>;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
-  }
-  return [];
-}
-
-// ── Mastery color helpers ──────────────────────────────────
-
-function getMasteryColor(pKnow: number | null) {
-  if (pKnow === null) return { bg: 'bg-zinc-700/40', text: 'text-zinc-500', bar: 'bg-zinc-600', label: 'Sin datos' };
-  if (pKnow < 0.3) return { bg: 'bg-red-500/20', text: 'text-red-400', bar: 'bg-red-500', label: 'Critico' };
-  if (pKnow < 0.5) return { bg: 'bg-orange-500/20', text: 'text-orange-400', bar: 'bg-orange-500', label: 'Debil' };
-  if (pKnow < 0.7) return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', bar: 'bg-yellow-500', label: 'En progreso' };
-  if (pKnow < 0.85) return { bg: 'bg-blue-500/20', text: 'text-blue-400', bar: 'bg-blue-500', label: 'Bueno' };
-  return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', bar: 'bg-emerald-500', label: 'Dominado' };
-}
-
-function getMasteryDot(pKnow: number | null): string {
-  if (pKnow === null) return 'bg-zinc-600';
-  if (pKnow < 0.3) return 'bg-red-500';
-  if (pKnow < 0.5) return 'bg-orange-500';
-  if (pKnow < 0.7) return 'bg-yellow-500';
-  if (pKnow < 0.85) return 'bg-blue-500';
-  return 'bg-emerald-500';
-}
-
-// ── Filter types ─────────────────────────────────────────
-
-type MasteryFilter = 'all' | 'critical' | 'weak' | 'progress' | 'good' | 'mastered';
-
-const FILTER_OPTIONS: { value: MasteryFilter; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'critical', label: 'Criticos (< 30%)' },
-  { value: 'weak', label: 'Debiles (< 50%)' },
-  { value: 'progress', label: 'En progreso' },
-  { value: 'good', label: 'Buenos' },
-  { value: 'mastered', label: 'Dominados (≥ 85%)' },
-];
-
-function matchesFilter(pKnow: number | null, filter: MasteryFilter): boolean {
-  if (filter === 'all') return true;
-  if (pKnow === null) return filter === 'all';
-  switch (filter) {
-    case 'critical': return pKnow < 0.3;
-    case 'weak': return pKnow >= 0.3 && pKnow < 0.5;
-    case 'progress': return pKnow >= 0.5 && pKnow < 0.7;
-    case 'good': return pKnow >= 0.7 && pKnow < 0.85;
-    case 'mastered': return pKnow >= 0.85;
-    default: return true;
-  }
-}
-
-// ── Batch helpers ────────────────────────────────────────
-
-const SUBTOPICS_BATCH_SIZE = 50;
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
-}
-
-async function fetchSubtopicsBatch(keywordIds: string[]): Promise<SubtopicRaw[]> {
-  if (keywordIds.length === 0) return [];
-
-  const batches = chunk(keywordIds, SUBTOPICS_BATCH_SIZE);
-  const results = await Promise.all(
-    batches.map(async (batch) => {
-      try {
-        const ids = batch.join(',');
-        // /subtopics-batch is a custom endpoint that returns a flat array (NOT { items }).
-        const result = await apiCall<SubtopicRaw[]>(`/subtopics-batch?keyword_ids=${ids}`);
-        return extractItems<SubtopicRaw>(result);
-      } catch {
-        return [];
-      }
-    })
-  );
-
-  return results.flat();
-}
+// ── Extracted modules ──
+import { FILTER_OPTIONS } from './masteryOverviewTypes';
+import { useMasteryOverviewData } from './useMasteryOverviewData';
+import { KeywordRow } from './KeywordRow';
 
 // ── Main Component ───────────────────────────────────────
 
 export function MasteryOverview() {
-  const { selectedInstitution } = useAuth();
-  const { bktStates: bktStatesFromCtx, loading: ctxLoading } = useStudentDataContext();
-  const [keywords, setKeywords] = useState<KeywordMastery[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    keywords,
+    loading,
+    error,
+    loadData,
+    grouped,
+    kpiCounts,
+    allMastered,
 
-  // Filters
-  const [filter, setFilter] = useState<MasteryFilter>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    filter,
+    setFilter,
+    searchQuery,
+    setSearchQuery,
+    showFilterDropdown,
+    setShowFilterDropdown,
+    hasActiveFilters,
+    clearFilters,
+    dropdownRef,
 
-  // Expand state
-  const [expandedKeywords, setExpandedKeywords] = useState<Set<string>>(new Set());
-  const [subtopicsCache, setSubtopicsCache] = useState<Map<string, SubtopicMastery[]>>(new Map());
-  const [loadingSubtopics, setLoadingSubtopics] = useState<Set<string>>(new Set());
-
-  // Debounce search
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
-  // ── Fetch all data ─────────────────────────────────────
-
-  const loadData = useCallback(async () => {
-    const instId = selectedInstitution?.id;
-    if (!instId) return;
-    if (ctxLoading) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // 1. Content tree (1 API call)
-      const tree = await getContentTree(instId);
-
-      // PERF: Use BKT states from StudentDataContext (0 API calls)
-      const bktMap = new Map<string, number>();
-      for (const s of bktStatesFromCtx) {
-        bktMap.set(s.subtopic_id, s.p_know);
-      }
-
-      // 2. Flatten tree to get topics with course names
-      const topicRefs: TopicRef[] = [];
-      for (const course of tree) {
-        for (const sem of course.semesters || []) {
-          for (const sec of sem.sections || []) {
-            for (const topic of sec.topics || []) {
-              topicRefs.push({
-                id: topic.id,
-                name: topic.name,
-                courseName: course.name,
-              });
-            }
-          }
-        }
-      }
-
-      // 3. Get summaries for all topics in parallel (N API calls)
-      // FIX: extractItems handles both array and { items: [] } shapes
-      const summaryResults = await Promise.all(
-        topicRefs.map(async (t) => {
-          try {
-            const raw = await getTopicSummaries(t.id);
-            const sums = extractItems<any>(raw);
-            return sums.map((s: any) => ({
-              id: s.id,
-              title: s.title,
-              topic_id: t.id,
-            }));
-          } catch (err) {
-            console.error(`[MasteryOverview] Failed to get summaries for topic ${t.id}:`, err);
-            return [];
-          }
-        })
-      );
-
-      const allSummaries: SummaryRef[] = summaryResults.flat();
-      // Map summary_id → topic
-      const summaryToTopic = new Map<string, TopicRef>();
-      for (let i = 0; i < topicRefs.length; i++) {
-        for (const sum of summaryResults[i]) {
-          summaryToTopic.set(sum.id, topicRefs[i]);
-        }
-      }
-
-      // 4. Get keywords for all summaries in parallel (M API calls)
-      // FIX: extractItems handles both array and { items: [] } shapes
-      const keywordResults = await Promise.all(
-        allSummaries.map(async (sum) => {
-          if (!sum.id) {
-            console.error('[MasteryOverview] Summary has no id, skipping keywords fetch');
-            return [];
-          }
-          try {
-            const raw = await apiCall<unknown>(`/keywords?summary_id=${sum.id}`);
-            const kws = extractItems<KeywordRaw>(raw);
-            return kws.map((kw) => ({ ...kw, summary_id: sum.id }));
-          } catch (err) {
-            console.error(`[MasteryOverview] Failed to get keywords for summary ${sum.id}:`, err);
-            return [];
-          }
-        })
-      );
-
-      const allKeywords: KeywordRaw[] = keywordResults.flat();
-
-      // 5. PERF: Batch-fetch ALL subtopics at once using /subtopics-batch
-      const allKeywordIds = allKeywords.map((kw) => kw.id);
-      const allSubtopics = await fetchSubtopicsBatch(allKeywordIds);
-
-      // Group subtopics by keyword_id (client-side)
-      const subtopicsByKeyword = new Map<string, SubtopicRaw[]>();
-      for (const sub of allSubtopics) {
-        const list = subtopicsByKeyword.get(sub.keyword_id) || [];
-        list.push(sub);
-        subtopicsByKeyword.set(sub.keyword_id, list);
-      }
-
-      // 6. Build KeywordMastery items
-      const masteryItems: KeywordMastery[] = allKeywords.map((kw) => {
-        const topic = summaryToTopic.get(kw.summary_id);
-        const subs = subtopicsByKeyword.get(kw.id) || [];
-        const subtopicBkt = new Map<string, number>();
-
-        let sumPKnow = 0;
-        let countWithBkt = 0;
-
-        for (const sub of subs) {
-          const pk = bktMap.get(sub.id);
-          if (pk !== undefined) {
-            subtopicBkt.set(sub.id, pk);
-            sumPKnow += pk;
-            countWithBkt++;
-          }
-        }
-
-        const pKnow = countWithBkt > 0 ? sumPKnow / countWithBkt : null;
-
-        return {
-          keyword: kw,
-          topicName: topic?.name || 'Sin tema',
-          courseName: topic?.courseName || 'Sin curso',
-          pKnow,
-          subtopicCount: subs.length,
-          subtopicBkt,
-        };
-      });
-
-      // Pre-cache subtopics for expand/collapse (already fetched)
-      const cache = new Map<string, SubtopicMastery[]>();
-      for (const kw of allKeywords) {
-        const subs = subtopicsByKeyword.get(kw.id) || [];
-        cache.set(
-          kw.id,
-          subs
-            .map((sub) => ({
-              subtopic: sub,
-              pKnow: bktMap.get(sub.id) ?? null,
-            }))
-            .sort((a, b) => (a.pKnow ?? -1) - (b.pKnow ?? -1))
-        );
-      }
-      setSubtopicsCache(cache);
-
-      setKeywords(masteryItems);
-    } catch (err: any) {
-      console.error('[MasteryOverview] Failed to load:', err);
-      setError('No pudimos cargar tus datos. Intenta de nuevo.');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedInstitution?.id, bktStatesFromCtx, ctxLoading]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // ── Filter & sort ──────────────────────────────────────
-
-  const filtered = useMemo(() => {
-    let items = keywords;
-
-    if (filter !== 'all') {
-      items = items.filter((k) => matchesFilter(k.pKnow, filter));
-    }
-
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      items = items.filter(
-        (k) =>
-          k.keyword.name.toLowerCase().includes(q) ||
-          k.topicName.toLowerCase().includes(q) ||
-          k.courseName.toLowerCase().includes(q)
-      );
-    }
-
-    return items;
-  }, [keywords, filter, debouncedSearch]);
-
-  const grouped = useMemo(() => {
-    const groups = new Map<string, { courseName: string; topicName: string; items: KeywordMastery[] }>();
-
-    for (const item of filtered) {
-      const key = `${item.courseName} > ${item.topicName}`;
-      if (!groups.has(key)) {
-        groups.set(key, {
-          courseName: item.courseName,
-          topicName: item.topicName,
-          items: [],
-        });
-      }
-      groups.get(key)!.items.push(item);
-    }
-
-    for (const group of groups.values()) {
-      group.items.sort((a, b) => (a.pKnow ?? -1) - (b.pKnow ?? -1));
-    }
-
-    const groupArr = Array.from(groups.entries()).map(([key, group]) => {
-      const withData = group.items.filter((i) => i.pKnow !== null);
-      const avgPKnow =
-        withData.length > 0
-          ? withData.reduce((acc, i) => acc + i.pKnow!, 0) / withData.length
-          : -1;
-      return { key, ...group, avgPKnow };
-    });
-
-    groupArr.sort((a, b) => a.avgPKnow - b.avgPKnow);
-    return groupArr;
-  }, [filtered]);
-
-  // ── KPI summary ────────────────────────────────────────
-
-  const kpiCounts = useMemo(() => {
-    const counts = { critical: 0, weak: 0, progress: 0, good: 0, mastered: 0, noData: 0, total: keywords.length };
-    for (const k of keywords) {
-      if (k.pKnow === null) { counts.noData++; continue; }
-      if (k.pKnow < 0.3) counts.critical++;
-      else if (k.pKnow < 0.5) counts.weak++;
-      else if (k.pKnow < 0.7) counts.progress++;
-      else if (k.pKnow < 0.85) counts.good++;
-      else counts.mastered++;
-    }
-    return counts;
-  }, [keywords]);
-
-  // ── Expand/collapse ────────────────────────────────────
-
-  const toggleExpand = useCallback((keywordId: string) => {
-    setExpandedKeywords((prev) => {
-      const next = new Set(prev);
-      if (next.has(keywordId)) {
-        next.delete(keywordId);
-      } else {
-        next.add(keywordId);
-      }
-      return next;
-    });
-  }, []);
-
-  const hasActiveFilters = filter !== 'all' || debouncedSearch.length > 0;
-
-  const clearFilters = useCallback(() => {
-    setFilter('all');
-    setSearchQuery('');
-  }, []);
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowFilterDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    expandedKeywords,
+    toggleExpand,
+    subtopicsCache,
+  } = useMasteryOverviewData();
 
   // ── Render ─────────────────────────────────────────────
 
-  if (loading || ctxLoading) {
+  if (loading) {
     return (
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 min-h-[288px] flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 min-h-[288px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 animate-pulse" />
-          <p className="text-sm text-zinc-500 animate-pulse">Cargando dominio...</p>
+          <div className="w-10 h-10 rounded-lg bg-gray-100 animate-pulse" />
+          <p className="text-sm text-gray-400 animate-pulse">Cargando dominio...</p>
         </div>
       </div>
     );
@@ -470,12 +66,12 @@ export function MasteryOverview() {
 
   if (error) {
     return (
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 min-h-[288px] flex flex-col items-center justify-center gap-4">
-        <AlertCircle className="w-10 h-10 text-red-400/60" />
-        <p className="text-sm text-zinc-400 text-center">{error}</p>
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 min-h-[288px] flex flex-col items-center justify-center gap-4">
+        <AlertCircle className="w-10 h-10 text-red-300" />
+        <p className="text-sm text-gray-500 text-center">{error}</p>
         <button
           onClick={loadData}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Reintentar
@@ -486,36 +82,35 @@ export function MasteryOverview() {
 
   if (keywords.length === 0) {
     return (
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 min-h-[288px] flex flex-col items-center justify-center gap-3">
-        <BookOpen className="w-10 h-10 text-zinc-600" />
-        <p className="text-sm text-zinc-400 text-center">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 min-h-[288px] flex flex-col items-center justify-center gap-3">
+        <BookOpen className="w-10 h-10 text-gray-300" />
+        <p className="text-sm text-gray-500 text-center">
           Aun no tienes keywords. Empieza estudiando un resumen.
         </p>
       </div>
     );
   }
 
-  const allMastered = keywords.every((k) => k.pKnow !== null && k.pKnow >= 0.85);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6"
+      className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6"
     >
       {/* ── Header + Filters ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <h3 className="text-sm font-semibold text-zinc-100">Dominio de Conceptos</h3>
+        <h3 className="text-sm font-semibold text-gray-900">Dominio de Conceptos</h3>
 
         <div className="flex items-center gap-2">
+          {/* Filter dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                 filter !== 'all'
-                  ? 'border-violet-500/50 bg-violet-500/10 text-violet-300'
-                  : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:text-zinc-300'
+                  ? 'border-teal-500/50 bg-teal-50 text-teal-700'
+                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:text-gray-700'
               }`}
             >
               <Filter className="w-3.5 h-3.5" />
@@ -523,7 +118,7 @@ export function MasteryOverview() {
             </button>
 
             {showFilterDropdown && (
-              <div className="absolute right-0 top-full mt-1 z-40 w-48 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1">
+              <div className="absolute right-0 top-full mt-1 z-40 w-48 bg-white border border-gray-200 rounded-lg shadow-xl py-1">
                 {FILTER_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -533,8 +128,8 @@ export function MasteryOverview() {
                     }}
                     className={`w-full text-left px-3 py-2 text-xs transition-colors ${
                       filter === opt.value
-                        ? 'bg-violet-500/20 text-violet-300'
-                        : 'text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                        ? 'bg-teal-50 text-teal-700'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                     }`}
                   >
                     {opt.label}
@@ -544,14 +139,15 @@ export function MasteryOverview() {
             )}
           </div>
 
+          {/* Search */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar..."
-              className="w-36 sm:w-44 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
+              className="w-36 sm:w-44 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
             />
           </div>
         </div>
@@ -559,7 +155,7 @@ export function MasteryOverview() {
 
       {/* ── KPI Summary bar ── */}
       <div className="mb-4">
-        <div className="flex items-center gap-3 text-xs text-zinc-400 mb-2 flex-wrap">
+        <div className="flex items-center gap-3 text-xs text-gray-500 mb-2 flex-wrap">
           {kpiCounts.critical > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-red-500" />
@@ -590,11 +186,12 @@ export function MasteryOverview() {
               {kpiCounts.mastered} dominados
             </span>
           )}
-          <span className="text-zinc-500">· {kpiCounts.total} total</span>
+          <span className="text-gray-400">· {kpiCounts.total} total</span>
         </div>
 
+        {/* Distribution bar */}
         {kpiCounts.total > 0 && (
-          <div className="flex h-2 rounded-full overflow-hidden bg-zinc-700 gap-px">
+          <div className="flex h-2 rounded-full overflow-hidden bg-gray-100 gap-px">
             {kpiCounts.critical > 0 && (
               <div className="bg-red-500 rounded-sm" style={{ width: `${(kpiCounts.critical / kpiCounts.total) * 100}%` }} />
             )}
@@ -611,22 +208,23 @@ export function MasteryOverview() {
               <div className="bg-emerald-500 rounded-sm" style={{ width: `${(kpiCounts.mastered / kpiCounts.total) * 100}%` }} />
             )}
             {kpiCounts.noData > 0 && (
-              <div className="bg-zinc-600 rounded-sm" style={{ width: `${(kpiCounts.noData / kpiCounts.total) * 100}%` }} />
+              <div className="bg-gray-300 rounded-sm" style={{ width: `${(kpiCounts.noData / kpiCounts.total) * 100}%` }} />
             )}
           </div>
         )}
       </div>
 
+      {/* Active filter badge */}
       {hasActiveFilters && (
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs text-gray-500">
             Filtrando: {filter !== 'all' ? FILTER_OPTIONS.find((f) => f.value === filter)?.label : ''}{' '}
-            {debouncedSearch ? `"${debouncedSearch}"` : ''}{' '}
-            ({filtered.length} keyword{filtered.length !== 1 ? 's' : ''})
+            {searchQuery ? `"${searchQuery}"` : ''}{' '}
+            ({grouped.reduce((s, g) => s + g.items.length, 0)} keyword{grouped.reduce((s, g) => s + g.items.length, 0) !== 1 ? 's' : ''})
           </span>
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X className="w-3 h-3" />
             Limpiar
@@ -634,32 +232,36 @@ export function MasteryOverview() {
         </div>
       )}
 
+      {/* ── All mastered celebration ── */}
       {allMastered && !hasActiveFilters && (
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 mb-4">
-          <Sparkles className="w-6 h-6 text-emerald-400 shrink-0" />
-          <p className="text-sm text-emerald-300">
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 border border-emerald-200 mb-4">
+          <Sparkles className="w-6 h-6 text-emerald-500 shrink-0" />
+          <p className="text-sm text-emerald-700">
             ¡Felicitaciones! Dominas todos tus conceptos.
           </p>
         </div>
       )}
 
+      {/* ── Sorted hint ── */}
       {!hasActiveFilters && !allMastered && (
-        <p className="text-[11px] text-zinc-600 mb-3">Ordenado por: necesidad de repaso</p>
+        <p className="text-[11px] text-gray-400 mb-3">Ordenado por: necesidad de repaso</p>
       )}
 
       {/* ── Keyword groups ── */}
-      <div className="space-y-5 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-        {filtered.length === 0 ? (
-          <p className="text-sm text-zinc-500 text-center py-8">
+      <div className="space-y-5 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar-light">
+        {grouped.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">
             No se encontraron keywords con este filtro.
           </p>
         ) : (
           grouped.map((group) => (
             <div key={group.key}>
-              <p className="text-[11px] font-medium text-zinc-500 mb-2 uppercase tracking-wider">
+              {/* Group header */}
+              <p className="text-[11px] font-medium text-gray-400 mb-2 uppercase tracking-wider">
                 {group.courseName} › {group.topicName}
               </p>
 
+              {/* Keywords in group */}
               <div className="space-y-1">
                 {group.items.map((item) => (
                   <KeywordRow
@@ -676,126 +278,5 @@ export function MasteryOverview() {
         )}
       </div>
     </motion.div>
-  );
-}
-
-// ── KeywordRow ───────────────────────────────────────────
-
-function KeywordRow({
-  item,
-  expanded,
-  onToggle,
-  subtopics,
-}: {
-  item: KeywordMastery;
-  expanded: boolean;
-  onToggle: () => void;
-  subtopics?: SubtopicMastery[];
-}) {
-  const mc = getMasteryColor(item.pKnow);
-  const pct = item.pKnow !== null ? Math.round(item.pKnow * 100) : null;
-  const showRepeat = item.pKnow === null || item.pKnow < 0.7;
-
-  return (
-    <div className="rounded-lg overflow-hidden">
-      <div
-        onClick={item.subtopicCount > 0 ? onToggle : undefined}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-          item.subtopicCount > 0 ? 'cursor-pointer hover:bg-zinc-800/60' : ''
-        } ${expanded ? 'bg-zinc-800/40' : ''}`}
-      >
-        <div className="w-4 shrink-0">
-          {item.subtopicCount > 0 ? (
-            expanded ? (
-              <ChevronDown className="w-4 h-4 text-zinc-500" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
-            )
-          ) : null}
-        </div>
-
-        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getMasteryDot(item.pKnow)}`} />
-
-        <span className="text-sm text-zinc-200 flex-1 truncate">{item.keyword.name}</span>
-
-        <span className={`text-xs font-medium w-10 text-right shrink-0 ${mc.text}`}>
-          {pct !== null ? `${pct}%` : '—'}
-        </span>
-
-        <div className="w-20 sm:w-28 h-2 rounded-full bg-zinc-700 shrink-0 overflow-hidden">
-          {pct !== null && (
-            <div
-              className={`h-full rounded-full ${mc.bar} transition-all duration-500`}
-              style={{ width: `${pct}%` }}
-            />
-          )}
-        </div>
-
-        {item.subtopicCount > 0 && (
-          <span className="text-[11px] text-zinc-500 w-16 sm:w-20 text-right shrink-0 hidden sm:block">
-            {item.subtopicCount} subtopic{item.subtopicCount !== 1 ? 's' : ''}
-          </span>
-        )}
-
-        {showRepeat && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // TODO: navigate to adaptive quiz with keyword preselected
-              console.log('[MasteryOverview] Repetir:', item.keyword.id, item.keyword.name);
-            }}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded-md text-violet-400 hover:bg-violet-500/10 transition-colors shrink-0"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span className="hidden sm:inline">Repetir</span>
-          </button>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {expanded && subtopics && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="ml-9 pl-3 border-l border-zinc-800 py-1 space-y-0.5">
-              {subtopics.length === 0 ? (
-                <p className="text-xs text-zinc-600 py-2">Sin subtopics</p>
-              ) : (
-                subtopics.map((sub) => {
-                  const smc = getMasteryColor(sub.pKnow);
-                  const sPct = sub.pKnow !== null ? Math.round(sub.pKnow * 100) : null;
-                  return (
-                    <div
-                      key={sub.subtopic.id}
-                      className="flex items-center gap-3 px-3 py-1.5 rounded-md"
-                    >
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${getMasteryDot(sub.pKnow)}`} />
-                      <span className="text-xs text-zinc-400 flex-1 truncate">
-                        {sub.subtopic.name}
-                      </span>
-                      <span className={`text-[11px] font-medium w-10 text-right ${smc.text}`}>
-                        {sPct !== null ? `${sPct}%` : '—'}
-                      </span>
-                      <div className="w-16 sm:w-20 h-1.5 rounded-full bg-zinc-700 shrink-0 overflow-hidden">
-                        {sPct !== null && (
-                          <div
-                            className={`h-full rounded-full ${smc.bar}`}
-                            style={{ width: `${sPct}%` }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
