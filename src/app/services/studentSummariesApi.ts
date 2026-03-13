@@ -15,8 +15,9 @@
 
 import { apiCall } from '@/app/lib/api';
 import type { PaginatedList } from '@/app/services/summariesApi';
+import { getErrorMessage, hasHttpStatus } from '@/app/utils/getErrorMessage';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────
 
 export interface ReadingState {
   id: string;
@@ -64,7 +65,7 @@ export interface VideoNote {
   deleted_at?: string | null;
 }
 
-// ── Reading States ────────────────────────────────────────
+// ── Reading States ──────────────────────────────────────
 
 export async function getReadingState(summaryId: string): Promise<ReadingState | null> {
   try {
@@ -78,8 +79,8 @@ export async function getReadingState(summaryId: string): Promise<ReadingState |
     }
     // Direct object (custom endpoint or single-item response)
     return result ?? null;
-  } catch (err: any) {
-    if (err.message?.includes('404') || err.status === 404) return null;
+  } catch (err: unknown) {
+    if (getErrorMessage(err).includes('404') || hasHttpStatus(err, 404)) return null;
     throw err;
   }
 }
@@ -97,7 +98,7 @@ export async function upsertReadingState(data: {
   });
 }
 
-// ── Text Annotations ──────────────────────────────────────
+// ── Text Annotations ────────────────────────────────────
 
 export async function getTextAnnotations(summaryId: string): Promise<PaginatedList<TextAnnotation>> {
   return apiCall<PaginatedList<TextAnnotation>>(`/text-annotations?summary_id=${summaryId}`);
@@ -130,7 +131,7 @@ export async function deleteTextAnnotation(id: string): Promise<any> {
   return apiCall(`/text-annotations/${id}`, { method: 'DELETE' });
 }
 
-// ── Keyword Student Notes ─────────────────────────────────
+// ── Keyword Student Notes ───────────────────────────────
 
 export async function getKwStudentNotes(keywordId: string): Promise<PaginatedList<KwStudentNote>> {
   return apiCall<PaginatedList<KwStudentNote>>(`/kw-student-notes?keyword_id=${keywordId}`);
@@ -159,7 +160,7 @@ export async function deleteKwStudentNote(id: string): Promise<any> {
   return apiCall(`/kw-student-notes/${id}`, { method: 'DELETE' });
 }
 
-// ── Video Notes ───────────────────────────────────────────
+// ── Video Notes ─────────────────────────────────────────
 
 export async function getVideoNotes(videoId: string): Promise<PaginatedList<VideoNote>> {
   return apiCall<PaginatedList<VideoNote>>(`/video-notes?video_id=${videoId}`);
