@@ -1,9 +1,12 @@
 /**
  * @module @axon/design-system/colors
- * @version 1.0.0
+ * @version 2.0.0
  *
- * Paleta completa de colores: primarios (teal), superficies, bordes,
- * texto, semanticos, mastery, ratings, acentos de disciplina y charts.
+ * AUDIT v3 — Palette compliance (Axon Medical Academy):
+ *   - Dark surfaces: Dark Teal #1B3B36, Dark Panel #1a2e2a
+ *   - Primary interaction: Teal Accent #2a8c7a, Hover Teal #244e47
+ *   - Progress gradient: #2dd4a8 → #0d9488
+ *   - Page BG: #F0F2F5
  *
  * Standalone:  import { colors } from '@/app/design-system/colors';
  * Barrel:      import { colors } from '@/app/design-system';
@@ -14,32 +17,32 @@
 // ─────────────────────────────────────────────
 
 export const colors = {
-  /** Cor primaria de interacao — usada em botoes, links, icones ativos */
+  /** Cor primaria de interacao — Axon Medical Academy palette */
   primary: {
-    50:  '#f0fdfa',   // bg-teal-50  — fundo de icones
-    100: '#ccfbf1',   // bg-teal-100
-    200: '#99f6e4',
-    300: '#5eead4',
-    400: '#2dd4bf',
-    500: '#14b8a6',   // bg-teal-500 — botoes, badges, progresso
-    600: '#0d9488',   // bg-teal-600 — botoes hover, texto ativo
-    700: '#0f766e',   // bg-teal-700 — botoes pressed
-    800: '#115e59',
-    900: '#134e4a',
+    50:  '#e8f5f1',   // Teal tint — fundo de icones
+    100: '#d1f0e7',   // Teal soft
+    200: '#b3ddd2',   // Teal border
+    300: '#5cbdaa',   // Label "Concluido"
+    400: '#2dd4a8',   // Progress gradient start
+    500: '#2a8c7a',   // Teal Accent — botoes, badges, progresso
+    600: '#244e47',   // Hover Teal — botoes hover, texto ativo
+    700: '#1B3B36',   // Dark Teal — header, sidebar outer
+    800: '#1a2e2a',   // Dark Panel — sidebar body
+    900: '#0f2b26',   // Deepest dark (hero gradient end)
   },
 
-  /** Sidebar e header escuro */
+  /** Sidebar e header escuro — Axon Dark Teal */
   dark: {
-    navBar:       '#1e293b',   // Header top bar
-    sidebarBase:  '#1c1c1e',   // Sidebar outer shell
-    sidebarBody:  '#2d3e50',   // Sidebar content area
-    cardDark:     '#2c3e50',   // Performance card, filter active
+    navBar:       '#1B3B36',   // Header top bar (Axon Dark Teal)
+    sidebarBase:  '#1B3B36',   // Sidebar outer shell (Axon Dark Teal)
+    sidebarBody:  '#1a2e2a',   // Sidebar content area (Axon Dark Panel)
+    cardDark:     '#1a2e2a',   // Performance card (Axon Dark Panel)
   },
 
   /** Backgrounds de pagina */
   surface: {
-    page:       '#f9fafb',     // bg-gray-50  — fundo geral
-    dashboard:  '#f5f2ea',     // fundo bege do dashboard
+    page:       '#f0f2f5',     // bg-[#F0F2F5] — fundo geral
+    dashboard:  '#F0F2F5',     // fundo do dashboard (aligned to palette.ts)
     card:       '#ffffff',     // bg-white — cards
     hover:      '#f3f4f6',     // bg-gray-100 — hover states
   },
@@ -73,8 +76,8 @@ export const colors = {
   mastery: {
     notStarted: '#d1d5db',     // gray-300
     learning:   '#fbbf24',     // yellow-400
-    reviewing:  '#14b8a6',     // teal-500
-    mastered:   '#0d9488',     // teal-600
+    reviewing:  '#2a8c7a',     // Axon Teal Accent
+    mastered:   '#0d9488',     // Axon Progress End
   },
 
   /** Rating scale (flashcard self-assessment) */
@@ -92,11 +95,11 @@ export const colors = {
     histology: { bg: 'bg-indigo-500', text: 'text-indigo-500' },
   } as Record<string, { bg: string; text: string }>,
 
-  /** Chart palette */
+  /** Chart palette — Axon derivatives */
   chart: {
-    flashcards: '#14b8a6',     // teal-500
+    flashcards: '#2a8c7a',     // Axon Teal Accent
     videos:     '#06b6d4',     // cyan-500
-    bar:        '#0d9488',     // teal-600
+    bar:        '#0d9488',     // Axon Progress End
     grid:       '#f3f4f6',     // gray-100
   },
 } as const;
