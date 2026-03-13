@@ -11,7 +11,7 @@
 import React from 'react';
 import { Outlet } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/app/contexts/AuthContext';
+import { AuthProvider } from '@/app/context/AuthContext';
 import { queryClient } from '@/app/lib/queryClient';
 import { Toaster } from 'sonner';
 
