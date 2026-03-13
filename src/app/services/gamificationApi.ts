@@ -2,26 +2,27 @@
 // Axon — Gamification API Service v2 (VERIFIED against backend)
 //
 // Backend: routes/gamification/ (PR #101 modularized)
-// All endpoints REQUIRE institution_id (query or body).
+// Most endpoints require institution_id (query or body).
+// Exception: GET /badges uses only JWT auth (no institution_id).
 //
 // ENDPOINTS (13 total):
 //   profile.ts:
-//     GET  /gamification/profile      — Composite XP + streak + badge count
-//     GET  /gamification/xp-history   — Paginated XP transactions
-//     GET  /gamification/leaderboard  — Weekly/daily leaderboard
+//     GET  /gamification/profile      — Composite XP + streak + badge count  [institution_id]
+//     GET  /gamification/xp-history   — Paginated XP transactions            [institution_id]
+//     GET  /gamification/leaderboard  — Weekly/daily leaderboard             [institution_id]
 //   badges.ts:
-//     GET  /gamification/badges       — All badge defs + earned status
-//     POST /gamification/check-badges — Evaluate and award eligible
-//     GET  /gamification/notifications— Recent XP + badge timeline
+//     GET  /gamification/badges       — All badge defs + earned status       [JWT only]
+//     POST /gamification/check-badges — Evaluate and award eligible          [institution_id]
+//     GET  /gamification/notifications— Recent XP + badge timeline           [institution_id]
 //   streak.ts:
-//     GET  /gamification/streak-status — Detailed streak info
-//     POST /gamification/daily-check-in— Daily login streak check-in
-//     POST /gamification/streak-freeze/buy — Purchase freeze with XP
-//     POST /gamification/streak-repair — Repair broken streak with XP
+//     GET  /gamification/streak-status — Detailed streak info                [institution_id]
+//     POST /gamification/daily-check-in— Daily login streak check-in         [institution_id]
+//     POST /gamification/streak-freeze/buy — Purchase freeze with XP         [institution_id]
+//     POST /gamification/streak-repair — Repair broken streak with XP        [institution_id]
 //   goals.ts:
-//     PUT  /gamification/daily-goal   — Update daily XP goal target
-//     POST /gamification/goals/complete— Mark goal completed for bonus XP
-//     POST /gamification/onboarding   — Initialize gamification profile
+//     PUT  /gamification/daily-goal   — Update daily XP goal target          [institution_id]
+//     POST /gamification/goals/complete— Mark goal completed for bonus XP    [institution_id]
+//     POST /gamification/onboarding   — Initialize gamification profile      [institution_id]
 //
 // Uses apiCall() from lib/api.ts (handles Auth headers).
 // ============================================================
@@ -148,7 +149,7 @@ export async function getGamificationProfile(
   );
 }
 
-// ── XP History ────────────────────────────────────────────
+// ── XP History ────────────────────────────────────────
 
 export async function getXPHistory(
   institutionId: string,
@@ -160,7 +161,7 @@ export async function getXPHistory(
   return apiCall<XPHistoryResponse>(`/gamification/xp-history?${params}`);
 }
 
-// ── Leaderboard ───────────────────────────────────────────
+// ── Leaderboard ───────────────────────────────────────
 
 export async function getLeaderboard(
   institutionId: string,
@@ -172,7 +173,10 @@ export async function getLeaderboard(
   return apiCall<LeaderboardResponse>(`/gamification/leaderboard?${params}`);
 }
 
-// ── Badges ────────────────────────────────────────────────
+// ── Badges ──────────────────────────────────────────
+// NOTE: GET /badges does NOT require institution_id.
+// Backend uses JWT auth only (user.id) to join badge_definitions + student_badges.
+// Verified in axon-backend/routes/gamification/badges.ts line 21.
 
 export async function getBadges(
   category?: string
@@ -191,7 +195,7 @@ export async function checkBadges(
   });
 }
 
-// ── Notifications ─────────────────────────────────────────
+// ── Notifications ─────────────────────────────────────
 
 export async function getGamificationNotifications(
   institutionId: string,
@@ -202,7 +206,7 @@ export async function getGamificationNotifications(
   return apiCall<NotificationsResponse>(`/gamification/notifications?${params}`);
 }
 
-// ── Streak ────────────────────────────────────────────────
+// ── Streak ──────────────────────────────────────────
 
 export async function getStreakStatus(
   institutionId: string
@@ -239,7 +243,7 @@ export async function repairStreak(
   );
 }
 
-// ── Goals ─────────────────────────────────────────────────
+// ── Goals ───────────────────────────────────────────
 
 export async function updateDailyGoal(
   institutionId: string,
