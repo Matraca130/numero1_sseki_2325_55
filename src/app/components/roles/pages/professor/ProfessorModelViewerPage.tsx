@@ -168,6 +168,7 @@ export function ProfessorModelViewerPage() {
             <ModelViewer3D
               modelId={model.id}
               modelName={model.title}
+              topicId={model.topic_id}
               mode="edit"
             />
           </ErrorBoundary>
