@@ -5,7 +5,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
-import { devLog } from '@/app/utils/devLog';
+import { logger } from '@/app/lib/logger';
 import {
   type KeywordMastery,
   type SubtopicMastery,
@@ -78,7 +78,7 @@ export function KeywordRow({ item, expanded, onToggle, subtopics }: KeywordRowPr
           <button
             onClick={(e) => {
               e.stopPropagation();
-              devLog('[MasteryOverview] Repetir:', item.keyword.id, item.keyword.name);
+              logger.debug('KeywordRow', 'Repetir:', item.keyword.id, item.keyword.name);
             }}
             className="flex items-center gap-1 px-2 py-1 text-xs rounded-md text-[#2a8c7a] hover:bg-[#e6f5f1] transition-colors shrink-0"
           >

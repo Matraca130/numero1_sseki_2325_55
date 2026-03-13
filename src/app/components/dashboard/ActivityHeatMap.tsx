@@ -9,7 +9,7 @@ import {
   getDailyActivities,
   type DailyActivityRecord,
 } from '@/app/services/platformApi';
-import { devLog } from '@/app/utils/devLog';
+import { logger } from '@/app/lib/logger';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -174,7 +174,7 @@ export function ActivityHeatMap() {
       try {
         const fromStr = toISO(from);
         const toStr = toISO(to);
-        devLog(`[HeatMap] GET /daily-activities?from=${fromStr}&to=${toStr}`);
+        logger.debug('HeatMap', `GET /daily-activities?from=${fromStr}&to=${toStr}`);
         const result = await getDailyActivities(fromStr, toStr, 200);
         if (!cancelled) setData(result);
       } catch (err) {
