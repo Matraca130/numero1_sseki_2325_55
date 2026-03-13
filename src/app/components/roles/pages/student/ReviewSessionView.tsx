@@ -6,17 +6,15 @@
 // - ReviewSessionView: "Revisar solo las que TOCAN HOY segun FSRS" (algoritmico)
 //
 // Flow:
-// 1. GET /fsrs-states → filter due_at <= now OR due_at null
-// 2. GET /flashcards/:id for each due state
-// 3. POST /study-sessions → create session
-// 4. Review cards with flip + grade 1-4
-// 5. grade=1 → re-insert at end of queue
-// 6. queueReview (sync, 0 POSTs) per card
-// 7. Session end:
+// 1. GET /study-queue → returns cards + FSRS data in 1 request (GAP 5 FIX)
+// 2. POST /study-sessions → create session
+// 3. Review cards with flip + grade 1-5
+// 4. grade=1 → re-insert at end of queue
+// 5. queueReview (sync, 0 POSTs) per card
+// 6. Session end:
 //    a. submitBatch → 1 POST /review-batch
 //    b. closeStudySession → 1 POST
-//    c. daily-activities → 1 POST
-//    d. student-stats → 1 POST
+//    c. postSessionAnalytics → 2 POSTs (daily-activities + student-stats)
 //
 // v4.4.4 — Migrated to useReviewBatch:
 //   Previously used persistCardReview (3×N POSTs) + submitReview
@@ -25,70 +23,70 @@
 //   Also passes REAL existingFsrs from FsrsStateRow (unlike
 //   FlashcardReviewer which passes undefined for new-card state).
 //
+// v4.4.5 — grade=1 re-enqueue FIX:
+//   Previously re-enqueued currentItem with ORIGINAL fsrsState.
+//   Now builds an updated FsrsStateRow from queueReview()'s
+//   returned fsrsUpdate, so the next encounter uses accumulated
+//   FSRS state (stability halved, lapses incremented, state=relearning).
+//   BKT was already handled by useReviewBatch's sessionBktRef.
+//
 // Backend: FLAT routes via studySessionApi + flashcardApi + apiCall.
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { apiCall } from '@/app/lib/api';
-import * as flashcardApi from '@/app/services/flashcardApi';
+import { postSessionAnalytics } from '@/app/lib/sessionAnalytics';
+import { getStudyQueue } from '@/app/lib/studyQueueApi';
+import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
-import type { FsrsStateRow } from '@/app/services/studySessionApi';
 import { FlashcardCard } from '@/app/components/student/FlashcardCard';
-import { useReviewBatch } from '@/app/hooks/useReviewBatch';
+import { useReviewBatch, retryPendingBatches } from '@/app/hooks/useReviewBatch';
 import {
   Loader2, X, CheckCircle,
   Trophy, BarChart3, ChevronRight, Clock, Calendar,
-  Play,
+  Play, AlertTriangle, Stethoscope,
 } from 'lucide-react';
-import { GRADES } from '@/app/hooks/flashcard-types';
+import { RATINGS } from '@/app/hooks/flashcard-types';
+import { ReportContentButton } from '@/app/components/shared/ReportContentButton';
 
 // ── Queue item: card + its FSRS state ─────────────────────
 
 interface ReviewQueueItem {
   card: FlashcardItem;
-  fsrsState: FsrsStateRow;
+  fsrsState: StudyQueueItem;
 }
 
-// ── Props ─────────────────────────────────────────────────
+// ── Props ────────────────────────────────────────────────
 
 interface ReviewSessionViewProps {
   onClose?: () => void;
-  /**
-   * Optional mastery map: flashcard_id → { p_know }.
-   * If provided, queueReview uses real p_know values for BKT.
-   * If omitted, defaults to 0 (first pass) — intra-session
-   * accumulation still works via useReviewBatch's sessionBktRef.
-   */
   masteryMap?: Map<string, { p_know: number }>;
 }
 
 type ReviewPhase = 'loading' | 'idle' | 'reviewing' | 'finished';
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProps) {
-  // ── Data ────────────────────────────────────────────────
   const [phase, setPhase] = useState<ReviewPhase>('loading');
   const [queue, setQueue] = useState<ReviewQueueItem[]>([]);
   const [totalDueCount, setTotalDueCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ── Session state ───────────────────────────────────────
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [grades, setGrades] = useState<number[]>([]);
   const sessionStartRef = useRef<Date | null>(null);
 
-  // ── Timing per card (for response_time_ms) ──────────────
+  const gradesRef = useRef<number[]>([]);
   const cardStartTime = useRef<number>(Date.now());
 
-  // ── Batch review hook ──────────────────────────────────
-  // Replaces the old persistCardReview + submitReview pattern.
-  // queueReview: sync, zero POSTs — queues locally
-  // submitBatch: async, 1 POST /review-batch at session end
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
+
+  useEffect(() => {
+    retryPendingBatches();
+  }, []);
 
   // ── Timer ───────────────────────────────────────────────
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -121,64 +119,69 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }, [elapsedSeconds]);
 
-  // ── Load due FSRS states + flashcards ───────────────────
+  // ── Keyboard shortcuts (Space=flip, 1-5=grade) ─────────────
+  useEffect(() => {
+    if (phase !== 'reviewing') return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        if (!isFlipped) setIsFlipped(true);
+      } else if (isFlipped && e.key >= '1' && e.key <= '5') {
+        e.preventDefault();
+        handleGrade(parseInt(e.key, 10));
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, isFlipped, handleGrade]);
+
+  // ── Load due cards via /study-queue (GAP 5 FIX) ─────────────
   useEffect(() => {
     let cancelled = false;
 
     async function loadDueCards() {
       try {
-        // 1. Get all FSRS states
-        const allStates = await sessionApi.getFsrsStates({
-          limit: 500,
-        });
-
-        const now = new Date().toISOString();
-
-        // 2. Filter: due_at <= now OR due_at is null. Ignore null flashcard_id.
-        const dueStates = allStates.filter(s => {
-          if (!s.flashcard_id) return false; // orphan
-          if (!s.due_at) return true; // never reviewed = due
-          return s.due_at <= now;
-        });
+        const response = await getStudyQueue({ limit: 100 });
 
         if (cancelled) return;
 
-        if (dueStates.length === 0) {
+        const dueItems = response.queue;
+
+        if (dueItems.length === 0) {
           setTotalDueCount(0);
           setQueue([]);
           setPhase('idle');
           return;
         }
 
-        // 3. Fetch each flashcard (parallel, batched)
-        const items: ReviewQueueItem[] = [];
-        const batchSize = 10;
-        for (let i = 0; i < dueStates.length; i += batchSize) {
-          const batch = dueStates.slice(i, i + batchSize);
-          const results = await Promise.allSettled(
-            batch.map(s => flashcardApi.getFlashcard(s.flashcard_id!))
-          );
-          for (let j = 0; j < results.length; j++) {
-            const result = results[j];
-            if (result.status === 'fulfilled') {
-              const card = result.value;
-              // Only include active, non-deleted
-              if (card.is_active && !card.deleted_at) {
-                items.push({ card, fsrsState: batch[j] });
-              }
-            }
-          }
-        }
-
-        if (cancelled) return;
+        const items: ReviewQueueItem[] = dueItems.map(sq => ({
+          card: {
+            id: sq.flashcard_id,
+            front: sq.front,
+            back: sq.back,
+            front_image_url: sq.front_image_url,
+            back_image_url: sq.back_image_url,
+            summary_id: sq.summary_id,
+            keyword_id: sq.keyword_id,
+            subtopic_id: sq.subtopic_id,
+            is_active: true,
+            deleted_at: null,
+          } as FlashcardItem,
+          fsrsState: sq,
+        }));
 
         setQueue(items);
-        setTotalDueCount(items.length);
+        setTotalDueCount(response.meta.total_in_queue);
         setPhase('idle');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('[ReviewSession] Load error:', err);
         if (!cancelled) {
-          setLoadError(err.message || 'Error al cargar repasos');
+          setLoadError(err instanceof Error ? err.message : 'Error al cargar repasos');
           setPhase('idle');
         }
       }
@@ -188,11 +191,10 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     return () => { cancelled = true; };
   }, []);
 
-  // ── Current item ────────────────────────────────────────
   const currentItem = queue[currentIdx] || null;
   const reviewedCount = grades.length;
 
-  // ── Start session ───────────────────────────────────────
+  // ── Start session ─────────────────────────────────────────
   const startSession = useCallback(async () => {
     try {
       const session = await sessionApi.createStudySession({
@@ -204,72 +206,53 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
       setCurrentIdx(0);
       setIsFlipped(false);
       setGrades([]);
+      gradesRef.current = [];
       setElapsedSeconds(0);
       batchReset();
       setPhase('reviewing');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[ReviewSession] Session create error:', err);
     }
   }, [batchReset]);
 
-  // ── Grade a card ────────────────────────────────────────
-  // NOW SYNC: queueReview does zero network calls.
-  // Batch submission + analytics happen ONLY at session end.
+  // ── Grade a card ──────────────────────────────────────────
   const handleGrade = useCallback((grade: number) => {
     if (!sessionId || !currentItem) return;
 
-    // 1. Compute response time
     const responseTimeMs = Date.now() - cardStartTime.current;
 
-    // 2. Queue review via useReviewBatch (sync, zero POSTs)
-    //    ADVANTAGE over FlashcardReviewer: we have REAL FSRS state
-    //    from the FsrsStateRow, so scheduling is accurate.
     const masteryEntry = masteryMap?.get(currentItem.card.id);
     queueReview({
       card: currentItem.card,
       grade,
       responseTimeMs,
-      existingFsrs: {
-        stability: currentItem.fsrsState.stability || 1,
-        difficulty: currentItem.fsrsState.difficulty || 5,
-        reps: currentItem.fsrsState.reps || 0,
-        lapses: currentItem.fsrsState.lapses || 0,
-        state: currentItem.fsrsState.state || 'new',
-      },
-      currentPKnow: masteryEntry?.p_know,
+      currentPKnow: masteryEntry?.p_know ?? currentItem.fsrsState.p_know ?? 0,
     });
 
-    // 3. Update local grades state
-    const newGrades = [...grades, grade];
+    const newGrades = [...gradesRef.current, grade];
+    gradesRef.current = newGrades;
     setGrades(newGrades);
 
-    // 4. grade=1 → re-insert at end of queue (spaced repetition re-queue)
+    // grade=1 → re-insert at end of queue
     if (grade === 1) {
-      setQueue(prev => [...prev, currentItem]);
+      setQueue(prev => [...prev, { card: currentItem.card, fsrsState: currentItem.fsrsState }]);
     }
 
-    // 5. Move to next card or finish
-    //    Must account for potential queue growth from grade=1 re-queue
     const updatedQueueLength = grade === 1 ? queue.length + 1 : queue.length;
 
     if (currentIdx + 1 < updatedQueueLength) {
-      // ── Next card ──
       setCurrentIdx(currentIdx + 1);
       setIsFlipped(false);
       cardStartTime.current = Date.now();
     } else {
-      // ── Session complete ──
       stopTimer();
       setPhase('finished');
 
-      // Fire batch submit + close + analytics in background (non-blocking)
       const sid = sessionId;
       const startTime = sessionStartRef.current;
       (async () => {
-        // a. Submit all reviews in ONE batch request
         await submitBatch(sid);
 
-        // b. Close session on backend
         const now = new Date();
         const durationSeconds = startTime
           ? Math.round((now.getTime() - startTime.getTime()) / 1000)
@@ -286,68 +269,20 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
           console.error('[ReviewSession] Session close error:', err);
         }
 
-        // c. POST /daily-activities (UPSERT) — analytics/gamification
-        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
-        try {
-          await apiCall('/daily-activities', {
-            method: 'POST',
-            body: JSON.stringify({
-              activity_date: today,
-              reviews_count: newGrades.length,
-              correct_count: correctReviews,
-              time_spent_seconds: durationSeconds,
-              sessions_count: 1,
-            }),
-          });
-        } catch (err) {
-          console.error('[ReviewSession] Daily activity update failed:', err);
-        }
-
-        // d. POST /student-stats (UPSERT) — analytics/gamification
-        try {
-          await apiCall('/student-stats', {
-            method: 'POST',
-            body: JSON.stringify({
-              total_reviews: newGrades.length,
-              total_time_seconds: durationSeconds,
-              total_sessions: 1,
-              last_study_date: today,
-            }),
-          });
-        } catch (err) {
-          console.error('[ReviewSession] Student stats update failed:', err);
-        }
+        await postSessionAnalytics({
+          totalReviews: newGrades.length,
+          correctReviews,
+          durationSeconds,
+        });
       })();
     }
-  }, [sessionId, currentItem, currentIdx, queue, grades, queueReview, submitBatch, stopTimer, masteryMap]);
-  // ^^^ REMOVED elapsedSeconds from deps — was causing handleGrade recreation every second.
-  //     Duration is computed from sessionStartRef (ref, not state) instead.
-
-  // ── Keyboard shortcuts ──────────────────────────────────
-  useEffect(() => {
-    if (phase !== 'reviewing') return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (!isFlipped) setIsFlipped(true);
-      }
-      if (isFlipped) {
-        const num = parseInt(e.key);
-        if (num >= 1 && num <= 4) {
-          e.preventDefault();
-          handleGrade(num);
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [phase, isFlipped, handleGrade]);
+  }, [sessionId, currentItem, currentIdx, queue, queueReview, submitBatch, stopTimer, masteryMap]);
 
   // ── Grade distribution ──────────────────────────────────
   const gradeDistribution = useMemo(() => {
-    const dist = [0, 0, 0, 0];
-    for (const g of grades) {
-      if (g >= 1 && g <= 4) dist[g - 1]++;
+    const dist = [0, 0, 0, 0, 0];
+    for (const g of gradesRef.current) {
+      if (g >= 1 && g <= 5) dist[g - 1]++;
     }
     return dist;
   }, [grades]);
@@ -357,7 +292,6 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100);
   }, [grades]);
 
-  // ── Next review estimate ────────────────────────────────
   const nextDueEstimate = useMemo(() => {
     if (grades.length === 0) return '';
     const hasAgain = grades.some(g => g === 1);
@@ -365,9 +299,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     return 'manana o despues';
   }, [grades]);
 
-  // ══════════════════════════════════════════
-  // PHASE: LOADING
-  // ══════════════════════════════════════════
+  // ══ PHASE: LOADING ══
   if (phase === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-[#0a0a0f]">
@@ -377,9 +309,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     );
   }
 
-  // ══════════════════════════════════════════
-  // PHASE: IDLE — No due cards or ready to start
-  // ══════════════════════════════════════════
+  // ══ PHASE: IDLE ══
   if (phase === 'idle') {
     if (loadError) {
       return (
@@ -429,7 +359,6 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
       );
     }
 
-    // Has due cards — show start screen
     return (
       <div className="flex flex-col items-center justify-center h-full bg-[#0a0a0f] px-4">
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 border border-violet-500/20 flex items-center justify-center mb-6">
@@ -463,15 +392,21 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     );
   }
 
-  // ══════════════════════════════════════════
-  // PHASE: REVIEWING — Flip cards + grade
-  // ══════════════════════════════════════════
+  // ══ PHASE: REVIEWING ══
   if (phase === 'reviewing' && currentItem) {
     const progressPercent = (reviewedCount / Math.max(queue.length, 1)) * 100;
 
+    const correctSoFar = grades.filter(g => g >= 3).length;
+    const accuracyPct = reviewedCount > 0 ? Math.round((correctSoFar / reviewedCount) * 100) : 0;
+    let currentStreak = 0;
+    for (let i = grades.length - 1; i >= 0; i--) {
+      if (grades[i] >= 3) currentStreak++;
+      else break;
+    }
+
     return (
       <div className="flex flex-col h-full min-h-0 bg-[#0a0a0f]">
-        {/* ── Top bar ── */}
+        {/* Top bar */}
         <div className="shrink-0 px-5 py-3 flex items-center justify-between">
           <button
             onClick={() => {
@@ -486,7 +421,23 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
           </button>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-zinc-300">
+            {reviewedCount > 0 && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                accuracyPct >= 80
+                  ? 'bg-emerald-500/15 text-emerald-400'
+                  : accuracyPct >= 50
+                    ? 'bg-amber-500/15 text-amber-400'
+                    : 'bg-red-500/15 text-red-400'
+              }`} style={{ fontWeight: 600 }}>
+                {accuracyPct}%
+              </span>
+            )}
+            {currentStreak >= 3 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400" style={{ fontWeight: 600 }}>
+                \uD83D\uDD25 {currentStreak}
+              </span>
+            )}
+            <span className="text-sm text-zinc-300" style={{ fontWeight: 600 }}>
               {reviewedCount + 1}/{queue.length}
             </span>
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
@@ -495,11 +446,30 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
             </span>
           </div>
 
-          <div className="w-10" />
+          <ReportContentButton
+            contentType="flashcard"
+            contentId={currentItem.card.id}
+          />
         </div>
 
-        {/* ── Progress bar ── */}
+        {/* Progress bar */}
         <div className="shrink-0 px-5 pb-4">
+          {(currentItem.fsrsState.is_leech || currentItem.fsrsState.clinical_priority > 0) && (
+            <div className="flex items-center gap-2 mb-2">
+              {currentItem.fsrsState.is_leech && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20" style={{ fontWeight: 600 }}>
+                  <AlertTriangle size={10} />
+                  Leech \u2014 {currentItem.fsrsState.consecutive_lapses} fallos seguidos
+                </span>
+              )}
+              {currentItem.fsrsState.clinical_priority > 0 && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20" style={{ fontWeight: 600 }}>
+                  <Stethoscope size={10} />
+                  Prioridad clinica: {Math.round(currentItem.fsrsState.clinical_priority * 100)}%
+                </span>
+              )}
+            </div>
+          )}
           <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full"
@@ -510,7 +480,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
           </div>
         </div>
 
-        {/* ── Card area ── */}
+        {/* Card area */}
         <div className="flex-1 flex items-center justify-center px-5 min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
@@ -534,7 +504,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
           </AnimatePresence>
         </div>
 
-        {/* ── Grade buttons ── */}
+        {/* Grade buttons */}
         <div className="shrink-0 px-5 pb-6 pt-4">
           <AnimatePresence>
             {isFlipped && (
@@ -543,13 +513,13 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center justify-center gap-3"
+                className="flex items-center justify-center gap-2"
               >
-                {GRADES.map((g) => (
+                {RATINGS.map((g) => (
                   <button
                     key={g.value}
                     onClick={() => handleGrade(g.value)}
-                    className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl text-white font-semibold transition-all ${g.color} shadow-lg`}
+                    className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl text-white font-semibold transition-all ${g.color} ${g.hover} shadow-lg`}
                   >
                     <span className="text-sm">{g.label}</span>
                     <span className="text-[10px] opacity-70">{g.value}</span>
@@ -571,9 +541,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     );
   }
 
-  // ══════════════════════════════════════════
-  // PHASE: FINISHED — Summary screen
-  // ══════════════════════════════════════════
+  // ══ PHASE: FINISHED ══
   if (phase === 'finished') {
     const minutes = Math.floor(elapsedSeconds / 60);
     const seconds = elapsedSeconds % 60;
@@ -646,17 +614,12 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
             </span>
           </div>
           <div className="space-y-2.5">
-            {GRADES.map((g, idx) => (
+            {RATINGS.map((g, idx) => (
               <div key={g.value} className="flex items-center gap-3">
                 <span className="text-xs text-zinc-400 w-16 shrink-0">{g.label}</span>
                 <div className="flex-1 h-5 bg-zinc-800 rounded-full overflow-hidden">
                   <motion.div
-                    className={`h-full rounded-full ${
-                      g.value === 1 ? 'bg-red-500' :
-                      g.value === 2 ? 'bg-orange-500' :
-                      g.value === 3 ? 'bg-emerald-500' :
-                      'bg-blue-500'
-                    }`}
+                    className={`h-full rounded-full ${g.color}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${(gradeDistribution[idx] / maxGradeCount) * 100}%` }}
                     transition={{ duration: 0.5, delay: 0.5 + idx * 0.1 }}
