@@ -10,42 +10,45 @@
 //   - difficulty → INTEGER (1/2/3)
 //   - question_type → "mcq"|"true_false"|"fill_blank"|"open"
 //
-// Graceful error handling: shows "backend pendiente" banner on 404.
+// Graceful error handling: shows error banner with fallback loading.
 // ============================================================
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { apiCall } from '@/app/lib/api';
 import * as quizApi from '@/app/services/quizApi';
-import type {
-  QuizQuestion,
-  QuestionType,
-  QuizQuestionListResponse,
-} from '@/app/services/quizApi';
-import {
-  QUESTION_TYPE_LABELS,
-} from '@/app/services/quizConstants';
+import type { QuizQuestion } from '@/app/services/quizApi';
+import type { KeywordRef } from '@/app/types/platform';
 import { QuestionCard } from '@/app/components/professor/QuestionCard';
 import { QuestionFormModal } from '@/app/components/professor/QuestionFormModal';
+import { QuizFiltersBar } from '@/app/components/professor/QuizFiltersBar';
+import { useQuestionCrud } from '@/app/components/professor/useQuestionCrud';
 import { AnimatePresence } from 'motion/react';
 import {
   ArrowLeft, Plus,
   Loader2, AlertTriangle, HelpCircle,
-  Search, Filter,
+  Sparkles,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import type { Quiz } from '@/app/services/quizApi';
 import { logger } from '@/app/lib/logger';
+import { getErrorMsg } from '@/app/lib/error-utils';
+import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
+import { AiGeneratePanel } from '@/app/components/professor/AiGeneratePanel';
+import { QuizErrorBoundary } from '@/app/components/shared/QuizErrorBoundary';
+import { BulkEditToolbar } from '@/app/components/professor/BulkEditToolbar';
+import { QuizExportImport } from '@/app/components/professor/QuizExportImport';
+import { useQuizBulkOps } from '@/app/components/professor/useQuizBulkOps';
+import { useQuizFilters } from '@/app/components/professor/useQuizFilters';
+import clsx from 'clsx';
 
 // ── Props ─────────────────────────────────────────────────
 
 interface QuizQuestionsEditorProps {
   quiz: Quiz;
   summaryId: string;
-  keywords: Array<{ id: string; term?: string; name?: string }>;
+  keywords: KeywordRef[];
   onBack: () => void;
 }
 
-// ── Main Component ────────────────────────────────────────
+// ── Main Component ──────────────────────────────────────
 
 export function QuizQuestionsEditor({
   quiz,
@@ -57,45 +60,32 @@ export function QuizQuestionsEditor({
   const [loading, setLoading] = useState(true);
   const [backendWarning, setBackendWarning] = useState<string | null>(null);
 
-  // Filters
-  const [filterType, setFilterType] = useState<QuestionType | ''>('');
-  const [filterKeywordId, setFilterKeywordId] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // AI Generate Panel
+  const [showAiPanel, setShowAiPanel] = useState(false);
 
-  // Modal
-  const [showModal, setShowModal] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  // Export/Import modal (P8)
+  const [showExportImport, setShowExportImport] = useState(false);
 
   // ── Load questions ──────────────────────────────────────
   const loadQuestions = useCallback(async () => {
     setLoading(true);
     setBackendWarning(null);
     try {
-      // summary_id is REQUIRED (parentKey), quiz_id is optional filter
-      const res = await apiCall<QuizQuestionListResponse | QuizQuestion[]>(
-        `/quiz-questions?summary_id=${summaryId}&quiz_id=${quiz.id}`
-      );
-      if (Array.isArray(res)) {
-        setQuestions(res);
-      } else if (res && typeof res === 'object' && 'items' in res) {
-        setQuestions(res.items || []);
-      } else {
-        setQuestions([]);
-      }
+      // R9 FIX: use service layer instead of raw apiCall — quiz_id now in getQuizQuestions filters
+      const res = await quizApi.getQuizQuestions(summaryId, { quiz_id: quiz.id });
+      setQuestions(res.items || []);
     } catch (err: unknown) {
-      logger.warn('[QuizQuestionsEditor] quiz_id filter failed, trying summary_id fallback:', err instanceof Error ? err.message : String(err));
-      // Fallback: load all questions for the summary
-      // (quiz_id filter doesn't exist yet in optionalFilters)
+      logger.warn('[QuizQuestionsEditor] Failed to load questions:', getErrorMsg(err));
+      // FIX BA-06: quiz_id IS in optionalFilters — this is a genuine API error, not a missing feature
       setBackendWarning(
-        'El filtro quiz_id aun no existe en el backend. ' +
-        'Se muestran todas las preguntas del resumen como fallback. ' +
-        'Cuando se despliegue el cambio, solo se mostraran las del quiz seleccionado.'
+        'Error al cargar preguntas del quiz. Se muestran todas las del resumen como fallback.'
       );
+      // Fallback: load all questions for the summary
       try {
         const fallback = await quizApi.getQuizQuestions(summaryId, { limit: 200 });
         setQuestions(fallback.items || []);
       } catch (fallbackErr: unknown) {
-        logger.error('[QuizQuestionsEditor] Fallback also failed:', fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr));
+        logger.error('[QuizQuestionsEditor] Fallback also failed:', getErrorMsg(fallbackErr));
         setQuestions([]);
       }
     } finally {
@@ -107,61 +97,14 @@ export function QuizQuestionsEditor({
     loadQuestions();
   }, [loadQuestions]);
 
-  // ── Filtered questions ──────────────────────────────────
-  const filteredQuestions = useMemo(() => {
-    let result = questions;
-    if (filterType) {
-      result = result.filter(q => q.question_type === filterType);
-    }
-    if (filterKeywordId) {
-      result = result.filter(q => q.keyword_id === filterKeywordId);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        qq => qq.question.toLowerCase().includes(q) ||
-              qq.correct_answer.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [questions, filterType, filterKeywordId, searchQuery]);
+  // ── CRUD handlers (R4: extracted to hook) ─────────────
+  const crud = useQuestionCrud(loadQuestions);
 
-  // ── CRUD handlers ───────────────────────────────────────
-  const handleDelete = async (id: string) => {
-    try {
-      await quizApi.deleteQuizQuestion(id);
-      toast.success('Pregunta eliminada');
-      await loadQuestions();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al eliminar');
-    }
-  };
+  // ── Filters (M-4: extracted to hook) ──────────────────
+  const filters = useQuizFilters(questions);
 
-  const handleRestore = async (id: string) => {
-    try {
-      await quizApi.restoreQuizQuestion(id);
-      toast.success('Pregunta restaurada');
-      await loadQuestions();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al restaurar');
-    }
-  };
-
-  const handleEdit = (q: QuizQuestion) => {
-    setEditingQuestion(q);
-    setShowModal(true);
-  };
-
-  const handleCreate = () => {
-    setEditingQuestion(null);
-    setShowModal(true);
-  };
-
-  const handleSaved = () => {
-    setShowModal(false);
-    setEditingQuestion(null);
-    loadQuestions();
-  };
+  // ── Bulk operations (M-1: extracted to hook) ────────────
+  const bulk = useQuizBulkOps(filters.filteredQuestions, loadQuestions);
 
   // O(1) keyword lookup via Map (avoid .find() per question card)
   const keywordMap = useMemo(() => {
@@ -197,69 +140,86 @@ export function QuizQuestionsEditor({
             </p>
           </div>
           <button
-            onClick={handleCreate}
+            onClick={crud.handleCreate}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 text-white rounded-lg text-[12px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-sm"
             style={{ fontWeight: 600 }}
           >
             <Plus size={14} />
             Nueva pregunta
           </button>
+          <button
+            onClick={() => setShowAiPanel(prev => !prev)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] active:scale-[0.97] transition-all shadow-sm ${
+              showAiPanel
+                ? 'bg-violet-700 text-white shadow-violet-700/25'
+                : 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-600/25'
+            }`}
+            style={{ fontWeight: 600 }}
+          >
+            <Sparkles size={14} />
+            Generar con IA
+          </button>
+          {/* P8: Export/Import */}
+          <button
+            onClick={() => setShowExportImport(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-700 border border-zinc-200 hover:bg-zinc-50 active:scale-[0.97] transition-all"
+            style={{ fontWeight: 600 }}
+          >
+            Exportar/Importar
+          </button>
         </div>
       </div>
 
+      {/* AI Generate Panel — positioned after header, before filters */}
+      <AnimatePresence>
+        {showAiPanel && (
+          <QuizErrorBoundary label="Generacion IA" accentColor="purple">
+            <AiGeneratePanel
+              quizId={quiz.id}
+              summaryId={summaryId}
+              keywords={keywords}
+              onClose={() => setShowAiPanel(false)}
+              onGenerated={loadQuestions}
+            />
+          </QuizErrorBoundary>
+        )}
+      </AnimatePresence>
+
       {/* Backend warning */}
       {backendWarning && (
-        <div className="mx-5 mt-3 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+        <div className={`mx-5 mt-3 ${BANNER_WARNING}`}>
           <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-500" />
           <div>
-            <p className="text-[12px]" style={{ fontWeight: 600 }}>Filtro quiz_id pendiente</p>
+            <p className="text-[12px]" style={{ fontWeight: 600 }}>Error de carga</p>
             <p className="text-[11px] text-amber-700 mt-0.5">{backendWarning}</p>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-100 px-5 py-2.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 text-gray-400">
-            <Filter size={13} />
-            <span className="text-[10px] uppercase tracking-wider" style={{ fontWeight: 700 }}>Filtros</span>
-          </div>
+      <QuizFiltersBar
+        filterType={filters.filterType}
+        onFilterTypeChange={filters.setFilterType}
+        filterKeywordId={filters.filterKeywordId}
+        onFilterKeywordChange={filters.setFilterKeywordId}
+        searchQuery={filters.searchQuery}
+        onSearchChange={filters.setSearchQuery}
+        keywords={keywords}
+      />
 
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value as QuestionType | '')}
-            className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[130px]"
-          >
-            <option value="">Todos los tipos</option>
-            {(Object.entries(QUESTION_TYPE_LABELS) as [QuestionType, string][]).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-
-          <select
-            value={filterKeywordId}
-            onChange={e => setFilterKeywordId(e.target.value)}
-            className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[140px] max-w-[200px]"
-          >
-            <option value="">Todas las keywords</option>
-            {keywords.map(kw => (
-              <option key={kw.id} value={kw.id}>{kw.term || kw.name}</option>
-            ))}
-          </select>
-
-          <div className="relative flex-1 min-w-[150px] max-w-[260px]">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar en preguntas..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full text-[11px] border border-gray-200 rounded-lg pl-8 pr-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 placeholder:text-gray-300"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Bulk Edit Toolbar (P4) */}
+      <BulkEditToolbar
+        selectedIds={bulk.selectedIds}
+        totalCount={filters.filteredQuestions.length}
+        onSelectAll={bulk.handleSelectAll}
+        onDeselectAll={bulk.handleDeselectAll}
+        onBulkDelete={bulk.handleBulkDelete}
+        onBulkRestore={bulk.handleBulkRestore}
+        onMoveUp={bulk.handleMoveUp}
+        onMoveDown={bulk.handleMoveDown}
+        canMoveUp={bulk.canMoveUp}
+        canMoveDown={bulk.canMoveDown}
+      />
 
       {/* Questions list */}
       <div className="flex-1 overflow-y-auto p-5">
@@ -267,7 +227,7 @@ export function QuizQuestionsEditor({
           <div className="flex items-center justify-center py-16">
             <Loader2 className="animate-spin text-purple-500" size={24} />
           </div>
-        ) : filteredQuestions.length === 0 ? (
+        ) : filters.filteredQuestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
             <HelpCircle size={32} className="opacity-30" />
             <p className="text-sm">
@@ -275,7 +235,7 @@ export function QuizQuestionsEditor({
             </p>
             {questions.length === 0 && (
               <button
-                onClick={handleCreate}
+                onClick={crud.handleCreate}
                 className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[12px] hover:bg-purple-200 transition-colors"
                 style={{ fontWeight: 600 }}
               >
@@ -286,16 +246,24 @@ export function QuizQuestionsEditor({
           </div>
         ) : (
           <div className="space-y-3 max-w-4xl">
-            {filteredQuestions.map((q, idx) => (
-              <QuestionCard
+            {bulk.orderedQuestions.map((q, idx) => (
+              <div
                 key={q.id}
-                question={q}
-                index={idx + 1}
-                keywordName={getKeywordName(q.keyword_id)}
-                onEdit={() => handleEdit(q)}
-                onDelete={() => handleDelete(q.id)}
-                onRestore={() => handleRestore(q.id)}
-              />
+                onClick={() => bulk.handleToggleSelect(q.id)}
+                className={clsx(
+                  'cursor-pointer rounded-2xl transition-all',
+                  bulk.selectedIds.has(q.id) && 'ring-2 ring-purple-400 ring-offset-1',
+                )}
+              >
+                <QuestionCard
+                  question={q}
+                  index={idx + 1}
+                  keywordName={getKeywordName(q.keyword_id)}
+                  onEdit={() => crud.handleEdit(q)}
+                  onDelete={() => crud.handleDelete(q.id)}
+                  onRestore={() => crud.handleRestore(q.id)}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -303,19 +271,32 @@ export function QuizQuestionsEditor({
 
       {/* Create/Edit Modal */}
       <AnimatePresence>
-        {showModal && (
+        {crud.showModal && (
           <QuestionFormModal
             quizId={quiz.id}
             summaryId={summaryId}
-            question={editingQuestion}
+            question={crud.editingQuestion}
             keywords={keywords}
-            onClose={() => { setShowModal(false); setEditingQuestion(null); }}
-            onSaved={handleSaved}
+            onClose={crud.handleCloseModal}
+            onSaved={crud.handleSaved}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* P8: Export/Import Modal */}
+      <AnimatePresence>
+        {showExportImport && (
+          <QuizExportImport
+            quizTitle={quiz.title}
+            quizId={quiz.id}
+            summaryId={summaryId}
+            questions={questions}
+            keywordId={keywords[0]?.id || ''}
+            onClose={() => setShowExportImport(false)}
+            onImported={() => { setShowExportImport(false); loadQuestions(); }}
           />
         )}
       </AnimatePresence>
     </div>
   );
 }
-
-export default QuizQuestionsEditor;

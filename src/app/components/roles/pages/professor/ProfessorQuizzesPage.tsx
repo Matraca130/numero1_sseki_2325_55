@@ -19,6 +19,7 @@
 // filters/stats extracted to QuizFiltersBar/QuizStatsBar.
 // ============================================================
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '@/app/context/AuthContext';
 import * as quizApi from '@/app/services/quizApi';
 import type {
   QuizQuestion,
@@ -26,11 +27,12 @@ import type {
 } from '@/app/services/quizApi';
 import {
   DIFFICULTY_TO_INT,
-  normalizeDifficulty,
 } from '@/app/services/quizConstants';
+import { normalizeDifficulty } from '@/app/services/quizConstants';
 import type { Difficulty } from '@/app/services/quizConstants';
 import { QuestionCard } from '@/app/components/professor/QuestionCard';
 import { QuestionFormModal } from '@/app/components/professor/QuestionFormModal';
+import { useQuestionCrud } from '@/app/components/professor/useQuestionCrud';
 import { CascadeSelector } from '@/app/components/professor/CascadeSelector';
 import { QuizStatsBar } from '@/app/components/professor/QuizStatsBar';
 import { QuizFiltersBar } from '@/app/components/professor/QuizFiltersBar';
@@ -40,21 +42,19 @@ import {
   ClipboardList, ChevronDown, ChevronUp, FileText,
   Plus, Check, Loader2, HelpCircle,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Breadcrumb } from '@/app/components/design-kit';
+import { AiReportsDashboard } from '@/app/components/professor/AiReportsDashboard';
 import { logger } from '@/app/lib/logger';
+import { getErrorMsg } from '@/app/lib/error-utils';
 
-// ── Helpers ───────────────────────────────────────────
-
-/** Safe error message extraction from unknown catch value */
-function getErrorMsg(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
-
-// ── Main Page ─────────────────────────────────────────
+// ── Main Page ───────────────────────────────────────────
 
 export function ProfessorQuizzesPage() {
-  // ── Cascade selection (hook) ────────────────────────
+  // ── Auth: institution_id for dashboard ───────────────
+  const { selectedInstitution } = useAuth();
+  const institutionId = selectedInstitution?.id || null;
+
+  // ── Cascade selection (hook) ────────────────────────────
   const {
     selectedSummaryId,
     selectedSummary,
@@ -64,21 +64,17 @@ export function ProfessorQuizzesPage() {
     breadcrumbItems,
   } = useQuizCascade();
 
-  // ── Data state ────────────────────────────────────────
+  // ── Data state ──────────────────────────────────────────
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
 
-  // ── Filters ─────────────────────────────────────────
+  // ── Filters ─────────────────────────────────────────────
   const [filterType, setFilterType] = useState<QuestionType | ''>('');
   const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | ''>('');
   const [filterKeywordId, setFilterKeywordId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ── Modal state ───────────────────────────────────────
-  const [showCreateEdit, setShowCreateEdit] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
-
-  // ── Sidebar collapse state ────────────────────────────
+  // ── Sidebar collapse state ──────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ── Reset keyword filter when summary changes ───────────
@@ -128,7 +124,7 @@ export function ProfessorQuizzesPage() {
     );
   }, [questions, searchQuery]);
 
-  // ── Stats ──────────────────────────────────────────
+  // ── Stats ──────────────────────────────────────────────
   const stats = useMemo(() => {
     const byType: Record<string, number> = { mcq: 0, true_false: 0, fill_blank: 0, open: 0 };
     const byDiff: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
@@ -142,44 +138,10 @@ export function ProfessorQuizzesPage() {
     return { total: questions.length, active, byType, byDiff };
   }, [questions]);
 
-  // ── CRUD handlers ─────────────────────────────────────
-  const handleDelete = async (id: string) => {
-    try {
-      await quizApi.deleteQuizQuestion(id);
-      toast.success('Pregunta eliminada');
-      await loadQuestions();
-    } catch (err: unknown) {
-      toast.error(getErrorMsg(err) || 'Error al eliminar');
-    }
-  };
+  // ── CRUD handlers (R4: extracted to hook) ─────────────
+  const crud = useQuestionCrud(loadQuestions);
 
-  const handleRestore = async (id: string) => {
-    try {
-      await quizApi.restoreQuizQuestion(id);
-      toast.success('Pregunta restaurada');
-      await loadQuestions();
-    } catch (err: unknown) {
-      toast.error(getErrorMsg(err) || 'Error al restaurar');
-    }
-  };
-
-  const handleEdit = (q: QuizQuestion) => {
-    setEditingQuestion(q);
-    setShowCreateEdit(true);
-  };
-
-  const handleCreate = () => {
-    setEditingQuestion(null);
-    setShowCreateEdit(true);
-  };
-
-  const handleSaved = () => {
-    setShowCreateEdit(false);
-    setEditingQuestion(null);
-    loadQuestions();
-  };
-
-  // ── Render ──────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────
 
   return (
     <div className="flex h-full">
@@ -224,6 +186,13 @@ export function ProfessorQuizzesPage() {
                     </p>
                   </div>
                 )}
+
+                {/* ── Fase D: AI Reports Dashboard (collapsible) ── */}
+                {institutionId && (
+                  <div className="mt-4 pt-3 border-t border-zinc-100">
+                    <AiReportsDashboard institutionId={institutionId} />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -238,7 +207,7 @@ export function ProfessorQuizzesPage() {
               <ClipboardList size={28} className="text-purple-300" />
             </div>
             <p className="text-sm">Selecciona un resumen desde el panel izquierdo</p>
-            <p className="text-xs text-zinc-300">Curso &rarr; Semestre &rarr; Seccion &rarr; Topico &rarr; Resumen</p>
+            <p className="text-xs text-zinc-300">Curso \u2192 Semestre \u2192 Seccion \u2192 Topico \u2192 Resumen</p>
           </div>
         ) : (
           <>
@@ -274,7 +243,7 @@ export function ProfessorQuizzesPage() {
               onFilterDifficultyChange={setFilterDifficulty}
               onFilterKeywordChange={setFilterKeywordId}
               onSearchChange={setSearchQuery}
-              onCreate={handleCreate}
+              onCreate={crud.handleCreate}
             />
 
             {/* ── Questions list ── */}
@@ -291,7 +260,7 @@ export function ProfessorQuizzesPage() {
                   </p>
                   {questions.length === 0 && (
                     <button
-                      onClick={handleCreate}
+                      onClick={crud.handleCreate}
                       className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[12px] hover:bg-purple-200 transition-colors"
                       style={{ fontWeight: 600 }}
                     >
@@ -308,9 +277,9 @@ export function ProfessorQuizzesPage() {
                       question={q}
                       index={idx + 1}
                       keywordName={getKeywordName(q.keyword_id)}
-                      onEdit={() => handleEdit(q)}
-                      onDelete={() => handleDelete(q.id)}
-                      onRestore={() => handleRestore(q.id)}
+                      onEdit={() => crud.handleEdit(q)}
+                      onDelete={() => crud.handleDelete(q.id)}
+                      onRestore={() => crud.handleRestore(q.id)}
                     />
                   ))}
                 </div>
@@ -323,13 +292,13 @@ export function ProfessorQuizzesPage() {
       {/* ── Create/Edit Modal ─────────────────────────────────────── */}
 
       <AnimatePresence>
-        {showCreateEdit && selectedSummaryId && (
+        {crud.showModal && selectedSummaryId && (
           <QuestionFormModal
             summaryId={selectedSummaryId}
-            question={editingQuestion}
+            question={crud.editingQuestion}
             keywords={keywords}
-            onClose={() => { setShowCreateEdit(false); setEditingQuestion(null); }}
-            onSaved={handleSaved}
+            onClose={crud.handleCloseModal}
+            onSaved={crud.handleSaved}
           />
         )}
       </AnimatePresence>
