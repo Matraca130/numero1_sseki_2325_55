@@ -29,7 +29,7 @@ import type {
   CheckInResponse,
 } from '@/app/services/gamificationApi';
 
-// ── Query Key Factory ─────────────────────────────────────
+// ── Query Key Factory ───────────────────────────────────
 
 export const gamificationKeys = {
   all: ['gamification'] as const,
@@ -61,7 +61,7 @@ export function useGamificationProfile(institutionId: string | undefined) {
   });
 }
 
-// ── XP History ────────────────────────────────────────────
+// ── XP History ────────────────────────────────────────
 
 export function useXPHistory(institutionId: string | undefined) {
   return useQuery({
@@ -72,7 +72,7 @@ export function useXPHistory(institutionId: string | undefined) {
   });
 }
 
-// ── Streak ────────────────────────────────────────────────
+// ── Streak ────────────────────────────────────────────
 
 export function useStreakStatus(institutionId: string | undefined) {
   return useQuery({
@@ -91,7 +91,8 @@ export function useDailyCheckIn(institutionId: string | undefined) {
       if (!institutionId) throw new Error('No institution_id');
       return dailyCheckIn(institutionId);
     },
-    onSuccess: (result: CheckInResponse) => {
+    onSuccess: (result: CheckInResponse | null) => {
+      if (!result) return; // S2 FIX: dailyCheckIn returns null on network error
       qc.setQueryData(
         gamificationKeys.streak(institutionId ?? ''),
         result.streak_status
@@ -129,7 +130,7 @@ export function useBuyStreakFreeze(institutionId: string | undefined) {
   });
 }
 
-// ── Daily Goal ────────────────────────────────────────────
+// ── Daily Goal ────────────────────────────────────────
 
 export function useUpdateDailyGoal(institutionId: string | undefined) {
   const qc = useQueryClient();
@@ -144,12 +145,12 @@ export function useUpdateDailyGoal(institutionId: string | undefined) {
   });
 }
 
-// ── Badges ────────────────────────────────────────────────
+// ── Badges ────────────────────────────────────────────
 
 export function useBadges(category?: string) {
   return useQuery({
     queryKey: gamificationKeys.badges(category),
-    queryFn: () => getBadges(category),
+    queryFn: () => getBadges(undefined, category),
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -168,7 +169,7 @@ export function useCheckBadges(institutionId: string | undefined) {
   });
 }
 
-// ── Leaderboard ───────────────────────────────────────────
+// ── Leaderboard ───────────────────────────────────────
 
 export function useLeaderboard(
   institutionId: string | undefined,
@@ -182,7 +183,7 @@ export function useLeaderboard(
   });
 }
 
-// ── Notifications ─────────────────────────────────────────
+// ── Notifications ─────────────────────────────────────
 
 export function useGamificationNotifications(institutionId: string | undefined) {
   return useQuery({
@@ -193,7 +194,7 @@ export function useGamificationNotifications(institutionId: string | undefined) 
   });
 }
 
-// ── Onboarding ────────────────────────────────────────────
+// ── Onboarding ────────────────────────────────────────
 
 export function useInitializeGamification(institutionId: string | undefined) {
   const qc = useQueryClient();
@@ -208,7 +209,7 @@ export function useInitializeGamification(institutionId: string | undefined) {
   });
 }
 
-// ── Goal Completion ───────────────────────────────────────
+// ── Goal Completion ─────────────────────────────────────
 
 export function useCompleteGoal(institutionId: string | undefined) {
   const qc = useQueryClient();
