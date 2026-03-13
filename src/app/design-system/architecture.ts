@@ -11,6 +11,11 @@
  *
  * Este archivo es DOCUMENTACION EJECUTABLE: los tipos son reales,
  * los endpoints son reales, las convenciones son las que usamos.
+ *
+ * UPDATED v4.4.5: PATH B migration complete. All spaced repetition
+ * (FSRS v4 + BKT v4 + NeedScore v4.2) runs server-side.
+ * Frontend files spacedRepetition.ts, keywordManager.ts, tracking.ts,
+ * fsrs-engine.ts, bkt-engine.ts, fsrs-helpers.ts were DELETED.
  */
 
 // ─────────────────────────────────────────────
@@ -47,15 +52,16 @@ export const fileStructure = {
   /** Servicios (comunicacion con backend) */
   services: {
     studentApi:     '/src/app/services/studentApi.ts',          // CRUD completo: perfil, stats, progreso, sesiones, flashcards, resumos, keywords
-    aiService:      '/src/app/services/aiService.ts',           // Chat con Gemini, generacion de flashcards/quiz/explicaciones
-    aiFlashcards:   '/src/app/services/aiFlashcardGenerator.ts', // Generacion inteligente de flashcards via IA
-    spacedRep:      '/src/app/services/spacedRepetition.ts',    // Algoritmo SM-2 + keyword-level tracking
-    keywordManager: '/src/app/services/keywordManager.ts',      // Gestion de keywords con spaced repetition V2
+    aiService:      '/src/app/services/aiService.ts',           // Chat RAG, generacion de flashcards/quiz (POST /ai/generate, /ai/rag-chat)
+    aiFlashcards:   '/src/app/services/aiFlashcardGenerator.ts', // Generacion inteligente de flashcards via IA (backward compat wrapper)
+    studySessionApi:'/src/app/services/studySessionApi.ts',     // Study sessions, review-batch, FSRS/BKT state reads
+    // DELETED (PATH B): spacedRepetition.ts, keywordManager.ts — backend computes FSRS v4 + BKT v4
   },
 
   /** Tipos TypeScript */
   types: {
-    student: '/src/app/types/student.ts', // StudentProfile, StudentStats, CourseProgress, FlashcardReview, StudySession, DailyActivity, StudySummary
+    student:  '/src/app/types/student.ts',  // StudentProfile, StudentStats, CourseProgress, FlashcardReview, StudySession, DailyActivity, StudySummary, KeywordState
+    keywords: '/src/app/types/keywords.ts', // KeywordCollection, KeywordData, MasteryLevel, masteryConfig
   },
 
   /** Hooks personalizados */
@@ -63,7 +69,8 @@ export const fileStructure = {
     useSmartPopup:          '/src/app/hooks/useSmartPopupPosition.ts',
     flashcardTypes:         '/src/app/hooks/flashcard-types.ts',          // Types, constants, pure utils for flashcards
     useFlashcardNavigation: '/src/app/hooks/useFlashcardNavigation.ts',   // View state machine (hub/section/deck)
-    useFlashcardEngine:     '/src/app/hooks/useFlashcardEngine.ts',       // Session logic + backend persistence
+    useFlashcardEngine:     '/src/app/hooks/useFlashcardEngine.ts',       // Session logic + backend persistence (PATH B: batch)
+    useReviewBatch:         '/src/app/hooks/useReviewBatch.ts',           // Batch queue + submission hook
     useSummaryPersistence:  '/src/app/hooks/useSummaryPersistence.ts',    // Summary save/load persistence
     useSummaryTimer:        '/src/app/hooks/useSummaryTimer.ts',          // Timer for study sessions
     useSummaryViewer:       '/src/app/hooks/useSummaryViewer.ts',         // Summary viewer state
@@ -93,7 +100,7 @@ export const fileStructure = {
     DashboardView:        '/src/app/components/content/DashboardView.tsx',        // KPIs, graficos, progreso
     StudyHubView:         '/src/app/components/content/StudyHubView.tsx',         // Hub de estudio: navegacion por curso
     StudyView:            '/src/app/components/content/StudyView.tsx',            // Vista de estudio de un topico
-    FlashcardView:        '/src/app/components/content/FlashcardView.tsx',        // Sesion de flashcards con SM-2
+    FlashcardView:        '/src/app/components/content/FlashcardView.tsx',        // Sesion de flashcards con FSRS v4 (backend)
     QuizView:             '/src/app/components/content/QuizView.tsx',             // Quiz: multiple choice + write-in + fill-blank
     ThreeDView:           '/src/app/components/content/ThreeDView.tsx',           // Atlas 3D: modelos anatomicos
     ScheduleView:         '/src/app/components/content/ScheduleView.tsx',         // Cronograma de estudio
@@ -186,31 +193,13 @@ export const stateManagement = {
       'updateProfile(data)   — actualiza perfil parcialmente',
       'updateStats(data)     — actualiza estadisticas',
       'logSession(data)      — registra una sesion de estudio',
-      'saveReviews(reviews)  — guarda revisiones de flashcards (SM-2)',
+      'saveReviews(reviews)  — guarda revisiones de flashcards',
     ],
     autoSeed: 'Si no hay datos en el DB al cargar, auto-siembra datos demo',
   },
 
   /** Patron de Provider wrapping — React Router Data Mode */
-  providerTree: `
-    App.tsx
-      └─ AuthProvider
-          └─ RouterProvider (createBrowserRouter)
-              └─ RequireAuth                    ← auth guard
-                  ├─ StudentLayout              ← /student/*
-                  │   └─ AppProvider
-                  │       └─ StudentDataProvider
-                  │           └─ StudentShell (sidebar + header + <Outlet />)
-                  ├─ OwnerLayout                ← /owner/*
-                  │   └─ PlatformDataProvider
-                  │       └─ RoleShell (sidebar + header + <Outlet />)
-                  ├─ AdminLayout                ← /admin/*
-                  │   └─ PlatformDataProvider
-                  │       └─ RoleShell
-                  └─ ProfessorLayout            ← /professor/*
-                      └─ PlatformDataProvider
-                          └─ RoleShell
-  `,
+  providerTree: "\n    App.tsx\n      \u2514\u2500 AuthProvider\n          \u2514\u2500 RouterProvider (createBrowserRouter)\n              \u2514\u2500 RequireAuth                    \u2190 auth guard\n                  \u251c\u2500 StudentLayout              \u2190 /student/*\n                  \u2502   \u2514\u2500 AppProvider\n                  \u2502       \u2514\u2500 StudentDataProvider\n                  \u2502           \u2514\u2500 StudentShell (sidebar + header + <Outlet />)\n                  \u251c\u2500 OwnerLayout                \u2190 /owner/*\n                  \u2502   \u2514\u2500 PlatformDataProvider\n                  \u2502       \u2514\u2500 RoleShell (sidebar + header + <Outlet />)\n                  \u251c\u2500 AdminLayout                \u2190 /admin/*\n                  \u2502   \u2514\u2500 PlatformDataProvider\n                  \u2502       \u2514\u2500 RoleShell\n                  \u2514\u2500 ProfessorLayout            \u2190 /professor/*\n                      \u2514\u2500 PlatformDataProvider\n                          \u2514\u2500 RoleShell\n  ",
 } as const;
 
 // ─────────────────────────────────────────────
@@ -221,13 +210,6 @@ export const navigationFlow = {
   /** Navegacion usa React Router (Data Mode) + useStudentNav hook */
   method: 'React Router (createBrowserRouter) + useStudentNav() hook (NO AppContext bridge)',
 
-  /** Como funciona:
-   *  - routes.tsx define createBrowserRouter con sub-archivos por area
-   *  - useStudentNav() hook (hooks/useStudentNav.ts) provee navigateTo(), currentView, isView()
-   *  - Sidebar.tsx usa NavLink de react-router para navegacion declarativa
-   *  - Cada vista es un componente renderizado via <Outlet /> en su Layout
-   *  - AppContext YA NO tiene activeView/setActiveView — navegacion 100% React Router nativa
-   */
   routeFiles: {
     assembler:  '/src/app/routes.tsx',                  // Thin assembler — imports sub-files
     student:    '/src/app/routes/student-routes.ts',    // /student/* children
@@ -252,25 +234,18 @@ export const navigationFlow = {
     'knowledge-heatmap',  // KnowledgeHeatmapView
     'mastery-dashboard',  // MasteryDashboardView
     'student-data',       // StudentDataPanel
-  ] as const,
+  ],
 
   /** Layout rendering: StudentLayout > StudentShell > <Outlet /> renderiza la ruta activa */
   renderFlow: 'React Router <Outlet /> renderiza el componente que matchea la ruta actual',
 
-  /** Para agregar una nueva vista de estudiante:
-   *  1. Crear el componente en /src/app/components/content/
-   *  2. Agregar import + ruta en routes/student-routes.ts
-   *  3. (Opcional) Agregar a ViewType en hooks/useStudentNav.ts
-   *  4. (Opcional) Agregar nav item en Sidebar.tsx (usa NavLink)
-   *  Solo se tocan archivos del area student.
-   */
   addingNewView: 'Solo editar routes/student-routes.ts + (opcional) useStudentNav ViewType + Sidebar NavLink item',
 
   /** TopicSidebar se muestra solo en study-hub y study (cuando no hay sesion activa) */
   topicSidebarCondition: "isView('study-hub', 'study') && !isStudySessionActive — via useStudentNav().isView()",
 
   /** Cada vista se anima con Motion al entrar */
-  pageAnimation: '{ opacity: 0, y: 10 } → { opacity: 1, y: 0 } en 0.2s',
+  pageAnimation: '{ opacity: 0, y: 10 } -> { opacity: 1, y: 0 } en 0.2s',
 } as const;
 
 // ─────────────────────────────────────────────
@@ -279,20 +254,7 @@ export const navigationFlow = {
 
 export const dataModels = {
   /** Modelo del curso (estatico, en courses.ts) */
-  courseHierarchy: `
-    Course
-    ├── id, name, color (bg-*), accentColor (text-*)
-    └── semesters: Semester[]
-        ├── id, title
-        └── sections: Section[]
-            ├── id, title, imageUrl?
-            └── topics: Topic[]
-                ├── id, title, summary, videoUrl?
-                ├── flashcards?: Flashcard[] — { id, question, answer, mastery (1-5), image? }
-                ├── quizzes?: QuizQuestion[] — { id, type, question, options?, correctAnswer?, etc. }
-                ├── model3D?: Model3D — { id, name, description, available }
-                └── lessons?: Lesson[] — { id, title, duration, completed, hasVideo, hasSummary }
-  `,
+  courseHierarchy: "\n    Course\n    \u251c\u2500\u2500 id, name, color (bg-*), accentColor (text-*)\n    \u2514\u2500\u2500 semesters: Semester[]\n        \u251c\u2500\u2500 id, title\n        \u2514\u2500\u2500 sections: Section[]\n            \u251c\u2500\u2500 id, title, imageUrl?\n            \u2514\u2500\u2500 topics: Topic[]\n                \u251c\u2500\u2500 id, title, summary, videoUrl?\n                \u251c\u2500\u2500 flashcards?: Flashcard[] \u2014 { id, question, answer, mastery (1-5), image? }\n                \u251c\u2500\u2500 quizzes?: QuizQuestion[] \u2014 { id, type, question, options?, correctAnswer?, etc. }\n                \u251c\u2500\u2500 model3D?: Model3D \u2014 { id, name, description, available }\n                \u2514\u2500\u2500 lessons?: Lesson[] \u2014 { id, title, duration, completed, hasVideo, hasSummary }\n  ",
 
   /** Quiz question types */
   quizTypes: [
@@ -301,13 +263,13 @@ export const dataModels = {
     "fill-blank     — blankSentence (con ___) + blankAnswer",
   ],
 
-  /** Flashcard mastery scale (SM-2) */
-  masteryScale: {
-    1: 'Nao sei — repetir imediatamente (rose-500)',
-    2: 'Dificil — repetir em breve (orange-500)',
-    3: 'Medio — duvida razoavel (yellow-400)',
-    4: 'Facil — entendi bem (lime-500)',
-    5: 'Perfeito — memorizado (emerald-500)',
+  /** Flashcard rating scale (5 buttons: Again/Hard/Good/Easy/Perfect) */
+  ratingScale: {
+    "1": 'Again   — repetir imediatamente (rose-500)',
+    "2": 'Hard    — repetir em breve (orange-500)',
+    "3": 'Good    — intervalo curto (yellow-400)',
+    "4": 'Easy    — intervalo medio (lime-500)',
+    "5": 'Perfect — intervalo largo (emerald-500)',
   },
 
   /** Student data types (en /src/app/types/student.ts) */
@@ -316,16 +278,17 @@ export const dataModels = {
     'StudentStats       — agregados: minutos, sessoes, cards revisados, streak, media diaria',
     'CourseProgress      — por curso: mastery%, lecciones, flashcards, quiz score, topic progress',
     'TopicProgress       — por topico: mastery%, flashcards pendientes, keywords',
-    'FlashcardReview     — log individual: rating 1-5, tempo, SM-2 fields (ease, interval, reps)',
+    'FlashcardReview     — log individual: rating 1-5, tempo, response_time_ms',
     'StudySession        — sesion: tipo, duracion, cards revisados, quiz score',
     'DailyActivity       — por dia: minutos, sessoes, cards, retencao',
     'StudySummary        — resumo: contenido markdown, anotaciones, keywords, tags',
+    'KeywordState        — keyword mastery: mastery (0-1), stability_days, due_at, color (5-scale)',
   ],
 
-  /** Keyword state (Spaced Repetition V2) */
+  /** Keyword state — mastery computed server-side */
   keywordState: {
-    fields: 'keyword, mastery (0-1), stability_days, due_at, lapses, exposures, card_coverage, color (red|yellow|green)',
-    algorithm: 'SM-2 adaptado con hysteresis de color para evitar flickering',
+    fields: 'keyword, mastery (0-1), stability_days, due_at, lapses, exposures, card_coverage, color (5-color scale)',
+    algorithm: 'PATH B: Backend computes FSRS v4 Petrick + BKT v4 Recovery + NeedScore v4.2. Frontend only sends {item_id, grade, subtopic_id, response_time_ms}.',
   },
 } as const;
 
@@ -334,74 +297,59 @@ export const dataModels = {
 // ─────────────────────────────────────────────
 
 export const apiEndpoints = {
-  /** Todas las llamadas pasan por studentApi.ts */
-  serviceFile: '/src/app/services/studentApi.ts',
+  /** All calls go through apiCall() in lib/api.ts */
+  serviceFile: '/src/app/lib/api.ts',
 
   /** Base URL */
-  baseUrl: 'https://{projectId}.supabase.co/functions/v1/make-server-{hash}',
+  baseUrl: 'https://xdnciktarvxyhkrokbng.supabase.co/functions/v1/server',
 
-  /** Auth: Bearer token con publicAnonKey de Supabase */
-  auth: "Authorization: Bearer {publicAnonKey}",
-
-  /** Student ID por defecto para demo */
-  defaultStudentId: 'demo-student-001',
-
-  /** Endpoints disponibles */
-  endpoints: {
-    // ── Profile ──
-    'GET    /student/:id/profile':     'Obtener perfil del estudiante',
-    'PUT    /student/:id/profile':     'Actualizar perfil (parcial)',
-
-    // ── Stats ──
-    'GET    /student/:id/stats':       'Obtener estadisticas agregadas',
-    'PUT    /student/:id/stats':       'Actualizar estadisticas',
-
-    // ── Course Progress ──
-    'GET    /student/:id/progress':          'Listar progreso de todos los cursos',
-    'GET    /student/:id/progress/:courseId': 'Progreso de un curso especifico',
-    'PUT    /student/:id/progress/:courseId': 'Actualizar progreso de un curso',
-
-    // ── Study Sessions ──
-    'GET    /student/:id/sessions':    'Listar sesiones de estudio',
-    'POST   /student/:id/sessions':    'Registrar nueva sesion',
-
-    // ── Flashcard Reviews ──
-    'GET    /student/:id/reviews':           'Todas las revisiones',
-    'GET    /student/:id/reviews/:courseId':  'Revisiones de un curso',
-    'POST   /student/:id/reviews':           'Guardar batch de revisiones',
-
-    // ── Daily Activity ──
-    'GET    /student/:id/activity':    'Actividad diaria (heatmap/calendario)',
-
-    // ── Content (generic key-value) ──
-    'GET    /content/:courseId':            'Todo el contenido de un curso',
-    'GET    /content/:courseId/:key':       'Contenido especifico por key',
-    'PUT    /content/:courseId/:key':       'Guardar/actualizar contenido',
-
-    // ── Summaries (Resumos) ──
-    'GET    /student/:id/summaries':                    'Todos los resumos',
-    'GET    /student/:id/summaries/:courseId':           'Resumos de un curso',
-    'GET    /student/:id/summaries/:courseId/:topicId':  'Resumo especifico',
-    'PUT    /student/:id/summaries/:courseId/:topicId':  'Guardar/actualizar resumo',
-    'DELETE /student/:id/summaries/:courseId/:topicId':  'Eliminar resumo',
-
-    // ── Keywords (Spaced Rep V2) ──
-    'GET    /student/:id/keywords/:courseId':            'Keywords de un curso',
-    'PUT    /student/:id/keywords/:courseId':            'Guardar keywords del curso',
-    'GET    /student/:id/keywords/:courseId/:topicId':   'Keywords de un topico',
-    'PUT    /student/:id/keywords/:courseId/:topicId':   'Guardar keywords del topico',
-
-    // ── Seed ──
-    'POST   /seed':                    'Sembrar datos demo (auto-llamado si DB vacio)',
+  /** Auth: double-token convention */
+  auth: {
+    authorization: 'Authorization: Bearer <ANON_KEY> — ALWAYS (fixed, Supabase gateway)',
+    accessToken:   'X-Access-Token: <user_jwt> — when user is authenticated',
+    note:          'NEVER put user JWT in Authorization. It ALWAYS goes in X-Access-Token.',
   },
 
-  /** AI Service endpoints (via aiService.ts) */
+  /** Real backend routes (flat, JWT-scoped) */
+  endpoints: {
+    'POST   /signup':             'Register new user',
+    'GET    /me':                 'Get profile (from JWT)',
+    'PUT    /me':                 'Update profile',
+    'GET    /study-sessions':     'List sessions (JWT-scoped)',
+    'POST   /study-sessions':     'Create session',
+    'PUT    /study-sessions/:id': 'Close session (completed_at, total_reviews, correct_reviews)',
+    'POST   /review-batch':       'Submit batch of reviews (PATH B)',
+    'GET    /fsrs-states':        'Read FSRS states',
+    'GET    /bkt-states':         'Read BKT states',
+    'GET    /study-queue':        'Get study queue (due cards)',
+    'GET    /topic-progress':     'Topic-level progress',
+    'GET    /student-stats':      'Aggregated student stats',
+    'POST   /student-stats':      'Upsert student stats',
+    'GET    /daily-activities':   'Daily activity log',
+    'POST   /daily-activities':   'Upsert daily activity',
+    'CRUD   /courses, /semesters, /sections, /topics, /summaries, /keywords, /subtopics': 'Content tree CRUD',
+    'GET    /content-tree':       'Full content tree',
+    'PUT    /reorder':            'Reorder content items',
+    'CRUD   /flashcards':         'Flashcard CRUD',
+    'CRUD   /quiz-questions':     'Quiz question CRUD',
+    'CRUD   /quizzes':            'Quiz CRUD',
+    'CRUD   /quiz-attempts':      'Quiz attempt CRUD',
+  },
+
+  /** AI Service endpoints (via aiService.ts) — CORRECTED v4.4.5 */
   aiEndpoints: {
-    'POST   /ai/chat':        'Chat conversacional con Gemini',
-    'POST   /ai/flashcards':  'Generar flashcards a partir de contenido',
-    'POST   /ai/quiz':        'Generar preguntas de quiz',
-    'POST   /ai/explain':     'Explicar un concepto medico',
-    'POST   /ai/summarize':   'Resumir contenido de estudio',
+    'POST   /ai/generate':          'Generate flashcard or quiz_question (action + summary_id required)',
+    'POST   /ai/generate-smart':    'Smart generation with gap analysis (Fase 8A)',
+    'POST   /ai/rag-chat':          'RAG-enhanced chat (message + optional summary_id, history, strategy)',
+    'POST   /ai/report':            'Content quality reports',
+    'POST   /ai/pre-generate':      'Pre-generation queue',
+    'POST   /ai/ingest-embeddings': 'Embedding ingestion',
+    'POST   /ai/re-chunk':          'Re-chunking',
+    'POST   /ai/ingest-pdf':        'PDF upload + extraction',
+    'GET    /ai/list-models':       'Available AI models',
+    'PATCH  /ai/rag-feedback':      'Feedback on RAG responses',
+    'GET    /ai/rag-analytics':     'RAG analytics dashboard',
+    'GET    /ai/embedding-coverage': 'Embedding coverage stats',
   },
 } as const;
 
@@ -466,7 +414,7 @@ export const conventions = {
 
   /** Imports */
   imports: {
-    pathAlias:    "@/ → src/ (configurado en tsconfig, vite)",
+    pathAlias:    "@/ -> src/ (configurado en tsconfig, vite)",
     react:        "import React, { useState, useEffect } from 'react'",
     motion:       "import { motion, AnimatePresence } from 'motion/react'",
     lucide:       "import { Home, BookOpen, Layers } from 'lucide-react'",
@@ -477,18 +425,7 @@ export const conventions = {
 
   /** Component patterns */
   componentPatterns: {
-    pageStructure: `
-      function MyView() {
-        return (
-          <div className="h-full overflow-y-auto bg-surface-dashboard">
-            <AxonPageHeader title="..." subtitle="..." />
-            <div className="px-6 py-6 space-y-6">
-              {/* content */}
-            </div>
-          </div>
-        );
-      }
-    `,
+    pageStructure: "function MyView() { return (<div className='h-full overflow-y-auto bg-surface-dashboard'><AxonPageHeader title='...' subtitle='...' /><div className='px-6 py-6 space-y-6'>{/* content */}</div></div>); }",
     headingStyle: "style={headingStyle} — nunca hardcodear fontFamily: 'Georgia, serif' directamente",
     surfaceDashboard: "bg-surface-dashboard — registrado en theme.css como --color-surface-dashboard: #f5f2ea",
     iconPattern:  "bg-teal-50 + text-teal-500 en un div rounded-xl de w-10 h-10",
@@ -507,7 +444,7 @@ export const conventions = {
     iconBadgeClasses: ['ReviewSessionView', 'QuizView', 'StudyHubView'],
     cardClasses: ['ThreeDView', 'StudyOrganizerWizard'],
     headingStyle: 'ALL views — 0 instancias de fontFamily hardcodeado',
-    surfaceDashboard: '8 archivos, 20 instancias migradas de bg-[#f5f2ea] → bg-surface-dashboard',
+    surfaceDashboard: '8 archivos, 20 instancias migradas de bg-[#f5f2ea] -> bg-surface-dashboard',
     sectionColors: ['FlashcardView (sectionColors.multi)', 'ThreeDView (sectionColors.teal)'],
     colorsTokens: ['ThreeDView (colors.primary, colors.border)'],
     componentTokens: ['ReviewSessionView (components.kpiCard.trend, components.progressBar)'],
@@ -520,36 +457,46 @@ export const conventions = {
 } as const;
 
 // ─────────────────────────────────────────────
-// 8. SPACED REPETITION SYSTEM
+// 8. SPACED REPETITION SYSTEM (PATH B — Server-Side)
 // ─────────────────────────────────────────────
 
 export const spacedRepetitionSystem = {
-  algorithm: 'SM-2 (SuperMemo) adaptado',
-  file: '/src/app/services/spacedRepetition.ts',
+  algorithm: 'PATH B: FSRS v4 Petrick + BKT v4 Recovery (computed server-side)',
+  note: 'Frontend does NOT compute FSRS/BKT/SM-2. All PATH A files (spacedRepetition.ts, tracking.ts, fsrs-engine.ts, bkt-engine.ts, fsrs-helpers.ts, keywordManager.ts) were DELETED.',
+
+  /** Frontend sends per review */
+  frontendPayload: {
+    item_id: 'string — flashcard or quiz ID',
+    grade: 'number 1-5 (Again/Hard/Good/Easy/Perfect)',
+    subtopic_id: 'string — for BKT tracking',
+    response_time_ms: 'number — time to answer',
+  },
+
+  /** Backend computes and stores */
+  backendComputes: [
+    'FSRS v4: stability, difficulty, due date, state transitions',
+    'BKT v4 Recovery: p_know, p_slip, p_guess, p_transit per subtopic',
+    'NeedScore v4.2: priority ranking for study queue',
+    'Leech detection: flags cards with excessive lapses',
+    '5-color mastery scale: red/orange/yellow/lime/green',
+  ],
+
+  /** Review flow */
+  reviewFlow: {
+    step1: 'Frontend: user rates card (1-5 buttons)',
+    step2: 'Frontend: queueReview() stores in local batch (0 POSTs)',
+    step3: 'Frontend: at end of session, submitBatch() -> POST /review-batch',
+    step4: 'Backend: processes batch, updates fsrs_states + bkt_states + reviews tables',
+    step5: 'Frontend: reads updated states via GET /fsrs-states, GET /bkt-states',
+  },
 
   /** Quality ratings (1-5) */
   ratings: {
-    1: { label: 'Nao sei',   action: 'Repetir imediatamente',  color: 'rose-500' },
-    2: { label: 'Dificil',   action: 'Repetir em breve',       color: 'orange-500' },
-    3: { label: 'Medio',     action: 'Intervalo curto',        color: 'yellow-400' },
-    4: { label: 'Facil',     action: 'Intervalo medio',        color: 'lime-500' },
-    5: { label: 'Perfeito',  action: 'Intervalo largo',        color: 'emerald-500' },
-  },
-
-  /** SM-2 formula */
-  formula: {
-    easeMin: 1.3,
-    easeDefault: 2.5,
-    easeUpdate: 'EF = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))',
-    intervals: 'q >= 3: rep=0→1d, rep=1→6d, rep>1→prev*EF | q < 3: reset reps, interval=1',
-  },
-
-  /** Keyword-level tracking (V2) */
-  keywordTracking: {
-    masteryRange: '0 to 1 (0=novice, 1=expert)',
-    colorSystem: 'red (< 0.4) | yellow (0.4-0.7) | green (> 0.7)',
-    hysteresis: 'Color only changes after 2 consecutive ratings in new zone (prevents flickering)',
-    needScore: 'Combines: overdue factor + inverse mastery + lapse penalty + low coverage bonus',
+    "1": { label: 'Again',    action: 'Repetir imediatamente',  color: 'rose-500' },
+    "2": { label: 'Hard',     action: 'Repetir em breve',       color: 'orange-500' },
+    "3": { label: 'Good',     action: 'Intervalo curto',        color: 'yellow-400' },
+    "4": { label: 'Easy',     action: 'Intervalo medio',        color: 'lime-500' },
+    "5": { label: 'Perfect',  action: 'Intervalo largo',        color: 'emerald-500' },
   },
 } as const;
 
@@ -562,11 +509,11 @@ export const aiIntegration = {
   serviceFile: '/src/app/services/aiService.ts',
 
   capabilities: [
-    'Chat conversacional — responde preguntas medicas en contexto',
-    'Generacion de flashcards — crea cards a partir de contenido de topico',
-    'Generacion de quiz — crea preguntas multiple-choice, write-in, fill-blank',
-    'Explicaciones — explica conceptos medicos de forma didactica',
-    'Resumos — genera resumen de contenido de estudio',
+    'RAG Chat — POST /ai/rag-chat — responde preguntas medicas con retrieval-augmented generation',
+    'Generate flashcard — POST /ai/generate (action: flashcard, summary_id required)',
+    'Generate quiz — POST /ai/generate (action: quiz_question, summary_id required)',
+    'Smart generate — POST /ai/generate-smart — server-side gap analysis',
+    'Pre-generate — POST /ai/pre-generate — bulk pre-generation queue',
   ],
 
   uiComponent: '/src/app/components/ai/AxonAIAssistant.tsx',
