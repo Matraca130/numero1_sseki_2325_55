@@ -17,8 +17,9 @@
 //
 // Phase 4 refactor: cascade logic extracted to useQuizCascade,
 // filters/stats extracted to QuizFiltersBar/QuizStatsBar.
+// R4 refactor: inline filter state/stats replaced by useQuizFilters hook.
 // ============================================================
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import * as quizApi from '@/app/services/quizApi';
 import type {
@@ -28,11 +29,10 @@ import type {
 import {
   DIFFICULTY_TO_INT,
 } from '@/app/services/quizConstants';
-import { normalizeDifficulty } from '@/app/services/quizConstants';
-import type { Difficulty } from '@/app/services/quizConstants';
 import { QuestionCard } from '@/app/components/professor/QuestionCard';
 import { QuestionFormModal } from '@/app/components/professor/QuestionFormModal';
 import { useQuestionCrud } from '@/app/components/professor/useQuestionCrud';
+import { useQuizFilters } from '@/app/components/professor/useQuizFilters';
 import { CascadeSelector } from '@/app/components/professor/CascadeSelector';
 import { QuizStatsBar } from '@/app/components/professor/QuizStatsBar';
 import { QuizFiltersBar } from '@/app/components/professor/QuizFiltersBar';
@@ -47,14 +47,14 @@ import { AiReportsDashboard } from '@/app/components/professor/AiReportsDashboar
 import { logger } from '@/app/lib/logger';
 import { getErrorMsg } from '@/app/lib/error-utils';
 
-// ── Main Page ───────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────
 
 export function ProfessorQuizzesPage() {
-  // ── Auth: institution_id for dashboard ───────────────
+  // ── Auth: institution_id for dashboard ─────────────
   const { selectedInstitution } = useAuth();
   const institutionId = selectedInstitution?.id || null;
 
-  // ── Cascade selection (hook) ────────────────────────────
+  // ── Cascade selection (hook) ────────────────────────
   const {
     selectedSummaryId,
     selectedSummary,
@@ -64,22 +64,19 @@ export function ProfessorQuizzesPage() {
     breadcrumbItems,
   } = useQuizCascade();
 
-  // ── Data state ──────────────────────────────────────────
+  // ── Data state ────────────────────────────────────────
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
 
-  // ── Filters ─────────────────────────────────────────────
-  const [filterType, setFilterType] = useState<QuestionType | ''>('');
-  const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | ''>('');
-  const [filterKeywordId, setFilterKeywordId] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // ── Filters + Stats (R4: unified hook) ─────────────────
+  const filters = useQuizFilters(questions);
 
-  // ── Sidebar collapse state ──────────────────────────────
+  // ── Sidebar collapse state ────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ── Reset keyword filter when summary changes ───────────
   useEffect(() => {
-    setFilterKeywordId('');
+    filters.setFilterKeywordId('');
   }, [selectedSummaryId]);
 
   // ── Load quiz questions when summary/filters change ─────
@@ -90,17 +87,17 @@ export function ProfessorQuizzesPage() {
     }
     setQuestionsLoading(true);
     try {
-      const filters: {
+      const apiFilters: {
         question_type?: QuestionType;
         difficulty?: number;
         keyword_id?: string;
         limit?: number;
       } = {};
-      if (filterType) filters.question_type = filterType;
-      if (filterDifficulty) filters.difficulty = DIFFICULTY_TO_INT[filterDifficulty] || 2;
-      if (filterKeywordId) filters.keyword_id = filterKeywordId;
-      filters.limit = 200;
-      const res = await quizApi.getQuizQuestions(selectedSummaryId, filters);
+      if (filters.filterType) apiFilters.question_type = filters.filterType;
+      if (filters.filterDifficulty) apiFilters.difficulty = DIFFICULTY_TO_INT[filters.filterDifficulty] || 2;
+      if (filters.filterKeywordId) apiFilters.keyword_id = filters.filterKeywordId;
+      apiFilters.limit = 200;
+      const res = await quizApi.getQuizQuestions(selectedSummaryId, apiFilters);
       setQuestions(res.items || []);
     } catch (err: unknown) {
       logger.error('[Quiz] Questions load error:', err);
@@ -108,40 +105,16 @@ export function ProfessorQuizzesPage() {
     } finally {
       setQuestionsLoading(false);
     }
-  }, [selectedSummaryId, filterType, filterDifficulty, filterKeywordId]);
+  }, [selectedSummaryId, filters.filterType, filters.filterDifficulty, filters.filterKeywordId]);
 
   useEffect(() => {
     loadQuestions();
   }, [loadQuestions]);
 
-  // ── Filtered by search ─────────────────────────────────
-  const filteredQuestions = useMemo(() => {
-    if (!searchQuery.trim()) return questions;
-    const q = searchQuery.toLowerCase();
-    return questions.filter(
-      qq => qq.question.toLowerCase().includes(q) ||
-            qq.correct_answer.toLowerCase().includes(q)
-    );
-  }, [questions, searchQuery]);
-
-  // ── Stats ──────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const byType: Record<string, number> = { mcq: 0, true_false: 0, fill_blank: 0, open: 0 };
-    const byDiff: Record<string, number> = { easy: 0, medium: 0, hard: 0 };
-    let active = 0;
-    for (const q of questions) {
-      byType[q.question_type] = (byType[q.question_type] || 0) + 1;
-      const diffKey = normalizeDifficulty(q.difficulty);
-      byDiff[diffKey] = (byDiff[diffKey] || 0) + 1;
-      if (q.is_active) active++;
-    }
-    return { total: questions.length, active, byType, byDiff };
-  }, [questions]);
-
   // ── CRUD handlers (R4: extracted to hook) ─────────────
   const crud = useQuestionCrud(loadQuestions);
 
-  // ── Render ──────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────
 
   return (
     <div className="flex h-full">
@@ -230,19 +203,19 @@ export function ProfessorQuizzesPage() {
             </div>
 
             {/* ── Stats bar ── */}
-            <QuizStatsBar stats={stats} />
+            <QuizStatsBar stats={filters.stats} />
 
             {/* ── Filters + Create button ── */}
             <QuizFiltersBar
-              filterType={filterType}
-              filterDifficulty={filterDifficulty}
-              filterKeywordId={filterKeywordId}
-              searchQuery={searchQuery}
+              filterType={filters.filterType}
+              filterDifficulty={filters.filterDifficulty}
+              filterKeywordId={filters.filterKeywordId}
+              searchQuery={filters.searchQuery}
               keywords={keywords}
-              onFilterTypeChange={setFilterType}
-              onFilterDifficultyChange={setFilterDifficulty}
-              onFilterKeywordChange={setFilterKeywordId}
-              onSearchChange={setSearchQuery}
+              onFilterTypeChange={filters.setFilterType}
+              onFilterDifficultyChange={filters.setFilterDifficulty}
+              onFilterKeywordChange={filters.setFilterKeywordId}
+              onSearchChange={filters.setSearchQuery}
               onCreate={crud.handleCreate}
             />
 
@@ -252,7 +225,7 @@ export function ProfessorQuizzesPage() {
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="animate-spin text-purple-500" size={24} />
                 </div>
-              ) : filteredQuestions.length === 0 ? (
+              ) : filters.filteredQuestions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
                   <HelpCircle size={32} className="opacity-30" />
                   <p className="text-sm">
@@ -271,7 +244,7 @@ export function ProfessorQuizzesPage() {
                 </div>
               ) : (
                 <div className="space-y-3 max-w-4xl">
-                  {filteredQuestions.map((q, idx) => (
+                  {filters.filteredQuestions.map((q, idx) => (
                     <QuestionCard
                       key={q.id}
                       question={q}

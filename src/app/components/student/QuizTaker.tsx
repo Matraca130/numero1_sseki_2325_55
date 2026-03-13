@@ -18,11 +18,10 @@
 // Phase 6b refactor: session lifecycle extracted to useQuizSession hook
 // Phase 7b refactor: error boundary added
 // P1-S03: localStorage recovery UI (recovery phase)
-// P2-S02: DRY live input reset helper
-// P7: Countdown timer
+// R2 refactor: navigation & input state extracted to useQuizNavigation hook
 // ============================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { normalizeDifficulty } from '@/app/services/quizConstants';
 import { QuizResults } from '@/app/components/student/QuizResults';
 import type { QuizQuestion } from '@/app/services/quizApi';
@@ -36,16 +35,14 @@ import { QuizProgressBar } from '@/app/components/student/QuizProgressBar';
 import { QuizTopBar } from '@/app/components/student/QuizTopBar';
 import { QuizBottomBar } from '@/app/components/student/QuizBottomBar';
 
-// ── Session hook (Phase 6b extraction) ───────────────────
+// ── Hooks (Phase 6b + R2) ───────────────────────────────
 import { useQuizSession } from '@/app/components/student/useQuizSession';
+import { useQuizNavigation } from '@/app/components/student/useQuizNavigation';
 
-// ── Backup (P1-S03) ─────────────────────────────────
-import { clearQuizBackup, saveQuizBackup } from '@/app/components/student/useQuizBackup';
-
-// ── Recovery prompt (P1-S03) ─────────────────────────
+// ── Recovery prompt (P1-S03) ───────────────────────────
 import { QuizRecoveryPrompt } from '@/app/components/student/QuizRecoveryPrompt';
 
-// ── Error boundary (Phase 7b) ────────────────────────
+// ── Error boundary (Phase 7b) ──────────────────────────
 import { QuizErrorBoundary } from '@/app/components/student/QuizErrorBoundary';
 
 // Re-export for backward compatibility (external consumers may import from here)
@@ -65,7 +62,7 @@ const SLIDE_VARIANTS = {
   },
 } as const;
 
-// ── Props ─────────────────────────────────────────────
+// ── Props ───────────────────────────────────────────────
 
 interface QuizTakerProps {
   /** Standalone mode: load questions by quizId */
@@ -86,150 +83,19 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   const [activeTitle, setActiveTitle] = useState(quizTitle);
 
   // ── Session lifecycle (hook) ─────────────────────────
+  const session = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
+
+  // ── Navigation & input (R2 extraction) ─────────────────
+  const nav = useQuizNavigation(session, activeQuizId, activeTitle, setActiveQuizId, setActiveTitle);
+
   const {
     phase, questions, sessionStartTime, errorMsg, backendWarning,
     submitting, closingSession, savedAnswers, keywordMap,
     correctCount, wrongCount, answeredCount,
-    pendingBackup, restoreFromBackup, dismissBackup,
-    submitAnswer, finishQuiz, restartSession, reviewSession,
-  } = useQuizSession(activeQuizId, summaryId, preloadedQuestions, activeTitle);
+    pendingBackup,
+  } = session;
 
-  // ── Local UI state (navigation + live input) ────────────
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [navDirection, setNavDirection] = useState<'forward' | 'back'>('forward');
-
-  const [liveSelectedOption, setLiveSelectedOption] = useState<string | null>(null);
-  const [liveTextInput, setLiveTextInput] = useState('');
-  const [liveTFAnswer, setLiveTFAnswer] = useState<string | null>(null);
-
-  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
-
-  // Reset timer on question change
-  useEffect(() => {
-    setQuestionStartTime(Date.now());
-  }, [currentIdx]);
-
-  // ── Live input reset helper (DRY — P2-S02) ─────────────
-
-  const resetLiveInputs = useCallback((saved?: { answered: boolean; selectedOption: string | null; answer: string }) => {
-    if (saved?.answered) {
-      setLiveSelectedOption(saved.selectedOption);
-      setLiveTextInput(saved.answer);
-      setLiveTFAnswer(saved.answer);
-    } else {
-      setLiveSelectedOption(null);
-      setLiveTextInput('');
-      setLiveTFAnswer(null);
-    }
-  }, []);
-
-  // ── Submit wrappers (thin — delegate to hook) ──────────
-
-  const doSubmit = useCallback(
-    (answer: string, optionText: string | null) => {
-      const currentQ = questions[currentIdx];
-      if (!currentQ || submitting) return;
-      const timeTaken = Date.now() - questionStartTime;
-      submitAnswer(currentQ, answer, optionText, timeTaken, currentIdx);
-    },
-    [questions, currentIdx, submitting, questionStartTime, submitAnswer],
-  );
-
-  const handleSubmitMC = () => {
-    if (liveSelectedOption !== null) doSubmit(liveSelectedOption, liveSelectedOption);
-  };
-
-  const handleSubmitTF = () => {
-    if (liveTFAnswer) doSubmit(liveTFAnswer, null);
-  };
-
-  const handleSubmitOpen = () => {
-    if (liveTextInput.trim()) doSubmit(liveTextInput.trim(), null);
-  };
-
-  // ── Navigation ──────────────────────────────────────────
-
-  const goToQuestion = (idx: number, dir: 'forward' | 'back') => {
-    setNavDirection(dir);
-    setCurrentIdx(idx);
-    resetLiveInputs(savedAnswers[idx]);
-
-    // P1-S03: Persist navigation position to backup (only if answers exist)
-    if (activeQuizId && Object.keys(savedAnswers).length > 0) {
-      saveQuizBackup({
-        quizId: activeQuizId,
-        quizTitle: activeTitle,
-        questionIds: questions.map(q => q.id),
-        savedAnswers,
-        currentIdx: idx,
-        savedAt: 0, // overwritten by saveQuizBackup
-      });
-    }
-  };
-
-  const handleNext = () => {
-    if (currentIdx < questions.length - 1) {
-      goToQuestion(currentIdx + 1, 'forward');
-    } else {
-      finishQuiz();
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentIdx > 0) goToQuestion(currentIdx - 1, 'back');
-  };
-
-  // ── Restart (hook resets session + local resets UI) ─────
-
-  const handleRestart = useCallback(() => {
-    setCurrentIdx(0);
-    setNavDirection('forward');
-    resetLiveInputs();
-    restartSession();
-  }, [restartSession, resetLiveInputs]);
-
-  // ── Adaptive quiz ready (swap to new quiz in-place) ────
-
-  const handleAdaptiveQuizReady = useCallback((newQuizId: string, newTitle: string) => {
-    // P1-S03: Clear old quiz backup before swapping
-    if (activeQuizId) clearQuizBackup(activeQuizId);
-    setCurrentIdx(0);
-    setNavDirection('forward');
-    resetLiveInputs();
-    setActiveQuizId(newQuizId);
-    setActiveTitle(newTitle);
-    // useQuizSession's useEffect will auto-reset savedAnswers + load new questions
-  }, [activeQuizId, resetLiveInputs]);
-
-  // ── Recovery handlers (P1-S03) ─────────────────────────
-
-  const handleAcceptRecovery = useCallback(() => {
-    if (pendingBackup) {
-      const idx = pendingBackup.currentIdx;
-      setCurrentIdx(idx);
-      setNavDirection('forward');
-      resetLiveInputs(pendingBackup.savedAnswers[idx]);
-    }
-    restoreFromBackup();
-  }, [pendingBackup, restoreFromBackup, resetLiveInputs]);
-
-  const handleDismissRecovery = useCallback(() => {
-    setCurrentIdx(0);
-    setNavDirection('forward');
-    resetLiveInputs();
-    dismissBackup();
-  }, [dismissBackup, resetLiveInputs]);
-
-  // ── Review (go back to session from results to navigate answers) ──
-
-  const handleReview = useCallback(() => {
-    setCurrentIdx(0);
-    setNavDirection('forward');
-    resetLiveInputs(savedAnswers[0]);
-    reviewSession();
-  }, [savedAnswers, reviewSession, resetLiveInputs]);
-
-  // ── PHASE: loading ───────────────────────────────────
+  // ── PHASE: loading ─────────────────────────────────────
 
   if (phase === 'loading') {
     return (
@@ -269,8 +135,8 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     return (
       <QuizRecoveryPrompt
         backup={pendingBackup}
-        onAccept={handleAcceptRecovery}
-        onDismiss={handleDismissRecovery}
+        onAccept={nav.handleAcceptRecovery}
+        onDismiss={nav.handleDismissRecovery}
         onBack={onBack}
       />
     );
@@ -290,45 +156,28 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           correctCount={correctCount}
           wrongCount={wrongCount}
           answeredCount={answeredCount}
-          onRestart={handleRestart}
+          onRestart={nav.handleRestart}
           onBack={onBack}
-          onReview={handleReview}
-          onAdaptiveQuizReady={handleAdaptiveQuizReady}
+          onReview={nav.handleReview}
+          onAdaptiveQuizReady={nav.handleAdaptiveQuizReady}
         />
       </QuizErrorBoundary>
     );
   }
 
-  // ── PHASE: session ───────────────────────────────────
+  // ── PHASE: session ─────────────────────────────────────
 
-  const currentQ = questions[currentIdx];
-  if (!currentQ) return null;
+  const { currentQuestion, isReviewing, currentIdx, navDirection } = nav;
+  if (!currentQuestion) return null;
 
   const saved = savedAnswers[currentIdx];
-  const isReviewing = saved?.answered === true;
   const showResult = isReviewing;
-
-  const selectedAnswer = isReviewing ? saved.selectedOption : liveSelectedOption;
-  const textAnswer = isReviewing ? saved.answer : liveTextInput;
-  const tfAnswer = isReviewing ? saved.answer : liveTFAnswer;
-  const isCorrectResult = isReviewing ? saved.correct : false;
-
-  const diffKey = normalizeDifficulty(currentQ.difficulty);
-
+  const selectedAnswer = isReviewing ? saved?.selectedOption ?? null : nav.liveSelectedOption;
+  const textAnswer = isReviewing ? saved?.answer ?? '' : nav.liveTextInput;
+  const tfAnswer = isReviewing ? saved?.answer ?? null : nav.liveTFAnswer;
+  const isCorrectResult = isReviewing ? (saved?.correct ?? false) : false;
+  const diffKey = normalizeDifficulty(currentQuestion.difficulty);
   const slideVariants = SLIDE_VARIANTS[navDirection];
-
-  // Compute canSubmit for bottom bar (decouples it from question type)
-  const canSubmit = !submitting && (
-    currentQ.question_type === 'mcq' ? liveSelectedOption !== null :
-    currentQ.question_type === 'true_false' ? !!liveTFAnswer :
-    !!liveTextInput.trim()
-  );
-
-  // Compute unified submit handler for bottom bar
-  const handleSubmit =
-    currentQ.question_type === 'mcq' ? handleSubmitMC :
-    currentQ.question_type === 'true_false' ? handleSubmitTF :
-    handleSubmitOpen;
 
   return (
     <QuizErrorBoundary label="Sesion de Quiz">
@@ -349,7 +198,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
         <QuizTopBar
           quizTitle={activeTitle}
           diffKey={diffKey}
-          questionStartTime={questionStartTime}
+          questionStartTime={nav.questionStartTime}
           isReviewing={isReviewing}
           onBack={onBack}
           answeredCount={answeredCount}
@@ -368,7 +217,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
               currentIdx={currentIdx}
               correctCount={correctCount}
               wrongCount={wrongCount}
-              onGoToQuestion={goToQuestion}
+              onGoToQuestion={nav.goToQuestion}
             />
 
             {/* Question */}
@@ -382,18 +231,18 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
                 transition={{ duration: 0.25 }}
               >
                 <QuestionRenderer
-                  question={currentQ}
+                  question={currentQuestion}
                   questionIndex={currentIdx}
                   isReviewing={isReviewing}
                   showResult={showResult}
                   isCorrectResult={isCorrectResult}
                   selectedAnswer={selectedAnswer}
-                  onSelectOption={setLiveSelectedOption}
+                  onSelectOption={nav.setLiveSelectedOption}
                   tfAnswer={tfAnswer}
-                  onSelectTF={setLiveTFAnswer}
+                  onSelectTF={nav.setLiveTFAnswer}
                   textAnswer={textAnswer}
-                  onChangeText={setLiveTextInput}
-                  onSubmitText={handleSubmitOpen}
+                  onChangeText={nav.setLiveTextInput}
+                  onSubmitText={nav.handleSubmit}
                 />
               </motion.div>
             </AnimatePresence>
@@ -408,10 +257,10 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           closingSession={closingSession}
           isReviewing={isReviewing}
           submitting={submitting}
-          canSubmit={canSubmit}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          onSubmit={handleSubmit}
+          canSubmit={nav.canSubmit}
+          onPrev={nav.handlePrev}
+          onNext={nav.handleNext}
+          onSubmit={nav.handleSubmit}
         />
       </motion.div>
     </QuizErrorBoundary>

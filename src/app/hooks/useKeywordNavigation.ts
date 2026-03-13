@@ -83,7 +83,7 @@ export function useKeywordNavigation({
     pendingNavRef.current = null;
     if (summaries.some(s => s.id === targetId)) {
       setSelectedSummaryId(targetId);
-    } else {
+    } else if (import.meta.env.DEV) {
       console.warn(
         '[useKeywordNavigation] Pending nav target not found in topic summaries:',
         targetId,
@@ -156,8 +156,11 @@ export function useKeywordNavigation({
           // Same topic but somehow not in the published list — try anyway
           setSelectedSummaryId(targetSummaryId);
         }
-      } catch (err: any) {
-        console.error('[useKeywordNavigation] Navigate error:', err);
+      } catch (err: unknown) {
+        // PN-15: catch(err:any) → catch(err:unknown) + DEV guard
+        if (import.meta.env.DEV) {
+          console.error('[useKeywordNavigation] Navigate error:', err);
+        }
         setIsPendingNav(false);
         toast.error('No se pudo navegar al resumen');
       }

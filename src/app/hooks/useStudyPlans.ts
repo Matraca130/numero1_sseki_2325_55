@@ -50,6 +50,12 @@ import {
 } from '@/app/utils/rescheduleEngine';
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
 
+// ── PERF-12: Module-level constant (no re-creation per call) ──
+const TOPIC_COLORS = [
+  'bg-teal-500', 'bg-blue-500', 'bg-purple-500',
+  'bg-amber-500', 'bg-pink-500', 'bg-emerald-500',
+] as const;
+
 // ── Content tree lookup helpers ─────────────────────────────
 
 interface TopicLookup {
@@ -64,13 +70,8 @@ function buildTopicMap(tree: any): Map<string, TopicLookup> {
   const map = new Map<string, TopicLookup>();
   if (!tree?.courses) return map;
 
-  const COLORS = [
-    'bg-teal-500', 'bg-blue-500', 'bg-purple-500',
-    'bg-amber-500', 'bg-pink-500', 'bg-emerald-500',
-  ];
-
   tree.courses.forEach((course: any, ci: number) => {
-    const color = COLORS[ci % COLORS.length];
+    const color = TOPIC_COLORS[ci % TOPIC_COLORS.length];
     course.semesters?.forEach((sem: any) => {
       sem.sections?.forEach((sec: any) => {
         sec.topics?.forEach((topic: any) => {
@@ -150,7 +151,9 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
       });
       setBackendTasksMap(tasksMap);
 
-      console.log(`[useStudyPlans] Loaded ${rawPlans.length} plans`);
+      if (import.meta.env.DEV) {
+        console.log(`[useStudyPlans] Loaded ${rawPlans.length} plans`);
+      }
     } catch (err: any) {
       console.error('[useStudyPlans] fetch error:', err);
       setError(err.message);
@@ -321,7 +324,9 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
       // 4) Refresh from backend
       await fetchAll();
 
-      console.log(`[useStudyPlans] Created plan "${record.name}" with ${frontendPlan.tasks.length} tasks`);
+      if (import.meta.env.DEV) {
+        console.log(`[useStudyPlans] Created plan "${record.name}" with ${frontendPlan.tasks.length} tasks`);
+      }
     } catch (err: any) {
       console.error('[useStudyPlans] createPlan error:', err);
       // Still add locally so UI works
@@ -346,20 +351,26 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
   ): Promise<void> => {
     // Guard: need both mastery and time estimate data
     if (!opts?.topicMastery || !opts?.getTimeEstimate) {
-      console.log('[useStudyPlans] Reschedule skipped: mastery/estimate data not provided');
+      if (import.meta.env.DEV) {
+        console.log('[useStudyPlans] Reschedule skipped: mastery/estimate data not provided');
+      }
       return;
     }
 
     // Guard: prevent concurrent reschedule
     if (isRescheduling.current) {
-      console.log('[useStudyPlans] Reschedule skipped: already in progress');
+      if (import.meta.env.DEV) {
+        console.log('[useStudyPlans] Reschedule skipped: already in progress');
+      }
       return;
     }
 
     // Find the backend plan record for metadata
     const bp = backendPlans.find(p => p.id === planId);
     if (!bp) {
-      console.warn(`[useStudyPlans] Reschedule skipped: plan ${planId} not found in backendPlans`);
+      if (import.meta.env.DEV) {
+        console.warn(`[useStudyPlans] Reschedule skipped: plan ${planId} not found in backendPlans`);
+      }
       return;
     }
 
@@ -419,7 +430,9 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     // Only reschedule if there are pending tasks
     const pendingCount = planSnapshot.tasks.filter(t => !t.completed).length;
     if (pendingCount === 0) {
-      console.log('[useStudyPlans] Reschedule skipped: no pending tasks');
+      if (import.meta.env.DEV) {
+        console.log('[useStudyPlans] Reschedule skipped: no pending tasks');
+      }
       return;
     }
 
@@ -433,11 +446,15 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
       });
 
       if (!result.didReschedule || result.changes.length === 0) {
-        console.log('[useStudyPlans] Reschedule: no changes needed');
+        if (import.meta.env.DEV) {
+          console.log('[useStudyPlans] Reschedule: no changes needed');
+        }
         return;
       }
 
-      console.log(`[useStudyPlans] Reschedule: ${result.changes.length} task(s) will be updated`);
+      if (import.meta.env.DEV) {
+        console.log(`[useStudyPlans] Reschedule: ${result.changes.length} task(s) will be updated`);
+      }
 
       // Persist changes via batch endpoint
       const batchPayload = {
@@ -452,10 +469,14 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
 
       try {
         const batchResult = await apiBatchUpdate(batchPayload);
-        console.log(`[useStudyPlans] Batch update: ${batchResult.succeeded}/${batchResult.total} succeeded`);
+        if (import.meta.env.DEV) {
+          console.log(`[useStudyPlans] Batch update: ${batchResult.succeeded}/${batchResult.total} succeeded`);
+        }
       } catch (batchErr: any) {
         // Batch endpoint not yet deployed — fall back to individual PUTs
-        console.warn('[useStudyPlans] Batch endpoint unavailable, falling back to individual updates:', batchErr.message);
+        if (import.meta.env.DEV) {
+          console.warn('[useStudyPlans] Batch endpoint unavailable, falling back to individual updates:', batchErr.message);
+        }
         await Promise.allSettled(
           batchPayload.updates.map(u =>
             apiUpdateTask(u.id, {
@@ -504,7 +525,9 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     const tasks = backendTasksMap.get(planId);
     const task = tasks?.find(t => t.id === taskId);
     if (!task) {
-      console.warn(`[useStudyPlans] Task ${taskId} not found in plan ${planId}`);
+      if (import.meta.env.DEV) {
+        console.warn(`[useStudyPlans] Task ${taskId} not found in plan ${planId}`);
+      }
       return;
     }
 

@@ -65,8 +65,10 @@ export function useReadingTimeTracker(
       accumulatedRef.current = newTotal;
       lastSaveTimeRef.current = Date.now();
     } catch (err) {
-      // Silently fail — will retry on next interval
-      console.warn('[ReadingTimeTracker] Save failed:', err);
+      // PN-3: Guard console.warn — silently fail, will retry on next interval
+      if (import.meta.env.DEV) {
+        console.warn('[ReadingTimeTracker] Save failed:', err);
+      }
     } finally {
       savingRef.current = false;
     }
