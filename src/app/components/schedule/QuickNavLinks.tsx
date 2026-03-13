@@ -1,6 +1,12 @@
 // ============================================================
-// Axon — Quick Navigation Links (Schedule sidebar)
-// Shared between DefaultScheduleView and StudyPlanDashboard
+// Axon — Quick Navigation Links (Schedule sidebar) — RESPONSIVE
+//
+// Changes from original:
+//   1. Layout: grid-cols-2 on mobile, grid-cols-1 on lg (sidebar)
+//   2. Cards: compact on mobile (py-2.5 px-3), full on lg
+//   3. Sublabel: hidden on mobile to save space in 2-col grid
+//   4. Touch targets: min-h-[44px] on all buttons
+//   5. Accept optional `compact` prop for inline mobile tab usage
 // ============================================================
 import React from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -10,6 +16,8 @@ type Variant = 'light' | 'dark';
 
 interface QuickNavLinksProps {
   variant?: Variant;
+  /** When true, forces 2-col compact grid (used in mobile tabs) */
+  compact?: boolean;
 }
 
 interface NavLinkDef {
@@ -76,29 +84,29 @@ const NAV_LINKS: NavLinkDef[] = [
   },
 ];
 
-export function QuickNavLinks({ variant = 'light' }: QuickNavLinksProps) {
+export function QuickNavLinks({ variant = 'light', compact = false }: QuickNavLinksProps) {
   const { navigateTo } = useStudentNav();
   const isDark = variant === 'dark';
 
   return (
-    <div className="space-y-2">
-      <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+    <div className={compact ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2 lg:grid-cols-1'}>
+      <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 col-span-2 lg:col-span-1 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
         Acceso rapido
       </p>
       {NAV_LINKS.map((link) => (
         <button
           key={link.target}
           onClick={() => navigateTo(link.target as any)}
-          className={`w-full flex items-center gap-3 px-4 py-3 border rounded-xl text-sm font-semibold transition-all group ${isDark ? link.dark : link.light}`}
+          className={`w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 border rounded-xl text-sm font-semibold transition-all group min-h-[44px] ${isDark ? link.dark : link.light}`}
         >
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isDark ? link.iconBgDark : link.iconBgLight}`}>
+          <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isDark ? link.iconBgDark : link.iconBgLight}`}>
             {link.icon}
           </div>
-          <div className="flex-1 text-left">
-            <span className="block">{link.label}</span>
-            <span className={`text-[10px] font-normal ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{link.sublabel}</span>
+          <div className="flex-1 text-left min-w-0">
+            <span className="block truncate">{link.label}</span>
+            <span className={`text-[10px] font-normal hidden lg:block ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{link.sublabel}</span>
           </div>
-          <ArrowRight size={14} className={`group-hover:translate-x-0.5 transition-transform ${isDark ? link.arrowDark : link.arrowLight}`} />
+          <ArrowRight size={14} className={`hidden lg:block group-hover:translate-x-0.5 transition-transform ${isDark ? link.arrowDark : link.arrowLight}`} />
         </button>
       ))}
     </div>

@@ -1,7 +1,12 @@
 // ============================================================
-// Axon — Plan Progress Sidebar (right column)
-// Action buttons, quick nav, progress gauge, active plan list.
-// Extracted from StudyPlanDashboard.tsx for modularization.
+// Axon — Plan Progress Sidebar (right column) — RESPONSIVE
+//
+// Changes from original:
+//   1. Accept optional `embedded` prop for mobile tab rendering
+//   2. When embedded: w-full, no border-l, no shrink-0
+//   3. When not embedded: hidden lg:flex w-80 (desktop only)
+//   4. Action buttons & dropdown: min-h-[44px] touch targets
+//   5. QuickNavLinks: passes compact prop when embedded
 // ============================================================
 import React, { useRef, useEffect } from 'react';
 import {
@@ -26,6 +31,8 @@ interface PlanProgressSidebarProps {
   onNavigateNewPlan: () => void;
   onNavigateEditPlan: (planId: string) => void;
   onPlanAction: (planId: string, action: 'completed' | 'archived' | 'delete') => Promise<void>;
+  /** When true, renders full-width without border (for mobile tab panels) */
+  embedded?: boolean;
 }
 
 export function PlanProgressSidebar({
@@ -36,6 +43,7 @@ export function PlanProgressSidebar({
   onNavigateNewPlan,
   onNavigateEditPlan,
   onPlanAction,
+  embedded = false,
 }: PlanProgressSidebarProps) {
   const [openMenuPlanId, setOpenMenuPlanId] = React.useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -59,12 +67,16 @@ export function PlanProgressSidebar({
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col shrink-0">
+    <div className={
+      embedded
+        ? 'w-full bg-white flex flex-col'
+        : 'hidden lg:flex w-80 bg-white border-l border-gray-200 flex-col shrink-0'
+    }>
       {/* Action buttons */}
       <div className="p-4 border-b border-gray-100 space-y-2">
         <button
           onClick={onNavigateNewPlan}
-          className="w-full flex items-center gap-2 px-4 py-2.5 bg-[#1B3B36] text-white rounded-xl font-semibold text-sm hover:bg-[#244e47] transition-colors shadow-sm"
+          className="w-full flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-[#1B3B36] text-white rounded-xl font-semibold text-sm hover:bg-[#244e47] transition-colors shadow-sm"
         >
           <Plus size={16} />
           Agregar nuevo plan de estudio
@@ -74,7 +86,7 @@ export function PlanProgressSidebar({
             if (studyPlans.length > 0) onNavigateEditPlan(studyPlans[0].id);
           }}
           disabled={studyPlans.length === 0}
-          className={`w-full flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-colors ${
+          className={`w-full flex items-center gap-2 px-4 py-2.5 min-h-[44px] border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-colors ${
             studyPlans.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
           }`}
         >
@@ -85,7 +97,7 @@ export function PlanProgressSidebar({
 
       {/* Quick Nav */}
       <div className="p-4 border-b border-gray-100">
-        <QuickNavLinks variant="light" />
+        <QuickNavLinks variant="light" compact={embedded} />
       </div>
 
       {/* General Progress */}
@@ -153,7 +165,7 @@ export function PlanProgressSidebar({
                     <span className="text-[10px] font-bold text-gray-500">{planProgress}%</span>
                     <button
                       onClick={() => setOpenMenuPlanId(isMenuOpen ? null : plan.id)}
-                      className="p-1 hover:bg-gray-200 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-200 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       <MoreVertical size={14} />
                     </button>
@@ -168,21 +180,21 @@ export function PlanProgressSidebar({
                         setOpenMenuPlanId(null);
                         onNavigateEditPlan(plan.id);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-[#e6f5f1] hover:text-[#1B3B36] transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] text-sm text-gray-700 hover:bg-[#e6f5f1] hover:text-[#1B3B36] transition-colors"
                     >
                       <Pencil size={14} />
                       Editar plan
                     </button>
                     <button
                       onClick={() => handleAction(plan.id, 'completed')}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                     >
                       <Check size={14} />
                       Marcar como completado
                     </button>
                     <button
                       onClick={() => handleAction(plan.id, 'archived')}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors"
                     >
                       <Archive size={14} />
                       Archivar plan
@@ -190,7 +202,7 @@ export function PlanProgressSidebar({
                     <div className="border-t border-gray-100 my-1" />
                     <button
                       onClick={() => handleAction(plan.id, 'delete')}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={14} />
                       Eliminar plan
@@ -223,7 +235,7 @@ export function PlanProgressSidebar({
 
       {/* Weekly report button */}
       <div className="p-4 border-t border-gray-100">
-        <button className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+        <button className="w-full py-3 min-h-[44px] bg-gray-900 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-2">
           <Trophy size={16} className="text-yellow-400" />
           Ver Reporte Semanal
         </button>

@@ -1,7 +1,12 @@
 // ============================================================
-// Axon — Plan Calendar Sidebar (left column)
-// Mini-calendar + study plan checklist + plan list header.
-// Extracted from StudyPlanDashboard.tsx for modularization.
+// Axon — Plan Calendar Sidebar (left column) — RESPONSIVE
+//
+// Changes from original:
+//   1. Accept optional `embedded` prop for mobile tab rendering
+//   2. When embedded: w-full, no border-r, no shrink-0
+//   3. When not embedded: hidden lg:flex w-72 (desktop only)
+//   4. Calendar day buttons: min-h-[44px] touch targets on mobile
+//   5. Checklist items: min-h-[44px] touch targets
 // ============================================================
 import React from 'react';
 import {
@@ -24,6 +29,8 @@ interface PlanCalendarSidebarProps {
   onSelectDate: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  /** When true, renders full-width without border (for mobile tab panels) */
+  embedded?: boolean;
 }
 
 export function PlanCalendarSidebar({
@@ -36,9 +43,14 @@ export function PlanCalendarSidebar({
   onSelectDate,
   onPrevMonth,
   onNextMonth,
+  embedded = false,
 }: PlanCalendarSidebarProps) {
   return (
-    <div className="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
+    <div className={
+      embedded
+        ? 'w-full bg-white flex flex-col'
+        : 'hidden lg:flex w-72 bg-white border-r border-gray-200 flex-col shrink-0'
+    }>
       {/* Plans header */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center gap-2 text-gray-700">
@@ -51,13 +63,13 @@ export function PlanCalendarSidebar({
       {/* Mini Calendar */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={onPrevMonth} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+          <button onClick={onPrevMonth} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded text-gray-500">
             <ChevronLeft size={14} />
           </button>
           <span className="text-sm font-bold text-gray-800 capitalize">
             {format(currentDate, 'MMMM yyyy', { locale: es })}
           </span>
-          <button onClick={onNextMonth} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+          <button onClick={onNextMonth} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded text-gray-500">
             <ChevronRight size={14} />
           </button>
         </div>
@@ -78,7 +90,7 @@ export function PlanCalendarSidebar({
                 key={i}
                 onClick={() => onSelectDate(day)}
                 className={clsx(
-                  "w-7 h-7 flex items-center justify-center rounded-full text-xs relative transition-all",
+                  "w-8 h-8 flex items-center justify-center rounded-full text-xs relative transition-all",
                   isTodayDate && !isSelected && "bg-[#2a8c7a]/15 text-[#2a8c7a] font-bold",
                   isSelected && "bg-[#1B3B36] text-white font-bold",
                   !isSelected && !isTodayDate && "text-gray-700 hover:bg-gray-100"
@@ -100,10 +112,10 @@ export function PlanCalendarSidebar({
           <Pencil size={14} className="text-gray-500" />
           <span className="text-sm font-semibold text-gray-700">Checklist previo al estudio</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {['Revisar apuntes del dia anterior', 'Preparar material de estudio', 'Eliminar distracciones', 'Definir metas claras'].map((item, i) => (
-            <label key={i} className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer group">
-              <input type="checkbox" className="rounded border-gray-300 text-[#2a8c7a] focus:ring-[#2a8c7a]" />
+            <label key={i} className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer group min-h-[44px] px-1">
+              <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#2a8c7a] focus:ring-[#2a8c7a]" />
               <span className="group-hover:text-gray-800 transition-colors">{item}</span>
             </label>
           ))}
