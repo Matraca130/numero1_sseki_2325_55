@@ -46,7 +46,7 @@ interface QuizQuestionsEditorProps {
   onBack: () => void;
 }
 
-// ── Main Component ────────────────────────────────────
+// ── Main Component ──────────────────────────────────────
 
 export function QuizQuestionsEditor({
   quiz,
@@ -174,10 +174,12 @@ export function QuizQuestionsEditor({
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters (FIX: now includes difficulty filter for consistency with ProfessorQuizzesPage) */}
       <QuizFiltersBar
         filterType={filters.filterType}
         onFilterTypeChange={filters.setFilterType}
+        filterDifficulty={filters.filterDifficulty}
+        onFilterDifficultyChange={filters.setFilterDifficulty}
         filterKeywordId={filters.filterKeywordId}
         onFilterKeywordChange={filters.setFilterKeywordId}
         searchQuery={filters.searchQuery}
