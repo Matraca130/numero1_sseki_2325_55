@@ -21,8 +21,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGamification } from '@/app/context/GamificationContext';
 import type { BadgeWithEarnedStatus } from '@/app/types/gamification';
-import type { LevelUpEvent } from '@/app/hooks/useGamificationProfile';
 import { logger } from '@/app/lib/logger';
+
+// ── LevelUpEvent type (inline — matches GamificationContext shape) ──
+// Previously imported from useGamificationProfile.ts which is created
+// by the gamification session. Defined inline here to avoid broken import.
+
+export interface LevelUpEvent {
+  newLevel: number;
+  previousLevel: number;
+}
 
 // ── Return type ──────────────────────────────────────────
 
