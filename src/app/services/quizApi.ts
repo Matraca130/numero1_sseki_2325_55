@@ -57,7 +57,7 @@ export { createQuizAttempt, getQuizAttempts } from '@/app/services/quizAttemptsA
 export type { ReviewPayload, Review } from '@/app/services/reviewsApi';
 export { createReview } from '@/app/services/reviewsApi';
 
-// ── Smart Generation ────────────────────────────────────────
+// ── Smart Generation ──────────────────────────────────────
 export type {
   SmartGenerateParams,
   SmartGenerateItem,
@@ -66,11 +66,11 @@ export type {
 } from '@/app/services/smartGenerateApi';
 export { generateSmartQuiz } from '@/app/services/smartGenerateApi';
 
-// ── Re-exports: Study Sessions (P2-S01) ────────────────
+// ── Re-exports: Study Sessions (P2-S01) ──────────────────
 export type { StudySession } from '@/app/services/studySessionApi';
 export { createStudySession, closeStudySession, getStudySessions } from '@/app/services/studySessionApi';
 
-// ── Re-exports: BKT States (P2-S01) ────────────────────
+// ── Re-exports: BKT States (P2-S01) ──────────────────────
 export type { BktStatePayload, BktState } from '@/app/services/bktApi';
 export { upsertBktState, getBktStates } from '@/app/services/bktApi';
 
