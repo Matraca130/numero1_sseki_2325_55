@@ -20,6 +20,9 @@ import { Outlet, useLocation } from 'react-router';
 import { AppProvider } from '@/app/context/AppContext';
 import { StudentDataProvider } from '@/app/context/StudentDataContext';
 import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
+import { StudyPlansProvider } from '@/app/context/StudyPlansContext';
+import { TopicMasteryProvider } from '@/app/context/TopicMasteryContext';
+import { StudyTimeEstimatesProvider } from '@/app/context/StudyTimeEstimatesContext';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { Sidebar } from '@/app/components/layout/Sidebar';
@@ -178,7 +181,13 @@ export function StudentLayout() {
     <AppProvider>
       <StudentDataProvider>
         <ContentTreeProvider>
-          <StudentShell />
+          <TopicMasteryProvider>
+            <StudyTimeEstimatesProvider>
+              <StudyPlansProvider>
+                <StudentShell />
+              </StudyPlansProvider>
+            </StudyTimeEstimatesProvider>
+          </TopicMasteryProvider>
         </ContentTreeProvider>
       </StudentDataProvider>
     </AppProvider>
