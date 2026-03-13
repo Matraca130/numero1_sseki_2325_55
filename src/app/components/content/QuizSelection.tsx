@@ -3,6 +3,7 @@
 //
 // Handles: content tree navigation, summary selection,
 // quiz/question loading, filters, and delegates to QuizOverview.
+// Q-UX2: Added timeLimitSeconds forwarding to QuizView/QuizTaker.
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -26,7 +27,7 @@ import { QuizOverview } from './QuizOverview';
 // ── Props ────────────────────────────────────────────────
 
 interface QuizSelectionProps {
-  onStart: (questions: QuizQuestion[], summaryTitle: string, summaryId: string) => void;
+  onStart: (questions: QuizQuestion[], summaryTitle: string, summaryId: string, timeLimitSeconds?: number) => void;
   onBack: () => void;
 }
 
@@ -246,7 +247,7 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
     setQuizzesLoading(false);
   }, []);
 
-  // Start a specific quiz
+  // Start a specific quiz — Q-UX2: pass time_limit_seconds
   const handleStartQuizEntity = useCallback(async (quiz: QuizEntity) => {
     setLoadingQuizId(quiz.id);
     setLoadError(null);
@@ -272,7 +273,7 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
       if (maxQuestions > 0 && maxQuestions < items.length) {
         items = items.slice(0, maxQuestions);
       }
-      onStart(items, quiz.title, quiz.summary_id);
+      onStart(items, quiz.title, quiz.summary_id, quiz.time_limit_seconds);
     } catch (err: any) {
       setLoadError(err.message || 'Error al cargar preguntas del quiz');
     } finally {

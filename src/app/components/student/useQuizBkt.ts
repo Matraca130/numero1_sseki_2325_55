@@ -20,7 +20,7 @@ import type { QuizQuestion } from '@/app/services/quizApi';
 import { upsertBktState } from '@/app/services/quizApi';
 import { logger } from '@/app/lib/logger';
 
-// ── BKT v3.1 Inline Computation ─────────────────────────
+// ── BKT v3.1 Inline Computation ─────────────────────
 // Parameters match what we send to upsertBktState.
 
 const P_TRANSIT = 0.1;
@@ -74,7 +74,7 @@ export interface UseQuizBktReturn {
   resetBkt: () => void;
 }
 
-// ── Hook ─────────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────────
 
 export function useQuizBkt(): UseQuizBktReturn {
   // Running BKT mastery per subtopic (accumulates across questions)

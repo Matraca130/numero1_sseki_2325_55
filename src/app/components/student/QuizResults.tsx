@@ -2,7 +2,7 @@
 // Axon — Student: QuizResults (EV-3 Prompt B)
 //
 // Shows quiz results with:
-//   - Score circle (X/Y + percentage) → R3: extracted to QuizScoreCircle
+//   - Score circle (X/Y + percentage)
 //   - Grouped by keyword (and subtopic if available)
 //   - Detail: each question with your answer vs correct
 //   - BKT mastery level per keyword (green/yellow/red)
@@ -16,7 +16,8 @@
 //
 // P1-S01: AdaptiveQuizModal extracted to AdaptiveQuizModal.tsx
 // P2-S02: useAdaptiveQuiz hook + QuizAnswerDetail extracted
-// R3: QuizScoreCircle extracted to QuizScoreCircle.tsx
+// G4: XP earned estimate card (XP awarded server-side via afterWrite hooks)
+// Q-UX1: Premium post-quiz feedback with server-confirmed XP + badges + level-up
 //
 // Design: teal accent, motion animations (matching QuizView)
 // ============================================================
@@ -29,7 +30,7 @@ import clsx from 'clsx';
 import {
   Trophy, CheckCircle2, XCircle, RotateCw, ChevronLeft,
   Clock, AlertCircle, ChevronDown, ChevronRight,
-  Sparkles, Brain,
+  Sparkles, Brain, Zap, Flame,
 } from 'lucide-react';
 import { Confetti, focusRing } from '@/app/components/design-kit';
 import { AiPracticeModal } from '@/app/components/student/AiPracticeModal';
@@ -40,10 +41,22 @@ import { QuizAnswerDetail } from '@/app/components/student/QuizAnswerDetail';
 import { SubtopicResultsSection } from '@/app/components/student/SubtopicResultsSection';
 import { QuizHistoryPanel } from '@/app/components/student/QuizHistoryPanel';
 import { QuizCertificate } from '@/app/components/student/QuizCertificate';
+
+// ── Hooks (P2-S02 extraction) ────────────────────────────
+import { useAdaptiveQuiz } from '@/app/components/student/useAdaptiveQuiz';
+
+// ── R13: QuizScoreCircle component ─────────────────────
 import { QuizScoreCircle } from '@/app/components/student/QuizScoreCircle';
 
-// ── Hooks (P2-S02 extraction) ──────────────────────────
-import { useAdaptiveQuiz } from '@/app/components/student/useAdaptiveQuiz';
+// ── Gamification bridge (G4 → Q-UX1 Premium) ────────────
+// XP is awarded server-side via afterWrite hooks — frontend only DISPLAYS.
+// Q-UX1: Now with server-confirmed XP, badge toasts, and level-up celebration.
+import { XP_TABLE } from '@/app/types/gamification';
+import { useGamification } from '@/app/context/GamificationContext';
+import { useQuizGamificationFeedback } from '@/app/components/student/useQuizGamificationFeedback';
+import { QuizXpConfirmedCard } from '@/app/components/student/QuizXpConfirmedCard';
+import { BadgeEarnedToast } from '@/app/components/gamification/BadgeEarnedToast';
+import { LevelUpCelebration } from '@/app/components/gamification/LevelUpCelebration';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -63,7 +76,7 @@ interface QuizResultsProps {
   onAdaptiveQuizReady?: (quizId: string, quizTitle: string) => void;
 }
 
-// ── Main Component ─────────────────────────────────────
+// ── Main Component ───────────────────────────────────────
 
 export function QuizResults({
   questions, savedAnswers, sessionStartTime, quizTitle,
@@ -117,6 +130,15 @@ export function QuizResults({
     wrongAnswer: string; originalQuestion: string;
   } | null>(null);
 
+  // ── G4 → Q-UX1: Gamification feedback (premium) ──────────
+  const gamification = useGamification();
+  const feedback = useQuizGamificationFeedback();
+  const xpEstimate = useMemo(() => {
+    const answerXp = answeredCount * (XP_TABLE.quiz_answer ?? 5);
+    const correctXp = correctCount * (XP_TABLE.quiz_correct ?? 15);
+    return answerXp + correctXp;
+  }, [answeredCount, correctCount]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -130,7 +152,7 @@ export function QuizResults({
           <div className="text-center mb-8 relative">
             {pct >= 70 && <Confetti show />}
 
-            {/* ── P9: Certificate (≥80%) ── */}
+            {/* ── P9: Certificate (>=80%) ── */}
             <QuizCertificate
               quizTitle={quizTitle}
               score={Math.round(pct)}
@@ -161,15 +183,74 @@ export function QuizResults({
             </p>
           </div>
 
-          {/* ── Score Circle (R3: extracted) ── */}
+          {/* ── Score Circle (FIX: use correct prop names pct/total) ── */}
           <div className="flex justify-center mb-8">
             <QuizScoreCircle
               pct={pct}
-              color={performanceColor}
               correctCount={correctCount}
               total={total}
+              color={performanceColor}
             />
           </div>
+
+          {/* ── Q-UX1: XP Confirmed Card (replaces basic G4 card) ── */}
+          <QuizXpConfirmedCard
+            xpEstimate={xpEstimate}
+            confirmedXp={feedback.confirmedXpDelta}
+            isConfirmed={feedback.isConfirmed}
+            isLoading={feedback.isLoading}
+            answeredCount={answeredCount}
+            correctCount={correctCount}
+          />
+
+          {/* ── G4: Streak Indicator ── */}
+          {gamification.streak && !gamification.loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="flex items-center justify-center gap-2 mb-6"
+            >
+              {gamification.streak.studied_today ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
+                  style={{
+                    background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
+                    border: '1px solid #86efac',
+                    color: '#16a34a',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Flame size={12} />
+                  <span>Racha: {gamification.streak.current_streak} {gamification.streak.current_streak === 1 ? 'dia' : 'dias'}</span>
+                  <CheckCircle2 size={10} />
+                </div>
+              ) : gamification.streak.streak_at_risk ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
+                  style={{
+                    background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
+                    border: '1px solid #fca5a5',
+                    color: '#dc2626',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Flame size={12} />
+                  <span>Racha en riesgo! Estudia hoy</span>
+                </div>
+              ) : gamification.streak.current_streak > 0 ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px]"
+                  style={{
+                    background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
+                    border: '1px solid #fdba74',
+                    color: '#ea580c',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Flame size={12} />
+                  <span>Racha: {gamification.streak.current_streak} {gamification.streak.current_streak === 1 ? 'dia' : 'dias'}</span>
+                </div>
+              ) : null}
+            </motion.div>
+          )}
 
           {/* ── Summary Stats ── */}
           <motion.div
@@ -334,6 +415,22 @@ export function QuizResults({
           </QuizErrorBoundary>
         )}
       </AnimatePresence>
+
+      {/* ── Q-UX1: Badge Earned Toast (premium) ── */}
+      <BadgeEarnedToast
+        badges={feedback.earnedBadges}
+        onDismiss={feedback.dismissBadges}
+      />
+
+      {/* ── Q-UX1: Level Up Celebration (premium) ── */}
+      <LevelUpCelebration
+        newLevel={feedback.levelUp?.newLevel ?? 1}
+        previousLevel={feedback.levelUp?.previousLevel ?? 1}
+        show={feedback.showLevelCelebration}
+        onClose={feedback.dismissLevelUp}
+      />
     </motion.div>
   );
 }
+
+export default QuizResults;
