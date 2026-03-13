@@ -1,9 +1,11 @@
 // ============================================================
-// Axon — Topic Sidebar (Student area)
+// Axon — Topic Sidebar (RESPONSIVE VERSION)
 //
-// Shows the content tree in read-only mode for navigation.
-// Loads from ContentTreeContext (backend real data).
-// Falls back to static courses.ts if backend tree is empty.
+// Changes from original:
+//   1. Width uses w-[240px] lg:w-[240px] (parent controls mobile visibility)
+//   2. On mobile: rendered inside overlay drawer by StudentLayout
+//   3. Touch-friendly: min-h-[44px] on topic buttons
+//   4. Slightly larger touch targets for tree expand/collapse
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -52,7 +54,6 @@ export function TopicSidebar() {
 
   const handleTopicClick = (topicId: string, topicName: string) => {
     selectTopic(topicId);
-    // Also set in AppContext for backward compat with StudyView
     setCurrentTopic({ id: topicId, title: topicName } as any);
     navigateTo('study');
   };
@@ -60,21 +61,21 @@ export function TopicSidebar() {
   // Loading state
   if (loading) {
     return (
-      <div className="w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col items-center justify-center">
+      <div className="w-full lg:w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col items-center justify-center">
         <Loader2 className="w-5 h-5 text-axon-accent animate-spin" />
         <p className="text-xs text-gray-400 mt-2">Cargando...</p>
       </div>
     );
   }
 
-  // Empty or no tree — show minimal sidebar
+  // Empty or no tree
   if (!tree || (tree?.courses || []).length === 0) {
     return (
-      <div className="w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-full lg:w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col">
         <div className="px-3 pt-3 pb-1 border-b border-gray-100">
           <button
             onClick={() => { setSidebarOpen(false); navigateTo('study-hub'); }}
-            className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group"
+            className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group min-h-[44px]"
           >
             <ArrowLeft className="w-5 h-5 text-axon-accent group-hover:text-axon-dark transition-colors" />
             <span className="text-sm" style={headingStyle}>Volver a los temas</span>
@@ -90,12 +91,12 @@ export function TopicSidebar() {
   const activeTopicId = selectedTopicId || currentTopic?.id;
 
   return (
-    <div className="w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+    <div className="w-full lg:w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden">
       {/* Back button */}
       <div className="px-3 pt-3 pb-1 border-b border-gray-100">
         <button
           onClick={() => { setSidebarOpen(false); navigateTo('study-hub'); }}
-          className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group"
+          className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group min-h-[44px]"
         >
           <ArrowLeft className="w-5 h-5 text-axon-accent group-hover:text-axon-dark transition-colors" />
           <span className="text-sm" style={headingStyle}>Volver a los temas</span>
@@ -103,13 +104,13 @@ export function TopicSidebar() {
       </div>
 
       {/* Scrollable tree */}
-      <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto py-2 custom-scrollbar overscroll-contain">
         {(tree?.courses || []).map(course => (
           <div key={course.id}>
             {/* Course header */}
             <button
               onClick={() => toggleNode(course.id)}
-              className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors min-h-[44px]"
             >
               <BookOpen size={13} className="text-axon-accent shrink-0" />
               <span className="text-xs text-gray-700 truncate flex-1">{course.name}</span>
@@ -130,7 +131,7 @@ export function TopicSidebar() {
                       {/* Semester header */}
                       <button
                         onClick={() => toggleNode(semester.id)}
-                        className="w-full flex items-center gap-2 pl-7 pr-4 py-1.5 text-left hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center gap-2 pl-7 pr-4 py-2 text-left hover:bg-gray-50 transition-colors min-h-[40px]"
                       >
                         <GraduationCap size={12} className="text-blue-400 shrink-0" />
                         <span className="text-xs text-gray-600 truncate flex-1">{semester.name}</span>
@@ -153,7 +154,7 @@ export function TopicSidebar() {
                                   {/* Section header */}
                                   <button
                                     onClick={() => toggleNode(section.id)}
-                                    className="w-full flex items-center gap-2 pl-10 pr-4 py-1.5 text-left hover:bg-gray-50 transition-colors"
+                                    className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-left hover:bg-gray-50 transition-colors min-h-[40px]"
                                   >
                                     <FolderOpen size={12} className="text-emerald-400 shrink-0" />
                                     <span className={clsx(
@@ -182,7 +183,7 @@ export function TopicSidebar() {
                                                 key={topic.id}
                                                 onClick={() => handleTopicClick(topic.id, topic.name)}
                                                 className={clsx(
-                                                  "w-full text-left pl-4 pr-3 py-1.5 text-xs transition-colors flex items-center gap-1.5",
+                                                  "w-full text-left pl-4 pr-3 py-2 text-xs transition-colors flex items-center gap-1.5 min-h-[40px]",
                                                   isActive
                                                     ? "text-blue-600 bg-blue-50/60"
                                                     : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"

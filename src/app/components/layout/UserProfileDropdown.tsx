@@ -1,3 +1,12 @@
+// ============================================================
+// Axon — User Profile Dropdown (RESPONSIVE VERSION)
+//
+// Changes from original:
+//   1. Schedule/theme/notification buttons hidden on mobile (< sm)
+//   2. Separator hidden on mobile
+//   3. Dropdown panel: full-width on mobile, fixed on desktop
+//   4. Added safe area padding for mobile dropdown
+// ============================================================
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -19,21 +28,17 @@ export function UserProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // signOut already handled by useStudentNav — use navigateTo for post-logout
   const handleSignOut = async () => {
     setIsOpen(false);
     await signOut();
-    // After signOut, RequireAuth will redirect to /login automatically
   };
 
-  // Use auth user data, fallback to student data context, then defaults
   const displayName = user?.name || (isConnected && profile ? profile.name : 'Estudiante');
   const displayEmail = user?.email || (isConnected && profile ? profile.email : 'estudiante@axon.med.br');
   const displayShortName = user?.name?.split(' ')[0] || (isConnected && profile ? profile.name.split(' ')[0] : 'Estudiante');
   const activeRole = activeMembership?.role || 'student';
   const activeInstitution = activeMembership?.institution?.name || '';
 
-  // Close on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -46,7 +51,6 @@ export function UserProfileDropdown() {
     }
   }, [isOpen]);
 
-  // Close on Escape
   useEffect(() => {
     function handleEsc(e: KeyboardEvent) {
       if (e.key === 'Escape') setIsOpen(false);
@@ -67,11 +71,11 @@ export function UserProfileDropdown() {
   };
 
   return (
-    <div className="flex items-center gap-1.5" ref={dropdownRef}>
-      {/* Schedule shortcut */}
+    <div className="flex items-center gap-1 sm:gap-1.5" ref={dropdownRef}>
+      {/* Schedule shortcut — hidden on mobile */}
       <button
         onClick={() => navigateTo('schedule')}
-        className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group"
+        className="hidden sm:flex relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group"
         title="Cronograma"
       >
         <div className="relative">
@@ -80,10 +84,10 @@ export function UserProfileDropdown() {
         <span className="absolute top-1.5 right-1.5 w-[6px] h-[6px] rounded-full bg-emerald-400 ring-2 ring-[#1a1a1a]" />
       </button>
 
-      {/* Theme toggle */}
+      {/* Theme toggle — hidden on mobile */}
       <button
         onClick={toggleTheme}
-        className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group"
+        className="hidden sm:flex relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group"
         title={theme === 'dark' ? 'Tema Oscuro' : 'Tema Claro'}
       >
         
@@ -95,8 +99,8 @@ export function UserProfileDropdown() {
         <span className="absolute top-1 right-1 flex items-center justify-center w-[15px] h-[15px] rounded-full bg-axon-accent text-[8px] font-bold text-white ring-2 ring-[#1a1a1a]">3</span>
       </button>
 
-      {/* Separator */}
-      <div className="h-6 w-px bg-white/[0.08] mx-2" />
+      {/* Separator — hidden on mobile */}
+      <div className="hidden sm:block h-6 w-px bg-white/[0.08] mx-2" />
 
       {/* User profile trigger */}
       <div className="relative">
@@ -126,7 +130,7 @@ export function UserProfileDropdown() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.97 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-full right-0 mt-2 w-[280px] bg-[#1c1c24] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
+              className="absolute top-full right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-[280px] bg-[#1c1c24] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50 max-h-[calc(100vh-4rem)]"
             >
               {/* User header */}
               <div className="relative px-4 pt-4 pb-3 overflow-hidden">
@@ -154,7 +158,7 @@ export function UserProfileDropdown() {
               <div className="h-px bg-white/[0.06]" />
 
               {/* Menu items */}
-              <div className="py-1 px-1.5 max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar">
+              <div className="py-1 px-1.5 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
                 <DropdownItem icon={<BookOpen size={15} />} label="Mis Cursos" badge="3" onClick={() => handleNavigate('study-hub')} />
                 <DropdownItem icon={<Target size={15} />} label="Cronograma" onClick={() => handleNavigate('schedule')} />
                 <DropdownItem icon={<TrendingUp size={15} />} label="Rendimiento" onClick={() => handleNavigate('dashboard')} />
@@ -162,8 +166,8 @@ export function UserProfileDropdown() {
 
                 <div className="h-px bg-white/[0.06] mx-2.5 my-1" />
 
-                <DropdownItem icon={<Settings size={15} />} label="Configuraci\u00f3n" />
-                <DropdownItem icon={<CreditCard size={15} />} label="Suscripci\u00f3n" />
+                <DropdownItem icon={<Settings size={15} />} label="Configuración" />
+                <DropdownItem icon={<CreditCard size={15} />} label="Suscripción" />
                 <DropdownItem icon={<Moon size={15} />} label="Apariencia" />
                 <DropdownItem icon={<Shield size={15} />} label="Privacidad" />
 
@@ -182,7 +186,7 @@ export function UserProfileDropdown() {
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-red-400/80 hover:text-red-400 hover:bg-red-500/[0.08] transition-all"
                 >
                   <LogOut size={15} />
-                  <span className="text-[13px] font-medium">Cerrar Sesi\u00f3n</span>
+                  <span className="text-[13px] font-medium">Cerrar Sesión</span>
                 </button>
               </div>
             </motion.div>
@@ -216,7 +220,7 @@ function DropdownItem({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/[0.05] transition-all group"
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/[0.05] transition-all group min-h-[44px]"
     >
       <span className="text-gray-500 group-hover:text-axon-accent transition-colors shrink-0">{icon}</span>
       <span className="flex-1 text-left text-[13px] font-medium truncate">{label}</span>

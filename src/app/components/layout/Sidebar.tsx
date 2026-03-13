@@ -1,8 +1,20 @@
+// ============================================================
+// Axon — Sidebar (RESPONSIVE VERSION v2)
+//
+// This component is "dumb" about its container:
+//   - Desktop: rendered inside a motion.div that handles collapse
+//   - Mobile:  rendered inside MobileDrawer overlay
+//
+// Fixes from v1:
+//   - Removed unused imports (animation, layout)
+//   - Removed redundant lg:w-[260px] (parent controls width)
+//   - Added min-h-[44px] touch targets on all nav items
+// ============================================================
 import React from 'react';
 import { NavLink } from 'react-router';
 import { useApp } from '@/app/context/AppContext';
 import { viewToPath, type ViewType } from '@/app/hooks/useStudentNav';
-import { components, animation, layout } from '@/app/design-system';
+import { components } from '@/app/design-system';
 import { motion } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -23,7 +35,6 @@ interface NavItem {
   id: ViewType;
   label: string;
   icon: LucideIcon;
-  /** Extra views that should highlight this nav item (e.g. study-hub highlights on study too) */
   also?: ViewType[];
 }
 
@@ -47,13 +58,11 @@ export function Sidebar() {
   ];
 
   return (
-    <motion.aside
-      initial={{ width: layout.sidebar.width }}
-      animate={{ width: isSidebarOpen ? layout.sidebar.width : layout.sidebar.collapsedWidth }}
-      className="h-full border-r border-white/5 flex flex-col overflow-hidden relative shrink-0 z-10"
+    <aside
+      className="h-full w-[260px] border-r border-white/5 flex flex-col overflow-hidden relative shrink-0 z-10"
       style={{ backgroundColor: components.sidebar.bgOuter }}
     >
-      <div className="flex-1 overflow-y-auto py-6 px-3 space-y-6" style={{ backgroundColor: components.sidebar.bgInner }}>
+      <div className="flex-1 overflow-y-auto py-6 px-3 space-y-6 overscroll-contain" style={{ backgroundColor: components.sidebar.bgInner }}>
         
         {/* Main Navigation */}
         <div className="space-y-1">
@@ -78,6 +87,7 @@ export function Sidebar() {
 
                   return clsx(
                     components.sidebar.navItem.base,
+                    'min-h-[44px]',
                     active
                       ? clsx(components.sidebar.navItem.active, currentCourse.accentColor.replace('text-', 'text-'))
                       : components.sidebar.navItem.inactive
@@ -116,7 +126,7 @@ export function Sidebar() {
             return (
               <button
                 key={`secondary-${idx}`}
-                className={clsx(components.sidebar.navItem.base, components.sidebar.navItem.inactive)}
+                className={clsx(components.sidebar.navItem.base, 'min-h-[44px]', components.sidebar.navItem.inactive)}
               >
                 <Icon size={20} className="text-gray-500 group-hover:text-white" />
                 <span>{item.label}</span>
@@ -125,6 +135,6 @@ export function Sidebar() {
           })}
         </div>
       </div>
-    </motion.aside>
+    </aside>
   );
 }
