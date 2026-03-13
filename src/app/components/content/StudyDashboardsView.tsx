@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { getUrgencyLevel } from '@/app/services/spacedRepetition';
 import { motion } from 'motion/react';
 import {
   Brain,
@@ -19,6 +18,14 @@ import {
 import clsx from 'clsx';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { headingStyle, components, colors } from '@/app/design-system';
+
+// Inlined from deleted spacedRepetition.ts (PATH B: backend computes FSRS v4)
+function getUrgencyLevel(retention: number): 'critical' | 'high' | 'medium' | 'low' {
+  if (retention < 40) return 'critical';
+  if (retention < 60) return 'high';
+  if (retention < 80) return 'medium';
+  return 'low';
+}
 
 // Subject data
 interface SubjectCard {
