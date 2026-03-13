@@ -5,7 +5,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
-import { logger } from '@/app/lib/logger';
+import { devLog } from '@/app/utils/devLog';
 import {
   type KeywordMastery,
   type SubtopicMastery,
@@ -20,7 +20,7 @@ interface KeywordRowProps {
   subtopics?: SubtopicMastery[];
 }
 
-export function KeywordRow({ item, expanded, onToggle, subtopics }: KeywordRowProps) {
+export const KeywordRow = React.memo(function KeywordRow({ item, expanded, onToggle, subtopics }: KeywordRowProps) {
   const mc = getMasteryColor(item.pKnow);
   const pct = item.pKnow !== null ? Math.round(item.pKnow * 100) : null;
   const showRepeat = item.pKnow === null || item.pKnow < 0.7;
@@ -78,7 +78,7 @@ export function KeywordRow({ item, expanded, onToggle, subtopics }: KeywordRowPr
           <button
             onClick={(e) => {
               e.stopPropagation();
-              logger.debug('KeywordRow', 'Repetir:', item.keyword.id, item.keyword.name);
+              devLog('[MasteryOverview] Repetir:', item.keyword.id, item.keyword.name);
             }}
             className="flex items-center gap-1 px-2 py-1 text-xs rounded-md text-[#2a8c7a] hover:bg-[#e6f5f1] transition-colors shrink-0"
           >
@@ -135,4 +135,4 @@ export function KeywordRow({ item, expanded, onToggle, subtopics }: KeywordRowPr
       </AnimatePresence>
     </div>
   );
-}
+});
