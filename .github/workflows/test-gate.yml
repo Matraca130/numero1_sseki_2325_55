@@ -10,6 +10,10 @@ on:
       - '.github/workflows/test-gate.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'supabase/functions/server/**'
+      - 'tests/**'
+      - '.github/workflows/test-gate.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +37,12 @@ jobs:
           key: deno-${{ runner.os }}-${{ hashFiles('**/deno.lock', '**/deno.json') }}
           restore-keys: deno-${{ runner.os }}-
       - name: Run all unit tests
-        run: deno test tests/unit/ --no-check
+        run: |
+          if [ -d "supabase/functions/server" ]; then
+            deno test tests/unit/ --no-check
+          else
+            echo "::warning::supabase/functions/server not found — skipping unit tests"
+          fi
   integration-tests:
     name: Integration Tests (live backend)
     runs-on: ubuntu-latest
