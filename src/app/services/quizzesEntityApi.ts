@@ -7,11 +7,13 @@
 //
 // Extracted from quizApi.ts — all consumers continue to import
 // from quizApi.ts barrel (backwards compatible).
+//
+// Q-UX2: Added time_limit_seconds for per-question timer support.
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────
 
 export interface QuizEntity {
   id: string;
@@ -20,6 +22,8 @@ export interface QuizEntity {
   description: string | null;
   source: 'manual' | 'ai';
   is_active: boolean;
+  /** Q-UX2: Per-question time limit in seconds (null/0 = no limit) */
+  time_limit_seconds?: number | null;
   created_by: string;
   created_at: string;
   updated_at?: string;
@@ -39,21 +43,27 @@ export interface QuizEntityListResponse {
 // requiredFields: ["title", "source"]
 // createFields: ["title", "description", "source"]
 // updateFields: ["title", "description", "is_active"]
+// Q-UX2 NOTE: Backend needs to add "time_limit_seconds" to createFields + updateFields
+// + ALTER TABLE quizzes ADD COLUMN time_limit_seconds INTEGER;
 
 export interface CreateQuizPayload {
   summary_id: string;
   title: string;
   description?: string | null;
   source: 'manual' | 'ai';
+  /** Q-UX2: Per-question time limit in seconds (null/0 = no limit) */
+  time_limit_seconds?: number | null;
 }
 
 export interface UpdateQuizPayload {
   title?: string;
   description?: string | null;
   is_active?: boolean;
+  /** Q-UX2: Per-question time limit in seconds (null/0 = no limit) */
+  time_limit_seconds?: number | null;
 }
 
-// ── API Functions ─────────────────────────────────────────
+// ── API Functions ─────────────────────────────────────
 
 /**
  * List quizzes for a summary.
