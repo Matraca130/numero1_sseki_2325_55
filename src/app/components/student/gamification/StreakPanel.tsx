@@ -154,10 +154,14 @@ export function StreakPanel({
           const isToday = i === todayIdx;
           // Calculate how many days back from today this dot is
           const daysBack = todayIdx - i;
-          // A day is "active" only if it falls within the current streak window
+          // A day is "active" only if it falls within the current streak window.
+          // If studiedToday, current_streak already includes today, so previous
+          // days are daysBack < current. If not, streak is all previous days,
+          // so we need daysBack < current + 1 (i.e. daysBack <= current).
+          const streakCutoff = studiedToday ? current : current + 1;
           const isActive = daysBack >= 0 && (
             (isToday && studiedToday) ||
-            (daysBack > 0 && daysBack < current + (studiedToday ? 1 : 0))
+            (daysBack > 0 && daysBack < streakCutoff)
           );
           const isFuture = i > todayIdx;
           return (

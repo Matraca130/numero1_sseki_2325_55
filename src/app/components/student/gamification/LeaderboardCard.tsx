@@ -62,10 +62,9 @@ interface DisplayEntry {
   name: string;
 }
 
-function EntryRow({ entry, nextXp, index }: { entry: DisplayEntry; nextXp?: number; index: number }) {
+function EntryRow({ entry, index }: { entry: DisplayEntry; index: number }) {
   const shouldReduce = useReducedMotion();
   const levelInfo = getLevelInfo(entry.total_xp);
-  const gap = nextXp != null && !entry.is_self ? nextXp - entry.xp : null;
 
   return (
     <motion.div
@@ -88,7 +87,7 @@ function EntryRow({ entry, nextXp, index }: { entry: DisplayEntry; nextXp?: numb
           fontWeight: 600,
         }}
       >
-        {entry.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+        {(entry.name || '??').split(' ').map(w => w[0]).join('').slice(0, 2)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs truncate" style={{ color: '#111827', fontWeight: entry.is_self ? 700 : 500 }}>

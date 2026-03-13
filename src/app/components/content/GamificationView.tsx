@@ -55,8 +55,10 @@ function AnimatedNumber({ value, duration = 1.2, delay = 0 }: { value: number; d
 
   useEffect(() => {
     if (shouldReduce) { setDisplay(value); return; }
+    let cancelled = false;
     const start = performance.now();
     function tick(now: number) {
+      if (cancelled) return;
       const elapsed = Math.max(0, now - start - delay * 1000);
       const t = Math.min(1, elapsed / (duration * 1000));
       const eased = 1 - Math.pow(1 - t, 3);
@@ -64,6 +66,7 @@ function AnimatedNumber({ value, duration = 1.2, delay = 0 }: { value: number; d
       if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+    return () => { cancelled = true; };
   }, [value, duration, delay, shouldReduce]);
 
   return <>{display.toLocaleString()}</>;
@@ -294,7 +297,6 @@ function StatCard({
   icon: typeof Zap;
   label: string;
   value: number;
-  suffix?: string;
   sub?: string;
   color: string;
   delay: number;
@@ -351,7 +353,7 @@ export default function GamificationView() {
   // ── Auto check-in on mount ────────────────────────────
   const [checkedIn, setCheckedIn] = useState(false);
   useEffect(() => {
-    if (!checkedIn && !streakLoading && institutionId) {
+    if (!checkedIn && !checkIn.isPending && !streakLoading && institutionId) {
       checkIn.mutate(undefined, {
         onSuccess: (result) => {
           setCheckedIn(true);
