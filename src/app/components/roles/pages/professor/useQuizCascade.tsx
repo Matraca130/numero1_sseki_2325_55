@@ -1,17 +1,6 @@
 // ============================================================
 // Axon — Professor: useQuizCascade Hook
-//
-// Encapsulates the full cascade selection logic:
-//   Institution → Course → Semester → Section → Topic → Summary
-//
-// Manages content-tree loading, derived data, cascade change
-// handlers with downstream resets, keyword loading, and the
-// CascadeLevelConfig[] array for CascadeSelector.
-//
-// Extracted from ProfessorQuizzesPage in Phase 4 refactor.
-//
-// Fix H-1: cascadeLevels is now useMemo'd with stable icon
-// constants, making React.memo on CascadeSelector effective.
+// C3 cleanup: kw.term → kw.name || kw.term
 // ============================================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -24,7 +13,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/app/lib/logger';
 
-// ── Stable icon constants (fix H-1: avoids recreating JSX) ──
+// ── Stable icon constants (fix H-1) ──
 
 const ICON_COURSE = <BookOpen size={12} className="text-purple-500 shrink-0" />;
 const ICON_SEMESTER = <GraduationCap size={12} className="text-gray-400 shrink-0" />;
@@ -32,7 +21,7 @@ const ICON_SECTION = <Layers size={12} className="text-gray-400 shrink-0" />;
 const ICON_TOPIC = <FileText size={12} className="text-gray-400 shrink-0" />;
 const ICON_SUMMARY = <ClipboardList size={12} className="text-purple-500 shrink-0" />;
 
-// ── Content-tree types (nested shape from /content-tree) ──
+// ── Content-tree types ──
 
 interface ContentTreeTopic {
   id: string;
@@ -66,14 +55,11 @@ interface MembershipLite {
   role: string;
 }
 
-// ── Helper ────────────────────────────────────────────────
-
-/** Normalize ambiguous API responses: { items: T[] } | T[] → T[] */
 function extractItems<T>(res: { items: T[] } | T[]): T[] {
   return Array.isArray(res) ? res : res.items;
 }
 
-// ── Return type ───────────────────────────────────────────
+// ── Return type ──
 
 export interface UseQuizCascadeReturn {
   selectedSummaryId: string | null;
@@ -84,13 +70,12 @@ export interface UseQuizCascadeReturn {
   breadcrumbItems: string[];
 }
 
-// ── Hook ──────────────────────────────────────────────────
+// ── Hook ──
 
 export function useQuizCascade(): UseQuizCascadeReturn {
   const { selectedInstitution } = useAuth();
   const institutionId = selectedInstitution?.id || null;
 
-  // ── Content-tree + cascade selection state ───────────────
   const [contentTree, setContentTree] = useState<ContentTreeCourse[]>([]);
   const [treeLoading, setTreeLoading] = useState(true);
   const [summaries, setSummaries] = useState<Summary[]>([]);
@@ -103,7 +88,7 @@ export function useQuizCascade(): UseQuizCascadeReturn {
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null);
 
-  // ── 1. Load content-tree + memberships (single load) ────
+  // 1. Load content-tree
   useEffect(() => {
     if (!institutionId) {
       setContentTree([]);
@@ -138,7 +123,6 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return () => { cancelled = true; };
   }, [institutionId]);
 
-  // ── Derived data from tree (instant, no API calls) ──────
   const courses = useMemo(() =>
     contentTree.map(c => ({ id: c.id, name: c.name })),
     [contentTree]
@@ -162,7 +146,6 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return sec?.topics || [];
   }, [sections, selectedSectionId]);
 
-  // ── Cascade change handlers (reset downstream) ─────────
   const handleCourseChange = useCallback((id: string) => {
     setSelectedCourseId(id);
     setSelectedSemesterId(''); setSelectedSectionId('');
@@ -189,7 +172,7 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     setSelectedSummaryId(id || null);
   }, []);
 
-  // ── 2. Load summaries when topic changes ────────────────
+  // 2. Load summaries when topic changes
   useEffect(() => {
     if (!selectedTopicId) { setSummaries([]); setSelectedSummaryId(null); return; }
     let cancelled = false;
@@ -213,7 +196,7 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return () => { cancelled = true; };
   }, [selectedTopicId]);
 
-  // ── 3. Load keywords when summary changes ───────────────
+  // 3. Load keywords when summary changes
   useEffect(() => {
     setKeywords([]);
     if (!selectedSummaryId) return;
@@ -231,11 +214,11 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return () => { cancelled = true; };
   }, [selectedSummaryId]);
 
-  // ── Keyword helpers ─────────────────────────────────────
+  // C3: kw.name || kw.term for DB column compatibility
   const keywordMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const kw of keywords) {
-      map.set(kw.id, kw.term || kw.id.substring(0, 8) + '...');
+      map.set(kw.id, (kw as any).name || kw.term || kw.id.substring(0, 8) + '...');
     }
     return map;
   }, [keywords]);
@@ -244,13 +227,11 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     return keywordMap.get(kwId) || kwId.substring(0, 8) + '...';
   }, [keywordMap]);
 
-  // ── Selected summary ────────────────────────────────────
   const selectedSummary = useMemo(() => {
     if (!selectedSummaryId) return null;
     return summaries.find(s => s.id === selectedSummaryId) || null;
   }, [summaries, selectedSummaryId]);
 
-  // ── Breadcrumb items ────────────────────────────────────
   const breadcrumbItems = useMemo(() => {
     return [
       courses.find(c => c.id === selectedCourseId)?.name,
@@ -260,7 +241,6 @@ export function useQuizCascade(): UseQuizCascadeReturn {
     ].filter(Boolean) as string[];
   }, [courses, selectedCourseId, semesters, selectedSemesterId, sections, selectedSectionId, topics, selectedTopicId]);
 
-  // ── Cascade levels (memoized — fix H-1) ────────────────
   const cascadeLevels: CascadeLevelConfig[] = useMemo(() => {
     const courseName = courses.find(c => c.id === selectedCourseId)?.name || '';
     const semesterName = semesters.find(s => s.id === selectedSemesterId)?.name || '';

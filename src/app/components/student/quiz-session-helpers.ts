@@ -3,15 +3,7 @@
 //
 // Extracted from useQuizSession.ts to keep it under the
 // 500-line Architecture Practices limit.
-//
-// These are PURE async/sync functions — no React state, no hooks.
-// They receive data, return results. The hook sets state from
-// the returned results.
-//
-// Functions:
-//   loadAndNormalizeQuestions() — fetch/preload + normalize + shuffle
-//   checkAndProcessBackup()   — validate localStorage backup
-//   loadKeywordNames()        — non-blocking keyword label fetch
+// C3 cleanup: kw.term → kw.name || kw.term
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
@@ -33,13 +25,6 @@ export interface LoadQuestionsResult {
   usedPreloaded: boolean;
 }
 
-/**
- * Load quiz questions from preloaded array or backend API,
- * then filter active, normalize types/difficulty, and shuffle.
- *
- * Pure async function — no React state mutations.
- * Throws on fatal errors (no questions AND no preloaded source).
- */
 export async function loadAndNormalizeQuestions(
   quizId: string | undefined,
   summaryId: string | undefined,
@@ -51,18 +36,14 @@ export async function loadAndNormalizeQuestions(
   let usedPreloaded = hasUsedPreloaded;
 
   if (preloadedQuestions && preloadedQuestions.length > 0 && !hasUsedPreloaded) {
-    // PRELOADED MODE
     usedPreloaded = true;
     items = [...preloadedQuestions];
   } else if (quizId) {
-    // STANDALONE MODE: fetch by quizId
     try {
       if (summaryId) {
-        // R9 FIX: use service layer — quiz_id now supported in getQuizQuestions filters
         const res = await quizApi.getQuizQuestions(summaryId, { quiz_id: quizId });
         items = res.items || [];
       } else {
-        // Edge case: no summaryId — fallback to raw apiCall (backend parentKey may not be required)
         const res = await apiCall<QuizQuestionListResponse | QuizQuestion[]>(
           `/quiz-questions?quiz_id=${quizId}`
         );
@@ -110,13 +91,6 @@ export interface BackupRecoveryResult {
   reorderedItems: QuizQuestion[];
 }
 
-/**
- * Check localStorage for a valid backup, validate against fresh
- * questions, and return reordered items + validated backup data.
- *
- * Returns null if no backup, expired, or stale (< 50% match).
- * Pure function — no React state mutations.
- */
 export function checkAndProcessBackup(
   quizId: string,
   items: QuizQuestion[],
@@ -131,7 +105,6 @@ export function checkAndProcessBackup(
     return null;
   }
 
-  // Reorder items to match backup order
   const itemMap = new Map(items.map(q => [q.id, q]));
   const reorderedItems = validated.reorderedIds
     .map(id => itemMap.get(id))
@@ -153,23 +126,22 @@ export function checkAndProcessBackup(
 
 /**
  * Fetch keyword names for a summary (non-blocking).
- * Returns empty object on any error — never throws.
+ * C3 cleanup: uses kw.name || kw.term for DB column compatibility.
  */
 export async function loadKeywordNames(
   summaryId: string,
 ): Promise<Record<string, string>> {
   try {
     const kwRes = await apiCall<
-      { items: Array<{ id: string; term: string }> } | Array<{ id: string; term: string }>
+      { items: Array<{ id: string; name?: string; term?: string }> } | Array<{ id: string; name?: string; term?: string }>
     >(`/keywords?summary_id=${summaryId}`);
     const kwItems = Array.isArray(kwRes) ? kwRes : kwRes?.items || [];
     const map: Record<string, string> = {};
     for (const kw of kwItems) {
-      map[kw.id] = kw.term || kw.id.substring(0, 8);
+      map[kw.id] = kw.name || kw.term || kw.id.substring(0, 8);
     }
     return map;
   } catch {
-    // Non-blocking — QuizResults falls back to truncated IDs
     return {};
   }
 }
