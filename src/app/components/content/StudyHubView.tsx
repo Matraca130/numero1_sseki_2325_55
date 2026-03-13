@@ -263,7 +263,7 @@ export function StudyHubView() {
       <StudyHubHero
         greeting={greeting}
         userName={userName}
-        effectiveTopic={effectiveTopic ? { id: effectiveTopic.id, title: (effectiveTopic as any).title || '' } : null}
+        effectiveTopic={effectiveTopic ? { id: effectiveTopic.id, title: effectiveTopic.title || '' } : null}
         isAutoSelected={isAutoSelected}
         heroReadingSessions={heroReadingSessions}
         heroProgressPct={heroProgressPct}
