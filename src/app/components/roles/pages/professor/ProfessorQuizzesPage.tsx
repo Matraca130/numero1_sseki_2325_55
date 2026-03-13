@@ -18,14 +18,10 @@
 // Phase 4 refactor: cascade logic extracted to useQuizCascade,
 // filters/stats extracted to QuizFiltersBar/QuizStatsBar.
 // R4 refactor: inline filter state/stats replaced by useQuizFilters hook.
+// R19 refactor: question loading extracted to useQuizQuestionsLoader.
 // ============================================================
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import * as quizApi from '@/app/services/quizApi';
-import type {
-  QuizQuestion,
-  QuestionType,
-} from '@/app/services/quizApi';
 import {
   DIFFICULTY_TO_INT,
 } from '@/app/services/quizConstants';
@@ -33,6 +29,7 @@ import { QuestionCard } from '@/app/components/professor/QuestionCard';
 import { QuestionFormModal } from '@/app/components/professor/QuestionFormModal';
 import { useQuestionCrud } from '@/app/components/professor/useQuestionCrud';
 import { useQuizFilters } from '@/app/components/professor/useQuizFilters';
+import { useQuizQuestionsLoader } from '@/app/components/professor/useQuizQuestionsLoader';
 import { CascadeSelector } from '@/app/components/professor/CascadeSelector';
 import { QuizStatsBar } from '@/app/components/professor/QuizStatsBar';
 import { QuizFiltersBar } from '@/app/components/professor/QuizFiltersBar';
@@ -44,17 +41,15 @@ import {
 } from 'lucide-react';
 import { Breadcrumb } from '@/app/components/design-kit';
 import { AiReportsDashboard } from '@/app/components/professor/AiReportsDashboard';
-import { logger } from '@/app/lib/logger';
-import { getErrorMsg } from '@/app/lib/error-utils';
 
 // ── Main Page ─────────────────────────────────────────
 
 export function ProfessorQuizzesPage() {
-  // ── Auth: institution_id for dashboard ─────────────
+  // ── Auth: institution_id for dashboard ───────────
   const { selectedInstitution } = useAuth();
   const institutionId = selectedInstitution?.id || null;
 
-  // ── Cascade selection (hook) ────────────────────────
+  // ── Cascade selection (hook) ────────────────────
   const {
     selectedSummaryId,
     selectedSummary,
@@ -64,57 +59,51 @@ export function ProfessorQuizzesPage() {
     breadcrumbItems,
   } = useQuizCascade();
 
-  // ── Data state ────────────────────────────────────────
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
+  // ── Filters + Stats (R4: unified hook) ───────────────
+  // NOTE: filters hook receives questions from loader below.
+  // We declare filters first to build apiFilters, then pass
+  // questions into it after the loader runs. Since useQuizFilters
+  // accepts questions as a param and reacts to changes, this works.
 
-  // ── Filters + Stats (R4: unified hook) ─────────────────
+  // ── API filters (memoized for stable reference) ────────
+  // filterType/filterDifficulty/filterKeywordId come from the
+  // filters hook below; we forward-declare the state here since
+  // useQuizFilters doesn’t depend on apiFilters (no circular).
+  const [filterTypeLocal, setFilterTypeLocal] = useState<string>('');
+  const [filterDifficultyLocal, setFilterDifficultyLocal] = useState<string>('');
+  const [filterKeywordIdLocal, setFilterKeywordIdLocal] = useState<string>('');
+
+  const apiFilters = useMemo(() => {
+    const f: Record<string, unknown> = { limit: 200 };
+    if (filterTypeLocal) f.question_type = filterTypeLocal;
+    if (filterDifficultyLocal) f.difficulty = DIFFICULTY_TO_INT[filterDifficultyLocal as keyof typeof DIFFICULTY_TO_INT] || 2;
+    if (filterKeywordIdLocal) f.keyword_id = filterKeywordIdLocal;
+    return f;
+  }, [filterTypeLocal, filterDifficultyLocal, filterKeywordIdLocal]);
+
+  // ── Question loading (R19: shared hook) ──────────────
+  const { questions, loading: questionsLoading, reload: loadQuestions } = useQuizQuestionsLoader({
+    summaryId: selectedSummaryId,
+    filters: apiFilters,
+    label: 'ProfessorQuizzes',
+  });
+
+  // ── Filters + Stats (R4: unified hook) ───────────────
   const filters = useQuizFilters(questions);
 
-  // ── Sidebar collapse state ────────────────────────────
+  // ── Sidebar collapse state ────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ── Reset keyword filter when summary changes ───────────
   useEffect(() => {
+    setFilterKeywordIdLocal('');
     filters.setFilterKeywordId('');
   }, [selectedSummaryId]);
-
-  // ── Load quiz questions when summary/filters change ─────
-  const loadQuestions = useCallback(async () => {
-    if (!selectedSummaryId) {
-      setQuestions([]);
-      return;
-    }
-    setQuestionsLoading(true);
-    try {
-      const apiFilters: {
-        question_type?: QuestionType;
-        difficulty?: number;
-        keyword_id?: string;
-        limit?: number;
-      } = {};
-      if (filters.filterType) apiFilters.question_type = filters.filterType;
-      if (filters.filterDifficulty) apiFilters.difficulty = DIFFICULTY_TO_INT[filters.filterDifficulty] || 2;
-      if (filters.filterKeywordId) apiFilters.keyword_id = filters.filterKeywordId;
-      apiFilters.limit = 200;
-      const res = await quizApi.getQuizQuestions(selectedSummaryId, apiFilters);
-      setQuestions(res.items || []);
-    } catch (err: unknown) {
-      logger.error('[Quiz] Questions load error:', err);
-      setQuestions([]);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  }, [selectedSummaryId, filters.filterType, filters.filterDifficulty, filters.filterKeywordId]);
-
-  useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
 
   // ── CRUD handlers (R4: extracted to hook) ─────────────
   const crud = useQuestionCrud(loadQuestions);
 
-  // ── Render ──────────────────────────────────────────
+  // ── Render ────────────────────────────────────────
 
   return (
     <div className="flex h-full">
@@ -212,9 +201,9 @@ export function ProfessorQuizzesPage() {
               filterKeywordId={filters.filterKeywordId}
               searchQuery={filters.searchQuery}
               keywords={keywords}
-              onFilterTypeChange={filters.setFilterType}
-              onFilterDifficultyChange={filters.setFilterDifficulty}
-              onFilterKeywordChange={filters.setFilterKeywordId}
+              onFilterTypeChange={(v) => { filters.setFilterType(v); setFilterTypeLocal(v); }}
+              onFilterDifficultyChange={(v) => { filters.setFilterDifficulty(v); setFilterDifficultyLocal(v); }}
+              onFilterKeywordChange={(v) => { filters.setFilterKeywordId(v); setFilterKeywordIdLocal(v); }}
               onSearchChange={filters.setSearchQuery}
               onCreate={crud.handleCreate}
             />
@@ -262,7 +251,7 @@ export function ProfessorQuizzesPage() {
         )}
       </div>
 
-      {/* ── Create/Edit Modal ─────────────────────────────────────── */}
+      {/* ── Create/Edit Modal ───────────────────────────────────────────── */}
 
       <AnimatePresence>
         {crud.showModal && selectedSummaryId && (
