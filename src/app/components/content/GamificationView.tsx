@@ -48,7 +48,7 @@ const tk = {
   ringEnd: '#0d9488',
 };
 
-// ── Animated Number Counter ────────────────────────────────
+// ── Animated Number Counter ────────────────────────────────────────
 function AnimatedNumber({ value, duration = 1.2, delay = 0 }: { value: number; duration?: number; delay?: number }) {
   const shouldReduce = useReducedMotion();
   const [display, setDisplay] = useState(shouldReduce ? value : 0);
@@ -72,7 +72,7 @@ function AnimatedNumber({ value, duration = 1.2, delay = 0 }: { value: number; d
   return <>{display.toLocaleString()}</>;
 }
 
-// ── SVG Progress Ring ──────────────────────────────────────
+// ── SVG Progress Ring ──────────────────────────────────────────
 function ProgressRing({ progress, size = 96, stroke = 5, color1 = tk.ringStart, color2 = tk.ringEnd }: {
   progress: number; size?: number; stroke?: number; color1?: string; color2?: string;
 }) {
@@ -258,7 +258,7 @@ function TodayXpBreakdown({ transactions }: { transactions: { action: string; xp
   );
 }
 
-// ── Streak milestone message ───────────────────────────────
+// ── Streak milestone message ───────────────────────────────────
 function getStreakMilestone(streak: number): string | null {
   if (streak >= 100) return 'LEGENDARIO — 100 dias de racha!';
   if (streak >= 60) return 'Increible — 60 dias sin parar!';
@@ -268,7 +268,7 @@ function getStreakMilestone(streak: number): string | null {
   return null;
 }
 
-// ── Greeting based on context ──────────────────────────────
+// ── Greeting based on context ────────────────────────────────────
 function getGreeting(
   name: string | undefined,
   xpToday: number,
@@ -338,7 +338,7 @@ export default function GamificationView() {
   const { selectedInstitution, user } = useAuth();
   const institutionId = selectedInstitution?.id;
 
-  // ── Queries ───────────────────────────────────────────
+  // ── Queries ─────────────────────────────────────────────
   const { data: profileData } = useGamificationProfile(institutionId);
   const { data: streak, isLoading: streakLoading } = useStreakStatus(institutionId);
   const { data: badgesResp, isLoading: badgesLoading } = useBadges();
@@ -346,7 +346,7 @@ export default function GamificationView() {
   const { data: xpHistoryResp, isLoading: historyLoading } = useXPHistory(institutionId);
   const { data: queue, isLoading: queueLoading } = useStudyQueue();
 
-  // ── Mutations ─────────────────────────────────────────
+  // ── Mutations ───────────────────────────────────────────
   const checkIn = useDailyCheckIn(institutionId);
   const repair = useStreakRepair(institutionId);
 
@@ -367,7 +367,7 @@ export default function GamificationView() {
     }
   }, [streakLoading, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Derived ───────────────────────────────────────────
+  // ── Derived ─────────────────────────────────────────────
   const totalXP = profileData?.xp?.total ?? 0;
   const levelInfo = getLevelInfo(totalXP);
   const dailyUsed = profileData?.xp?.today ?? 0;
@@ -385,7 +385,7 @@ export default function GamificationView() {
   }, [xpHistory]);
 
   const greeting = getGreeting(
-    user?.user_metadata?.full_name ?? user?.email,
+    user?.full_name ?? user?.name ?? user?.email,
     dailyUsed,
     streakDays,
     streak?.streak_at_risk ?? false,
@@ -394,7 +394,7 @@ export default function GamificationView() {
 
   return (
     <div className="min-h-full" style={{ backgroundColor: tk.pageBg }}>
-      {/* ── Hero Banner ────────────────────────────────────── */}
+      {/* ── Hero Banner ──────────────────────────────────────── */}
       <div
         className="px-4 sm:px-6 pt-6 pb-10"
         style={{
@@ -489,7 +489,7 @@ export default function GamificationView() {
         </div>
       </div>
 
-      {/* ── Stats Grid ────────────────────────────────────── */}
+      {/* ── Stats Grid ──────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <StatCard
@@ -526,7 +526,7 @@ export default function GamificationView() {
           />
         </div>
 
-        {/* ── Main Grid ────────────────────────────────────── */}
+        {/* ── Main Grid ──────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-8">
           {/* Left Column (2/3) */}
           <div className="lg:col-span-2 space-y-4">
