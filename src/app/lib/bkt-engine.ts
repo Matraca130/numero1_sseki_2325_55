@@ -1,20 +1,18 @@
 // ============================================================
-// BKT v3.1 — Parametros REALES del Granular Evaluation System
-// (verificados 24/Feb/2026)
+// @deprecated — PATH B MIGRATION (PR #30)
 //
-// IMPORTANTE: Este archivo es IDENTICO en todos los agentes.
-// NO cambiar parametros.
+// This file has 0 importers after the PATH B migration.
+// BKT v4 Recovery is now computed SERVER-SIDE in
+// batch-review.ts (backend). The frontend only uses a
+// lightweight BKT heuristic in useReviewBatch for
+// visual feedback (NOT persisted).
 //
-// BKT = concept-level mastery (per subtopic)
-// Complementa FSRS (card-level scheduling)
+// Type exports preserved. Function throws deprecation error.
+//
+// Safe to delete once confirmed no external importers remain.
 // ============================================================
 
-const P_LEARN = 0.18;
-const P_FORGET = 0.25;
-const RECOVERY_FACTOR = 3.0;
-const QUIZ_MULTIPLIER = 0.70;
-const FLASHCARD_MULTIPLIER = 1.00;
-
+/** @deprecated Backend computes BKT v4 Recovery server-side. */
 export interface BktParams {
   currentMastery: number;
   isCorrect: boolean;
@@ -22,26 +20,16 @@ export interface BktParams {
   previousMaxMastery?: number;
 }
 
+/** @deprecated PATH B: backend computes BKT v4 Recovery server-side. */
 export function updateBKT(
-  currentMastery: number,
-  isCorrect: boolean,
-  instrumentType: 'flashcard' | 'quiz',
-  previousMaxMastery?: number
+  _currentMastery: number,
+  _isCorrect: boolean,
+  _instrumentType: 'flashcard' | 'quiz',
+  _previousMaxMastery?: number
 ): number {
-  const typeMultiplier = instrumentType === 'quiz' ? QUIZ_MULTIPLIER : FLASHCARD_MULTIPLIER;
-  const recoveryMultiplier =
-    previousMaxMastery && previousMaxMastery > currentMastery
-      ? RECOVERY_FACTOR
-      : 1.0;
-
-  let newMastery: number;
-  if (isCorrect) {
-    newMastery =
-      currentMastery +
-      (1 - currentMastery) * P_LEARN * typeMultiplier * recoveryMultiplier;
-  } else {
-    newMastery = currentMastery * (1 - P_FORGET);
-  }
-
-  return Math.min(1, Math.max(0, newMastery));
+  throw new Error(
+    '[DEPRECATED] updateBKT() removed in PATH B migration. ' +
+    'Backend computes BKT v4 Recovery server-side via POST /review-batch. ' +
+    'For visual-only feedback, use the BKT heuristic in useReviewBatch.'
+  );
 }
