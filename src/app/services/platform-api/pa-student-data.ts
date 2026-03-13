@@ -5,6 +5,7 @@
 
 import { realRequest } from '@/app/services/apiConfig';
 import type { UUID } from '@/app/types/platform';
+import { hasHttpStatus } from '@/app/utils/getErrorMessage';
 
 const request = realRequest;
 
@@ -91,8 +92,8 @@ export interface StudentStatsRecord {
 export async function getStudentStatsReal(): Promise<StudentStatsRecord | null> {
   try {
     return await request<StudentStatsRecord | null>('/student-stats');
-  } catch (err: any) {
-    if (err.status === 404) return null;
+  } catch (err: unknown) {
+    if (hasHttpStatus(err, 404)) return null;
     throw err;
   }
 }
