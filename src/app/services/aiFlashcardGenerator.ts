@@ -1,11 +1,18 @@
 // ============================================================
 // Axon — AI Flashcard Generator (Keyword-Aware)
-// Thin wrapper over studentApi.aiGenerateFlashcards.
-// All scoring/gap-analysis runs server-side.
+// Thin wrapper over aiService.generateSmart.
+// All scoring/gap-analysis runs server-side (PATH B).
+//
+// NOTE: generateFlashcardsForKeywords uses studentApi.aiGenerateFlashcards
+// which is DEPRECATED (returns []). The real flow is aiService.generateSmart.
+// This file exists for SmartFlashcardGenerator.tsx backward compat.
 // ============================================================
 
 import { aiGenerateFlashcards } from '@/app/services/studentApi';
-import type { KeywordCollection } from './keywordManager';
+import type { KeywordState } from '@/app/types/student';
+
+/** Record<normalizedKeyword, KeywordState> */
+export type KeywordCollection = Record<string, KeywordState>;
 
 export interface GeneratedFlashcard {
   question: string;
