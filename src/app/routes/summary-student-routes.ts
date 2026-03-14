@@ -5,15 +5,16 @@
 // student-routes.ts importa este archivo automaticamente.
 // ============================================================
 import type { RouteObject } from 'react-router';
+import { lazyRetry } from '@/app/utils/lazyRetry';
 
 export const summaryStudentRoutes: RouteObject[] = [
   {
     path: 'summaries',
-    lazy: () => import('@/app/components/content/StudentSummariesView').then(m => ({ Component: m.StudentSummariesView })),
+    lazy: () => lazyRetry(() => import('@/app/components/content/StudentSummariesView')).then(m => ({ Component: m.StudentSummariesView })),
   },
   {
-    path: 'summary/:topicId',
-    lazy: () => import('@/app/components/content/SummaryView').then(m => ({ Component: m.SummaryView })),
+    path: 'summary/:summaryId',
+    lazy: () => lazyRetry(() => import('@/app/components/content/StudentSummaryReader')).then(m => ({ Component: m.StudentSummaryReader })),
   },
   // Agent 2: agrega nuevas rutas de summary aqui
 ];
