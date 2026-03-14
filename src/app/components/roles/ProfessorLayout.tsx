@@ -2,7 +2,7 @@
 // Axon — Professor Layout (wraps RoleShell with PlatformDataProvider)
 // ============================================================
 import React from 'react';
-import { RoleShell, type NavItemConfig } from './RoleShell';
+import { RoleShell, type NavItemConfig } from '../layout/RoleShell';
 import { PlatformDataProvider } from '@/app/context/PlatformDataContext';
 import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import {
