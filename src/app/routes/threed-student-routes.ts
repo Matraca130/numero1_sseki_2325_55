@@ -5,11 +5,12 @@
 // student-routes.ts importa este archivo automaticamente.
 // ============================================================
 import type { RouteObject } from 'react-router';
+import { lazyRetry } from '@/app/utils/lazyRetry';
 
 export const threeDStudentRoutes: RouteObject[] = [
   {
-    path: '3d',
-    lazy: () => import('@/app/components/content/ThreeDView').then(m => ({ Component: m.ThreeDView })),
+    path: '3d-atlas',
+    lazy: () => lazyRetry(() => import('@/app/components/content/ThreeDView')).then(m => ({ Component: m.ThreeDView })),
   },
-  // Agent 6: agrega nuevas rutas 3D aqui
+  // Agent 6: agrega nuevas rutas de 3D aqui
 ];

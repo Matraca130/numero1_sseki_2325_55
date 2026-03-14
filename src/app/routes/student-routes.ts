@@ -12,6 +12,7 @@
 //   threed-student-routes.ts     → Agent 6 OWNER
 // ============================================================
 import type { RouteObject } from 'react-router';
+import { lazyRetry } from '@/app/utils/lazyRetry';
 
 import { quizStudentRoutes } from './quiz-student-routes';
 import { summaryStudentRoutes } from './summary-student-routes';
@@ -28,6 +29,6 @@ export const studentChildren: RouteObject[] = [
   // Catch-all — keep last
   {
     path: '*',
-    lazy: () => import('@/app/components/content/WelcomeView').then(m => ({ Component: m.WelcomeView })),
+    lazy: () => lazyRetry(() => import('@/app/components/content/WelcomeView')).then(m => ({ Component: m.WelcomeView })),
   },
 ];

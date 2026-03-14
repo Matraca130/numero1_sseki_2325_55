@@ -5,15 +5,16 @@
 // student-routes.ts importa este archivo automaticamente.
 // ============================================================
 import type { RouteObject } from 'react-router';
+import { lazyRetry } from '@/app/utils/lazyRetry';
 
 export const flashcardStudentRoutes: RouteObject[] = [
   {
     path: 'flashcards',
-    lazy: () => import('@/app/components/content/FlashcardView').then(m => ({ Component: m.FlashcardView })),
+    lazy: () => lazyRetry(() => import('@/app/components/content/FlashcardView')).then(m => ({ Component: m.FlashcardView })),
   },
   {
     path: 'review-session',
-    lazy: () => import('@/app/components/content/ReviewSessionView').then(m => ({ Component: m.ReviewSessionView })),
+    lazy: () => lazyRetry(() => import('@/app/components/content/ReviewSessionView')).then(m => ({ Component: m.ReviewSessionView })),
   },
   // Agent 3: agrega nuevas rutas de flashcard aqui
 ];
