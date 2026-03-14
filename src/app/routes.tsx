@@ -98,10 +98,11 @@ export const router = createBrowserRouter([
           },
 
           // ── STUDENT (/student/*) ───────────────────────────
-          // Any authenticated role can view the student experience.
+          // Uses layout/StudentLayout (responsive, all providers including
+          // TopicMastery, StudyPlans, StudyTimeEstimates).
           {
             path: 'student',
-            lazy: () => import('@/app/components/roles/StudentLayout').then(m => ({ Component: m.StudentLayout })),
+            lazy: () => import('@/app/components/layout/StudentLayout').then(m => ({ Component: m.StudentLayout })),
             children: studentChildren,
           },
 
