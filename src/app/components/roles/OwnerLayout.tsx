@@ -2,7 +2,7 @@
 // Axon — Owner Layout (wraps RoleShell with PlatformDataProvider)
 // ============================================================
 import React from 'react';
-import { RoleShell, type NavItemConfig } from './RoleShell';
+import { RoleShell, type NavItemConfig } from '../layout/RoleShell';
 import { PlatformDataProvider } from '@/app/context/PlatformDataContext';
 import {
   LayoutDashboard, Building2, Users, CreditCard,
