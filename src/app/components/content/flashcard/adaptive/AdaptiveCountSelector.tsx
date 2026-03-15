@@ -1,3 +1,9 @@
+// ============================================================
+// AdaptiveCountSelector — Pill selector for AI generation count
+//
+// STANDALONE: depends on react + clsx.
+// ============================================================
+
 import React from 'react';
 import clsx from 'clsx';
 
@@ -13,7 +19,11 @@ export interface AdaptiveCountSelectorProps {
   disabled?: boolean;
 }
 
-export function AdaptiveCountSelector({ value, onChange, disabled = false }: AdaptiveCountSelectorProps) {
+export function AdaptiveCountSelector({
+  value,
+  onChange,
+  disabled = false,
+}: AdaptiveCountSelectorProps) {
   return (
     <div className="flex items-center gap-2" role="radiogroup" aria-label="Cantidad de flashcards a generar">
       {OPTIONS.map((opt) => {
@@ -27,9 +37,9 @@ export function AdaptiveCountSelector({ value, onChange, disabled = false }: Ada
             onClick={() => onChange(opt.value)}
             className={clsx(
               'relative px-4 py-2 rounded-xl text-sm transition-all',
-              'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none',
+              'focus-visible:ring-2 focus-visible:ring-[#2a8c7a] focus-visible:outline-none',
               isSelected
-                ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
+                ? 'bg-[#2a8c7a] text-white shadow-md shadow-[#2a8c7a]/25'
                 : 'bg-white/60 text-gray-700 hover:bg-white/80 border border-gray-200',
               disabled && 'opacity-50 cursor-not-allowed',
             )}
@@ -40,7 +50,9 @@ export function AdaptiveCountSelector({ value, onChange, disabled = false }: Ada
               <span
                 className={clsx(
                   'absolute -top-1.5 -right-1.5 px-1 py-0.5 text-[9px] rounded-full',
-                  isSelected ? 'bg-amber-400 text-amber-900' : 'bg-gray-200 text-gray-500',
+                  isSelected
+                    ? 'bg-amber-400 text-amber-900'
+                    : 'bg-gray-200 text-gray-500',
                 )}
                 style={{ fontWeight: 700, lineHeight: 1 }}
               >
