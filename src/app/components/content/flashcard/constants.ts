@@ -1,5 +1,5 @@
 // ============================================================
-// Flashcard Module — Shared Constants
+// Flashcard Module \u2014 Shared Constants
 //
 // Single source of truth for repeated values across the module.
 // Import from: '@/app/components/content/flashcard/constants'
@@ -7,7 +7,7 @@
 
 /** Accessible focus ring class used on interactive elements */
 export const focusRing =
-  'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none';
+  'focus-visible:ring-2 focus-visible:ring-[#2a8c7a] focus-visible:outline-none';
 
 /** Responsive grid for card thumbnails (used in DeckScreen flat + grouped views) */
 export const CARD_GRID_CLASSES =

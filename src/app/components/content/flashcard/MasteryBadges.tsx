@@ -1,5 +1,5 @@
 // ============================================================
-// MasteryBadges — Shared mastery stats display
+// MasteryBadges \u2014 Shared mastery stats display
 // Used by Hub, Section, and Deck screens
 // ============================================================
 
@@ -15,7 +15,7 @@ interface MasteryBadgesProps {
 
 const BADGES = [
   { key: 'mastered', field: 'mastered' as const, dot: 'bg-emerald-500', text: 'text-emerald-600', label: 'dominados' },
-  { key: 'learning', field: 'learning' as const, dot: 'bg-amber-500', text: 'text-amber-600', label: 'aprendendo' },
+  { key: 'learning', field: 'learning' as const, dot: 'bg-amber-500', text: 'text-amber-600', label: 'aprendiendo' },
   { key: 'new', field: 'newCards' as const, dot: 'bg-rose-500', text: 'text-rose-600', label: 'a revisar' },
 ] as const;
 
