@@ -1,8 +1,231 @@
 // ============================================================
-// Axon — TopicSidebar (re-export)
+// Axon — Topic Sidebar (RESPONSIVE VERSION)
 //
-// This file keeps backward compatibility with existing imports.
-// All implementation is in ./topic-sidebar/ directory.
+// Changes from original:
+//   1. Width uses w-[240px] lg:w-[240px] (parent controls mobile visibility)
+//   2. On mobile: rendered inside overlay drawer by StudentLayout
+//   3. Touch-friendly: min-h-[44px] on topic buttons
+//   4. Slightly larger touch targets for tree expand/collapse
+//
+// FIX: Smart-expand — only expand the section containing the active
+//      topic instead of expanding ALL sections on tree load.
+//      Prevents massive simultaneous AnimatePresence renders.
 // ============================================================
 
-export { TopicSidebar } from './topic-sidebar';
+import React, { useState, useEffect } from 'react';
+import { useApp } from '@/app/context/AppContext';
+import { useStudentNav } from '@/app/hooks/useStudentNav';
+import { useContentTree } from '@/app/context/ContentTreeContext';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  ChevronUp, ChevronDown, ArrowLeft, Loader2,
+  BookOpen, GraduationCap, FolderOpen, FileText,
+} from 'lucide-react';
+import clsx from 'clsx';
+import { headingStyle } from '@/app/design-system';
+
+export function TopicSidebar() {
+  const { currentTopic, setCurrentTopic, setSidebarOpen } = useApp();
+  const { navigateTo } = useStudentNav();
+  const { tree, loading, selectedTopicId, selectTopic } = useContentTree();
+
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  // ── FIX: Derive activeTopicId BEFORE the useEffect so it can be used as dependency ──
+  const activeTopicId = selectedTopicId || currentTopic?.id;
+
+  // ── FIX: Only auto-expand the section containing the active topic ──
+  // Previously expanded ALL sections/courses/semesters, causing a massive
+  // render with simultaneous AnimatePresence animations.
+  useEffect(() => {
+    if (!tree || !activeTopicId) return;
+    for (const course of tree.courses || []) {
+      for (const semester of (course.semesters || [])) {
+        for (const section of (semester.sections || [])) {
+          const hasTopic = (section.topics || []).some(t => t.id === activeTopicId);
+          if (hasTopic) {
+            setExpandedSections(prev => {
+              // Skip re-render if already expanded
+              if (prev.has(course.id) && prev.has(semester.id) && prev.has(section.id)) return prev;
+              const next = new Set(prev);
+              next.add(course.id);
+              next.add(semester.id);
+              next.add(section.id);
+              return next;
+            });
+            return; // found it, stop searching
+          }
+        }
+      }
+    }
+  }, [tree, activeTopicId]);
+
+  const toggleNode = (id: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleTopicClick = (topicId: string, topicName: string) => {
+    selectTopic(topicId);
+    setCurrentTopic({ id: topicId, title: topicName } as any);
+    navigateTo('study');
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full lg:w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col items-center justify-center">
+        <Loader2 className="w-5 h-5 text-axon-accent animate-spin" />
+        <p className="text-xs text-gray-400 mt-2">Cargando...</p>
+      </div>
+    );
+  }
+
+  // Empty or no tree
+  if (!tree || (tree?.courses || []).length === 0) {
+    return (
+      <div className="w-full lg:w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col">
+        <div className="px-3 pt-3 pb-1 border-b border-gray-100">
+          <button
+            onClick={() => { setSidebarOpen(false); navigateTo('study-hub'); }}
+            className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group min-h-[44px]"
+          >
+            <ArrowLeft className="w-5 h-5 text-axon-accent group-hover:text-axon-dark transition-colors" />
+            <span className="text-sm" style={headingStyle}>Volver a los temas</span>
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-xs text-gray-400 text-center">Sin contenido disponible</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full lg:w-[240px] shrink-0 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+      {/* Back button */}
+      <div className="px-3 pt-3 pb-1 border-b border-gray-100">
+        <button
+          onClick={() => { setSidebarOpen(false); navigateTo('study-hub'); }}
+          className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group min-h-[44px]"
+        >
+          <ArrowLeft className="w-5 h-5 text-axon-accent group-hover:text-axon-dark transition-colors" />
+          <span className="text-sm" style={headingStyle}>Volver a los temas</span>
+        </button>
+      </div>
+
+      {/* Scrollable tree */}
+      <div className="flex-1 overflow-y-auto py-2 custom-scrollbar overscroll-contain">
+        {(tree?.courses || []).map(course => (
+          <div key={course.id}>
+            {/* Course header */}
+            <button
+              onClick={() => toggleNode(course.id)}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors min-h-[44px]"
+            >
+              <BookOpen size={13} className="text-axon-accent shrink-0" />
+              <span className="text-xs text-gray-700 truncate flex-1">{course.name}</span>
+              {expandedSections.has(course.id) ? <ChevronUp size={12} className="text-gray-400" /> : <ChevronDown size={12} className="text-gray-400" />}
+            </button>
+
+            <AnimatePresence initial={false}>
+              {expandedSections.has(course.id) && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden"
+                >
+                  {(course.semesters || []).map(semester => (
+                    <div key={semester.id}>
+                      {/* Semester header */}
+                      <button
+                        onClick={() => toggleNode(semester.id)}
+                        className="w-full flex items-center gap-2 pl-7 pr-4 py-2 text-left hover:bg-gray-50 transition-colors min-h-[40px]"
+                      >
+                        <GraduationCap size={12} className="text-blue-400 shrink-0" />
+                        <span className="text-xs text-gray-600 truncate flex-1">{semester.name}</span>
+                        {expandedSections.has(semester.id) ? <ChevronUp size={11} className="text-gray-400" /> : <ChevronDown size={11} className="text-gray-400" />}
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {expandedSections.has(semester.id) && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="overflow-hidden"
+                          >
+                            {(semester.sections || []).map(section => {
+                              const hasActiveTopic = (section.topics || []).some(t => t.id === activeTopicId);
+                              return (
+                                <div key={section.id}>
+                                  {/* Section header */}
+                                  <button
+                                    onClick={() => toggleNode(section.id)}
+                                    className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-left hover:bg-gray-50 transition-colors min-h-[40px]"
+                                  >
+                                    <FolderOpen size={12} className="text-emerald-400 shrink-0" />
+                                    <span className={clsx(
+                                      "text-xs truncate flex-1",
+                                      hasActiveTopic ? "text-gray-900" : "text-gray-600"
+                                    )}>
+                                      {section.name}
+                                    </span>
+                                    {expandedSections.has(section.id) ? <ChevronUp size={11} className="text-gray-400" /> : <ChevronDown size={11} className="text-gray-400" />}
+                                  </button>
+
+                                  <AnimatePresence initial={false}>
+                                    {expandedSections.has(section.id) && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="overflow-hidden"
+                                      >
+                                        <div className="relative ml-10 border-l-2 border-blue-400/30">
+                                          {(section.topics || []).map(topic => {
+                                            const isActive = activeTopicId === topic.id;
+                                            return (
+                                              <button
+                                                key={topic.id}
+                                                onClick={() => handleTopicClick(topic.id, topic.name)}
+                                                className={clsx(
+                                                  "w-full text-left pl-4 pr-3 py-2 text-xs transition-colors flex items-center gap-1.5 min-h-[40px]",
+                                                  isActive
+                                                    ? "text-blue-600 bg-blue-50/60"
+                                                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                                )}
+                                              >
+                                                <FileText size={11} className={isActive ? "text-blue-500" : "text-gray-400"} />
+                                                <span className="line-clamp-2">{topic.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
