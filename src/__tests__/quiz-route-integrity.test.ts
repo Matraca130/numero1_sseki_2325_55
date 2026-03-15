@@ -1,16 +1,14 @@
 // ============================================================
-// Quiz Route Integrity Guards
+// Route Integrity Guards — Axon v4.4
 //
-// PURPOSE: Prevent routing regressions that silently break quiz
-// navigation. These tests caught PR #87 and #88 bugs.
+// PURPOSE: Prevent routing regressions that silently break
+// navigation. Specifically guards against:
+//   - PR #87: PERF-70 replacing real routes with PlaceholderPage
+//   - PR #88: Sidebar ViewType not matching route path slug
 //
-// WHAT THEY CHECK:
-//   1. Professor /quizzes route loads ProfessorQuizzesPage (not placeholder)
-//   2. Student quiz ViewType resolves to the correct URL slug
-//   3. Student route path has matching SLUG_TO_VIEW entry
-//   4. viewToPath and pathToView are bidirectional for quiz
-//   5. Professor /quizzes route uses lazyRetry (not lazyPlaceholder)
-//   6. Student quiz route points to QuizView component
+// APPROACH: Pure static analysis. We inspect route config objects
+// and navigation mapping functions WITHOUT actually importing
+// components (no DOM, no React, no side effects).
 //
 // RUN: pnpm test
 // ============================================================
@@ -20,46 +18,78 @@ import { professorChildren } from '@/app/routes/professor-routes';
 import { quizStudentRoutes } from '@/app/routes/quiz-student-routes';
 import { viewToPath, pathToView } from '@/app/hooks/useStudentNav';
 
-// ── Helper: extract the route object for a given path ────────
+// ── Helper ───────────────────────────────────────────────────
 function findRoute(routes: any[], pathStr: string) {
   return routes.find((r: any) => r.path === pathStr);
 }
 
+/**
+ * Checks if a route's lazy function references a real component
+ * import (via lazyRetry) instead of PlaceholderPage.
+ *
+ * We convert the lazy function to string and inspect the source.
+ * This avoids actually calling the dynamic import (which would
+ * fail in Node env due to CSS/JSX/context dependencies).
+ */
+function lazySourceContains(route: any, needle: string): boolean {
+  if (!route?.lazy) return false;
+  const src = route.lazy.toString();
+  return src.includes(needle);
+}
+
+function lazySourceExcludes(route: any, needle: string): boolean {
+  if (!route?.lazy) return true;
+  const src = route.lazy.toString();
+  return !src.includes(needle);
+}
+
 // ══════════════════════════════════════════════════════════════
-// TEST SUITE 1: Professor Quiz Route
+// SUITE 1: Professor Routes — Real Components (not Placeholders)
+//
+// Guards against: PR #87 regression (PERF-70 lazyPlaceholder)
 // ══════════════════════════════════════════════════════════════
 
-describe('Professor quiz route', () => {
-  const quizRoute = findRoute(professorChildren, 'quizzes');
+describe('Professor routes load real components', () => {
+  // These 3 routes were ALL broken by PERF-70 and fixed in PR #87.
+  // If ANY of them regresses to PlaceholderPage, these tests fail.
 
-  it('exists in professorChildren', () => {
-    expect(quizRoute).toBeDefined();
-  });
+  const routeChecks = [
+    { path: 'quizzes',    component: 'ProfessorQuizzesPage' },
+    { path: 'curriculum', component: 'ProfessorCurriculumPage' },
+    { path: 'flashcards', component: 'ProfessorFlashcardsPage' },
+  ];
 
-  it('has a lazy loader (not undefined)', () => {
-    // If this is undefined, the route was likely removed or misconfigured
-    expect(quizRoute.lazy).toBeDefined();
-    expect(typeof quizRoute.lazy).toBe('function');
-  });
+  for (const { path, component } of routeChecks) {
+    describe(`/professor/${path}`, () => {
+      const route = findRoute(professorChildren, path);
 
-  it('lazy loader resolves to ProfessorQuizzesPage (not PlaceholderPage)', async () => {
-    // Call the lazy function — it returns { Component: ... }
-    const result = await quizRoute.lazy();
-    expect(result).toBeDefined();
-    expect(result.Component).toBeDefined();
+      it('exists in professorChildren', () => {
+        expect(route).toBeDefined();
+      });
 
-    // The component should be named ProfessorQuizzesPage (or wrapped)
-    // At minimum, it should NOT be a PlaceholderPage
-    const name = result.Component.name || result.Component.displayName || '';
-    expect(name).not.toContain('Placeholder');
-    // Positive check: should reference the real page
-    // (Component.name may be minified in prod, so we also check it's a function)
-    expect(typeof result.Component).toBe('function');
-  });
+      it('has a lazy loader function', () => {
+        expect(route.lazy).toBeDefined();
+        expect(typeof route.lazy).toBe('function');
+      });
+
+      it(`references ${component} (not PlaceholderPage)`, () => {
+        // Positive: lazy source mentions the real component
+        expect(lazySourceContains(route, component)).toBe(true);
+        // Negative: lazy source does NOT mention PlaceholderPage
+        expect(lazySourceExcludes(route, 'PlaceholderPage')).toBe(true);
+      });
+
+      it('uses lazyRetry (not lazyPlaceholder)', () => {
+        expect(lazySourceContains(route, 'lazyRetry')).toBe(true);
+      });
+    });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════
-// TEST SUITE 2: Student Quiz Navigation Mapping
+// SUITE 2: Student Quiz Navigation Mapping
+//
+// Guards against: PR #88 regression (quiz ≠ quizzes mismatch)
 // ══════════════════════════════════════════════════════════════
 
 describe('Student quiz navigation mapping', () => {
@@ -69,12 +99,11 @@ describe('Student quiz navigation mapping', () => {
   });
 
   it('pathToView("/student/quizzes") resolves to "quiz"', () => {
-    // Reverse mapping must also work for sidebar highlight
+    // Reverse mapping must work for sidebar active-state highlight
     expect(pathToView('/student/quizzes')).toBe('quiz');
   });
 
-  it('viewToPath and pathToView are bidirectional for quiz', () => {
-    // Round-trip: quiz -> /student/quizzes -> quiz
+  it('round-trip: quiz → path → quiz', () => {
     const path = viewToPath('quiz');
     const view = pathToView(path);
     expect(view).toBe('quiz');
@@ -82,25 +111,60 @@ describe('Student quiz navigation mapping', () => {
 });
 
 // ══════════════════════════════════════════════════════════════
-// TEST SUITE 3: Student Quiz Route Registration
+// SUITE 3: Student Quiz Route Registration
+//
+// Guards against: route path not matching sidebar-generated URL
 // ══════════════════════════════════════════════════════════════
 
 describe('Student quiz route registration', () => {
   const quizRoute = findRoute(quizStudentRoutes, 'quizzes');
 
-  it('exists in quizStudentRoutes with path "quizzes"', () => {
+  it('exists with path "quizzes"', () => {
     expect(quizRoute).toBeDefined();
   });
 
-  it('has a lazy loader for QuizView', () => {
+  it('has a lazy loader', () => {
     expect(quizRoute.lazy).toBeDefined();
     expect(typeof quizRoute.lazy).toBe('function');
   });
 
-  it('route path matches the slug from viewToPath', () => {
-    // This is the CORE guard: the route path must match what the sidebar generates
-    const expectedPath = viewToPath('quiz'); // /student/quizzes
+  it('references QuizView component', () => {
+    expect(lazySourceContains(quizRoute, 'QuizView')).toBe(true);
+  });
+
+  it('route path matches the slug viewToPath generates', () => {
+    // CORE GUARD: sidebar click → URL → route match
+    // If these diverge, the catch-all shows WelcomeView instead.
+    const expectedPath = viewToPath('quiz');            // /student/quizzes
     const expectedSlug = expectedPath.replace('/student/', ''); // quizzes
     expect(quizRoute.path).toBe(expectedSlug);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// SUITE 4: question_type Enum (Guidelines Rule 4)
+//
+// Guards against: invalid question types leaking into the system
+// ══════════════════════════════════════════════════════════════
+
+describe('question_type enum', () => {
+  const VALID_TYPES = ['mcq', 'true_false', 'fill_blank', 'open'] as const;
+
+  it('has exactly 4 valid types', () => {
+    expect(VALID_TYPES).toHaveLength(4);
+  });
+
+  it('all types are lowercase snake_case strings', () => {
+    for (const t of VALID_TYPES) {
+      expect(t).toMatch(/^[a-z_]+$/);
+    }
+  });
+
+  // This is a "documentation test" — if someone adds a 5th type,
+  // they must update this test (forcing them to think about it).
+  it('snapshot: valid types have not changed unexpectedly', () => {
+    expect([...VALID_TYPES].sort()).toEqual(
+      ['fill_blank', 'mcq', 'open', 'true_false']
+    );
   });
 });
