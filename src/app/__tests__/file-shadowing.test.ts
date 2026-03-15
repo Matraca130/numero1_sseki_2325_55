@@ -19,6 +19,11 @@ import path from 'path';
 
 const LAYOUT_DIR = path.resolve(__dirname, '../../app/components/layout');
 
+// Bridge files are small re-exports with optional documentation.
+// 800 bytes allows a comment block + re-export line, while still
+// catching real components (smallest realistic component is ~2KB+).
+const BRIDGE_MAX_BYTES = 800;
+
 /**
  * Convert kebab-case directory name to PascalCase filename.
  * e.g. "topic-sidebar" → "TopicSidebar"
@@ -46,9 +51,9 @@ describe('File shadowing detection (layout/)', () => {
     // Both exist: the file MUST be a bridge (re-export), not a full component
     const content = fs.readFileSync(filePath, 'utf-8');
 
-    // Bridge files are tiny (< 400 bytes) and contain a re-export
+    // Bridge files are small and contain a re-export
     const isBridge =
-      content.length < 400 &&
+      content.length <= BRIDGE_MAX_BYTES &&
       (content.includes("from './topic-sidebar'") ||
        content.includes('from "./topic-sidebar"') ||
        content.includes("from './topic-sidebar/TopicSidebarRoot'"));
@@ -86,8 +91,8 @@ describe('File shadowing detection (layout/)', () => {
         expect(
           content.length,
           `${pascalName}.tsx (${content.length} bytes) shadows directory ${dir}/. ` +
-          `If intentional, it should be a ≤400-byte re-export bridge.`,
-        ).toBeLessThanOrEqual(400);
+          `If intentional, it should be a ≤${BRIDGE_MAX_BYTES}-byte re-export bridge.`,
+        ).toBeLessThanOrEqual(BRIDGE_MAX_BYTES);
       }
     }
   });
