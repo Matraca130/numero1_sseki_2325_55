@@ -39,11 +39,13 @@ export type ViewType =
 /** viewType -> URL slug (only entries that differ from the viewType itself) */
 const VIEW_TO_SLUG: Partial<Record<string, string>> = {
   home: '', // index route
+  quiz: 'quizzes', // Sidebar uses ViewType 'quiz', route path is 'quizzes'
 };
 
 /** URL slug -> viewType (only entries that differ from the slug itself) */
 const SLUG_TO_VIEW: Record<string, ViewType> = {
   '': 'home', // index route
+  quizzes: 'quiz', // route path is 'quizzes', ViewType is 'quiz'
 };
 
 export function viewToPath(view: string): string {
