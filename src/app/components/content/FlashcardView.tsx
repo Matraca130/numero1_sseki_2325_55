@@ -11,16 +11,24 @@
 //        child prop references across renders.
 //   [L2] realMasteryPercent computed only when viewState === 'summary',
 //        avoiding wasted computation on every render.
+//
+// v4.4.6: Removed old handleLoadKeywords (SmartFlashcardGenerator removed).
+//
+// v4.5.0 (Fase 5): Adaptive session extracted to AdaptiveFlashcardView.
+//   DeckScreen "Con IA" button navigates to /student/adaptive-session.
+//   No more dual-track pattern — FlashcardView only runs the normal engine.
 // ============================================================
 
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { AnimatePresence } from 'motion/react';
-import { useFlashcardNavigation } from '@/app/hooks/useFlashcardNavigation';
+import { useFlashcardNavigation, type KeywordProgress } from '@/app/hooks/useFlashcardNavigation';
 import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
 import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
+import { useStudyQueueData } from '@/app/hooks/useStudyQueueData';
+import { useTopicMastery } from '@/app/hooks/useTopicMastery';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
-import { getTopicKeywords, getCourseKeywords } from '@/app/services/studentApi';
 
 // ── Extracted sub-screens ──
 import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } from './flashcard';
@@ -29,38 +37,37 @@ import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } fr
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
 export function FlashcardView() {
-  // Use real auth user ID (not StudentDataContext mock)
   const { user } = useAuth();
   const studentId = user?.id || null;
+  const navigate = useNavigate();
 
   const nav = useFlashcardNavigation();
   const { selectedTopicId } = useContentTree();
 
+  // ── T-01: Topic mastery from flashcard-mappings + FSRS ──
+  const courseId = nav.currentCourse.id === 'empty' ? null : nav.currentCourse.id;
+  const sqData = useStudyQueueData(courseId);
+  const topicMastery = useTopicMastery(sqData.queue, sqData.loading);
+
+  // ── Non-adaptive engine (existing, unchanged) ────────────
   const engine = useFlashcardEngine({
     studentId,
     courseId: nav.currentCourse.id,
     topicId: nav.selectedTopic?.id,
     masteryMap: nav.masteryMap,
     onFinish: () => {
-      // 1. Apply optimistic mastery FIRST (instant UI update)
       nav.applyOptimisticMastery(engine.optimisticUpdates.current);
-
-      // 2. Navigate to summary
+      // Invalidate keyword mastery so DeckScreen re-fetches with fresh BKT data
+      nav.invalidateKeywordMastery(nav.selectedTopic?.id);
       nav.setViewState('summary');
-
-      // 3. Refresh from backend (authoritative data, replaces optimistic)
       nav.refreshMastery();
     },
   });
 
   // ── Sync TopicSidebar selection → FlashcardNavigation ──
-  // When the user clicks a topic in TopicSidebar (ContentTreeContext),
-  // sync that selection into useFlashcardNavigation's internal state.
-  // When selectedTopicId is cleared (null), reset to hub landing.
   const prevSyncedTopicId = useRef<string | null>(null);
 
   useEffect(() => {
-    // If selectedTopicId was cleared → reset to hub landing page
     if (selectedTopicId === null && prevSyncedTopicId.current !== null) {
       prevSyncedTopicId.current = null;
       nav.goToHub();
@@ -73,7 +80,6 @@ export function FlashcardView() {
 
     prevSyncedTopicId.current = selectedTopicId;
 
-    // Find the topic in the enriched sections
     for (const section of nav.allSections) {
       const topic = section.topics.find(t => t.id === selectedTopicId);
       if (topic) {
@@ -82,13 +88,12 @@ export function FlashcardView() {
       }
     }
 
-    // Topic not found in loaded sections — might still be loading
     if (import.meta.env.DEV) {
       console.warn(`[FlashcardView] Topic ${selectedTopicId} not found in sections`);
     }
   }, [selectedTopicId, nav.allSections]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // [L1] Extracted inline closures to useCallback for stable references
+  // ── Normal flow callbacks (unchanged) ──────────────────
   const handleStartAll = useCallback(() => {
     engine.startSession(nav.allFlashcards);
     nav.setViewState('session');
@@ -109,13 +114,6 @@ export function FlashcardView() {
     nav.setViewState('session');
   }, [engine, nav]);
 
-  const handleLoadKeywords = useCallback(async (cId: string, tId: string | null) => {
-    if (tId) {
-      return getTopicKeywords(cId, tId, studentId || undefined);
-    }
-    return getCourseKeywords(cId, studentId || undefined);
-  }, [studentId]);
-
   // [L2] Compute realMasteryPercent only when summary is shown
   const realMasteryPercent = useMemo(() => {
     if (nav.viewState !== 'summary') return undefined;
@@ -128,12 +126,74 @@ export function FlashcardView() {
     );
   }, [nav.viewState, engine.masteryDeltas]);
 
+  // ── Adaptive: navigate to separate route ───────────────
+  const handleStartAdaptive = useCallback(() => {
+    const topic = nav.selectedTopic;
+    if (!topic) return;
+    const params = new URLSearchParams({
+      topicId: topic.id,
+      courseId: nav.currentCourse.id,
+      topicTitle: topic.title || 'Sesión Adaptativa',
+    });
+    navigate(`/student/adaptive-session?${params.toString()}`);
+  }, [nav.selectedTopic, nav.currentCourse.id, navigate]);
+
+  // ── Keyword progress for DeckScreen (Fase 6) ─────────
+  const currentKeywordProgress = useMemo((): KeywordProgress | undefined => {
+    const topicId = nav.selectedTopic?.id;
+    if (!topicId) return undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    void nav.kwProgressVersion; // trigger recalc when cache updates
+    const summary = nav.kwMasteryCache.current.get(topicId);
+    if (!summary) return undefined;
+
+    // T-01: Enrich with FSRS coverage stats from flashcard-mappings
+    let fsrsCoverage: KeywordProgress['fsrsCoverage'];
+    if (!topicMastery.loading && topicMastery.keywordStats.size > 0) {
+      const topicCards = nav.selectedTopic?.flashcards || [];
+      const topicKeywordIds = new Set(topicCards.map(c => c.keyword_id).filter(Boolean));
+
+      let totalMapped = 0;
+      let scheduledCards = 0;
+      let dueCards = 0;
+      let newCards = 0;
+
+      for (const kwId of topicKeywordIds) {
+        const stats = topicMastery.keywordStats.get(kwId!);
+        if (stats) {
+          totalMapped += stats.totalCards;
+          scheduledCards += stats.scheduledCards;
+          dueCards += stats.dueCards;
+          newCards += stats.newCards;
+        }
+      }
+
+      fsrsCoverage = {
+        totalMapped,
+        scheduledCards,
+        dueCards,
+        newCards,
+        coverage: totalMapped > 0 ? scheduledCards / totalMapped : 0,
+      };
+    }
+
+    return {
+      keywordsMastered: summary.keywordsMastered,
+      keywordsTotal: summary.keywordsTotal,
+      overallMastery: summary.overallMastery,
+      weakestKeywordName: summary.weakestKeywords[0]?.name,
+      fsrsCoverage,
+    };
+  }, [nav.selectedTopic?.id, nav.kwProgressVersion, nav.kwMasteryCache, topicMastery.loading, topicMastery.keywordStats, nav.selectedTopic?.flashcards]);
+
+  // ── Render ─────────────────────────────────────────
+
   return (
     <ErrorBoundary>
       <div className="flex h-full bg-surface-dashboard relative overflow-hidden">
-        {/* ── Main content area (full width — sidebar is in StudentLayout) ── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <AnimatePresence mode="wait">
+
             {nav.viewState === 'hub' && (
               <HubScreen
                 key="hub"
@@ -148,6 +208,7 @@ export function FlashcardView() {
                 onBack={nav.goBack}
               />
             )}
+
             {nav.viewState === 'section' && nav.selectedSection && (
               <SectionScreen
                 key="section"
@@ -159,6 +220,7 @@ export function FlashcardView() {
                 onBack={nav.goBack}
               />
             )}
+
             {nav.viewState === 'deck' && nav.selectedTopic && (
               <DeckScreen
                 key="deck"
@@ -169,8 +231,11 @@ export function FlashcardView() {
                 onStart={handleStartDeck}
                 onBack={nav.goBack}
                 onStudyTopic={nav.studySelectedTopic}
+                onStartAdaptive={handleStartAdaptive}
+                keywordProgress={currentKeywordProgress}
               />
             )}
+
             {nav.viewState === 'session' && engine.sessionCards.length > 0 && (
               <SessionScreen
                 key="session"
@@ -182,8 +247,10 @@ export function FlashcardView() {
                 sessionStats={engine.sessionStats}
                 courseColor={nav.currentCourse.color}
                 onBack={nav.goBack}
+                masteryMap={nav.masteryMap}
               />
             )}
+
             {nav.viewState === 'summary' && (
               <SummaryScreen
                 key="summary"
@@ -199,9 +266,10 @@ export function FlashcardView() {
                 masteryDeltas={engine.masteryDeltas.current}
                 onRestart={handleRestart}
                 onExit={nav.goBack}
-                onLoadKeywords={handleLoadKeywords}
+                onStartAdaptive={handleStartAdaptive}
               />
             )}
+
           </AnimatePresence>
         </div>
       </div>
