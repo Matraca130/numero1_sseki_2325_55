@@ -5,7 +5,7 @@
 // next-badge chase, day-grouped history, fun leaderboard.
 // ============================================================
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   Zap,
@@ -48,7 +48,7 @@ const tk = {
   ringEnd: '#0d9488',
 };
 
-// ── Animated Number Counter ────────────────────────────────────────
+// ── Animated Number Counter ─────────────────────────────────────────
 function AnimatedNumber({ value, duration = 1.2, delay = 0 }: { value: number; duration?: number; delay?: number }) {
   const shouldReduce = useReducedMotion();
   const [display, setDisplay] = useState(shouldReduce ? value : 0);
@@ -72,15 +72,16 @@ function AnimatedNumber({ value, duration = 1.2, delay = 0 }: { value: number; d
   return <>{display.toLocaleString()}</>;
 }
 
-// ── SVG Progress Ring ──────────────────────────────────────────
+// ── SVG Progress Ring ────────────────────────────────────────────
 function ProgressRing({ progress, size = 96, stroke = 5, color1 = tk.ringStart, color2 = tk.ringEnd }: {
   progress: number; size?: number; stroke?: number; color1?: string; color2?: string;
 }) {
   const shouldReduce = useReducedMotion();
+  const uid = useId();
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const dashOffset = circ * (1 - Math.min(1, progress));
-  const gradId = `ring-grad-${size}`;
+  const gradId = `ring-grad-${uid}`;
   return (
     <svg width={size} height={size} className="absolute inset-0">
       <defs>
@@ -106,6 +107,7 @@ function ProgressRing({ progress, size = 96, stroke = 5, color1 = tk.ringStart, 
 // ── Daily Goal Ring (uses personal goal, not hardcoded cap) ─
 function DailyGoalRing({ used, goal, className = '' }: { used: number; goal: number; className?: string }) {
   const shouldReduce = useReducedMotion();
+  const uid = useId();
   const effectiveGoal = goal > 0 ? goal : 100; // fallback to 100 if goal not set
   const pct = Math.min(1, used / effectiveGoal);
   const completed = pct >= 1;
@@ -127,7 +129,7 @@ function DailyGoalRing({ used, goal, className = '' }: { used: number; goal: num
         <div className="relative" style={{ width: size, height: size }}>
           <svg width={size} height={size}>
             <defs>
-              <linearGradient id="daily-ring-g" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id={`daily-ring-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor={completed ? '#f59e0b' : tk.ringStart} />
                 <stop offset="100%" stopColor={completed ? '#ef4444' : tk.ringEnd} />
               </linearGradient>
@@ -135,7 +137,7 @@ function DailyGoalRing({ used, goal, className = '' }: { used: number; goal: num
             <circle cx={size / 2} cy={size / 2} r={r} fill="none"
               stroke="#f3f4f6" strokeWidth={stroke} />
             <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none"
-              stroke="url(#daily-ring-g)" strokeWidth={stroke} strokeLinecap="round"
+              stroke={`url(#daily-ring-${uid})`} strokeWidth={stroke} strokeLinecap="round"
               strokeDasharray={circ}
               initial={shouldReduce ? { strokeDashoffset: dashOffset } : { strokeDashoffset: circ }}
               animate={{ strokeDashoffset: dashOffset }}
@@ -258,17 +260,17 @@ function TodayXpBreakdown({ transactions }: { transactions: { action: string; xp
   );
 }
 
-// ── Streak milestone message ───────────────────────────────────
+// ── Streak milestone message ───────────────────────────────────────
 function getStreakMilestone(streak: number): string | null {
-  if (streak >= 100) return 'LEGENDARIO — 100 dias de racha!';
-  if (streak >= 60) return 'Increible — 60 dias sin parar!';
-  if (streak >= 30) return 'Imparable — 1 mes de racha!';
-  if (streak >= 14) return 'Constante — 2 semanas seguidas!';
-  if (streak >= 7) return 'En racha — 1 semana completa!';
+  if (streak >= 100) return 'LEGENDARIO \u2014 100 dias de racha!';
+  if (streak >= 60) return 'Increible \u2014 60 dias sin parar!';
+  if (streak >= 30) return 'Imparable \u2014 1 mes de racha!';
+  if (streak >= 14) return 'Constante \u2014 2 semanas seguidas!';
+  if (streak >= 7) return 'En racha \u2014 1 semana completa!';
   return null;
 }
 
-// ── Greeting based on context ────────────────────────────────────
+// ── Greeting based on context ──────────────────────────────────────
 function getGreeting(
   name: string | undefined,
   xpToday: number,
@@ -279,11 +281,11 @@ function getGreeting(
   const first = name?.split(' ')[0] ?? '';
   const hi = first ? `Hola, ${first}` : 'Hola';
 
-  if (atRisk && !studiedToday) return `${hi} — tu racha de ${streakDays}d esta en riesgo!`;
-  if (xpToday >= 200) return `${hi} — dia increible, llevas +${xpToday} XP`;
-  if (xpToday > 0 && studiedToday) return `${hi} — buen ritmo, +${xpToday} XP hoy`;
-  if (streakDays >= 7) return `${hi} — ${streakDays} dias de racha, sigue asi!`;
-  return `${hi} — listo para estudiar?`;
+  if (atRisk && !studiedToday) return `${hi} \u2014 tu racha de ${streakDays}d esta en riesgo!`;
+  if (xpToday >= 200) return `${hi} \u2014 dia increible, llevas +${xpToday} XP`;
+  if (xpToday > 0 && studiedToday) return `${hi} \u2014 buen ritmo, +${xpToday} XP hoy`;
+  if (streakDays >= 7) return `${hi} \u2014 ${streakDays} dias de racha, sigue asi!`;
+  return `${hi} \u2014 listo para estudiar?`;
 }
 
 function StatCard({
@@ -350,14 +352,14 @@ export default function GamificationView() {
   const checkIn = useDailyCheckIn(institutionId);
   const repair = useStreakRepair(institutionId);
 
-  // ── Auto check-in on mount ────────────────────────────
+  // ── Auto check-in on mount ────────────────────────────────
   const [checkedIn, setCheckedIn] = useState(false);
   useEffect(() => {
     if (!checkedIn && !checkIn.isPending && !streakLoading && institutionId) {
       checkIn.mutate(undefined, {
         onSuccess: (result) => {
           setCheckedIn(true);
-          const evt = result?.events?.[0];
+          const evt = result.events?.[0];
           if (evt && evt.type !== 'already_checked_in') {
             toast.success(evt.message, { duration: 3500 });
           }
@@ -385,7 +387,7 @@ export default function GamificationView() {
   }, [xpHistory]);
 
   const greeting = getGreeting(
-    user?.full_name ?? user?.name ?? user?.email,
+    user?.user_metadata?.full_name ?? user?.email,
     dailyUsed,
     streakDays,
     streak?.streak_at_risk ?? false,
@@ -394,7 +396,7 @@ export default function GamificationView() {
 
   return (
     <div className="min-h-full" style={{ backgroundColor: tk.pageBg }}>
-      {/* ── Hero Banner ──────────────────────────────────────── */}
+      {/* ── Hero Banner ────────────────────────────────────────── */}
       <div
         className="px-4 sm:px-6 pt-6 pb-10"
         style={{
@@ -445,7 +447,7 @@ export default function GamificationView() {
               <p className="text-sm text-white/60 mb-3">
                 {totalXP.toLocaleString()} XP total
                 {levelInfo.next && (
-                  <> — {levelInfo.xpForNext - levelInfo.xpInLevel} XP para Nivel {levelInfo.next.level}</>
+                  <> \u2014 {levelInfo.xpForNext - levelInfo.xpInLevel} XP para Nivel {levelInfo.next.level}</>
                 )}
               </p>
 
@@ -489,7 +491,7 @@ export default function GamificationView() {
         </div>
       </div>
 
-      {/* ── Stats Grid ──────────────────────────────────────── */}
+      {/* ── Stats Grid ────────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <StatCard
@@ -526,7 +528,7 @@ export default function GamificationView() {
           />
         </div>
 
-        {/* ── Main Grid ──────────────────────────────────────── */}
+        {/* ── Main Grid ────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-8">
           {/* Left Column (2/3) */}
           <div className="lg:col-span-2 space-y-4">
@@ -559,7 +561,7 @@ export default function GamificationView() {
             {/* Daily Goal Ring (personal goal, not cap) */}
             <DailyGoalRing used={dailyUsed} goal={dailyGoal} />
 
-            {/* Dynamic "Tu día en XP" (replaces static XP table) */}
+            {/* Dynamic "Tu d\u00eda en XP" (replaces static XP table) */}
             <TodayXpBreakdown transactions={todayTx} />
           </div>
         </div>
