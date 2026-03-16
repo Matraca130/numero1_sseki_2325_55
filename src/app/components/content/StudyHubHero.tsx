@@ -6,6 +6,9 @@
 // ZONE 2: Study paths — Videos | Resumenes cards
 //          (added from Figma Make prototype)
 //
+// Layout: All containers use A4 page width (210mm = 794px)
+// for a familiar document-like reading experience.
+//
 // PR: feat/studyhub-hero-study-paths
 // ============================================================
 import React, { useState } from 'react';
@@ -281,7 +284,7 @@ export function StudyHubHero({
           ZONE 1: DARK TEAL HERO (from REPO — preserved 1:1)
           ════════════════════════════════════════════════════════════ */}
       <HeroSection>
-        <div className="max-w-5xl mx-auto px-6 pt-10 pb-14">
+        <div className="max-w-[210mm] mx-auto px-6 pt-10 pb-14">
           {/* Greeting */}
           <motion.p {...fadeUp(0)} className="text-sm text-zinc-300 mb-1.5">
             {greeting}{userName ? `, ${userName}` : ''}
@@ -444,7 +447,7 @@ export function StudyHubHero({
           ZONE 2: STUDY PATHS (from Figma Make — NEW)
           Topic-aware entry points: Videos | Resumenes
           ════════════════════════════════════════════════════════════ */}
-      <div className="max-w-5xl mx-auto px-6 pt-8 pb-10">
+      <div className="max-w-[210mm] mx-auto px-6 pt-8 pb-10">
 
         {effectiveTopic ? (
           <>

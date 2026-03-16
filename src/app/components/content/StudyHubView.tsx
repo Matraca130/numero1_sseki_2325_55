@@ -5,6 +5,9 @@
 // This file is the orchestrator. All data derivation stays here;
 // sub-components are pure renderers.
 //
+// Layout: All containers use A4 page width (210mm = 794px)
+// for a familiar document-like reading experience.
+//
 // Data sources:
 //   ContentTreeContext → tree (courses > semesters > sections > topics)
 //   StudentDataContext → stats, sessions
@@ -206,7 +209,7 @@ export function StudyHubView() {
       <div className="h-full flex flex-col" style={{ backgroundColor: axon.pageBg }}>
         <section className="relative overflow-hidden">
           <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${axon.darkTeal}, ${axon.darkPanel})` }} />
-          <div className="relative max-w-5xl mx-auto px-6 pt-10 pb-14">
+          <div className="relative max-w-[210mm] mx-auto px-6 pt-10 pb-14">
             <div className="h-8 w-64 bg-white/10 rounded-lg animate-pulse mb-3" />
             <div className="h-4 w-48 bg-white/10 rounded animate-pulse" />
           </div>
@@ -232,7 +235,7 @@ export function StudyHubView() {
       <div className="h-full flex flex-col" style={{ backgroundColor: axon.pageBg }}>
         <section className="relative overflow-hidden">
           <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${axon.darkTeal}, ${axon.darkPanel})` }} />
-          <div className="relative max-w-5xl mx-auto px-6 pt-10 pb-12">
+          <div className="relative max-w-[210mm] mx-auto px-6 pt-10 pb-12">
             <h1 className="text-xl text-white" style={{ fontWeight: 700 }}>Plan de Estudios</h1>
           </div>
         </section>
@@ -257,7 +260,7 @@ export function StudyHubView() {
       <div className="h-full flex flex-col" style={{ backgroundColor: axon.pageBg }}>
         <section className="relative overflow-hidden">
           <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${axon.darkTeal}, ${axon.darkPanel})` }} />
-          <div className="relative max-w-5xl mx-auto px-6 pt-10 pb-12">
+          <div className="relative max-w-[210mm] mx-auto px-6 pt-10 pb-12">
             <h1 className="text-xl text-white" style={{ fontWeight: 700 }}>Plan de Estudios</h1>
           </div>
         </section>
@@ -309,7 +312,7 @@ export function StudyHubView() {
         dailyGoalMinutes={profile?.preferences?.dailyGoalMinutes ?? 120}
       />
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
+      <main className="max-w-[210mm] mx-auto px-6 py-10">
         <StudyHubSectionCards
           semesterGroups={semesterGroups}
           allSections={allSections}
