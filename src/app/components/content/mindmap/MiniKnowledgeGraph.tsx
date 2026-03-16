@@ -149,14 +149,15 @@ export function MiniKnowledgeGraph({
   // Effect 1b: ResizeObserver for container resizing
   useEffect(() => {
     const container = containerRef.current;
-    const graph = graphRef.current;
-    if (!container || !graph || !ready) return;
+    if (!container || !ready) return;
 
     const ro = new ResizeObserver(() => {
+      const g = graphRef.current;
+      if (!g) return;
       try {
         const { width, height: h } = container.getBoundingClientRect();
         if (width > 0 && h > 0) {
-          graph.resize(width, h);
+          g.resize(width, h);
         }
       } catch {
         // graph may be destroyed during unmount
