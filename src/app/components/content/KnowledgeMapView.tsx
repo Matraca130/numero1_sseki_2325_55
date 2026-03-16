@@ -84,6 +84,16 @@ export function KnowledgeMapView() {
     setSearchQuery('');
   }, [setSearchParams]);
 
+  // Clear selection when topicId changes (e.g. from context navigation)
+  const prevTopicIdRef = useRef(topicId);
+  useEffect(() => {
+    if (prevTopicIdRef.current !== topicId) {
+      prevTopicIdRef.current = topicId;
+      setSelectedNode(null);
+      setContextMenu(null);
+    }
+  }, [topicId]);
+
   // Scope: single topic vs all topics in course
   const [scope, setScopeRaw] = useState<GraphScope>('topic');
   const setScope = useCallback((s: GraphScope) => {

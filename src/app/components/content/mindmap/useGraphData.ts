@@ -45,7 +45,9 @@ function setCache(key: string, data: GraphData): void {
 }
 
 function cacheKey(topicId?: string, summaryId?: string): string {
-  return summaryId ? `s:${summaryId}` : `t:${topicId}`;
+  if (summaryId) return `s:${summaryId}`;
+  if (topicId) return `t:${topicId}`;
+  return ''; // empty key — will not be cached
 }
 
 /**

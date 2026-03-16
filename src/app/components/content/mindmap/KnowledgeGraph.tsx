@@ -132,11 +132,6 @@ function computeHiddenNodes(
   return hidden;
 }
 
-/** Count direct outgoing edges from a node. */
-function countDirectChildren(nodeId: string, edges: GraphData['edges']): number {
-  return edges.filter(e => e.source === nodeId).length;
-}
-
 // ── Component ───────────────────────────────────────────────
 
 export function KnowledgeGraph({
@@ -171,6 +166,9 @@ export function KnowledgeGraph({
     return () => clearTimeout(t);
   }, [ready, showMobileHint]);
 
+  // Memoize children map to avoid O(N*E) per draw — only depends on edges
+  const childrenMap = useMemo(() => buildChildrenMap(data.edges), [data.edges]);
+
   // Transform Axon data → G6 format, respecting collapsed and highlight state
   const g6Data = useCallback((collapsed: Set<string>) => {
     const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
@@ -183,7 +181,7 @@ export function KnowledgeGraph({
         const isDimmed = hasHighlight && !isHighlighted;
         const strokeColor = getNodeStroke(node.masteryColor);
         const isCollapsed = collapsed.has(node.id);
-        const childCount = countDirectChildren(node.id, data.edges);
+        const childCount = childrenMap.get(node.id)?.length ?? 0;
         const baseLabel = truncateLabel(node.label);
         const displayLabel = isCollapsed && childCount > 0
           ? baseLabel + ` (+${childCount})`
@@ -259,7 +257,7 @@ export function KnowledgeGraph({
       });
 
     return { nodes, edges };
-  }, [data, highlightNodeIds]);
+  }, [data, highlightNodeIds, childrenMap]);
 
   // Layout config
   const getLayoutConfig = useCallback(() => {
@@ -396,15 +394,17 @@ export function KnowledgeGraph({
             const item = items[0];
             const d = item?.data ?? {};
             const label = escHtml(d.fullLabel || d.label || '');
-            const def = escHtml(d.definition || '');
+            const rawDef = d.definition || '';
+            const def = escHtml(rawDef.length > 120 ? rawDef.slice(0, 117) + '\u2026' : rawDef);
             const mastery = d.mastery ?? -1;
             const pct = mastery >= 0 ? `${Math.round(mastery * 100)}%` : 'Sem dados';
-            const annotation = escHtml(d.annotation || '');
+            const rawAnnotation = d.annotation || '';
+            const annotation = escHtml(rawAnnotation.length > 80 ? rawAnnotation.slice(0, 77) + '\u2026' : rawAnnotation);
             return `<div style="max-width:220px;font-family:Inter,sans-serif">
               <div style="font-weight:600;font-size:12px;color:#111827;margin-bottom:2px;font-family:Georgia,serif">${label}</div>
-              ${def ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px">${def.length > 120 ? def.slice(0, 117) + '&hellip;' : def}</div>` : ''}
+              ${def ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px">${def}</div>` : ''}
               <div style="font-size:10px;color:#9ca3af">Dom&iacute;nio: ${pct}</div>
-              ${annotation ? `<div style="font-size:10px;color:#2a8c7a;font-style:italic;margin-top:2px">&ldquo;${annotation.length > 80 ? annotation.slice(0, 77) + '&hellip;' : annotation}&rdquo;</div>` : ''}
+              ${annotation ? `<div style="font-size:10px;color:#2a8c7a;font-style:italic;margin-top:2px">&ldquo;${annotation}&rdquo;</div>` : ''}
             </div>`;
           },
           itemTypes: ['node'],
@@ -428,8 +428,8 @@ export function KnowledgeGraph({
     justInitializedRef.current = true;
     graph.setData(g6Data(new Set()));
     graph.render().then(() => {
-      // Guard: if component unmounted before render finished, skip
-      if (!mountedRef.current) return;
+      // Guard: if component unmounted or graph replaced before render finished, skip
+      if (!mountedRef.current || graphRef.current !== graph) return;
       setReady(true);
       onReady?.({
         zoomIn: () => { try { graph.zoomBy(1.25, { duration: 200 }); } catch { /* graph may be destroyed */ } },
@@ -450,14 +450,15 @@ export function KnowledgeGraph({
   // ResizeObserver: auto-resize graph when container dimensions change
   useEffect(() => {
     const container = containerRef.current;
-    const graph = graphRef.current;
-    if (!container || !graph || !ready) return;
+    if (!container || !ready) return;
 
     const ro = new ResizeObserver(() => {
+      const g = graphRef.current; // always use latest ref
+      if (!g) return;
       try {
         const { width, height } = container.getBoundingClientRect();
         if (width > 0 && height > 0) {
-          graph.resize(width, height);
+          g.resize(width, height);
         }
       } catch {
         // graph may be destroyed during unmount
@@ -567,6 +568,9 @@ export function KnowledgeGraph({
     const handleNodeDblClick = (evt: any) => {
       const nodeId: string = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
+      // Skip collapse on leaf nodes (no children)
+      const hasChildren = (childrenMap.get(nodeId)?.length ?? 0) > 0;
+      if (!hasChildren) return;
       setCollapsedNodes(prev => {
         const next = new Set(prev);
         if (next.has(nodeId)) {
@@ -621,7 +625,7 @@ export function KnowledgeGraph({
       graph.off('node:pointerleave', handleNodePointerLeave);
       if (longPressTimer) clearTimeout(longPressTimer);
     };
-  }, [ready, onNodeClick, onNodeRightClick, onCollapseChange]);
+  }, [ready, onNodeClick, onNodeRightClick, onCollapseChange, childrenMap]);
 
   // Keyboard shortcuts
   useEffect(() => {
