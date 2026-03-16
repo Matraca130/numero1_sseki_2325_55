@@ -1,14 +1,14 @@
 # Quiz Domain File Ownership
 
 > **Owner:** Agent 1 (Quiz Session)  
-> **Last audited:** 2026-03-15  
+> **Last audited:** 2026-03-16  
 > **Rule:** No other agent should modify these files without coordinating with the quiz owner.
 
 ## Quick Reference
 
-- **Total quiz files:** 48
+- **Total quiz files:** 51
 - **Guideline rules:** See `Guidelines.md` (9 reglas inquebrantables)
-- **Tests:** `src/__tests__/quiz-route-integrity.test.ts` (22 test cases)
+- **Tests:** 62 test cases across 4 test files in `src/__tests__/`
 
 ---
 
@@ -84,7 +84,7 @@
 |---|---|---|
 | `useQuizSession.ts` | `src/app/components/student/` | Core session state machine |
 | `useQuizNavigation.ts` | `src/app/components/student/` | Question navigation logic |
-| `useQuizBkt.ts` | `src/app/components/student/` | BKT v3.1 inline calculation + fire-and-forget |
+| `useQuizBkt.ts` | `src/app/components/student/` | BKT v3.1 inline calculation + fire-and-forget (exports `computeBktMastery`) |
 | `useQuizBackup.ts` | `src/app/components/student/` | LocalStorage session backup/recovery |
 | `useQuizGamificationFeedback.ts` | `src/app/components/student/` | XP/badge/streak feedback |
 | `useAdaptiveQuiz.ts` | `src/app/components/student/` | Adaptive difficulty selection |
@@ -128,9 +128,14 @@
 
 ## 11. Tests
 
-| File | Path | Description |
-|---|---|---|
-| `quiz-route-integrity.test.ts` | `src/__tests__/` | 22 test cases: route integrity guards |
+| File | Path | Tests | Description |
+|---|---|---|---|
+| `quiz-route-integrity.test.ts` | `src/__tests__/` | 22 | Route integrity guards (PR #89) |
+| `quiz-constants.test.ts` | `src/__tests__/` | 18 | question_type enum, difficulty mapping, label completeness (PR #91) |
+| `quiz-bkt-computation.test.ts` | `src/__tests__/` | 12 | BKT v3.1 formula, recovery factor, color thresholds (PR #91) |
+| `quiz-api-contracts.test.ts` | `src/__tests__/` | 10 | API URL construction, payload shape, Rule 2/3/6 guards (PR #91) |
+
+> **Total: 62 test cases** (22 route integrity + 40 logic unit tests)
 
 ---
 
@@ -145,7 +150,7 @@ These files are in the quiz neighborhood but owned by other agents:
 | `student/gamification/StreakPanel.tsx` | Gamification agent | Shared gamification component |
 | `student/gamification/StudyQueueCard.tsx` | Gamification agent | Shared gamification component |
 | `student/gamification/XpHistoryFeed.tsx` | Gamification agent | Shared gamification component |
-| `services/bktApi.ts` | Shared (BKT) | Used by quiz + flashcards |
+| `services/bktApi.ts` | Shared (BKT) | Used by quiz + flashcards (tested by quiz-api-contracts.test.ts for payload shape only) |
 | `services/gamificationApi.ts` | Gamification agent | Used by quiz + flashcards + study |
 | `hooks/useStudentNav.ts` | Layout agent | Shared navigation (quiz has VIEW_TO_SLUG entry) |
 | `routes/professor-routes.ts` | PROTECTED | Shared assembler (quiz owns only the `quizzes` entry) |
