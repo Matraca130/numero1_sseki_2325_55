@@ -7,13 +7,13 @@
 // This file is now a ~210-line orchestrator.
 // ============================================================
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   FileText, RefreshCw, BookOpen, Clock, AlertCircle,
 } from 'lucide-react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { StudentSummaryReader } from './StudentSummaryReader';
-import { TopicSessionGrid } from '@/app/components/student/TopicSessionGrid';
+import { SummaryCard } from './SummaryCard';
 import { getMotivation } from './summary-helpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTopicProgressRawQuery } from '@/app/hooks/queries/useTopicProgressRawQuery';
@@ -27,13 +27,13 @@ import {
   focusRing,
   useFadeUp,
 } from '@/app/components/design-kit';
-import { useNavigation } from '@/app/context/NavigationContext';
+import { useApp } from '@/app/context/AppContext';
 import { useKeywordNavigation } from '@/app/hooks/useKeywordNavigation';
 import { axon, tint } from '@/app/lib/palette';
 
 export function StudentSummariesView() {
   const { selectedTopicId, tree, selectTopic } = useContentTree();
-  const { currentTopic } = useNavigation();
+  const { currentTopic } = useApp();
 
   const effectiveTopicId = selectedTopicId || currentTopic?.id || null;
 
@@ -43,21 +43,6 @@ export function StudentSummariesView() {
       selectTopic(currentTopic.id);
     }
   }, [selectedTopicId, currentTopic?.id, selectTopic]);
-
-  // Auto-select first topic when entering with nothing selected
-  React.useEffect(() => {
-    if (effectiveTopicId || !tree) return;
-    for (const c of tree.courses) {
-      for (const s of c.semesters) {
-        for (const sec of s.sections) {
-          if (sec.topics.length > 0) {
-            selectTopic(sec.topics[0].id);
-            return;
-          }
-        }
-      }
-    }
-  }, [effectiveTopicId, tree, selectTopic]);
 
   // ── React Query: topic progress (summaries + reading states) ──
   const { summaries, readingStates, isLoading, error, refetch } = useTopicProgressRawQuery(effectiveTopicId);
@@ -69,7 +54,6 @@ export function StudentSummariesView() {
     effectiveTopicId,
     selectTopic,
   });
-  const [initialTab, setInitialTab] = React.useState<string | undefined>(undefined);
   const fadeUp = useFadeUp();
 
   // Resolve topic & section name
@@ -95,7 +79,7 @@ export function StudentSummariesView() {
         summary={selectedSummary}
         topicName={topicName}
         readingState={readingStates[selectedSummary.id] || null}
-        onBack={() => { setSelectedSummaryId(null); setInitialTab(undefined); }}
+        onBack={() => setSelectedSummaryId(null)}
         onReadingStateChanged={(rs) => {
           queryClient.setQueryData<TopicProgressResponse>(
             queryKeys.topicProgress(effectiveTopicId!),
@@ -103,7 +87,6 @@ export function StudentSummariesView() {
           );
         }}
         onNavigateKeyword={handleNavigateKeyword}
-        initialTab={initialTab}
       />
     );
   }
@@ -134,7 +117,7 @@ export function StudentSummariesView() {
         >
           <BookOpen className="w-9 h-9" style={{ color: tint.tealBorder }} />
         </motion.div>
-        <p className="mb-1" style={{ fontWeight: 700, color: axon.darkTeal }}>Selecciona un topico</p>
+        <p className="text-zinc-700 mb-1" style={{ fontWeight: 700 }}>Selecciona un topico</p>
         <p className="text-sm text-center max-w-xs" style={{ color: tint.neutralText }}>
           Usa el arbol de contenido a la izquierda para elegir que estudiar
         </p>
@@ -160,6 +143,7 @@ export function StudentSummariesView() {
             <Breadcrumb
               items={[courseName, sectionName, topicName].filter(Boolean)}
               className="mb-4"
+              style={{ color: tint.neutralText }}
             />
 
             <div className="flex items-start justify-between gap-4">
@@ -197,7 +181,7 @@ export function StudentSummariesView() {
                   value={progress}
                   animated
                   dark
-                  color="bg-gradient-to-r from-[#2dd4a8] to-[#0d9488]"
+                  color={`bg-gradient-to-r from-[${axon.progressStart}] to-[${axon.progressEnd}]`}
                 />
                 <div className="flex items-center justify-between mt-2">
                   {motivation && (
@@ -230,7 +214,7 @@ export function StudentSummariesView() {
               <FileText className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="text-sm" style={{ fontWeight: 700, color: axon.darkTeal }}>Resumenes</h3>
+              <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>Resumenes</h3>
               {!isLoading && !error && (
                 <p className="text-xs" style={{ color: tint.subtitleText }}>
                   {summaries.length} disponible{summaries.length !== 1 ? 's' : ''}
@@ -311,17 +295,22 @@ export function StudentSummariesView() {
           </div>
         )}
 
-        {/* Summaries grid — premium split cards (summary / video) */}
+        {/* Summaries list — delegated to SummaryCard */}
         {!isLoading && !error && summaries.length > 0 && (
-          <TopicSessionGrid
-            summaries={summaries}
-            readingStates={readingStates}
-            nextSummaryId={nextSummary?.id ?? null}
-            onSelectSummary={(id, tab) => {
-              setInitialTab(tab);
-              setSelectedSummaryId(id);
-            }}
-          />
+          <div className="space-y-3">
+            <AnimatePresence mode="popLayout">
+              {summaries.map((s, index) => (
+                <SummaryCard
+                  key={s.id}
+                  summary={s}
+                  readingState={readingStates[s.id] || null}
+                  isNextToRead={nextSummary?.id === s.id && !readingStates[s.id]?.completed}
+                  index={index}
+                  onSelect={setSelectedSummaryId}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
         )}
       </div>
     </div>
