@@ -9,6 +9,8 @@
 
 import { apiCall } from '@/app/lib/api';
 
+const request = apiCall;
+
 // ─── Types ──────────────────────────────────────────────
 
 export type MessagingChannel = 'whatsapp' | 'telegram';
@@ -53,7 +55,7 @@ export interface TestConnectionResult {
 export async function getMessagingSettings(
   channel: MessagingChannel,
 ): Promise<MessagingSettingsData> {
-  return apiCall<MessagingSettingsData>(`/settings/messaging/${channel}`);
+  return request<MessagingSettingsData>(`/settings/messaging/${channel}`);
 }
 
 export async function updateMessagingSettings(
@@ -63,7 +65,7 @@ export async function updateMessagingSettings(
     is_enabled?: boolean;
   },
 ): Promise<MessagingSettingsData> {
-  return apiCall<MessagingSettingsData>(`/settings/messaging/${channel}`, {
+  return request<MessagingSettingsData>(`/settings/messaging/${channel}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
@@ -72,7 +74,7 @@ export async function updateMessagingSettings(
 export async function testMessagingConnection(
   channel: MessagingChannel,
 ): Promise<TestConnectionResult> {
-  return apiCall<TestConnectionResult>(`/settings/messaging/${channel}/test`, {
+  return request<TestConnectionResult>(`/settings/messaging/${channel}/test`, {
     method: 'POST',
   });
 }
