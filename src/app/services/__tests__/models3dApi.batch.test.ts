@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mock apiCall BEFORE importing the module under test ──
 
-const mockApiCall = vi.fn();
+const mockApiCall = vi.hoisted(() => vi.fn());
 
 vi.mock('@/app/lib/api', () => ({
   apiCall: mockApiCall,

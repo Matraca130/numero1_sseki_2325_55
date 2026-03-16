@@ -67,7 +67,8 @@ describe('computeBktMastery — core formula', () => {
   });
 
   it('correct answer always produces higher mastery than wrong answer', () => {
-    for (const start of [0, 0.2, 0.5, 0.7, 0.9]) {
+    // start=0 is excluded: both correct and wrong yield P_TRANSIT (0.1)
+    for (const start of [0.2, 0.5, 0.7, 0.9]) {
       const correct = computeBktMastery(start, true);
       const wrong = computeBktMastery(start, false);
       expect(correct).toBeGreaterThan(wrong);
