@@ -100,10 +100,11 @@ function computeHiddenNodes(
   nodes: GraphData['nodes'],
   edges: GraphData['edges'],
   collapsedNodes: Set<string>,
+  prebuiltChildrenMap?: Map<string, string[]>,
 ): Set<string> {
   if (collapsedNodes.size === 0) return new Set();
 
-  const childrenMap = buildChildrenMap(edges);
+  const cm = prebuiltChildrenMap || buildChildrenMap(edges);
 
   // Root nodes: no incoming edges
   const hasIncoming = new Set<string>();
@@ -120,7 +121,7 @@ function computeHiddenNodes(
     visible.add(id);
     // Do not traverse beyond collapsed nodes
     if (collapsedNodes.has(id)) continue;
-    for (const child of (childrenMap.get(id) || [])) {
+    for (const child of (cm.get(id) || [])) {
       if (!visible.has(child)) queue.push(child);
     }
   }
@@ -172,7 +173,7 @@ export function KnowledgeGraph({
   // Transform Axon data → G6 format, respecting collapsed and highlight state
   const g6Data = useCallback((collapsed: Set<string>) => {
     const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
-    const hidden = computeHiddenNodes(data.nodes, data.edges, collapsed);
+    const hidden = computeHiddenNodes(data.nodes, data.edges, collapsed, childrenMap);
 
     const nodes = data.nodes
       .filter(node => !hidden.has(node.id))
