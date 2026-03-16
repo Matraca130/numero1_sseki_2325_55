@@ -29,7 +29,7 @@ import { MasteryRing } from './MasteryRing';
 import { focusRing } from './constants';
 import { getMasteryColorFromPct } from './mastery-colors';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────
 
 export interface FlashcardDeck {
   id: string;
@@ -78,7 +78,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
   return (
     <div className="flex-1 min-w-0">
       {/* ── Section header + filters ── */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
             <Layers className="w-4 h-4 text-white" />
@@ -93,8 +93,8 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
           </div>
         </div>
 
-        {/* Filter pills */}
-        <div className="flex items-center gap-1.5">
+        {/* Filter pills — scrollable on mobile */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
           {(
             [
               { key: 'due', label: 'Pendientes' },
@@ -105,9 +105,9 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
             <button
               key={f.key}
               onClick={() => setDeckFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${focusRing} ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shrink-0 ${focusRing} ${
                 deckFilter === f.key
-                  ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                  ? 'bg-[#c2e8df] text-[#1B3B36] border border-[#2a8c7a]/20'
                   : 'text-zinc-500 hover:bg-zinc-100 border border-transparent'
               }`}
               style={{ fontWeight: 600 }}
@@ -127,7 +127,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
       </div>
 
       {/* ── Deck cards ── */}
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         <AnimatePresence mode="popLayout">
           {filteredDecks.map((deck, idx) => {
             const deckMastery = getMasteryColorFromPct(deck.accuracy / 100);
@@ -136,9 +136,9 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
               key={deck.id}
               layout
               onClick={() => onDeckClick(deck.id)}
-              className={`w-full text-left bg-white border rounded-2xl p-5 transition-all cursor-pointer relative overflow-hidden group ${focusRing} ${
+              className={`w-full text-left bg-white border rounded-2xl p-3.5 sm:p-5 transition-all cursor-pointer relative overflow-hidden group ${focusRing} ${
                 deck.dueToday > 0
-                  ? 'border-zinc-200 hover:border-teal-300'
+                  ? 'border-zinc-200 hover:border-[#2a8c7a]/30'
                   : 'border-zinc-100 hover:border-zinc-200'
               }`}
               style={{ boxShadow: `0 2px 8px ${deckMastery.hex}12` }}
@@ -154,12 +154,13 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
                 style={{ backgroundColor: deckMastery.hex }}
               />
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 {/* Mastery ring */}
                 <div className="relative shrink-0">
                   <MasteryRing
                     value={deck.totalCards > 0 ? deck.masteredCards / deck.totalCards : 0}
                     color={deckMastery.hex}
+                    size={36}
                   />
                 </div>
 
@@ -252,7 +253,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
 
                   {deck.lastReviewed && (
                     <p
-                      className="text-[10px] text-zinc-300 mt-2"
+                      className="text-[10px] text-zinc-300 mt-2 hidden sm:block"
                       style={{ fontWeight: 400 }}
                     >
                       {'\u00DAltimo'} repaso: {deck.lastReviewed}
@@ -260,8 +261,8 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
                   )}
                 </div>
 
-                {/* Hover arrow */}
-                <motion.div className="absolute bottom-4 right-4 w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Hover arrow — desktop only */}
+                <motion.div className="absolute bottom-4 right-4 w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
                   <ArrowRight className="w-4 h-4 text-zinc-600" />
                 </motion.div>
               </div>
