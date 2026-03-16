@@ -106,7 +106,7 @@ jobs:
           key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: node-modules-${{ runner.os }}-
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit
       - name: Run frontend tests
         run: npm test
   gate:
