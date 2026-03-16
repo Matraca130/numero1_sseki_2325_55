@@ -5,25 +5,27 @@
 // STANDALONE: depends on react, motion/react, clsx, lucide-react,
 //   AxonLogo, flashcard-types (RATINGS), mastery-colors.
 //
-// PHASE 3: Progress bar segments use getMasteryColor(rating).hex
-//   for completed cards. Current card indicator remains brand teal.
-//
-// PERF v4.4.3:
-//   [M5] Progress bar uses a single <div> with CSS linear-gradient
-//        instead of N individual <div> elements. Reduces DOM nodes
-//        from N to 1 and eliminates per-card re-render overhead.
+// v4.5.1 UX AUDIT:
+//   - All text translated to Spanish (was Portuguese)
+//   - Keyboard shortcuts: Space/Enter = reveal, 1-5 = rate
+//   - Keyboard hint bar at bottom
+//   - Better visual hierarchy between question/answer
+//   - Softer bg (was pure black #0a0a0f → dark slate)
+//   - Progress counter improved with remaining count
+//   - Rating buttons with keyboard shortcut indicators
 // ============================================================
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
-import { CheckCircle, Brain, X, Eye, HelpCircle } from 'lucide-react';
+import { CheckCircle, Brain, X, Eye, AlertTriangle, Stethoscope, Keyboard } from 'lucide-react';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { RATINGS } from '@/app/hooks/flashcard-types';
 import { getMasteryColor } from './mastery-colors';
+import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 
-export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, handleRate, sessionStats, courseColor, onBack }: {
+export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, handleRate, sessionStats, courseColor, onBack, masteryMap }: {
   cards: Flashcard[];
   currentIndex: number;
   isRevealed: boolean;
@@ -33,21 +35,44 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
   /** @deprecated Colors now derived from mastery via getMasteryColor. Kept for caller compat. */
   courseColor: string;
   onBack: () => void;
+  /** v4.2: Optional study-queue mastery map for leech/priority badges */
+  masteryMap?: Map<string, StudyQueueItem>;
 }) {
   const currentCard = cards[currentIndex];
   
-  // Guard: if cards are empty or index is out of bounds (e.g. after HMR reload),
-  // navigate back via useEffect to avoid side effects during render.
+  // Guard: if cards are empty or index is out of bounds
   useEffect(() => {
     if (!currentCard) {
       onBack();
     }
   }, [currentCard, onBack]);
 
-  // PERF v4.4.3: [M5] Progress bar uses a single <div> with CSS linear-gradient
-  // instead of N individual <div> elements. Reduces DOM nodes
-  // from N to 1 and eliminates per-card re-render overhead.
-  // NOTE: Must be before early return to satisfy React hooks rules.
+  // ── Keyboard shortcuts ──
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ignore when typing in inputs
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+    if (!isRevealed) {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsRevealed(true);
+      }
+    } else {
+      // 1-5 to rate
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= 5) {
+        e.preventDefault();
+        handleRate(num);
+      }
+    }
+  }, [isRevealed, setIsRevealed, handleRate]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Progress bar gradient
   const progressBarGradient = useMemo(() => {
     const total = cards.length;
     if (total === 0) return 'transparent';
@@ -60,26 +85,23 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
       if (i < currentIndex) {
         color = getMasteryColor(sessionStats[i]).hex;
       } else if (i === currentIndex) {
-        color = '#0d9488';
+        color = '#2a8c7a';
       } else {
         color = 'transparent';
       }
-      // Sharp stops: same color at start% and end% = discrete segment
       stops.push(`${color} ${startPct}%`);
       stops.push(`${color} ${endPct}%`);
     }
     return `linear-gradient(to right, ${stops.join(', ')})`;
   }, [cards.length, currentIndex, sessionStats]);
 
-  // While waiting for the effect to fire, render nothing
   if (!currentCard) {
     return null;
   }
 
-  const progress = ((currentIndex) / cards.length) * 100;
+  const remaining = cards.length - currentIndex - 1;
   const hasImage = !!(currentCard.image || currentCard.frontImageUrl || currentCard.backImageUrl);
 
-  // Pick the right image depending on revealed state
   const currentImageUrl = isRevealed
     ? (currentCard.backImageUrl || currentCard.frontImageUrl || currentCard.image)
     : (currentCard.frontImageUrl || currentCard.image);
@@ -89,30 +111,62 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
-      className="flex flex-col h-full relative z-10 bg-[#0a0a0f] overflow-hidden"
+      className="flex flex-col h-full relative z-10 bg-[#111118] overflow-hidden"
     >
-      {/* ── Main Card Area (fills entire screen) ── */}
+      {/* ── Main Card Area ── */}
       <div className="flex-1 flex items-center justify-center p-0 relative z-10 min-h-0">
         <div className="relative w-full h-full bg-white shadow-2xl shadow-black/40 overflow-hidden flex flex-col">
 
-          {/* ═══ Top Progress Bar (full width) ═══ */}
+          {/* ═══ Top Progress Bar ═══ */}
           <div className="shrink-0 flex items-center gap-0 h-[6px] bg-gray-100">
             <div
               className="flex-1 h-full transition-all duration-500"
-              style={{
-                backgroundImage: progressBarGradient,
-              }}
+              style={{ backgroundImage: progressBarGradient }}
             />
           </div>
 
-          {/* ═══ Header Bar (close + logo) ═══ */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-white">
+          {/* ═══ Header Bar ═══ */}
+          <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
             <button
               onClick={onBack}
-              className="p-2 text-gray-400 hover:text-gray-700 transition-colors rounded-full hover:bg-gray-100"
+              className="flex items-center gap-2 p-2 text-gray-400 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-50"
+              title="Salir de la sesión (Esc)"
             >
-              <X size={20} />
+              <X size={18} />
+              <span className="text-xs hidden sm:inline" style={{ fontWeight: 500 }}>Salir</span>
             </button>
+
+            {/* Center: Progress counter */}
+            <div className="flex items-center gap-3">
+              {/* Leech + Priority badges */}
+              {masteryMap?.get(currentCard.id)?.is_leech && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100" style={{ fontWeight: 600 }}>
+                  <AlertTriangle size={10} />
+                  Leech
+                </span>
+              )}
+              {(masteryMap?.get(currentCard.id)?.clinical_priority ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100" style={{ fontWeight: 600 }}>
+                  <Stethoscope size={10} />
+                  P{Math.round((masteryMap?.get(currentCard.id)?.clinical_priority ?? 0) * 100)}
+                </span>
+              )}
+
+              <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-1.5">
+                <span className="text-sm tabular-nums" style={{ fontWeight: 700, color: '#1B3B36' }}>
+                  {currentIndex + 1}
+                </span>
+                <span className="text-xs text-gray-400" style={{ fontWeight: 500 }}>
+                  / {cards.length}
+                </span>
+                {remaining > 0 && (
+                  <span className="text-[10px] text-gray-400 ml-1" style={{ fontWeight: 400 }}>
+                    ({remaining} restantes)
+                  </span>
+                )}
+              </div>
+            </div>
+
             <AxonLogo size="xs" />
           </div>
 
@@ -143,7 +197,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
               hasImage && "border-l border-gray-100"
             )}>
 
-              {/* ── Mobile-only image (above question) ── */}
+              {/* ── Mobile-only image ── */}
               {hasImage && (
                 <div className="md:hidden shrink-0 w-full h-48 bg-gray-900 relative overflow-hidden">
                   <img
@@ -160,28 +214,29 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                 className={clsx(
                   "p-6 md:p-8 lg:p-10 flex flex-col transition-colors duration-300 w-full",
                   isRevealed
-                    ? "bg-gray-50 border-b border-gray-200 shrink-0"
+                    ? "bg-gray-50/80 border-b border-gray-200/60 shrink-0"
                     : "flex-1 items-center justify-center text-center bg-white"
                 )}
               >
-                {/* Pergunta label */}
+                {/* Label */}
                 <div className={clsx(
-                  "flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-[0.15em] mb-4",
+                  "flex items-center gap-2 text-[#2a8c7a] text-xs uppercase tracking-[0.15em] mb-4",
                   !isRevealed && "justify-center"
-                )}>
+                )} style={{ fontWeight: 600 }}>
                   <Brain size={13} />
-                  <span>Pergunta:</span>
+                  <span>Pregunta</span>
                 </div>
 
                 {/* Question text */}
                 <motion.h3
                   layout="position"
                   className={clsx(
-                    "font-semibold leading-tight transition-all duration-300",
+                    "leading-tight transition-all duration-300",
                     isRevealed
                       ? "text-base text-left text-gray-500"
                       : "text-xl md:text-2xl lg:text-3xl text-gray-900"
                   )}
+                  style={{ fontWeight: isRevealed ? 500 : 700 }}
                 >
                   {currentCard.question}
                 </motion.h3>
@@ -196,10 +251,10 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                     exit={{ opacity: 0, y: 20 }}
                     className="flex-1 p-6 md:p-8 lg:p-10 bg-white flex flex-col justify-center overflow-y-auto min-h-0"
                   >
-                    <div className="flex items-center gap-2 text-emerald-500 text-xs font-semibold uppercase tracking-[0.15em] mb-3">
-                      <CheckCircle size={14} /> Resposta
+                    <div className="flex items-center gap-2 text-emerald-500 text-xs uppercase tracking-[0.15em] mb-3" style={{ fontWeight: 600 }}>
+                      <CheckCircle size={14} /> Respuesta
                     </div>
-                    <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 leading-relaxed text-balance">
+                    <h3 className="text-lg md:text-xl lg:text-2xl text-gray-900 leading-relaxed text-balance" style={{ fontWeight: 700 }}>
                       {currentCard.answer}
                     </h3>
                   </motion.div>
@@ -208,16 +263,23 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
 
               {/* ── Reveal Button (only when NOT revealed) ── */}
               {!isRevealed && (
-                <div className="mt-auto flex flex-col items-center pb-8 md:pb-10">
-                  <div
+                <div className="mt-auto flex flex-col items-center pb-8 md:pb-10 gap-3">
+                  <motion.div
                     role="button"
                     tabIndex={0}
                     onClick={() => setIsRevealed(true)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsRevealed(true); }}
-                    className="bg-gray-900 text-white px-7 py-3 rounded-full font-semibold shadow-lg shadow-gray-900/20 hover:-translate-y-1 hover:shadow-xl transition-all flex items-center gap-2.5 text-sm cursor-pointer outline-none"
+                    className="bg-[#1B3B36] text-white px-8 py-3.5 rounded-full shadow-lg shadow-[#1B3B36]/20 hover:-translate-y-1 hover:shadow-xl hover:bg-[#244e47] transition-all flex items-center gap-2.5 text-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2a8c7a] focus-visible:ring-offset-2"
+                    style={{ fontWeight: 600 }}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
                   >
-                    <Eye size={16} /> Mostrar Resposta
-                  </div>
+                    <Eye size={16} /> Mostrar Respuesta
+                  </motion.div>
+                  <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-gray-300">
+                    <Keyboard size={10} />
+                    Espacio o Enter para revelar
+                  </span>
                 </div>
               )}
 
@@ -230,39 +292,44 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                     exit={{ opacity: 0, y: 20 }}
                     className="shrink-0 bg-gray-50 border-t border-gray-200 px-4 py-4"
                   >
-                    <div className="w-full max-w-xl mx-auto grid grid-cols-5 gap-2">
+                    {/* Rating label */}
+                    <p className="text-center text-[11px] text-gray-400 mb-2 sm:mb-3" style={{ fontWeight: 500 }}>
+                      ¿Qué tan bien lo sabías?
+                    </p>
+                    <div className="w-full max-w-xl mx-auto grid grid-cols-5 gap-1.5 sm:gap-2">
                       {RATINGS.map((rate) => (
                         <button
                           key={rate.value}
                           onClick={() => handleRate(rate.value)}
-                          className="group flex flex-col items-center gap-1.5 transition-transform active:scale-95 outline-none"
+                          className="group flex flex-col items-center gap-1.5 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2a8c7a] rounded-xl"
                         >
                           <div className={clsx(
-                            "w-full h-12 rounded-xl flex flex-col items-center justify-center text-white shadow-md transition-all group-hover:-translate-y-1 group-hover:shadow-lg",
+                            "w-full h-10 sm:h-12 rounded-xl flex flex-col items-center justify-center text-white shadow-md transition-all group-hover:-translate-y-1 group-hover:shadow-lg relative",
                             rate.color, rate.hover
                           )}>
-                            <span className="text-base font-bold">{rate.value}</span>
+                            <span className="text-base" style={{ fontWeight: 700 }}>{rate.value}</span>
+                            {/* Keyboard shortcut indicator */}
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white shadow border border-gray-200 text-[8px] text-gray-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontWeight: 700 }}>
+                              {rate.value}
+                            </span>
                           </div>
                           <div className="text-center">
-                            <span className={clsx("block text-[10px] font-bold uppercase tracking-wide", rate.text)}>{rate.label}</span>
-                            <span className="block text-[9px] text-gray-400 font-medium hidden md:block">{rate.desc}</span>
+                            <span className={clsx("block text-[10px] uppercase tracking-wide", rate.text)} style={{ fontWeight: 700 }}>{rate.label}</span>
+                            <span className="block text-[9px] text-gray-400 hidden sm:block" style={{ fontWeight: 500 }}>{rate.desc}</span>
                           </div>
                         </button>
                       ))}
                     </div>
+                    {/* Keyboard hint — desktop only */}
+                    <p className="hidden sm:flex text-center text-[10px] text-gray-300 mt-3 items-center justify-center gap-1.5">
+                      <Keyboard size={10} />
+                      Presiona 1-5 en tu teclado para calificar
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </div>
-
-          {/* ═══ Card Counter (bottom-right corner) ═══ */}
-          <div className="absolute bottom-3 right-4 z-20">
-            <span className="text-xs font-semibold text-gray-300 tabular-nums">
-              {currentIndex + 1}/{cards.length}
-            </span>
-          </div>
-
         </div>
       </div>
     </motion.div>
