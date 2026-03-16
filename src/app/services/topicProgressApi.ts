@@ -235,7 +235,7 @@ export interface CourseProgressResponse {
 export async function getCourseProgress(
   courseId: string,
   allTopicIds: string[],
-  sections: { sectionId: string; section: any; topicIds: string[] }[],
+  sections: { sectionId: string; topicIds: string[] }[],
 ): Promise<CourseProgressResponse> {
   if (allTopicIds.length === 0) {
     return { summaries_by_topic: {}, keyword_counts_by_topic: {} };
@@ -251,7 +251,7 @@ export async function getCourseProgress(
 }
 
 async function fetchCourseProgressFallback(
-  sections: { sectionId: string; section: any; topicIds: string[] }[],
+  sections: { sectionId: string; topicIds: string[] }[],
 ): Promise<CourseProgressResponse> {
   const summariesByTopic: Record<string, Summary[]> = {};
   const keywordCountsByTopic: Record<string, number> = {};

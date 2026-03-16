@@ -235,7 +235,7 @@ export function useStudyHubProgress(
     // ── Derive per-section progress ────────────────────────
     for (const sem of semesters) {
       for (const sec of sem.sections ?? []) {
-        const topicIds = new Set(sec.topics.map(t => t.id));
+        const topicIds = new Set((sec.topics ?? []).map(t => t.id));
         const sectionTouched: string[] = [];
         let latestReadAt: string | null = null;
 
