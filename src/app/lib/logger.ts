@@ -13,12 +13,6 @@
 //   │ debug()  │ console.debug         │ silent               │
 //   └──────────┴───────────────────────┴──────────────────────┘
 //
-// Transport: pluggable sink for Sentry, LogFlare, etc.
-//   import { setLogTransport } from '@/app/lib/logger';
-//   setLogTransport((level, tag, args) => {
-//     if (level === 'error') Sentry.captureException(args[0]);
-//   });
-//
 // Usage (two styles, both valid):
 //
 //   // Style A — direct methods:
@@ -35,7 +29,7 @@
 //   if (errStatus(err) === 404) { ... }
 // ============================================================
 
-const IS_DEV = import.meta.env?.DEV ?? false;
+const IS_DEV = typeof import.meta !== 'undefined' && import.meta.env?.DEV || false;
 
 // ── Pluggable transport ───────────────────────────────────
 
@@ -49,32 +43,9 @@ export type LogTransport = (
 
 let _transport: LogTransport | null = null;
 
-/**
- * Set (or clear) the remote log transport.
- * Call once at app startup, e.g. in main.tsx.
- */
 export function setLogTransport(transport: LogTransport | null): void {
   _transport = transport;
 }
-
-// ── Core log methods ──────────────────────────────────────
-
-const _logMethods = {
-  error(tag: string, ...args: unknown[]): void {
-    console.error(`[${tag}]`, ...args);
-    _transport?.('error', tag, args);
-  },
-  warn(tag: string, ...args: unknown[]): void {
-    if (IS_DEV) console.warn(`[${tag}]`, ...args);
-    _transport?.('warn', tag, args);
-  },
-  info(tag: string, ...args: unknown[]): void {
-    if (IS_DEV) console.info(`[${tag}]`, ...args);
-  },
-  debug(tag: string, ...args: unknown[]): void {
-    if (IS_DEV) console.debug(`[${tag}]`, ...args);
-  },
-};
 
 // ── Scoped logger type ────────────────────────────────────
 
@@ -85,6 +56,28 @@ export interface ScopedLogger {
   debug(...args: unknown[]): void;
 }
 
+// ── Core log implementations ─────────────────────────────
+
+function _error(tag: string, ...args: unknown[]): void {
+  console.error(`[${tag}]`, ...args);
+  _transport?.('error', tag, args);
+}
+
+function _warn(tag: string, ...args: unknown[]): void {
+  if (IS_DEV) console.warn(`[${tag}]`, ...args);
+  _transport?.('warn', tag, args);
+}
+
+function _info(tag: string, ...args: unknown[]): void {
+  if (IS_DEV) console.info(`[${tag}]`, ...args);
+}
+
+function _debug(tag: string, ...args: unknown[]): void {
+  if (IS_DEV) console.debug(`[${tag}]`, ...args);
+}
+
+// ── createLogger factory ─────────────────────────────────
+
 /**
  * Create a scoped logger with a pre-bound tag.
  * @example
@@ -93,34 +86,46 @@ export interface ScopedLogger {
  */
 export function createLogger(tag: string): ScopedLogger {
   return {
-    error: (...args: unknown[]) => _logMethods.error(tag, ...args),
-    warn: (...args: unknown[]) => _logMethods.warn(tag, ...args),
-    info: (...args: unknown[]) => _logMethods.info(tag, ...args),
-    debug: (...args: unknown[]) => _logMethods.debug(tag, ...args),
+    error: (...args: unknown[]) => _error(tag, ...args),
+    warn: (...args: unknown[]) => _warn(tag, ...args),
+    info: (...args: unknown[]) => _info(tag, ...args),
+    debug: (...args: unknown[]) => _debug(tag, ...args),
   };
 }
 
-// ── Dual-mode logger (object + callable factory) ──────────
+// ── Dual-mode logger ─────────────────────────────────────
 // Supports both:
 //   logger.error('Tag', ...)   — direct method call
 //   logger('Tag')              — factory, returns scoped logger
+//
+// Implementation: a real function with methods assigned as properties.
+// This is the classic JS pattern (works everywhere, no Proxy needed).
 
-type LoggerDual = typeof _logMethods & ((tag: string) => ScopedLogger);
+interface LoggerFunction {
+  (tag: string): ScopedLogger;
+  error(tag: string, ...args: unknown[]): void;
+  warn(tag: string, ...args: unknown[]): void;
+  info(tag: string, ...args: unknown[]): void;
+  debug(tag: string, ...args: unknown[]): void;
+}
 
-export const logger: LoggerDual = new Proxy(_logMethods as LoggerDual, {
-  apply(_target, _thisArg, argArray: [string]) {
-    return createLogger(argArray[0]);
-  },
-}) as LoggerDual;
+function _loggerFactory(tag: string): ScopedLogger {
+  return createLogger(tag);
+}
+
+// Assign direct methods to the function object
+_loggerFactory.error = _error;
+_loggerFactory.warn = _warn;
+_loggerFactory.info = _info;
+_loggerFactory.debug = _debug;
+
+export const logger: LoggerFunction = _loggerFactory as LoggerFunction;
 
 // ── errStatus helper ──────────────────────────────────────
 
 /**
  * Extract HTTP status code from an Error message.
  * Returns 0 if no status code found.
- *
- * Works with apiCall errors which include status in the message:
- *   "API Error 404", "Proxy returned 404 while routing", etc.
  *
  * @example
  *   if (errStatus(err) === 404) { ... }
