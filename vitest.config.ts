@@ -3,6 +3,9 @@
 //
 // Uses the same Vite config (aliases, plugins) so tests can
 // import @/app/* paths identically to production code.
+//
+// Environment: jsdom for React component tests.
+// Setup: src/test/setup.ts loads @testing-library/jest-dom.
 // ============================================================
 import { defineConfig } from 'vitest/config';
 import path from 'path';
@@ -14,11 +17,10 @@ export default defineConfig({
     },
   },
   test: {
-    // Run in Node (no DOM needed for route integrity tests)
-    environment: 'node',
-    // Only pick up files matching this pattern
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['src/test/setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    // Exclude heavy dirs
     exclude: ['node_modules', 'dist', '.git'],
   },
 });

@@ -52,3 +52,18 @@ export const tint = {
   neutralText:   '#9ca3af',
   subtitleText:  '#6b7280',
 } as const;
+
+/**
+ * Layout constants — page dimensions.
+ * A4 paper: 210mm × 297mm (794px × 1123px at 96 DPI).
+ * Used as max-width for StudyHub containers to give
+ * a familiar document-like reading experience.
+ */
+export const layout = {
+  /** A4 width as CSS value — use in Tailwind: max-w-[210mm] */
+  a4Width: '210mm',
+  /** A4 width in pixels (at 96 DPI) */
+  a4WidthPx: 794,
+  /** A4 height as CSS value */
+  a4Height: '297mm',
+} as const;

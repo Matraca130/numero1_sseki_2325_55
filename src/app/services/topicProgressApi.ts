@@ -213,3 +213,58 @@ async function fetchTopicsOverviewFallback(topicIds: string[]): Promise<TopicsOv
 
   return { summaries_by_topic: summariesByTopic, keyword_counts_by_topic: keywordCountsByTopic };
 }
+
+// ── Course Progress (Course-level batch) ──────────────────────
+
+export interface CourseProgressResponse {
+  summaries_by_topic: Record<string, Summary[]>;
+  keyword_counts_by_topic: Record<string, number>;
+  bkt_mastery_by_topic?: Record<string, {
+    avg_p_know: number;
+    total_subtopics: number;
+  }>;
+}
+
+/**
+ * Fetch course-level progress: summaries, keyword counts, and optional BKT mastery
+ * for all topics across all sections.
+ *
+ * Tries GET /course-progress?course_id=xxx first (1 call).
+ * Falls back to N getTopicsOverview() calls (one per section) if 404.
+ */
+export async function getCourseProgress(
+  courseId: string,
+  allTopicIds: string[],
+  sections: { sectionId: string; topicIds: string[] }[],
+): Promise<CourseProgressResponse> {
+  if (allTopicIds.length === 0) {
+    return { summaries_by_topic: {}, keyword_counts_by_topic: {} };
+  }
+
+  return withFallback(
+    () => apiCall<CourseProgressResponse>(
+      `/course-progress?course_id=${courseId}`
+    ),
+    () => fetchCourseProgressFallback(sections),
+    'course-progress',
+  );
+}
+
+async function fetchCourseProgressFallback(
+  sections: { sectionId: string; topicIds: string[] }[],
+): Promise<CourseProgressResponse> {
+  const summariesByTopic: Record<string, Summary[]> = {};
+  const keywordCountsByTopic: Record<string, number> = {};
+
+  const results = await Promise.allSettled(
+    sections.map(sec => getTopicsOverview(sec.topicIds))
+  );
+
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    Object.assign(summariesByTopic, r.value.summaries_by_topic);
+    Object.assign(keywordCountsByTopic, r.value.keyword_counts_by_topic);
+  }
+
+  return { summaries_by_topic: summariesByTopic, keyword_counts_by_topic: keywordCountsByTopic };
+}

@@ -1,0 +1,54 @@
+# ============================================================
+# Axon — Frontend Test CI
+#
+# Runs Vitest on every push / PR that touches frontend code.
+# Uses npm (not pnpm) — consistent with project tooling.
+# ============================================================
+name: Frontend Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vitest.config.*'
+      - 'tsconfig*.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vitest.config.*'
+      - 'tsconfig*.json'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Vitest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm install --no-audit
+
+      - name: Run tests
+        run: npm test

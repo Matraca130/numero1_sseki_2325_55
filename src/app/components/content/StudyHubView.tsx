@@ -2,38 +2,45 @@
 // Axon — StudyHubView (Student: browse content tree)
 //
 // MODULARIZED: Hero, Sections, WeeklyChart extracted.
-// This file is now the orchestrator (~210 lines vs ~460 original).
-// All data derivation stays here; sub-components are pure renderers.
-// Zero functional changes.
+// This file is the orchestrator. All data derivation stays here;
+// sub-components are pure renderers.
+//
+// Layout: All containers use A4 page width (210mm = 794px)
+// for a familiar document-like reading experience.
+//
+// Data sources:
+//   ContentTreeContext → tree (courses > semesters > sections > topics)
+//   StudentDataContext → stats, sessions
+//   useStudyHubProgress → topicStatusMap, sectionProgressMap (real data)
+//   AppContext         → currentTopic, setCurrentTopic (legacy bridge)
+//   useLastStudiedTopic → fallback topic when no currentTopic
+//
+// Palette: Axon Medical Academy
 // ============================================================
 import React, { useMemo } from 'react';
 import { useApp } from '@/app/context/AppContext';
-import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useNavigate } from 'react-router';
-import { BookOpen, Loader2, AlertCircle } from 'lucide-react';
+import { BookOpen, AlertCircle } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { TreeSection } from '@/app/services/contentTreeApi';
-import { HeroSection } from '@/app/components/design-kit';
 import { useLastStudiedTopic } from '@/app/hooks/useLastStudiedTopic';
+import { useStudyHubProgress } from '@/app/hooks/queries/useStudyHubProgress';
 
 // ── Extracted sub-components ─────────────────────────────────
 import { StudyHubHero } from './StudyHubHero';
-import { StudyHubSections } from './StudyHubSections';
+import { StudyHubSectionCards } from './StudyHubSectionCards';
 import { WeeklyActivityChart } from './WeeklyActivityChart';
-import { formatRelativeTime, computeSectionProgress } from './studyhub-helpers';
+import { formatRelativeTime } from './studyhub-helpers';
+import { axon, tint } from '@/app/lib/palette';
 
-// ── Gamification widgets ───────────────────────────────────
-import { GamificationCard } from '../gamification/GamificationCard';
-import { DailyGoalWidget } from '../gamification/DailyGoalWidget';
-
-// ── Main export ────────────────────────────────────────────
+// ── Main export ──────────────────────────────────────────────
 
 export function StudyHubView() {
   const { currentTopic, setCurrentTopic } = useApp();
-  const { navigateTo } = useStudentNav();
   const { tree, loading, error, selectTopic } = useContentTree();
-  const { stats, isConnected, profile, sessions, courseProgress } = useStudentDataContext();
+  const { stats, profile, sessions } = useStudentDataContext();
   const navigate = useNavigate();
 
   const course = tree?.courses?.[0] ?? null;
@@ -50,31 +57,27 @@ export function StudyHubView() {
 
   const isAutoSelected = !currentTopic && !!effectiveTopic;
 
-  // ── Real progress: topic IDs that have courseProgress data ──
-  const courseProgressTopicIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const cp of courseProgress) {
-      for (const tp of cp.topicProgress ?? []) {
-        if (tp.masteryPercent > 0 || tp.reviewCount > 0) {
-          ids.add(tp.topicId);
-        }
-      }
-    }
-    return ids;
-  }, [courseProgress]);
+  // ── Real progress from reading states + topics overview ────
+  const {
+    topicStatusMap,
+    sectionProgressMap,
+    getTopicMastery,
+  } = useStudyHubProgress(tree);
 
-  // ── Section progress map ─────────────────────────────────
-  const sectionProgressMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof computeSectionProgress>>();
-    for (const sem of semesters) {
-      for (const sec of sem.sections ?? []) {
-        map.set(sec.id, computeSectionProgress(sec, sessions, courseProgressTopicIds));
-      }
-    }
-    return map;
-  }, [semesters, sessions, courseProgressTopicIds]);
+  // ── Semester groups (AUDIT FIX: preserve semester context) ──
+  const semesterGroups = useMemo(() => {
+    let globalIdx = 0;
+    return semesters.map(sem => ({
+      semesterId: sem.id,
+      semesterName: sem.name,
+      sections: (sem.sections ?? []).map(sec => ({
+        section: sec,
+        accentIdx: globalIdx++,
+      })),
+    }));
+  }, [semesters]);
 
-  // ── Flat list of all sections with accent index ──────────────
+  // ── Flat list (kept for backward-compat / totals) ──────────
   const allSections = useMemo(() => {
     const result: { section: TreeSection; accentIdx: number }[] = [];
     let idx = 0;
@@ -86,15 +89,25 @@ export function StudyHubView() {
     return result;
   }, [semesters]);
 
-  // ── Totals ─────────────────────────────────────────────
+  // ── Totals ─────────────────────────────────────────────────
   const totalSections = semesters.reduce((acc, s) => acc + (s.sections?.length ?? 0), 0);
   const totalTopics = semesters.reduce(
     (acc, s) => acc + (s.sections ?? []).reduce((a, sec) => a + (sec.topics?.length ?? 0), 0),
     0,
   );
 
-  const streakDays = stats?.currentStreak ?? 0;
   const studyMinutesToday = stats?.totalStudyMinutes ? Math.round(stats.totalStudyMinutes / 60) : 0;
+
+  // ── Greeting + user name (for hero) ────────────────────────
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos dias';
+    if (hour < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  }, []);
+
+  const userName = profile?.name?.split(' ')[0] || '';
+  const streakDays = stats?.currentStreak ?? 0;
 
   // ── Hero-specific derivations ──────────────────────────────
 
@@ -121,13 +134,8 @@ export function StudyHubView() {
 
   const topicMastery = useMemo(() => {
     if (!effectiveTopic?.id) return null;
-    for (const cp of courseProgress) {
-      for (const tp of cp.topicProgress ?? []) {
-        if (tp.topicId === effectiveTopic.id) return tp;
-      }
-    }
-    return null;
-  }, [courseProgress, effectiveTopic?.id]);
+    return getTopicMastery(effectiveTopic.id);
+  }, [getTopicMastery, effectiveTopic?.id]);
 
   const todayStats = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -157,16 +165,7 @@ export function StudyHubView() {
     ? Math.max(1, Math.round(avgSessionMin * (1 - heroProgress)))
     : null;
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Buenos días';
-    if (hour < 19) return 'Buenas tardes';
-    return 'Buenas noches';
-  }, []);
-
-  const userName = profile?.name?.split(' ')[0] || '';
-
-  // ── Weekly activity (last 7 days) ────────────────────────
+  // ── Weekly activity (last 7 days) ──────────────────────────
   const weeklyActivity = useMemo(() => {
     const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
     const today = new Date();
@@ -193,118 +192,147 @@ export function StudyHubView() {
   const goalMinutes = profile?.preferences?.dailyGoalMinutes ?? 120;
   const todayMinutes = todayStats.minutes > 0 ? todayStats.minutes : studyMinutesToday > 0 ? studyMinutesToday : 0;
 
-  // ── Hero CTA callback ───────────────────────────────────
+  // ── Hero CTA callback ─────────────────────────────────────
   const handleContinue = () => {
-    if (isAutoSelected && effectiveTopic) {
+    if (effectiveTopic) {
       selectTopic(effectiveTopic.id);
-      // `effectiveTopic` should already be of type `Topic`.
-      // Using `as any` here bypasses crucial type checks.
-      setCurrentTopic(effectiveTopic);
+      if (isAutoSelected) {
+        setCurrentTopic(effectiveTopic);
+      }
+      navigate('/student/summaries');
     }
-    navigateTo('study');
   };
 
-  // ── Loading ────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="h-full flex flex-col bg-zinc-50">
-        <HeroSection>
-          <div className="max-w-5xl mx-auto px-6 pt-10 pb-14">
+      <div className="h-full flex flex-col" style={{ backgroundColor: axon.pageBg }}>
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${axon.darkTeal}, ${axon.darkPanel})` }} />
+          <div className="relative max-w-[210mm] mx-auto px-6 pt-10 pb-14">
             <div className="h-8 w-64 bg-white/10 rounded-lg animate-pulse mb-3" />
             <div className="h-4 w-48 bg-white/10 rounded animate-pulse" />
           </div>
-        </HeroSection>
+        </section>
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
-            <p className="text-sm text-zinc-500">Cargando plan de estudios...</p>
+            <motion.div
+              className="w-8 h-8 rounded-full border-4 border-t-transparent"
+              style={{ borderColor: `${axon.tealAccent} transparent ${axon.tealAccent} ${axon.tealAccent}` }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <p className="text-sm" style={{ color: tint.subtitleText }}>Cargando plan de estudios...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Error ──────────────────────────────────────────────
+  // ── Error ──────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="h-full flex flex-col bg-zinc-50">
-        <HeroSection>
-          <div className="max-w-5xl mx-auto px-6 pt-10 pb-12">
+      <div className="h-full flex flex-col" style={{ backgroundColor: axon.pageBg }}>
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${axon.darkTeal}, ${axon.darkPanel})` }} />
+          <div className="relative max-w-[210mm] mx-auto px-6 pt-10 pb-12">
             <h1 className="text-xl text-white" style={{ fontWeight: 700 }}>Plan de Estudios</h1>
           </div>
-        </HeroSection>
+        </section>
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <AlertCircle className="w-10 h-10 text-red-400" />
-          <p className="text-sm text-red-500">{error}</p>
+          <AlertCircle className="w-10 h-10" style={{ color: '#f87171' }} />
+          <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 text-white text-sm rounded-full cursor-pointer"
+            style={{ backgroundColor: axon.tealAccent, fontWeight: 600 }}
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
   }
 
-  // ── Empty ──────────────────────────────────────────────
+  // ── Empty ──────────────────────────────────────────────────
   if (!course || semesters.length === 0) {
     return (
-      <div className="h-full flex flex-col bg-zinc-50">
-        <HeroSection>
-          <div className="max-w-5xl mx-auto px-6 pt-10 pb-12">
+      <div className="h-full flex flex-col" style={{ backgroundColor: axon.pageBg }}>
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${axon.darkTeal}, ${axon.darkPanel})` }} />
+          <div className="relative max-w-[210mm] mx-auto px-6 pt-10 pb-12">
             <h1 className="text-xl text-white" style={{ fontWeight: 700 }}>Plan de Estudios</h1>
           </div>
-        </HeroSection>
+        </section>
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center">
-            <BookOpen className="w-7 h-7 text-teal-300" />
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{ backgroundColor: tint.tealBg }}
+          >
+            <BookOpen className="w-7 h-7" style={{ color: tint.tealBorder }} />
           </div>
-          <p className="text-sm text-zinc-500">El profesor aun no ha creado contenido</p>
-          <p className="text-xs text-zinc-400">Vuelve mas tarde para ver el plan de estudios</p>
+          <p className="text-sm" style={{ color: tint.subtitleText, fontWeight: 500 }}>El profesor aun no ha creado resumenes</p>
+          <p className="text-xs" style={{ color: tint.neutralText }}>Vuelve mas tarde para ver los resumenes del curso</p>
         </div>
       </div>
     );
   }
 
-  // ── Main render ──────────────────────────────────────────
+  // ── Main render ────────────────────────────────────────────
   return (
-    <div className="h-full overflow-y-auto bg-zinc-50">
+    <div className="h-full overflow-y-auto" style={{ backgroundColor: axon.pageBg }}>
       <StudyHubHero
-        greeting={greeting}
-        userName={userName}
         effectiveTopic={effectiveTopic ? { id: effectiveTopic.id, title: effectiveTopic.title || '' } : null}
-        isAutoSelected={isAutoSelected}
         heroReadingSessions={heroReadingSessions}
         heroProgressPct={heroProgressPct}
         heroProgress={heroProgress}
         heroLastActivity={heroLastActivity}
         estimatedRemaining={estimatedRemaining}
-        streakDays={streakDays}
         courseName={course.name}
         sectionName={topicBreadcrumb.sectionName}
+        onContinue={handleContinue}
+        onGoToVideos={() => {
+          // Videos live inside the summary reader (as a tab).
+          // Navigate to the session grid; once there the student picks the video block.
+          if (effectiveTopic) {
+            selectTopic(effectiveTopic.id);
+            navigate('/student/summaries');
+          } else {
+            navigate('/student/summaries');
+          }
+        }}
+        onGoToSummaries={() => navigate('/student/summaries')}
+        greeting={greeting}
+        userName={userName}
+        streakDays={streakDays}
+        isAutoSelected={isAutoSelected}
         todayStats={todayStats}
         studyMinutesToday={studyMinutesToday}
         totalCardsReviewed={stats?.totalCardsReviewed ?? 0}
         dailyGoalMinutes={profile?.preferences?.dailyGoalMinutes ?? 120}
-        onContinue={handleContinue}
       />
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <StudyHubSections
+      <main className="max-w-[210mm] mx-auto px-6 py-10">
+        <StudyHubSectionCards
+          semesterGroups={semesterGroups}
           allSections={allSections}
           sectionProgressMap={sectionProgressMap}
+          topicStatusMap={topicStatusMap}
           totalSections={totalSections}
           totalTopics={totalTopics}
-          onSectionClick={(sectionId) => navigate(`/student/study-plan?sectionId=${sectionId}`)}
+          selectTopic={selectTopic}
+          navigate={navigate}
         />
 
-        <WeeklyActivityChart
-          weeklyActivity={weeklyActivity}
-          weeklyTotalMin={weeklyTotalMin}
-          maxBarValue={maxBarValue}
-          goalMinutes={goalMinutes}
-          todayMinutes={todayMinutes}
-        />
-
-        {/* ── Gamification widgets (v4.4.5) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          <GamificationCard />
-          <DailyGoalWidget />
+        {/* Spacer — section cards are primary; chart is secondary context */}
+        <div className="mt-10">
+          <WeeklyActivityChart
+            weeklyActivity={weeklyActivity}
+            weeklyTotalMin={weeklyTotalMin}
+            maxBarValue={maxBarValue}
+            goalMinutes={goalMinutes}
+            todayMinutes={todayMinutes}
+          />
         </div>
       </main>
     </div>
