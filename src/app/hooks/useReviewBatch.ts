@@ -90,7 +90,8 @@ const P_FORGET_ESTIMATE = 0.25;
 // LOCALSTORAGE PERSISTENCE — Offline resilience
 // ════════════════════════════════════════════════════════
 
-const LS_KEY = 'axon_pending_review_batch';
+/** Exported for test verification — do NOT rename without updating tests */
+export const LS_KEY = 'axon_pending_review_batch';
 
 interface PendingBatch {
   sessionId: string;

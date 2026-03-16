@@ -23,8 +23,6 @@ vi.mock('../api', () => ({
 }));
 
 // ── Import AFTER mock ─────────────────────────────────────
-// We need a fresh module for each test to reset the mutex chain.
-// But vitest caches modules, so we use mockReset + careful ordering.
 import { postSessionAnalytics } from '../sessionAnalytics';
 import type { SessionAnalyticsInput } from '../sessionAnalytics';
 
@@ -42,7 +40,7 @@ const BASE_INPUT: SessionAnalyticsInput = {
  */
 function setupApiMock(opts: {
   existingStats?: Record<string, unknown> | null;
-  existingDaily?: Record<string, unknown>[] | null;
+  existingDaily?: Record<string, unknown>[] | Record<string, unknown> | null;
   postShouldFail?: boolean;
 }) {
   mockApiCall.mockImplementation((url: string, options?: { method?: string }) => {
@@ -81,10 +79,12 @@ function getPostBody(url: string): Record<string, unknown> | null {
   return JSON.parse(call[1].body);
 }
 
-// ── Setup ─────────────────────────────────────────────────
+// ── Setup (shared date + mock cleanup) ────────────────────
 
 beforeEach(() => {
   mockApiCall.mockReset();
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -99,9 +99,6 @@ afterEach(() => {
 
 describe('postSessionAnalytics — streak logic', () => {
   it('first-time user → streak = 1, longest_streak = 1', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({}); // GET /student-stats → 404 (first time)
 
     await postSessionAnalytics(BASE_INPUT);
@@ -114,9 +111,6 @@ describe('postSessionAnalytics — streak logic', () => {
   });
 
   it('studied yesterday → streak increments by 1', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({
       existingStats: {
         total_reviews: 20,
@@ -136,9 +130,6 @@ describe('postSessionAnalytics — streak logic', () => {
   });
 
   it('studied yesterday → updates longest_streak if new streak exceeds it', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({
       existingStats: {
         total_reviews: 50,
@@ -158,9 +149,6 @@ describe('postSessionAnalytics — streak logic', () => {
   });
 
   it('already studied today → streak unchanged', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({
       existingStats: {
         total_reviews: 10,
@@ -180,9 +168,6 @@ describe('postSessionAnalytics — streak logic', () => {
   });
 
   it('gap of 2+ days → streak resets to 1', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({
       existingStats: {
         total_reviews: 100,
@@ -206,9 +191,6 @@ describe('postSessionAnalytics — streak logic', () => {
 
 describe('postSessionAnalytics — accumulation', () => {
   it('accumulates total_reviews from existing + session', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({
       existingStats: {
         total_reviews: 50,
@@ -229,9 +211,6 @@ describe('postSessionAnalytics — accumulation', () => {
   });
 
   it('first-time user accumulates from zero', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({}); // 404 → null
 
     await postSessionAnalytics(BASE_INPUT);
@@ -246,10 +225,7 @@ describe('postSessionAnalytics — accumulation', () => {
 // ── Daily activities ──────────────────────────────────────
 
 describe('postSessionAnalytics — daily activities', () => {
-  it('accumulates daily totals when existing row exists', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
+  it('accumulates daily totals when existing row exists (array response)', async () => {
     setupApiMock({
       existingStats: null,
       existingDaily: [{
@@ -271,10 +247,30 @@ describe('postSessionAnalytics — daily activities', () => {
     expect(body!.activity_date).toBe('2026-03-10');
   });
 
-  it('first session of the day → creates from zero', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
+  it('accumulates daily totals when backend returns single object (not array)', async () => {
+    // Some backends return a single object instead of an array
+    // The source handles both: Array.isArray(result) and !Array.isArray(result)
+    setupApiMock({
+      existingStats: null,
+      existingDaily: {
+        reviews_count: 8,
+        correct_count: 5,
+        time_spent_seconds: 200,
+        sessions_count: 2,
+      } as any, // single object, not array
+    });
 
+    await postSessionAnalytics(BASE_INPUT);
+
+    const body = getPostBody('/daily-activities');
+    expect(body).not.toBeNull();
+    expect(body!.reviews_count).toBe(18); // 8 + 10
+    expect(body!.correct_count).toBe(12); // 5 + 7
+    expect(body!.time_spent_seconds).toBe(500); // 200 + 300
+    expect(body!.sessions_count).toBe(3); // 2 + 1
+  });
+
+  it('first session of the day → creates from zero', async () => {
     setupApiMock({
       existingStats: null,
       existingDaily: [], // empty array = no row for today
@@ -294,9 +290,6 @@ describe('postSessionAnalytics — daily activities', () => {
 
 describe('postSessionAnalytics — error resilience', () => {
   it('should NOT throw when POST fails', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     setupApiMock({ existingStats: null, postShouldFail: true });
 
     // Should resolve without throwing
@@ -304,9 +297,6 @@ describe('postSessionAnalytics — error resilience', () => {
   });
 
   it('should NOT throw when GET fails', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     mockApiCall.mockRejectedValue(new Error('network down'));
 
     await expect(postSessionAnalytics(BASE_INPUT)).resolves.toBeUndefined();
@@ -317,9 +307,6 @@ describe('postSessionAnalytics — error resilience', () => {
 
 describe('postSessionAnalytics — serialization', () => {
   it('concurrent calls should serialize (second waits for first)', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-10T14:00:00Z'));
-
     const callOrder: string[] = [];
 
     mockApiCall.mockImplementation((url: string, options?: { method?: string }) => {

@@ -145,6 +145,12 @@ describe('getMasteryTailwind', () => {
     expect(tw.text).toContain('emerald');
   });
 
+  it('yellow uses amber classes', () => {
+    const tw = getMasteryTailwind('yellow');
+    expect(tw.bg).toContain('amber');
+    expect(tw.text).toContain('amber');
+  });
+
   it('red uses red classes', () => {
     const tw = getMasteryTailwind('red');
     expect(tw.bg).toContain('red');

@@ -6,12 +6,10 @@
 //
 // NOTE: The hook's queueReview() BKT heuristic math lives inside
 // a useCallback and requires renderHook + @testing-library/react
-// to test. That's deferred to a future PR. The heuristic constants
-// (P_LEARN=0.18, P_FORGET=0.25) are tested indirectly here via
-// known input→output expectations documented in comments.
+// to test. That's deferred to a future PR.
 // ============================================================
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock sessionApi BEFORE importing the module under test
 const mockSubmitReviewBatch = vi.fn();
@@ -22,11 +20,9 @@ vi.mock('@/app/services/studySessionApi', () => ({
   fallbackToIndividualPosts: (...args: unknown[]) => mockFallbackToIndividual(...args),
 }));
 
-import { retryPendingBatches } from '../useReviewBatch';
+import { retryPendingBatches, LS_KEY } from '../useReviewBatch';
 
-// ── localStorage mock ─────────────────────────────────────
-
-const LS_KEY = 'axon_pending_review_batch';
+// ── localStorage helpers ──────────────────────────────────
 
 function setLSBatch(sessionId: string, items: unknown[], savedAt?: string) {
   const batch = {
@@ -48,6 +44,25 @@ beforeEach(() => {
   localStorage.clear();
   mockSubmitReviewBatch.mockReset();
   mockFallbackToIndividual.mockReset();
+});
+
+// ── LS_KEY contract ───────────────────────────────────────
+
+describe('LS_KEY', () => {
+  it('should be the expected localStorage key', () => {
+    expect(LS_KEY).toBe('axon_pending_review_batch');
+  });
+
+  it('retryPendingBatches reads from the same key the source writes to', async () => {
+    // Verify the key used by retryPendingBatches matches LS_KEY
+    // by writing under LS_KEY and confirming the function finds it
+    mockSubmitReviewBatch.mockResolvedValue({ processed: 1, reviews_created: 1, fsrs_updated: 1, bkt_updated: 1 });
+    setLSBatch('verify-key', [sampleItems[0]]);
+
+    const result = await retryPendingBatches();
+    expect(result).toBe(true);
+    expect(mockSubmitReviewBatch).toHaveBeenCalled();
+  });
 });
 
 // ── retryPendingBatches ───────────────────────────────────
@@ -136,14 +151,3 @@ describe('retryPendingBatches', () => {
     );
   });
 });
-
-// ── localStorage lifecycle notes ──────────────────────────
-// savePendingBatch, loadPendingBatch, clearPendingBatch are
-// module-private. They're tested implicitly through
-// retryPendingBatches above. The key behaviors verified:
-//
-//   1. Save:   setLSBatch simulates what savePendingBatch does
-//   2. Load:   retryPendingBatches calls loadPendingBatch internally
-//   3. Clear:  verified by checking localStorage.getItem === null
-//   4. Expiry: 24h TTL tested with old savedAt timestamp
-//   5. Corruption: malformed JSON handled gracefully
