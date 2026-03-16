@@ -1,4 +1,4 @@
-# Axon v4.4 — Agent 5: Inicio + Gamificacion
+# Axon v4.4 — Agent 5: Welcome + Gamificacion
 
 > **LEE ESTO PRIMERO.** Este archivo es la fuente de verdad PERMANENTE para el Agente 5.
 > Antes de hacer CUALQUIER cambio, lee este archivo completo.
@@ -8,18 +8,22 @@
 
 ## Que es este agente
 
-Este agente es EXCLUSIVAMENTE el **agente del area de inicio y gamificacion** de Axon.
+Este agente es EXCLUSIVAMENTE el **agente de Welcome y Gamificacion** de Axon.
 Cubre estas experiencias del estudiante:
 
-1. **Welcome / Home** — pantalla de inicio, banner de XP, navegacion principal
-2. **Dashboard** — vista general del progreso del alumno
-3. **Study Hub** — hero, secciones, helpers
-4. **Gamificacion (Dashboard)** — XP, niveles, racha, meta diaria, insignias, leaderboard, historial
-5. **Gamificacion (Sub-paginas)** — BadgesPage, LeaderboardPage, XpHistoryPage
-6. **Gamificacion (Widgets)** — componentes reutilizables que otros dominios (Quiz, Flashcards) consumen
-7. **Navegacion del estudiante** — useStudentNav, ViewType, study-student-routes
+1. **Welcome / Home** — pantalla de inicio del alumno, banner de XP, entry point a gamificacion
+2. **Gamificacion (Dashboard)** — XP, niveles, racha, meta diaria, insignias, leaderboard, historial
+3. **Gamificacion (Sub-paginas)** — BadgesPage, LeaderboardPage, XpHistoryPage
+4. **Gamificacion (Widgets)** — componentes reutilizables que otros dominios (Quiz, Flashcards) consumen
+5. **Navegacion del estudiante** — useStudentNav, ViewType (SOLO las entradas de gamificacion)
 
-**NO** toques nada fuera de este scope (resumenes, keywords, quiz sessions, flashcard review, profesor, admin, owner, billing, 3D models).
+**NO** toques nada fuera de este scope:
+- ❌ Dashboard, DashboardView, DashboardPage (otro agente)
+- ❌ Review sessions, flashcard review (otro agente)
+- ❌ Schedule, calendario (otro agente)
+- ❌ Study dashboards, heatmaps, mastery dashboard (otro agente)
+- ❌ Study Hub, study organizer, study plans (otro agente)
+- ❌ Resumenes, keywords, profesor, admin, owner, billing, 3D models
 
 ---
 
@@ -58,23 +62,16 @@ La ANON_KEY esta hardcodeada en `/src/app/lib/api.ts`.
 
 ## Archivos en scope (SOLO estos)
 
-### Rutas
-| Archivo | Funcion |
-|---|---|
-| `/src/app/routes/study-student-routes.ts` | Rutas del estudiante: welcome, dashboard, study-hub, gamification, sub-paginas G6 |
-| `/src/app/hooks/useStudentNav.ts` | ViewType, viewToPath, pathToView, useStudentNav hook |
+### Rutas (SOLO las entradas de gamificacion)
+| Archivo | Funcion | Nota |
+|---|---|---|
+| `/src/app/routes/study-student-routes.ts` | Contiene rutas de gamificacion: `gamification`, `badges`, `leaderboard`, `xp-history` | COMPARTIDO — solo tocar las entradas de gamificacion |
+| `/src/app/hooks/useStudentNav.ts` | ViewType `'gamification'` | COMPARTIDO — solo tocar la entrada de gamificacion |
 
-### Paginas principales (inicio)
+### Welcome (Home)
 | Archivo | Funcion |
 |---|---|
-| `/src/app/components/content/WelcomeView.tsx` | Pantalla de inicio del alumno + banner XP → gamificacion |
-| `/src/app/components/content/DashboardView.tsx` | Vista de dashboard con progreso general |
-| `/src/app/pages/DashboardPage.tsx` | Pagina wrapper del dashboard |
-| `/src/app/components/content/StudyHubView.tsx` | Study Hub principal |
-| `/src/app/components/content/StudyHubHero.tsx` | Hero section del Study Hub |
-| `/src/app/components/content/StudyHubSections.tsx` | Secciones del Study Hub (cards por seccion/topico) |
-| `/src/app/components/content/studyhub-helpers.ts` | Helpers de logica del Study Hub |
-| `/src/app/components/content/WeeklyActivityChart.tsx` | Grafico de actividad semanal |
+| `/src/app/components/content/WelcomeView.tsx` | Pantalla de inicio del alumno. Banner de XP → gamificacion. Entry: `/student` (index route) |
 
 ### Gamificacion — Vista principal
 | Archivo | Funcion |
@@ -133,13 +130,13 @@ La ANON_KEY esta hardcodeada en `/src/app/lib/api.ts`.
 | `/src/__tests__/gamification-route-integrity.test.ts` | 18 tests: rutas, lazy loaders, ViewType mapping, sub-paginas |
 | `/src/__tests__/gamification-api-contracts.test.ts` | 16 tests: exports, level system, XP table, endpoint paths |
 
-### Lib (utilidades compartidas)
+### Lib (utilidades compartidas — solo lectura, no modificar)
 | Archivo | Funcion |
 |---|---|
 | `/src/app/lib/api.ts` | `apiCall()` wrapper con headers + `setAccessToken/getAccessToken` |
 | `/src/app/lib/api-helpers.ts` | `extractItems()` — normaliza respuestas paginadas vs arrays |
 
-### Estilos
+### Estilos (solo lectura, no modificar)
 | Archivo | Funcion |
 |---|---|
 | `/src/styles/theme.css` | Tokens de diseno + clase `axon-prose` |
@@ -158,11 +155,17 @@ La ANON_KEY esta hardcodeada en `/src/app/lib/api.ts`.
 | `/src/app/context/AppContext.tsx` | Global context |
 | `/src/app/context/StudentDataContext.tsx` | Student data context |
 | `/src/app/context/PlatformDataContext.tsx` | Platform data context |
-| `*Layout.tsx` (cualquiera) | AdminLayout, ProfessorLayout, OwnerLayout, StudentLayout |
+| `*Layout.tsx` (cualquiera) | Layouts de todos los roles |
 | `/src/app/components/figma/ImageWithFallback.tsx` | Sistema protegido |
 | `/pnpm-lock.yaml` | Sistema protegido |
-| `/src/app/components/student/SmartPopup.tsx` | Popover del profesor — otro agente |
-| `/src/app/hooks/useSmartPopupPosition.ts` | Posicionamiento — otro agente |
+| `/src/app/components/student/SmartPopup.tsx` | Otro agente |
+| `/src/app/hooks/useSmartPopupPosition.ts` | Otro agente |
+
+### Archivos COMPARTIDOS (tocar SOLO entradas de gamificacion)
+| Archivo | Que puedo tocar |
+|---|---|
+| `/src/app/routes/study-student-routes.ts` | Solo rutas: `gamification`, `badges`, `leaderboard`, `xp-history` |
+| `/src/app/hooks/useStudentNav.ts` | Solo ViewType `'gamification'` y su mapping |
 
 ---
 
@@ -281,13 +284,11 @@ GET    /study-queue[?course_id=xxx][&limit=N]
 
 ```
 WelcomeView (index: /student)
-  |-- Click banner XP  --> /student/gamification (GamificationView)
-  |       |-- "Volver al inicio" --> /student
-  |       |-- Click "Ver todas" badges --> /student/badges
-  |       |-- Click "Ver ranking" --> /student/leaderboard  
-  |       |-- Click "Ver historial" --> /student/xp-history
-  |-- Click Dashboard --> /student/dashboard
-  |-- Click Study Hub --> /student/study-hub
+  └── Click banner XP  ──→ /student/gamification (GamificationView)
+          ├── "Volver al inicio" ──→ /student
+          ├── Click "Ver todas" badges ──→ /student/badges (BadgesPage)
+          ├── Click "Ver ranking" ──→ /student/leaderboard (LeaderboardPage)
+          └── Click "Ver historial" ──→ /student/xp-history (XpHistoryPage)
 ```
 
 ViewType `'gamification'` esta en el union type de `useStudentNav.ts`.
@@ -314,10 +315,10 @@ No necesita mapping especial (slug === ViewType).
 ### Rutas
 - **TODAS** las rutas son FLAT con query params. NUNCA rutas anidadas.
 - Usar `lazyRetry()` para lazy loading (resiliente a stale chunks)
-- Cada ruta en `study-student-routes.ts` DEBE tener:
+- Cada ruta nueva de gamificacion DEBE tener:
   1. Un `path` en studyStudentRoutes
-  2. Un ViewType correspondiente en useStudentNav.ts (si es navegable desde sidebar)
-  3. Tests en gamification-route-integrity.test.ts
+  2. Tests en gamification-route-integrity.test.ts
+  3. Si es navegable desde sidebar: un ViewType en useStudentNav.ts
 
 ### Diseno
 - Paleta oficial "Axon Medical Academy":
@@ -339,18 +340,15 @@ No necesita mapping especial (slug === ViewType).
 
 ---
 
-## Jerarquia de datos
+## Jerarquia de datos (gamificacion)
 
 ```
-Institution → Course → Semester → Section → Topic → Summary
-
-Gamificacion:
-  student_xp         → XP acumulado, nivel, meta diaria, streak freezes
-  xp_transactions    → Historial de XP (action, xp_base, xp_final, multiplier, bonus)
-  student_streaks    → Racha actual, mas larga, ultimo dia de estudio
-  student_badges     → Insignias ganadas (student_id, badge_id, earned_at)
-  badges             → Catalogo de insignias (slug, category, rarity, criteria)
-  study_queue        → Cola FSRS (flashcard_id, need_score, retention, due_at)
+student_xp         → XP acumulado, nivel, meta diaria, streak freezes
+xp_transactions    → Historial de XP (action, xp_base, xp_final, multiplier, bonus)
+student_streaks    → Racha actual, mas larga, ultimo dia de estudio
+student_badges     → Insignias ganadas (student_id, badge_id, earned_at)
+badges             → Catalogo de insignias (slug, category, rarity, criteria)
+study_queue        → Cola FSRS (flashcard_id, need_score, retention, due_at)
 ```
 
 ---
@@ -358,7 +356,7 @@ Gamificacion:
 ## Issues conocidos (documentados, no corregidos)
 
 1. **SVG gradient IDs** — `ProgressRing` y `DailyGoalRing` usan IDs que podrian colisionar si se renderizan multiples instancias. Fix: agregar instance ID unico.
-2. **globalIdx O(n^2)** — XpHistoryFeed recalcula indice global en cada item del grupo. Fix: pre-computar offsets.
+2. **globalIdx O(n²)** — XpHistoryFeed recalcula indice global en cada item del grupo. Fix: pre-computar offsets.
 3. **LeaderboardCard unsafe casts** — `entry.xp_this_week!` sin null check. Fix: `?? 0`.
 4. **daily_goal flash** — Al montar, `daily_goal_minutes` puede flashear 100→50 porque el profile tarda en cargar. Fix: skeleton o default del localStorage.
 5. **Accesibilidad (L1-L4)** — ProgressRing sin role/aria, StatCards sin aria-label, DailyGoalRing sin anuncio de completado, XpHistoryFeed sin heading de grupo accesible.
@@ -367,15 +365,16 @@ Gamificacion:
 
 ## Historial de sesion
 
-### 2026-03-16: Rewrite GUIDELINES.md
-- Archivo cambiado de sesion de resumenes a sesion permanente de Agent 5 (Inicio + Gamificacion)
+### 2026-03-16: Scope correction + GUIDELINES.md rewrite
+- Correccion de scope: este agente es Welcome + Gamificacion SOLAMENTE
+- Dashboard, review, calendario, study hub pertenecen a otro agente
+- GUIDELINES.md reescrito como fuente de verdad permanente
 - Agregados 34 tests de integridad (rutas + API contracts)
-- PR #58 mergeado: 7 bugs fixeados (4 routing + 3 API showstoppers)
 
 ### 2026-03-13: PR #58 — Unorphan GamificationView
 - 4 routing bugs: sin ruta, sin ViewType, accessor de nombre incorrecto, sin entry point
 - 3 API showstoppers: imports rotos, null crash en dailyCheckIn, getBadges arg order
-- 6 archivos, 5 commits, squash-merged a main
+- 6 archivos, 5 commits, squash-merged a main como 7a9dd51
 
 ### 2026-03-13: Sesion de gamificacion (separada)
 - Rewrite de useGamification.ts (import * pattern)
