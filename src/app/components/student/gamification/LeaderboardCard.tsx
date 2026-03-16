@@ -5,7 +5,7 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { Trophy, TrendingUp, Crown, Medal } from 'lucide-react';
 import { getLevelInfo } from '@/app/types/gamification';
-import type { LeaderboardResponse } from '@/app/services/gamificationApi';
+import type { LeaderboardResponse, LeaderboardEntry } from '@/app/services/gamificationApi';
 
 interface LeaderboardCardProps {
   data: LeaderboardResponse | null | undefined;
@@ -87,14 +87,14 @@ function EntryRow({ entry, index }: { entry: DisplayEntry; index: number }) {
           fontWeight: 600,
         }}
       >
-        {(entry.name || '??').split(' ').map(w => w[0]).join('').slice(0, 2)}
+        {entry.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs truncate" style={{ color: '#111827', fontWeight: entry.is_self ? 700 : 500 }}>
           {entry.is_self ? 'Tu' : entry.name}
         </p>
         <p className="text-[10px]" style={{ color: '#9ca3af' }}>
-          Nivel {entry.level} — {levelInfo.title}
+          Nivel {entry.level} \u2014 {levelInfo.title}
         </p>
       </div>
       <div className="text-right shrink-0">
@@ -124,14 +124,14 @@ export function LeaderboardCard({ data, currentUserId, isLoading, className = ''
   }
 
   const rawEntries = data?.leaderboard ?? [];
-  const entries: DisplayEntry[] = rawEntries.map((row: Record<string, unknown>, i: number) => {
+  const entries: DisplayEntry[] = rawEntries.map((row: LeaderboardEntry, i: number) => {
     const isSelf = currentUserId ? row.student_id === currentUserId : false;
     return {
       rank: i + 1,
-      student_id: (row.student_id as string) ?? '',
-      xp: (row.xp_this_week as number) ?? (row.xp_today as number) ?? 0,
-      level: (row.current_level as number) ?? 1,
-      total_xp: (row.total_xp as number) ?? 0,
+      student_id: row.student_id ?? '',
+      xp: row.xp_this_week ?? row.xp_today ?? 0,
+      level: row.current_level ?? 1,
+      total_xp: row.total_xp ?? 0,
       is_self: isSelf,
       name: isSelf ? 'Tu' : FUN_NAMES[i % FUN_NAMES.length],
     };
