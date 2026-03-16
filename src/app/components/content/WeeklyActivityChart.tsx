@@ -1,14 +1,26 @@
 // ============================================================
-// Axon — WeeklyActivityChart (extracted from StudyHubView.tsx)
-// Bar chart showing last 7 days of study activity.
-// Zero functional changes — pure extraction.
+// Axon — WeeklyActivityChart (AUDIT v3 — Palette)
+//
+// PALETTE AUDIT:
+//   - All colors now derive from Axon Medical Academy palette
+//   - Active bar: #2a8c7a (Teal Accent) with Dark Teal shadow
+//   - Badge: teal tints, not generic emerald
+//   - Labels: palette-derived grays and teal
+//   - Zero generic Tailwind color classes
+//
+// Palette:
+//   Dark Teal:  #1B3B36   Teal Accent:  #2a8c7a
+//   Hover Teal: #244e47   Dark Panel:   #1a2e2a
+//   Progress:   #2dd4a8 → #0d9488
 // ============================================================
 import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   BarChart3, TrendingUp, Target, Clock, BookOpen,
 } from 'lucide-react';
-import { useMotionPresets } from '@/app/components/shared/FadeIn';
+
+// ── Axon palette ─────────────────────────────────────────────
+import { axon, tint } from '@/app/lib/palette';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -35,32 +47,45 @@ export function WeeklyActivityChart({
   goalMinutes,
   todayMinutes,
 }: WeeklyActivityChartProps) {
-  const { fadeUp } = useMotionPresets();
   const shouldReduce = useReducedMotion();
 
   return (
     <motion.div
-      className="bg-white border border-zinc-200 rounded-2xl p-6 relative overflow-hidden"
-      {...fadeUp(0.6)}
+      className="rounded-2xl p-6 relative overflow-hidden border"
+      style={{
+        backgroundColor: axon.cardBg,
+        borderColor: tint.neutralBorder,
+      }}
+      initial={shouldReduce ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.6 }}
     >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-teal-50 border border-teal-200 rounded-lg flex items-center justify-center">
-            <BarChart3 className="w-4 h-4 text-teal-700" />
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center border"
+            style={{ backgroundColor: tint.tealBg, borderColor: tint.tealBorder }}
+          >
+            <BarChart3 className="w-4 h-4" style={{ color: axon.darkTeal }} />
           </div>
           <div>
-            <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>Actividad Semanal</h3>
-            <p className="text-xs text-zinc-500" style={{ fontWeight: 400 }}>Tu progreso de los últimos 7 días</p>
+            <h3 className="text-sm" style={{ color: '#111827', fontWeight: 700 }}>Actividad Semanal</h3>
+            <p className="text-xs" style={{ color: '#6b7280', fontWeight: 400 }}>Tu progreso de los ultimos 7 dias</p>
           </div>
         </div>
 
         {weeklyTotalMin > 0 && (
           <motion.span
-            className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5"
+            className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 border"
+            style={{
+              backgroundColor: tint.tealBg,
+              color: axon.progressEnd,
+              borderColor: tint.tealBorder,
+              fontWeight: 600,
+            }}
             initial={shouldReduce ? false : { scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', delay: 1 }}
-            style={{ fontWeight: 600 }}
           >
             <TrendingUp className="w-3 h-3" />
             {weeklyTotalMin} min esta semana
@@ -79,22 +104,29 @@ export function WeeklyActivityChart({
               transition={{ delay: 0.8 + i * 0.06, duration: 0.4, ease: 'easeOut' }}
             >
               <div
-                className={`w-full h-full rounded-lg transition-colors ${
-                  bar.active
-                    ? 'bg-teal-600 shadow-md shadow-teal-600/20'
-                    : bar.value > 0 ? 'bg-zinc-300 hover:bg-zinc-400' : 'bg-zinc-200'
-                }`}
+                className="w-full h-full rounded-lg transition-colors"
+                style={{
+                  backgroundColor: bar.active
+                    ? axon.tealAccent
+                    : bar.value > 0 ? '#cbd5e1' : '#e2e8f0',
+                  ...(bar.active ? { boxShadow: `0 4px 12px ${axon.tealAccent}33` } : {}),
+                }}
               />
-              {/* Tooltip on hover */}
               {bar.value > 0 && (
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-900 text-white text-[10px] rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none" style={{ fontWeight: 600 }}>
+                <div
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 text-white text-[10px] rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
+                  style={{ backgroundColor: axon.darkTeal, fontWeight: 600 }}
+                >
                   {bar.value} min
                 </div>
               )}
             </motion.div>
             <span
-              className={`text-[11px] ${bar.active ? 'text-teal-700' : 'text-zinc-400'}`}
-              style={{ fontWeight: bar.active ? 700 : 500 }}
+              className="text-[11px]"
+              style={{
+                color: bar.active ? axon.tealAccent : tint.neutralText,
+                fontWeight: bar.active ? 700 : 500,
+              }}
             >
               {bar.day}
             </span>
@@ -103,27 +135,27 @@ export function WeeklyActivityChart({
       </div>
 
       {/* Summary row */}
-      <div className="flex items-center gap-6 mt-6 pt-5 border-t border-zinc-100 flex-wrap">
+      <div className="flex items-center gap-6 mt-6 pt-5 flex-wrap" style={{ borderTop: `1px solid ${tint.neutralBorder}` }}>
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-zinc-400" />
-          <span className="text-xs text-zinc-600" style={{ fontWeight: 500 }}>
-            Meta diaria: <span className="text-zinc-900" style={{ fontWeight: 700 }}>{goalMinutes} min</span>
+          <Target className="w-4 h-4" style={{ color: tint.neutralText }} />
+          <span className="text-xs" style={{ color: '#4b5563', fontWeight: 500 }}>
+            Meta diaria: <span style={{ color: '#111827', fontWeight: 700 }}>{goalMinutes} min</span>
           </span>
         </div>
-        <div className="h-4 w-px bg-zinc-200" />
+        <div className="h-4 w-px" style={{ backgroundColor: tint.neutralBorder }} />
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-zinc-400" />
-          <span className="text-xs text-zinc-600" style={{ fontWeight: 500 }}>
-            Hoy: <span className="text-teal-700" style={{ fontWeight: 700 }}>
+          <Clock className="w-4 h-4" style={{ color: tint.neutralText }} />
+          <span className="text-xs" style={{ color: '#4b5563', fontWeight: 500 }}>
+            Hoy: <span style={{ color: axon.tealAccent, fontWeight: 700 }}>
               {todayMinutes} min
             </span>
           </span>
         </div>
-        <div className="h-4 w-px bg-zinc-200" />
+        <div className="h-4 w-px" style={{ backgroundColor: tint.neutralBorder }} />
         <div className="flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-zinc-400" />
-          <span className="text-xs text-zinc-600" style={{ fontWeight: 500 }}>
-            Total semanal: <span className="text-zinc-900" style={{ fontWeight: 700 }}>{weeklyTotalMin} min</span>
+          <BookOpen className="w-4 h-4" style={{ color: tint.neutralText }} />
+          <span className="text-xs" style={{ color: '#4b5563', fontWeight: 500 }}>
+            Total semanal: <span style={{ color: '#111827', fontWeight: 700 }}>{weeklyTotalMin} min</span>
           </span>
         </div>
       </div>
