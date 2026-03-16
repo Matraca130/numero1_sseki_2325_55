@@ -18,8 +18,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mock apiCall BEFORE importing the module under test ──
+// vi.hoisted() ensures the variable is declared before vi.mock()
+// runs (vi.mock is hoisted to file top by Vitest).
 
-const mockApiCall = vi.fn();
+const { mockApiCall } = vi.hoisted(() => ({
+  mockApiCall: vi.fn(),
+}));
 
 vi.mock('@/app/lib/api', () => ({
   apiCall: mockApiCall,
