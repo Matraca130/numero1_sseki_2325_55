@@ -615,13 +615,13 @@ export function WelcomeView() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {courseData.map((course, i) => (
+              {courseData.map((course) => (
                 <CourseCard key={course.id} title={course.title} module={course.module}
                   progress={course.progress}
                   progressText={course.total > 0 ? `${course.completed}/${course.total} Clases` : `${course.progress}% dominio`}
                   icon={course.icon} iconBg={course.iconBg}
                   progressColor={course.progressColor} percentColor={course.percentColor}
-                  onContinue={() => navigateTo('study')} delay={0.15 + i * 0.06} />
+                  onContinue={() => navigateTo('study')} />
               ))}
             </div>
           </div>
