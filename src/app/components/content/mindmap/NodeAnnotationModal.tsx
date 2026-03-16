@@ -101,6 +101,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
           }),
         });
       }
+      toast.success('Anotação salva');
       onSaved?.();
       onClose();
     } catch (e: any) {
@@ -116,6 +117,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
     setSaving(true);
     try {
       await apiCall(`/kw-student-notes/${existingNote.id}`, { method: 'DELETE' });
+      toast.success('Anotação apagada');
       setContent('');
       setExistingNote(null);
       onSaved?.();

@@ -46,7 +46,7 @@ export function MasteryIndicator({
   const pct = pMastery < 0 ? 0 : Math.round(pMastery * 100);
 
   const tooltipText = pMastery < 0
-    ? 'Sin datos de estudio'
+    ? 'Sem dados de estudo'
     : `${label} (${pct}%)`;
 
   // ── DOT variant ─────────────────────────────────────────

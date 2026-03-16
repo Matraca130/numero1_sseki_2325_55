@@ -14,7 +14,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import {
-  Brain, RefreshCw, ChevronDown, Plus, Link2, Sparkles, Loader2, X,
+  Brain, RefreshCw, ChevronDown, Plus, Link2, Sparkles, Loader2, X, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
@@ -25,8 +25,9 @@ import { KnowledgeGraph, type GraphControls } from '@/app/components/content/min
 import { GraphToolbar } from '@/app/components/content/mindmap/GraphToolbar';
 import { useGraphData } from '@/app/components/content/mindmap/useGraphData';
 import type { MapNode } from '@/app/types/mindmap';
-import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
+import { MASTERY_HEX, CONNECTION_TYPES, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import { apiCall } from '@/app/lib/api';
+import { deleteConnection } from '@/app/services/keywordConnectionsApi';
 import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { headingStyle } from '@/app/design-system';
@@ -153,6 +154,16 @@ export function ProfessorKnowledgeMapPage() {
     }
   }, [connSource, connTarget, connType, connLabel, refetch]);
 
+  const handleDeleteConnection = useCallback(async (edgeId: string) => {
+    try {
+      await deleteConnection(edgeId);
+      toast.success('Conexión eliminada');
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.message || 'Error al eliminar conexión');
+    }
+  }, [refetch]);
+
   const handleAiSuggest = useCallback(async () => {
     if (!topicId) return;
     setAiSuggesting(true);
@@ -192,6 +203,16 @@ export function ProfessorKnowledgeMapPage() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Reset connection form when modal closes
+  useEffect(() => {
+    if (!showAddConnection) {
+      setConnSource('');
+      setConnTarget('');
+      setConnType('asociacion');
+      setConnLabel('');
+    }
+  }, [showAddConnection]);
 
   // Close modal on Escape + prevent body scroll
   useEffect(() => {
@@ -447,7 +468,7 @@ export function ProfessorKnowledgeMapPage() {
                       style={{ backgroundColor: MASTERY_HEX[selectedNode.masteryColor] }}
                     />
                     <span>
-                      {getMasteryLabel(selectedNode.masteryColor)}
+                      {getMasteryLabel(selectedNode.masteryColor, 'es')}
                       {selectedNode.mastery >= 0 && ` — ${Math.round(selectedNode.mastery * 100)}%`}
                     </span>
                     {graphData && (
@@ -483,7 +504,7 @@ export function ProfessorKnowledgeMapPage() {
                               style={{ backgroundColor: MASTERY_HEX[color] }}
                             />
                             <span className="text-xs text-gray-600 flex-1">
-                              {getMasteryLabel(color)}
+                              {getMasteryLabel(color, 'es')}
                             </span>
                             <span className="text-xs font-medium text-gray-700">
                               {count}
@@ -519,7 +540,7 @@ export function ProfessorKnowledgeMapPage() {
                         style={{ backgroundColor: MASTERY_HEX[selectedNode.masteryColor] }}
                       />
                       <span className="text-xs text-gray-500">
-                        {getMasteryLabel(getSafeMasteryColor(selectedNode.mastery))}
+                        {getMasteryLabel(getSafeMasteryColor(selectedNode.mastery), 'es')}
                         {selectedNode.mastery >= 0 && ` — ${Math.round(selectedNode.mastery * 100)}%`}
                       </span>
                     </div>
@@ -528,14 +549,47 @@ export function ProfessorKnowledgeMapPage() {
                         {selectedNode.definition}
                       </p>
                     )}
-                    {/* Connection count for selected node */}
-                    {graphData && (
-                      <div className="text-xs text-gray-400 mb-2">
-                        {graphData.edges.filter(
-                          e => e.source === selectedNode.id || e.target === selectedNode.id
-                        ).length} conexiones
-                      </div>
-                    )}
+                    {/* Connections with delete buttons */}
+                    {graphData && (() => {
+                      const nodeEdges = graphData.edges.filter(
+                        e => e.source === selectedNode.id || e.target === selectedNode.id
+                      );
+                      if (nodeEdges.length === 0) return (
+                        <div className="text-xs text-gray-400 mb-2">Sin conexiones</div>
+                      );
+                      return (
+                        <div className="mb-2">
+                          <p className="text-xs font-medium text-gray-500 mb-1.5">
+                            {nodeEdges.length} conexiones
+                          </p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {nodeEdges.map(edge => {
+                              const otherId = edge.source === selectedNode.id ? edge.target : edge.source;
+                              const otherNode = graphData.nodes.find(n => n.id === otherId);
+                              return (
+                                <div key={edge.id} className="flex items-center gap-1.5 group">
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: edge.connectionType ? CONNECTION_TYPE_MAP.get(edge.connectionType)?.color || '#d1d5db' : '#d1d5db' }}
+                                  />
+                                  <span className="text-xs text-gray-600 truncate flex-1">
+                                    {otherNode?.label || otherId.slice(0, 8)}
+                                  </span>
+                                  <button
+                                    onClick={() => handleDeleteConnection(edge.id)}
+                                    className="p-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                    aria-label={`Eliminar conexión con ${otherNode?.label || 'nodo'}`}
+                                    title="Eliminar conexión"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div className="text-xs text-gray-300">
                       ID: {selectedNode.id.slice(0, 8)}...
                     </div>

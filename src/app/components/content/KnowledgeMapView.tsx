@@ -438,7 +438,7 @@ export function KnowledgeMapView() {
                   </span>
                   <span className="hidden sm:inline">{masteryStats.mastered} dominados</span>
                   <span className="hidden sm:inline">{masteryStats.learning} aprendendo</span>
-                  <span className="hidden md:inline">{masteryStats.weak} débeis</span>
+                  <span className="hidden md:inline">{masteryStats.weak} fracos</span>
                 </div>
               )
             }

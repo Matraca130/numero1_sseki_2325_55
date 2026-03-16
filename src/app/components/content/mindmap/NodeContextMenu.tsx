@@ -175,6 +175,7 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
                 onClick={onClose}
                 className="p-0.5 rounded hover:bg-gray-100 transition-colors"
                 aria-label="Fechar"
+                role="menuitem"
               >
                 <X className="w-3.5 h-3.5 text-gray-400" />
               </button>

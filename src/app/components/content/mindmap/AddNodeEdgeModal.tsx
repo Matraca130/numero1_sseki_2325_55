@@ -71,6 +71,14 @@ export function AddNodeEdgeModal({
     [existingNodes],
   );
 
+  // Reset form state when modal closes
+  useEffect(() => {
+    if (!open) {
+      resetForms();
+      setTab('node');
+    }
+  }, [open]);
+
   // Escape key to close + prevent body scroll on mobile
   useEffect(() => {
     if (!open) return;
@@ -159,7 +167,7 @@ export function AddNodeEdgeModal({
             onClick={onClose}
           >
             <div
-              className="bg-white shadow-xl w-full max-w-md overflow-hidden rounded-t-2xl sm:rounded-2xl max-h-[90dvh] overflow-y-auto"
+              className="bg-white shadow-xl w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90dvh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"

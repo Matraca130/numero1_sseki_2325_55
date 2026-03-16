@@ -214,8 +214,8 @@ export function MiniKnowledgeGraph({
       ref={containerRef}
       className={`w-full bg-gray-50 rounded-xl border border-gray-100 ${className}`}
       style={{ height }}
-      role="application"
-      aria-label="Mini mapa de conhecimento"
+      role="img"
+      aria-label={`Mini mapa de conhecimento com ${data.nodes.length} conceitos`}
       aria-roledescription="grafo de conhecimento"
     />
   );

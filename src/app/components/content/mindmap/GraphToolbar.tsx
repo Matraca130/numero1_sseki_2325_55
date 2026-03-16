@@ -67,12 +67,7 @@ interface GraphToolbarProps {
 
 // ── Mastery Legend ───────────────────────────────────────────
 
-const LEGEND_ITEMS: { color: MasteryColor; label: string }[] = [
-  { color: 'green', label: getMasteryLabel('green') },
-  { color: 'yellow', label: getMasteryLabel('yellow') },
-  { color: 'red', label: getMasteryLabel('red') },
-  { color: 'gray', label: getMasteryLabel('gray') },
-];
+const MASTERY_COLORS: MasteryColor[] = ['green', 'yellow', 'red', 'gray'];
 
 // ── Layout options ──────────────────────────────────────────
 
@@ -263,14 +258,14 @@ export function GraphToolbar({
 
       {/* Mastery legend — hidden on mobile */}
       <div className="hidden md:flex items-center gap-3" role="group" aria-label={t.masteryGroup}>
-        {LEGEND_ITEMS.map(({ color, label }) => (
+        {MASTERY_COLORS.map((color) => (
           <div key={color} className="flex items-center gap-1">
             <span
               className="w-2.5 h-2.5 rounded-full"
               style={{ backgroundColor: MASTERY_HEX[color] }}
               aria-hidden="true"
             />
-            <span className="text-xs text-gray-500">{label}</span>
+            <span className="text-xs text-gray-500">{getMasteryLabel(color, locale)}</span>
           </div>
         ))}
 

@@ -42,11 +42,19 @@ export function getSafeMasteryColor(mastery: number): MasteryColor {
   return mastery < 0 ? 'gray' : getMasteryColor(mastery);
 }
 
-export function getMasteryLabel(color: MasteryColor): string {
+export function getMasteryLabel(color: MasteryColor, locale: 'pt' | 'es' = 'pt'): string {
+  if (locale === 'pt') {
+    switch (color) {
+      case 'green':  return 'Dominado';
+      case 'yellow': return 'Aprendendo';
+      case 'red':    return 'Fraco';
+      case 'gray':   return 'Sem dados';
+    }
+  }
   switch (color) {
     case 'green':  return 'Dominado';
     case 'yellow': return 'Aprendiendo';
-    case 'red':    return 'Debil';
+    case 'red':    return 'Débil';
     case 'gray':   return 'Sin datos';
   }
 }
