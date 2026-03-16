@@ -26,7 +26,7 @@ import {
   type FlashcardCard,
 } from '@/app/services/platformApi';
 
-// ── Types ────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────
 
 export interface TopicMasteryInfo {
   topicId: string;
@@ -69,13 +69,11 @@ export interface UseTopicMasteryResult {
   refresh: () => Promise<void>;
 }
 
-// ── Helpers ──────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────
 
-/** Group BKT states by subtopic_id */
 function groupBktByTopic(bktStates: BktStateRecord[]): Map<string, BktStateRecord> {
   const map = new Map<string, BktStateRecord>();
   for (const s of bktStates) {
-    // If multiple BKT rows per subtopic, keep the one with most attempts
     const existing = map.get(s.subtopic_id);
     if (!existing || s.total_attempts > existing.total_attempts) {
       map.set(s.subtopic_id, s);
@@ -84,7 +82,6 @@ function groupBktByTopic(bktStates: BktStateRecord[]): Map<string, BktStateRecor
   return map;
 }
 
-/** Build flashcard_id → subtopic_id map from flashcard catalog */
 function buildFlashcardToTopicMap(flashcards: FlashcardCard[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const fc of flashcards) {
@@ -95,7 +92,6 @@ function buildFlashcardToTopicMap(flashcards: FlashcardCard[]): Map<string, stri
   return map;
 }
 
-/** Phase 2: Group FSRS states by topic using flashcard→topic mapping */
 interface TopicFsrsAggregate {
   totalCards: number;
   dueCount: number;
@@ -109,77 +105,44 @@ function groupFsrsByTopic(
 ): Map<string, TopicFsrsAggregate> {
   const now = getAxonToday().toISOString();
   const map = new Map<string, TopicFsrsAggregate>();
-
   for (const s of fsrsStates) {
-    // Resolve to topic via flashcard mapping
     const topicId = s.flashcard_id ? flashcardToTopic.get(s.flashcard_id) : undefined;
-    if (!topicId) continue; // Can't map → skip
-
+    if (!topicId) continue;
     let agg = map.get(topicId);
-    if (!agg) {
-      agg = { totalCards: 0, dueCount: 0, stabilitySum: 0, byState: {} };
-      map.set(topicId, agg);
-    }
-
+    if (!agg) { agg = { totalCards: 0, dueCount: 0, stabilitySum: 0, byState: {} }; map.set(topicId, agg); }
     agg.totalCards++;
     if (s.due && s.due < now) agg.dueCount++;
     agg.stabilitySum += s.stability;
     agg.byState[s.state] = (agg.byState[s.state] || 0) + 1;
   }
-
   return map;
 }
 
-/** Determine dominant FSRS state from counts */
 function getDominantState(byState: Record<string, number>): FsrsStateRecord['state'] | null {
   let maxCount = 0;
   let dominant: FsrsStateRecord['state'] | null = null;
   for (const [state, count] of Object.entries(byState)) {
-    if (count > maxCount) {
-      maxCount = count;
-      dominant = state as FsrsStateRecord['state'];
-    }
+    if (count > maxCount) { maxCount = count; dominant = state as FsrsStateRecord['state']; }
   }
   return dominant;
 }
 
-/** Compute priority score (0-100): higher = needs more study.
- *  Factors: inverse mastery, overdue cards, low stability, state penalties. */
-function computePriorityScore(
-  pKnow: number | null,
-  fsrsAgg: TopicFsrsAggregate | undefined,
-): number {
-  // Base: inverse of mastery (no data = high priority)
+function computePriorityScore(pKnow: number | null, fsrsAgg: TopicFsrsAggregate | undefined): number {
   const masteryFactor = pKnow !== null ? (1 - pKnow) * 60 : 50;
-
-  // Due cards penalty (each overdue card adds up to 20 points)
-  const duePenalty = fsrsAgg
-    ? Math.min(fsrsAgg.dueCount * 5, 20)
-    : 0;
-
-  // Low stability penalty (only if FSRS data exists for this topic)
-  const avgStab = fsrsAgg && fsrsAgg.totalCards > 0
-    ? fsrsAgg.stabilitySum / fsrsAgg.totalCards
-    : -1; // sentinel: no FSRS data
-  const stabPenalty = avgStab < 0 ? 0 // no FSRS cards → no stability penalty
-    : avgStab < 1 ? 15 : avgStab < 5 ? 10 : avgStab < 15 ? 5 : 0;
-
-  // Relearning/learning state penalty
+  const duePenalty = fsrsAgg ? Math.min(fsrsAgg.dueCount * 5, 20) : 0;
+  const avgStab = fsrsAgg && fsrsAgg.totalCards > 0 ? fsrsAgg.stabilitySum / fsrsAgg.totalCards : -1;
+  const stabPenalty = avgStab < 0 ? 0 : avgStab < 1 ? 15 : avgStab < 5 ? 10 : avgStab < 15 ? 5 : 0;
   const relearningCount = (fsrsAgg?.byState['relearning'] || 0) + (fsrsAgg?.byState['learning'] || 0);
   const statePenalty = Math.min(relearningCount * 3, 10);
-
   return Math.min(100, Math.round(masteryFactor + duePenalty + stabPenalty + statePenalty));
 }
 
-// ── Mastery threshold ────────────────────────────────────────
-const MASTERY_LOW_THRESHOLD = 0.5; // p_know < 0.5 → needs review
+const MASTERY_LOW_THRESHOLD = 0.5;
 
-// ── Hook ─────────────────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────────────────
 
 export function useTopicMastery(
-  /** Optional: only compute for these topic IDs */
   topicIds?: string[],
-  /** Optional: map of topicId → courseId for course aggregation */
   topicToCourseMap?: Map<string, string>,
 ): UseTopicMasteryResult {
   const { bktStates, loading: studentLoading } = useStudentDataContext();
@@ -188,116 +151,71 @@ export function useTopicMastery(
   const [fsrsLoading, setFsrsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch FSRS states + flashcard catalog (Phase 2) ────────
   const fetchFsrsAndFlashcards = useCallback(async () => {
     setFsrsLoading(true);
     setError(null);
     try {
-      // Parallel fetch: FSRS states + flashcard catalog
       const [fsrsRes, fcRes] = await Promise.allSettled([
         getFsrsStates({ limit: 500 }),
         getFlashcards({ status: 'published', limit: 500 }),
       ]);
-
       setFsrsStates(fsrsRes.status === 'fulfilled' ? fsrsRes.value : []);
       setFlashcards(fcRes.status === 'fulfilled' ? fcRes.value : []);
-
-      if (fsrsRes.status === 'rejected') {
-        console.warn('[useTopicMastery] FSRS fetch failed (non-blocking):', fsrsRes.reason?.message);
-      }
-      if (fcRes.status === 'rejected') {
-        console.warn('[useTopicMastery] Flashcards fetch failed (non-blocking):', fcRes.reason?.message);
-      }
+      if (fsrsRes.status === 'rejected') console.warn('[useTopicMastery] FSRS fetch failed:', fsrsRes.reason?.message);
+      if (fcRes.status === 'rejected') console.warn('[useTopicMastery] Flashcards fetch failed:', fcRes.reason?.message);
     } catch (err: any) {
-      console.warn('[useTopicMastery] fetch failed (non-blocking):', err.message);
-      setFsrsStates([]);
-      setFlashcards([]);
-    } finally {
-      setFsrsLoading(false);
-    }
+      console.warn('[useTopicMastery] fetch failed:', err.message);
+      setFsrsStates([]); setFlashcards([]);
+    } finally { setFsrsLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchFsrsAndFlashcards();
-  }, [fetchFsrsAndFlashcards]);
-
+  useEffect(() => { fetchFsrsAndFlashcards(); }, [fetchFsrsAndFlashcards]);
   const refresh = fetchFsrsAndFlashcards;
 
-  // ── Phase 2: Build flashcard → topic mapping ───────────────
-  const flashcardToTopicMap = useMemo(
-    () => buildFlashcardToTopicMap(flashcards),
-    [flashcards],
-  );
+  const flashcardToTopicMap = useMemo(() => buildFlashcardToTopicMap(flashcards), [flashcards]);
 
-  // ── Compute mastery ────────────────────────────────────────
   const topicMastery = useMemo(() => {
     const bktMap = groupBktByTopic(bktStates);
     const fsrsByTopic = groupFsrsByTopic(fsrsStates, flashcardToTopicMap);
     const map = new Map<string, TopicMasteryInfo>();
-
-    // If topicIds provided, compute only for those; otherwise all BKT topics
     const ids = topicIds ?? Array.from(bktMap.keys());
-
     for (const topicId of ids) {
       const bkt = bktMap.get(topicId);
       const fsrsAgg = fsrsByTopic.get(topicId);
       const pKnow = bkt?.p_know ?? null;
-      const masteryPercent = pKnow !== null ? Math.round(pKnow * 100) : 0;
-
-      const avgStability = fsrsAgg && fsrsAgg.totalCards > 0
-        ? fsrsAgg.stabilitySum / fsrsAgg.totalCards
-        : 0;
-
+      const avgStability = fsrsAgg && fsrsAgg.totalCards > 0 ? fsrsAgg.stabilitySum / fsrsAgg.totalCards : 0;
       map.set(topicId, {
-        topicId,
-        pKnow,
-        masteryPercent,
+        topicId, pKnow,
+        masteryPercent: pKnow !== null ? Math.round(pKnow * 100) : 0,
         totalAttempts: bkt?.total_attempts ?? 0,
         correctAttempts: bkt?.correct_attempts ?? 0,
-        // Phase 2: per-topic FSRS counts from real mapping
         fsrsDueCount: fsrsAgg?.dueCount ?? 0,
         fsrsTotalCards: fsrsAgg?.totalCards ?? 0,
         avgStability,
         dominantFsrsState: fsrsAgg ? getDominantState(fsrsAgg.byState) : null,
-        needsReview: pKnow !== null
-          ? pKnow < MASTERY_LOW_THRESHOLD || (fsrsAgg?.dueCount ?? 0) > 0
-          : true, // no data = needs review
+        needsReview: pKnow !== null ? pKnow < MASTERY_LOW_THRESHOLD || (fsrsAgg?.dueCount ?? 0) > 0 : true,
         priorityScore: computePriorityScore(pKnow, fsrsAgg),
       });
     }
-
     return map;
   }, [bktStates, fsrsStates, flashcardToTopicMap, topicIds]);
 
-  // ── Course-level aggregation ───────────────────────────────
   const courseMastery = useMemo(() => {
     const map = new Map<string, number>();
     if (!topicToCourseMap) return map;
-
     const courseAccum = new Map<string, { sum: number; count: number }>();
     for (const [topicId, info] of topicMastery) {
       const courseId = topicToCourseMap.get(topicId);
       if (!courseId) continue;
       const acc = courseAccum.get(courseId) || { sum: 0, count: 0 };
-      acc.sum += info.masteryPercent;
-      acc.count += 1;
+      acc.sum += info.masteryPercent; acc.count += 1;
       courseAccum.set(courseId, acc);
     }
-
     for (const [courseId, acc] of courseAccum) {
       map.set(courseId, acc.count > 0 ? Math.round(acc.sum / acc.count) : 0);
     }
-
     return map;
   }, [topicMastery, topicToCourseMap]);
 
-  return {
-    topicMastery,
-    courseMastery,
-    fsrsStates,
-    flashcardToTopicMap,
-    loading: studentLoading || fsrsLoading,
-    error,
-    refresh,
-  };
+  return { topicMastery, courseMastery, fsrsStates, flashcardToTopicMap, loading: studentLoading || fsrsLoading, error, refresh };
 }

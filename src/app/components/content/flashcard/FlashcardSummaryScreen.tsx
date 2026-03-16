@@ -1,25 +1,26 @@
 // ============================================================
-// FlashcardSummaryScreen -- Post-session summary with AI gen
+// FlashcardSummaryScreen -- Post-session summary
 //
 // PHASE 3: Fully decoupled from contexts and API services.
-//   - Removed useStudentDataContext (studentId baked into callback)
-//   - Removed getTopicKeywords / getCourseKeywords imports
-//   - New prop: onLoadKeywords callback (optional)
 // PHASE 8a: Dynamic boxShadow on CTA button matches mastery color.
 //
-// STANDALONE: depends on react, motion/react, lucide-react,
-//   SmartFlashcardGenerator (UI component), KeywordCollection type.
+// v4.4.6: Removed old SmartFlashcardGenerator (Portuguese modal with
+//   client-side gap analysis that never worked — stubs returned []).
+//   AI flashcard generation is now handled by:
+//     - aiService.generateSmart() → POST /ai/generate-smart (server-side)
+//     - aiService.generateFlashcard() → POST /ai/generate (manual)
+//   A new UI for this can be built when needed.
+//
+// STANDALONE: depends on react, motion/react, lucide-react.
 // ============================================================
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Sparkles, Activity, TrendingUp, TrendingDown, Star } from 'lucide-react';
-import { SmartFlashcardGenerator } from '@/app/components/ai/SmartFlashcardGenerator';
-import type { KeywordCollection } from '@/app/types/keywords';
+import React from 'react';
+import { motion } from 'motion/react';
+import { Trophy, TrendingUp, TrendingDown, Star, Sparkles } from 'lucide-react';
 import type { CardMasteryDelta } from '@/app/hooks/useFlashcardEngine';
 import { getMasteryColorFromPct } from './mastery-colors';
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────
 
 export interface SummaryScreenProps {
   stats: number[];
@@ -42,26 +43,18 @@ export interface SummaryScreenProps {
   totalCards?: number;
   /** Per-card mastery deltas from the session (before/after p_know) */
   masteryDeltas?: CardMasteryDelta[];
-  /**
-   * Callback to load keywords for the AI generator.
-   * The caller should bake in studentId via closure.
-   * Returns `{ keywords: KeywordCollection }`.
-   * If omitted, the AI button opens with empty keywords.
-   */
-  onLoadKeywords?: (
-    courseId: string,
-    topicId: string | null,
-  ) => Promise<{ keywords: KeywordCollection }>;
+  /** Optional: navigate to adaptive AI session. CTA hidden if undefined or mastery >= 90%. */
+  onStartAdaptive?: () => void;
 }
 
-// ── Component ─────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────
 
 export function SummaryScreen({
   stats,
   onRestart,
-  courseColor,
-  courseId,
-  courseName,
+  courseColor: _courseColor,
+  courseId: _courseId,
+  courseName: _courseName,
   topicId,
   topicTitle,
   onExit,
@@ -69,8 +62,24 @@ export function SummaryScreen({
   totalMastered,
   totalCards,
   masteryDeltas,
-  onLoadKeywords,
+  onStartAdaptive,
 }: SummaryScreenProps) {
+  // [F1 FIX] Guard against empty stats (prevents NaN from division by zero)
+  if (stats.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-surface-dashboard p-8 text-center">
+        <p className="text-gray-500">No hay datos de la sesi\u00F3n.</p>
+        <button
+          onClick={onExit}
+          className="mt-4 px-6 py-3 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+          style={{ fontWeight: 600 }}
+        >
+          Volver al Deck
+        </button>
+      </div>
+    );
+  }
+
   // Use real p_know mastery if available, fallback to rating average
   const average = stats.reduce((a, b) => a + b, 0) / stats.length;
   const mastery = realMasteryPercent ?? (average / 5) * 100;
@@ -85,52 +94,16 @@ export function SummaryScreen({
     for (const d of masteryDeltas) {
       if (d.after > d.before) improved++;
       else if (d.after < d.before) declined++;
-      // "mastered" = p_know crossed 0.75 threshold
       if (d.before < 0.75 && d.after >= 0.75) newlyMastered++;
     }
     return { improved, declined, newlyMastered, total: masteryDeltas.length };
   })();
 
-  // AI Flashcard Generator state
-  const [showGenerator, setShowGenerator] = useState(false);
-  const [loadingKeywords, setLoadingKeywords] = useState(false);
-  const [keywords, setKeywords] = useState<KeywordCollection | null>(null);
-  const [keywordsError, setKeywordsError] = useState<string | null>(null);
-
-  const handleOpenGenerator = async () => {
-    // If no callback provided, open with empty keywords
-    if (!onLoadKeywords) {
-      setKeywords({});
-      setShowGenerator(true);
-      return;
-    }
-
-    setLoadingKeywords(true);
-    setKeywordsError(null);
-    try {
-      const data = await onLoadKeywords(courseId, topicId);
-      const kw = (data?.keywords || {}) as KeywordCollection;
-      setKeywords(kw);
-      setShowGenerator(true);
-    } catch (err: any) {
-      console.error('[SummaryScreen] Error loading keywords:', err);
-      // If no keywords exist yet, use empty collection so generator can still work
-      if (err?.status === 404 || err?.message?.includes('404')) {
-        setKeywords({});
-        setShowGenerator(true);
-      } else {
-        setKeywordsError('N\u00E3o foi poss\u00EDvel carregar as keywords. Tente novamente.');
-      }
-    } finally {
-      setLoadingKeywords(false);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col items-center justify-center h-full bg-surface-dashboard p-8 text-center relative overflow-hidden"
+      className="flex flex-col items-center justify-center h-full bg-surface-dashboard p-4 sm:p-8 text-center relative overflow-hidden"
     >
       {/* Ambient celebration glow */}
       <div
@@ -143,13 +116,13 @@ export function SummaryScreen({
           <Trophy size={40} className="text-white" />
         </div>
 
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Sesi{'\u00F3n'} Completada!</h2>
-        <p className="text-gray-500 mb-8 max-w-md">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Sesi\u00F3n Completada!</h2>
+        <p className="text-gray-500 mb-6 sm:mb-8 max-w-md text-sm sm:text-base">
           Completaste {stats.length} flashcards con un dominio estimado de:
         </p>
 
-        <div className="relative w-48 h-48 flex items-center justify-center mb-10">
-          <svg className="w-full h-full transform -rotate-90">
+        <div className="relative w-36 h-36 sm:w-48 sm:h-48 flex items-center justify-center mb-8 sm:mb-10">
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 192 192">
             <circle cx="96" cy="96" r="88" stroke="#e2e8f0" strokeWidth="12" fill="none" />
             <motion.circle
               cx="96" cy="96" r="88"
@@ -164,7 +137,7 @@ export function SummaryScreen({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-4xl font-bold text-gray-900">{mastery.toFixed(0)}%</span>
+            <span className="text-3xl sm:text-4xl font-bold text-gray-900">{mastery.toFixed(0)}%</span>
             <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Dominio</span>
           </div>
         </div>
@@ -175,7 +148,7 @@ export function SummaryScreen({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="flex items-center gap-4 mb-8"
+            className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-6 sm:mb-8"
           >
             {deltaStats.improved > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
@@ -210,99 +183,58 @@ export function SummaryScreen({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-sm text-gray-500 mb-8"
+            className="text-sm text-gray-500 mb-6 sm:mb-8"
           >
             <span className="text-gray-700" style={{ fontWeight: 600 }}>{totalMastered}</span> de{' '}
             <span className="text-gray-700" style={{ fontWeight: 600 }}>{totalCards}</span> cards dominadas en total
           </motion.p>
         )}
 
-        {/* Action buttons */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex gap-4">
-            <button onClick={onExit} className="px-6 py-3 rounded-full border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
-              Volver al Deck
-            </button>
-            <button
-              onClick={onRestart}
-              className="px-6 py-3 rounded-full text-white font-semibold shadow-lg hover:scale-105 hover:brightness-90 transition-all"
-              style={{
-                backgroundColor: summaryColor.hex,
-                boxShadow: `0 8px 24px ${summaryColor.hex}40`,
-              }}
-            >
-              Practicar de Nuevo
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 w-full max-w-xs my-1">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">o</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          {/* AI Generate button */}
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
+        {/* ── Adaptive CTA banner ── */}
+        {onStartAdaptive && mastery < 90 && stats.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            onClick={handleOpenGenerator}
-            disabled={loadingKeywords}
-            className="group flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-gradient-to-r from-[#ec43ef] to-[#b830e8] text-white font-semibold shadow-lg shadow-[#ec43ef]/20 hover:shadow-xl hover:shadow-[#ec43ef]/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed relative overflow-hidden"
+            transition={{ delay: 0.9 }}
+            className="mb-6 sm:mb-8 w-full max-w-[90vw] sm:max-w-sm bg-gradient-to-br from-violet-50/80 to-[#e6f5f1]/80 backdrop-blur-sm border border-violet-200/40 rounded-2xl p-4 sm:p-5 text-center"
           >
-            {/* Shimmer effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-            <span className="relative flex items-center gap-2.5">
-              {loadingKeywords ? (
-                <>
-                  <Activity size={16} className="animate-spin" />
-                  Carregando...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16} />
-                  Gerar Novos Flashcards com IA
-                </>
-              )}
-            </span>
-          </motion.button>
-
-          {keywordsError && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xs text-rose-500 mt-1"
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles size={16} className="text-violet-500" />
+              <span className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
+                Refuerza tus puntos d\u00E9biles
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Genera flashcards personalizadas con IA enfocadas en lo que m\u00E1s necesitas practicar
+            </p>
+            <button
+              onClick={onStartAdaptive}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-[#2a8c7a] text-white text-sm shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 hover:-translate-y-0.5 transition-all flex items-center gap-2 mx-auto"
+              style={{ fontWeight: 600 }}
             >
-              {keywordsError}
-            </motion.p>
-          )}
+              <Sparkles size={14} />
+              Sesi\u00F3n Adaptativa
+            </button>
+          </motion.div>
+        )}
 
-          <p className="text-[11px] text-gray-400 max-w-xs">
-            La IA analiza tus gaps de conocimiento y genera flashcards enfocados en las keywords que m{'\u00E1s'} necesitan refuerzo
-          </p>
+        {/* Action buttons — stack on mobile */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+          <button onClick={onExit} className="px-6 py-3 rounded-full border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors order-2 sm:order-1">
+            Volver al Deck
+          </button>
+          <button
+            onClick={onRestart}
+            className="px-6 py-3 rounded-full text-white font-semibold shadow-lg hover:scale-105 hover:brightness-90 transition-all order-1 sm:order-2"
+            style={{
+              backgroundColor: summaryColor.hex,
+              boxShadow: `0 8px 24px ${summaryColor.hex}40`,
+            }}
+          >
+            Practicar de Nuevo
+          </button>
         </div>
       </div>
-
-      {/* Smart Flashcard Generator Modal */}
-      <AnimatePresence>
-        {showGenerator && keywords !== null && (
-          <SmartFlashcardGenerator
-            courseId={courseId}
-            topicId={topicId || courseId}
-            courseName={courseName}
-            topicTitle={topicTitle || courseName}
-            keywords={keywords}
-            onFlashcardsGenerated={(flashcards, updatedKeywords) => {
-              if (import.meta.env.DEV) {
-                console.log(`[SummaryScreen] Generated ${flashcards.length} flashcards`);
-              }
-              setKeywords(updatedKeywords);
-            }}
-            onClose={() => setShowGenerator(false)}
-          />
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
