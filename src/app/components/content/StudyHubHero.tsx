@@ -419,7 +419,7 @@ export function StudyHubHero({
               { icon: Clock, label: 'Hoy', value: `${todayStats.minutes > 0 ? todayStats.minutes : studyMinutesToday > 0 ? studyMinutesToday : 0}m`, sub: `meta ${dailyGoalMinutes}m`, accent: 'text-teal-300' },
               { icon: BookOpen, label: 'Resumenes', value: String(todayStats.summaries), sub: 'leidos hoy', accent: 'text-teal-300' },
               { icon: Sparkles, label: 'Flashcards', value: String(todayStats.flashcards > 0 ? todayStats.flashcards : totalCardsReviewed), sub: todayStats.flashcards > 0 ? 'hoy' : 'total', accent: 'text-amber-400' },
-              { icon: Play, label: 'Videos', value: String(todayStats.videos), sub: 'visto hoy', accent: 'text-violet-300' },
+              { icon: Play, label: 'Videos', value: String(todayStats.videos), sub: 'visto hoy', accent: 'text-teal-300' },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}

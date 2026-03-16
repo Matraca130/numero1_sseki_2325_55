@@ -30,7 +30,7 @@ import { StudyHubHero } from './StudyHubHero';
 import { StudyHubSectionCards } from './StudyHubSectionCards';
 import { WeeklyActivityChart } from './WeeklyActivityChart';
 import { formatRelativeTime } from './studyhub-helpers';
-import { axon } from '@/app/lib/palette';
+import { axon, tint } from '@/app/lib/palette';
 
 // ── Main export ──────────────────────────────────────────────
 
@@ -219,7 +219,7 @@ export function StudyHubView() {
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             />
-            <p className="text-sm" style={{ color: '#6b7280' }}>Cargando plan de estudios...</p>
+            <p className="text-sm" style={{ color: tint.subtitleText }}>Cargando plan de estudios...</p>
           </div>
         </div>
       </div>
@@ -264,12 +264,12 @@ export function StudyHubView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{ backgroundColor: '#e8f5f1' }}
+            style={{ backgroundColor: tint.tealBg }}
           >
-            <BookOpen className="w-7 h-7" style={{ color: '#b3ddd2' }} />
+            <BookOpen className="w-7 h-7" style={{ color: tint.tealBorder }} />
           </div>
-          <p className="text-sm" style={{ color: '#6b7280', fontWeight: 500 }}>El profesor aun no ha creado resumenes</p>
-          <p className="text-xs" style={{ color: '#9ca3af' }}>Vuelve mas tarde para ver los resumenes del curso</p>
+          <p className="text-sm" style={{ color: tint.subtitleText, fontWeight: 500 }}>El profesor aun no ha creado resumenes</p>
+          <p className="text-xs" style={{ color: tint.neutralText }}>Vuelve mas tarde para ver los resumenes del curso</p>
         </div>
       </div>
     );
