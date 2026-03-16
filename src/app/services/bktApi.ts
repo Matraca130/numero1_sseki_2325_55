@@ -94,3 +94,18 @@ export async function getBktStates(filters?: {
   const qs = params.toString() ? `?${params}` : '';
   return apiCall<BktState[]>(`/bkt-states${qs}`);
 }
+
+/**
+ * Fetch ALL BKT states for the current student (1 HTTP call).
+ * The backend auto-filters by JWT (scopeToUser).
+ * Used by useStudyHubProgress for course-level mastery derivation.
+ *
+ * Returns empty array on failure (non-blocking — graceful degradation).
+ */
+export async function getAllBktStates(): Promise<BktState[]> {
+  try {
+    return await apiCall<BktState[]>('/bkt-states?limit=1000');
+  } catch {
+    return [];
+  }
+}

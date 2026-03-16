@@ -190,3 +190,23 @@ export async function updateVideoNote(id: string, data: {
 export async function deleteVideoNote(id: string): Promise<any> {
   return apiCall(`/video-notes/${id}`, { method: 'DELETE' });
 }
+
+// ── Bulk Reading States ─────────────────────────────────────
+
+/**
+ * Fetch ALL reading states for the authenticated student.
+ * Used by useStudyHubProgress for course-level mastery derivation.
+ *
+ * Returns empty array on failure (non-blocking — graceful degradation).
+ */
+export async function getAllReadingStates(): Promise<ReadingState[]> {
+  try {
+    const result = await apiCall<any>('/reading-states?limit=1000');
+    // Handle both paginated { items: [...] } and direct array shapes
+    if (Array.isArray(result)) return result;
+    if (result && Array.isArray(result.items)) return result.items;
+    return [];
+  } catch {
+    return [];
+  }
+}
