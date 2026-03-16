@@ -158,3 +158,46 @@ export async function apiCall<T = any>(
 
   return promise;
 }
+
+// ── Keyword helpers ─────────────────────────────────────
+// Used by FlashcardsManager, FlashcardFormModal, FlashcardBulkImport,
+// useQuestionForm, and CaptureViewDialog to guarantee a "General"
+// keyword exists for a given summary before attaching content to it.
+
+interface KeywordRow {
+  id: string;
+  name: string;
+  summary_id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Ensures a "General" keyword exists for the given summary.
+ * Returns the keyword ID (existing or newly created).
+ *
+ * Uses flat query-param routes per Axon convention (rule 2).
+ * keyword_id is REQUIRED for quiz-questions and flashcards (rule 5).
+ */
+export async function ensureGeneralKeyword(summaryId: string): Promise<string> {
+  // 1. Fetch existing keywords for this summary
+  const keywords = await apiCall<KeywordRow[]>(
+    `/keywords?summary_id=${encodeURIComponent(summaryId)}`
+  );
+
+  // 2. Look for an existing "General" keyword (case-insensitive)
+  const general = keywords.find(
+    (k) => k.name.toLowerCase() === 'general'
+  );
+  if (general) return general.id;
+
+  // 3. None found — create one
+  const created = await apiCall<KeywordRow>('/keywords', {
+    method: 'POST',
+    body: JSON.stringify({
+      summary_id: summaryId,
+      name: 'General',
+    }),
+  });
+
+  return created.id;
+}
