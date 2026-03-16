@@ -121,7 +121,6 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
 
     // Use ScriptProcessorNode for PCM16 capture
     // (AudioWorklet would be cleaner but requires a separate file)
-    // TODO: Migrate to AudioWorkletNode for off-main-thread audio processing
     const processor = audioCtx.createScriptProcessor(BUFFER_SIZE, 1, 1);
     processorRef.current = processor;
 
@@ -204,29 +203,28 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       // 3. Connect WebSocket
       client.connect(session.client_secret);
 
-      // 4. Wait for WebSocket to open (poll with timeout)
-      await new Promise<void>((resolve, reject) => {
-        let settled = false;
-        const intervalId = setInterval(() => {
+      // 4. Start microphone capture (after small delay for WS to open)
+      await new Promise<void>((resolve) => {
+        const checkInterval = setInterval(() => {
           if (client.isConnected) {
-            if (settled) return;
-            settled = true;
-            clearInterval(intervalId);
-            clearTimeout(timeoutId);
+            clearInterval(checkInterval);
             resolve();
           }
         }, 100);
-        const timeoutId = setTimeout(() => {
-          if (settled) return;
-          settled = true;
-          clearInterval(intervalId);
-          reject(new Error('Tiempo de espera agotado al conectar'));
+        // Timeout after 10s
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          resolve();
         }, 10000);
       });
 
-      await startMicrophone(client);
+      if (client.isConnected) {
+        await startMicrophone(client);
+      } else {
+        throw new Error('WebSocket connection timeout');
+      }
     } catch (e) {
-      const msg = (e as Error).message || 'Error al iniciar la llamada';
+      const msg = (e as Error).message || 'Failed to start call';
       setError(msg);
       setState('error');
       cleanup();
