@@ -39,8 +39,10 @@ const RECOVERY_FACTOR = 0.15; // boost when previousMax > current
  *   3. new_p_know = posterior + (1 - posterior) * p_transit
  *   4. If previousMaxMastery > current → add recovery boost
  *   5. Clamp to [0, 1]
+ *
+ * Exported for testability (quiz-bkt-computation.test.ts).
  */
-function computeBktMastery(
+export function computeBktMastery(
   currentMastery: number,
   isCorrect: boolean,
   previousMaxMastery?: number,
