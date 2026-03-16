@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import * as studentApi from '@/app/services/studentSummariesApi';
 import type { ReadingState, TextAnnotation, KwStudentNote } from '@/app/services/studentSummariesApi';
 import { queryKeys } from '@/app/hooks/queries/queryKeys';
+import { invalidateGraphCache } from '@/app/components/content/mindmap/useGraphData';
 
 // ── Args ──────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ export function useSummaryReaderMutations({
       setTimeout(() => setShowXpToast(false), 3000);
       toast.success('Resumen marcado como leido');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
+      invalidateGraphCache(topicId, summaryId);
     },
     onError: (err: any) => toast.error(err.message || 'Error al marcar como leido'),
   });

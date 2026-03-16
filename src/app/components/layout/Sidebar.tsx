@@ -27,6 +27,7 @@ import {
   Calendar,
   Home,
   Database,
+  Brain,
   type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -50,6 +51,7 @@ export function Sidebar() {
     { id: '3d', label: 'Atlas 3D', icon: Box },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
     { id: 'student-data', label: 'Mis Datos', icon: Database },
+    { id: 'knowledge-map', label: 'Mapa de Conhecimento', icon: Brain },
   ];
 
   const secondaryItems: NavItem[] = [

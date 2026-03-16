@@ -55,6 +55,10 @@ import { QuizRecoveryPrompt } from '@/app/components/student/QuizRecoveryPrompt'
 // ── Error boundary (Phase 7b) ────────────────────────────
 import { QuizErrorBoundary } from '@/app/components/student/QuizErrorBoundary';
 
+// ── Mini knowledge graph (collapsible) ───────────────────
+import { QuizSessionGraphPanel } from '@/app/components/student/QuizSessionGraphPanel';
+import { invalidateGraphCache } from '@/app/components/content/mindmap/useGraphData';
+
 // ── Gamification bridge (G4) ─────────────────────────────
 // NOTE: gamification refresh + badge check are handled EXCLUSIVELY
 // by useQuizGamificationFeedback inside QuizResults (Q-UX1).
@@ -128,7 +132,17 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
     // TD-7: Notify parent that quiz reached results phase
     onCompleteRef.current?.();
-  }, [phase]);
+    // Invalidate graph cache so mind map shows updated mastery.
+    // Use summaryId when available; if not, invalidate all (safe fallback
+    // for preloaded-questions path where summaryId may be undefined).
+    if (summaryId) {
+      invalidateGraphCache(undefined, summaryId);
+    } else if (questions.length > 0 && questions[0].summary_id) {
+      invalidateGraphCache(undefined, questions[0].summary_id);
+    } else {
+      invalidateGraphCache();
+    }
+  }, [phase, summaryId, questions]);
 
   // Reset gamification refresh flag when quiz restarts
   useEffect(() => {
@@ -470,6 +484,19 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
             </AnimatePresence>
           </div>
         </div>
+
+        {/* ── Mini Knowledge Graph ── */}
+        <QuizSessionGraphPanel
+          summaryId={currentQ.summary_id}
+          currentKeywordId={currentQ.keyword_id}
+          onNodeClick={(node) => {
+            // Find question matching the clicked keyword and navigate to it
+            const targetIdx = questions.findIndex(q => q.keyword_id === node.id);
+            if (targetIdx >= 0 && targetIdx !== currentIdx) {
+              setCurrentIdx(targetIdx);
+            }
+          }}
+        />
 
         {/* ── Bottom Bar ── */}
         <QuizBottomBar

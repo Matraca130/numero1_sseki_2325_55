@@ -55,6 +55,9 @@ import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
 
+// ── Mini knowledge graph panel ────────────────────────────
+import { SummaryGraphPanel } from '@/app/components/content/SummaryGraphPanel';
+
 // ── Props ─────────────────────────────────────────────────
 interface StudentSummaryReaderProps {
   summary: Summary;
@@ -211,6 +214,17 @@ export function StudentSummaryReader({
     }
   };
 
+  // ── Graph panel: track which keyword is highlighted ─────
+  const [highlightedKeywordId, setHighlightedKeywordId] = useState<string | undefined>(undefined);
+
+  // Capture keyword clicks via event delegation on .axon-kw-highlight spans
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.axon-kw-highlight');
+    if (target?.dataset.keywordId) {
+      setHighlightedKeywordId(target.dataset.keywordId);
+    }
+  }, []);
+
   const isCompleted = readingState?.completed === true;
 
   return (
@@ -307,7 +321,7 @@ export function StudentSummaryReader({
 
           {/* ── Paginated content preview ── */}
           {summary.content_markdown && (
-              <div className="px-6 sm:px-8 py-6">
+              <div className="px-6 sm:px-8 py-6" onClick={handleContentClick}>
                 <div className="min-h-[180px]">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -359,6 +373,18 @@ export function StudentSummaryReader({
             </div>
           )}
         </div>
+
+        {/* ── Mini knowledge graph (collapsible) ── */}
+        <SummaryGraphPanel
+          summaryId={summary.id}
+          highlightedKeywordId={highlightedKeywordId}
+          onNodeClick={(node) => {
+            setHighlightedKeywordId(node.id);
+            if (node.summaryId && onNavigateKeyword) {
+              onNavigateKeyword(node.id, node.summaryId);
+            }
+          }}
+        />
 
         {/* ── Tabs ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>

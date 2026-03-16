@@ -70,5 +70,10 @@ export const studyStudentRoutes: RouteObject[] = [
     path: 'xp-history',
     lazy: () => lazyRetry(() => import('@/app/components/gamification/pages/XpHistoryPage')).then(m => ({ Component: m.XpHistoryPage })),
   },
+  // ── Knowledge Mind Map ──
+  {
+    path: 'knowledge-map',
+    lazy: () => lazyRetry(() => import('@/app/components/content/KnowledgeMapView')).then(m => ({ Component: m.KnowledgeMapView })),
+  },
   // Agent 5: agrega nuevas rutas de study/dashboard aqui
 ];

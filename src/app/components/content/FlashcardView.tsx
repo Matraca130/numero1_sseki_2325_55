@@ -17,6 +17,7 @@ import { useFlashcardCoverage } from '@/app/hooks/useFlashcardCoverage';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } from './flashcard';
+import { invalidateGraphCache } from '@/app/components/content/mindmap/useGraphData';
 
 export function FlashcardView() {
   const { user } = useAuth();
@@ -39,6 +40,8 @@ export function FlashcardView() {
     onFinish: () => {
       nav.applyOptimisticMastery(engine.optimisticUpdates.current);
       nav.invalidateKeywordMastery(nav.selectedTopic?.id);
+      // Invalidate graph cache so mind map shows updated mastery
+      invalidateGraphCache(nav.selectedTopic?.id);
       nav.setViewState('summary');
       nav.refreshMastery();
     },
@@ -123,7 +126,15 @@ export function FlashcardView() {
               <DeckScreen key="deck" topic={nav.selectedTopic} sectionIdx={nav.selectedSectionIdx} sectionName={nav.selectedSection?.title || ''} courseColor={nav.currentCourse.color} onStart={handleStartDeck} onBack={nav.goBack} onStudyTopic={nav.studySelectedTopic} onStartAdaptive={handleStartAdaptive} keywordProgress={currentKeywordProgress} />
             )}
             {nav.viewState === 'session' && engine.sessionCards.length > 0 && (
-              <SessionScreen key="session" cards={engine.sessionCards} currentIndex={engine.currentIndex} isRevealed={engine.isRevealed} setIsRevealed={engine.setIsRevealed} handleRate={engine.handleRate} sessionStats={engine.sessionStats} courseColor={nav.currentCourse.color} onBack={nav.goBack} masteryMap={nav.masteryMap} />
+              <SessionScreen key="session" cards={engine.sessionCards} currentIndex={engine.currentIndex} isRevealed={engine.isRevealed} setIsRevealed={engine.setIsRevealed} handleRate={engine.handleRate} sessionStats={engine.sessionStats} courseColor={nav.currentCourse.color} onBack={nav.goBack} masteryMap={nav.masteryMap} topicId={nav.selectedTopic?.id} onGraphNodeClick={(node) => {
+                // Navigate to that keyword's flashcards by finding cards with matching keyword_id
+                const topicCards = nav.selectedTopic?.flashcards || [];
+                const keywordCards = topicCards.filter(c => c.keyword_id === node.id);
+                if (keywordCards.length > 0) {
+                  engine.startSession(keywordCards);
+                  nav.setViewState('session');
+                }
+              }} />
             )}
             {nav.viewState === 'summary' && (
               <SummaryScreen key="summary" stats={engine.sessionStats} courseColor={nav.currentCourse.color} courseId={nav.currentCourse.id} courseName={nav.currentCourse.name} topicId={nav.selectedTopic?.id || null} topicTitle={nav.selectedTopic?.title || null} realMasteryPercent={realMasteryPercent} totalMastered={nav.allFlashcards.filter(c => c.mastery >= 4).length} totalCards={nav.allFlashcards.length} masteryDeltas={engine.masteryDeltas.current} onRestart={handleRestart} onExit={nav.goBack} onStartAdaptive={handleStartAdaptive} />

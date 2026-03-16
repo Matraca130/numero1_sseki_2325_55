@@ -24,8 +24,10 @@ import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { RATINGS } from '@/app/hooks/flashcard-types';
 import { getMasteryColor } from './mastery-colors';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
+import { SessionGraphPanel } from './SessionGraphPanel';
+import type { MapNode } from '@/app/types/mindmap';
 
-export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, handleRate, sessionStats, courseColor, onBack, masteryMap }: {
+export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, handleRate, sessionStats, courseColor, onBack, masteryMap, topicId, onGraphNodeClick }: {
   cards: Flashcard[];
   currentIndex: number;
   isRevealed: boolean;
@@ -37,6 +39,10 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
   onBack: () => void;
   /** v4.2: Optional study-queue mastery map for leech/priority badges */
   masteryMap?: Map<string, StudyQueueItem>;
+  /** Topic ID for the mini knowledge graph */
+  topicId?: string;
+  /** Callback when a graph node is clicked */
+  onGraphNodeClick?: (node: MapNode) => void;
 }) {
   const currentCard = cards[currentIndex];
   
@@ -260,6 +266,13 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* ── Mini Knowledge Graph (collapsible) ── */}
+              <SessionGraphPanel
+                topicId={topicId}
+                currentKeywordId={currentCard.keyword_id}
+                onNodeClick={onGraphNodeClick}
+              />
 
               {/* ── Reveal Button (only when NOT revealed) ── */}
               {!isRevealed && (

@@ -7,7 +7,7 @@ import { PlatformDataProvider } from '@/app/context/PlatformDataContext';
 import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import {
   LayoutDashboard, BookOpen, ListTree, CreditCard,
-  Users, ClipboardList, Settings, GraduationCap, Brain,
+  Users, ClipboardList, Settings, GraduationCap, Brain, Map,
 } from 'lucide-react';
 
 const NAV_ITEMS: NavItemConfig[] = [
@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Curriculum', path: '/professor/curriculum', icon: <ListTree size={16} /> },
   { label: 'Flashcards', path: '/professor/flashcards', icon: <CreditCard size={16} /> },
   { label: 'Quizzes', path: '/professor/quizzes', icon: <ClipboardList size={16} /> },
+  { label: 'Mapa', path: '/professor/knowledge-map', icon: <Map size={16} /> },
   { label: 'Estudiantes', path: '/professor/students', icon: <Users size={16} /> },
   { label: 'IA Pedagogica', path: '/professor/ai', icon: <Brain size={16} /> },
   { label: 'Configuracion', path: '/professor/settings', icon: <Settings size={16} /> },

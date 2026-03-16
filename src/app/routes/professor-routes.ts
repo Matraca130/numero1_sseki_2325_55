@@ -41,6 +41,10 @@ export const professorChildren: RouteObject[] = [
     path: 'quizzes',
     lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorQuizzesPage')).then(m => ({ Component: m.ProfessorQuizzesPage })),
   },
+  {
+    path: 'knowledge-map',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorKnowledgeMapPage')).then(m => ({ Component: m.ProfessorKnowledgeMapPage })),
+  },
   { path: 'students',   ...lazyPlaceholder('Estudiantes', 'Seguimiento de alumnos', 'Users') },
   { path: 'ai',         ...lazyPlaceholder('IA',          'Herramientas de IA', 'Sparkles') },
   { path: 'settings',   ...lazyPlaceholder('Ajustes',     'Configuracion del profesor', 'Settings') },

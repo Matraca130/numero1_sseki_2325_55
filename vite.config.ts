@@ -37,6 +37,7 @@ export default defineConfig({
           'vendor-recharts': ['recharts'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-dates': ['date-fns'],
+          'vendor-g6': ['@antv/g6'],
         },
       },
     },
