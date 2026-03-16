@@ -1,16 +1,22 @@
 // ============================================================
 // Axon — Study Plan Dashboard (when plans exist) — RESPONSIVE
+// Restyled to match Figma v4.5 Cronograma design.
 //
 // RESPONSIVE CHANGES (Phase 1C):
 //   1. Mobile (<lg): Tab-based UI replacing 3-column layout
-//      - Tabs: "Tareas" | "Calendario" | "Progreso"
-//      - Sidebars render embedded (full-width) inside tab panels
 //   2. Desktop (lg+): 3-column layout unchanged
 //   3. Center top bar: stacks on mobile, shorter date format
 //   4. Summary table: grid-cols-2 on mobile → grid-cols-4 desktop
-//   5. Drag handle: hidden on mobile (touch DnD is unreliable)
-//   6. Task expand detail: flex-wrap on mobile
-//   7. Touch targets: min-h-[44px] on all interactive elements
+//   5. Drag handle: hidden on mobile
+//   6. Touch targets: min-h-[44px] on all interactive elements
+//
+// FIGMA RESTYLE (v4.5):
+//   - Task cards: rounded-[14px], gradient left accent bar, green bg on complete
+//   - Completion circle: animated SVG ring + checkmark
+//   - Method tags: styled pills per method
+//   - Task numbering: 01, 02... labels
+//   - Summary card: 4-col grid with donut progress
+//   - Motion animations: stagger, layout, AnimatePresence
 // ============================================================
 import React, { useState, useCallback } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -21,7 +27,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  CheckCircle2,
   Clock,
   BookOpen,
   Plus,
@@ -50,6 +55,8 @@ import { METHOD_ICONS, METHOD_LABELS, METHOD_COLORS } from '@/app/utils/studyMet
 // ── Extracted modules ──
 import { PlanCalendarSidebar } from '@/app/components/schedule/PlanCalendarSidebar';
 import { PlanProgressSidebar } from '@/app/components/schedule/PlanProgressSidebar';
+import { WeekView, MonthView } from '@/app/components/schedule/WeekMonthViews';
+import type { TaskWithPlan } from '@/app/components/schedule/WeekMonthViews';
 
 // ── Types ──
 type MobileTab = 'tasks' | 'calendar' | 'progress';
@@ -60,6 +67,193 @@ export interface StudyPlanDashboardProps {
   reorderTasks: (planId: string, orderedIds: string[]) => Promise<void>;
   updatePlanStatus: (planId: string, status: 'active' | 'completed' | 'archived') => Promise<void>;
   deletePlan: (planId: string) => Promise<void>;
+}
+
+// ── Method tag styles matching Figma ──
+const METHOD_TAG_FIGMA: Record<string, { bg: string; border: string; text: string; iconStroke: string }> = {
+  flashcard: {
+    bg: '#f0fdf6',
+    border: 'rgba(198,240,223,0.8)',
+    text: '#6ba88e',
+    iconStroke: '#6ba88e',
+  },
+  quiz: {
+    bg: 'linear-gradient(90deg, rgb(254,248,224), rgb(254,243,198))',
+    border: 'rgba(253,230,138,0.6)',
+    text: '#b45309',
+    iconStroke: '#b45309',
+  },
+  video: {
+    bg: '#eff6ff',
+    border: 'rgba(191,219,254,0.8)',
+    text: '#3b82f6',
+    iconStroke: '#3b82f6',
+  },
+  resumo: {
+    bg: '#faf5ff',
+    border: 'rgba(221,214,254,0.8)',
+    text: '#7c3aed',
+    iconStroke: '#7c3aed',
+  },
+  '3d': {
+    bg: '#fff7ed',
+    border: 'rgba(254,215,170,0.8)',
+    text: '#c2410c',
+    iconStroke: '#c2410c',
+  },
+};
+
+// ── Animated Completion Circle ──
+function CompletionCircle({ completed, onClick }: { completed: boolean; onClick: () => void }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.88 }}
+      className="relative shrink-0 w-[28px] h-[28px] flex items-center justify-center rounded-full"
+      aria-label={completed ? 'Marcar incompleto' : 'Marcar completo'}
+    >
+      <svg viewBox="0 0 22 22" width="22" height="22" fill="none">
+        <motion.circle
+          cx="11" cy="11" r="9.5"
+          stroke={completed ? '#34D399' : '#DFE2E8'}
+          strokeWidth="1.5"
+          fill={completed ? '#34D399' : 'none'}
+          initial={false}
+          animate={{ stroke: completed ? '#34D399' : '#DFE2E8', fill: completed ? '#34D399' : 'none' }}
+          transition={{ duration: 0.25 }}
+        />
+        <AnimatePresence>
+          {completed && (
+            <motion.path
+              d="M7 11L10 14L15 8"
+              stroke="white"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              exit={{ pathLength: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            />
+          )}
+        </AnimatePresence>
+      </svg>
+    </motion.button>
+  );
+}
+
+// ── Method Tag ──
+function MethodTag({ method }: { method: string }) {
+  const key = method?.toLowerCase?.() ?? '';
+  const style = METHOD_TAG_FIGMA[key];
+  const icon = METHOD_ICONS[key] || METHOD_ICONS[method];
+
+  if (!style) {
+    return (
+      <span className={clsx('text-[10px] px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 shrink-0', METHOD_COLORS[method] || 'bg-gray-100 text-gray-600 border-gray-200')}>
+        {icon}
+        <span>{METHOD_LABELS[method] || method}</span>
+      </span>
+    );
+  }
+
+  const isGradient = style.bg.startsWith('linear');
+  return (
+    <span
+      className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5 shrink-0 relative"
+      style={{
+        background: isGradient ? style.bg : style.bg,
+        borderColor: style.border,
+        color: style.text,
+      }}
+    >
+      <span style={{ color: style.iconStroke, display: 'flex', alignItems: 'center' }}>
+        {icon}
+      </span>
+      <span>{METHOD_LABELS[method] || method}</span>
+    </span>
+  );
+}
+
+// ── Duration pill ──
+function DurationPill({ minutes, completed }: { minutes: number; completed: boolean }) {
+  return (
+    <div className={clsx(
+      'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium',
+      completed ? 'bg-[rgba(248,249,251,0.8)] opacity-60' : 'bg-[#f5f6f8]',
+    )}>
+      <Clock size={10} className={completed ? 'text-[#c0c6d0]' : 'text-[#9ba3b2]'} />
+      <span className={clsx('font-medium', completed ? 'line-through text-[#c0c6d0]' : 'text-[#9ba3b2]')}>
+        {minutes}m
+      </span>
+    </div>
+  );
+}
+
+// ── Day Summary Card ──
+function DaySummaryCard({ todayCompleted, todayTotal, todayMinutes, todayProgress }: {
+  todayCompleted: number;
+  todayTotal: number;
+  todayMinutes: number;
+  todayProgress: number;
+}) {
+  const h = Math.floor(todayMinutes / 60);
+  const m = todayMinutes % 60;
+  const timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+
+  const progressColor = todayProgress >= 80 ? '#34D399' : todayProgress >= 40 ? '#d97706' : '#f87171';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="bg-white rounded-[14px] border border-[#ebedf0] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.03)] overflow-hidden"
+    >
+      <div className="grid grid-cols-2 lg:grid-cols-4">
+        {/* Resumen */}
+        <div
+          className="px-5 py-4 flex items-center gap-3 col-span-2 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-[#eef0f3]"
+          style={{ background: 'linear-gradient(90deg, rgb(230,245,241) 0%, rgb(237,248,245) 100%)' }}
+        >
+          <BookOpen size={13} className="text-[#1b3b36] shrink-0" />
+          <div>
+            <p className="font-semibold text-[13px] text-[#1b3b36] leading-[1.3]">Resumen del día</p>
+            <p className="text-[10px] text-[#5a9485] leading-[1.3]">
+              {todayCompleted > 0 ? 'Buen avance, continúa' : 'Empieza cuando estés listo'}
+            </p>
+          </div>
+        </div>
+        {/* Tiempo */}
+        <div className="flex flex-col items-center justify-center px-4 py-4 border-r border-[#eef0f3]">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[#9ba3b2]">Tiempo</span>
+          <span className="font-bold text-[14px] text-[#3a4455] mt-0.5">{timeStr}</span>
+        </div>
+        {/* Tareas */}
+        <div className="flex flex-col items-center justify-center px-4 py-4 border-r border-[#eef0f3]">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[#9ba3b2]">Tareas</span>
+          <span className="font-bold text-[14px] text-[#3a4455] mt-0.5">{todayCompleted}/{todayTotal}</span>
+        </div>
+        {/* Progress donut */}
+        <div className="flex items-center justify-center px-4 py-3 gap-3">
+          <div className="relative flex items-center justify-center" style={{ width: 34, height: 34 }}>
+            <svg viewBox="0 0 34 34" width="34" height="34" className="-rotate-90">
+              <circle cx="17" cy="17" r="14" stroke="#EEF0F3" strokeWidth="3" fill="none" />
+              <circle
+                cx="17" cy="17" r="14"
+                stroke={progressColor}
+                strokeWidth="3"
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={`${(todayProgress / 100) * 87.96} 87.96`}
+              />
+            </svg>
+          </div>
+          <span className="font-bold text-[14px]" style={{ color: progressColor }}>{todayProgress}%</span>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 export function StudyPlanDashboard({
@@ -77,6 +271,7 @@ export function StudyPlanDashboard({
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [mobileTab, setMobileTab] = useState<MobileTab>('tasks');
+  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
 
   // Drag & drop state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -94,36 +289,27 @@ export function StudyPlanDashboard({
   const nextDay = () => setSelectedDate(prev => addDays(prev, 1));
   const prevDay = () => setSelectedDate(prev => subDays(prev, 1));
 
-  // Get all tasks for selected date across all plans
   const allTasks = studyPlans.flatMap(plan =>
     plan.tasks.map(task => ({ ...task, planId: plan.id }))
   );
 
   const tasksForDate = allTasks.filter(t => isSameDay(t.date, selectedDate));
 
-  // Get days with tasks for calendar dots
   const daysWithTasks = new Set(
     allTasks.map(t => format(t.date, 'yyyy-MM-dd'))
   );
 
-  // Group tasks by subject for the center panel
   const tasksBySubject: Record<string, typeof tasksForDate> = {};
   for (const task of tasksForDate) {
     if (!tasksBySubject[task.subject]) tasksBySubject[task.subject] = [];
     tasksBySubject[task.subject].push(task);
   }
 
-  // Calculate progress
   const totalTasks = allTasks.length;
   const completedTasks = allTasks.filter(t => t.completed).length;
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Total estimated time for today
   const todayTotalMinutes = tasksForDate.reduce((sum, t) => sum + t.estimatedMinutes, 0);
-  const todayHours = Math.floor(todayTotalMinutes / 60);
-  const todayMins = todayTotalMinutes % 60;
-
-  // Today's progress
   const todayCompleted = tasksForDate.filter(t => t.completed).length;
   const todayProgress = tasksForDate.length > 0 ? Math.round((todayCompleted / tasksForDate.length) * 100) : 0;
 
@@ -134,6 +320,12 @@ export function StudyPlanDashboard({
       else next.add(taskId);
       return next;
     });
+  };
+
+  const handleToggleTask = async (planId: string, taskId: string) => {
+    setTogglingTaskId(taskId);
+    await toggleTaskComplete(planId, taskId);
+    setTogglingTaskId(null);
   };
 
   // Drag & drop handlers
@@ -155,10 +347,8 @@ export function StudyPlanDashboard({
       setDragOverTaskId(null);
       return;
     }
-
     const draggedTask = tasksForDate.find(t => t.id === draggedTaskId);
     const targetTask = tasksForDate.find(t => t.id === targetTaskId);
-
     if (draggedTask && targetTask && draggedTask.planId === targetTask.planId) {
       const plan = studyPlans.find(p => p.id === draggedTask.planId);
       if (plan) {
@@ -173,7 +363,6 @@ export function StudyPlanDashboard({
         }
       }
     }
-
     setDraggedTaskId(null);
     setDragOverTaskId(null);
   }, [draggedTaskId, tasksForDate, studyPlans, reorderTasks]);
@@ -183,7 +372,6 @@ export function StudyPlanDashboard({
     setDragOverTaskId(null);
   }, []);
 
-  // Plan action handler (for right sidebar)
   const handlePlanAction = useCallback(async (planId: string, action: 'completed' | 'archived' | 'delete') => {
     if (action === 'delete') {
       await deletePlan(planId);
@@ -215,193 +403,300 @@ export function StudyPlanDashboard({
     onPlanAction: handlePlanAction,
   };
 
-  // ── Center panel (tasks) — shared between desktop & mobile ──
-  const renderTasksPanel = () => (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      {/* Top bar: View mode + Date nav — responsive */}
-      <div className="bg-white border-b border-gray-200 px-3 lg:px-6 py-2.5 lg:py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 sm:justify-between">
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg self-start">
-          {(['day', 'week', 'month'] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setViewMode(v)}
-              className={clsx(
-                "px-3 py-1.5 min-h-[36px] rounded-md text-xs font-semibold transition-all",
-                viewMode === v ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {v === 'day' ? 'Dia' : v === 'week' ? 'Semana' : 'Mes'}
-            </button>
-          ))}
-        </div>
+  // ── Task list with Figma-style cards ──
+  const renderTasksPanel = () => {
+    // Flatten tasksForDate for sequential numbering
+    const flatTasks = Object.values(tasksBySubject).flat();
 
-        <div className="flex items-center gap-2 lg:gap-3">
-          <button onClick={prevDay} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-full text-gray-500">
-            <ChevronLeft size={18} />
-          </button>
-          <span className="font-bold text-gray-800 text-sm lg:text-base truncate">
-            {isMobile
-              ? format(selectedDate, "EEE d MMM", { locale: es })
-              : format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
-            }
-          </span>
-          {isToday(selectedDate) && (
-            <span className="w-2 h-2 bg-[#2a8c7a] rounded-full shrink-0" />
-          )}
-          <button
-            onClick={() => setSelectedDate(getAxonToday())}
-            className="text-xs font-semibold text-[#2a8c7a] hover:text-[#1B3B36] px-2 py-1 min-h-[36px] rounded-md hover:bg-[#e6f5f1]"
-          >
-            Hoy
-          </button>
-          <button onClick={nextDay} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-full text-gray-500">
-            <ChevronRight size={18} />
-          </button>
-        </div>
-
-        <button className="hidden lg:flex items-center gap-1 text-xs font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors">
-          <Plus size={14} />
-          Material personalizado
-        </button>
-      </div>
-
-      {/* Tasks list */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
-        {tasksForDate.length > 0 ? (
-          <>
-            {Object.entries(tasksBySubject).map(([subject, tasks]) => (
-              <div key={subject} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className={clsx("w-2.5 h-2.5 rounded-sm", tasks[0]?.subjectColor || 'bg-[#2a8c7a]')} />
-                  <span className="text-sm font-semibold text-gray-600">{subject}</span>
-                </div>
-
-                {tasks.map((task) => {
-                  const isExpanded = expandedTasks.has(task.id);
-                  return (
-                    <div
-                      key={task.id}
-                      draggable={!isMobile}
-                      onDragStart={!isMobile ? () => handleDragStart(task.id) : undefined}
-                      onDragOver={!isMobile ? (e) => handleDragOver(e, task.id) : undefined}
-                      onDrop={!isMobile ? (e) => handleDrop(e, task.id) : undefined}
-                      onDragEnd={!isMobile ? handleDragEnd : undefined}
-                      className={clsx(
-                        "bg-white rounded-xl border transition-all",
-                        task.completed ? "border-emerald-200 bg-emerald-50/30" : "border-gray-200 hover:shadow-sm",
-                        draggedTaskId === task.id && "opacity-40 scale-[0.97]",
-                        dragOverTaskId === task.id && draggedTaskId !== task.id && "border-[#2a8c7a] shadow-md ring-2 ring-[#2a8c7a]/20"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-3">
-                        {/* Drag handle — desktop only */}
-                        <div className="hidden lg:block cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 shrink-0 touch-none">
-                          <GripVertical size={16} />
-                        </div>
-
-                        <button
-                          onClick={() => toggleTaskComplete(task.planId, task.id)}
-                          className={clsx(
-                            "w-6 h-6 lg:w-5 lg:h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
-                            task.completed
-                              ? "bg-emerald-500 border-emerald-500"
-                              : "border-gray-300 hover:border-[#2a8c7a]"
-                          )}
-                        >
-                          {task.completed && <CheckCircle2 size={12} className="text-white" />}
-                        </button>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-1.5 lg:gap-2">
-                            <span className={clsx(
-                              "font-semibold transition-colors truncate",
-                              task.completed ? "line-through text-gray-400" : "text-gray-800"
-                            )}>
-                              {task.title}
-                            </span>
-                            <span className={clsx("text-[10px] px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 shrink-0", METHOD_COLORS[task.method] || 'bg-gray-100 text-gray-600 border-gray-200')}>
-                              {METHOD_ICONS[task.method]}
-                              <span className="hidden sm:inline">{METHOD_LABELS[task.method] || task.method}</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Clock size={12} />
-                            {task.estimatedMinutes}m
-                          </span>
-                          <button
-                            onClick={() => toggleExpand(task.id)}
-                            className="p-1 min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            <ChevronDown size={16} className={clsx("transition-transform", isExpanded && "rotate-180")} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="px-3 lg:px-4 pb-3 pt-1 border-t border-gray-100 text-sm text-gray-500 flex flex-wrap items-center gap-3 lg:gap-4">
-                              <span className="flex items-center gap-1">
-                                <BookOpen size={12} /> {task.subject}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock size={12} /> {task.estimatedMinutes} min
-                              </span>
-                              <button
-                                onClick={() => {/* Navigate to study */}}
-                                className="ml-auto text-xs font-bold text-[#2a8c7a] hover:text-[#1B3B36] bg-[#e6f5f1] px-3 py-1.5 min-h-[36px] rounded-lg"
-                              >
-                                Iniciar Estudio
-                              </button>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })}
-              </div>
+    return (
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f8f9fb]">
+        {/* Top bar */}
+        <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 sm:justify-between">
+          {/* View tabs */}
+          <div className="flex items-center gap-0 bg-[#f3f4f7] p-1 rounded-[10px] self-start">
+            {(['day', 'week', 'month'] as const).map((v) => (
+              <motion.button
+                key={v}
+                onClick={() => setViewMode(v)}
+                className={clsx(
+                  'px-4 py-[7px] min-h-[31px] rounded-[8px] text-[11.5px] font-semibold transition-all tracking-[0.2px]',
+                  viewMode === v
+                    ? 'bg-white shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] text-[#0f1724]'
+                    : 'text-[#8b95a5] hover:text-[#4a5565]'
+                )}
+                whileTap={{ scale: 0.97 }}
+              >
+                {v === 'day' ? 'Día' : v === 'week' ? 'Semana' : 'Mes'}
+              </motion.button>
             ))}
-
-            {/* Summary table — responsive */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mt-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 text-sm">
-                <div className="px-3 lg:px-4 py-3 bg-[#e6f5f1] font-semibold text-[#1B3B36] border-r border-[#ccebe3] flex items-center gap-2 col-span-2 lg:col-span-1">
-                  <BookOpen size={14} />
-                  <span className="truncate">Tareas para hoy</span>
-                </div>
-                <div className="px-3 lg:px-4 py-3 bg-gray-50 font-medium text-gray-600 border-r border-gray-200 text-center">
-                  Tiempo est.
-                </div>
-                <div className="px-3 lg:px-4 py-3 bg-gray-50 font-medium text-gray-600 border-r border-gray-200 text-center flex items-center justify-center gap-1">
-                  <Clock size={14} className="text-[#2a8c7a]" />
-                  {todayHours > 0 ? `${todayHours}h ` : ''}{todayMins}m
-                </div>
-                <div className="px-3 lg:px-4 py-3 bg-gray-50 font-medium text-gray-600 text-center">
-                  {todayProgress}%
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <CalendarIcon size={48} className="mb-4 text-gray-300" />
-            <p className="font-medium">Ninguna tarea para este dia.</p>
-            <p className="text-sm mt-1 text-center px-4">Selecciona otro dia en el calendario o crea un nuevo plan.</p>
           </div>
+
+          {/* Date navigation */}
+          <div className="flex items-center gap-1">
+            <motion.button
+              onClick={prevDay}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg text-[#8b95a5]"
+            >
+              <ChevronLeft size={15} />
+            </motion.button>
+
+            <div className="flex items-center gap-1.5 px-2">
+              <span className="font-semibold text-[#8b95a5] text-[12px] tracking-[0.2px]">
+                {isMobile
+                  ? format(selectedDate, "EEE", { locale: es })
+                  : format(selectedDate, "EEEE", { locale: es })
+                }
+              </span>
+              <span className="font-bold text-[#1a2332] text-[17px] leading-none">
+                {format(selectedDate, 'd')}
+              </span>
+              <span className="text-[#9ba3b2] text-[12px] font-medium">
+                {isMobile
+                  ? format(selectedDate, "MMM", { locale: es })
+                  : `de ${format(selectedDate, "MMMM", { locale: es })}`
+                }
+              </span>
+              {isToday(selectedDate) && (
+                <span className="w-2 h-2 bg-[#2a8c7a] rounded-full shrink-0" />
+              )}
+            </div>
+
+            <button
+              onClick={() => setSelectedDate(getAxonToday())}
+              className="text-[11px] font-semibold text-[#2a8c7a] hover:text-[#1B3B36] px-2 py-1 min-h-[36px] rounded-md hover:bg-[#e6f5f1] transition-colors"
+            >
+              Hoy
+            </button>
+
+            <motion.button
+              onClick={nextDay}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg text-[#8b95a5]"
+            >
+              <ChevronRight size={15} />
+            </motion.button>
+          </div>
+
+          <button className="hidden lg:flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors">
+            <Plus size={13} />
+            Material personalizado
+          </button>
+        </div>
+
+        {/* Tasks scroll area */}
+        {viewMode === 'day' ? (
+        <div className="flex-1 overflow-y-auto px-5 lg:px-6 py-5 space-y-5">
+          {tasksForDate.length > 0 ? (
+            <>
+              {Object.entries(tasksBySubject).map(([subject, tasks]) => {
+                const subjectStartIndex = flatTasks.findIndex(t => t.subject === subject);
+                return (
+                  <div key={subject} className="space-y-2">
+                    {/* Subject header */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={clsx('w-2 h-2 rounded-[3px]', tasks[0]?.subjectColor || 'bg-[#6b7385]')} />
+                      <span className="text-[13px] font-semibold text-[#4a5565] tracking-[0.2px]">{subject}</span>
+                      <span className="text-[10px] text-[#b0b8c4] font-medium">{tasks.filter(t => t.completed).length}/{tasks.length}</span>
+                      <div
+                        className="flex-1 h-px ml-1"
+                        style={{ background: 'linear-gradient(90deg, rgb(232,234,237), rgba(0,0,0,0))' }}
+                      />
+                    </div>
+
+                    {tasks.map((task, localIdx) => {
+                      const globalIdx = subjectStartIndex + localIdx;
+                      const isExpanded = expandedTasks.has(task.id);
+                      const isToggling = togglingTaskId === task.id;
+
+                      return (
+                        <div key={task.id} className="relative flex items-start gap-1">
+                          {/* Task number */}
+                          <div className="absolute left-0 top-[22px] text-[10px] text-[#d1d5dc] font-medium w-7 text-right tabular-nums select-none">
+                            {String(globalIdx + 1).padStart(2, '0')}
+                          </div>
+
+                          {/* Card */}
+                          <motion.div
+                            layout
+                            draggable={!isMobile}
+                            onDragStart={!isMobile ? () => handleDragStart(task.id) : undefined}
+                            onDragOver={!isMobile ? (e) => handleDragOver(e, task.id) : undefined}
+                            onDrop={!isMobile ? (e) => handleDrop(e, task.id) : undefined}
+                            onDragEnd={!isMobile ? handleDragEnd : undefined}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: isToggling ? 0.5 : 1, y: 0 }}
+                            transition={{ delay: globalIdx * 0.06, duration: 0.25 }}
+                            className={clsx(
+                              'ml-9 flex-1 rounded-[14px] border overflow-hidden relative transition-shadow',
+                              task.completed
+                                ? 'border-[#c6f0df] shadow-[0px_1px_3px_0px_rgba(52,211,153,0.05)]'
+                                : 'border-[#ebedf0] bg-white shadow-[0px_1px_3px_0px_rgba(0,0,0,0.02)] hover:shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)]',
+                              draggedTaskId === task.id && 'opacity-40 scale-[0.97]',
+                              dragOverTaskId === task.id && draggedTaskId !== task.id && 'border-[#2a8c7a] ring-1 ring-[#2a8c7a]/20',
+                              isToggling && 'pointer-events-none',
+                            )}
+                            style={task.completed ? {
+                              background: 'linear-gradient(90deg, rgb(250,255,254) 0%, rgb(255,255,255) 100%)',
+                            } : undefined}
+                          >
+                            {/* Left accent bar */}
+                            <div
+                              className="absolute left-0 top-0 bottom-0 w-[3px]"
+                              style={{
+                                background: task.completed
+                                  ? 'linear-gradient(to bottom, rgb(52,211,153), rgb(42,140,122))'
+                                  : 'linear-gradient(to bottom, rgb(229,231,235), rgb(223,226,232))',
+                              }}
+                            />
+
+                            {/* Main row */}
+                            <div className="pl-5 pr-4 py-[18px] flex items-center gap-3">
+                              {/* Drag handle — desktop only */}
+                              <div className="hidden lg:block cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 shrink-0 touch-none opacity-50">
+                                <GripVertical size={14} />
+                              </div>
+
+                              {/* Completion circle */}
+                              <CompletionCircle
+                                completed={task.completed}
+                                onClick={() => handleToggleTask(task.planId, task.id)}
+                              />
+
+                              {/* Title + method */}
+                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                <span className={clsx(
+                                  'text-[14px] font-semibold leading-[1.4] transition-colors truncate',
+                                  task.completed ? 'line-through text-[#b0b8c4]' : 'text-[#1a2332]',
+                                )}>
+                                  {task.title}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <MethodTag method={task.method} />
+                                </div>
+                              </div>
+
+                              {/* Duration + expand */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <DurationPill minutes={task.estimatedMinutes} completed={task.completed} />
+                                <motion.button
+                                  onClick={() => toggleExpand(task.id)}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-[#9ba3b2] hover:text-[#4a5565] transition-colors rounded-lg hover:bg-gray-50"
+                                >
+                                  <motion.div
+                                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                  >
+                                    <ChevronDown size={15} />
+                                  </motion.div>
+                                </motion.button>
+                              </div>
+                            </div>
+
+                            {/* Expanded detail */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="px-5 pb-4 pt-1 border-t border-gray-100 text-sm text-gray-500 flex flex-wrap items-center gap-3">
+                                    <span className="flex items-center gap-1 text-[12px]">
+                                      <BookOpen size={12} /> {task.subject}
+                                    </span>
+                                    <span className="flex items-center gap-1 text-[12px]">
+                                      <Clock size={12} /> {task.estimatedMinutes} min estimados
+                                    </span>
+                                    <button
+                                      onClick={() => {/* Navigate to study */}}
+                                      className="ml-auto text-[11px] font-bold text-[#2a8c7a] hover:text-[#1B3B36] bg-[#e6f5f1] px-3 py-1.5 min-h-[36px] rounded-lg transition-colors hover:bg-[#ccebe3]"
+                                    >
+                                      Iniciar Estudio
+                                    </button>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+
+              {/* Agregar tarea — dashed button */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="ml-9"
+              >
+                <button className="w-full flex items-center justify-center gap-2 py-4 rounded-[14px] border border-dashed border-[#e2e5ea] text-[#9ba3b2] hover:text-[#4a5565] hover:border-[#b0b8c4] transition-all text-[13px] font-medium hover:bg-white/60">
+                  <Plus size={14} />
+                  Agregar tarea
+                </button>
+              </motion.div>
+
+              {/* Day summary card */}
+              <div className="ml-9">
+                <DaySummaryCard
+                  todayCompleted={todayCompleted}
+                  todayTotal={tasksForDate.length}
+                  todayMinutes={todayTotalMinutes}
+                  todayProgress={todayProgress}
+                />
+              </div>
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center h-64 text-[#9ba3b2]"
+            >
+              <CalendarIcon size={40} className="mb-3 text-[#dfe2e8]" />
+              <p className="font-semibold text-[#4a5565] text-[13px]">Ninguna tarea para este día</p>
+              <p className="text-[12px] mt-1 text-center px-4 text-[#9ba3b2]">
+                Selecciona otro día en el calendario o crea un nuevo plan.
+              </p>
+              <button
+                onClick={() => navigateTo('organize-study')}
+                className="mt-4 flex items-center gap-1.5 text-[12px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-4 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors"
+              >
+                <Plus size={14} /> Crear plan
+              </button>
+            </motion.div>
+          )}
+        </div>
+        ) : viewMode === 'week' ? (
+          <WeekView
+            allTasks={allTasks as TaskWithPlan[]}
+            selectedDate={selectedDate}
+            togglingTaskId={togglingTaskId}
+            onToggleTask={handleToggleTask}
+            onSelectDay={(day) => { setSelectedDate(day); setViewMode('day'); }}
+            onNavigateNewPlan={() => navigateTo('organize-study')}
+          />
+        ) : (
+          <MonthView
+            allTasks={allTasks as TaskWithPlan[]}
+            selectedDate={selectedDate}
+            currentDate={currentDate}
+            daysInMonth={daysInMonth}
+            emptyDays={emptyDays}
+            togglingTaskId={togglingTaskId}
+            onToggleTask={handleToggleTask}
+            onSelectDay={setSelectedDate}
+            onNavigateNewPlan={() => navigateTo('organize-study')}
+          />
         )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="h-full flex flex-col bg-surface-dashboard">
@@ -412,17 +707,18 @@ export function StudyPlanDashboard({
           subtitle="Plan de Estudios Activo"
           statsLeft={
             <p className="text-gray-500 text-sm">
-              {completedTasks} de {totalTasks} tareas completadas &middot; {progressPercent}% completo
+              <span className="font-semibold text-[#1a2332]">{completedTasks}</span> de <span className="font-semibold text-[#1a2332]">{totalTasks}</span>
+              &nbsp;<span className="text-[#34D399] font-semibold">{progressPercent}%</span> completo
             </p>
           }
           statsRight={
             <div className="hidden md:flex items-center gap-5">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <div className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span className="text-xs text-gray-500"><span className="text-emerald-600 font-semibold">{completedTasks}</span> completadas</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <div className="w-2 h-2 rounded-full bg-amber-400" />
                 <span className="text-xs text-gray-500"><span className="text-amber-600 font-semibold">{tasksForDate.length}</span> para hoy</span>
               </div>
               <div className="flex items-center gap-2">
@@ -454,10 +750,10 @@ export function StudyPlanDashboard({
               key={tab.key}
               onClick={() => setMobileTab(tab.key)}
               className={clsx(
-                "flex-1 flex items-center justify-center gap-2 py-3 min-h-[48px] text-sm font-semibold transition-all border-b-2",
+                'flex-1 flex items-center justify-center gap-2 py-3 min-h-[48px] text-sm font-semibold transition-all border-b-2',
                 mobileTab === tab.key
-                  ? "text-[#1B3B36] border-[#2a8c7a] bg-[#e6f5f1]/30"
-                  : "text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50"
+                  ? 'text-[#1B3B36] border-[#2a8c7a] bg-[#e6f5f1]/30'
+                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50',
               )}
             >
               {tab.icon}
@@ -474,30 +770,30 @@ export function StudyPlanDashboard({
 
       {/* ── Content Area ── */}
       {isMobile ? (
-        /* Mobile: Tab panels */
         <div className="flex-1 overflow-hidden">
-          {mobileTab === 'tasks' && renderTasksPanel()}
-          {mobileTab === 'calendar' && (
-            <div className="h-full overflow-y-auto">
-              <PlanCalendarSidebar {...calendarSidebarProps} embedded />
-            </div>
-          )}
-          {mobileTab === 'progress' && (
-            <div className="h-full overflow-y-auto">
-              <PlanProgressSidebar {...progressSidebarProps} embedded />
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {mobileTab === 'tasks' && (
+              <motion.div key="tasks" className="h-full" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.18 }}>
+                {renderTasksPanel()}
+              </motion.div>
+            )}
+            {mobileTab === 'calendar' && (
+              <motion.div key="calendar" className="h-full overflow-y-auto" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.18 }}>
+                <PlanCalendarSidebar {...calendarSidebarProps} embedded />
+              </motion.div>
+            )}
+            {mobileTab === 'progress' && (
+              <motion.div key="progress" className="h-full overflow-y-auto" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.18 }}>
+                <PlanProgressSidebar {...progressSidebarProps} embedded />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : (
         /* Desktop: 3-column layout */
         <div className="flex flex-1 w-full overflow-hidden">
-          {/* Left Sidebar */}
           <PlanCalendarSidebar {...calendarSidebarProps} />
-
-          {/* Center: Study Tasks */}
           {renderTasksPanel()}
-
-          {/* Right Sidebar */}
           <PlanProgressSidebar {...progressSidebarProps} />
         </div>
       )}
