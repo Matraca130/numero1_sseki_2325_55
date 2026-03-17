@@ -244,8 +244,8 @@ function TimelineEntry({ entry, index }: { entry: HistoryEntry; index: number })
                 className="px-2 py-0.5 rounded-full font-medium"
                 style={{
                   fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)',
-                  backgroundColor: entry.badge === 'Nodo' ? '#e8f5f1' : '#eff6ff',
-                  color: entry.badge === 'Nodo' ? '#2a8c7a' : '#3b82f6',
+                  backgroundColor: entry.badge === 'Nodo' ? colors.primary[50] : '#eff6ff',
+                  color: entry.badge === 'Nodo' ? colors.primary[500] : '#3b82f6',
                 }}
               >
                 {entry.badge}

@@ -114,7 +114,7 @@ export function MiniKnowledgeGraph({
         source: edge.source,
         target: edge.target,
         style: {
-          stroke: edge.customColor || (edge.isUserCreated ? '#2a8c7a' : (meta?.color || '#d1d5db')),
+          stroke: edge.customColor || (edge.isUserCreated ? colors.primary[500] : (meta?.color || colors.text.disabled)),
           lineWidth: edge.isUserCreated ? 1.5 : 1,
           lineDash: edge.lineStyle === 'dashed' ? [6, 3]
             : edge.lineStyle === 'dotted' ? [2, 4]

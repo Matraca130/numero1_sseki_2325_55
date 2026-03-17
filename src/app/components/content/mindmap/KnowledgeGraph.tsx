@@ -21,6 +21,7 @@ import { Graph } from '@antv/g6';
 import { Maximize2 } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
+import { colors } from '@/app/design-system';
 import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
 import { loadPositions, saveNodePosition } from './useNodePositions';
 import type { PositionMap } from './useNodePositions';
@@ -205,15 +206,15 @@ export function KnowledgeGraph({
             _raw: node,
           },
           style: {
-            fill: node.isUserCreated ? '#e8f5f1' : getNodeFill(node.masteryColor),
-            stroke: node.isUserCreated ? '#2a8c7a' : strokeColor,
+            fill: node.isUserCreated ? colors.primary[50] : getNodeFill(node.masteryColor),
+            stroke: node.isUserCreated ? colors.primary[500] : strokeColor,
             lineWidth: isHighlighted ? 3 : needsReview ? 2.5 : isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
             lineDash: isCollapsed ? [4, 4] : node.isUserCreated ? [6, 3] : undefined,
             shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
             shadowBlur: isHighlighted ? 10 : needsReview ? 8 : 0,
             opacity: isDimmed ? 0.35 : 1,
             labelText: displayLabel,
-            labelFill: isDimmed ? '#9ca3af' : needsReview ? '#c2410c' : '#111827',
+            labelFill: isDimmed ? colors.text.tertiary : needsReview ? '#c2410c' : colors.text.primary,
             labelFontSize: 12,
             labelFontFamily: 'Inter, sans-serif',
             size: Math.max(32, Math.min(56, 32 + (node.mastery >= 0 ? node.mastery * 24 : 0))),
@@ -242,7 +243,7 @@ export function KnowledgeGraph({
             _raw: edge,
           },
           style: {
-            stroke: edge.customColor || (edge.isUserCreated ? '#2a8c7a' : getEdgeColor(edge.connectionType)),
+            stroke: edge.customColor || (edge.isUserCreated ? colors.primary[500] : getEdgeColor(edge.connectionType)),
             lineWidth: edge.isUserCreated ? 2 : 1.5,
             lineDash: edge.lineStyle === 'dashed' ? [6, 3]
               : edge.lineStyle === 'dotted' ? [2, 4]
@@ -251,11 +252,11 @@ export function KnowledgeGraph({
             opacity: edgeDimmed ? 0.2 : 1,
             endArrow: !!edge.sourceKeywordId,
             labelText: edge.label || undefined,
-            labelFill: edge.label ? '#6b7280' : undefined,
+            labelFill: edge.label ? colors.text.secondary : undefined,
             labelFontSize: edge.label ? 10 : undefined,
             labelFontFamily: edge.label ? 'Inter, sans-serif' : undefined,
             labelBackground: !!edge.label,
-            labelBackgroundFill: edge.label ? '#ffffff' : undefined,
+            labelBackgroundFill: edge.label ? colors.surface.card : undefined,
             labelBackgroundOpacity: edge.label ? 0.85 : undefined,
             labelBackgroundRadius: edge.label ? 4 : undefined,
           },
@@ -419,7 +420,7 @@ export function KnowledgeGraph({
         state: {
           hover: {
             lineWidth: 2.5,
-            stroke: '#2a8c7a',
+            stroke: colors.primary[500],
           },
         },
         animation: {
@@ -492,8 +493,8 @@ export function KnowledgeGraph({
           padding: 8,
           className: 'axon-minimap',
           containerStyle: {
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
+            background: colors.surface.card,
+            border: `1px solid ${colors.border.card}`,
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             overflow: 'hidden',
