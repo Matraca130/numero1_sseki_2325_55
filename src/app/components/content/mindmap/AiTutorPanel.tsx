@@ -96,6 +96,7 @@ function usePullToRefresh(onRefresh: () => void, enabled: boolean) {
   const [releasing, setReleasing] = useState(false);
   const isPulling = useRef(false);
   const pullDistanceRef = useRef(0);
+  const releaseTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
 
@@ -135,8 +136,9 @@ function usePullToRefresh(onRefresh: () => void, enabled: boolean) {
       if (pullDistanceRef.current >= PULL_THRESHOLD) {
         setReleasing(true);
         onRefreshRef.current();
-        // Reset after a brief visual moment
-        setTimeout(() => {
+        // Reset after a brief visual moment — clear previous timer to avoid stacking on rapid pulls
+        clearTimeout(releaseTimerRef.current);
+        releaseTimerRef.current = setTimeout(() => {
           pullDistanceRef.current = 0;
           setPullDistance(0);
           setReleasing(false);
@@ -154,6 +156,7 @@ function usePullToRefresh(onRefresh: () => void, enabled: boolean) {
       el.removeEventListener('touchstart', handleTouchStart);
       el.removeEventListener('touchmove', handleTouchMove);
       el.removeEventListener('touchend', handleTouchEnd);
+      clearTimeout(releaseTimerRef.current);
     };
   }, [enabled]);
 

@@ -25,4 +25,5 @@ export { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, co
 export { useGraphExport } from './useGraphExport';
 export { PresentationMode } from './PresentationMode';
 export { ChangeHistoryPanel } from './ChangeHistoryPanel';
+export { ShareMapModal } from './ShareMapModal';
 export { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry, createDeleteEdgeEntry } from './changeHistoryHelpers';

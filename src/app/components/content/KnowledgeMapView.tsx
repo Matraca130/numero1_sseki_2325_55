@@ -24,7 +24,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 /** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
 const haptic = (ms = 50) => navigator?.vibrate?.(ms);
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
@@ -53,6 +53,7 @@ import { useUndoRedo } from './mindmap/useUndoRedo';
 import { GraphSkeleton } from './mindmap/GraphSkeleton';
 import { PresentationMode } from './mindmap/PresentationMode';
 import { ChangeHistoryPanel } from './mindmap/ChangeHistoryPanel';
+import { ShareMapModal } from './mindmap/ShareMapModal';
 import { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry } from './mindmap/changeHistoryHelpers';
 import type { HistoryEntry } from './mindmap/changeHistoryHelpers';
 import type { MapTool } from './mindmap/MapToolsPanel';
@@ -182,6 +183,7 @@ export function KnowledgeMapView() {
   const [showHistory, setShowHistory] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [presentationMode, setPresentationMode] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
   // Minimap: visible on desktop by default, hidden on mobile
@@ -683,6 +685,17 @@ export function KnowledgeMapView() {
                     <span className="hidden sm:inline">Presentar</span>
                   </button>
                 )}
+                {effectiveTopicId && (
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                    aria-label="Compartir mapa"
+                    title="Compartir mapa"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Compartir</span>
+                  </button>
+                )}
                 <button
                   onClick={toggleFullscreen}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
@@ -1037,10 +1050,18 @@ export function KnowledgeMapView() {
           existingNodes={graphData?.nodes ?? []}
           onCreated={refetch}
           onNodeCreated={(nodeId, payload) => { pushAction({ type: 'create-node', nodeId, payload }); setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]); haptic(50); }}
-          onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphData?.nodes.find(n => n.id === payload.source_keyword_id); const tgtNode = graphData?.nodes.find(n => n.id === payload.target_keyword_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
+          onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphData?.nodes.find(n => n.id === payload.source_node_id); const tgtNode = graphData?.nodes.find(n => n.id === payload.target_node_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
           initialEdgeSource={connectSource?.id}
           initialEdgeTarget={connectTarget?.id}
           initialTab={connectSource ? 'edge' : undefined}
+        />
+
+        {/* Share map modal */}
+        <ShareMapModal
+          open={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          topicId={effectiveTopicId}
+          topicName={currentTopic?.title || allTopics.find(t => t.id === topicId)?.name}
         />
 
         {/* Delete confirmation dialog (replaces window.confirm for PWA compatibility) */}

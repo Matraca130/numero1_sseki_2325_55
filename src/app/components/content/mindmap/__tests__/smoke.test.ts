@@ -234,6 +234,13 @@ describe('mindmap module: changeHistoryHelpers', () => {
   });
 });
 
+describe('mindmap module: ShareMapModal', () => {
+  it('exports ShareMapModal component', () => {
+    const names = getExportedNames('ShareMapModal.tsx');
+    expect(names).toContain('ShareMapModal');
+  });
+});
+
 describe('mindmap module: PresentationMode', () => {
   it('exports PresentationMode component', () => {
     const names = getExportedNames('PresentationMode.tsx');
@@ -289,6 +296,7 @@ describe('mindmap module: index barrel', () => {
       'buildChildrenMap',
       'computeHiddenNodes',
       'useGraphExport',
+      'ShareMapModal',
     ];
 
     for (const name of expectedExports) {
@@ -375,6 +383,7 @@ describe('mindmap directory completeness', () => {
       'ConfirmDialog.tsx',
       'ChangeHistoryPanel.tsx',
       'changeHistoryHelpers.ts',
+      'ShareMapModal.tsx',
       'PresentationMode.tsx',
       'presentationHelpers.ts',
       'index.ts',
