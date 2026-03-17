@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { analyzeKnowledgeGraph, suggestStudentConnections, getStudentWeakPoints } from '@/app/services/mindmapAiApi';
 import type { AnalyzeKnowledgeGraphResponse, WeakPoint, SuggestedConnection } from '@/app/types/mindmap-ai';
 import { createCustomEdge } from '@/app/services/mindmapApi';
-import { headingStyle } from '@/app/design-system';
+import { colors, headingStyle } from '@/app/design-system';
 import { useCountUp } from '@/app/hooks/useCountUp';
 
 // ── Skeleton shimmer for loading state ─────────────────────
@@ -317,8 +317,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   }, []);
 
   const scoreColor = analysis
-    ? analysis.overall_score >= 0.7 ? '#10b981' : analysis.overall_score >= 0.4 ? '#f59e0b' : '#ef4444'
-    : '#9ca3af';
+    ? analysis.overall_score >= 0.7 ? colors.semantic.success : analysis.overall_score >= 0.4 ? colors.semantic.warning : colors.semantic.error
+    : colors.text.tertiary;
 
   // Count-up animation for overall score (shared hook, respects reduced-motion)
   const targetScore = analysis ? Math.round(analysis.overall_score * 100) : 0;
@@ -352,13 +352,14 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-[#F0F2F5] border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
+          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
+          style={{ backgroundColor: colors.surface.page }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#e8f5f1] flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-[#2a8c7a]" />
+              <div className="w-7 h-7 rounded-lg bg-ax-primary-50 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-ax-primary-500" />
               </div>
               <h3
                 className="font-semibold text-gray-900"
@@ -390,7 +391,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 >
                   {releasing ? (
                     <Loader2
-                      className="w-4 h-4 text-[#2a8c7a] animate-spin"
+                      className="w-4 h-4 text-ax-primary-500 animate-spin"
                     />
                   ) : (
                     <motion.div
@@ -400,13 +401,13 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                     >
                       <ArrowDown
                         className="w-3.5 h-3.5"
-                        style={{ color: pastThreshold ? '#2a8c7a' : '#9ca3af' }}
+                        style={{ color: pastThreshold ? colors.primary[500] : colors.text.tertiary }}
                       />
                       <span
                         className="font-medium"
                         style={{
                           fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)',
-                          color: pastThreshold ? '#2a8c7a' : '#9ca3af',
+                          color: pastThreshold ? colors.primary[500] : colors.text.tertiary,
                         }}
                       >
                         {pastThreshold ? 'Soltar para actualizar' : 'Tira hacia abajo'}
@@ -424,8 +425,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 transition={{ duration: 0.3, ease: 'easeOut' }}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-4">
-                  <Brain className="w-7 h-7 text-[#2a8c7a]" />
+                <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
+                  <Brain className="w-7 h-7 text-ax-primary-500" />
                 </div>
                 <h4
                   className="font-semibold text-gray-900 mb-1.5"
@@ -441,8 +442,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 </p>
                 <button
                   onClick={handleAnalyze}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-[#244e47]"
-                  style={{ backgroundColor: '#2a8c7a', fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-ax-primary-600"
+                  style={{ backgroundColor: colors.primary[500], fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                 >
                   <Sparkles className="w-4 h-4" />
                   Analizar mi mapa
@@ -595,7 +596,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 {analysis.study_path.length > 0 && (
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                     <h4
-                      className="flex items-center gap-1.5 font-medium text-[#2a8c7a] mb-3"
+                      className="flex items-center gap-1.5 font-medium text-ax-primary-500 mb-3"
                       style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                     >
                       <Route className="w-3.5 h-3.5" />
@@ -605,7 +606,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                       {analysis.study_path.map((step) => (
                         <div key={step.step} className="flex items-start gap-2.5">
                           <span
-                            className="w-6 h-6 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center font-bold flex-shrink-0 mt-0.5"
+                            className="w-6 h-6 rounded-full bg-ax-primary-50 text-ax-primary-500 flex items-center justify-center font-bold flex-shrink-0 mt-0.5"
                             style={{ fontSize: '0.625rem' }}
                           >
                             {step.step}
@@ -634,7 +635,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 <button
                   onClick={handleAnalyze}
                   disabled={analyzing}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 font-medium text-[#2a8c7a] bg-white rounded-full shadow-sm border border-gray-100 hover:bg-[#e8f5f1] transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 font-medium text-ax-primary-500 bg-white rounded-full shadow-sm border border-gray-100 hover:bg-ax-primary-50 transition-colors"
                   style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -649,8 +650,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 <button
                   onClick={handleSuggestConnections}
                   disabled={suggestingConnections}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 font-medium text-white rounded-full transition-colors disabled:opacity-60 hover:bg-[#244e47]"
-                  style={{ backgroundColor: '#1B3B36', fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 font-medium text-white rounded-full transition-colors disabled:opacity-60 hover:bg-ax-primary-600"
+                  style={{ backgroundColor: colors.primary[700], fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                 >
                   {suggestingConnections ? (
                     <>
@@ -672,7 +673,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                       className="flex items-center gap-1.5 font-medium text-gray-600 px-1"
                       style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                     >
-                      <Link2 className="w-3.5 h-3.5 text-[#2a8c7a]" />
+                      <Link2 className="w-3.5 h-3.5 text-ax-primary-500" />
                       Conexiones sugeridas ({suggestions.length})
                     </h4>
                     {suggestions.map((s) => {
@@ -685,7 +686,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                           key={key}
                           className={`rounded-2xl border p-3 transition-colors ${
                             accepted
-                              ? 'bg-[#e8f5f1] border-[#2a8c7a]/30'
+                              ? 'bg-ax-primary-50 border-ax-primary-500/30'
                               : 'bg-white border-gray-100 shadow-sm'
                           }`}
                         >
@@ -712,7 +713,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                             </span>
                             {accepted ? (
                               <span
-                                className="text-[#2a8c7a] font-medium flex items-center gap-0.5"
+                                className="text-ax-primary-500 font-medium flex items-center gap-0.5"
                                 style={{ fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)' }}
                               >
                                 <Check className="w-3 h-3" /> Añadida
@@ -721,7 +722,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleAcceptSuggestion(s)}
-                                  className="w-7 h-7 flex items-center justify-center rounded-full text-[#2a8c7a] hover:bg-[#e8f5f1] transition-colors"
+                                  className="w-7 h-7 flex items-center justify-center rounded-full text-ax-primary-500 hover:bg-ax-primary-50 transition-colors"
                                   aria-label="Aceptar conexión"
                                   title="Aceptar"
                                 >
@@ -765,7 +766,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left hover:bg-gray-50 transition-colors group"
                         style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                       >
-                        <Icon className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] flex-shrink-0 transition-colors" />
+                        <Icon className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 flex-shrink-0 transition-colors" />
                         <span className="truncate flex-1 text-gray-600 group-hover:text-gray-800">{wp.name}</span>
                         <span
                           className="text-gray-400 flex-shrink-0 bg-gray-50 px-2 py-0.5 rounded-full"

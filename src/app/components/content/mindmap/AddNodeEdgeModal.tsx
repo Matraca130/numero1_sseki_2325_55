@@ -17,7 +17,7 @@ import { createCustomNode, createCustomEdge } from '@/app/services/mindmapApi';
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
 import { CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MapNode } from '@/app/types/mindmap';
-import { headingStyle } from '@/app/design-system';
+import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 
 // ── Types ───────────────────────────────────────────────────
@@ -72,7 +72,7 @@ export function AddNodeEdgeModal({
   const [edgeLabel, setEdgeLabel] = useState('');
   const [edgeType, setEdgeType] = useState('asociacion');
   const [edgeLineStyle, setEdgeLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
-  const [edgeColor, setEdgeColor] = useState('#2a8c7a');
+  const [edgeColor, setEdgeColor] = useState(colors.primary[500]);
 
   const focusTrapRef = useFocusTrap(open);
   const nodeLabelRef = useRef<HTMLInputElement>(null);
@@ -129,7 +129,7 @@ export function AddNodeEdgeModal({
     setEdgeLabel('');
     setEdgeType('asociacion');
     setEdgeLineStyle('solid');
-    setEdgeColor('#2a8c7a');
+    setEdgeColor(colors.primary[500]);
   };
 
   const handleCreateNode = async () => {
@@ -165,7 +165,7 @@ export function AddNodeEdgeModal({
         connection_type: edgeType,
         topic_id: topicId,
         line_style: edgeLineStyle !== 'solid' ? edgeLineStyle as 'dashed' | 'dotted' : undefined,
-        custom_color: edgeColor !== '#2a8c7a' ? edgeColor : undefined,
+        custom_color: edgeColor !== colors.primary[500] ? edgeColor : undefined,
       };
       const res = await createCustomEdge(payload);
       toast.success('Conexión añadida al mapa');
@@ -255,7 +255,7 @@ export function AddNodeEdgeModal({
                   tabIndex={tab === 'node' ? 0 : -1}
                   className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     tab === 'node'
-                      ? 'border-[#2a8c7a] text-[#2a8c7a]'
+                      ? 'border-ax-primary-500 text-ax-primary-500'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -271,7 +271,7 @@ export function AddNodeEdgeModal({
                   tabIndex={tab === 'edge' ? 0 : -1}
                   className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     tab === 'edge'
-                      ? 'border-[#2a8c7a] text-[#2a8c7a]'
+                      ? 'border-ax-primary-500 text-ax-primary-500'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -306,7 +306,7 @@ export function AddNodeEdgeModal({
                         value={nodeLabel}
                         onChange={(e) => setNodeLabel(e.target.value)}
                         placeholder="Ej: Hemoglobina, Mitocondria..."
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none transition-colors font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
+                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none transition-colors font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                         maxLength={100}
                       />
                     </div>
@@ -319,7 +319,7 @@ export function AddNodeEdgeModal({
                         value={nodeDefinition}
                         onChange={(e) => setNodeDefinition(e.target.value)}
                         placeholder="Breve descripción del concepto..."
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none resize-none transition-colors font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
+                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none resize-none transition-colors font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                         rows={2}
                         maxLength={300}
                       />
@@ -342,7 +342,7 @@ export function AddNodeEdgeModal({
                         id="custom-edge-source"
                         value={edgeSource}
                         onChange={(e) => setEdgeSource(e.target.value)}
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
+                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                       >
                         <option value="">Seleccionar...</option>
                         {sortedNodes.map((n) => (
@@ -360,7 +360,7 @@ export function AddNodeEdgeModal({
                         id="custom-edge-target"
                         value={edgeTarget}
                         onChange={(e) => setEdgeTarget(e.target.value)}
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
+                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                       >
                         <option value="">Seleccionar...</option>
                         {sortedNodes
@@ -380,7 +380,7 @@ export function AddNodeEdgeModal({
                         id="custom-edge-type"
                         value={edgeType}
                         onChange={(e) => setEdgeType(e.target.value)}
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
+                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                       >
                         {CONNECTION_TYPES.map((ct) => (
                           <option key={ct.key} value={ct.key}>
@@ -403,7 +403,7 @@ export function AddNodeEdgeModal({
                               onClick={() => setEdgeLineStyle(style)}
                               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border text-xs transition-colors ${
                                 edgeLineStyle === style
-                                  ? 'border-[#2a8c7a] bg-[#e8f5f1] text-[#2a8c7a] font-medium'
+                                  ? 'border-ax-primary-500 bg-ax-primary-50 text-ax-primary-500 font-medium'
                                   : 'border-gray-200 text-gray-500 hover:border-gray-300'
                               }`}
                               role="radio"
@@ -442,7 +442,7 @@ export function AddNodeEdgeModal({
                     {/* Quick color swatches */}
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] text-gray-400 mr-1">Rápido:</span>
-                      {['#2a8c7a', '#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#64748b'].map((c) => (
+                      {[colors.primary[500], colors.semantic.error, '#f97316', '#8b5cf6', '#06b6d4', '#64748b'].map((c) => (
                         <button
                           key={c}
                           type="button"
@@ -466,7 +466,7 @@ export function AddNodeEdgeModal({
                         value={edgeLabel}
                         onChange={(e) => setEdgeLabel(e.target.value)}
                         placeholder="Ej: regula, causa, componente de..."
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
+                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                         maxLength={100}
                       />
                     </div>
@@ -493,7 +493,7 @@ export function AddNodeEdgeModal({
                     if (!saving) (tab === 'node' ? handleCreateNode : handleCreateEdge)();
                   }}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors disabled:opacity-50 bg-[#2a8c7a] hover:bg-[#244e47] shadow-sm"
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors disabled:opacity-50 bg-ax-primary-500 hover:bg-ax-primary-600 shadow-sm"
                 >
                   {saving ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

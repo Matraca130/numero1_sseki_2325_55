@@ -14,7 +14,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { X, Copy, Check, Share2, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { headingStyle } from '@/app/design-system';
+import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 
 // ── Props ───────────────────────────────────────────────────
@@ -131,8 +131,8 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
               {/* Header */}
               <div className="flex items-center justify-between px-5 pt-4 sm:pt-5 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#e8f5f1] flex items-center justify-center">
-                    <Share2 className="w-4 h-4 text-[#2a8c7a]" />
+                  <div className="w-8 h-8 rounded-lg bg-ax-primary-50 flex items-center justify-center">
+                    <Share2 className="w-4 h-4 text-ax-primary-500" />
                   </div>
                   <h2
                     id="share-modal-title"
@@ -168,7 +168,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                       type="text"
                       readOnly
                       value={shareUrl}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 pr-10 text-sm text-gray-600 outline-none focus:border-[#2a8c7a]/50 focus:ring-1 focus:ring-[#2a8c7a]/20 transition-colors"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 pr-10 text-sm text-gray-600 outline-none focus:border-ax-primary-500/50 focus:ring-1 focus:ring-ax-primary-500/20 transition-colors"
                       onClick={() => inputRef.current?.select()}
                       aria-label="Enlace para compartir"
                     />
@@ -178,8 +178,8 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                     onClick={handleCopy}
                     className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors flex-shrink-0 ${
                       copied
-                        ? 'bg-[#e8f5f1] text-[#2a8c7a]'
-                        : 'bg-gray-100 text-gray-500 hover:bg-[#e8f5f1] hover:text-[#2a8c7a]'
+                        ? 'bg-ax-primary-50 text-ax-primary-500'
+                        : 'bg-gray-100 text-gray-500 hover:bg-ax-primary-50 hover:text-ax-primary-500'
                     }`}
                     aria-label={copied ? 'Copiado' : 'Copiar enlace'}
                     title={copied ? 'Copiado' : 'Copiar enlace'}
@@ -190,9 +190,9 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
 
                 {/* Topic name info */}
                 {topicName && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-[#e8f5f1] rounded-xl">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-ax-primary-50 rounded-xl">
                     <span
-                      className="text-[#2a8c7a] font-medium truncate"
+                      className="text-ax-primary-500 font-medium truncate"
                       style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                     >
                       {topicName}
@@ -204,8 +204,8 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={handleCopy}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-[#244e47]"
-                    style={{ backgroundColor: '#2a8c7a', fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-ax-primary-600"
+                    style={{ backgroundColor: colors.primary[500], fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                   >
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     {copied ? 'Copiado' : 'Copiar enlace'}
@@ -213,7 +213,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                   {supportsShare && (
                     <button
                       onClick={handleNativeShare}
-                      className="flex items-center justify-center gap-2 px-4 py-3 font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full transition-colors hover:bg-[#d0ebe6]"
+                      className="flex items-center justify-center gap-2 px-4 py-3 font-medium text-ax-primary-500 bg-ax-primary-50 rounded-full transition-colors hover:bg-ax-primary-100"
                       style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                     >
                       <Share2 className="w-4 h-4" />

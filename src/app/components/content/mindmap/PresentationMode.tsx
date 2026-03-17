@@ -14,6 +14,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { MapNode, MapEdge } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
+import { colors } from '@/app/design-system';
 import {
   presentationFontSize as fs,
   masteryLabel,
@@ -164,7 +165,7 @@ export function PresentationMode({
 
             {/* Node type badge */}
             {current.type !== 'keyword' && (
-              <span className="inline-block px-2 py-0.5 rounded-full font-sans font-medium mb-3" style={{ fontSize: fs.mastery, backgroundColor: '#e8f5f1', color: '#2a8c7a' }}>
+              <span className="inline-block px-2 py-0.5 rounded-full font-sans font-medium mb-3" style={{ fontSize: fs.mastery, backgroundColor: colors.primary[50], color: colors.primary[500] }}>
                 {current.type === 'topic' ? 'Tema' : 'Subtema'}
               </span>
             )}
@@ -187,7 +188,7 @@ export function PresentationMode({
 
             {/* Annotation */}
             {current.annotation && (
-              <p className="mt-3 italic font-sans" style={{ fontSize: fs.mastery, color: '#2a8c7a' }}>
+              <p className="mt-3 italic font-sans" style={{ fontSize: fs.mastery, color: colors.primary[500] }}>
                 &ldquo;{current.annotation}&rdquo;
               </p>
             )}
@@ -205,7 +206,7 @@ export function PresentationMode({
 
       {/* Bottom progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-        <motion.div className="h-full" style={{ backgroundColor: '#2a8c7a' }} animate={{ width: `${progressPct}%` }} transition={{ duration: 0.3, ease: 'easeOut' }} />
+        <motion.div className="h-full" style={{ backgroundColor: colors.primary[500] }} animate={{ width: `${progressPct}%` }} transition={{ duration: 0.3, ease: 'easeOut' }} />
       </div>
 
       {/* Bottom hint */}

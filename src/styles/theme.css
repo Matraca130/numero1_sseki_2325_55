@@ -1,6 +1,18 @@
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+  /* Axon Design System — primary palette (aligned to palette.ts colors.primary) */
+  --color-ax-primary-50:  #e8f5f1;
+  --color-ax-primary-100: #d1f0e7;
+  --color-ax-primary-200: #b3ddd2;
+  --color-ax-primary-300: #5cbdaa;
+  --color-ax-primary-400: #2dd4a8;
+  --color-ax-primary-500: #2a8c7a;
+  --color-ax-primary-600: #244e47;
+  --color-ax-primary-700: #1B3B36;
+  --color-ax-primary-800: #1a2e2a;
+  --color-ax-primary-900: #0f2b26;
+
   /* Axon Design System — surface colors (aligned to palette.ts) */
   --color-surface-dashboard: #F0F2F5;
   --color-surface-page: #F0F2F5;
