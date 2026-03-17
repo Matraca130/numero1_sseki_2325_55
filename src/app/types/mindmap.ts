@@ -108,3 +108,34 @@ export const MASTERY_HEX_LIGHT: Record<MasteryColor, string> = {
 // ── Context menu action ─────────────────────────────────────
 
 export type NodeAction = 'flashcard' | 'quiz' | 'summary' | 'annotate' | 'details';
+
+// ── G6 Event / Controls ────────────────────────────────────
+
+/** Lightweight G6 event shape (avoids coupling to unstable internal types) */
+export interface G6NodeEvent {
+  target?: { id?: string };
+  itemId?: string;
+  client?: { x: number; y: number };
+  clientX?: number;
+  clientY?: number;
+  preventDefault?: () => void;
+}
+
+/** Imperative controls exposed via KnowledgeGraph onReady callback */
+export interface GraphControls {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fitView: () => void;
+  collapseAll: () => void;
+  expandAll: () => void;
+  /** Toggle collapse on a specific node. Returns true if now collapsed. */
+  toggleCollapse: (nodeId: string) => boolean;
+}
+
+// ── Graph Helpers ──────────────────────────────────────────
+
+/** Truncate a label for display in graph nodes */
+export function truncateLabel(label: string, maxLen = 20): string {
+  if (label.length <= maxLen) return label;
+  return label.slice(0, maxLen - 1) + '\u2026';
+}

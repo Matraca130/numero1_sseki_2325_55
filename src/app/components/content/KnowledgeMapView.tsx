@@ -21,7 +21,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3 } from 'lucide-react';
+import { Brain, Map, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { LoadingPage, EmptyState, ErrorState } from '@/app/components/shared/PageStates';
@@ -29,15 +29,19 @@ import { FadeIn } from '@/app/components/shared/FadeIn';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { useApp } from '@/app/context/AppContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { ChevronDown } from 'lucide-react';
-import { KnowledgeGraph, type GraphControls } from './mindmap/KnowledgeGraph';
+import { KnowledgeGraph } from './mindmap/KnowledgeGraph';
 import { NodeContextMenu } from './mindmap/NodeContextMenu';
 import { NodeAnnotationModal } from './mindmap/NodeAnnotationModal';
 import { GraphToolbar } from './mindmap/GraphToolbar';
 import { useGraphData } from './mindmap/useGraphData';
+import { useGraphSearch } from './mindmap/useGraphSearch';
 import { AddNodeEdgeModal } from './mindmap/AddNodeEdgeModal';
 import { deleteCustomNode } from '@/app/services/mindmapApi';
-import type { MapNode, NodeAction } from '@/app/types/mindmap';
+import { useSwipeDismiss } from './mindmap/useSwipeDismiss';
+import { useSearchFocus } from './mindmap/useSearchFocus';
+import { useGraphControls } from './mindmap/useGraphControls';
+import { ConfirmDialog } from './mindmap/ConfirmDialog';
+import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
 
@@ -76,32 +80,8 @@ export function KnowledgeMapView() {
   const topicId = searchParams.get('topicId') || currentTopic?.id || manualTopicId || undefined;
   const summaryId = searchParams.get('summaryId') || undefined;
 
-  const handleTopicSelect = useCallback((tid: string) => {
-    setManualTopicId(tid);
-    setSearchParams(tid ? { topicId: tid } : {});
-    setSelectedNode(null);
-    setContextMenu(null);
-    setSearchQuery('');
-  }, [setSearchParams]);
-
-  // Clear selection when topicId changes (e.g. from context navigation)
-  const prevTopicIdRef = useRef(topicId);
-  useEffect(() => {
-    if (prevTopicIdRef.current !== topicId) {
-      prevTopicIdRef.current = topicId;
-      setSelectedNode(null);
-      setContextMenu(null);
-    }
-  }, [topicId]);
-
   // Scope: single topic vs all topics in course
   const [scope, setScopeRaw] = useState<GraphScope>('topic');
-  const setScope = useCallback((s: GraphScope) => {
-    setScopeRaw(s);
-    setSearchQuery('');
-    setSelectedNode(null);
-    setContextMenu(null);
-  }, []);
 
   // Extract all topic IDs from the current course
   const courseTopicIds = useMemo(() => {
@@ -126,19 +106,45 @@ export function KnowledgeMapView() {
     courseTopicIds: scope === 'course' ? courseTopicIds : undefined,
   });
 
+  // Search (shared hook: debounce + filter + highlight)
+  // Must be declared before handlers that call setSearchQuery
+  const {
+    searchQuery, setSearchQuery,
+    matchingNodeIds, filteredGraphData,
+    matchCount, nodeCount, edgeCount,
+  } = useGraphSearch(graphData);
+
+  const handleTopicSelect = useCallback((tid: string) => {
+    setManualTopicId(tid);
+    setSearchParams(tid ? { topicId: tid } : {});
+    setSelectedNode(null);
+    setContextMenu(null);
+    setSearchQuery('');
+  }, [setSearchParams, setSearchQuery]);
+
+  // Clear selection when topicId changes (e.g. from context navigation)
+  const prevTopicIdRef = useRef(topicId);
+  useEffect(() => {
+    if (prevTopicIdRef.current !== topicId) {
+      prevTopicIdRef.current = topicId;
+      setSelectedNode(null);
+      setContextMenu(null);
+      setCollapsedCount(0);
+      setCollapsedNodeIds(new Set());
+    }
+  }, [topicId]);
+
+  const setScope = useCallback((s: GraphScope) => {
+    setScopeRaw(s);
+    setSearchQuery('');
+    setSelectedNode(null);
+    setContextMenu(null);
+    setCollapsedCount(0);
+    setCollapsedNodeIds(new Set());
+  }, [setSearchQuery]);
+
   // UI state
   const [layout, setLayout] = useState<'force' | 'radial' | 'dagre'>('force');
-  const [searchQuery, setSearchQuery] = useState('');
-  // Debounced search query for graph data filtering (prevents G6 recreation on every keystroke)
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setDebouncedSearch('');
-      return;
-    }
-    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
 
   const [selectedNode, setSelectedNode] = useState<MapNode | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -147,9 +153,38 @@ export function KnowledgeMapView() {
   } | null>(null);
   const [annotationNode, setAnnotationNode] = useState<MapNode | null>(null);
   const [collapsedCount, setCollapsedCount] = useState(0);
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [exiting, setExiting] = useState(false);
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // First-visit onboarding tip
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return !localStorage.getItem('axon_map_onboarded'); } catch { return false; }
+  });
+  const dismissOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    try { localStorage.setItem('axon_map_onboarded', '1'); } catch {}
+  }, []);
+
+  // Stable callbacks for KnowledgeGraph (avoids unnecessary child re-renders)
+  const handleGraphReady = useCallback((controls: GraphControls) => {
+    graphControlsRef.current = controls;
+  }, []);
+  const handleCollapseChange = useCallback((count: number, ids: Set<string>) => {
+    setCollapsedCount(count);
+    setCollapsedNodeIds(ids);
+  }, []);
+
+  // Navigate with a brief fade-out transition
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => { clearTimeout(fadeTimerRef.current); }, []);
+  const navigateWithFade = useCallback((to: string) => {
+    clearTimeout(fadeTimerRef.current);
+    setExiting(true);
+    fadeTimerRef.current = setTimeout(() => navigate(to), 150);
+  }, [navigate]);
 
   // ── Handlers ────────────────────────────────────────────
 
@@ -175,14 +210,15 @@ export function KnowledgeMapView() {
 
     switch (action) {
       case 'flashcard':
-        navigate(`/student/flashcards?keywordId=${node.id}`);
+        navigateWithFade(`/student/flashcards?keywordId=${node.id}`);
         break;
       case 'quiz':
-        navigate(`/student/quizzes?keywordId=${node.id}`);
+        navigateWithFade(`/student/quizzes?keywordId=${node.id}`);
         break;
       case 'summary':
-        if (node.summaryId) {
-          navigate(`/student/summary/${node.summaryId}?highlight=${encodeURIComponent(node.label)}`);
+        if (node.topicId) {
+          const summaryParam = node.summaryId ? `?summaryId=${node.summaryId}` : '';
+          navigateWithFade(`/student/summary/${node.topicId}${summaryParam}`);
         }
         break;
       case 'annotate':
@@ -192,106 +228,47 @@ export function KnowledgeMapView() {
         setSelectedNode(node);
         break;
     }
-  }, [navigate]);
+  }, [navigateWithFade]);
 
-  const handleZoomIn = useCallback(() => {
-    graphControlsRef.current?.zoomIn();
-  }, []);
+  const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll } = useGraphControls(graphControlsRef);
 
-  const handleZoomOut = useCallback(() => {
-    graphControlsRef.current?.zoomOut();
-  }, []);
-
-  const handleFitView = useCallback(() => {
-    graphControlsRef.current?.fitView();
-  }, []);
-
-  const handleCollapseAll = useCallback(() => {
-    graphControlsRef.current?.collapseAll();
-  }, []);
-
-  const handleExpandAll = useCallback(() => {
-    graphControlsRef.current?.expandAll();
-  }, []);
+  const [confirmDeleteNode, setConfirmDeleteNode] = useState<MapNode | null>(null);
 
   const handleDeleteCustomNode = useCallback(async (node: MapNode) => {
     if (!node.isUserCreated) return;
+    setConfirmDeleteNode(node);
+  }, []);
+
+  const executeDeleteNode = useCallback(async () => {
+    if (!confirmDeleteNode) return;
     try {
-      await deleteCustomNode(node.id);
+      await deleteCustomNode(confirmDeleteNode.id);
       setSelectedNode(null);
+      setConfirmDeleteNode(null);
       refetch();
-    } catch (e: any) {
-      toast.error(e?.message || 'Erro ao apagar conceito');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao apagar conceito');
+      setConfirmDeleteNode(null);
     }
-  }, [refetch]);
+  }, [confirmDeleteNode, refetch]);
+
+  // Swipe-to-dismiss for mobile bottom sheet
+  const dismissSelected = useCallback(() => setSelectedNode(null), []);
+  const { onTouchStart: handleSheetTouchStart, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
 
   // Ctrl+F / '/' → focus search input
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  useSearchFocus(searchInputRef);
 
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Set of node IDs that have children (for collapse/expand in context menu)
+  const nodesWithChildren = useMemo(() => {
+    if (!graphData) return new Set<string>();
+    return new Set(graphData.edges.map(e => e.source).filter(Boolean));
+  }, [graphData]);
 
   // Effective topicId for custom node creation
   const effectiveTopicId = topicId || courseTopicIds[0] || '';
 
   // ── Derived data ────────────────────────────────────────
-
-  // IDs of nodes whose label directly matches the search query (responsive, no debounce)
-  const matchingNodeIds = useMemo<Set<string>>(() => {
-    if (!graphData || !searchQuery.trim()) return new Set();
-    const q = searchQuery.trim().toLowerCase();
-    return new Set(
-      graphData.nodes
-        .filter((n) => n.label.toLowerCase().includes(q))
-        .map((n) => n.id)
-    );
-  }, [graphData, searchQuery]);
-
-  // Filtered graph: uses debounced query to avoid G6 destroy/recreate on every keystroke
-  const filteredGraphData = useMemo(() => {
-    if (!graphData) return null;
-    if (!debouncedSearch.trim()) return graphData;
-
-    const q = debouncedSearch.trim().toLowerCase();
-    const debouncedMatchIds = new Set(
-      graphData.nodes
-        .filter((n) => n.label.toLowerCase().includes(q))
-        .map((n) => n.id)
-    );
-
-    // Build neighbor set: nodes directly connected to any matched node
-    const neighborIds = new Set<string>();
-    for (const edge of graphData.edges) {
-      if (debouncedMatchIds.has(edge.source)) neighborIds.add(edge.target);
-      if (debouncedMatchIds.has(edge.target)) neighborIds.add(edge.source);
-    }
-
-    // Union of matched + neighbors
-    const visibleIds = new Set([...debouncedMatchIds, ...neighborIds]);
-
-    const filteredNodes = graphData.nodes.filter((n) => visibleIds.has(n.id));
-    const filteredEdges = graphData.edges.filter(
-      (e) => visibleIds.has(e.source) && visibleIds.has(e.target)
-    );
-
-    return { nodes: filteredNodes, edges: filteredEdges };
-  }, [graphData, debouncedSearch]);
-
-  const nodeCount = filteredGraphData?.nodes.length ?? 0;
-  const edgeCount = filteredGraphData?.edges.length ?? 0;
-  const matchCount = matchingNodeIds.size;
 
   const masteryStats = useMemo(() => {
     if (!graphData) return null;
@@ -356,6 +333,28 @@ export function KnowledgeMapView() {
     );
   }
 
+  // Course scope with no data (no graphData or empty)
+  if (scope === 'course' && !loading && (!graphData || graphData.nodes.length === 0)) {
+    return (
+      <FadeIn>
+        <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+          <AxonPageHeader
+            title="Mapa de Conhecimento"
+            subtitle={currentCourse?.name || 'Todos os tópicos'}
+            onBack={() => navigate(-1)}
+          />
+          <EmptyState
+            icon={<Globe className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
+            title="Nenhum conceito no curso"
+            description={courseTopicIds.length === 0
+              ? 'Este curso não possui tópicos. Acesse um curso com conteúdo primeiro.'
+              : 'Os tópicos deste curso ainda não possuem conceitos mapeados. Estude mais para construir seu mapa!'}
+          />
+        </div>
+      </FadeIn>
+    );
+  }
+
   if (isEmpty) {
     return (
       <FadeIn>
@@ -366,7 +365,7 @@ export function KnowledgeMapView() {
             onBack={() => navigate(-1)}
           />
           <EmptyState
-            icon={<Brain className="w-12 h-12 text-[#2a8c7a]" />}
+            icon={<Brain className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
             title="Nenhum conceito encontrado"
             description="Este tópico ainda não possui palavras-chave com conexões. Estude mais para construir seu mapa!"
           />
@@ -379,7 +378,10 @@ export function KnowledgeMapView() {
 
   return (
     <FadeIn>
-      <div className="flex flex-col h-[calc(100dvh-4rem)] p-3 sm:p-6 lg:p-8">
+      <div
+        className="flex flex-col h-[calc(100dvh-4rem)] p-3 sm:p-6 lg:p-8 transition-opacity duration-150"
+        style={{ opacity: exiting ? 0 : 1 }}
+      >
         {/* Header */}
         <div className="flex-shrink-0 mb-4">
           <AxonPageHeader
@@ -388,6 +390,25 @@ export function KnowledgeMapView() {
             onBack={() => navigate(-1)}
             actionButton={
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+                {/* Topic switcher */}
+                {allTopics.length > 1 && scope === 'topic' && (
+                  <div className="relative">
+                    <select
+                      value={topicId || ''}
+                      onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
+                      className="appearance-none bg-white border border-gray-200 rounded-full pl-3 pr-7 py-1.5 text-xs text-gray-600 shadow-sm hover:border-gray-300 transition-colors max-w-[160px] sm:max-w-[220px] truncate"
+                      style={{ outlineColor: '#2a8c7a' }}
+                      aria-label="Selecionar tópico"
+                    >
+                      {allTopics.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                  </div>
+                )}
                 {/* Scope selector: Topic vs Course */}
                 {hasCourseTopics && (
                   <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5" role="radiogroup" aria-label="Escopo do mapa">
@@ -421,11 +442,12 @@ export function KnowledgeMapView() {
                     </button>
                   </div>
                 )}
-                {effectiveTopicId && (
+                {effectiveTopicId && scope === 'topic' && (
                   <button
                     onClick={() => setAddModalOpen(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-full shadow-sm transition-colors"
                     style={{ backgroundColor: '#2a8c7a' }}
+                    aria-label="Adicionar conceito ao mapa"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Adicionar</span>
@@ -434,6 +456,7 @@ export function KnowledgeMapView() {
                 <button
                   onClick={refetch}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                  aria-label="Atualizar mapa"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Atualizar</span>
@@ -455,17 +478,17 @@ export function KnowledgeMapView() {
           />
         </div>
 
-        {/* Screen reader search results announcement */}
-        {searchQuery.trim() && (
-          <div className="sr-only" aria-live="polite" aria-atomic="true">
-            {matchCount === 0
+        {/* Screen reader search results announcement (persistent DOM node for reliable aria-live) */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true">
+          {searchQuery.trim()
+            ? matchCount === 0
               ? 'Nenhum conceito encontrado'
-              : `${matchCount} conceitos encontrados para "${searchQuery}"`}
-          </div>
-        )}
+              : `${matchCount} conceitos encontrados para "${searchQuery}"`
+            : ''}
+        </div>
 
         {/* Toolbar */}
-        <div className="flex-shrink-0 mb-3">
+        <div className="flex-shrink-0 mb-3 overflow-x-hidden">
           <GraphToolbar
             layout={layout}
             onLayoutChange={setLayout}
@@ -486,25 +509,30 @@ export function KnowledgeMapView() {
 
         {/* Mobile mastery legend (hidden on md+, where GraphToolbar legend shows) */}
         {masteryStats && (
-          <div className="flex md:hidden items-center gap-3 mb-2 px-2 py-1.5 bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-            {(['green', 'yellow', 'red', 'gray'] as const).map(color => (
-              <div key={color} className="flex items-center gap-1 shrink-0">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: MASTERY_HEX[color] }}
-                />
-                <span className="text-[10px] text-gray-500">
-                  {masteryStats[color === 'green' ? 'mastered' : color === 'yellow' ? 'learning' : color === 'red' ? 'weak' : 'noData']}
-                </span>
-              </div>
-            ))}
+          <div className="flex md:hidden items-center gap-3 mb-2 px-2 py-1.5 bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {(['green', 'yellow', 'red', 'gray'] as const).map(color => {
+              const key = color === 'green' ? 'mastered' : color === 'yellow' ? 'learning' : color === 'red' ? 'weak' : 'noData';
+              const label = color === 'green' ? 'Dominados' : color === 'yellow' ? 'Aprendendo' : color === 'red' ? 'Fracos' : 'Sem dados';
+              return (
+                <div key={color} className="flex items-center gap-1 shrink-0" title={label}>
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: MASTERY_HEX[color] }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-[10px] text-gray-500" aria-label={`${masteryStats[key]} ${label}`}>
+                    {masteryStats[key]}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* Graph canvas */}
         <div className="flex-1 min-h-0 relative">
           <ErrorBoundary fallback={
-            <div className="w-full h-full min-h-[400px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
+            <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
               <p className="text-sm text-gray-400">Erro ao renderizar o grafo. Tente atualizar.</p>
             </div>
           }>
@@ -515,44 +543,81 @@ export function KnowledgeMapView() {
                 onNodeRightClick={handleNodeRightClick}
                 selectedNodeId={selectedNode?.id}
                 layout={layout}
-                onReady={(controls) => { graphControlsRef.current = controls; }}
+                onReady={handleGraphReady}
                 highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : undefined}
-                onCollapseChange={setCollapsedCount}
+                onCollapseChange={handleCollapseChange}
               />
             ) : searchQuery.trim() ? (
-              <div className="w-full h-full min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
+              <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-sm text-gray-400 mb-1">Nenhum conceito encontrado</p>
-                  <p className="text-xs text-gray-300">Tente buscar por outro termo</p>
+                  <p className="text-xs text-gray-400">Tente buscar por outro termo</p>
                 </div>
               </div>
             ) : null}
           </ErrorBoundary>
 
-          {/* Annotation modal */}
+          {/* First-visit onboarding tips */}
+          {showOnboarding && !loading && !isEmpty && filteredGraphData && filteredGraphData.nodes.length > 0 && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl">
+              <div className="bg-white rounded-2xl shadow-xl p-5 mx-4 max-w-sm w-full">
+                <h3 className="font-medium text-gray-900 mb-3" style={headingStyle}>
+                  Bem-vindo ao Mapa de Conhecimento!
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-600 mb-4">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                    <span>Toque em um conceito para ver flashcards, quiz e resumo.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                    <span>As cores indicam seu domínio: verde = dominado, amarelo = aprendendo, vermelho = fraco.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+                    <span>Pinça para zoom, arraste para mover. Use a barra de busca para encontrar conceitos.</span>
+                  </li>
+                </ul>
+                <button
+                  onClick={dismissOnboarding}
+                  className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors"
+                  style={{ backgroundColor: '#2a8c7a' }}
+                >
+                  Entendi!
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Annotation modal — rendered outside overflow context via fixed positioning */}
           <NodeAnnotationModal
             node={annotationNode}
             onClose={() => setAnnotationNode(null)}
             onSaved={refetch}
           />
 
-          {/* Context menu overlay */}
+          {/* Context menu overlay — uses fixed positioning, safe outside overflow */}
           <NodeContextMenu
             node={contextMenu?.node ?? null}
             position={contextMenu?.position ?? null}
             onAction={handleAction}
             onClose={handleContextMenuClose}
+            hasChildren={contextMenu?.node ? nodesWithChildren.has(contextMenu.node.id) : false}
+            isCollapsed={contextMenu?.node ? collapsedNodeIds.has(contextMenu.node.id) : false}
+            onToggleCollapse={contextMenu?.node ? () => graphControlsRef.current?.toggleCollapse(contextMenu.node.id) : undefined}
           />
 
-          {/* Selected node detail panel (bottom, responsive) */}
+          {/* Selected node detail panel (bottom sheet on mobile, floating card on desktop) */}
           {selectedNode && !contextMenu && (
             <div
-              className="absolute bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-64 bg-white rounded-t-2xl sm:rounded-xl shadow-lg border border-gray-200 p-4 z-10"
+              className="absolute bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-64 bg-white rounded-t-2xl sm:rounded-xl shadow-lg border border-gray-200 p-4 z-10 max-h-[55dvh] overflow-y-auto"
               style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
               role="region"
               aria-label={`Detalhes do conceito: ${selectedNode.label}`}
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
             >
-              {/* Mobile drag handle */}
+              {/* Mobile drag handle — swipe down to dismiss */}
               <div className="flex sm:hidden justify-center -mt-2 mb-2">
                 <div className="w-8 h-1 rounded-full bg-gray-300" />
               </div>
@@ -565,10 +630,10 @@ export function KnowledgeMapView() {
                 </h3>
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="p-1 -m-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+                  className="p-3 -mr-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
                   aria-label="Fechar"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
               {selectedNode.definition && (
@@ -583,7 +648,7 @@ export function KnowledgeMapView() {
               )}
               <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400">
                 <span>
-                  Domínio: {selectedNode.mastery >= 0 ? `${Math.round(selectedNode.mastery * 100)}%` : 'Sem dados'}
+                  Domínio: {Number.isFinite(selectedNode.mastery) && selectedNode.mastery >= 0 ? `${Math.round(selectedNode.mastery * 100)}%` : 'Sem dados'}
                 </span>
                 {graphData && (
                   <span>
@@ -598,34 +663,34 @@ export function KnowledgeMapView() {
                   </span>
                 )}
               </div>
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-1.5 sm:gap-2 mt-3">
                 <button
                   onClick={() => handleAction('flashcard', selectedNode)}
-                  className="flex-1 px-2 py-1.5 text-xs font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full hover:bg-[#d0ebe6] transition-colors"
+                  className="flex-1 min-w-0 px-2 sm:px-3 py-3 sm:py-2 text-xs font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full hover:bg-[#d0ebe6] transition-colors truncate"
                 >
                   Flashcards
                 </button>
                 <button
                   onClick={() => handleAction('quiz', selectedNode)}
-                  className="flex-1 px-2 py-1.5 text-xs font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full hover:bg-[#d0ebe6] transition-colors"
+                  className="flex-1 min-w-0 px-2 sm:px-3 py-3 sm:py-2 text-xs font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full hover:bg-[#d0ebe6] transition-colors truncate"
                 >
                   Quiz
                 </button>
                 <button
                   onClick={() => handleAction('annotate', selectedNode)}
-                  className="px-2 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors"
+                  className="px-3 py-3 sm:py-2 text-xs font-medium text-gray-500 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
                   aria-label="Anotar conceito"
                   title="Anotar"
                 >
-                  <Edit3 className="w-3 h-3" />
+                  <Edit3 className="w-3.5 h-3.5" />
                 </button>
                 {selectedNode.isUserCreated && (
                   <button
                     onClick={() => handleDeleteCustomNode(selectedNode)}
-                    className="px-2 py-1.5 text-xs font-medium text-red-500 bg-red-50 rounded-full hover:bg-red-100 transition-colors"
+                    className="px-3 py-3 sm:py-2 text-xs font-medium text-red-500 bg-red-50 rounded-full hover:bg-red-100 transition-colors flex-shrink-0"
                     aria-label="Apagar conceito personalizado"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -641,7 +706,20 @@ export function KnowledgeMapView() {
           existingNodes={graphData?.nodes ?? []}
           onCreated={refetch}
         />
+
+        {/* Delete confirmation dialog (replaces window.confirm for PWA compatibility) */}
+        {confirmDeleteNode && (
+          <ConfirmDialog
+            title="Apagar conceito?"
+            description={`\u201c${confirmDeleteNode.label}\u201d será removido do seu mapa. Esta ação não pode ser desfeita.`}
+            cancelLabel="Cancelar"
+            confirmLabel="Apagar"
+            onCancel={() => setConfirmDeleteNode(null)}
+            onConfirm={executeDeleteNode}
+          />
+        )}
       </div>
     </FadeIn>
   );
 }
+

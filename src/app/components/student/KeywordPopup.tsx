@@ -177,7 +177,7 @@ export function KeywordPopup({
   const closeAndNavigate = useCallback(
     (targetKeywordId: string, targetSummaryId: string | undefined) => {
       if (!targetSummaryId || !onNavigateKeyword) {
-        toast.info('No se puede navegar a esta keyword');
+        toast.info('Não é possível navegar para este conceito');
         return;
       }
       onClose();

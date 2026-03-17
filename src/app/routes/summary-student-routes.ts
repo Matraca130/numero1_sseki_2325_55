@@ -13,8 +13,8 @@ export const summaryStudentRoutes: RouteObject[] = [
     lazy: () => lazyRetry(() => import('@/app/components/content/StudentSummariesView')).then(m => ({ Component: m.StudentSummariesView })),
   },
   {
-    path: 'summary/:summaryId',
-    lazy: () => lazyRetry(() => import('@/app/components/content/StudentSummaryReader')).then(m => ({ Component: m.StudentSummaryReader })),
+    path: 'summary/:topicId',
+    lazy: () => lazyRetry(() => import('@/app/components/content/SummaryView')).then(m => ({ Component: m.SummaryView })),
   },
   // Agent 2: agrega nuevas rutas de summary aqui
 ];

@@ -277,13 +277,13 @@ export function useKeywordPopupQueries(
       });
     },
     onSuccess: () => {
-      toast.success('Nota agregada');
+      toast.success('Nota adicionada');
       queryClient.invalidateQueries({
         queryKey: queryKeys.kwNotes(keywordId),
       });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al agregar nota');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao adicionar nota');
     },
   });
 
@@ -292,13 +292,13 @@ export function useKeywordPopupQueries(
       await studentApi.updateKwStudentNote(noteId, { note });
     },
     onSuccess: () => {
-      toast.success('Nota actualizada');
+      toast.success('Nota atualizada');
       queryClient.invalidateQueries({
         queryKey: queryKeys.kwNotes(keywordId),
       });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al actualizar');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar');
     },
   });
 
@@ -323,12 +323,12 @@ export function useKeywordPopupQueries(
     onSuccess: () => {
       toast.success('Nota eliminada');
     },
-    onError: (err: any, _noteId, ctx) => {
+    onError: (err: unknown, _noteId, ctx) => {
       // Rollback on failure
       if (ctx?.prev) {
         queryClient.setQueryData(queryKeys.kwNotes(keywordId), ctx.prev);
       }
-      toast.error(err.message || 'Error al eliminar');
+      toast.error(err instanceof Error ? err.message : 'Erro ao eliminar');
     },
     onSettled: () => {
       queryClient.invalidateQueries({

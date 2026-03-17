@@ -33,8 +33,8 @@ export function useCreateAnnotationMutation(summaryId: string) {
         queryKey: queryKeys.summaryAnnotations(summaryId),
       });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al crear subrayado');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao criar destaque');
     },
   });
 }
@@ -51,10 +51,10 @@ export function useUpdateAnnotationMutation(summaryId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.summaryAnnotations(summaryId),
       });
-      toast.success('Nota guardada');
+      toast.success('Nota salva');
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al guardar nota');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar nota');
     },
   });
 }
@@ -68,10 +68,10 @@ export function useDeleteAnnotationMutation(summaryId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.summaryAnnotations(summaryId),
       });
-      toast.success('Subrayado eliminado');
+      toast.success('Destaque eliminado');
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao eliminar');
     },
   });
 }

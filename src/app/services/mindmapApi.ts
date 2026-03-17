@@ -57,22 +57,29 @@ async function fetchConnectionsBatch(
   const allConnections: KeywordConnection[] = [];
   const seenIds = new Set<string>();
 
-  for (const batch of batches) {
-    try {
-      const idsParam = batch.join(',');
-      const result = await apiCall<unknown>(
-        `/keyword-connections-batch?keyword_ids=${idsParam}`
-      );
-      const connections = unwrapItems<KeywordConnection>(result);
-      for (const conn of connections) {
-        if (!seenIds.has(conn.id)) {
-          seenIds.add(conn.id);
-          allConnections.push(conn);
+  // Fetch all batches in parallel for better latency with 100+ nodes
+  const batchResults = await Promise.all(
+    batches.map(async (batch) => {
+      try {
+        const idsParam = batch.map(id => encodeURIComponent(id)).join(',');
+        const result = await apiCall<unknown>(
+          `/keyword-connections-batch?keyword_ids=${idsParam}`
+        );
+        return unwrapItems<KeywordConnection>(result);
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.warn('[MindmapApi] connections-batch failed:', e);
         }
+        return [];
       }
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn('[MindmapApi] connections-batch failed:', e);
+    })
+  );
+
+  for (const connections of batchResults) {
+    for (const conn of connections) {
+      if (!seenIds.has(conn.id)) {
+        seenIds.add(conn.id);
+        allConnections.push(conn);
       }
     }
   }
@@ -116,13 +123,9 @@ function buildGraphData(
       continue;
     }
 
-    // Determine direction based on source_keyword_id
-    const source = conn.source_keyword_id === conn.keyword_b_id
-      ? conn.keyword_b_id
-      : conn.keyword_a_id;
-    const target = source === conn.keyword_a_id
-      ? conn.keyword_b_id
-      : conn.keyword_a_id;
+    // Determine direction: use source_keyword_id if set, default to keyword_a → keyword_b
+    const source = conn.source_keyword_id || conn.keyword_a_id;
+    const target = source === conn.keyword_a_id ? conn.keyword_b_id : conn.keyword_a_id;
 
     edges.push({
       id: conn.id,
@@ -182,8 +185,8 @@ export async function fetchGraphBySummary(summaryId: string): Promise<GraphData>
 export async function fetchGraphByCourse(topicIds: string[]): Promise<GraphData> {
   if (topicIds.length === 0) return { nodes: [], edges: [] };
 
-  // Fetch mastery for all topics in parallel
-  const masteryMaps = await Promise.all(
+  // Fetch mastery for all topics in parallel (allSettled so one failure doesn't block others)
+  const results = await Promise.allSettled(
     topicIds.map(id => fetchKeywordMasteryByTopic(id))
   );
 
@@ -191,7 +194,9 @@ export async function fetchGraphByCourse(topicIds: string[]): Promise<GraphData>
   const merged: KeywordMasteryMap = new Map();
   const topicMap = new Map<string, string>();
   for (let i = 0; i < topicIds.length; i++) {
-    for (const [k, v] of masteryMaps[i]) {
+    const r = results[i];
+    if (r.status !== 'fulfilled') continue;
+    for (const [k, v] of r.value) {
       merged.set(k, v);
       topicMap.set(k, topicIds[i]);
     }
@@ -277,9 +282,11 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
     }));
 
     return { nodes, edges };
-  } catch {
-    // If endpoints don't exist yet, return empty gracefully
-    return { nodes: [], edges: [] };
+  } catch (e: unknown) {
+    // Swallow 404s (endpoint not deployed yet). Re-throw all other errors.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('404') || msg.toLowerCase().includes('not found')) return { nodes: [], edges: [] };
+    throw e;
   }
 }
 
@@ -302,9 +309,4 @@ export async function createCustomEdge(payload: CreateCustomEdgePayload): Promis
     method: 'POST',
     body: JSON.stringify(payload),
   });
-}
-
-/** Delete a custom edge */
-export async function deleteCustomEdge(edgeId: string): Promise<void> {
-  await apiCall(`/student-custom-edges/${edgeId}`, { method: 'DELETE' });
 }

@@ -12,7 +12,7 @@
 //
 // Consumer: StudentSummaryReader.tsx (orchestrator)
 // ============================================================
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as studentApi from '@/app/services/studentSummariesApi';
@@ -80,6 +80,8 @@ export function useSummaryReaderMutations({
 
   // ── XP Toast state (mutation side effect) ───────────────
   const [showXpToast, setShowXpToast] = useState(false);
+  const xpToastTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(xpToastTimerRef.current), []);
 
   // ── 1. Mark as completed ────────────────────────────
   const markCompletedMutation = useMutation({
@@ -97,12 +99,13 @@ export function useSummaryReaderMutations({
     onSuccess: (rs) => {
       onReadingStateChanged(rs);
       setShowXpToast(true);
-      setTimeout(() => setShowXpToast(false), 3000);
-      toast.success('Resumen marcado como leido');
+      clearTimeout(xpToastTimerRef.current);
+      xpToastTimerRef.current = setTimeout(() => setShowXpToast(false), 3000);
+      toast.success('Resumo marcado como lido');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
       invalidateGraphCache(topicId, summaryId);
     },
-    onError: (err: any) => toast.error(err.message || 'Error al marcar como leido'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao marcar como lido'),
   });
 
   // ── 2. Unmark completed ─────────────────────────────
@@ -110,10 +113,11 @@ export function useSummaryReaderMutations({
     mutationFn: () => studentApi.upsertReadingState({ summary_id: summaryId, completed: false }),
     onSuccess: (rs) => {
       onReadingStateChanged(rs);
-      toast.success('Marcado como no leido');
+      toast.success('Marcado como não lido');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
+      invalidateGraphCache(topicId, summaryId);
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar'),
   });
 
   // ── 3. Annotation create ────────────────────────────
@@ -126,11 +130,11 @@ export function useSummaryReaderMutations({
         note: vars.note,
       }),
     onSuccess: () => {
-      toast.success('Anotacion creada');
+      toast.success('Anotação criada');
       onAnnotationCreated();
       invalidateAnnotations();
     },
-    onError: (err: any) => toast.error(err.message || 'Error al crear anotacion'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao criar anotação'),
   });
 
   // ── 4. Annotation delete (optimistic) ───────────────
@@ -147,9 +151,9 @@ export function useSummaryReaderMutations({
     },
     onError: (_err, _id, context) => {
       if (context?.previous) rqClient.setQueryData(queryKeys.summaryAnnotations(summaryId), context.previous);
-      toast.error('Error al eliminar anotacion');
+      toast.error('Erro ao eliminar anotação');
     },
-    onSuccess: () => toast.success('Anotacion eliminada'),
+    onSuccess: () => toast.success('Anotação eliminada'),
     onSettled: () => invalidateAnnotations(),
   });
 
@@ -158,11 +162,11 @@ export function useSummaryReaderMutations({
     mutationFn: (vars: { keywordId: string; note: string }) =>
       studentApi.createKwStudentNote({ keyword_id: vars.keywordId, note: vars.note }),
     onSuccess: (_data, vars) => {
-      toast.success('Nota agregada');
+      toast.success('Nota adicionada');
       onKwNoteCreated();
       invalidateKwNotes(vars.keywordId);
     },
-    onError: (err: any) => toast.error(err.message || 'Error al crear nota'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao criar nota'),
   });
 
   // ── 6. KW Note update ──────────────────────────────
@@ -170,11 +174,11 @@ export function useSummaryReaderMutations({
     mutationFn: (vars: { noteId: string; keywordId: string; note: string }) =>
       studentApi.updateKwStudentNote(vars.noteId, { note: vars.note }),
     onSuccess: (_data, vars) => {
-      toast.success('Nota actualizada');
+      toast.success('Nota atualizada');
       onKwNoteUpdated();
       invalidateKwNotes(vars.keywordId);
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar'),
   });
 
   // ── 7. KW Note delete (optimistic) ─────────────────
@@ -192,7 +196,7 @@ export function useSummaryReaderMutations({
     },
     onError: (_err, vars, context) => {
       if (context?.previous) rqClient.setQueryData(queryKeys.kwNotes(vars.keywordId), context.previous);
-      toast.error('Error al eliminar nota');
+      toast.error('Erro ao eliminar nota');
     },
     onSuccess: () => toast.success('Nota eliminada'),
     onSettled: (_d, _e, vars) => invalidateKwNotes(vars.keywordId),

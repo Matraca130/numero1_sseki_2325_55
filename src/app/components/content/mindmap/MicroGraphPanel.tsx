@@ -11,9 +11,9 @@
 // downloaded when the user actually expands the panel.
 // ============================================================
 
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, ChevronDown } from 'lucide-react';
+import { Brain, ChevronDown, RefreshCw } from 'lucide-react';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { useGraphData } from '@/app/components/content/mindmap/useGraphData';
 import { useLocalGraph } from '@/app/components/content/mindmap/useLocalGraph';
@@ -26,6 +26,20 @@ const MiniKnowledgeGraph = lazy(() =>
     default: m.MiniKnowledgeGraph,
   }))
 );
+
+// Reactive small-screen detection via matchMedia (avoids stale window.innerWidth reads)
+const SMALL_SCREEN_QUERY = '(max-width: 639px)';
+const smallScreenMql = typeof window !== 'undefined' ? window.matchMedia(SMALL_SCREEN_QUERY) : null;
+function subscribeSmallScreen(cb: () => void) {
+  smallScreenMql?.addEventListener('change', cb);
+  return () => smallScreenMql?.removeEventListener('change', cb);
+}
+function getSmallScreenSnapshot() {
+  return smallScreenMql?.matches ?? false;
+}
+function getSmallScreenServerSnapshot() {
+  return false;
+}
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -70,15 +84,29 @@ export function MicroGraphPanel({
   summaryId,
   focalNodeId,
   onNodeClick,
-  height = 160,
+  height: heightProp = 160,
   panelId = 'micro-graph-panel',
   variant = 'section',
 }: MicroGraphPanelProps) {
   const [expanded, setExpanded] = useState(false);
+  // Defer data fetch until user first expands the panel (saves a network call
+  // when the panel stays collapsed for the entire session).
+  // Using state (not ref) so the fetch triggers a proper re-render cycle.
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
+  useEffect(() => {
+    if (expanded && !hasBeenExpanded) setHasBeenExpanded(true);
+  }, [expanded, hasBeenExpanded]);
 
-  const { graphData, loading, error } = useGraphData({
-    topicId,
-    summaryId,
+  // Reactive mobile detection — taller on small screens for better touch interaction
+  const isMobileSize = useSyncExternalStore(subscribeSmallScreen, getSmallScreenSnapshot, getSmallScreenServerSnapshot);
+  const height = isMobileSize ? Math.max(heightProp, 200) : heightProp;
+
+  const effectiveTopicId = hasBeenExpanded ? (topicId?.trim() || undefined) : undefined;
+  const effectiveSummaryId = hasBeenExpanded ? (summaryId?.trim() || undefined) : undefined;
+
+  const { graphData, loading, error, refetch } = useGraphData({
+    topicId: effectiveTopicId,
+    summaryId: effectiveSummaryId,
   });
   const localGraph = useLocalGraph(graphData, focalNodeId, 1);
 
@@ -86,25 +114,44 @@ export function MicroGraphPanel({
 
   // Show local subgraph when a focal node is available and found;
   // fall back to full graph otherwise.
-  const displayGraph =
-    focalNodeId && localGraph && localGraph.nodes.length > 0
-      ? localGraph
-      : graphData;
+  const displayGraph = useMemo(
+    () => focalNodeId && localGraph && localGraph.nodes.length > 0 ? localGraph : graphData,
+    [focalNodeId, localGraph, graphData],
+  );
   const hasData = displayGraph && displayGraph.nodes.length > 0;
 
-  // Don't render if no source, error, or confirmed no data
-  if ((!topicId && !summaryId) || error) {
-    if (error && import.meta.env.DEV) {
-      console.warn('[MicroGraphPanel] Graph fetch error:', error);
-    }
-    return null;
-  }
-  if (!loading && !hasData) return null;
+  // Don't render if no source IDs provided
+  if (!topicId?.trim() && !summaryId?.trim()) return null;
+  // After fetching, if confirmed empty, hide panel
+  if (hasBeenExpanded && !loading && !error && !hasData) return null;
 
   const wrapperClass =
     variant === 'card'
-      ? 'bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden mb-6'
-      : 'shrink-0 border-t border-gray-200/60 bg-white';
+      ? 'bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6'
+      : 'shrink-0 border-t border-gray-200/60 bg-white overflow-hidden';
+
+  // Error state: show a retry bar instead of hiding the panel entirely
+  if (error) {
+    return (
+      <ErrorBoundary fallback={null}>
+        <div className={wrapperClass}>
+          <button
+            onClick={() => refetch()}
+            className={`w-full flex items-center gap-2 text-xs font-medium transition-colors min-h-[44px] ${
+              variant === 'card'
+                ? 'px-4 py-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
+                : 'px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
+            }`}
+            aria-label="Mapa indisponível. Toque para tentar novamente."
+          >
+            <Brain size={variant === 'card' ? 14 : 13} className="text-gray-400" />
+            <span>Mapa indisponível</span>
+            <RefreshCw size={12} className="ml-auto" />
+          </button>
+        </div>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary fallback={null}>
@@ -112,9 +159,9 @@ export function MicroGraphPanel({
         {/* Toggle bar */}
         <button
           onClick={toggle}
-          className={`w-full flex items-center gap-2 text-xs font-medium transition-colors ${
+          className={`w-full flex items-center gap-2 text-xs font-medium transition-colors min-h-[44px] ${
             variant === 'card'
-              ? 'px-4 py-2.5 text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50/80'
+              ? 'px-4 py-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
               : 'px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
           }`}
           aria-expanded={expanded}
@@ -124,15 +171,14 @@ export function MicroGraphPanel({
           <Brain size={variant === 'card' ? 14 : 13} className="text-[#2a8c7a]" />
           <span>{variant === 'card' ? 'Mapa de conhecimento' : 'Mapa'}</span>
           {displayGraph && !loading && (
-            <span className="text-[10px] text-gray-400 ml-1">
-              ({displayGraph.nodes.length} nós)
+            <span className="text-[10px] text-gray-400 ml-1 truncate max-w-[60px] sm:max-w-[80px]">
+              ({displayGraph.nodes.length} nós{focalNodeId && localGraph && localGraph.nodes.length > 0 && graphData && localGraph.nodes.length < graphData.nodes.length ? ' · local' : ''})
             </span>
           )}
           {expanded && loading && (
             <div
               className="w-3 h-3 border border-[#2a8c7a] border-t-transparent rounded-full animate-spin ml-1"
-              role="status"
-              aria-label="Carregando"
+              aria-hidden="true"
             />
           )}
           <motion.div
@@ -159,14 +205,19 @@ export function MicroGraphPanel({
                 {loading ? (
                   <GraphLoadingPlaceholder height={height} />
                 ) : displayGraph ? (
-                  <Suspense fallback={<GraphLoadingPlaceholder height={height} />}>
-                    <MiniKnowledgeGraph
-                      data={displayGraph}
-                      focalNodeId={focalNodeId}
-                      onNodeClick={onNodeClick}
-                      height={height}
-                    />
-                  </Suspense>
+                  <>
+                    <Suspense fallback={<GraphLoadingPlaceholder height={height} />}>
+                      <MiniKnowledgeGraph
+                        data={displayGraph}
+                        focalNodeId={focalNodeId}
+                        onNodeClick={onNodeClick}
+                        height={height}
+                      />
+                    </Suspense>
+                    <div className="sr-only" aria-live="polite" aria-atomic="true">
+                      Mapa carregado com {displayGraph.nodes.length} conceitos
+                    </div>
+                  </>
                 ) : null}
               </div>
             </motion.div>

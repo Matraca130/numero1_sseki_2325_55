@@ -14,6 +14,7 @@ import { apiCall } from '@/app/lib/api';
 import type { MapNode } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
+import { useFocusTrap } from './useFocusTrap';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   const [existingNote, setExistingNote] = useState<StudentNote | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const focusTrapRef = useFocusTrap(!!node);
 
   // Fetch existing note when node changes
   useEffect(() => {
@@ -44,7 +46,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
 
     let cancelled = false;
     setLoading(true);
-    apiCall<any>(`/kw-student-notes?keyword_id=${node.id}`)
+    apiCall<StudentNote[] | { items: StudentNote[] }>(`/kw-student-notes?keyword_id=${node.id}`)
       .then((result) => {
         if (cancelled) return;
         const notes = Array.isArray(result) ? result : result?.items || [];
@@ -73,9 +75,11 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handleKey);
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKey);
+      document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     };
   }, [node, onClose]);
@@ -92,20 +96,21 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
           body: JSON.stringify({ content: content.trim() }),
         });
       } else {
-        // Create new note
-        await apiCall('/kw-student-notes', {
+        // Create new note — capture response to prevent duplicate POSTs
+        const created = await apiCall<StudentNote>('/kw-student-notes', {
           method: 'POST',
           body: JSON.stringify({
             keyword_id: node.id,
             content: content.trim(),
           }),
         });
+        if (created) setExistingNote(created);
       }
       toast.success('Anotação salva');
       onSaved?.();
       onClose();
-    } catch (e: any) {
-      toast.error(e?.message || 'Erro ao salvar anotação');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao salvar anotação');
     } finally {
       setSaving(false);
     }
@@ -122,8 +127,8 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
       setExistingNote(null);
       onSaved?.();
       onClose();
-    } catch (e: any) {
-      toast.error(e?.message || 'Erro ao apagar anotação');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao apagar anotação');
     } finally {
       setSaving(false);
     }
@@ -140,18 +145,20 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/20 z-40"
             onClick={onClose}
+            aria-hidden="true"
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: 0.15 }}
+            ref={focusTrapRef}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.2 }}
             className="fixed z-50 w-full max-w-md bg-white shadow-xl border border-gray-200 bottom-0 left-0 right-0 rounded-t-2xl sm:rounded-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[90vw] max-h-[90dvh] overflow-y-auto"
             role="dialog"
             aria-modal="true"
-            aria-label={`Anotação para ${node.label}`}
+            aria-labelledby="annotation-modal-title"
           >
             {/* Mobile drag handle */}
             <div className="flex sm:hidden justify-center pt-2 pb-0">
@@ -166,6 +173,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                   style={{ backgroundColor: MASTERY_HEX[node.masteryColor] }}
                 />
                 <h3
+                  id="annotation-modal-title"
                   className="font-medium text-gray-900"
                   style={{ ...headingStyle, fontSize: 'clamp(0.9rem, 1.5vw, 1rem)' }}
                 >
@@ -174,7 +182,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
               </div>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors"
                 aria-label="Fechar"
               >
                 <X className="w-4 h-4 text-gray-400" />
@@ -197,12 +205,12 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Adicione notas sobre este conceito..."
-                    className="w-full h-32 px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] placeholder:text-gray-400"
-                    maxLength={1000}
                     autoFocus
+                    className="w-full h-32 px-3 py-2 text-base sm:text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] placeholder:text-gray-400"
+                    maxLength={1000}
                   />
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-gray-400">
+                    <span className={`text-xs ${content.length >= 950 ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
                       {content.length}/1000
                     </span>
                   </div>
@@ -215,8 +223,8 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
               {existingNote ? (
                 <button
                   onClick={handleDelete}
-                  disabled={saving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                  disabled={saving || loading}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-full transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Apagar
@@ -227,7 +235,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
               <button
                 onClick={handleSave}
                 disabled={saving || !content.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
               >
                 <Save className="w-3.5 h-3.5" />
                 {saving ? 'Salvando...' : 'Salvar'}

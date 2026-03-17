@@ -21,6 +21,8 @@ export function useLocalGraph(
   return useMemo(() => {
     if (!fullGraph || !focalNodeId) return null;
     if (fullGraph.nodes.length === 0) return null;
+    // If focal node doesn't exist in the graph, return null (caller falls back to full graph)
+    if (!fullGraph.nodes.some(n => n.id === focalNodeId)) return null;
 
     // BFS to find nodes within depth
     const nodeIds = new Set<string>();

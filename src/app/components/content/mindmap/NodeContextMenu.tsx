@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useEffect, useRef, useState, type ElementType } from 'react';
-import { Layers, HelpCircle, FileText, Edit3, Info, X } from 'lucide-react';
+import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapNode, NodeAction } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
@@ -38,16 +38,25 @@ interface NodeContextMenuProps {
   position: { x: number; y: number } | null;
   onAction: (action: NodeAction, node: MapNode) => void;
   onClose: () => void;
+  /** Whether this node has children (enables collapse/expand action) */
+  hasChildren?: boolean;
+  /** Whether this node is currently collapsed */
+  isCollapsed?: boolean;
+  /** Toggle collapse for this node */
+  onToggleCollapse?: () => void;
 }
 
 // ── Component ───────────────────────────────────────────────
 
-export function NodeContextMenu({ node, position, onAction, onClose }: NodeContextMenuProps) {
+export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click + keyboard navigation
   useEffect(() => {
     if (!node) return;
+
+    // Save focused element to restore on close
+    const previouslyFocused = document.activeElement as HTMLElement | null;
 
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -81,14 +90,17 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
     document.addEventListener('keydown', handleKeyDown);
 
     // Auto-focus first menu item on open
-    requestAnimationFrame(() => {
+    const rafId = requestAnimationFrame(() => {
       const firstItem = menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]');
       firstItem?.focus();
     });
 
     return () => {
+      cancelAnimationFrame(rafId);
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
+      // Restore focus to previously focused element
+      previouslyFocused?.focus();
     };
   }, [node, onClose]);
 
@@ -104,8 +116,8 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
     return () => mq.removeEventListener('change', handler);
   }, []);
   const adjustedPosition = position ? {
-    x: isSmallScreen ? 0 : Math.min(position.x, window.innerWidth - 220),
-    y: isSmallScreen ? 0 : Math.min(position.y, window.innerHeight - 320),
+    x: isSmallScreen ? 0 : Math.max(4, Math.min(position.x, window.innerWidth - 220)),
+    y: isSmallScreen ? 0 : Math.max(4, Math.min(position.y, window.innerHeight - 320)),
   } : { x: 0, y: 0 };
 
   const masteryColor = node ? getSafeMasteryColor(node.mastery) : 'gray';
@@ -119,11 +131,15 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
     'details',
   ];
 
-  // Prevent body scroll when bottom sheet is open on mobile
+  // Prevent body scroll when bottom sheet is open on mobile (lock both html + body for iOS Safari)
   useEffect(() => {
     if (!node || !isSmallScreen) return;
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
   }, [node, isSmallScreen]);
 
   return (
@@ -147,10 +163,10 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
             animate={isSmallScreen ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
             exit={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.9, y: -4 }}
             transition={{ duration: 0.15 }}
-            className={`fixed z-50 bg-white shadow-lg border border-gray-200 overflow-hidden ${
+            className={`fixed z-50 bg-white shadow-lg border border-gray-200 ${
               isSmallScreen
-                ? 'bottom-0 left-0 right-0 rounded-t-2xl w-full'
-                : 'w-52 rounded-xl'
+                ? 'bottom-0 left-0 right-0 rounded-t-2xl w-full max-h-[75dvh] overflow-y-auto'
+                : 'w-52 rounded-xl overflow-hidden'
             }`}
             style={isSmallScreen ? undefined : { left: adjustedPosition.x, top: adjustedPosition.y }}
             role="menu"
@@ -173,11 +189,10 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
               </p>
               <button
                 onClick={onClose}
-                className="p-0.5 rounded hover:bg-gray-100 transition-colors"
+                className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors"
                 aria-label="Fechar"
-                role="menuitem"
               >
-                <X className="w-3.5 h-3.5 text-gray-400" />
+                <X className="w-4 h-4 text-gray-400" />
               </button>
             </div>
             {masteryPct !== null && (
@@ -185,6 +200,7 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
                 <span
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: MASTERY_HEX[masteryColor] }}
+                  aria-hidden="true"
                 />
                 <span className="text-xs text-gray-500">
                   {getMasteryLabel(masteryColor)} — {masteryPct}%
@@ -199,7 +215,10 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
           </div>
 
           {/* Action buttons */}
-          <div className={`py-1 ${isSmallScreen ? 'pb-[env(safe-area-inset-bottom,0.5rem)]' : ''}`}>
+          <div
+            className="py-1"
+            style={isSmallScreen ? { paddingBottom: !(hasChildren && onToggleCollapse) ? 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' : undefined } : undefined}
+          >
             {actions.map((action) => {
               const Icon = ICONS[action];
               return (
@@ -217,6 +236,27 @@ export function NodeContextMenu({ node, position, onAction, onClose }: NodeConte
               );
             })}
           </div>
+          {/* Collapse/expand branch action (only for non-leaf nodes) */}
+          {hasChildren && onToggleCollapse && (
+            <div
+              className="border-t border-gray-100 py-1"
+              style={isSmallScreen ? { paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' } : undefined}
+            >
+              <button
+                onClick={() => { onToggleCollapse(); onClose(); }}
+                className={`group w-full flex items-center gap-2.5 text-sm text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
+                  isSmallScreen ? 'px-4 py-3' : 'px-3 py-2'
+                }`}
+                role="menuitem"
+              >
+                {isCollapsed
+                  ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a]" />
+                  : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a]" />
+                }
+                {isCollapsed ? 'Expandir ramo' : 'Recolher ramo'}
+              </button>
+            </div>
+          )}
         </motion.div>
         </>
       )}

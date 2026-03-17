@@ -179,7 +179,13 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
 
   return (
     <div className="flex h-screen w-full bg-gray-50 text-gray-900 font-sans overflow-hidden">
-      
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-white focus:text-[#2a8c7a] focus:rounded-full focus:shadow-lg focus:text-sm focus:font-medium"
+      >
+        Ir al contenido principal
+      </a>
+
       {/* ── Desktop Sidebar (always visible on lg+) ── */}
       <div className="hidden lg:flex shrink-0">
         <RoleSidebarContent {...sidebarProps} />
@@ -229,7 +235,7 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

@@ -6,7 +6,7 @@
 // XMind-inspired: floating toolbar with clean icons.
 // ============================================================
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info } from 'lucide-react';
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
@@ -24,6 +24,7 @@ const I18N: Record<Locale, {
   search: string; clear: string; nodes: string; connections: string;
   toolbar: string; layoutGroup: string; zoomGroup: string; collapseGroup: string;
   edgeLegendTitle: string; edgeLegendToggle: string; masteryGroup: string;
+  matchOf: (match: number, total: number) => string;
 }> = {
   pt: {
     force: 'Força', radial: 'Radial', tree: 'Árvore',
@@ -33,6 +34,7 @@ const I18N: Record<Locale, {
     toolbar: 'Controles do grafo', layoutGroup: 'Tipo de layout', zoomGroup: 'Controles de zoom',
     collapseGroup: 'Controles de expansão', edgeLegendTitle: 'Tipos de conexão',
     edgeLegendToggle: 'Mostrar legenda de tipos de conexão', masteryGroup: 'Legenda de domínio',
+    matchOf: (match, total) => `${match} de ${total}`,
   },
   es: {
     force: 'Fuerza', radial: 'Radial', tree: 'Árbol',
@@ -42,6 +44,7 @@ const I18N: Record<Locale, {
     toolbar: 'Controles del grafo', layoutGroup: 'Tipo de layout', zoomGroup: 'Controles de zoom',
     collapseGroup: 'Controles de expansión', edgeLegendTitle: 'Tipos de conexión',
     edgeLegendToggle: 'Mostrar leyenda de tipos de conexión', masteryGroup: 'Leyenda de dominio',
+    matchOf: (match, total) => `${match} de ${total}`,
   },
 };
 
@@ -100,20 +103,27 @@ export function GraphToolbar({
   const [showEdgeLegend, setShowEdgeLegend] = useState(false);
   const edgeLegendRef = useRef<HTMLDivElement>(null);
 
-  const LAYOUT_LABELS: Record<LayoutType, string> = {
+  const LAYOUT_LABELS = useMemo<Record<LayoutType, string>>(() => ({
     force: t.force, radial: t.radial, dagre: t.tree,
-  };
+  }), [t]);
 
-  // Close edge legend on outside click
+  // Close edge legend on outside click or Escape
   useEffect(() => {
     if (!showEdgeLegend) return;
-    const handler = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent) => {
       if (edgeLegendRef.current && !edgeLegendRef.current.contains(e.target as Node)) {
         setShowEdgeLegend(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowEdgeLegend(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [showEdgeLegend]);
 
   return (
@@ -127,7 +137,7 @@ export function GraphToolbar({
             <button
               key={value}
               onClick={() => onLayoutChange(value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors ${
                 layout === value
                   ? 'bg-[#e8f5f1] text-[#2a8c7a]'
                   : 'text-gray-500 hover:text-gray-700'
@@ -148,7 +158,7 @@ export function GraphToolbar({
       <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5" role="group" aria-label={t.zoomGroup}>
         <button
           onClick={onZoomOut}
-          className="p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+          className="p-3 sm:p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
           title="Zoom out (-)"
           aria-label={t.zoomOut}
         >
@@ -156,7 +166,7 @@ export function GraphToolbar({
         </button>
         <button
           onClick={onFitView}
-          className="p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+          className="p-3 sm:p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
           title={`${t.fitView} (0)`}
           aria-label={t.fitView}
         >
@@ -164,7 +174,7 @@ export function GraphToolbar({
         </button>
         <button
           onClick={onZoomIn}
-          className="p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+          className="p-3 sm:p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
           title="Zoom in (+)"
           aria-label={t.zoomIn}
         >
@@ -176,8 +186,8 @@ export function GraphToolbar({
       {(onCollapseAll || onExpandAll) && (
         <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5" role="group" aria-label={t.collapseGroup}>
           <button
-            onClick={onCollapseAll}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={onCollapseAll ?? undefined}
+            className="flex items-center gap-1 px-3 py-3 sm:py-1.5 rounded-full text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
             title={t.collapse}
             aria-label={t.collapse}
           >
@@ -186,7 +196,7 @@ export function GraphToolbar({
           </button>
           <button
             onClick={onExpandAll}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1 px-3 py-3 sm:py-1.5 rounded-full text-xs font-medium transition-colors ${
               collapsedCount > 0
                 ? 'text-[#2a8c7a] bg-[#e8f5f1] hover:bg-[#d0ebe6]'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -217,10 +227,9 @@ export function GraphToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t.search}
-            className="flex-1 sm:w-44 bg-transparent text-xs text-gray-700 placeholder-gray-400 outline-none font-sans"
+            className="flex-1 min-w-0 sm:w-44 bg-transparent text-base sm:text-xs text-gray-700 placeholder-gray-400 outline-none font-sans"
             style={{ caretColor: '#2a8c7a' }}
             aria-label={t.search}
-            role="searchbox"
           />
           {searchQuery && (
             <>
@@ -230,16 +239,16 @@ export function GraphToolbar({
                   style={{ backgroundColor: '#e8f5f1', color: '#2a8c7a' }}
                   aria-live="polite"
                 >
-                  {matchCount} de {nodeCount}
+                  {t.matchOf(matchCount, nodeCount)}
                 </span>
               )}
               <button
                 onClick={() => onSearchChange('')}
-                className="p-0.5 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
                 title={t.clear}
                 aria-label={t.clear}
               >
-                <X className="w-3 h-3 text-gray-400" />
+                <X className="w-4 h-4 text-gray-400" />
               </button>
             </>
           )}
@@ -249,58 +258,58 @@ export function GraphToolbar({
       {/* Stats */}
       <div className="hidden sm:flex items-center gap-2 text-xs text-gray-400 ml-1" aria-label={`${nodeCount} ${t.nodes}, ${edgeCount} ${t.connections}`}>
         <span>{nodeCount} {t.nodes}</span>
-        <span className="text-gray-300">|</span>
+        <span className="text-gray-400" aria-hidden="true">|</span>
         <span>{edgeCount} {t.connections}</span>
       </div>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Mastery legend — hidden on mobile */}
-      <div className="hidden md:flex items-center gap-3" role="group" aria-label={t.masteryGroup}>
+      {/* Mastery legend — hidden on mobile (parent renders its own strip) */}
+      <div className="hidden sm:flex items-center gap-3" role="group" aria-label={t.masteryGroup}>
         {MASTERY_COLORS.map((color) => (
           <div key={color} className="flex items-center gap-1">
             <span
-              className="w-2.5 h-2.5 rounded-full"
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: MASTERY_HEX[color] }}
               aria-hidden="true"
             />
-            <span className="text-xs text-gray-500">{getMasteryLabel(color, locale)}</span>
+            <span className="sr-only md:not-sr-only text-xs text-gray-500">{getMasteryLabel(color, locale)}</span>
           </div>
         ))}
+      </div>
 
-        {/* Edge type legend toggle */}
-        <div className="relative" ref={edgeLegendRef}>
-          <button
-            onClick={() => setShowEdgeLegend(v => !v)}
-            className={`p-1 rounded-full transition-colors ${
-              showEdgeLegend ? 'text-[#2a8c7a] bg-[#e8f5f1]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-            }`}
-            title={t.edgeLegendTitle}
-            aria-label={t.edgeLegendToggle}
-            aria-expanded={showEdgeLegend}
-          >
-            <Info className="w-3.5 h-3.5" />
-          </button>
-          {showEdgeLegend && (
-            <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-lg border border-gray-200 p-3 w-56">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                {t.edgeLegendTitle}
-              </p>
-              <div className="space-y-1.5">
-                {CONNECTION_TYPES.map(ct => (
-                  <div key={ct.key} className="flex items-center gap-2">
-                    <span
-                      className="w-5 h-0.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: ct.color }}
-                    />
-                    <span className="text-xs text-gray-600">{locale === 'es' ? ct.label : ct.labelPt}</span>
-                  </div>
-                ))}
-              </div>
+      {/* Edge type legend toggle — available on all screen sizes */}
+      <div className="relative" ref={edgeLegendRef}>
+        <button
+          onClick={() => setShowEdgeLegend(v => !v)}
+          className={`p-3 sm:p-2 rounded-full transition-colors ${
+            showEdgeLegend ? 'text-[#2a8c7a] bg-[#e8f5f1]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+          }`}
+          title={t.edgeLegendTitle}
+          aria-label={t.edgeLegendToggle}
+          aria-expanded={showEdgeLegend}
+        >
+          <Info className="w-3.5 h-3.5" />
+        </button>
+        {showEdgeLegend && (
+          <div className="absolute right-0 sm:right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-lg border border-gray-200 p-3 w-56 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              {t.edgeLegendTitle}
+            </p>
+            <div className="space-y-1.5">
+              {CONNECTION_TYPES.map(ct => (
+                <div key={ct.key} className="flex items-center gap-2">
+                  <span
+                    className="w-5 h-0.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: ct.color }}
+                  />
+                  <span className="text-xs text-gray-600">{locale === 'es' ? ct.label : ct.labelPt}</span>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

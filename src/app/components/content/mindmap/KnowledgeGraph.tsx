@@ -18,20 +18,45 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
-import type { GraphData, MapNode } from '@/app/types/mindmap';
-import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
-import type { MasteryColor } from '@/app/lib/mastery-helpers';
+import { Maximize2 } from 'lucide-react';
+import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
+import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
+import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
 
-// ── Types ───────────────────────────────────────────────────
+type Locale = 'pt' | 'es';
 
-/** Imperative controls exposed via onReady callback */
-export interface GraphControls {
-  zoomIn: () => void;
-  zoomOut: () => void;
-  fitView: () => void;
-  collapseAll: () => void;
-  expandAll: () => void;
-}
+const I18N_GRAPH: Record<Locale, {
+  noData: string; mastery: string; ariaLabel: string; ariaRoleDesc: string;
+  srDesc: string; nCollapsed: (n: number) => string; allExpanded: string;
+  mobileHint: string; fitView: string; shortcuts: string; search: string;
+  closeShortcuts: string; shortcutDialog: string;
+  keys: [string, string][];
+}> = {
+  pt: {
+    noData: 'Sem dados', mastery: 'Domínio',
+    ariaLabel: 'Mapa de conhecimento interativo', ariaRoleDesc: 'grafo de conhecimento',
+    srDesc: 'Use + e - para zoom, 0 para ajustar vista, duplo-clique em um nodo para recolher/expandir ramos. Ctrl+[ recolhe todos, Ctrl+] expande todos. ? para atalhos.',
+    nCollapsed: (n) => `${n} nodos recolhidos`, allExpanded: 'Todos os nodos expandidos',
+    mobileHint: 'Arraste para mover · Pinça para zoom · Segure para menu',
+    fitView: 'Ajustar à vista', shortcuts: 'Atalhos', search: 'buscar',
+    closeShortcuts: 'Fechar atalhos', shortcutDialog: 'Atalhos de teclado',
+    keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
+      ['Duplo-clique', 'Recolher/expandir'], ['Ctrl+[', 'Recolher todos'],
+      ['Ctrl+]', 'Expandir todos'], ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
+  },
+  es: {
+    noData: 'Sin datos', mastery: 'Dominio',
+    ariaLabel: 'Mapa de conocimiento interactivo', ariaRoleDesc: 'grafo de conocimiento',
+    srDesc: 'Use + y - para zoom, 0 para ajustar vista, doble clic en un nodo para colapsar/expandir ramas. Ctrl+[ colapsa todos, Ctrl+] expande todos. ? para atajos.',
+    nCollapsed: (n) => `${n} nodos colapsados`, allExpanded: 'Todos los nodos expandidos',
+    mobileHint: 'Arrastre para mover · Pellizque para zoom · Mantenga para menú',
+    fitView: 'Ajustar a la vista', shortcuts: 'Atajos', search: 'buscar',
+    closeShortcuts: 'Cerrar atajos', shortcutDialog: 'Atajos de teclado',
+    keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
+      ['Doble clic', 'Colapsar/expandir'], ['Ctrl+[', 'Colapsar todos'],
+      ['Ctrl+]', 'Expandir todos'], ['Esc', 'Deseleccionar'], ['?', 'Esta ayuda']],
+  },
+};
 
 interface KnowledgeGraphProps {
   data: GraphData;
@@ -44,93 +69,10 @@ interface KnowledgeGraphProps {
   onReady?: (controls: GraphControls) => void;
   /** Set of node IDs that match the current search query — highlighted with glow, others dimmed */
   highlightNodeIds?: Set<string>;
-  /** Called when collapsed node count changes */
-  onCollapseChange?: (collapsedCount: number) => void;
-}
-
-// ── Node style helpers ──────────────────────────────────────
-
-function getNodeFill(masteryColor: MasteryColor): string {
-  return MASTERY_HEX_LIGHT[masteryColor];
-}
-
-function getNodeStroke(masteryColor: MasteryColor): string {
-  return MASTERY_HEX[masteryColor];
-}
-
-function getEdgeColor(connectionType?: string): string {
-  if (!connectionType) return '#d1d5db';
-  const meta = CONNECTION_TYPE_MAP.get(connectionType);
-  return meta?.color || '#d1d5db';
-}
-
-// ── HTML escape for tooltip content (prevent XSS) ───────────
-
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-// ── Truncate label for display ──────────────────────────────
-
-function truncateLabel(label: string, maxLen = 20): string {
-  if (label.length <= maxLen) return label;
-  return label.slice(0, maxLen - 1) + '\u2026';
-}
-
-// ── Collapse helpers ─────────────────────────────────────────
-
-/**
- * Build a map of nodeId → direct child node IDs based on directed edges.
- */
-function buildChildrenMap(edges: GraphData['edges']): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const edge of edges) {
-    if (!map.has(edge.source)) map.set(edge.source, []);
-    map.get(edge.source)!.push(edge.target);
-  }
-  return map;
-}
-
-/**
- * For a set of collapsed node IDs, compute which nodes should be hidden.
- * BFS from root nodes; stop traversal at collapsed nodes so their
- * descendants never enter the visible set.
- */
-function computeHiddenNodes(
-  nodes: GraphData['nodes'],
-  edges: GraphData['edges'],
-  collapsedNodes: Set<string>,
-  prebuiltChildrenMap?: Map<string, string[]>,
-): Set<string> {
-  if (collapsedNodes.size === 0) return new Set();
-
-  const cm = prebuiltChildrenMap || buildChildrenMap(edges);
-
-  // Root nodes: no incoming edges
-  const hasIncoming = new Set<string>();
-  for (const edge of edges) hasIncoming.add(edge.target);
-  const roots = nodes.map(n => n.id).filter(id => !hasIncoming.has(id));
-  const seeds = roots.length > 0 ? roots : nodes.map(n => n.id);
-
-  const visible = new Set<string>();
-  const queue = [...seeds];
-  let head = 0;
-  while (head < queue.length) {
-    const id = queue[head++];
-    if (visible.has(id)) continue;
-    visible.add(id);
-    // Do not traverse beyond collapsed nodes
-    if (collapsedNodes.has(id)) continue;
-    for (const child of (cm.get(id) || [])) {
-      if (!visible.has(child)) queue.push(child);
-    }
-  }
-
-  const hidden = new Set<string>();
-  for (const node of nodes) {
-    if (!visible.has(node.id)) hidden.add(node.id);
-  }
-  return hidden;
+  /** Called when collapsed node count changes — also passes the set of collapsed IDs */
+  onCollapseChange?: (collapsedCount: number, collapsedIds: Set<string>) => void;
+  /** UI language: 'pt' (default) for student, 'es' for professor */
+  locale?: Locale;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -145,14 +87,22 @@ export function KnowledgeGraph({
   onReady,
   highlightNodeIds,
   onCollapseChange,
+  locale = 'pt',
 }: KnowledgeGraphProps) {
+  const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const mountedRef = useRef(true);
   const [ready, setReady] = useState(false);
+  // Incremented on each graph re-creation so event-handler effects re-register
+  const [graphVersion, setGraphVersion] = useState(0);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMobileHint, setShowMobileHint] = useState(true);
+
+  // Stable ref for onCollapseChange to avoid stale closures in setter callbacks
+  const onCollapseChangeRef = useRef(onCollapseChange);
+  onCollapseChangeRef.current = onCollapseChange;
 
   // Track mount state to guard async callbacks
   useEffect(() => {
@@ -169,6 +119,9 @@ export function KnowledgeGraph({
 
   // Memoize children map to avoid O(N*E) per draw — only depends on edges
   const childrenMap = useMemo(() => buildChildrenMap(data.edges), [data.edges]);
+  // Stable ref for childrenMap so event handlers don't re-register on every edge change
+  const childrenMapRef = useRef(childrenMap);
+  childrenMapRef.current = childrenMap;
 
   // Transform Axon data → G6 format, respecting collapsed and highlight state
   const g6Data = useCallback((collapsed: Set<string>) => {
@@ -205,7 +158,7 @@ export function KnowledgeGraph({
             _raw: node,
           },
           style: {
-            fill: node.isUserCreated ? '#f0fdf9' : getNodeFill(node.masteryColor),
+            fill: node.isUserCreated ? '#e8f5f1' : getNodeFill(node.masteryColor),
             stroke: node.isUserCreated ? '#2a8c7a' : strokeColor,
             lineWidth: isHighlighted ? 3 : isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
             lineDash: isCollapsed ? [4, 4] : node.isUserCreated ? [6, 3] : undefined,
@@ -298,11 +251,12 @@ export function KnowledgeGraph({
   );
   useEffect(() => {
     if (prevNodeSetRef.current && prevNodeSetRef.current !== nodeSetKey) {
-      setCollapsedNodes(new Set());
-      onCollapseChange?.(0);
+      const empty = new Set<string>();
+      setCollapsedNodes(empty);
+      onCollapseChangeRef.current?.(0, empty);
     }
     prevNodeSetRef.current = nodeSetKey;
-  }, [nodeSetKey, onCollapseChange]);
+  }, [nodeSetKey]);
 
   // Stable identity key for data+layout to avoid unnecessary graph recreations
   const dataKey = useRef('');
@@ -311,18 +265,32 @@ export function KnowledgeGraph({
     [layout, nodeSetKey, data.edges],
   );
 
-  // Stable refs so collapseAll/expandAll in onReady always use latest state
+  // Stable refs so collapseAll/expandAll/toggleCollapse in onReady always use latest state
   const collapseAllRef = useRef<() => void>(() => {});
   const expandAllRef = useRef<() => void>(() => {});
+  const toggleCollapseRef = useRef<(nodeId: string) => boolean>(() => false);
 
   collapseAllRef.current = () => {
-    const nodesWithChildren = new Set(data.edges.map(e => e.source).filter(Boolean));
+    const nodesWithChildren = new Set(data.edges.map(e => e.source).filter(id => id != null));
     setCollapsedNodes(nodesWithChildren);
-    onCollapseChange?.(nodesWithChildren.size);
+    onCollapseChangeRef.current?.(nodesWithChildren.size, nodesWithChildren);
   };
   expandAllRef.current = () => {
-    setCollapsedNodes(new Set());
-    onCollapseChange?.(0);
+    const empty = new Set<string>();
+    setCollapsedNodes(empty);
+    onCollapseChangeRef.current?.(0, empty);
+  };
+  toggleCollapseRef.current = (nodeId: string) => {
+    // We need the return value synchronously, so read current state from a ref
+    const prev = collapsedNodes;
+    const nowCollapsed = !prev.has(nodeId);
+    setCollapsedNodes(p => {
+      const next = new Set(p);
+      if (nowCollapsed) next.add(nodeId); else next.delete(nodeId);
+      onCollapseChangeRef.current?.(next.size, next);
+      return next;
+    });
+    return nowCollapsed;
   };
 
   // Guard: skip first update-data effect after graph init (render already drew)
@@ -348,10 +316,14 @@ export function KnowledgeGraph({
       return;
     }
 
+    // Responsive padding: tighter on mobile to maximize canvas space
+    const cw = container.clientWidth;
+    const pad = cw < 360 ? 10 : cw < 640 ? 20 : 40;
+
     const graph = new Graph({
       container,
       autoFit: 'view',
-      padding: [40, 40, 40, 40],
+      padding: [pad, pad, pad, pad],
       node: {
         type: 'circle',
         style: {
@@ -378,7 +350,12 @@ export function KnowledgeGraph({
       layout: getLayoutConfig(),
       behaviors: [
         'drag-canvas',
-        'zoom-canvas',
+        {
+          type: 'zoom-canvas',
+          sensitivity: 1,
+          minZoom: 0.15,
+          maxZoom: 5,
+        },
         'drag-element',
         {
           type: 'hover-activate',
@@ -390,7 +367,7 @@ export function KnowledgeGraph({
           type: 'tooltip',
           key: 'node-tooltip',
           trigger: 'hover',
-          getContent: (_evt: any, items: any[]) => {
+          getContent: (_evt: unknown, items: Array<{ data?: Record<string, unknown> }>) => {
             if (!items?.length) return '';
             const item = items[0];
             const d = item?.data ?? {};
@@ -398,13 +375,13 @@ export function KnowledgeGraph({
             const rawDef = d.definition || '';
             const def = escHtml(rawDef.length > 120 ? rawDef.slice(0, 117) + '\u2026' : rawDef);
             const mastery = d.mastery ?? -1;
-            const pct = mastery >= 0 ? `${Math.round(mastery * 100)}%` : 'Sem dados';
+            const pct = mastery >= 0 ? `${Math.round(mastery * 100)}%` : t.noData;
             const rawAnnotation = d.annotation || '';
             const annotation = escHtml(rawAnnotation.length > 80 ? rawAnnotation.slice(0, 77) + '\u2026' : rawAnnotation);
             return `<div style="max-width:220px;font-family:Inter,sans-serif">
               <div style="font-weight:600;font-size:12px;color:#111827;margin-bottom:2px;font-family:Georgia,serif">${label}</div>
               ${def ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px">${def}</div>` : ''}
-              <div style="font-size:10px;color:#9ca3af">Dom&iacute;nio: ${pct}</div>
+              <div style="font-size:10px;color:#9ca3af">${escHtml(t.mastery)}: ${pct}</div>
               ${annotation ? `<div style="font-size:10px;color:#2a8c7a;font-style:italic;margin-top:2px">&ldquo;${annotation}&rdquo;</div>` : ''}
             </div>`;
           },
@@ -432,12 +409,14 @@ export function KnowledgeGraph({
       // Guard: if component unmounted or graph replaced before render finished, skip
       if (!mountedRef.current || graphRef.current !== graph) return;
       setReady(true);
+      setGraphVersion(v => v + 1);
       onReady?.({
         zoomIn: () => { try { graph.zoomBy(1.25, { duration: 200 }); } catch { /* graph may be destroyed */ } },
         zoomOut: () => { try { graph.zoomBy(0.8, { duration: 200 }); } catch { /* graph may be destroyed */ } },
         fitView: () => { try { graph.fitView(); } catch { /* graph may be destroyed */ } },
         collapseAll: () => collapseAllRef.current(),
         expandAll: () => expandAllRef.current(),
+        toggleCollapse: (nodeId: string) => toggleCollapseRef.current(nodeId),
       });
     }).catch(() => { /* G6 render may fail if destroyed during layout */ });
 
@@ -449,6 +428,9 @@ export function KnowledgeGraph({
   }, [currentDataKey, layout]);
 
   // ResizeObserver: auto-resize graph when container dimensions change
+  // Compare dimensions before calling resize() to avoid infinite loops
+  const prevSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !ready) return;
@@ -458,8 +440,11 @@ export function KnowledgeGraph({
       if (!g) return;
       try {
         const { width, height } = container.getBoundingClientRect();
-        if (width > 0 && height > 0) {
-          g.resize(width, height);
+        const w = Math.round(width);
+        const h = Math.round(height);
+        if (w > 0 && h > 0 && (w !== prevSizeRef.current.w || h !== prevSizeRef.current.h)) {
+          prevSizeRef.current = { w, h };
+          g.resize(w, h);
         }
       } catch {
         // graph may be destroyed during unmount
@@ -480,11 +465,22 @@ export function KnowledgeGraph({
       return;
     }
 
-    graph.setData(g6Data(collapsedNodes));
-    graph.draw();
-  }, [g6Data, ready, data, collapsedNodes]);
+    try {
+      graph.setData(g6Data(collapsedNodes));
+      graph.draw();
+    } catch {
+      // Graph may be in transition or destroyed during concurrent updates
+    }
+  // Note: `data` is intentionally excluded — `g6Data` already captures it via its own deps.
+  // Including both causes graph.draw() to fire twice per data update.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g6Data, ready, collapsedNodes]);
 
-  // Highlight selected node — O(1): only updates prev + current node
+  // Highlight selected node — O(1) lookup via memoized map
+  const nodeById = useMemo(
+    () => new Map(data.nodes.map(n => [n.id, n])),
+    [data.nodes],
+  );
   const prevSelectedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -502,7 +498,7 @@ export function KnowledgeGraph({
 
     // Deselect previous
     if (prev) {
-      const prevNode = data.nodes.find(n => n.id === prev);
+      const prevNode = nodeById.get(prev);
       if (prevNode) {
         updates.push({
           id: prev,
@@ -513,7 +509,7 @@ export function KnowledgeGraph({
 
     // Select current
     if (curr) {
-      const currNode = data.nodes.find(n => n.id === curr);
+      const currNode = nodeById.get(curr);
       if (currNode) {
         updates.push({
           id: curr,
@@ -533,7 +529,7 @@ export function KnowledgeGraph({
         // Graph may be destroyed during transition
       }
     }
-  }, [selectedNodeId, ready, data.nodes]);
+  }, [selectedNodeId, ready, graphVersion, nodeById]);
 
   // Event handlers (click, right-click, double-click to collapse/expand)
   useEffect(() => {
@@ -542,7 +538,7 @@ export function KnowledgeGraph({
 
     let longPressTriggered = false;
 
-    const handleNodeClick = (evt: any) => {
+    const handleNodeClick = (evt: G6NodeEvent) => {
       if (longPressTriggered) { longPressTriggered = false; return; }
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
@@ -552,7 +548,7 @@ export function KnowledgeGraph({
       }
     };
 
-    const handleNodeContextMenu = (evt: any) => {
+    const handleNodeContextMenu = (evt: G6NodeEvent) => {
       evt.preventDefault?.();
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
@@ -566,11 +562,11 @@ export function KnowledgeGraph({
       }
     };
 
-    const handleNodeDblClick = (evt: any) => {
+    const handleNodeDblClick = (evt: G6NodeEvent) => {
       const nodeId: string = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
-      // Skip collapse on leaf nodes (no children)
-      const hasChildren = (childrenMap.get(nodeId)?.length ?? 0) > 0;
+      // Skip collapse on leaf nodes (no children) — use ref to avoid stale closure
+      const hasChildren = (childrenMapRef.current.get(nodeId)?.length ?? 0) > 0;
       if (!hasChildren) return;
       setCollapsedNodes(prev => {
         const next = new Set(prev);
@@ -579,7 +575,7 @@ export function KnowledgeGraph({
         } else {
           next.add(nodeId);
         }
-        onCollapseChange?.(next.size);
+        onCollapseChangeRef.current?.(next.size, next);
         return next;
       });
     };
@@ -598,7 +594,7 @@ export function KnowledgeGraph({
     // Long-press for mobile context menu (500ms threshold)
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const handleNodePointerDown = (evt: any) => {
+    const handleNodePointerDown = (evt: G6NodeEvent) => {
       longPressTriggered = false;
       longPressTimer = setTimeout(() => {
         longPressTriggered = true;
@@ -626,7 +622,8 @@ export function KnowledgeGraph({
       graph.off('node:pointerleave', handleNodePointerLeave);
       if (longPressTimer) clearTimeout(longPressTimer);
     };
-  }, [ready, onNodeClick, onNodeRightClick, onCollapseChange, childrenMap]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps — onCollapseChange stabilized via onCollapseChangeRef
+  }, [ready, graphVersion, onNodeClick, onNodeRightClick]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -664,77 +661,93 @@ export function KnowledgeGraph({
     const container = containerRef.current;
     container?.addEventListener('keydown', handleKeyDown);
     return () => container?.removeEventListener('keydown', handleKeyDown);
-  }, [ready, onNodeClick]);
+  }, [ready, graphVersion, onNodeClick]);
 
   const collapsedCount = collapsedNodes.size;
 
   return (
-    <div className={`relative w-full h-full min-h-[280px] sm:min-h-[400px] ${className}`}>
+    <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
       <div
         ref={containerRef}
-        className="w-full h-full bg-white rounded-2xl shadow-sm border border-gray-200 outline-none"
+        className="w-full h-full bg-white rounded-2xl shadow-sm border border-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-[#2a8c7a]/30 focus-visible:border-[#2a8c7a]/50 overflow-hidden"
         style={{ touchAction: 'none' }}
         tabIndex={0}
         role="application"
-        aria-label="Mapa de conhecimento interativo. Use + e - para zoom, 0 para ajustar vista, duplo-clique em um nodo para recolher/expandir ramos. Ctrl+[ recolhe todos, Ctrl+] expande todos."
-        aria-roledescription="grafo de conhecimento"
+        aria-label={t.ariaLabel}
+        aria-roledescription={t.ariaRoleDesc}
+        aria-describedby="kg-shortcut-desc"
         aria-busy={!ready}
       />
+      {/* Screen reader shortcut description */}
+      <div id="kg-shortcut-desc" className="sr-only">
+        {t.srDesc}
+      </div>
       {/* Screen reader announcements */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {collapsedCount > 0
-          ? `${collapsedCount} nodos recolhidos`
-          : ready ? 'Todos os nodos expandidos' : ''}
+          ? t.nCollapsed(collapsedCount)
+          : ready ? t.allExpanded : ''}
       </div>
       {/* Mobile hint overlay — auto-dismisses after 4s */}
       {ready && showMobileHint && data.nodes.length > 5 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:hidden pointer-events-none transition-opacity duration-500">
+        <div className="absolute left-1/2 -translate-x-1/2 sm:hidden pointer-events-none transition-opacity duration-500" style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
           <p className="text-[10px] text-gray-400 bg-white/90 px-2 py-1 rounded-full shadow-sm border border-gray-100">
-            Arraste para mover · Pinça para zoom · Segure para menu
+            {t.mobileHint}
           </p>
         </div>
+      )}
+      {/* Mobile floating fit-view button — easy reset after accidental zoom */}
+      {ready && !showMobileHint && (
+        <button
+          onClick={() => { try { graphRef.current?.fitView(); } catch {} }}
+          className="absolute right-2 sm:hidden p-3 bg-white/90 rounded-full shadow-sm border border-gray-200 text-gray-500 active:bg-gray-100 transition-colors z-[5]"
+          style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+          aria-label={t.fitView}
+        >
+          <Maximize2 className="w-5 h-5" />
+        </button>
       )}
       {/* Desktop: press ? for shortcut hint */}
       {ready && !showShortcuts && (
         <div className="absolute bottom-2 left-2 hidden sm:flex items-center gap-2 pointer-events-none">
-          <p className="text-[10px] text-gray-300 bg-white/80 px-1.5 py-0.5 rounded">
-            ? atalhos
+          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+            ? {t.shortcuts}
           </p>
-          <p className="text-[10px] text-gray-300 bg-white/80 px-1.5 py-0.5 rounded">
-            / buscar
+          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+            / {t.search}
           </p>
         </div>
       )}
       {/* Keyboard shortcut help overlay */}
       {showShortcuts && (
-        <div
-          className="absolute top-3 right-3 bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-10 text-xs"
-        >
+        <>
+          {/* Tap-outside to dismiss */}
+          <div
+            className="absolute inset-0 z-[9]"
+            onClick={() => setShowShortcuts(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute top-3 right-3 hidden sm:block bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-10 text-xs max-h-[60vh] overflow-y-auto"
+            role="dialog"
+            aria-label={t.shortcutDialog}
+          >
           <div className="flex items-center justify-between mb-2">
             <span className="font-semibold text-gray-700" style={{ fontFamily: 'Georgia, serif' }}>
-              Atalhos
+              {t.shortcuts}
             </span>
             <button
               onClick={() => setShowShortcuts(false)}
-              className="text-gray-400 hover:text-gray-600 p-0.5"
-              aria-label="Fechar atalhos"
+              className="text-gray-400 hover:text-gray-600 p-3 -mr-1"
+              aria-label={t.closeShortcuts}
             >
               &times;
             </button>
           </div>
           <div className="space-y-1 text-gray-500">
-            {[
-              ['+/-', 'Zoom'],
-              ['0 ou F', 'Ajustar vista'],
-              ['/ ou Ctrl+F', 'Buscar conceito'],
-              ['Duplo-clique', 'Recolher/expandir'],
-              ['Ctrl+[', 'Recolher todos'],
-              ['Ctrl+]', 'Expandir todos'],
-              ['Esc', 'Desmarcar'],
-              ['?', 'Esta ajuda'],
-            ].map(([key, desc]) => (
+            {t.keys.map(([key, desc]) => (
               <div key={key} className="flex items-center gap-2">
-                <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono text-gray-600 min-w-[60px] text-center">
+                <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono text-gray-600 min-w-[48px] text-center">
                   {key}
                 </kbd>
                 <span>{desc}</span>
@@ -742,6 +755,7 @@ export function KnowledgeGraph({
             ))}
           </div>
         </div>
+        </>
       )}
     </div>
   );

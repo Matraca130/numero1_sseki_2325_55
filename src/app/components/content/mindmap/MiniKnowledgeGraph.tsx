@@ -13,10 +13,10 @@
 // node styles without destroying/recreating the G6 instance.
 // ============================================================
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
-import type { GraphData, MapNode } from '@/app/types/mindmap';
-import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
+import type { GraphData, MapNode, G6NodeEvent } from '@/app/types/mindmap';
+import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP, truncateLabel } from '@/app/types/mindmap';
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -35,10 +35,6 @@ interface MiniKnowledgeGraphProps {
 
 // ── Helpers ─────────────────────────────────────────────────
 
-function truncateLabel(label: string, max = 14): string {
-  return label.length > max ? label.slice(0, max - 1) + '\u2026' : label;
-}
-
 function buildNodeStyle(node: MapNode, isFocal: boolean) {
   return {
     fill: MASTERY_HEX_LIGHT[node.masteryColor],
@@ -47,7 +43,7 @@ function buildNodeStyle(node: MapNode, isFocal: boolean) {
     shadowBlur: isFocal ? 10 : 0,
     shadowColor: isFocal ? MASTERY_HEX[node.masteryColor] : 'transparent',
     size: isFocal ? 40 : 28,
-    labelText: truncateLabel(node.label),
+    labelText: truncateLabel(node.label, 14),
     labelFill: '#111827',
     labelFontSize: 10,
     labelFontFamily: 'Inter, sans-serif',
@@ -74,12 +70,18 @@ export function MiniKnowledgeGraph({
 }: MiniKnowledgeGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
+  const mountedRef = useRef(true);
   const [ready, setReady] = useState(false);
   const prevDataKeyRef = useRef<string>('');
   const justInitializedRef = useRef(false);
 
-  // Effect 1: Create/recreate graph only when the graph STRUCTURE changes
-  const currentDataKey = dataKey(data);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Memoize dataKey to avoid O(N log N) sort on every render
+  const currentDataKey = useMemo(() => dataKey(data), [data]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -116,10 +118,13 @@ export function MiniKnowledgeGraph({
       };
     });
 
+    const isMobile = container.clientWidth < 400;
+    const miniPad = isMobile ? 8 : 16;
+
     const graph = new Graph({
       container,
       autoFit: 'view',
-      padding: [16, 16, 16, 16],
+      padding: [miniPad, miniPad, miniPad, miniPad],
       node: { type: 'circle' },
       edge: { type: 'line' },
       layout: {
@@ -136,8 +141,16 @@ export function MiniKnowledgeGraph({
     justInitializedRef.current = true;
     graph.setData({ nodes, edges });
     graph.render()
-      .then(() => setReady(true))
-      .catch(() => { /* G6 render may fail if destroyed during layout */ });
+      .then(() => {
+        // Guard: skip if component unmounted or graph was replaced
+        if (!mountedRef.current || graphRef.current !== graph) return;
+        setReady(true);
+      })
+      .catch((err) => {
+        if (!mountedRef.current || graphRef.current !== graph) return;
+        if (import.meta.env.DEV) console.warn('[MiniKnowledgeGraph] render failed:', err);
+        setReady(true);
+      });
 
     return () => {
       graph.destroy();
@@ -147,6 +160,9 @@ export function MiniKnowledgeGraph({
   }, [currentDataKey]);
 
   // Effect 1b: ResizeObserver for container resizing
+  // Compare dimensions before calling resize() to avoid infinite loops
+  const prevSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !ready) return;
@@ -156,8 +172,11 @@ export function MiniKnowledgeGraph({
       if (!g) return;
       try {
         const { width, height: h } = container.getBoundingClientRect();
-        if (width > 0 && h > 0) {
-          g.resize(width, h);
+        const w = Math.round(width);
+        const rh = Math.round(h);
+        if (w > 0 && rh > 0 && (w !== prevSizeRef.current.w || rh !== prevSizeRef.current.h)) {
+          prevSizeRef.current = { w, h: rh };
+          g.resize(w, rh);
         }
       } catch {
         // graph may be destroyed during unmount
@@ -195,7 +214,7 @@ export function MiniKnowledgeGraph({
     const graph = graphRef.current;
     if (!graph || !ready) return;
 
-    const handler = (evt: any) => {
+    const handler = (evt: G6NodeEvent) => {
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
       const nodeData = graph.getNodeData(nodeId);
@@ -214,9 +233,9 @@ export function MiniKnowledgeGraph({
     <div
       ref={containerRef}
       className={`w-full bg-gray-50 rounded-xl border border-gray-100 ${className}`}
-      style={{ height }}
-      role="img"
-      aria-label={`Mini mapa de conhecimento com ${data.nodes.length} conceitos`}
+      style={{ height, touchAction: 'none' }}
+      role="group"
+      aria-label={`Mini mapa de conhecimento com ${data.nodes.length} conceitos. Clique em um nó para destacar.`}
       aria-roledescription="grafo de conhecimento"
     />
   );

@@ -70,7 +70,13 @@ function StudentShell() {
 
   return (
     <div className="flex h-screen w-full bg-gray-50 text-gray-900 font-sans overflow-hidden">
-      
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-white focus:text-[#2a8c7a] focus:rounded-full focus:shadow-lg focus:text-sm focus:font-medium"
+      >
+        Pular para o conteúdo principal
+      </a>
+
       {/* ── Desktop Sidebar (collapsible via motion, hidden on mobile) ── */}
       <motion.div
         initial={false}
@@ -157,7 +163,7 @@ function StudentShell() {
           </MobileDrawer>
 
           {/* Main content -- Outlet renders the matched child route */}
-          <main className="flex-1 overflow-y-auto relative min-w-0">
+          <main id="main-content" className="flex-1 overflow-y-auto relative min-w-0">
             <motion.div
               key={routeKey}
               initial={animation.pageTransition.initial}

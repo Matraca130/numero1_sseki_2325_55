@@ -66,13 +66,13 @@ export function ConnectForm({
           source_keyword_id: keywordId,
         }),
       });
-      toast.success('Conexion creada');
+      toast.success('Conexão criada');
       setSearch('');
       setReason('');
       setOpen(false);
       onCreated();
     } catch (err: unknown) {
-      toast.error(err.message || 'Error al crear conexion');
+      toast.error(err instanceof Error ? err.message : 'Erro ao criar conexão');
     } finally {
       setSaving(false);
     }

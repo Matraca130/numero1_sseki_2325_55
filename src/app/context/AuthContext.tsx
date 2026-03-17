@@ -367,6 +367,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('axon_access_token');
       localStorage.removeItem('axon_user');
       localStorage.removeItem('axon_memberships');
+      // Clear graph cache to prevent cross-session data leaks (dynamic import to preserve code splitting)
+      import('@/app/components/content/mindmap/useGraphData').then(m => m.invalidateGraphCache()).catch(() => {});
     }
   }, []);
 

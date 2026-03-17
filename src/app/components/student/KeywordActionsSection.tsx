@@ -51,9 +51,9 @@ export function KeywordActionsSection({
           context: question,
         }),
       });
-      setAiExplanation(result?.explanation || (typeof result === 'string' ? result : JSON.stringify(result)) || 'Sin respuesta de la IA');
+      setAiExplanation(result?.explanation || (typeof result === 'string' ? result : JSON.stringify(result)) || 'Sem resposta da IA');
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al consultar IA');
+      toast.error(err instanceof Error ? err.message : 'Erro ao consultar IA');
       setAiExplanation(null);
     } finally {
       setAiExplaining(false);

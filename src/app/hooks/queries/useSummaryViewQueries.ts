@@ -114,11 +114,11 @@ export function useToggleCompletedMutation() {
         rs,
       );
       toast.success(
-        variables.completed ? 'Marcado como leído' : 'Marcado como no leído',
+        variables.completed ? 'Marcado como lido' : 'Marcado como não lido',
       );
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al actualizar estado');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar estado');
     },
   });
 }

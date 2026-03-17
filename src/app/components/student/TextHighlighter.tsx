@@ -199,7 +199,7 @@ export function TextHighlighter({
       },
       {
         onSuccess: () => {
-          toast.success('Subrayado creado');
+          toast.success('Destaque criado');
           window.getSelection()?.removeAllRanges();
           setToolbar(null);
           setSelectionRange(null);
