@@ -1,0 +1,206 @@
+# ============================================================
+# Axon — Sprint Preflight CI
+#
+# Runs on every PR to main. Catches:
+#   1. Phantom files (referenced in plans but don't exist)
+#   2. Local-only files that should never be committed
+#   3. Size regressions on modularized files
+#   4. Palette regressions (generic brand colors post-audit)
+#   5. Duplicate modularization (file already refactored)
+#
+# Config: .github/sprint-config.json (edit there, not here)
+# Origin: Near-miss 2026-03-16 — planned sprint against non-existent file
+# ============================================================
+
+name: Sprint Preflight
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/app/components/**'
+      - '.github/sprint-config.json'
+      - '.github/workflows/sprint-preflight.yml'
+
+jobs:
+  preflight:
+    name: Preflight Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load sprint config
+        id: config
+        run: |
+          CONFIG=".github/sprint-config.json"
+          if [ ! -f "$CONFIG" ]; then
+            echo "::error::sprint-config.json not found at $CONFIG"
+            exit 1
+          fi
+          # Validate JSON syntax early
+          jq empty "$CONFIG" || { echo "::error::sprint-config.json has invalid JSON"; exit 1; }
+          echo "config_path=$CONFIG" >> "$GITHUB_OUTPUT"
+
+      # ────────────────────────────────────────────────
+      # 1. PHANTOM FILE GUARD
+      # ────────────────────────────────────────────────
+      - name: "Check 1 — Phantom files"
+        run: |
+          echo "::group::Phantom File Detection"
+          FAILED=0
+          CONFIG="${{ steps.config.outputs.config_path }}"
+          PR_FILES=$(git diff --name-only origin/main...HEAD)
+
+          while IFS= read -r phantom; do
+            [ -z "$phantom" ] && continue
+            if echo "$PR_FILES" | grep -qF "$phantom"; then
+              echo "::error file=$phantom::PHANTOM FILE: '$phantom' was added in this PR but is a known phantom (never existed). Remove it."
+              FAILED=1
+            fi
+            basename=$(basename "$phantom" .tsx)
+            matches=$(grep -rn "$basename" src/app/components/ --include="*.tsx" --include="*.ts" 2>/dev/null || true)
+            if [ -n "$matches" ]; then
+              echo "::warning::Import references to phantom '$basename' found:"
+              echo "$matches"
+            fi
+          done < <(jq -r '.phantomGuard.knownPhantoms[]' "$CONFIG")
+
+          if [ $FAILED -eq 1 ]; then exit 1; fi
+          echo "All clear — no phantom files detected."
+          echo "::endgroup::"
+
+      # ────────────────────────────────────────────────
+      # 2. LOCAL-ONLY FILE GUARD
+      # ────────────────────────────────────────────────
+      - name: "Check 2 — Local-only files"
+        run: |
+          echo "::group::Local-Only File Guard"
+          FAILED=0
+          CONFIG="${{ steps.config.outputs.config_path }}"
+          PR_FILES=$(git diff --name-only origin/main...HEAD)
+
+          while IFS= read -r blocked; do
+            [ -z "$blocked" ] && continue
+            if echo "$PR_FILES" | grep -qF "$blocked"; then
+              echo "::error file=$blocked::LOCAL-ONLY FILE: '$blocked' must NOT be committed. It belongs to another agent or has route conflicts."
+              FAILED=1
+            fi
+          done < <(jq -r '.localOnlyFiles.blocked[]' "$CONFIG")
+
+          if [ $FAILED -eq 1 ]; then exit 1; fi
+          echo "All clear — no local-only files in PR."
+          echo "::endgroup::"
+
+      # ────────────────────────────────────────────────
+      # 3. SIZE REGRESSION GUARD
+      # ────────────────────────────────────────────────
+      - name: "Check 3 — Size regressions"
+        run: |
+          echo "::group::Size Regression Detection"
+          FAILED=0
+          CONFIG="${{ steps.config.outputs.config_path }}"
+
+          while IFS=' ' read -r filepath maxkb; do
+            [ -z "$filepath" ] && continue
+            if [ -f "$filepath" ]; then
+              actual_bytes=$(wc -c < "$filepath")
+              actual_kb=$(( (actual_bytes + 1023) / 1024 ))
+              if [ "$actual_kb" -gt "$maxkb" ]; then
+                echo "::error file=$filepath::SIZE REGRESSION: $filepath is ${actual_kb}KB but cap is ${maxkb}KB. It was modularized — extract inline code instead of adding more."
+                FAILED=1
+              else
+                echo "OK: $filepath = ${actual_kb}KB (cap: ${maxkb}KB)"
+              fi
+            fi
+          done < <(jq -r '.sizeCaps.files | to_entries[] | "\(.key) \(.value)"' "$CONFIG")
+
+          if [ $FAILED -eq 1 ]; then exit 1; fi
+          echo "All clear — no size regressions."
+          echo "::endgroup::"
+
+      # ────────────────────────────────────────────────
+      # 4. PALETTE REGRESSION GUARD
+      # ────────────────────────────────────────────────
+      - name: "Check 4 — Palette regressions"
+        run: |
+          echo "::group::Palette Regression Detection"
+          FAILED=0
+          CONFIG="${{ steps.config.outputs.config_path }}"
+
+          # Collect ALL forbidden patterns into an array
+          mapfile -t PATTERNS < <(jq -r '.paletteAudit.forbiddenPatterns[]' "$CONFIG")
+
+          while IFS= read -r filepath; do
+            [ -z "$filepath" ] && continue
+            if [ -f "$filepath" ]; then
+              FILE_FAILED=0
+              for PATTERN in "${PATTERNS[@]}"; do
+                matches=$(grep -oEn "$PATTERN" "$filepath" || true)
+                if [ -n "$matches" ]; then
+                  echo "::error file=$filepath::PALETTE REGRESSION: Found generic brand colors in audited file:"
+                  echo "$matches"
+                  echo "Replace with axon.*/tint.* tokens from src/app/lib/palette.ts"
+                  FAILED=1
+                  FILE_FAILED=1
+                fi
+              done
+              if [ $FILE_FAILED -eq 0 ]; then
+                echo "OK: $filepath — no forbidden palette classes"
+              fi
+            fi
+          done < <(jq -r '.paletteAudit.auditedFiles[]' "$CONFIG")
+
+          if [ $FAILED -eq 1 ]; then exit 1; fi
+          echo "All clear — palette audit intact."
+          echo "::endgroup::"
+
+      # ────────────────────────────────────────────────
+      # 5. MODULARIZATION HEADER CHECK
+      # ────────────────────────────────────────────────
+      - name: "Check 5 — Duplicate modularization warning"
+        run: |
+          echo "::group::Duplicate Modularization Detection"
+          CONFIG="${{ steps.config.outputs.config_path }}"
+
+          while IFS='|' read -r filepath phase_info; do
+            [ -z "$filepath" ] && continue
+            if git diff --name-only origin/main...HEAD | grep -qF "$filepath"; then
+              if [ -f "$filepath" ]; then
+                total_lines=$(wc -l < "$filepath")
+                changed_lines=$(git diff origin/main...HEAD -- "$filepath" | grep -cE '^\+[^+]|^-[^-]' || echo "0")
+                if [ "$total_lines" -gt 0 ]; then
+                  pct=$(( changed_lines * 100 / total_lines ))
+                  # Only warn on substantial changes (>50 lines AND >30% of file)
+                  if [ "$changed_lines" -gt 50 ] && [ "$pct" -gt 30 ]; then
+                    echo "::warning file=$filepath::HEAVY MODIFICATION (${pct}% changed, ${changed_lines} lines) on previously modularized file. Prior work: ${phase_info}. Verify you're not duplicating extraction work."
+                  else
+                    echo "OK: $filepath modified ${pct}% (${changed_lines} lines) — within bounds"
+                  fi
+                fi
+              fi
+            fi
+          done < <(jq -r '.modularizationLog.completed | to_entries[] | "\(.key)|\(.value)"' "$CONFIG")
+
+          echo "::endgroup::"
+
+      # ────────────────────────────────────────────────
+      # Summary
+      # ────────────────────────────────────────────────
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Sprint Preflight Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Description | Blocks merge? |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------------|---------------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| #1 | Phantom file detection | Yes |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| #2 | Local-only file guard | Yes |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| #3 | Size regression cap | Yes |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| #4 | Palette audit regression | Yes |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| #5 | Duplicate modularization warning | No (warning only) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Config: \`.github/sprint-config.json\`" >> "$GITHUB_STEP_SUMMARY"

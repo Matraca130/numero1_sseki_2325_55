@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # No cache — package-lock.json is gitignored in this repo
 
       - name: Install dependencies
         run: npm install --no-audit
@@ -71,7 +71,7 @@ jobs:
 
       - name: TruffleHog scan (PR diff only)
         if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@v3
+        uses: trufflesecurity/trufflehog@v3.93.8
         with:
           extra_args: --only-verified
           base: ${{ github.event.pull_request.base.sha }}
@@ -79,6 +79,6 @@ jobs:
 
       - name: TruffleHog scan (full)
         if: github.event_name != 'pull_request'
-        uses: trufflesecurity/trufflehog@v3
+        uses: trufflesecurity/trufflehog@v3.93.8
         with:
           extra_args: --only-verified
