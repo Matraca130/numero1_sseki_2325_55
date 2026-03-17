@@ -222,10 +222,10 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       if (client.isConnected) {
         await startMicrophone(client);
       } else {
-        throw new Error('WebSocket connection timeout');
+        throw new Error('Tiempo de espera agotado al conectar');
       }
     } catch (e) {
-      const msg = (e as Error).message || 'Failed to start call';
+      const msg = (e as Error).message || 'Error al iniciar la llamada';
       setError(msg);
       setState('error');
       cleanup();
