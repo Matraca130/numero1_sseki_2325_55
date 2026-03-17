@@ -114,7 +114,7 @@ export const SummaryCard = React.memo(function SummaryCard({
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm text-zinc-900 truncate" style={{ fontWeight: 700 }}>
+              <h3 className="text-sm truncate" style={{ fontWeight: 700, color: axon.darkTeal }}>
                 {s.title || 'Sin titulo'}
               </h3>
               {isCompleted && (
@@ -185,7 +185,7 @@ export const SummaryCard = React.memo(function SummaryCard({
           <div className="mt-3 ml-14">
             <ProgressBar
               value={Math.min((rs.time_spent_seconds || 0) / 300, 0.9)}
-              color={`bg-[${axon.tealAccent}]`}
+              color="bg-[#2a8c7a]"
               className="h-1.5"
             />
           </div>
