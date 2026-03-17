@@ -252,7 +252,7 @@ export function MapComparisonPanel({
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="Cerrar panel de comparacion"
+              aria-label="Cerrar panel de comparaci\u00f3n"
             >
               <X className="w-4 h-4" />
             </button>
@@ -285,7 +285,7 @@ export function MapComparisonPanel({
                     />
                     <StatBadge
                       icon={<XCircle className="w-3.5 h-3.5" />}
-                      label="Debiles"
+                      label="D\u00e9biles"
                       count={stats.weak}
                       color="#ef4444"
                       bg="#fee2e2"
@@ -329,7 +329,7 @@ export function MapComparisonPanel({
                       className="text-gray-500 mb-3 leading-relaxed"
                       style={{ fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)' }}
                     >
-                      Estos conceptos del mapa base necesitan mas estudio.
+                      Estos conceptos del mapa base necesitan m\u00e1s estudio.
                     </p>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {gaps.map(gap => (
@@ -367,7 +367,7 @@ export function MapComparisonPanel({
                       className="text-gray-500 mb-3 leading-relaxed"
                       style={{ fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)' }}
                     >
-                      Conceptos y conexiones que has anadido al mapa.
+                      Conceptos y conexiones que has a\u00f1adido al mapa.
                     </p>
                     {customNodes.length > 0 && (
                       <div className="space-y-1.5 mb-3">
@@ -444,7 +444,7 @@ function EmptyComparison() {
         className="text-gray-500 leading-relaxed"
         style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
       >
-        Estudia mas contenido para construir tu mapa y poder compararlo con el mapa base del curso.
+        Estudia m\u00e1s contenido para construir tu mapa y poder compararlo con el mapa base del curso.
       </p>
     </motion.div>
   );
