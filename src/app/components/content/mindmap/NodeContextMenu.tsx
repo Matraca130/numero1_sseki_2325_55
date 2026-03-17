@@ -235,13 +235,13 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                 <button
                   key={action}
                   onClick={() => onAction(action, node)}
-                  className={`group w-full flex items-center gap-2.5 text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
+                  className={`group w-full flex items-center gap-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 transition-colors focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none ${
                     isSmallScreen ? 'px-4 py-3' : 'px-3 py-1.5'
                   }`}
                   style={{ fontSize: isSmallScreen ? 'clamp(0.85rem, 1.6vw, 0.9375rem)' : menuItemFontSize }}
                   role="menuitem"
                 >
-                  <Icon className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a] flex-shrink-0" />
+                  <Icon className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
                   {LABELS[action]}
                 </button>
               );
@@ -255,15 +255,15 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
             >
               <button
                 onClick={() => { onToggleCollapse(); onClose(); }}
-                className={`group w-full flex items-center gap-2.5 text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
+                className={`group w-full flex items-center gap-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 transition-colors focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none ${
                   isSmallScreen ? 'px-4 py-3' : 'px-3 py-1.5'
                 }`}
                 style={{ fontSize: isSmallScreen ? 'clamp(0.85rem, 1.6vw, 0.9375rem)' : menuItemFontSize }}
                 role="menuitem"
               >
                 {isCollapsed
-                  ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a] flex-shrink-0" />
-                  : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a] flex-shrink-0" />
+                  ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
+                  : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
                 }
                 {isCollapsed ? 'Expandir rama' : 'Colapsar rama'}
               </button>

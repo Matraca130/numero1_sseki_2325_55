@@ -162,7 +162,7 @@ export function MicroGraphPanel({
           aria-controls={panelId}
           aria-label={expanded ? 'Cerrar mapa de conocimiento' : 'Abrir mapa de conocimiento'}
         >
-          <Brain size={variant === 'card' ? 14 : 13} className="text-[#2a8c7a]" />
+          <Brain size={variant === 'card' ? 14 : 13} className="text-ax-primary-500" />
           <span>{variant === 'card' ? 'Mapa de conocimiento' : 'Mapa'}</span>
           {displayGraph && !loading && (
             <span className="text-[10px] text-gray-400 ml-1 truncate max-w-[60px] sm:max-w-[80px]">
@@ -171,7 +171,7 @@ export function MicroGraphPanel({
           )}
           {expanded && loading && (
             <div
-              className="w-3 h-3 border border-[#2a8c7a] border-t-transparent rounded-full animate-spin ml-1"
+              className="w-3 h-3 border border-ax-primary-500 border-t-transparent rounded-full animate-spin ml-1"
               aria-hidden="true"
             />
           )}

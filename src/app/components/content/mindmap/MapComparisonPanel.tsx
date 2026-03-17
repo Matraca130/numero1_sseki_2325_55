@@ -234,13 +234,13 @@ export function MapComparisonPanel({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-[#F0F2F5] border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
+          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#e8f5f1] flex items-center justify-center">
-                <GitCompareArrows className="w-4 h-4 text-[#2a8c7a]" />
+              <div className="w-7 h-7 rounded-lg bg-ax-primary-50 flex items-center justify-center">
+                <GitCompareArrows className="w-4 h-4 text-ax-primary-500" />
               </div>
               <h3
                 className="font-semibold text-gray-900"
@@ -320,7 +320,7 @@ export function MapComparisonPanel({
                       </h4>
                       <button
                         onClick={handleHighlightGaps}
-                        className="text-xs text-[#2a8c7a] hover:underline"
+                        className="text-xs text-ax-primary-500 hover:underline"
                       >
                         Resaltar
                       </button>
@@ -357,7 +357,7 @@ export function MapComparisonPanel({
                       {customNodes.length > 0 && (
                         <button
                           onClick={handleHighlightCustom}
-                          className="text-xs text-[#2a8c7a] hover:underline"
+                          className="text-xs text-ax-primary-500 hover:underline"
                         >
                           Resaltar
                         </button>
@@ -374,12 +374,12 @@ export function MapComparisonPanel({
                         {customNodes.map(node => (
                           <div
                             key={node.id}
-                            className="flex items-center gap-2.5 px-3 py-2 bg-[#e8f5f1] rounded-xl cursor-pointer hover:bg-[#d0ebe6] transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 bg-ax-primary-50 rounded-xl cursor-pointer hover:bg-ax-primary-100 transition-colors"
                             onClick={() => onHighlightNodes?.(new Set([node.id]))}
                           >
-                            <Plus className="w-3.5 h-3.5 text-[#2a8c7a] flex-shrink-0" />
+                            <Plus className="w-3.5 h-3.5 text-ax-primary-500 flex-shrink-0" />
                             <span
-                              className="text-[#2a8c7a] font-medium truncate"
+                              className="text-ax-primary-500 font-medium truncate"
                               style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                             >
                               {node.label}
@@ -408,7 +408,7 @@ export function MapComparisonPanel({
                   </h4>
                   <div className="space-y-1.5 text-gray-500" style={{ fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)' }}>
                     <p>Mapa base: <span className="font-medium text-gray-700">{stats.baseNodes}</span> conceptos, <span className="font-medium text-gray-700">{stats.baseEdges}</span> conexiones</p>
-                    <p>Tus aportes: <span className="font-medium text-[#2a8c7a]">+{stats.customNodes}</span> conceptos, <span className="font-medium text-[#2a8c7a]">+{stats.customEdges}</span> conexiones</p>
+                    <p>Tus aportes: <span className="font-medium text-ax-primary-500">+{stats.customNodes}</span> conceptos, <span className="font-medium text-ax-primary-500">+{stats.customEdges}</span> conexiones</p>
                     <p>Cobertura: <span className="font-medium text-gray-700">{stats.total > 0 ? Math.round(((stats.mastered + stats.learning) / stats.total) * 100) : 0}%</span> de los conceptos en progreso</p>
                   </div>
                 </div>
@@ -431,8 +431,8 @@ function EmptyComparison() {
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
     >
-      <div className="w-14 h-14 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-4">
-        <GitCompareArrows className="w-7 h-7 text-[#2a8c7a]" />
+      <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
+        <GitCompareArrows className="w-7 h-7 text-ax-primary-500" />
       </div>
       <h4
         className="font-semibold text-gray-900 mb-1.5"
@@ -496,7 +496,7 @@ function GapItem({
       />
       <button
         onClick={onHighlight}
-        className="flex-1 text-left truncate text-gray-700 hover:text-[#2a8c7a] transition-colors"
+        className="flex-1 text-left truncate text-gray-700 hover:text-ax-primary-500 transition-colors"
         style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
         title={gap.node.label}
       >
@@ -512,7 +512,7 @@ function GapItem({
       )}
       <button
         onClick={onStudy}
-        className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-[#2a8c7a] bg-[#e8f5f1] rounded-full transition-opacity flex-shrink-0"
+        className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-ax-primary-500 bg-ax-primary-50 rounded-full transition-opacity flex-shrink-0"
         style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
         title="Estudiar este concepto"
       >

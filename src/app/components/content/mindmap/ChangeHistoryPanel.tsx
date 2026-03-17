@@ -11,7 +11,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Clock, Plus, Link2, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { headingStyle } from '@/app/design-system';
+import { colors, headingStyle } from '@/app/design-system';
 import type { HistoryEntry, HistoryActionType } from './changeHistoryHelpers';
 import { formatRelativeTime } from './changeHistoryHelpers';
 
@@ -47,24 +47,24 @@ const ACTION_ICON: Record<HistoryActionType, typeof Plus> = {
 };
 
 const DOT_COLOR: Record<HistoryActionType, string> = {
-  'create-node': '#2a8c7a',
+  'create-node': colors.primary[500],
   'create-edge': '#3b82f6',
-  'delete-node': '#ef4444',
-  'delete-edge': '#ef4444',
+  'delete-node': colors.semantic.error,
+  'delete-edge': colors.semantic.error,
 };
 
 const ICON_BG: Record<HistoryActionType, string> = {
-  'create-node': '#e8f5f1',
+  'create-node': colors.primary[50],
   'create-edge': '#eff6ff',
   'delete-node': '#fef2f2',
   'delete-edge': '#fef2f2',
 };
 
 const ICON_COLOR: Record<HistoryActionType, string> = {
-  'create-node': '#2a8c7a',
+  'create-node': colors.primary[500],
   'create-edge': '#3b82f6',
-  'delete-node': '#ef4444',
-  'delete-edge': '#ef4444',
+  'delete-node': colors.semantic.error,
+  'delete-edge': colors.semantic.error,
 };
 
 // ── Component ────────────────────────────────────────────────
@@ -97,13 +97,13 @@ export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHi
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-[#F0F2F5] border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
+          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#e8f5f1] flex items-center justify-center">
-                <Clock className="w-4 h-4 text-[#2a8c7a]" />
+              <div className="w-7 h-7 rounded-lg bg-ax-primary-50 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-ax-primary-500" />
               </div>
               <h3
                 className="font-semibold text-gray-900"
@@ -179,8 +179,8 @@ function EmptyHistory() {
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
     >
-      <div className="w-14 h-14 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-4">
-        <Clock className="w-7 h-7 text-[#2a8c7a]" />
+      <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
+        <Clock className="w-7 h-7 text-ax-primary-500" />
       </div>
       <h4
         className="font-semibold text-gray-900 mb-1.5"

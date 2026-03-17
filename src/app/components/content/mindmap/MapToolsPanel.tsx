@@ -60,7 +60,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
                 onClick={() => onToolChange(tool.id)}
                 className={`relative p-2.5 rounded-xl transition-colors group ${
                   isActive
-                    ? 'bg-[#e8f5f1] text-[#2a8c7a]'
+                    ? 'bg-ax-primary-50 text-ax-primary-500'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
                 aria-label={tool.label}
@@ -69,7 +69,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
               >
                 <Icon className="w-4 h-4" />
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[#2a8c7a] rounded-full" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-ax-primary-500 rounded-full" />
                 )}
               </button>
             );

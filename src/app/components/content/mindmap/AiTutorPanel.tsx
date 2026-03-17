@@ -352,8 +352,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
-          style={{ backgroundColor: colors.surface.page }}
+          className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">

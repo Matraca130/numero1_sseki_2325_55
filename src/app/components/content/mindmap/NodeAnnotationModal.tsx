@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { apiCall } from '@/app/lib/api';
 import type { MapNode } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
-import { headingStyle } from '@/app/design-system';
+import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 
 // ── Types ───────────────────────────────────────────────────
@@ -217,7 +217,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Añade notas sobre este concepto..."
                     autoFocus
-                    className="w-full h-32 px-3 py-2 text-base sm:text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] placeholder:text-gray-400"
+                    className="w-full h-32 px-3 py-2 text-base sm:text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500 placeholder:text-gray-400"
                     maxLength={1000}
                   />
                   <div className="flex items-center justify-between mt-1">
@@ -252,7 +252,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                   handleSave();
                 }}
                 disabled={saving}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-ax-primary-500 hover:bg-ax-primary-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
               >
                 <Save className="w-3.5 h-3.5" />
                 {saving ? 'Guardando...' : 'Guardar'}

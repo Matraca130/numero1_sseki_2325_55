@@ -17,6 +17,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
 import type { GraphData, MapNode, G6NodeEvent } from '@/app/types/mindmap';
 import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP, truncateLabel } from '@/app/types/mindmap';
+import { colors } from '@/app/design-system';
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -38,15 +39,15 @@ interface MiniKnowledgeGraphProps {
 function buildNodeStyle(node: MapNode, isFocal: boolean) {
   const isCustom = !!node.isUserCreated;
   return {
-    fill: isCustom ? '#e8f5f1' : MASTERY_HEX_LIGHT[node.masteryColor],
-    stroke: isCustom ? '#2a8c7a' : MASTERY_HEX[node.masteryColor],
+    fill: isCustom ? colors.primary[50] : MASTERY_HEX_LIGHT[node.masteryColor],
+    stroke: isCustom ? colors.primary[500] : MASTERY_HEX[node.masteryColor],
     lineWidth: isFocal ? 3 : isCustom ? 2 : 1.5,
     lineDash: isCustom ? [6, 3] : undefined,
     shadowBlur: isFocal ? 10 : 0,
-    shadowColor: isFocal ? (isCustom ? '#2a8c7a' : MASTERY_HEX[node.masteryColor]) : 'transparent',
+    shadowColor: isFocal ? (isCustom ? colors.primary[500] : MASTERY_HEX[node.masteryColor]) : 'transparent',
     size: isFocal ? 40 : 28,
     labelText: truncateLabel(node.label, 14),
-    labelFill: '#111827',
+    labelFill: colors.text.primary,
     labelFontSize: 10,
     labelFontFamily: 'Inter, sans-serif',
     labelPlacement: 'bottom' as const,

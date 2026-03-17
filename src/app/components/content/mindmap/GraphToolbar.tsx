@@ -11,6 +11,7 @@ import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
+import { colors } from '@/app/design-system';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ function ToolSeparator() {
   return (
     <div
       className="hidden sm:block w-px self-stretch my-1.5 flex-shrink-0"
-      style={{ backgroundColor: '#e5e7eb' }}
+      style={{ backgroundColor: colors.border.card }}
       aria-hidden="true"
     />
   );
@@ -208,8 +209,8 @@ export function GraphToolbar({
               onClick={() => onLayoutChange(value)}
               className={`flex items-center gap-1.5 px-3 min-h-[44px] sm:min-h-0 sm:py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
                 layout === value
-                  ? 'bg-white text-[#2a8c7a] shadow-sm'
-                  : 'text-gray-500 hover:text-[#1B3B36] hover:bg-white/60'
+                  ? 'bg-white text-ax-primary-500 shadow-sm'
+                  : 'text-gray-500 hover:text-ax-primary-700 hover:bg-white/60'
               }`}
               style={{ fontSize: fontSize.xs }}
               title={label}
@@ -230,7 +231,7 @@ export function GraphToolbar({
       <div className="flex items-center gap-0.5" role="group" aria-label={t.zoomGroup}>
         <button
           onClick={onZoomOut}
-          className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-[#1B3B36] hover:bg-gray-50 transition-all duration-150"
+          className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
           title="Zoom out (-)"
           aria-label={t.zoomOut}
         >
@@ -238,7 +239,7 @@ export function GraphToolbar({
         </button>
         <button
           onClick={onFitView}
-          className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-[#1B3B36] hover:bg-gray-50 transition-all duration-150"
+          className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
           title={`${t.fitView} (0)`}
           aria-label={t.fitView}
         >
@@ -246,7 +247,7 @@ export function GraphToolbar({
         </button>
         <button
           onClick={onZoomIn}
-          className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-[#1B3B36] hover:bg-gray-50 transition-all duration-150"
+          className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
           title="Zoom in (+)"
           aria-label={t.zoomIn}
         >
@@ -262,7 +263,7 @@ export function GraphToolbar({
           <div className="flex items-center gap-0.5" role="group" aria-label={t.collapseGroup}>
             <button
               onClick={onCollapseAll ?? undefined}
-              className="flex items-center gap-1 px-3 min-h-[44px] sm:min-h-0 sm:py-1.5 rounded-full font-medium font-sans text-gray-500 hover:text-[#1B3B36] hover:bg-gray-50 transition-all duration-150"
+              className="flex items-center gap-1 px-3 min-h-[44px] sm:min-h-0 sm:py-1.5 rounded-full font-medium font-sans text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
               style={{ fontSize: fontSize.xs }}
               title={t.collapse}
               aria-label={t.collapse}
@@ -274,8 +275,8 @@ export function GraphToolbar({
               onClick={onExpandAll}
               className={`flex items-center gap-1 px-3 min-h-[44px] sm:min-h-0 sm:py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
                 collapsedCount > 0
-                  ? 'text-[#2a8c7a] bg-[#e8f5f1] hover:bg-[#d0ebe6]'
-                  : 'text-gray-500 hover:text-[#1B3B36] hover:bg-gray-50'
+                  ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
+                  : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
               }`}
               style={{ fontSize: fontSize.xs }}
               title={t.expand}
@@ -298,11 +299,11 @@ export function GraphToolbar({
           style={{
             borderWidth: '1px',
             borderStyle: 'solid',
-            borderColor: searchQuery ? '#2a8c7a' : 'transparent',
-            boxShadow: searchQuery ? '0 0 0 2px rgba(42,140,122,0.1)' : 'none',
+            borderColor: searchQuery ? colors.primary[500] : 'transparent',
+            boxShadow: searchQuery ? `0 0 0 2px ${colors.primary[500]}1a` : 'none',
           }}
         >
-          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: searchQuery ? '#2a8c7a' : '#9ca3af' }} />
+          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: searchQuery ? colors.primary[500] : colors.text.tertiary }} />
           <input
             ref={searchInputRef}
             type="text"
@@ -310,7 +311,7 @@ export function GraphToolbar({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t.search}
             className="flex-1 min-w-0 sm:w-44 bg-transparent text-gray-700 placeholder-gray-400 outline-none font-sans"
-            style={{ caretColor: '#2a8c7a', fontSize: fontSize.searchInput }}
+            style={{ caretColor: colors.primary[500], fontSize: fontSize.searchInput }}
             aria-label={t.search}
           />
           {searchQuery && (
@@ -318,7 +319,7 @@ export function GraphToolbar({
               {matchCount !== undefined && (
                 <span
                   className="font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: '#e8f5f1', color: '#2a8c7a', fontSize: fontSize.xs }}
+                  style={{ backgroundColor: colors.primary[50], color: colors.primary[500], fontSize: fontSize.xs }}
                   aria-live="polite"
                 >
                   {t.matchOf(matchCount, nodeCount)}
@@ -359,10 +360,10 @@ export function GraphToolbar({
             disabled={exporting}
             className={`flex items-center gap-1.5 px-3 min-h-[44px] sm:min-h-0 sm:py-1.5 rounded-full font-medium font-sans transition-all duration-150 border ${
               showExportMenu
-                ? 'bg-[#e8f5f1] text-[#2a8c7a] border-[#2a8c7a]/30'
+                ? 'bg-ax-primary-50 text-ax-primary-500 border-ax-primary-500/30'
                 : exporting
                   ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-wait'
-                  : 'bg-white text-[#1B3B36] border-gray-200 hover:border-[#2a8c7a]/30 hover:text-[#2a8c7a] hover:bg-[#e8f5f1]/40'
+                  : 'bg-white text-ax-primary-700 border-gray-200 hover:border-ax-primary-500/30 hover:text-ax-primary-500 hover:bg-ax-primary-50/40'
             }`}
             style={{ fontSize: fontSize.xs }}
             title={t.exportLabel}
@@ -380,7 +381,7 @@ export function GraphToolbar({
               {onExportPNG && (
                 <button
                   onClick={() => handleExport(onExportPNG)}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-all duration-150 text-left font-sans"
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 transition-all duration-150 text-left font-sans"
                   style={{ fontSize: fontSize.xs }}
                 >
                   <Download className="w-3.5 h-3.5 flex-shrink-0" />
@@ -390,7 +391,7 @@ export function GraphToolbar({
               {onExportJPEG && (
                 <button
                   onClick={() => handleExport(onExportJPEG)}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-all duration-150 text-left font-sans"
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 transition-all duration-150 text-left font-sans"
                   style={{ fontSize: fontSize.xs }}
                 >
                   <Download className="w-3.5 h-3.5 flex-shrink-0" />
@@ -427,8 +428,8 @@ export function GraphToolbar({
           onClick={onMinimapToggle}
           className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
             showMinimap
-              ? 'text-[#2a8c7a] bg-[#e8f5f1] hover:bg-[#d0ebe6]'
-              : 'text-gray-400 hover:text-[#1B3B36] hover:bg-gray-50'
+              ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
+              : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
           }`}
           style={{ fontSize: fontSize.xs }}
           title={t.minimap}
@@ -445,7 +446,7 @@ export function GraphToolbar({
         <button
           onClick={() => setShowEdgeLegend(v => !v)}
           className={`flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full transition-all duration-150 ${
-            showEdgeLegend ? 'text-[#2a8c7a] bg-[#e8f5f1]' : 'text-gray-400 hover:text-[#1B3B36] hover:bg-gray-50'
+            showEdgeLegend ? 'text-ax-primary-500 bg-ax-primary-50' : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
           }`}
           title={t.edgeLegendTitle}
           aria-label={t.edgeLegendToggle}
