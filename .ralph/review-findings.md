@@ -18,10 +18,11 @@
 
 ## HIGH
 
-### H1 - Excessive Hardcoded Colors (Design System Violation)
+### H1 - Excessive Hardcoded Colors (CLAUDE.md Rule #4 Violation)
 - **Files:** `AiTutorPanel.tsx`, `ShareMapModal.tsx`, `PresentationMode.tsx`, `GraphToolbar.tsx`
+- **CLAUDE.md Rule:** "SIEMPRE usar colores de `palette.ts` — nunca hardcodear hex colors"
 - **Description:** At least 30+ instances of hardcoded hex colors (`#2a8c7a`, `#e8f5f1`, `#244e47`, `#1B3B36`, `#F0F2F5`) instead of using the design system's `colors.primary.*` or Tailwind tokens from `palette.ts`. Only `headingStyle` is imported from the design system.
-- **Impact:** Theme changes, dark mode, or brand updates won't propagate to these components. Inconsistency risk.
+- **Impact:** Violates project rules. Theme changes, dark mode, or brand updates won't propagate to these components.
 - **Fix:** Replace hardcoded values with design system tokens. Example: `#2a8c7a` should be `colors.primary[500]`, `#e8f5f1` should be `colors.primary[50]`.
 
 ### H2 - ScriptProcessorNode is Deprecated (in related useRealtimeVoice)
