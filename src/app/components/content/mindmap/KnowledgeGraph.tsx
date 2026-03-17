@@ -22,8 +22,28 @@ import { Maximize2 } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
 import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
+import { loadPositions, saveNodePosition } from './useNodePositions';
+import type { PositionMap } from './useNodePositions';
 
 type Locale = 'pt' | 'es';
+
+/** Trigger a browser download from a data URL */
+function downloadGraphImage(dataURL: string, ext: string) {
+  const now = new Date();
+  const stamp = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+  ].join('');
+  const link = document.createElement('a');
+  link.href = dataURL;
+  link.download = `mapa-conocimiento-${stamp}.${ext}`;
+  document.body.appendChild(link);
+  link.click();
+  requestAnimationFrame(() => document.body.removeChild(link));
+}
 
 const I18N_GRAPH: Record<Locale, {
   noData: string; mastery: string; ariaLabel: string; ariaRoleDesc: string;
@@ -38,6 +58,7 @@ const I18N_GRAPH: Record<Locale, {
     srDesc: 'Use + e - para zoom, 0 para ajustar vista, duplo-clique em um nodo para recolher/expandir ramos. Ctrl+[ recolhe todos, Ctrl+] expande todos. ? para atalhos.',
     nCollapsed: (n) => `${n} nodos recolhidos`, allExpanded: 'Todos os nodos expandidos',
     mobileHint: 'Arraste para mover · Pinça para zoom · Segure para menu',
+    reviewAlert: 'IA recomenda revisar',
     fitView: 'Ajustar à vista', shortcuts: 'Atalhos', search: 'buscar',
     closeShortcuts: 'Fechar atalhos', shortcutDialog: 'Atalhos de teclado',
     keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
@@ -50,6 +71,7 @@ const I18N_GRAPH: Record<Locale, {
     srDesc: 'Use + y - para zoom, 0 para ajustar vista, doble clic en un nodo para colapsar/expandir ramas. Ctrl+[ colapsa todos, Ctrl+] expande todos. ? para atajos.',
     nCollapsed: (n) => `${n} nodos colapsados`, allExpanded: 'Todos los nodos expandidos',
     mobileHint: 'Arrastre para mover · Pellizque para zoom · Mantenga para menú',
+    reviewAlert: 'IA recomienda revisar',
     fitView: 'Ajustar a la vista', shortcuts: 'Atajos', search: 'buscar',
     closeShortcuts: 'Cerrar atajos', shortcutDialog: 'Atajos de teclado',
     keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
@@ -71,8 +93,14 @@ interface KnowledgeGraphProps {
   highlightNodeIds?: Set<string>;
   /** Called when collapsed node count changes — also passes the set of collapsed IDs */
   onCollapseChange?: (collapsedCount: number, collapsedIds: Set<string>) => void;
-  /** UI language: 'pt' (default) for student, 'es' for professor */
+  /** UI language: 'es' (default) for student, 'pt' for Portuguese */
   locale?: Locale;
+  /** Set of node IDs that AI recommends reviewing — shown with orange warning ring */
+  reviewNodeIds?: Set<string>;
+  /** Topic ID for persisting user-dragged node positions */
+  topicId?: string;
+  /** Whether to show the minimap navigation overview */
+  showMinimap?: boolean;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -87,7 +115,10 @@ export function KnowledgeGraph({
   onReady,
   highlightNodeIds,
   onCollapseChange,
-  locale = 'pt',
+  locale = 'es',
+  reviewNodeIds,
+  topicId,
+  showMinimap = false,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -113,8 +144,8 @@ export function KnowledgeGraph({
   // Auto-dismiss mobile hint after 4 seconds
   useEffect(() => {
     if (!ready || !showMobileHint) return;
-    const t = setTimeout(() => setShowMobileHint(false), 4000);
-    return () => clearTimeout(t);
+    const hintTimer = setTimeout(() => setShowMobileHint(false), 4000);
+    return () => clearTimeout(hintTimer);
   }, [ready, showMobileHint]);
 
   // Memoize children map to avoid O(N*E) per draw — only depends on edges
@@ -123,9 +154,20 @@ export function KnowledgeGraph({
   const childrenMapRef = useRef(childrenMap);
   childrenMapRef.current = childrenMap;
 
+  // Load saved positions for the current topic
+  const savedPositionsRef = useRef<PositionMap>(new Map());
+  useEffect(() => {
+    savedPositionsRef.current = topicId ? loadPositions(topicId) : new Map();
+  }, [topicId]);
+
+  // Stable ref for topicId to use in event handlers
+  const topicIdRef = useRef(topicId);
+  topicIdRef.current = topicId;
+
   // Transform Axon data → G6 format, respecting collapsed and highlight state
-  const g6Data = useCallback((collapsed: Set<string>) => {
+  const g6Data = useCallback((collapsed: Set<string>, positions?: PositionMap) => {
     const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
+    const hasReview = reviewNodeIds && reviewNodeIds.size > 0;
     const hidden = computeHiddenNodes(data.nodes, data.edges, collapsed, childrenMap);
 
     const nodes = data.nodes
@@ -133,14 +175,18 @@ export function KnowledgeGraph({
       .map((node) => {
         const isHighlighted = hasHighlight && highlightNodeIds!.has(node.id);
         const isDimmed = hasHighlight && !isHighlighted;
-        const strokeColor = getNodeStroke(node.masteryColor);
+        const needsReview = hasReview && reviewNodeIds!.has(node.id);
+        const strokeColor = needsReview ? '#f97316' : getNodeStroke(node.masteryColor);
         const isCollapsed = collapsed.has(node.id);
         const childCount = childrenMap.get(node.id)?.length ?? 0;
         const baseLabel = truncateLabel(node.label);
         const displayLabel = isCollapsed && childCount > 0
           ? baseLabel + ` (+${childCount})`
-          : baseLabel;
+          : needsReview
+            ? '\u26a0 ' + baseLabel
+            : baseLabel;
 
+        const savedPos = positions?.get(node.id);
         return {
           id: node.id,
           data: {
@@ -155,21 +201,24 @@ export function KnowledgeGraph({
             flashcardCount: node.flashcardCount,
             quizCount: node.quizCount,
             annotation: node.annotation,
+            needsReview,
             _raw: node,
           },
           style: {
             fill: node.isUserCreated ? '#e8f5f1' : getNodeFill(node.masteryColor),
             stroke: node.isUserCreated ? '#2a8c7a' : strokeColor,
-            lineWidth: isHighlighted ? 3 : isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
+            lineWidth: isHighlighted ? 3 : needsReview ? 2.5 : isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
             lineDash: isCollapsed ? [4, 4] : node.isUserCreated ? [6, 3] : undefined,
-            shadowColor: isHighlighted ? strokeColor : 'transparent',
-            shadowBlur: isHighlighted ? 10 : 0,
+            shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
+            shadowBlur: isHighlighted ? 10 : needsReview ? 8 : 0,
             opacity: isDimmed ? 0.35 : 1,
             labelText: displayLabel,
-            labelFill: isDimmed ? '#9ca3af' : '#111827',
+            labelFill: isDimmed ? '#9ca3af' : needsReview ? '#c2410c' : '#111827',
             labelFontSize: 12,
             labelFontFamily: 'Inter, sans-serif',
             size: Math.max(32, Math.min(56, 32 + (node.mastery >= 0 ? node.mastery * 24 : 0))),
+            // Apply saved position from last drag (used as initial position for layout)
+            ...(savedPos ? { x: savedPos.x, y: savedPos.y } : {}),
           },
         };
       });
@@ -193,9 +242,12 @@ export function KnowledgeGraph({
             _raw: edge,
           },
           style: {
-            stroke: edge.isUserCreated ? '#2a8c7a' : getEdgeColor(edge.connectionType),
+            stroke: edge.customColor || (edge.isUserCreated ? '#2a8c7a' : getEdgeColor(edge.connectionType)),
             lineWidth: edge.isUserCreated ? 2 : 1.5,
-            lineDash: edge.isUserCreated ? [6, 3] : undefined,
+            lineDash: edge.lineStyle === 'dashed' ? [6, 3]
+              : edge.lineStyle === 'dotted' ? [2, 4]
+              : edge.isUserCreated && !edge.lineStyle ? [6, 3]
+              : undefined,
             opacity: edgeDimmed ? 0.2 : 1,
             endArrow: !!edge.sourceKeywordId,
             labelText: edge.label || undefined,
@@ -211,7 +263,7 @@ export function KnowledgeGraph({
       });
 
     return { nodes, edges };
-  }, [data, highlightNodeIds, childrenMap]);
+  }, [data, highlightNodeIds, reviewNodeIds, childrenMap]);
 
   // Layout config
   const getLayoutConfig = useCallback(() => {
@@ -261,8 +313,8 @@ export function KnowledgeGraph({
   // Stable identity key for data+layout to avoid unnecessary graph recreations
   const dataKey = useRef('');
   const currentDataKey = useMemo(
-    () => layout + ':' + nodeSetKey + '|' + data.edges.map(e => e.id).sort().join(','),
-    [layout, nodeSetKey, data.edges],
+    () => layout + ':' + nodeSetKey + '|' + data.edges.map(e => e.id).sort().join(',') + '|mm:' + (showMinimap ? '1' : '0'),
+    [layout, nodeSetKey, data.edges, showMinimap],
   );
 
   // Stable refs so collapseAll/expandAll/toggleCollapse in onReady always use latest state
@@ -271,7 +323,8 @@ export function KnowledgeGraph({
   const toggleCollapseRef = useRef<(nodeId: string) => boolean>(() => false);
 
   collapseAllRef.current = () => {
-    const nodesWithChildren = new Set(data.edges.map(e => e.source).filter(id => id != null));
+    const nodeIds = new Set(data.nodes.map(n => n.id));
+    const nodesWithChildren = new Set(data.edges.map(e => e.source).filter(id => id != null && nodeIds.has(id)));
     setCollapsedNodes(nodesWithChildren);
     onCollapseChangeRef.current?.(nodesWithChildren.size, nodesWithChildren);
   };
@@ -333,18 +386,49 @@ export function KnowledgeGraph({
         state: {
           hover: {
             lineWidth: 2.5,
-            shadowBlur: 8,
+            shadowColor: 'rgba(42, 140, 122, 0.4)',
+            shadowBlur: 14,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
           },
           selected: {
             lineWidth: 3,
-            shadowBlur: 12,
+            shadowColor: 'rgba(42, 140, 122, 0.55)',
+            shadowBlur: 18,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
           },
+        },
+        animation: {
+          enter: [
+            { fields: ['opacity', 'size'], duration: 320, easing: 'ease-out', fill: 'both' },
+          ],
+          update: [
+            { fields: ['x', 'y', 'fill', 'stroke', 'opacity', 'size', 'lineWidth'], duration: 200, easing: 'ease-out' },
+          ],
+          exit: [
+            { fields: ['opacity', 'size'], duration: 200, easing: 'ease-in' },
+          ],
         },
       },
       edge: {
         type: 'line',
         style: {
           labelPlacement: 'center',
+        },
+        state: {
+          hover: {
+            lineWidth: 2.5,
+            stroke: '#2a8c7a',
+          },
+        },
+        animation: {
+          enter: [
+            { fields: ['opacity'], duration: 320, easing: 'ease-out', fill: 'both' },
+          ],
+          exit: [
+            { fields: ['opacity'], duration: 200, easing: 'ease-in' },
+          ],
         },
       },
       layout: getLayoutConfig(),
@@ -371,17 +455,19 @@ export function KnowledgeGraph({
             if (!items?.length) return '';
             const item = items[0];
             const d = item?.data ?? {};
-            const label = escHtml(d.fullLabel || d.label || '');
-            const rawDef = d.definition || '';
+            const label = escHtml(String(d.fullLabel || d.label || ''));
+            const rawDef = String(d.definition || '');
             const def = escHtml(rawDef.length > 120 ? rawDef.slice(0, 117) + '\u2026' : rawDef);
-            const mastery = d.mastery ?? -1;
+            const mastery = typeof d.mastery === 'number' ? d.mastery : -1;
             const pct = mastery >= 0 ? `${Math.round(mastery * 100)}%` : t.noData;
-            const rawAnnotation = d.annotation || '';
+            const rawAnnotation = String(d.annotation || '');
             const annotation = escHtml(rawAnnotation.length > 80 ? rawAnnotation.slice(0, 77) + '\u2026' : rawAnnotation);
+            const review = d.needsReview;
             return `<div style="max-width:220px;font-family:Inter,sans-serif">
               <div style="font-weight:600;font-size:12px;color:#111827;margin-bottom:2px;font-family:Georgia,serif">${label}</div>
               ${def ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px">${def}</div>` : ''}
               <div style="font-size:10px;color:#9ca3af">${escHtml(t.mastery)}: ${pct}</div>
+              ${review ? `<div style="font-size:10px;color:#f97316;margin-top:2px;font-weight:500">\u26a0 ${escHtml(t.reviewAlert)}</div>` : ''}
               ${annotation ? `<div style="font-size:10px;color:#2a8c7a;font-style:italic;margin-top:2px">&ldquo;${annotation}&rdquo;</div>` : ''}
             </div>`;
           },
@@ -396,6 +482,29 @@ export function KnowledgeGraph({
             },
           },
         },
+        // Minimap navigation overview — toggleable from toolbar
+        // Responsive: 120×80 on mobile (<640px), 150×100 on desktop
+        ...(showMinimap ? [{
+          type: 'minimap' as const,
+          key: 'minimap-nav',
+          size: (cw < 640 ? [120, 80] : [150, 100]) as [number, number],
+          position: 'right-bottom' as const,
+          padding: 8,
+          className: 'axon-minimap',
+          containerStyle: {
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          },
+          maskStyle: {
+            border: '2px solid #2a8c7a',
+            borderRadius: '4px',
+            background: 'rgba(42,140,122,0.08)',
+          },
+          delay: 150,
+        }] : []),
       ],
       animation: true,
     });
@@ -403,8 +512,9 @@ export function KnowledgeGraph({
     graphRef.current = graph;
 
     // Set data and render (pass empty collapsed set on initial render)
+    // Apply saved positions so layout starts from where the user left off
     justInitializedRef.current = true;
-    graph.setData(g6Data(new Set()));
+    graph.setData(g6Data(new Set(), savedPositionsRef.current));
     graph.render().then(() => {
       // Guard: if component unmounted or graph replaced before render finished, skip
       if (!mountedRef.current || graphRef.current !== graph) return;
@@ -417,6 +527,21 @@ export function KnowledgeGraph({
         collapseAll: () => collapseAllRef.current(),
         expandAll: () => expandAllRef.current(),
         toggleCollapse: (nodeId: string) => toggleCollapseRef.current(nodeId),
+        exportPNG: async () => {
+          const g = graphRef.current;
+          if (!g) return;
+          const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/png', encoderOptions: 1 });
+          downloadGraphImage(dataURL, 'png');
+        },
+        exportJPEG: async () => {
+          const g = graphRef.current;
+          if (!g) return;
+          const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/jpeg', encoderOptions: 0.92 });
+          downloadGraphImage(dataURL, 'jpg');
+        },
+        focusNode: (nodeId: string) => {
+          try { graph.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch { /* graph may be destroyed */ }
+        },
       });
     }).catch(() => { /* G6 render may fail if destroyed during layout */ });
 
@@ -425,7 +550,7 @@ export function KnowledgeGraph({
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDataKey, layout]);
+  }, [currentDataKey, layout, showMinimap]);
 
   // ResizeObserver: auto-resize graph when container dimensions change
   // Compare dimensions before calling resize() to avoid infinite loops
@@ -586,9 +711,27 @@ export function KnowledgeGraph({
       setShowShortcuts(false);
     };
 
+    // Save node position after drag for persistence
+    const handleNodeDragEnd = (evt: G6NodeEvent) => {
+      const nodeId = evt.target?.id ?? evt.itemId;
+      if (!nodeId || !topicIdRef.current) return;
+      try {
+        const nodeData = graph.getNodeData(nodeId);
+        if (nodeData?.style) {
+          const { x, y } = nodeData.style as { x?: number; y?: number };
+          if (typeof x === 'number' && typeof y === 'number') {
+            saveNodePosition(topicIdRef.current, nodeId, { x, y });
+          }
+        }
+      } catch {
+        // Graph may be in transition
+      }
+    };
+
     graph.on('node:click', handleNodeClick);
     graph.on('node:contextmenu', handleNodeContextMenu);
     graph.on('node:dblclick', handleNodeDblClick);
+    graph.on('node:dragend', handleNodeDragEnd);
     graph.on('canvas:click', handleCanvasClick);
 
     // Long-press for mobile context menu (500ms threshold)
@@ -616,6 +759,7 @@ export function KnowledgeGraph({
       graph.off('node:click', handleNodeClick);
       graph.off('node:contextmenu', handleNodeContextMenu);
       graph.off('node:dblclick', handleNodeDblClick);
+      graph.off('node:dragend', handleNodeDragEnd);
       graph.off('canvas:click', handleCanvasClick);
       graph.off('node:pointerdown', handleNodePointerDown);
       graph.off('node:pointerup', handleNodePointerUp);

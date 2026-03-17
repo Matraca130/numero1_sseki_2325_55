@@ -6,7 +6,7 @@
 // Obsidian-inspired: quick note attached to a concept.
 // ============================================================
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Save, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -38,6 +38,8 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   const [existingNote, setExistingNote] = useState<StudentNote | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [shake, setShake] = useState(false);
+  const savingRef = useRef(false);
   const focusTrapRef = useFocusTrap(!!node);
 
   // Fetch existing note when node changes
@@ -85,8 +87,9 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   }, [node, onClose]);
 
   const handleSave = useCallback(async () => {
-    if (!node || !content.trim()) return;
+    if (!node || !content.trim() || savingRef.current) return;
 
+    savingRef.current = true;
     setSaving(true);
     try {
       if (existingNote) {
@@ -106,12 +109,13 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
         });
         if (created) setExistingNote(created);
       }
-      toast.success('Anotação salva');
+      toast.success('Anotación guardada');
       onSaved?.();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao salvar anotação');
+      toast.error(e instanceof Error ? e.message : 'Error al guardar anotación');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, [node, content, existingNote, onClose, onSaved]);
@@ -122,13 +126,13 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
     setSaving(true);
     try {
       await apiCall(`/kw-student-notes/${existingNote.id}`, { method: 'DELETE' });
-      toast.success('Anotação apagada');
+      toast.success('Anotación eliminada');
       setContent('');
       setExistingNote(null);
       onSaved?.();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao apagar anotação');
+      toast.error(e instanceof Error ? e.message : 'Error al eliminar anotación');
     } finally {
       setSaving(false);
     }
@@ -143,7 +147,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 z-40"
+            className="fixed inset-0 bg-black/40 z-50"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -155,7 +159,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.2 }}
-            className="fixed z-50 w-full max-w-md bg-white shadow-xl border border-gray-200 bottom-0 left-0 right-0 rounded-t-2xl sm:rounded-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[90vw] max-h-[90dvh] overflow-y-auto"
+            className="fixed z-50 w-full max-w-md bg-white shadow-lg bottom-0 left-0 right-0 rounded-t-2xl sm:rounded-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[90vw] max-h-[90dvh] overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-labelledby="annotation-modal-title"
@@ -183,28 +187,35 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
               <button
                 onClick={onClose}
                 className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Fechar"
+                aria-label="Cerrar"
               >
                 <X className="w-4 h-4 text-gray-400" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-5">
+            <motion.div
+              className="p-5"
+              animate={shake ? { x: [0, -3, 3, -3, 3, 0] } : { x: 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              onAnimationComplete={() => { if (shake) setShake(false); }}
+            >
               {loading ? (
-                <div className="h-32 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-[#2a8c7a] border-t-transparent rounded-full animate-spin" />
+                <div className="space-y-2">
+                  <div className="h-3 w-28 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-32 w-full bg-gray-100 rounded-xl animate-pulse" />
+                  <div className="h-3 w-16 bg-gray-100 rounded animate-pulse" />
                 </div>
               ) : (
                 <>
                   <label htmlFor="node-annotation" className="block text-xs font-medium text-gray-500 mb-2">
-                    Sua anotação pessoal
+                    Tu anotación personal
                   </label>
                   <textarea
                     id="node-annotation"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Adicione notas sobre este conceito..."
+                    placeholder="Añade notas sobre este concepto..."
                     autoFocus
                     className="w-full h-32 px-3 py-2 text-base sm:text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] placeholder:text-gray-400"
                     maxLength={1000}
@@ -216,7 +227,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                   </div>
                 </>
               )}
-            </div>
+            </motion.div>
 
             {/* Footer */}
             <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
@@ -224,21 +235,27 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                 <button
                   onClick={handleDelete}
                   disabled={saving || loading}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-full transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Apagar
+                  Eliminar
                 </button>
               ) : (
                 <div />
               )}
               <button
-                onClick={handleSave}
-                disabled={saving || !content.trim()}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
+                onClick={() => {
+                  if (!content.trim() && !saving) {
+                    setShake(true);
+                    return;
+                  }
+                  handleSave();
+                }}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
               >
                 <Save className="w-3.5 h-3.5" />
-                {saving ? 'Salvando...' : 'Salvar'}
+                {saving ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </motion.div>

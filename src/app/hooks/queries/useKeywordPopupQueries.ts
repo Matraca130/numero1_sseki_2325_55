@@ -39,6 +39,7 @@ import {
   CONNECTIONS_STALE,
 } from './staleTimes';
 import type { KeywordConnection, ExternalKeyword } from '@/app/types/keyword-connections';
+import { invalidateGraphCache } from '@/app/components/content/mindmap/useGraphData';
 
 // Re-export shared types so existing consumers (e.g. KeywordPopup)
 // don't need import path changes.
@@ -277,13 +278,13 @@ export function useKeywordPopupQueries(
       });
     },
     onSuccess: () => {
-      toast.success('Nota adicionada');
+      toast.success('Nota añadida');
       queryClient.invalidateQueries({
         queryKey: queryKeys.kwNotes(keywordId),
       });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Erro ao adicionar nota');
+      toast.error(err instanceof Error ? err.message : 'Error al añadir nota');
     },
   });
 
@@ -292,13 +293,13 @@ export function useKeywordPopupQueries(
       await studentApi.updateKwStudentNote(noteId, { note });
     },
     onSuccess: () => {
-      toast.success('Nota atualizada');
+      toast.success('Nota actualizada');
       queryClient.invalidateQueries({
         queryKey: queryKeys.kwNotes(keywordId),
       });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar');
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar');
     },
   });
 
@@ -321,14 +322,14 @@ export function useKeywordPopupQueries(
       return { prev };
     },
     onSuccess: () => {
-      toast.success('Nota eliminada');
+      toast.success('Nota eliminada');  // same in Spanish
     },
     onError: (err: unknown, _noteId, ctx) => {
       // Rollback on failure
       if (ctx?.prev) {
         queryClient.setQueryData(queryKeys.kwNotes(keywordId), ctx.prev);
       }
-      toast.error(err instanceof Error ? err.message : 'Erro ao eliminar');
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar');
     },
     onSettled: () => {
       queryClient.invalidateQueries({
@@ -346,10 +347,13 @@ export function useKeywordPopupQueries(
     connections: connectionsQuery.data?.connections ?? [],
     connectionsLoading: connectionsQuery.isLoading,
     externalKws,
-    invalidateConnections: () =>
+    invalidateConnections: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.kwConnections(keywordId),
-      }),
+      });
+      // Also invalidate mindmap graph cache so new connections show up
+      invalidateGraphCache();
+    },
 
     // Student notes
     notes: notesQuery.data ?? [],

@@ -43,6 +43,7 @@ import { SessionXPSummary } from '@/app/components/gamification/SessionXPSummary
 import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar';
 import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
+import { invalidateGraphCache } from '@/app/components/content/mindmap/useGraphData';
 
 interface ReviewQueueItem { card: FlashcardItem; fsrsState: StudyQueueItem; }
 interface ReviewSessionViewProps { onClose?: () => void; masteryMap?: Map<string, { p_know: number }>; }
@@ -142,6 +143,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
         const correctReviews = newGrades.filter(g => g >= 3).length;
         try { await sessionApi.closeStudySession(sid, { completed_at: now.toISOString(), total_reviews: newGrades.length, correct_reviews: correctReviews }); } catch (err) { console.error('[ReviewSession] Session close error:', err); }
         await postSessionAnalytics({ totalReviews: newGrades.length, correctReviews, durationSeconds });
+        invalidateGraphCache();
         try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
         gamificationApi.checkBadges(institutionId).catch(() => {});
       })();

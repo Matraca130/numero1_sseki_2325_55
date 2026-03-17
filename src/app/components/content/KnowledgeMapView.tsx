@@ -20,10 +20,15 @@
 // ============================================================
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+
+/** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
+const haptic = (ms = 50) => navigator?.vibrate?.(ms);
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
+import { useCountUp } from '@/app/hooks/useCountUp';
 import { LoadingPage, EmptyState, ErrorState } from '@/app/components/shared/PageStates';
 import { FadeIn } from '@/app/components/shared/FadeIn';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
@@ -41,6 +46,16 @@ import { useSwipeDismiss } from './mindmap/useSwipeDismiss';
 import { useSearchFocus } from './mindmap/useSearchFocus';
 import { useGraphControls } from './mindmap/useGraphControls';
 import { ConfirmDialog } from './mindmap/ConfirmDialog';
+import { useFullscreen } from './mindmap/useFullscreen';
+import { MapToolsPanel } from './mindmap/MapToolsPanel';
+import { AiTutorPanel } from './mindmap/AiTutorPanel';
+import { useUndoRedo } from './mindmap/useUndoRedo';
+import { GraphSkeleton } from './mindmap/GraphSkeleton';
+import { PresentationMode } from './mindmap/PresentationMode';
+import { ChangeHistoryPanel } from './mindmap/ChangeHistoryPanel';
+import { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry } from './mindmap/changeHistoryHelpers';
+import type { HistoryEntry } from './mindmap/changeHistoryHelpers';
+import type { MapTool } from './mindmap/MapToolsPanel';
 import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
@@ -65,7 +80,7 @@ export function KnowledgeMapView() {
           for (const topic of section.topics || []) {
             result.push({
               id: topic.id,
-              name: topic.name || 'Sem título',
+              name: topic.name || 'Sin título',
               courseName: course.name,
             });
           }
@@ -106,6 +121,9 @@ export function KnowledgeMapView() {
     courseTopicIds: scope === 'course' ? courseTopicIds : undefined,
   });
 
+  // Undo/redo history for custom node/edge actions
+  const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch);
+
   // Search (shared hook: debounce + filter + highlight)
   // Must be declared before handlers that call setSearchQuery
   const {
@@ -131,8 +149,9 @@ export function KnowledgeMapView() {
       setContextMenu(null);
       setCollapsedCount(0);
       setCollapsedNodeIds(new Set());
+      clearHistory();
     }
-  }, [topicId]);
+  }, [topicId, clearHistory]);
 
   const setScope = useCallback((s: GraphScope) => {
     setScopeRaw(s);
@@ -156,12 +175,25 @@ export function KnowledgeMapView() {
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [activeTool, setActiveTool] = useState<MapTool>('pointer');
+  const [connectSource, setConnectSource] = useState<MapNode | null>(null);
+  const [connectTarget, setConnectTarget] = useState<MapNode | null>(null);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
+  const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
+  // Minimap: visible on desktop by default, hidden on mobile
+  const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   // First-visit onboarding tip
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    try { return !localStorage.getItem('axon_map_onboarded'); } catch { return false; }
+    try { return !localStorage.getItem('axon_map_onboarded'); } catch { return true; }
   });
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false);
@@ -192,10 +224,54 @@ export function KnowledgeMapView() {
     if (!node) {
       setSelectedNode(null);
       setContextMenu(null);
+      // Cancel connect mode on canvas click
+      if (activeTool === 'connect' && connectSource) {
+        setConnectSource(null);
+        setConnectTarget(null);
+        toast.info('Conexión cancelada');
+      }
+      // In add-node mode, clicking canvas opens the add modal
+      if (activeTool === 'add-node') {
+        setAddModalOpen(true);
+        setActiveTool('pointer');
+      }
       return;
     }
-    setSelectedNode(node);
-  }, []);
+    // Tool-specific node click behavior
+    switch (activeTool) {
+      case 'annotate':
+        setAnnotationNode(node);
+        setActiveTool('pointer');
+        return;
+      case 'delete':
+        if (node.isUserCreated) {
+          setConfirmDeleteNode(node);
+          setActiveTool('pointer');
+        } else {
+          toast.error('Solo puedes eliminar conceptos creados por ti');
+        }
+        return;
+      case 'connect':
+        if (!connectSource) {
+          // First click: select source
+          setConnectSource(node);
+          toast.info(`Origen: "${node.label}" — Ahora selecciona el destino`);
+        } else if (connectSource.id === node.id) {
+          // Clicked same node: cancel
+          setConnectSource(null);
+          setConnectTarget(null);
+          toast.info('Conexión cancelada');
+        } else {
+          // Second click: open modal pre-filled with source→target
+          setConnectTarget(node);
+          setAddModalOpen(true);
+          setActiveTool('pointer');
+        }
+        return;
+      default:
+        setSelectedNode(node);
+    }
+  }, [activeTool, connectSource]);
 
   const handleNodeRightClick = useCallback((node: MapNode, position: { x: number; y: number }) => {
     setContextMenu({ node, position });
@@ -204,6 +280,18 @@ export function KnowledgeMapView() {
   const handleContextMenuClose = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  // Effective topicId for custom node creation and navigation fallback
+  const effectiveTopicId = topicId || courseTopicIds[0] || '';
+
+  // Load history from sessionStorage when topic changes
+  useEffect(() => {
+    if (effectiveTopicId) setHistoryEntries(loadHistory(effectiveTopicId));
+  }, [effectiveTopicId]);
+  // Persist history entries to sessionStorage
+  useEffect(() => {
+    if (effectiveTopicId && historyEntries.length > 0) saveHistory(effectiveTopicId, historyEntries);
+  }, [effectiveTopicId, historyEntries]);
 
   const handleAction = useCallback((action: NodeAction, node: MapNode) => {
     setContextMenu(null);
@@ -215,12 +303,14 @@ export function KnowledgeMapView() {
       case 'quiz':
         navigateWithFade(`/student/quizzes?keywordId=${node.id}`);
         break;
-      case 'summary':
-        if (node.topicId) {
+      case 'summary': {
+        const tid = node.topicId || effectiveTopicId;
+        if (tid) {
           const summaryParam = node.summaryId ? `?summaryId=${node.summaryId}` : '';
-          navigateWithFade(`/student/summary/${node.topicId}${summaryParam}`);
+          navigateWithFade(`/student/summary/${tid}${summaryParam}`);
         }
         break;
+      }
       case 'annotate':
         setAnnotationNode(node);
         break;
@@ -228,9 +318,13 @@ export function KnowledgeMapView() {
         setSelectedNode(node);
         break;
     }
-  }, [navigateWithFade]);
+  }, [navigateWithFade, effectiveTopicId]);
 
-  const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll } = useGraphControls(graphControlsRef);
+  const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG } = useGraphControls(graphControlsRef);
+
+  const handlePresentationFocus = useCallback((nodeId: string) => {
+    graphControlsRef.current?.focusNode?.(nodeId);
+  }, []);
 
   const [confirmDeleteNode, setConfirmDeleteNode] = useState<MapNode | null>(null);
 
@@ -243,14 +337,25 @@ export function KnowledgeMapView() {
     if (!confirmDeleteNode) return;
     try {
       await deleteCustomNode(confirmDeleteNode.id);
+      // Record for undo — store enough data to re-create the node
+      pushAction({
+        type: 'delete-node',
+        nodeId: confirmDeleteNode.id,
+        payload: {
+          label: confirmDeleteNode.label,
+          definition: confirmDeleteNode.definition,
+          topic_id: effectiveTopicId,
+        },
+      });
+      setHistoryEntries(prev => [...prev, createDeleteNodeEntry(confirmDeleteNode.label)]);
       setSelectedNode(null);
       setConfirmDeleteNode(null);
       refetch();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao apagar conceito');
+      toast.error(e instanceof Error ? e.message : 'Error al eliminar concepto');
       setConfirmDeleteNode(null);
     }
-  }, [confirmDeleteNode, refetch]);
+  }, [confirmDeleteNode, refetch, pushAction, effectiveTopicId]);
 
   // Swipe-to-dismiss for mobile bottom sheet
   const dismissSelected = useCallback(() => setSelectedNode(null), []);
@@ -259,14 +364,38 @@ export function KnowledgeMapView() {
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
 
+  // Tool keyboard shortcuts (V/N/C/D/A) — reset connect state when switching away
+  const handleToolChange = useCallback((tool: MapTool) => {
+    if (tool !== 'connect') {
+      setConnectSource(null);
+      setConnectTarget(null);
+    }
+    setActiveTool(tool);
+  }, []);
+
+  useEffect(() => {
+    const handleToolKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable) return;
+      const map: Record<string, MapTool> = { v: 'pointer', n: 'add-node', c: 'connect', d: 'delete', a: 'annotate' };
+      const tool = map[e.key.toLowerCase()];
+      if (tool) handleToolChange(tool);
+    };
+    document.addEventListener('keydown', handleToolKey);
+    return () => document.removeEventListener('keydown', handleToolKey);
+  }, [handleToolChange]);
+
   // Set of node IDs that have children (for collapse/expand in context menu)
   const nodesWithChildren = useMemo(() => {
     if (!graphData) return new Set<string>();
     return new Set(graphData.edges.map(e => e.source).filter(Boolean));
   }, [graphData]);
 
-  // Effective topicId for custom node creation
-  const effectiveTopicId = topicId || courseTopicIds[0] || '';
+  // Node ID→label map for AI suggestions display
+  const nodeLabels = useMemo(() => {
+    if (!graphData) return new Map<string, string>();
+    return new Map(graphData.nodes.map(n => [n.id, n.label]));
+  }, [graphData]);
 
   // ── Derived data ────────────────────────────────────────
 
@@ -286,9 +415,33 @@ export function KnowledgeMapView() {
     return { total, mastered, learning, weak, noData, avgMastery };
   }, [graphData]);
 
+  // Animated mastery percentage (count-up effect, respects reduced-motion)
+  const targetPct = masteryStats ? Math.round(masteryStats.avgMastery * 100) : 0;
+  const displayPct = useCountUp(targetPct, 800);
+
   // ── Render states ───────────────────────────────────────
 
-  if (loading) return <LoadingPage />;
+  if (loading) return (
+    <FadeIn>
+      <div className="flex flex-col h-[calc(100dvh-4rem)] p-3 sm:p-6 lg:p-8">
+        {/* Skeleton header */}
+        <div className="flex-shrink-0 mb-4">
+          <div className="h-7 w-48 bg-gray-200 rounded-lg animate-pulse motion-reduce:animate-none mb-2" />
+          <div className="h-4 w-32 bg-gray-100 rounded animate-pulse motion-reduce:animate-none" />
+        </div>
+        {/* Skeleton toolbar */}
+        <div className="flex-shrink-0 mb-3 flex items-center gap-2">
+          <div className="h-9 w-36 bg-gray-100 rounded-full animate-pulse motion-reduce:animate-none" />
+          <div className="h-9 w-24 bg-gray-100 rounded-full animate-pulse motion-reduce:animate-none" />
+          <div className="h-9 w-44 bg-gray-100 rounded-full animate-pulse motion-reduce:animate-none" />
+        </div>
+        {/* Skeleton graph canvas — content-shaped nodes & edges */}
+        <div className="flex-1 min-h-0">
+          <GraphSkeleton />
+        </div>
+      </div>
+    </FadeIn>
+  );
 
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
@@ -296,15 +449,20 @@ export function KnowledgeMapView() {
     return (
       <FadeIn>
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
-          <Map className="w-14 h-14 mb-4" style={{ color: '#2a8c7a' }} />
+          <div className="w-16 h-16 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-5">
+            <MapIcon className="w-8 h-8 text-[#2a8c7a] animate-pulse" />
+          </div>
           <h2
             className="text-gray-900 mb-2 text-center"
             style={{ ...headingStyle, fontSize: 'clamp(1.1rem, 2vw, 1.35rem)' }}
           >
-            Mapa de Conhecimento
+            Mapa de Conocimiento
           </h2>
-          <p className="text-sm text-gray-500 mb-6 text-center max-w-sm">
-            Selecione um tópico para visualizar seu mapa de conhecimento.
+          <p
+            className="text-gray-500 mb-6 text-center max-w-sm leading-relaxed"
+            style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+          >
+            Selecciona un tema para ver tu mapa de conocimiento.
           </p>
           {allTopics.length > 0 ? (
             <div className="relative w-full max-w-xs">
@@ -314,7 +472,7 @@ export function KnowledgeMapView() {
                 className="w-full appearance-none bg-white border border-gray-200 rounded-full px-4 py-2.5 pr-9 text-sm text-gray-700 shadow-sm hover:border-gray-300 transition-colors"
                 style={{ outlineColor: '#2a8c7a' }}
               >
-                <option value="">Selecionar tópico...</option>
+                <option value="">Seleccionar tema...</option>
                 {allTopics.map(t => (
                   <option key={t.id} value={t.id}>
                     {t.courseName} — {t.name}
@@ -324,8 +482,11 @@ export function KnowledgeMapView() {
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           ) : (
-            <p className="text-xs text-gray-400">
-              Nenhum tópico disponível. Entre em um curso primeiro.
+            <p
+              className="text-gray-400 leading-relaxed"
+              style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
+            >
+              Ningún tema disponible. Ingresa a un curso primero.
             </p>
           )}
         </div>
@@ -339,16 +500,16 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
           <AxonPageHeader
-            title="Mapa de Conhecimento"
-            subtitle={currentCourse?.name || 'Todos os tópicos'}
+            title="Mapa de Conocimiento"
+            subtitle={currentCourse?.name || 'Todos los temas'}
             onBack={() => navigate(-1)}
           />
           <EmptyState
             icon={<Globe className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title="Nenhum conceito no curso"
+            title="Ningún concepto en el curso"
             description={courseTopicIds.length === 0
-              ? 'Este curso não possui tópicos. Acesse um curso com conteúdo primeiro.'
-              : 'Os tópicos deste curso ainda não possuem conceitos mapeados. Estude mais para construir seu mapa!'}
+              ? 'Este curso no tiene temas. Accede a un curso con contenido primero.'
+              : 'Los temas de este curso aún no tienen conceptos mapeados. ¡Estudia más para construir tu mapa!'}
           />
         </div>
       </FadeIn>
@@ -360,14 +521,14 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
           <AxonPageHeader
-            title="Mapa de Conhecimento"
-            subtitle="Visualize seu domínio de cada conceito"
+            title="Mapa de Conocimiento"
+            subtitle="Visualiza tu dominio de cada concepto"
             onBack={() => navigate(-1)}
           />
           <EmptyState
             icon={<Brain className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title="Nenhum conceito encontrado"
-            description="Este tópico ainda não possui palavras-chave com conexões. Estude mais para construir seu mapa!"
+            title="Ningún concepto encontrado"
+            description="Este tema aún no tiene palabras clave con conexiones. ¡Estudia más para construir tu mapa!"
           />
         </div>
       </FadeIn>
@@ -379,14 +540,19 @@ export function KnowledgeMapView() {
   return (
     <FadeIn>
       <div
-        className="flex flex-col h-[calc(100dvh-4rem)] p-3 sm:p-6 lg:p-8 transition-opacity duration-150"
+        ref={fullscreenRef}
+        className={`flex flex-col transition-opacity duration-150 ${
+          isFullscreen
+            ? 'fixed inset-0 z-50 bg-[#F0F2F5] p-3 sm:p-6'
+            : 'h-[calc(100dvh-4rem)] p-3 sm:p-6 lg:p-8'
+        }`}
         style={{ opacity: exiting ? 0 : 1 }}
       >
-        {/* Header */}
-        <div className="flex-shrink-0 mb-4">
+        {/* Header — hidden in fullscreen mode */}
+        <div className={`flex-shrink-0 mb-4 ${isFullscreen ? 'hidden' : ''}`}>
           <AxonPageHeader
-            title="Mapa de Conhecimento"
-            subtitle={scope === 'course' ? (currentCourse?.name || 'Todos os tópicos') : (currentTopic?.title || 'Visualize seu domínio')}
+            title="Mapa de Conocimiento"
+            subtitle={scope === 'course' ? (currentCourse?.name || 'Todos los temas') : (currentTopic?.title || 'Visualiza tu dominio')}
             onBack={() => navigate(-1)}
             actionButton={
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
@@ -398,7 +564,7 @@ export function KnowledgeMapView() {
                       onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
                       className="appearance-none bg-white border border-gray-200 rounded-full pl-3 pr-7 py-1.5 text-xs text-gray-600 shadow-sm hover:border-gray-300 transition-colors max-w-[160px] sm:max-w-[220px] truncate"
                       style={{ outlineColor: '#2a8c7a' }}
-                      aria-label="Selecionar tópico"
+                      aria-label="Seleccionar tema"
                     >
                       {allTopics.map(t => (
                         <option key={t.id} value={t.id}>
@@ -411,7 +577,7 @@ export function KnowledgeMapView() {
                 )}
                 {/* Scope selector: Topic vs Course */}
                 {hasCourseTopics && (
-                  <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5" role="radiogroup" aria-label="Escopo do mapa">
+                  <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5" role="radiogroup" aria-label="Alcance del mapa">
                     <button
                       onClick={() => setScope('topic')}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -421,10 +587,10 @@ export function KnowledgeMapView() {
                       }`}
                       role="radio"
                       aria-checked={scope === 'topic'}
-                      aria-label="Visualizar tópico atual"
+                      aria-label="Ver tema actual"
                     >
                       <BookOpen className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Tópico</span>
+                      <span className="hidden sm:inline">Tema</span>
                     </button>
                     <button
                       onClick={() => setScope('course')}
@@ -435,7 +601,7 @@ export function KnowledgeMapView() {
                       }`}
                       role="radio"
                       aria-checked={scope === 'course'}
-                      aria-label="Visualizar todos os tópicos do curso"
+                      aria-label="Ver todos los temas del curso"
                     >
                       <Globe className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Todos</span>
@@ -445,21 +611,85 @@ export function KnowledgeMapView() {
                 {effectiveTopicId && scope === 'topic' && (
                   <button
                     onClick={() => setAddModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-full shadow-sm transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-full shadow-sm transition-colors hover:bg-[#244e47]"
                     style={{ backgroundColor: '#2a8c7a' }}
-                    aria-label="Adicionar conceito ao mapa"
+                    aria-label="Añadir concepto al mapa"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Adicionar</span>
+                    <span className="hidden sm:inline">Añadir</span>
                   </button>
                 )}
+                {/* Undo / Redo */}
+                <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5">
+                  <button
+                    onClick={() => { undo(); haptic(30); }}
+                    disabled={!canUndo || undoBusy}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
+                    aria-label="Deshacer (Ctrl+Z)"
+                    title="Deshacer (Ctrl+Z)"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { redo(); haptic(30); }}
+                    disabled={!canRedo || undoBusy}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
+                    aria-label="Rehacer (Ctrl+Y)"
+                    title="Rehacer (Ctrl+Y)"
+                  >
+                    <Redo2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <button
                   onClick={refetch}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                  aria-label="Atualizar mapa"
+                  aria-label="Actualizar mapa"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Atualizar</span>
+                  <span className="hidden sm:inline">Actualizar</span>
+                </button>
+                <button
+                  onClick={() => { setShowAiPanel(v => !v); if (!showAiPanel) setShowHistory(false); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                    showAiPanel
+                      ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
+                      : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
+                  }`}
+                  aria-label="IA Tutor"
+                  title="IA Tutor"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">IA</span>
+                </button>
+                <button
+                  onClick={() => { setShowHistory(v => !v); if (!showHistory) setShowAiPanel(false); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm transition-colors ${
+                    showHistory ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30' : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
+                  }`}
+                  style={{ fontSize: 'clamp(0.7rem, 1.1vw, 0.75rem)' }}
+                  aria-label="Historial de cambios"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Historial</span>
+                </button>
+                {filteredGraphData && filteredGraphData.nodes.length > 0 && (
+                  <button
+                    onClick={() => setPresentationMode(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                    aria-label={`Modo presentaci\u00f3n`}
+                    title={`Modo presentaci\u00f3n`}
+                  >
+                    <Presentation className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Presentar</span>
+                  </button>
+                )}
+                <button
+                  onClick={toggleFullscreen}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                  aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                  title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                >
+                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </button>
               </div>
             }
@@ -467,11 +697,11 @@ export function KnowledgeMapView() {
               masteryStats && (
                 <div className="flex items-center gap-3 text-xs text-gray-500">
                   <span className="font-medium text-gray-700">
-                    {Math.round(masteryStats.avgMastery * 100)}% domínio
+                    {displayPct}% dominio
                   </span>
                   <span className="hidden sm:inline">{masteryStats.mastered} dominados</span>
-                  <span className="hidden sm:inline">{masteryStats.learning} aprendendo</span>
-                  <span className="hidden md:inline">{masteryStats.weak} fracos</span>
+                  <span className="hidden sm:inline">{masteryStats.learning} aprendiendo</span>
+                  <span className="hidden md:inline">{masteryStats.weak} débiles</span>
                 </div>
               )
             }
@@ -482,10 +712,27 @@ export function KnowledgeMapView() {
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {searchQuery.trim()
             ? matchCount === 0
-              ? 'Nenhum conceito encontrado'
-              : `${matchCount} conceitos encontrados para "${searchQuery}"`
+              ? 'Ningún concepto encontrado'
+              : `${matchCount} conceptos encontrados para "${searchQuery}"`
             : ''}
         </div>
+
+        {/* Fullscreen floating title + exit button */}
+        {isFullscreen && (
+          <div className="flex-shrink-0 flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-gray-700" style={headingStyle}>
+              Mapa de Conocimiento
+            </h2>
+            <button
+              onClick={toggleFullscreen}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+              aria-label="Salir de pantalla completa"
+            >
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="flex-shrink-0 mb-3 overflow-x-hidden">
@@ -504,15 +751,19 @@ export function KnowledgeMapView() {
             onExpandAll={handleExpandAll}
             collapsedCount={collapsedCount}
             searchInputRef={searchInputRef}
+            onExportPNG={handleExportPNG}
+            onExportJPEG={handleExportJPEG}
+            showMinimap={showMinimap}
+            onMinimapToggle={toggleMinimap}
           />
         </div>
 
         {/* Mobile mastery legend (hidden on md+, where GraphToolbar legend shows) */}
         {masteryStats && (
-          <div className="flex md:hidden items-center gap-3 mb-2 px-2 py-1.5 bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex md:hidden items-center gap-3 mb-2 px-2 py-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {(['green', 'yellow', 'red', 'gray'] as const).map(color => {
               const key = color === 'green' ? 'mastered' : color === 'yellow' ? 'learning' : color === 'red' ? 'weak' : 'noData';
-              const label = color === 'green' ? 'Dominados' : color === 'yellow' ? 'Aprendendo' : color === 'red' ? 'Fracos' : 'Sem dados';
+              const label = color === 'green' ? 'Dominados' : color === 'yellow' ? 'Aprendiendo' : color === 'red' ? 'Débiles' : 'Sin datos';
               return (
                 <div key={color} className="flex items-center gap-1 shrink-0" title={label}>
                   <span
@@ -531,9 +782,23 @@ export function KnowledgeMapView() {
 
         {/* Graph canvas */}
         <div className="flex-1 min-h-0 relative">
+          {/* Floating tool palette — hidden on mobile (tools not practical with touch) */}
+          <MapToolsPanel
+            activeTool={activeTool}
+            onToolChange={handleToolChange}
+            visible={!loading && !!filteredGraphData && filteredGraphData.nodes.length > 0}
+          />
           <ErrorBoundary fallback={
-            <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
-              <p className="text-sm text-gray-400">Erro ao renderizar o grafo. Tente atualizar.</p>
+            <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center gap-3 px-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-red-400" />
+              </div>
+              <p
+                className="text-gray-500 text-center"
+                style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+              >
+                Error al renderizar el grafo. Intenta actualizar la página.
+              </p>
             </div>
           }>
             {filteredGraphData && filteredGraphData.nodes.length > 0 ? (
@@ -544,46 +809,112 @@ export function KnowledgeMapView() {
                 selectedNodeId={selectedNode?.id}
                 layout={layout}
                 onReady={handleGraphReady}
-                highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : undefined}
+                highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : aiHighlightNodes}
                 onCollapseChange={handleCollapseChange}
+                reviewNodeIds={aiReviewNodes}
+                topicId={effectiveTopicId}
+                showMinimap={showMinimap}
               />
             ) : searchQuery.trim() ? (
               <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-sm text-gray-400 mb-1">Nenhum conceito encontrado</p>
-                  <p className="text-xs text-gray-400">Tente buscar por outro termo</p>
+                <div className="flex flex-col items-center text-center px-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-3">
+                    <Brain className="w-6 h-6 text-[#2a8c7a]" />
+                  </div>
+                  <p
+                    className="font-semibold text-gray-700 mb-1"
+                    style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
+                  >
+                    Ningún concepto encontrado
+                  </p>
+                  <p
+                    className="text-gray-400"
+                    style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
+                  >
+                    Intenta buscar otro término
+                  </p>
                 </div>
               </div>
             ) : null}
           </ErrorBoundary>
+
+          {/* Connect tool indicator — shows source node name */}
+          {activeTool === 'connect' && connectSource && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white rounded-full shadow-lg border border-[#2a8c7a]/30 px-3 py-1.5">
+              <Link2 className="w-3.5 h-3.5 text-[#2a8c7a]" />
+              <span className="text-xs text-gray-700">
+                <span className="font-medium text-[#2a8c7a]">{connectSource.label}</span>
+                {' → Selecciona destino'}
+              </span>
+              <button
+                onClick={() => { setConnectSource(null); setConnectTarget(null); setActiveTool('pointer'); }}
+                className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                aria-label="Cancelar conexión"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
+          {/* AI Tutor panel — slides in from right */}
+          {effectiveTopicId && (
+            <AiTutorPanel
+              topicId={effectiveTopicId}
+              open={showAiPanel}
+              onClose={() => { setShowAiPanel(false); setAiHighlightNodes(undefined); setAiReviewNodes(undefined); }}
+              onHighlightNodes={setAiHighlightNodes}
+              onReviewNodes={setAiReviewNodes}
+              onNavigateToAction={(kwId, action) => {
+                if (action === 'flashcard' || action === 'review') navigateWithFade(`/student/flashcards?keywordId=${kwId}`);
+                else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
+                else if (action === 'summary') {
+                  const matchNode = graphData?.nodes.find(n => n.id === kwId);
+                  const sParam = matchNode?.summaryId ? `?summaryId=${matchNode.summaryId}` : '';
+                  navigateWithFade(`/student/summary/${effectiveTopicId}${sParam}`);
+                }
+              }}
+              existingNodeIds={graphData ? graphData.nodes.map(n => n.id) : undefined}
+              existingEdgeIds={graphData ? graphData.edges.map(e => e.id) : undefined}
+              onEdgeCreated={refetch}
+              nodeLabels={nodeLabels}
+            />
+          )}
+
+          {/* Change history panel — slides in from right */}
+          <ChangeHistoryPanel
+            open={showHistory}
+            onClose={() => setShowHistory(false)}
+            entries={historyEntries}
+            onClear={() => { setHistoryEntries([]); clearHistoryStorage(effectiveTopicId); }}
+          />
 
           {/* First-visit onboarding tips */}
           {showOnboarding && !loading && !isEmpty && filteredGraphData && filteredGraphData.nodes.length > 0 && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl">
               <div className="bg-white rounded-2xl shadow-xl p-5 mx-4 max-w-sm w-full">
                 <h3 className="font-medium text-gray-900 mb-3" style={headingStyle}>
-                  Bem-vindo ao Mapa de Conhecimento!
+                  ¡Bienvenido al Mapa de Conocimiento!
                 </h3>
                 <ul className="space-y-2 text-sm text-gray-600 mb-4">
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                    <span>Toque em um conceito para ver flashcards, quiz e resumo.</span>
+                    <span>Toca un concepto para ver flashcards, quiz y resumen.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                    <span>As cores indicam seu domínio: verde = dominado, amarelo = aprendendo, vermelho = fraco.</span>
+                    <span>Los colores indican tu dominio: verde = dominado, amarillo = aprendiendo, rojo = débil.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-                    <span>Pinça para zoom, arraste para mover. Use a barra de busca para encontrar conceitos.</span>
+                    <span>Pellizca para zoom, arrastra para mover. Usa la barra de búsqueda para encontrar conceptos.</span>
                   </li>
                 </ul>
                 <button
                   onClick={dismissOnboarding}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors"
+                  className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors hover:bg-[#244e47]"
                   style={{ backgroundColor: '#2a8c7a' }}
                 >
-                  Entendi!
+                  ¡Entendido!
                 </button>
               </div>
             </div>
@@ -604,7 +935,7 @@ export function KnowledgeMapView() {
             onClose={handleContextMenuClose}
             hasChildren={contextMenu?.node ? nodesWithChildren.has(contextMenu.node.id) : false}
             isCollapsed={contextMenu?.node ? collapsedNodeIds.has(contextMenu.node.id) : false}
-            onToggleCollapse={contextMenu?.node ? () => graphControlsRef.current?.toggleCollapse(contextMenu.node.id) : undefined}
+            onToggleCollapse={contextMenu?.node ? (() => { const id = contextMenu.node.id; return () => graphControlsRef.current?.toggleCollapse(id); })() : undefined}
           />
 
           {/* Selected node detail panel (bottom sheet on mobile, floating card on desktop) */}
@@ -613,7 +944,7 @@ export function KnowledgeMapView() {
               className="absolute bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-64 bg-white rounded-t-2xl sm:rounded-xl shadow-lg border border-gray-200 p-4 z-10 max-h-[55dvh] overflow-y-auto"
               style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
               role="region"
-              aria-label={`Detalhes do conceito: ${selectedNode.label}`}
+              aria-label={`Detalles del concepto: ${selectedNode.label}`}
               onTouchStart={handleSheetTouchStart}
               onTouchEnd={handleSheetTouchEnd}
             >
@@ -631,7 +962,7 @@ export function KnowledgeMapView() {
                 <button
                   onClick={() => setSelectedNode(null)}
                   className="p-3 -mr-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-                  aria-label="Fechar"
+                  aria-label="Cerrar"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -648,18 +979,18 @@ export function KnowledgeMapView() {
               )}
               <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400">
                 <span>
-                  Domínio: {Number.isFinite(selectedNode.mastery) && selectedNode.mastery >= 0 ? `${Math.round(selectedNode.mastery * 100)}%` : 'Sem dados'}
+                  Dominio: {Number.isFinite(selectedNode.mastery) && selectedNode.mastery >= 0 ? `${Math.round(selectedNode.mastery * 100)}%` : 'Sin datos'}
                 </span>
                 {graphData && (
                   <span>
                     {graphData.edges.filter(
                       e => e.source === selectedNode.id || e.target === selectedNode.id
-                    ).length} conexões
+                    ).length} conexiones
                   </span>
                 )}
                 {selectedNode.isUserCreated && (
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#e8f5f1', color: '#2a8c7a' }}>
-                    Seu conceito
+                    Tu concepto
                   </span>
                 )}
               </div>
@@ -679,7 +1010,7 @@ export function KnowledgeMapView() {
                 <button
                   onClick={() => handleAction('annotate', selectedNode)}
                   className="px-3 py-3 sm:py-2 text-xs font-medium text-gray-500 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
-                  aria-label="Anotar conceito"
+                  aria-label="Anotar concepto"
                   title="Anotar"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
@@ -688,7 +1019,7 @@ export function KnowledgeMapView() {
                   <button
                     onClick={() => handleDeleteCustomNode(selectedNode)}
                     className="px-3 py-3 sm:py-2 text-xs font-medium text-red-500 bg-red-50 rounded-full hover:bg-red-100 transition-colors flex-shrink-0"
-                    aria-label="Apagar conceito personalizado"
+                    aria-label="Eliminar concepto personalizado"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -701,23 +1032,40 @@ export function KnowledgeMapView() {
         {/* Add custom node/edge modal */}
         <AddNodeEdgeModal
           open={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
+          onClose={() => { setAddModalOpen(false); setConnectSource(null); setConnectTarget(null); }}
           topicId={effectiveTopicId}
           existingNodes={graphData?.nodes ?? []}
           onCreated={refetch}
+          onNodeCreated={(nodeId, payload) => { pushAction({ type: 'create-node', nodeId, payload }); setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]); haptic(50); }}
+          onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphData?.nodes.find(n => n.id === payload.source_keyword_id); const tgtNode = graphData?.nodes.find(n => n.id === payload.target_keyword_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
+          initialEdgeSource={connectSource?.id}
+          initialEdgeTarget={connectTarget?.id}
+          initialTab={connectSource ? 'edge' : undefined}
         />
 
         {/* Delete confirmation dialog (replaces window.confirm for PWA compatibility) */}
         {confirmDeleteNode && (
           <ConfirmDialog
-            title="Apagar conceito?"
-            description={`\u201c${confirmDeleteNode.label}\u201d será removido do seu mapa. Esta ação não pode ser desfeita.`}
+            title="¿Eliminar concepto?"
+            description={`\u201c${confirmDeleteNode.label}\u201d será eliminado de tu mapa. Esta acción no se puede deshacer.`}
             cancelLabel="Cancelar"
-            confirmLabel="Apagar"
+            confirmLabel="Eliminar"
             onCancel={() => setConfirmDeleteNode(null)}
             onConfirm={executeDeleteNode}
           />
         )}
+
+        {/* Presentation mode overlay */}
+        <AnimatePresence>
+          {presentationMode && filteredGraphData && filteredGraphData.nodes.length > 0 && (
+            <PresentationMode
+              nodes={filteredGraphData.nodes}
+              edges={filteredGraphData.edges}
+              onExit={() => setPresentationMode(false)}
+              onNodeFocus={handlePresentationFocus}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </FadeIn>
   );

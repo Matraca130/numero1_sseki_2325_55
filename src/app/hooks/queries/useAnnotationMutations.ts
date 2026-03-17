@@ -34,7 +34,7 @@ export function useCreateAnnotationMutation(summaryId: string) {
       });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar destaque');
+      toast.error(err instanceof Error ? err.message : 'Error al crear resaltado');
     },
   });
 }
@@ -51,10 +51,10 @@ export function useUpdateAnnotationMutation(summaryId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.summaryAnnotations(summaryId),
       });
-      toast.success('Nota salva');
+      toast.success('Nota guardada');
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar nota');
+      toast.error(err instanceof Error ? err.message : 'Error al guardar nota');
     },
   });
 }
@@ -68,10 +68,10 @@ export function useDeleteAnnotationMutation(summaryId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.summaryAnnotations(summaryId),
       });
-      toast.success('Destaque eliminado');
+      toast.success('Resaltado eliminado');
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Erro ao eliminar');
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar');
     },
   });
 }

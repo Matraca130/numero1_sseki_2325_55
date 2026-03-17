@@ -228,6 +228,10 @@ export interface CreateCustomEdgePayload {
   label?: string;
   connection_type?: string;
   topic_id: string;
+  /** Custom line style (solid by default if omitted) */
+  line_style?: 'dashed' | 'dotted';
+  /** Custom color hex (overrides connection type default) */
+  custom_color?: string;
 }
 
 /** Backend response for custom node */
@@ -245,6 +249,8 @@ interface CustomEdgeResponse {
   target_node_id: string;
   label?: string;
   connection_type?: string;
+  line_style?: 'dashed' | 'dotted';
+  custom_color?: string;
 }
 
 /**
@@ -279,6 +285,8 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
       label: e.label,
       connectionType: e.connection_type,
       isUserCreated: true,
+      lineStyle: e.line_style,
+      customColor: e.custom_color,
     }));
 
     return { nodes, edges };
@@ -309,4 +317,9 @@ export async function createCustomEdge(payload: CreateCustomEdgePayload): Promis
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+/** Delete a custom edge */
+export async function deleteCustomEdge(edgeId: string): Promise<void> {
+  await apiCall(`/student-custom-edges/${edgeId}`, { method: 'DELETE' });
 }

@@ -3,10 +3,10 @@
 //
 // Modal for students to create custom nodes and edges in
 // their knowledge graph. Supports two tabs:
-//   - "Novo conceito": create a custom node
-//   - "Nova conexão": create a custom edge between existing nodes
+//   - "Nuevo concepto": create a custom node
+//   - "Nueva conexión": create a custom edge between existing nodes
 //
-// LANG: Brazilian Portuguese (student UI)
+// LANG: Spanish (student UI)
 // ============================================================
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -14,6 +14,7 @@ import { X, Plus, Link2, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 import { createCustomNode, createCustomEdge } from '@/app/services/mindmapApi';
+import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
 import { CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MapNode } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
@@ -21,7 +22,7 @@ import { useFocusTrap } from './useFocusTrap';
 
 // ── Types ───────────────────────────────────────────────────
 
-type TabType = 'node' | 'edge';
+export type TabType = 'node' | 'edge';
 
 interface AddNodeEdgeModalProps {
   open: boolean;
@@ -31,6 +32,16 @@ interface AddNodeEdgeModalProps {
   existingNodes: MapNode[];
   /** Called after successful creation to refetch graph */
   onCreated: () => void;
+  /** Called with created node info for undo tracking */
+  onNodeCreated?: (nodeId: string, payload: CreateCustomNodePayload) => void;
+  /** Called with created edge info for undo tracking */
+  onEdgeCreated?: (edgeId: string, payload: CreateCustomEdgePayload) => void;
+  /** Pre-fill edge source node ID (from connect tool) */
+  initialEdgeSource?: string;
+  /** Pre-fill edge target node ID (from connect tool) */
+  initialEdgeTarget?: string;
+  /** Force open on edge tab */
+  initialTab?: TabType;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -41,19 +52,27 @@ export function AddNodeEdgeModal({
   topicId,
   existingNodes,
   onCreated,
+  onNodeCreated,
+  onEdgeCreated,
+  initialEdgeSource,
+  initialEdgeTarget,
+  initialTab,
 }: AddNodeEdgeModalProps) {
-  const [tab, setTab] = useState<TabType>('node');
+  const [tab, setTab] = useState<TabType>(initialTab || 'node');
   const [saving, setSaving] = useState(false);
+  const [shake, setShake] = useState(false);
 
   // Node form
   const [nodeLabel, setNodeLabel] = useState('');
   const [nodeDefinition, setNodeDefinition] = useState('');
 
   // Edge form
-  const [edgeSource, setEdgeSource] = useState('');
-  const [edgeTarget, setEdgeTarget] = useState('');
+  const [edgeSource, setEdgeSource] = useState(initialEdgeSource || '');
+  const [edgeTarget, setEdgeTarget] = useState(initialEdgeTarget || '');
   const [edgeLabel, setEdgeLabel] = useState('');
   const [edgeType, setEdgeType] = useState('asociacion');
+  const [edgeLineStyle, setEdgeLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
+  const [edgeColor, setEdgeColor] = useState('#2a8c7a');
 
   const focusTrapRef = useFocusTrap(open);
   const nodeLabelRef = useRef<HTMLInputElement>(null);
@@ -73,12 +92,17 @@ export function AddNodeEdgeModal({
     [existingNodes],
   );
 
-  // Reset form state when modal closes
+  // Reset form state when modal closes, apply initial values when it opens
   useEffect(() => {
     if (!open) {
       resetForms();
       setTab('node');
+    } else {
+      if (initialTab) setTab(initialTab);
+      if (initialEdgeSource) setEdgeSource(initialEdgeSource);
+      if (initialEdgeTarget) setEdgeTarget(initialEdgeTarget);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Escape key to close + prevent body scroll on mobile
@@ -104,23 +128,27 @@ export function AddNodeEdgeModal({
     setEdgeTarget('');
     setEdgeLabel('');
     setEdgeType('asociacion');
+    setEdgeLineStyle('solid');
+    setEdgeColor('#2a8c7a');
   };
 
   const handleCreateNode = async () => {
     if (!nodeLabel.trim()) return;
     setSaving(true);
     try {
-      await createCustomNode({
+      const payload: CreateCustomNodePayload = {
         label: nodeLabel.trim(),
         definition: nodeDefinition.trim() || undefined,
         topic_id: topicId,
-      });
-      toast.success('Conceito adicionado ao mapa');
+      };
+      const res = await createCustomNode(payload);
+      toast.success('Concepto añadido al mapa');
+      onNodeCreated?.(res.id, payload);
       resetForms();
       onCreated();
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar conceito');
+      toast.error(err instanceof Error ? err.message : 'Error al crear concepto');
     } finally {
       setSaving(false);
     }
@@ -130,19 +158,23 @@ export function AddNodeEdgeModal({
     if (!edgeSource || !edgeTarget || edgeSource === edgeTarget) return;
     setSaving(true);
     try {
-      await createCustomEdge({
+      const payload: CreateCustomEdgePayload = {
         source_node_id: edgeSource,
         target_node_id: edgeTarget,
         label: edgeLabel.trim() || undefined,
         connection_type: edgeType,
         topic_id: topicId,
-      });
-      toast.success('Conexão adicionada ao mapa');
+        line_style: edgeLineStyle !== 'solid' ? edgeLineStyle as 'dashed' | 'dotted' : undefined,
+        custom_color: edgeColor !== '#2a8c7a' ? edgeColor : undefined,
+      };
+      const res = await createCustomEdge(payload);
+      toast.success('Conexión añadida al mapa');
+      onEdgeCreated?.(res.id, payload);
       resetForms();
       onCreated();
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar conexão');
+      toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     } finally {
       setSaving(false);
     }
@@ -154,7 +186,7 @@ export function AddNodeEdgeModal({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black/20 z-50"
+            className="fixed inset-0 bg-black/40 z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -169,7 +201,7 @@ export function AddNodeEdgeModal({
           >
             <motion.div
               ref={focusTrapRef}
-              className="bg-white shadow-xl w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90dvh] overflow-y-auto"
+              className="bg-white shadow-lg w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90dvh] overflow-y-auto"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
@@ -191,12 +223,12 @@ export function AddNodeEdgeModal({
                   className="font-semibold text-gray-900"
                   style={{ ...headingStyle, fontSize: 'clamp(1rem, 2vw, 1.125rem)' }}
                 >
-                  Personalizar mapa
+                  Personalizar mapa mental
                 </h2>
                 <button
                   onClick={onClose}
                   className="p-3 -mr-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                  aria-label="Fechar"
+                  aria-label="Cerrar"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -206,7 +238,7 @@ export function AddNodeEdgeModal({
               <div
                 className="flex px-5 gap-1 border-b border-gray-100"
                 role="tablist"
-                aria-label="Tipo de personalização"
+                aria-label="Tipo de personalización"
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
                     e.preventDefault();
@@ -228,7 +260,7 @@ export function AddNodeEdgeModal({
                   }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Novo conceito
+                  Nuevo concepto
                 </button>
                 <button
                   id="tab-add-edge"
@@ -244,12 +276,17 @@ export function AddNodeEdgeModal({
                   }`}
                 >
                   <Link2 className="w-3.5 h-3.5" />
-                  Nova conexão
+                  Nueva conexión
                 </button>
               </div>
 
               {/* Body */}
-              <div className="px-5 py-4">
+              <motion.div
+                className="px-5 py-4"
+                animate={shake ? { x: [0, -3, 3, -3, 3, 0] } : { x: 0 }}
+                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                onAnimationComplete={() => { if (shake) setShake(false); }}
+              >
                 {tab === 'node' ? (
                   <form
                     id="add-node-panel"
@@ -260,7 +297,7 @@ export function AddNodeEdgeModal({
                   >
                     <div>
                       <label htmlFor="custom-node-label" className="block text-xs font-medium text-gray-600 mb-1">
-                        Nome do conceito *
+                        Nombre del concepto *
                       </label>
                       <input
                         ref={nodeLabelRef}
@@ -268,21 +305,20 @@ export function AddNodeEdgeModal({
                         type="text"
                         value={nodeLabel}
                         onChange={(e) => setNodeLabel(e.target.value)}
-                        placeholder="Ex: Hemoglobina, Mitocondria..."
+                        placeholder="Ej: Hemoglobina, Mitocondria..."
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none transition-colors font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
-                        style={{ borderColor: nodeLabel ? '#2a8c7a' : undefined }}
                         maxLength={100}
                       />
                     </div>
                     <div>
                       <label htmlFor="custom-node-def" className="block text-xs font-medium text-gray-600 mb-1">
-                        Definição (opcional)
+                        Definición (opcional)
                       </label>
                       <textarea
                         id="custom-node-def"
                         value={nodeDefinition}
                         onChange={(e) => setNodeDefinition(e.target.value)}
-                        placeholder="Breve descrição do conceito..."
+                        placeholder="Breve descripción del concepto..."
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none resize-none transition-colors font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
                         rows={2}
                         maxLength={300}
@@ -299,7 +335,7 @@ export function AddNodeEdgeModal({
                   >
                     <div>
                       <label htmlFor="custom-edge-source" className="block text-xs font-medium text-gray-600 mb-1">
-                        Conceito de origem *
+                        Concepto de origen *
                       </label>
                       <select
                         ref={edgeSourceRef}
@@ -308,17 +344,17 @@ export function AddNodeEdgeModal({
                         onChange={(e) => setEdgeSource(e.target.value)}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
                       >
-                        <option value="">Selecione...</option>
+                        <option value="">Seleccionar...</option>
                         {sortedNodes.map((n) => (
                           <option key={n.id} value={n.id}>
-                            {n.label}{n.isUserCreated ? ' (seu)' : ''}
+                            {n.label}{n.isUserCreated ? ' (tuyo)' : ''}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
                       <label htmlFor="custom-edge-target" className="block text-xs font-medium text-gray-600 mb-1">
-                        Conceito de destino *
+                        Concepto de destino *
                       </label>
                       <select
                         id="custom-edge-target"
@@ -326,19 +362,19 @@ export function AddNodeEdgeModal({
                         onChange={(e) => setEdgeTarget(e.target.value)}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
                       >
-                        <option value="">Selecione...</option>
+                        <option value="">Seleccionar...</option>
                         {sortedNodes
                           .filter((n) => n.id !== edgeSource)
                           .map((n) => (
                             <option key={n.id} value={n.id}>
-                              {n.label}{n.isUserCreated ? ' (seu)' : ''}
+                              {n.label}{n.isUserCreated ? ' (tuyo)' : ''}
                             </option>
                           ))}
                       </select>
                     </div>
                     <div>
                       <label htmlFor="custom-edge-type" className="block text-xs font-medium text-gray-600 mb-1">
-                        Tipo de relação
+                        Tipo de relación
                       </label>
                       <select
                         id="custom-edge-type"
@@ -348,55 +384,124 @@ export function AddNodeEdgeModal({
                       >
                         {CONNECTION_TYPES.map((ct) => (
                           <option key={ct.key} value={ct.key}>
-                            {ct.labelPt}
+                            {ct.label}
                           </option>
                         ))}
                       </select>
                     </div>
+                    {/* Line style + color row */}
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label htmlFor="custom-edge-line" className="block text-xs font-medium text-gray-600 mb-1">
+                          Estilo de línea
+                        </label>
+                        <div className="flex gap-1.5" role="radiogroup" aria-label="Estilo de línea">
+                          {(['solid', 'dashed', 'dotted'] as const).map((style) => (
+                            <button
+                              key={style}
+                              type="button"
+                              onClick={() => setEdgeLineStyle(style)}
+                              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border text-xs transition-colors ${
+                                edgeLineStyle === style
+                                  ? 'border-[#2a8c7a] bg-[#e8f5f1] text-[#2a8c7a] font-medium'
+                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                              }`}
+                              role="radio"
+                              aria-checked={edgeLineStyle === style}
+                              aria-label={style === 'solid' ? 'Sólida' : style === 'dashed' ? 'Rayada' : 'Punteada'}
+                            >
+                              <svg width="24" height="2" className="flex-shrink-0">
+                                <line
+                                  x1="0" y1="1" x2="24" y2="1"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeDasharray={style === 'dashed' ? '4,3' : style === 'dotted' ? '1,3' : undefined}
+                                />
+                              </svg>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="w-20">
+                        <label htmlFor="custom-edge-color" className="block text-xs font-medium text-gray-600 mb-1">
+                          Color
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="custom-edge-color"
+                            type="color"
+                            value={edgeColor}
+                            onChange={(e) => setEdgeColor(e.target.value)}
+                            className="w-full h-[38px] rounded-lg border border-gray-200 cursor-pointer p-0.5"
+                            title="Color de la conexión"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick color swatches */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-gray-400 mr-1">Rápido:</span>
+                      {['#2a8c7a', '#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#64748b'].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setEdgeColor(c)}
+                          className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${
+                            edgeColor === c ? 'border-gray-800 scale-110' : 'border-transparent'
+                          }`}
+                          style={{ backgroundColor: c }}
+                          aria-label={`Color ${c}`}
+                        />
+                      ))}
+                    </div>
+
                     <div>
                       <label htmlFor="custom-edge-label" className="block text-xs font-medium text-gray-600 mb-1">
-                        Descrição (opcional)
+                        Descripción (opcional)
                       </label>
                       <input
                         id="custom-edge-label"
                         type="text"
                         value={edgeLabel}
                         onChange={(e) => setEdgeLabel(e.target.value)}
-                        placeholder="Ex: regula, causa, componente de..."
+                        placeholder="Ej: regula, causa, componente de..."
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none font-sans focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
                         maxLength={100}
                       />
                     </div>
                   </form>
                 )}
-              </div>
+              </motion.div>
 
               {/* Footer */}
               <div className="flex justify-end gap-2 px-5 pt-2" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                  className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-full transition-colors"
                   disabled={saving}
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={tab === 'node' ? handleCreateNode : handleCreateEdge}
-                  disabled={
-                    saving ||
-                    (tab === 'node' && !nodeLabel.trim()) ||
-                    (tab === 'edge' && (!edgeSource || !edgeTarget || edgeSource === edgeTarget))
-                  }
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: '#2a8c7a' }}
+                  onClick={() => {
+                    const isInvalid = (tab === 'node' && !nodeLabel.trim()) || (tab === 'edge' && (!edgeSource || !edgeTarget || edgeSource === edgeTarget));
+                    if (isInvalid && !saving) {
+                      setShake(true);
+                      return;
+                    }
+                    if (!saving) (tab === 'node' ? handleCreateNode : handleCreateEdge)();
+                  }}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors disabled:opacity-50 bg-[#2a8c7a] hover:bg-[#244e47] shadow-sm"
                 >
                   {saving ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Plus className="w-3.5 h-3.5" />
                   )}
-                  <span className="hidden sm:inline">{tab === 'node' ? 'Adicionar conceito' : 'Adicionar conexão'}</span>
-                  <span className="sm:hidden">{tab === 'node' ? 'Adicionar' : 'Adicionar'}</span>
+                  <span className="hidden sm:inline">{tab === 'node' ? 'Añadir concepto' : 'Añadir conexión'}</span>
+                  <span className="sm:hidden">Añadir</span>
                 </button>
               </div>
             </motion.div>

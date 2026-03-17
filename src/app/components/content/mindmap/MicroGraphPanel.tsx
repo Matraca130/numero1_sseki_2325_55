@@ -15,6 +15,7 @@ import { useState, useCallback, useEffect, useMemo, useSyncExternalStore, lazy, 
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, ChevronDown, RefreshCw } from 'lucide-react';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
+import { GraphSkeleton } from '@/app/components/content/mindmap/GraphSkeleton';
 import { useGraphData } from '@/app/components/content/mindmap/useGraphData';
 import { useLocalGraph } from '@/app/components/content/mindmap/useLocalGraph';
 import type { MapNode } from '@/app/types/mindmap';
@@ -64,15 +65,8 @@ interface MicroGraphPanelProps {
 
 function GraphLoadingPlaceholder({ height }: { height: number }) {
   return (
-    <div
-      className="flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100"
-      style={{ height }}
-    >
-      <div
-        className="w-5 h-5 border-2 border-[#2a8c7a] border-t-transparent rounded-full animate-spin"
-        role="status"
-        aria-label="Carregando grafo"
-      />
+    <div style={{ height }}>
+      <GraphSkeleton variant="mini" label="" className="h-full" />
     </div>
   );
 }
@@ -142,10 +136,10 @@ export function MicroGraphPanel({
                 ? 'px-4 py-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
                 : 'px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
             }`}
-            aria-label="Mapa indisponível. Toque para tentar novamente."
+            aria-label="Mapa no disponible. Toca para reintentar."
           >
             <Brain size={variant === 'card' ? 14 : 13} className="text-gray-400" />
-            <span>Mapa indisponível</span>
+            <span>Mapa no disponible</span>
             <RefreshCw size={12} className="ml-auto" />
           </button>
         </div>
@@ -166,13 +160,13 @@ export function MicroGraphPanel({
           }`}
           aria-expanded={expanded}
           aria-controls={panelId}
-          aria-label={expanded ? 'Fechar mapa de conhecimento' : 'Abrir mapa de conhecimento'}
+          aria-label={expanded ? 'Cerrar mapa de conocimiento' : 'Abrir mapa de conocimiento'}
         >
           <Brain size={variant === 'card' ? 14 : 13} className="text-[#2a8c7a]" />
-          <span>{variant === 'card' ? 'Mapa de conhecimento' : 'Mapa'}</span>
+          <span>{variant === 'card' ? 'Mapa de conocimiento' : 'Mapa'}</span>
           {displayGraph && !loading && (
             <span className="text-[10px] text-gray-400 ml-1 truncate max-w-[60px] sm:max-w-[80px]">
-              ({displayGraph.nodes.length} nós{focalNodeId && localGraph && localGraph.nodes.length > 0 && graphData && localGraph.nodes.length < graphData.nodes.length ? ' · local' : ''})
+              ({displayGraph.nodes.length} nodos{focalNodeId && localGraph && localGraph.nodes.length > 0 && graphData && localGraph.nodes.length < graphData.nodes.length ? ' · local' : ''})
             </span>
           )}
           {expanded && loading && (
@@ -215,7 +209,7 @@ export function MicroGraphPanel({
                       />
                     </Suspense>
                     <div className="sr-only" aria-live="polite" aria-atomic="true">
-                      Mapa carregado com {displayGraph.nodes.length} conceitos
+                      Mapa cargado con {displayGraph.nodes.length} conceptos
                     </div>
                   </>
                 ) : null}

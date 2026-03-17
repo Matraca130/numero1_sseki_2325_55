@@ -61,6 +61,7 @@ import {
   type QueueReviewResult,
 } from './useReviewBatch';
 import { postSessionAnalytics } from '@/app/lib/sessionAnalytics';
+import { invalidateGraphCache } from '@/app/components/content/mindmap/useGraphData';
 import { estimateOptimisticDueAt } from './useFlashcardEngine';
 import {
   fetchKeywordMasteryByTopic,
@@ -442,6 +443,9 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       correctReviews: correctForAnalytics,
       durationSeconds,
     });
+
+    // 5. Invalidate graph cache so mind map reflects updated mastery
+    invalidateGraphCache();
   }, [phase, submitBatch, recomputeMastery]);
 
   // ══ RETURN ══

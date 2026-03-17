@@ -14,6 +14,8 @@ export function useGraphControls(ref: RefObject<GraphControls | null>) {
   const handleFitView = useCallback(() => { ref.current?.fitView(); }, [ref]);
   const handleCollapseAll = useCallback(() => { ref.current?.collapseAll(); }, [ref]);
   const handleExpandAll = useCallback(() => { ref.current?.expandAll(); }, [ref]);
+  const handleExportPNG = useCallback(async () => { await ref.current?.exportPNG(); }, [ref]);
+  const handleExportJPEG = useCallback(async () => { await ref.current?.exportJPEG(); }, [ref]);
 
-  return { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll };
+  return { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG };
 }

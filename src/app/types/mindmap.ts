@@ -39,6 +39,9 @@ export interface MapNode {
   quizCount?: number;
 }
 
+/** Line style for custom edges */
+export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
+
 /** An edge in the knowledge graph (connection between keywords) */
 export interface MapEdge {
   id: string;
@@ -52,6 +55,10 @@ export interface MapEdge {
   sourceKeywordId?: string;
   /** Whether this edge was created by the student */
   isUserCreated?: boolean;
+  /** Custom line style for student-created edges */
+  lineStyle?: EdgeLineStyle;
+  /** Custom color hex for student-created edges */
+  customColor?: string;
 }
 
 /** Complete graph data for G6 */
@@ -130,6 +137,12 @@ export interface GraphControls {
   expandAll: () => void;
   /** Toggle collapse on a specific node. Returns true if now collapsed. */
   toggleCollapse: (nodeId: string) => boolean;
+  /** Export graph as PNG image (overall mode) */
+  exportPNG: () => Promise<void>;
+  /** Export graph as JPEG image (overall mode) */
+  exportJPEG: () => Promise<void>;
+  /** Focus (zoom + pan) the graph on a specific node by ID */
+  focusNode?: (nodeId: string) => void;
 }
 
 // ── Graph Helpers ──────────────────────────────────────────

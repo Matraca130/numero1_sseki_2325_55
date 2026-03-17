@@ -39,6 +39,8 @@ function getCached(key: string): GraphData | null {
 }
 
 function setCache(key: string, data: GraphData): void {
+  // Delete first so re-set moves key to end of insertion order (LRU correctness)
+  cache.delete(key);
   // Evict least-recently-used if at max
   if (cache.size >= CACHE_MAX) {
     const lru = cache.keys().next().value;
@@ -211,7 +213,7 @@ export function useGraphData({ topicId, summaryId, courseTopicIds, skipCustomNod
       setGraphData(data);
     } catch (e) {
       if (fetchId !== fetchIdRef.current) return;
-      setError(e instanceof Error ? e.message : (skipCustomNodes ? 'Error al cargar grafo' : 'Erro ao carregar grafo'));
+      setError(e instanceof Error ? e.message : 'Error al cargar grafo');
     } finally {
       if (fetchId === fetchIdRef.current) {
         setLoading(false);

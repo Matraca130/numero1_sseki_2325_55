@@ -99,17 +99,31 @@ export function EmptyState({
   return (
     <FadeIn>
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${EMPTY_ACCENT[accent]}`}>
-          {icon || <Inbox size={24} />}
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 ${EMPTY_ACCENT[accent]}`}>
+          {icon || <Inbox size={28} />}
         </div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">{title}</h3>
+        <h3
+          className="font-semibold text-gray-900 mb-1.5"
+          style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 1.8vw, 1.125rem)' }}
+        >
+          {title}
+        </h3>
         {description && (
-          <p className="text-sm text-gray-500 max-w-sm mb-5">{description}</p>
+          <p
+            className="text-gray-500 max-w-sm mb-5 leading-relaxed"
+            style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+          >
+            {description}
+          </p>
         )}
         {actionLabel && onAction && (
-          <Button onClick={onAction} size="sm">
+          <button
+            onClick={onAction}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 font-medium text-white rounded-full shadow-sm transition-colors hover:bg-[#244e47]"
+            style={{ backgroundColor: '#2a8c7a', fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+          >
             {actionLabel}
-          </Button>
+          </button>
         )}
       </div>
     </FadeIn>

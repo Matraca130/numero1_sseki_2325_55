@@ -2,8 +2,8 @@
 // Axon — Node Context Menu
 //
 // Floating menu that appears on node click/right-click.
-// Actions: Flashcards, Quiz, Ver resumo, Anotacao, Detalhes
-// XMind-inspired: clean, minimal, premium feel.
+// Actions: Flashcards, Quiz, Ver resumen, Anotación, Detalles
+// macOS-inspired: clean, minimal, premium feel.
 // ============================================================
 
 import { useEffect, useRef, useState, type ElementType } from 'react';
@@ -26,9 +26,9 @@ const ICONS: Record<NodeAction, ElementType> = {
 const LABELS: Record<NodeAction, string> = {
   flashcard: 'Flashcards',
   quiz: 'Quiz',
-  summary: 'Ver resumo',
-  annotate: 'Anotação',
-  details: 'Detalhes',
+  summary: 'Ver resumen',
+  annotate: 'Anotación',
+  details: 'Detalles',
 };
 
 // ── Props ───────────────────────────────────────────────────
@@ -45,6 +45,11 @@ interface NodeContextMenuProps {
   /** Toggle collapse for this node */
   onToggleCollapse?: () => void;
 }
+
+// ── Shared styles ───────────────────────────────────────────
+
+const menuItemFontSize = 'clamp(0.8rem, 1.5vw, 0.8125rem)';
+const captionFontSize = 'clamp(0.7rem, 1.3vw, 0.75rem)';
 
 // ── Component ───────────────────────────────────────────────
 
@@ -153,62 +158,67 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               onClick={onClose}
               aria-hidden="true"
             />
           )}
           <motion.div
             ref={menuRef}
-            initial={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.9, y: -4 }}
+            initial={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.95, y: -2 }}
             animate={isSmallScreen ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
-            exit={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.9, y: -4 }}
-            transition={{ duration: 0.15 }}
-            className={`fixed z-50 bg-white shadow-lg border border-gray-200 ${
+            exit={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.95, y: -2 }}
+            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            className={`fixed z-50 bg-white/[0.98] backdrop-blur-sm border ${
               isSmallScreen
-                ? 'bottom-0 left-0 right-0 rounded-t-2xl w-full max-h-[75dvh] overflow-y-auto'
-                : 'w-52 rounded-xl overflow-hidden'
+                ? 'bottom-0 left-0 right-0 rounded-t-2xl w-full max-h-[75dvh] overflow-y-auto border-gray-200 shadow-xl'
+                : 'min-w-[200px] w-auto rounded-xl border-gray-200/60 shadow-lg'
             }`}
-            style={isSmallScreen ? undefined : { left: adjustedPosition.x, top: adjustedPosition.y }}
+            style={isSmallScreen ? undefined : {
+              left: adjustedPosition.x,
+              top: adjustedPosition.y,
+              boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+            }}
             role="menu"
-            aria-label={`Ações para ${node.label}`}
+            aria-label={`Acciones para ${node.label}`}
           >
           {/* Mobile drag handle */}
           {isSmallScreen && (
-            <div className="flex justify-center pt-2 pb-1">
-              <div className="w-8 h-1 rounded-full bg-gray-300" />
+            <div className="flex justify-center pt-2.5 pb-1">
+              <div className="w-9 h-1 rounded-full bg-gray-300/80" />
             </div>
           )}
           {/* Header with keyword name + mastery */}
-          <div className={`px-3 py-2.5 border-b border-gray-100 ${isSmallScreen ? 'px-4' : ''}`}>
-            <div className="flex items-center justify-between">
+          <div className={`border-b border-gray-100 ${isSmallScreen ? 'px-4 py-3' : 'px-3 py-2.5'}`}>
+            <div className="flex items-center justify-between gap-2">
               <p
-                className="font-medium text-gray-900 truncate flex-1 mr-2"
+                className="font-semibold text-gray-900 truncate flex-1"
                 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.8rem, 1.5vw, 0.875rem)' }}
               >
                 {node.label}
               </p>
               <button
                 onClick={onClose}
-                className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Fechar"
+                className="p-1.5 -mr-0.5 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
+                aria-label="Cerrar"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-3.5 h-3.5 text-gray-400" />
               </button>
             </div>
             {masteryPct !== null && (
               <div className="flex items-center gap-1.5 mt-1">
                 <span
-                  className="w-2 h-2 rounded-full"
+                  className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: MASTERY_HEX[masteryColor] }}
                   aria-hidden="true"
                 />
-                <span className="text-xs text-gray-500">
+                <span className="text-gray-500" style={{ fontSize: captionFontSize }}>
                   {getMasteryLabel(masteryColor)} — {masteryPct}%
                 </span>
               </div>
             )}
             {node.definition && (
-              <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+              <p className="text-gray-400 mt-1 line-clamp-2" style={{ fontSize: captionFontSize }}>
                 {node.definition}
               </p>
             )}
@@ -216,7 +226,7 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
 
           {/* Action buttons */}
           <div
-            className="py-1"
+            className={isSmallScreen ? 'py-1.5' : 'py-1'}
             style={isSmallScreen ? { paddingBottom: !(hasChildren && onToggleCollapse) ? 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' : undefined } : undefined}
           >
             {actions.map((action) => {
@@ -225,12 +235,13 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                 <button
                   key={action}
                   onClick={() => onAction(action, node)}
-                  className={`group w-full flex items-center gap-2.5 text-sm text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
-                    isSmallScreen ? 'px-4 py-3' : 'px-3 py-2'
+                  className={`group w-full flex items-center gap-2.5 text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
+                    isSmallScreen ? 'px-4 py-3' : 'px-3 py-1.5'
                   }`}
+                  style={{ fontSize: isSmallScreen ? 'clamp(0.85rem, 1.6vw, 0.9375rem)' : menuItemFontSize }}
                   role="menuitem"
                 >
-                  <Icon className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a]" />
+                  <Icon className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a] flex-shrink-0" />
                   {LABELS[action]}
                 </button>
               );
@@ -244,16 +255,17 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
             >
               <button
                 onClick={() => { onToggleCollapse(); onClose(); }}
-                className={`group w-full flex items-center gap-2.5 text-sm text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
-                  isSmallScreen ? 'px-4 py-3' : 'px-3 py-2'
+                className={`group w-full flex items-center gap-2.5 text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a] transition-colors focus:bg-[#e8f5f1] focus:text-[#2a8c7a] focus:outline-none ${
+                  isSmallScreen ? 'px-4 py-3' : 'px-3 py-1.5'
                 }`}
+                style={{ fontSize: isSmallScreen ? 'clamp(0.85rem, 1.6vw, 0.9375rem)' : menuItemFontSize }}
                 role="menuitem"
               >
                 {isCollapsed
-                  ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a]" />
-                  : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a]" />
+                  ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a] flex-shrink-0" />
+                  : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2a8c7a] group-focus:text-[#2a8c7a] flex-shrink-0" />
                 }
-                {isCollapsed ? 'Expandir ramo' : 'Recolher ramo'}
+                {isCollapsed ? 'Expandir rama' : 'Colapsar rama'}
               </button>
             </div>
           )}

@@ -36,12 +36,14 @@ interface MiniKnowledgeGraphProps {
 // ── Helpers ─────────────────────────────────────────────────
 
 function buildNodeStyle(node: MapNode, isFocal: boolean) {
+  const isCustom = !!node.isUserCreated;
   return {
-    fill: MASTERY_HEX_LIGHT[node.masteryColor],
-    stroke: MASTERY_HEX[node.masteryColor],
-    lineWidth: isFocal ? 3 : 1.5,
+    fill: isCustom ? '#e8f5f1' : MASTERY_HEX_LIGHT[node.masteryColor],
+    stroke: isCustom ? '#2a8c7a' : MASTERY_HEX[node.masteryColor],
+    lineWidth: isFocal ? 3 : isCustom ? 2 : 1.5,
+    lineDash: isCustom ? [6, 3] : undefined,
     shadowBlur: isFocal ? 10 : 0,
-    shadowColor: isFocal ? MASTERY_HEX[node.masteryColor] : 'transparent',
+    shadowColor: isFocal ? (isCustom ? '#2a8c7a' : MASTERY_HEX[node.masteryColor]) : 'transparent',
     size: isFocal ? 40 : 28,
     labelText: truncateLabel(node.label, 14),
     labelFill: '#111827',
@@ -111,8 +113,12 @@ export function MiniKnowledgeGraph({
         source: edge.source,
         target: edge.target,
         style: {
-          stroke: meta?.color || '#d1d5db',
-          lineWidth: 1,
+          stroke: edge.customColor || (edge.isUserCreated ? '#2a8c7a' : (meta?.color || '#d1d5db')),
+          lineWidth: edge.isUserCreated ? 1.5 : 1,
+          lineDash: edge.lineStyle === 'dashed' ? [6, 3]
+            : edge.lineStyle === 'dotted' ? [2, 4]
+            : edge.isUserCreated && !edge.lineStyle ? [6, 3]
+            : undefined,
           endArrow: !!edge.sourceKeywordId,
         },
       };
@@ -235,8 +241,8 @@ export function MiniKnowledgeGraph({
       className={`w-full bg-gray-50 rounded-xl border border-gray-100 ${className}`}
       style={{ height, touchAction: 'none' }}
       role="group"
-      aria-label={`Mini mapa de conhecimento com ${data.nodes.length} conceitos. Clique em um nó para destacar.`}
-      aria-roledescription="grafo de conhecimento"
+      aria-label={`Mini mapa de conocimiento con ${data.nodes.length} conceptos. Haz clic en un nodo para resaltar.`}
+      aria-roledescription="grafo de conocimiento"
     />
   );
 }

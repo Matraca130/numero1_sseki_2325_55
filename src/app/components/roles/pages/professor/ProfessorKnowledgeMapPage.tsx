@@ -14,7 +14,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import {
-  Brain, RefreshCw, ChevronDown, Link2, Sparkles, Loader2, Trash2, X,
+  Brain, RefreshCw, ChevronDown, Link2, Sparkles, Loader2, Trash2, X, Maximize2, Minimize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FadeIn } from '@/app/components/shared/FadeIn';
@@ -28,6 +28,8 @@ import { useSwipeDismiss } from '@/app/components/content/mindmap/useSwipeDismis
 import { useSearchFocus } from '@/app/components/content/mindmap/useSearchFocus';
 import { useGraphControls } from '@/app/components/content/mindmap/useGraphControls';
 import { ConfirmDialog } from '@/app/components/content/mindmap/ConfirmDialog';
+import { useFullscreen } from '@/app/components/content/mindmap/useFullscreen';
+import { GraphSkeleton } from '@/app/components/content/mindmap/GraphSkeleton';
 import { ProfessorAddConnectionModal } from './ProfessorAddConnectionModal';
 import type { MapNode, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
@@ -62,8 +64,12 @@ export function ProfessorKnowledgeMapPage() {
   const [collapsedCount, setCollapsedCount] = useState(0);
   const [showAddConnection, setShowAddConnection] = useState(false);
   const [aiSuggesting, setAiSuggesting] = useState(false);
+  // Minimap: visible on desktop by default, hidden on mobile
+  const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   // ── Flatten topics from content tree ────────────────────
 
@@ -100,7 +106,7 @@ export function ProfessorKnowledgeMapPage() {
     setSelectedNode(node);
   }, []);
 
-  const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll } = useGraphControls(graphControlsRef);
+  const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG } = useGraphControls(graphControlsRef);
 
   const [deleteEdgeId, setDeleteEdgeId] = useState<string | null>(null);
 
@@ -114,8 +120,8 @@ export function ProfessorKnowledgeMapPage() {
       await deleteConnection(deleteEdgeId);
       toast.success('Conexión eliminada');
       setDeleteEdgeId(null);
-      if (topicId) invalidateGraphCache(topicId);
-      refetch();
+      if (topicId) invalidateGraphCache(topicId); // triggers refetch via event bus
+      else refetch();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al eliminar conexión');
       setDeleteEdgeId(null);
@@ -138,8 +144,8 @@ export function ProfessorKnowledgeMapPage() {
       } else {
         toast.success('Sugerencias de IA aplicadas. Actualizando grafo...');
       }
-      if (topicId) invalidateGraphCache(topicId);
-      refetch();
+      if (topicId) invalidateGraphCache(topicId); // triggers refetch via event bus
+      else refetch();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al generar sugerencias de IA');
     } finally {
@@ -173,7 +179,14 @@ export function ProfessorKnowledgeMapPage() {
 
   return (
     <FadeIn>
-      <div className="flex flex-col h-[calc(100dvh-4rem)] p-4 sm:p-6 lg:p-8">
+      <div
+        ref={fullscreenRef}
+        className={`flex flex-col ${
+          isFullscreen
+            ? 'fixed inset-0 z-50 bg-[#F0F2F5] p-4 sm:p-6'
+            : 'h-[calc(100dvh-4rem)] p-4 sm:p-6 lg:p-8'
+        }`}
+      >
         {/* Header */}
         <div className="flex-shrink-0 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -184,7 +197,7 @@ export function ProfessorKnowledgeMapPage() {
               >
                 Mapa de Conocimiento
               </h1>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="font-sans mt-0.5" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)', color: '#6b7280' }}>
                 Visualiza y gestiona el grafo de conceptos del curso
               </p>
             </div>
@@ -238,6 +251,14 @@ export function ProfessorKnowledgeMapPage() {
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
+              <button
+                onClick={toggleFullscreen}
+                className="p-2.5 text-gray-400 hover:text-amber-600 bg-white rounded-full border border-gray-200 shadow-sm hover:border-amber-200 transition-colors"
+                aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
             </div>
           </div>
         </div>
@@ -248,9 +269,12 @@ export function ProfessorKnowledgeMapPage() {
             icon={<Brain className="w-12 h-12 text-amber-400 animate-pulse" />}
             title="Selecciona un tópico"
             description="Elige un tópico del dropdown para visualizar su grafo de conocimiento."
+            accent="amber"
           />
         ) : loading ? (
-          <LoadingPage />
+          <div className="flex-1 min-h-0">
+            <GraphSkeleton label="Cargando grafo de conocimiento..." />
+          </div>
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : isEmpty ? (
@@ -258,27 +282,17 @@ export function ProfessorKnowledgeMapPage() {
             icon={<Brain className="w-12 h-12 text-amber-400 animate-pulse" />}
             title="Sin datos"
             description="Este tópico no tiene palabras clave todavía. Las palabras clave se generan automáticamente a partir del contenido."
+            accent="amber"
           />
         ) : graphData && graphData.edges.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Brain className="w-12 h-12 text-amber-400 mb-4" />
-            <h3 className="text-gray-900 font-medium mb-1" style={headingStyle}>Sin conexiones</h3>
-            <p className="text-sm text-gray-500 mb-6 text-center max-w-sm">
-              Este tópico tiene palabras clave pero aún no hay conexiones entre ellas. Usa IA para sugerir conexiones automáticamente.
-            </p>
-            <button
-              onClick={handleAiSuggest}
-              disabled={aiSuggesting}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-amber-500 rounded-full shadow-sm hover:bg-amber-600 transition-colors disabled:opacity-50"
-            >
-              {aiSuggesting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              {aiSuggesting ? 'Sugiriendo...' : 'IA sugerir conexiones'}
-            </button>
-          </div>
+          <EmptyState
+            icon={aiSuggesting ? <Loader2 className="w-12 h-12 text-amber-400 animate-spin" /> : <Sparkles className="w-12 h-12 text-amber-400" />}
+            title="Sin conexiones"
+            description="Este tópico tiene palabras clave pero aún no hay conexiones entre ellas. Usa IA para sugerir conexiones automáticamente."
+            accent="amber"
+            actionLabel={aiSuggesting ? 'Sugiriendo...' : 'IA sugerir conexiones'}
+            onAction={!aiSuggesting ? handleAiSuggest : undefined}
+          />
         ) : (
           <>
             {/* Toolbar */}
@@ -299,12 +313,16 @@ export function ProfessorKnowledgeMapPage() {
                 collapsedCount={collapsedCount}
                 locale="es"
                 searchInputRef={searchInputRef}
+                onExportPNG={handleExportPNG}
+                onExportJPEG={handleExportJPEG}
+                showMinimap={showMinimap}
+                onMinimapToggle={toggleMinimap}
               />
             </div>
 
             {/* Mobile mastery summary (visible below lg) */}
             {distribution && (
-              <div className="flex lg:hidden items-center gap-2 sm:gap-3 mb-3 px-3 py-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="flex lg:hidden items-center gap-2 sm:gap-3 mb-3 px-3 py-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {(['green', 'yellow', 'red', 'gray'] as const).map(color => {
                   const label = getMasteryLabel(color, 'es');
                   return (
@@ -340,8 +358,16 @@ export function ProfessorKnowledgeMapPage() {
               {/* Graph */}
               <div className="flex-1 min-h-0 relative overflow-hidden">
                 <ErrorBoundary fallback={
-                  <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
-                    <p className="text-sm text-gray-400">Error al renderizar el grafo. Intenta actualizar.</p>
+                  <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center gap-3 px-4">
+                    <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
+                      <RefreshCw className="w-6 h-6 text-red-400" />
+                    </div>
+                    <p
+                      className="text-gray-500 text-center"
+                      style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+                    >
+                      Error al renderizar el grafo. Intenta actualizar la página.
+                    </p>
                   </div>
                 }>
                   {filteredGraphData && filteredGraphData.nodes.length > 0 ? (
@@ -354,12 +380,27 @@ export function ProfessorKnowledgeMapPage() {
                       highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : undefined}
                       onCollapseChange={(count) => setCollapsedCount(count)}
                       locale="es"
+                      topicId={topicId}
+                      showMinimap={showMinimap}
                     />
                   ) : searchQuery.trim() ? (
                     <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-sm text-gray-400 mb-1">Ningún concepto encontrado</p>
-                        <p className="text-xs text-gray-400">Intenta buscar otro término</p>
+                      <div className="flex flex-col items-center text-center px-4">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-3">
+                          <Brain className="w-6 h-6 text-amber-400" />
+                        </div>
+                        <p
+                          className="font-semibold text-gray-700 mb-1"
+                          style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
+                        >
+                          Ningún concepto encontrado
+                        </p>
+                        <p
+                          className="text-gray-400"
+                          style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
+                        >
+                          Intenta buscar otro término
+                        </p>
                       </div>
                     </div>
                   ) : null}
@@ -376,7 +417,7 @@ export function ProfessorKnowledgeMapPage() {
               {/* Mobile selected node detail (visible below lg) */}
               {selectedNode && (
                 <div
-                  className="lg:hidden absolute bottom-3 left-3 right-3 bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-10 max-h-[40vh] overflow-y-auto"
+                  className="lg:hidden absolute bottom-3 left-3 right-3 bg-white rounded-2xl shadow-lg border border-gray-200 p-3 z-10 max-h-[40vh] overflow-y-auto"
                   style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                   onTouchStart={handleSheetTouchStart}
                   onTouchEnd={handleSheetTouchEnd}
@@ -422,7 +463,10 @@ export function ProfessorKnowledgeMapPage() {
                 {/* Distribution */}
                 {distribution && (
                   <div className="p-4 border-b border-gray-100">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    <h3
+                      className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3"
+                      style={headingStyle}
+                    >
                       Distribución de dominio
                     </h3>
                     <div className="space-y-2">
@@ -487,7 +531,7 @@ export function ProfessorKnowledgeMapPage() {
                         e => e.source === selectedNode.id || e.target === selectedNode.id
                       );
                       if (nodeEdges.length === 0) return (
-                        <div className="text-xs text-gray-400 mb-2">Sin conexiones</div>
+                        <div className="text-xs text-gray-500 mb-2">Sin conexiones</div>
                       );
                       return (
                         <div className="mb-2">
@@ -524,15 +568,26 @@ export function ProfessorKnowledgeMapPage() {
                         </div>
                       );
                     })()}
-                    <div className="text-xs text-gray-400">
-                      ID: {selectedNode.id.slice(0, 8)}...
-                    </div>
                   </div>
                 ) : (
-                  <div className="p-4 flex-1 flex items-center justify-center">
-                    <p className="text-xs text-gray-400 text-center">
-                      Haz clic en un nodo para ver detalles
-                    </p>
+                  <div className="p-4 flex-1 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center">
+                      <Brain className="w-6 h-6 text-amber-400 animate-pulse" />
+                    </div>
+                    <div>
+                      <p
+                        className="font-medium text-gray-600 mb-0.5"
+                        style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
+                      >
+                        Selecciona un nodo
+                      </p>
+                      <p
+                        className="text-gray-400 max-w-[12rem]"
+                        style={{ fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)' }}
+                      >
+                        Haz clic en un nodo del grafo para ver sus detalles
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

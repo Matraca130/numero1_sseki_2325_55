@@ -101,11 +101,11 @@ export function useSummaryReaderMutations({
       setShowXpToast(true);
       clearTimeout(xpToastTimerRef.current);
       xpToastTimerRef.current = setTimeout(() => setShowXpToast(false), 3000);
-      toast.success('Resumo marcado como lido');
+      toast.success('Resumen marcado como leído');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
       invalidateGraphCache(topicId, summaryId);
     },
-    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao marcar como lido'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Error al marcar como leído'),
   });
 
   // ── 2. Unmark completed ─────────────────────────────
@@ -113,11 +113,11 @@ export function useSummaryReaderMutations({
     mutationFn: () => studentApi.upsertReadingState({ summary_id: summaryId, completed: false }),
     onSuccess: (rs) => {
       onReadingStateChanged(rs);
-      toast.success('Marcado como não lido');
+      toast.success('Marcado como no leído');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
       invalidateGraphCache(topicId, summaryId);
     },
-    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Error al actualizar'),
   });
 
   // ── 3. Annotation create ────────────────────────────
@@ -130,11 +130,11 @@ export function useSummaryReaderMutations({
         note: vars.note,
       }),
     onSuccess: () => {
-      toast.success('Anotação criada');
+      toast.success('Anotación creada');
       onAnnotationCreated();
       invalidateAnnotations();
     },
-    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao criar anotação'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Error al crear anotación'),
   });
 
   // ── 4. Annotation delete (optimistic) ───────────────
@@ -151,9 +151,9 @@ export function useSummaryReaderMutations({
     },
     onError: (_err, _id, context) => {
       if (context?.previous) rqClient.setQueryData(queryKeys.summaryAnnotations(summaryId), context.previous);
-      toast.error('Erro ao eliminar anotação');
+      toast.error('Error al eliminar anotación');
     },
-    onSuccess: () => toast.success('Anotação eliminada'),
+    onSuccess: () => toast.success('Anotación eliminada'),
     onSettled: () => invalidateAnnotations(),
   });
 
@@ -162,11 +162,11 @@ export function useSummaryReaderMutations({
     mutationFn: (vars: { keywordId: string; note: string }) =>
       studentApi.createKwStudentNote({ keyword_id: vars.keywordId, note: vars.note }),
     onSuccess: (_data, vars) => {
-      toast.success('Nota adicionada');
+      toast.success('Nota añadida');
       onKwNoteCreated();
       invalidateKwNotes(vars.keywordId);
     },
-    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao criar nota'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Error al crear nota'),
   });
 
   // ── 6. KW Note update ──────────────────────────────
@@ -174,11 +174,11 @@ export function useSummaryReaderMutations({
     mutationFn: (vars: { noteId: string; keywordId: string; note: string }) =>
       studentApi.updateKwStudentNote(vars.noteId, { note: vars.note }),
     onSuccess: (_data, vars) => {
-      toast.success('Nota atualizada');
+      toast.success('Nota actualizada');
       onKwNoteUpdated();
       invalidateKwNotes(vars.keywordId);
     },
-    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar'),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Error al actualizar'),
   });
 
   // ── 7. KW Note delete (optimistic) ─────────────────
@@ -196,9 +196,9 @@ export function useSummaryReaderMutations({
     },
     onError: (_err, vars, context) => {
       if (context?.previous) rqClient.setQueryData(queryKeys.kwNotes(vars.keywordId), context.previous);
-      toast.error('Erro ao eliminar nota');
+      toast.error('Error al eliminar nota');
     },
-    onSuccess: () => toast.success('Nota eliminada'),
+    onSuccess: () => toast.success('Nota eliminada'),  // same in Spanish
     onSettled: (_d, _e, vars) => invalidateKwNotes(vars.keywordId),
   });
 
