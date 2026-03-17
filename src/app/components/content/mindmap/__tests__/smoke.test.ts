@@ -361,6 +361,30 @@ describe('mindmap types: mindmap-ai.ts', () => {
   });
 });
 
+// ── Regression: export error handling (BUG-001) ─────────────
+// exportPNG/exportJPEG in KnowledgeGraph.tsx must have try-catch
+// around graph.toDataURL() to prevent unhandled promise rejections
+// when the graph is destroyed during export.
+
+describe('regression: KnowledgeGraph export error handling (BUG-001)', () => {
+  it('exportPNG and exportJPEG calls are wrapped in try-catch', () => {
+    const src = readFileSync(join(MINDMAP_DIR, 'KnowledgeGraph.tsx'), 'utf-8');
+    // Extract the section between exportPNG and exportJPEG, and exportJPEG and focusNode
+    const pngStart = src.indexOf('exportPNG: async');
+    const jpegStart = src.indexOf('exportJPEG: async');
+    const focusStart = src.indexOf('focusNode:');
+    expect(pngStart, 'exportPNG not found').toBeGreaterThan(-1);
+    expect(jpegStart, 'exportJPEG not found').toBeGreaterThan(-1);
+    expect(focusStart, 'focusNode not found').toBeGreaterThan(-1);
+    const pngBlock = src.slice(pngStart, jpegStart);
+    const jpegBlock = src.slice(jpegStart, focusStart);
+    expect(pngBlock, 'exportPNG must have try-catch').toContain('try {');
+    expect(pngBlock, 'exportPNG must have catch').toContain('catch');
+    expect(jpegBlock, 'exportJPEG must have try-catch').toContain('try {');
+    expect(jpegBlock, 'exportJPEG must have catch').toContain('catch');
+  });
+});
+
 // ── Directory completeness ──────────────────────────────────
 
 describe('mindmap directory completeness', () => {

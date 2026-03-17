@@ -530,14 +530,18 @@ export function KnowledgeGraph({
         exportPNG: async () => {
           const g = graphRef.current;
           if (!g) return;
-          const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/png', encoderOptions: 1 });
-          downloadGraphImage(dataURL, 'png');
+          try {
+            const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/png', encoderOptions: 1 });
+            downloadGraphImage(dataURL, 'png');
+          } catch { /* graph may be destroyed or canvas unavailable */ }
         },
         exportJPEG: async () => {
           const g = graphRef.current;
           if (!g) return;
-          const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/jpeg', encoderOptions: 0.92 });
-          downloadGraphImage(dataURL, 'jpg');
+          try {
+            const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/jpeg', encoderOptions: 0.92 });
+            downloadGraphImage(dataURL, 'jpg');
+          } catch { /* graph may be destroyed or canvas unavailable */ }
         },
         focusNode: (nodeId: string) => {
           try { graph.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch { /* graph may be destroyed */ }
@@ -813,7 +817,7 @@ export function KnowledgeGraph({
     <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
       <div
         ref={containerRef}
-        className="w-full h-full bg-white rounded-2xl shadow-sm border border-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-[#2a8c7a]/30 focus-visible:border-[#2a8c7a]/50 overflow-hidden"
+        className="w-full h-full bg-white rounded-2xl shadow-sm border border-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-ax-primary-500/30 focus-visible:border-ax-primary-500/50 overflow-hidden"
         style={{ touchAction: 'none' }}
         tabIndex={0}
         role="application"
