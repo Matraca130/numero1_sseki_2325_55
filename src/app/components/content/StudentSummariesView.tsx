@@ -117,7 +117,7 @@ export function StudentSummariesView() {
         >
           <BookOpen className="w-9 h-9" style={{ color: tint.tealBorder }} />
         </motion.div>
-        <p className="text-zinc-700 mb-1" style={{ fontWeight: 700 }}>Selecciona un topico</p>
+        <p className="mb-1" style={{ fontWeight: 700, color: axon.darkTeal }}>Selecciona un topico</p>
         <p className="text-sm text-center max-w-xs" style={{ color: tint.neutralText }}>
           Usa el arbol de contenido a la izquierda para elegir que estudiar
         </p>
