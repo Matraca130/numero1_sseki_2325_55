@@ -143,7 +143,6 @@ export function StudentSummariesView() {
             <Breadcrumb
               items={[courseName, sectionName, topicName].filter(Boolean)}
               className="mb-4"
-              style={{ color: tint.neutralText }}
             />
 
             <div className="flex items-start justify-between gap-4">
@@ -181,7 +180,7 @@ export function StudentSummariesView() {
                   value={progress}
                   animated
                   dark
-                  color={`bg-gradient-to-r from-[${axon.progressStart}] to-[${axon.progressEnd}]`}
+                  color="bg-gradient-to-r from-[#2dd4a8] to-[#0d9488]"
                 />
                 <div className="flex items-center justify-between mt-2">
                   {motivation && (
@@ -214,7 +213,7 @@ export function StudentSummariesView() {
               <FileText className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>Resumenes</h3>
+              <h3 className="text-sm" style={{ fontWeight: 700, color: axon.darkTeal }}>Resumenes</h3>
               {!isLoading && !error && (
                 <p className="text-xs" style={{ color: tint.subtitleText }}>
                   {summaries.length} disponible{summaries.length !== 1 ? 's' : ''}
