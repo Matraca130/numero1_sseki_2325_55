@@ -24,14 +24,16 @@ import {
   Lightbulb,
   Zap,
   ArrowLeft,
+  Phone,
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as ai from '@/app/services/aiService';
 import type { ChatMessage, GeneratedFlashcard, GeneratedQuestion } from '@/app/services/aiService';
+import { VoiceCallPanel } from './VoiceCallPanel';
 
 // ── Types ─────────────────────────────────────────────────
 
-type AssistantMode = 'chat' | 'flashcards' | 'quiz' | 'explain';
+type AssistantMode = 'chat' | 'flashcards' | 'quiz' | 'explain' | 'voice';
 
 interface DisplayMessage {
   id: string;
@@ -281,6 +283,7 @@ export function AxonAIAssistant({
                 { id: 'flashcards', icon: Layers, label: 'Flashcards' },
                 { id: 'quiz', icon: GraduationCap, label: 'Quiz' },
                 { id: 'explain', icon: BookOpen, label: 'Explicar' },
+                { id: 'voice', icon: Phone, label: 'Llamar' },
               ] as const).map(tab => (
                 <button
                   key={tab.id}
@@ -304,6 +307,7 @@ export function AxonAIAssistant({
               {mode === 'flashcards' && renderFlashcards()}
               {mode === 'quiz' && renderQuiz()}
               {mode === 'explain' && renderExplain()}
+              {mode === 'voice' && <VoiceCallPanel />}
             </div>
           </motion.div>
         </>

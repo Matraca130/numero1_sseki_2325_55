@@ -130,6 +130,20 @@ export type {
   FsrsStateRecord,
 } from './platform-api/pa-student-data';
 
+// Messaging Admin Settings
+export {
+  getMessagingSettings,
+  updateMessagingSettings,
+  testMessagingConnection,
+} from './platform-api/pa-messaging';
+export type {
+  MessagingChannel,
+  MessagingSettingsData,
+  TelegramSettingsResponse,
+  WhatsAppSettingsResponse,
+  TestConnectionResult,
+} from './platform-api/pa-messaging';
+
 // Study Plans, Tasks, Sessions
 export {
   getStudyPlans,
