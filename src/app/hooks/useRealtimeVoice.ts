@@ -204,28 +204,28 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       client.connect(session.client_secret);
 
       // 4. Wait for WebSocket to open (poll with timeout)
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         let settled = false;
-        const settle = () => {
+        const intervalId = setInterval(() => {
+          if (client.isConnected) {
+            if (settled) return;
+            settled = true;
+            clearInterval(intervalId);
+            clearTimeout(timeoutId);
+            resolve();
+          }
+        }, 100);
+        const timeoutId = setTimeout(() => {
           if (settled) return;
           settled = true;
           clearInterval(intervalId);
-          clearTimeout(timeoutId);
-          resolve();
-        };
-        const intervalId = setInterval(() => {
-          if (client.isConnected) settle();
-        }, 100);
-        const timeoutId = setTimeout(settle, 10000);
+          reject(new Error('Tiempo de espera agotado al conectar'));
+        }, 10000);
       });
 
-      if (client.isConnected) {
-        await startMicrophone(client);
-      } else {
-        throw new Error('WebSocket connection timeout');
-      }
+      await startMicrophone(client);
     } catch (e) {
-      const msg = (e as Error).message || 'Failed to start call';
+      const msg = (e as Error).message || 'Error al iniciar la llamada';
       setError(msg);
       setState('error');
       cleanup();

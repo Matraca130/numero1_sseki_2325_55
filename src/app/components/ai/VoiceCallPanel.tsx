@@ -5,7 +5,6 @@
 // Uses OpenAI Realtime API via useRealtimeVoice hook
 // ============================================================
 
-import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Phone,
@@ -24,7 +23,7 @@ interface VoiceCallPanelProps {
 
 // ── Audio Wave Animation (CSS-only) ──────────────────────────
 
-function AudioWaves({ active, color = 'bg-violet-400' }: { active: boolean; color?: string }) {
+function AudioWaves({ active, color = 'bg-[#2a8c7a]' }: { active: boolean; color?: string }) {
   return (
     <div className="flex items-center justify-center gap-1 h-8">
       {[0, 1, 2, 3, 4].map((i) => (
@@ -71,9 +70,9 @@ function StatusIndicator({ aiState }: { aiState: 'listening' | 'thinking' | 'spe
     speaking: {
       icon: Volume2,
       label: 'Hablando...',
-      color: 'text-violet-500',
-      bgColor: 'bg-violet-50',
-      waveColor: 'bg-violet-400',
+      color: 'text-[#2a8c7a]',
+      bgColor: 'bg-[#e8f5f1]',
+      waveColor: 'bg-[#2a8c7a]',
     },
   }[aiState];
 
@@ -132,12 +131,12 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
       {/* ── Idle State ── */}
       {state === 'idle' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-violet-50 flex items-center justify-center">
-            <Phone size={32} className="text-violet-500" />
+          <div className="w-20 h-20 rounded-full bg-[#e8f5f1] flex items-center justify-center">
+            <Phone size={32} className="text-[#2a8c7a]" />
           </div>
 
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h3 className="text-lg font-semibold text-gray-800" style={{ fontFamily: 'Georgia, serif' }}>
               Llamada de voz
             </h3>
             <p className="text-sm text-gray-500 mt-1 max-w-[280px]">
@@ -147,7 +146,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
 
           <button
             onClick={() => startCall(summaryId)}
-            className="flex items-center gap-2 px-8 py-3 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 transition-all active:scale-95"
+            className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#2a8c7a] text-white font-medium shadow-lg shadow-[#2a8c7a]/20 hover:bg-[#244e47] hover:shadow-xl hover:shadow-[#2a8c7a]/30 transition-all active:scale-95"
           >
             <Phone size={18} />
             Iniciar llamada
@@ -162,7 +161,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <Loader2 size={40} className="text-violet-500" />
+            <Loader2 size={40} className="text-[#2a8c7a]" />
           </motion.div>
           <p className="text-sm text-gray-500">Conectando con tu tutor...</p>
         </div>
@@ -184,7 +183,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
                   key="user"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-violet-600 text-white text-sm"
+                  className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-[#2a8c7a] text-white text-sm"
                 >
                   {userTranscript}
                 </motion.div>
@@ -231,7 +230,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
 
           <button
             onClick={() => startCall(summaryId)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#2a8c7a] text-white text-sm font-medium hover:bg-[#244e47] transition-colors"
           >
             Reintentar
           </button>

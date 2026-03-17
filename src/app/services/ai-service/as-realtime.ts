@@ -87,6 +87,7 @@ export async function createRealtimeSession(
 export class RealtimeVoiceClient {
   private ws: WebSocket | null = null;
   private callbacks: RealtimeCallbacks;
+  private currentState: VoiceCallState = 'idle';
   private userTranscriptBuffer = '';
   private aiTranscriptBuffer = '';
 
@@ -94,9 +95,15 @@ export class RealtimeVoiceClient {
     this.callbacks = callbacks;
   }
 
+  /** Emit state change and track it internally */
+  private emitState(state: VoiceCallState): void {
+    this.currentState = state;
+    this.callbacks.onStateChange?.(state);
+  }
+
   /** Connect to OpenAI Realtime API using ephemeral client_secret */
   connect(clientSecret: string): void {
-    this.callbacks.onStateChange?.('connecting');
+    this.emitState('connecting');
 
     const url = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
 
@@ -106,7 +113,7 @@ export class RealtimeVoiceClient {
     ]);
 
     this.ws.onopen = () => {
-      this.callbacks.onStateChange?.('active');
+      this.emitState('active');
       this.callbacks.onAISpeakingChange?.('listening');
     };
 
@@ -120,13 +127,16 @@ export class RealtimeVoiceClient {
     };
 
     this.ws.onerror = () => {
-      this.callbacks.onError?.('WebSocket connection error');
-      this.callbacks.onStateChange?.('error');
+      this.callbacks.onError?.('Error de conexión WebSocket');
+      this.emitState('error');
     };
 
     this.ws.onclose = () => {
       this.ws = null;
-      this.callbacks.onStateChange?.('idle');
+      // Don't overwrite error state — let the UI show the error
+      if (this.currentState !== 'error') {
+        this.emitState('idle');
+      }
     };
   }
 
@@ -205,7 +215,7 @@ export class RealtimeVoiceClient {
 
       // Errors
       case 'error':
-        this.callbacks.onError?.((event.error as Record<string, string>)?.message || 'Unknown error');
+        this.callbacks.onError?.((event.error as Record<string, string>)?.message || 'Error desconocido');
         break;
     }
   }
