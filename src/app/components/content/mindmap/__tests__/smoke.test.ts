@@ -241,6 +241,13 @@ describe('mindmap module: ShareMapModal', () => {
   });
 });
 
+describe('mindmap module: MapComparisonPanel', () => {
+  it('exports MapComparisonPanel component', () => {
+    const names = getExportedNames('MapComparisonPanel.tsx');
+    expect(names).toContain('MapComparisonPanel');
+  });
+});
+
 describe('mindmap module: PresentationMode', () => {
   it('exports PresentationMode component', () => {
     const names = getExportedNames('PresentationMode.tsx');
@@ -297,6 +304,7 @@ describe('mindmap module: index barrel', () => {
       'computeHiddenNodes',
       'useGraphExport',
       'ShareMapModal',
+      'MapComparisonPanel',
     ];
 
     for (const name of expectedExports) {
@@ -384,6 +392,7 @@ describe('mindmap directory completeness', () => {
       'ChangeHistoryPanel.tsx',
       'changeHistoryHelpers.ts',
       'ShareMapModal.tsx',
+      'MapComparisonPanel.tsx',
       'PresentationMode.tsx',
       'presentationHelpers.ts',
       'index.ts',

@@ -26,4 +26,5 @@ export { useGraphExport } from './useGraphExport';
 export { PresentationMode } from './PresentationMode';
 export { ChangeHistoryPanel } from './ChangeHistoryPanel';
 export { ShareMapModal } from './ShareMapModal';
+export { MapComparisonPanel } from './MapComparisonPanel';
 export { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry, createDeleteEdgeEntry } from './changeHistoryHelpers';

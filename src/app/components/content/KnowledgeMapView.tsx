@@ -24,7 +24,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 /** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
 const haptic = (ms = 50) => navigator?.vibrate?.(ms);
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2 } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
@@ -54,6 +54,7 @@ import { GraphSkeleton } from './mindmap/GraphSkeleton';
 import { PresentationMode } from './mindmap/PresentationMode';
 import { ChangeHistoryPanel } from './mindmap/ChangeHistoryPanel';
 import { ShareMapModal } from './mindmap/ShareMapModal';
+import { MapComparisonPanel } from './mindmap/MapComparisonPanel';
 import { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry } from './mindmap/changeHistoryHelpers';
 import type { HistoryEntry } from './mindmap/changeHistoryHelpers';
 import type { MapTool } from './mindmap/MapToolsPanel';
@@ -184,6 +185,7 @@ export function KnowledgeMapView() {
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [presentationMode, setPresentationMode] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
   const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
   // Minimap: visible on desktop by default, hidden on mobile
@@ -651,7 +653,7 @@ export function KnowledgeMapView() {
                   <span className="hidden sm:inline">Actualizar</span>
                 </button>
                 <button
-                  onClick={() => { setShowAiPanel(v => !v); if (!showAiPanel) setShowHistory(false); }}
+                  onClick={() => { setShowAiPanel(v => !v); if (!showAiPanel) { setShowHistory(false); setShowComparison(false); } }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
                     showAiPanel
                       ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
@@ -664,7 +666,7 @@ export function KnowledgeMapView() {
                   <span className="hidden sm:inline">IA</span>
                 </button>
                 <button
-                  onClick={() => { setShowHistory(v => !v); if (!showHistory) setShowAiPanel(false); }}
+                  onClick={() => { setShowHistory(v => !v); if (!showHistory) { setShowAiPanel(false); setShowComparison(false); } }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm transition-colors ${
                     showHistory ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30' : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
                   }`}
@@ -696,6 +698,19 @@ export function KnowledgeMapView() {
                     <span className="hidden sm:inline">Compartir</span>
                   </button>
                 )}
+                <button
+                  onClick={() => { setShowComparison(v => !v); if (!showComparison) { setShowAiPanel(false); setShowHistory(false); } }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                    showComparison
+                      ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
+                      : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
+                  }`}
+                  aria-label="Comparar mapa"
+                  title="Comparar tu mapa con el mapa base"
+                >
+                  <GitCompareArrows className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Comparar</span>
+                </button>
                 <button
                   onClick={toggleFullscreen}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
@@ -899,6 +914,18 @@ export function KnowledgeMapView() {
             onClose={() => setShowHistory(false)}
             entries={historyEntries}
             onClear={() => { setHistoryEntries([]); clearHistoryStorage(effectiveTopicId); }}
+          />
+
+          {/* Map comparison panel — slides in from right */}
+          <MapComparisonPanel
+            open={showComparison}
+            onClose={() => { setShowComparison(false); setAiHighlightNodes(undefined); }}
+            graphData={graphData}
+            onHighlightNodes={setAiHighlightNodes}
+            onNavigateToAction={(kwId, action) => {
+              if (action === 'flashcard') navigateWithFade(`/student/flashcards?keywordId=${kwId}`);
+              else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
+            }}
           />
 
           {/* First-visit onboarding tips */}
