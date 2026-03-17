@@ -20,6 +20,7 @@ on:
     paths:
       - 'src/app/components/**'
       - '.github/sprint-config.json'
+      - '.github/workflows/sprint-preflight.yml'
 
 jobs:
   preflight:
@@ -136,6 +137,7 @@ jobs:
           while IFS= read -r filepath; do
             [ -z "$filepath" ] && continue
             if [ -f "$filepath" ]; then
+              FILE_FAILED=0
               for PATTERN in "${PATTERNS[@]}"; do
                 matches=$(grep -oEn "$PATTERN" "$filepath" || true)
                 if [ -n "$matches" ]; then
@@ -143,9 +145,10 @@ jobs:
                   echo "$matches"
                   echo "Replace with axon.*/tint.* tokens from src/app/lib/palette.ts"
                   FAILED=1
+                  FILE_FAILED=1
                 fi
               done
-              if [ $FAILED -eq 0 ]; then
+              if [ $FILE_FAILED -eq 0 ]; then
                 echo "OK: $filepath — no forbidden palette classes"
               fi
             fi
