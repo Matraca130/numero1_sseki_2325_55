@@ -13,7 +13,7 @@
 //   getMessagingSettings, updateMessagingSettings, testMessagingConnection
 // ============================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { type ReactNode, useState, useEffect, useCallback } from 'react';
 import { usePlatformData } from '@/app/context/PlatformDataContext';
 import {
   getMessagingSettings,
@@ -92,7 +92,7 @@ function MessagingError({ message, onRetry }: { message: string; onRetry: () => 
 
 interface ChannelCardProps {
   channel: MessagingChannel;
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
   data: MessagingSettingsData | null;

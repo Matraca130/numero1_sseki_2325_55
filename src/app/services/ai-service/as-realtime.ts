@@ -27,6 +27,21 @@ export interface RealtimeSession {
   voice: string;
 }
 
+/** Discriminated union for known OpenAI Realtime API server events */
+export type RealtimeServerEvent =
+  | { type: 'response.audio.delta'; delta: string }
+  | { type: 'response.audio_transcript.delta'; delta: string }
+  | { type: 'response.audio_transcript.done'; transcript: string }
+  | { type: 'response.created' }
+  | { type: 'response.done'; response: Record<string, unknown> }
+  | { type: 'response.function_call_arguments.done'; name: string; arguments: string; call_id: string }
+  | { type: 'session.created' }
+  | { type: 'session.updated' }
+  | { type: 'error'; error: { message: string; type?: string; code?: string } }
+  | { type: 'input_audio_buffer.speech_started' }
+  | { type: 'input_audio_buffer.speech_stopped' }
+  | { type: 'conversation.item.input_audio_transcription.completed'; transcript: string };
+
 export type VoiceCallState = 'idle' | 'connecting' | 'active' | 'error';
 export type AISpeakingState = 'listening' | 'thinking' | 'speaking';
 
@@ -119,7 +134,7 @@ export class RealtimeVoiceClient {
 
     this.ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data as string);
+        const msg = JSON.parse(event.data as string) as RealtimeServerEvent;
         this.handleServerEvent(msg);
       } catch {
         // Ignore malformed messages
@@ -165,7 +180,7 @@ export class RealtimeVoiceClient {
 
   // ── Private: Event Handling ───────────────────────────────
 
-  private handleServerEvent(event: Record<string, unknown>): void {
+  private handleServerEvent(event: RealtimeServerEvent): void {
     switch (event.type) {
       // User started speaking (VAD detected)
       case 'input_audio_buffer.speech_started':
@@ -175,7 +190,7 @@ export class RealtimeVoiceClient {
 
       // User speech transcription (incremental)
       case 'conversation.item.input_audio_transcription.completed':
-        this.userTranscriptBuffer = (event.transcript as string) || '';
+        this.userTranscriptBuffer = event.transcript || '';
         this.callbacks.onUserTranscript?.(this.userTranscriptBuffer, true);
         break;
 
@@ -187,19 +202,19 @@ export class RealtimeVoiceClient {
 
       // AI audio chunk (for playback)
       case 'response.audio.delta':
-        this.callbacks.onAudioData?.(event.delta as string);
+        this.callbacks.onAudioData?.(event.delta);
         this.callbacks.onAISpeakingChange?.('speaking');
         break;
 
       // AI transcript chunk (for subtitles)
       case 'response.audio_transcript.delta':
-        this.aiTranscriptBuffer += (event.delta as string) || '';
+        this.aiTranscriptBuffer += event.delta || '';
         this.callbacks.onAITranscript?.(this.aiTranscriptBuffer, false);
         break;
 
       // AI transcript complete
       case 'response.audio_transcript.done':
-        this.aiTranscriptBuffer = (event.transcript as string) || this.aiTranscriptBuffer;
+        this.aiTranscriptBuffer = event.transcript || this.aiTranscriptBuffer;
         this.callbacks.onAITranscript?.(this.aiTranscriptBuffer, true);
         break;
 
@@ -215,15 +230,15 @@ export class RealtimeVoiceClient {
 
       // Errors
       case 'error':
-        this.callbacks.onError?.((event.error as Record<string, string>)?.message || 'Error desconocido');
+        this.callbacks.onError?.(event.error?.message || 'Error desconocido');
         break;
     }
   }
 
-  private async handleFunctionCall(event: Record<string, unknown>): Promise<void> {
-    const name = event.name as string;
-    const callId = event.call_id as string;
-    const argsStr = event.arguments as string;
+  private async handleFunctionCall(
+    event: Extract<RealtimeServerEvent, { type: 'response.function_call_arguments.done' }>,
+  ): Promise<void> {
+    const { name, call_id: callId, arguments: argsStr } = event;
 
     let args: Record<string, unknown> = {};
     try {
@@ -242,7 +257,7 @@ export class RealtimeVoiceClient {
         output = `Error ejecutando ${name}: ${(e as Error).message}`;
       }
     } else {
-      output = `Tool "${name}" not implemented`;
+      output = `Herramienta "${name}" no implementada`;
     }
 
     // Send function output back to OpenAI

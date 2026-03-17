@@ -121,6 +121,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
 
     // Use ScriptProcessorNode for PCM16 capture
     // (AudioWorklet would be cleaner but requires a separate file)
+    // TODO: Migrate to AudioWorkletNode for off-main-thread audio processing
     const processor = audioCtx.createScriptProcessor(BUFFER_SIZE, 1, 1);
     processorRef.current = processor;
 
