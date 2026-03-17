@@ -203,19 +203,20 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       // 3. Connect WebSocket
       client.connect(session.client_secret);
 
-      // 4. Start microphone capture (after small delay for WS to open)
+      // 4. Wait for WebSocket to open (poll with timeout)
       await new Promise<void>((resolve) => {
-        const checkInterval = setInterval(() => {
-          if (client.isConnected) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100);
-        // Timeout after 10s
-        setTimeout(() => {
-          clearInterval(checkInterval);
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          clearInterval(intervalId);
+          clearTimeout(timeoutId);
           resolve();
-        }, 10000);
+        };
+        const intervalId = setInterval(() => {
+          if (client.isConnected) settle();
+        }, 100);
+        const timeoutId = setTimeout(settle, 10000);
       });
 
       if (client.isConnected) {
