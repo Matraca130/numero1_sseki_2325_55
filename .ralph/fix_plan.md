@@ -307,6 +307,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 94 audit (AiTutorPanel + PresentationMode): (1) AiTutorPanel role='dialog' aria-modal='true' (was 'complementary'), (2) CTA button disabled during analysis, (3) console.error in catch for debugging, (4) PresentationMode onNodeFocus depends on currentId not object ref — prevents redundant graph focus on parent re-renders.
 - [x] Round 95 audit (graphHelpers): (1) computeHiddenNodes rewritten — old root-based BFS failed on cyclic graphs (collapse did nothing); new descendant-based BFS works on any topology, (2) escHtml undefined input guard added. All 666 mindmap tests passing.
 - [x] Round 96 audit (export + share): (1) useGraphExport catch now shows toast.error instead of re-throwing unhandled promise rejection, (2) ShareMapModal non-abort Web Share API errors logged to console.
+- [x] Round 97 audit (SpacePan + test coverage): (1) useSpacePan added focusout + visibilitychange handlers to prevent permanent drag-element disable when focus leaves container, (2) New useFocusTrap.test.ts (7 tests), (3) New useSwipeDismiss.test.ts (7 tests). Total: 1012 tests across 49 files.
 
 ## Completed
 - [x] Search/filter with debounce
