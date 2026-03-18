@@ -269,8 +269,14 @@ export function useKeyboardNav({
             ? currentNodes.findIndex(n => n.id === focusedNodeId)
             : -1;
 
-          const step = e.shiftKey ? -1 : 1;
-          const nextIndex = (currentIndex + step + currentNodes.length) % currentNodes.length;
+          let nextIndex: number;
+          if (currentIndex === -1) {
+            // No focus yet: Tab → first, Shift+Tab → last
+            nextIndex = e.shiftKey ? currentNodes.length - 1 : 0;
+          } else {
+            const step = e.shiftKey ? -1 : 1;
+            nextIndex = (currentIndex + step + currentNodes.length) % currentNodes.length;
+          }
           const nextNodeId = currentNodes[nextIndex].id;
           const prevId = focusedNodeId;
 
