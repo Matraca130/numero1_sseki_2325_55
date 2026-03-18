@@ -54,7 +54,7 @@ export function PresentationMode({
 
   const current = sorted[index] as MapNode | undefined;
 
-  useEffect(() => { overlayRef.current?.focus(); }, [overlayRef]);
+  // Focus is handled by useFocusTrap — no separate focus call needed
 
   // eslint-disable-next-line react-hooks/exhaustive-deps — depend on ID, not object reference
   const currentId = current?.id;

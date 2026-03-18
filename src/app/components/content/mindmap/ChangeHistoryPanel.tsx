@@ -72,27 +72,29 @@ const ICON_COLOR: Record<HistoryActionType, string> = {
 
 export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHistoryPanelProps) {
   const focusTrapRef = useFocusTrap(open);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Re-render every 30s to keep relative timestamps fresh
   const [, setTick] = useState(0);
   const tickRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
-    if (open && entries.length > 0) {
+    if (open) {
       tickRef.current = setInterval(() => setTick(t => t + 1), 30_000);
     }
     return () => { clearInterval(tickRef.current); };
-  }, [open, entries.length]);
+  }, [open]);
 
   // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+  }, [open]);
 
   // Newest-first ordering
   const sortedEntries = useMemo(
@@ -112,7 +114,8 @@ export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHi
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           ref={focusTrapRef}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
-          role="complementary"
+          role="dialog"
+          aria-modal="true"
           aria-label="Panel de historial de cambios"
         >
           {/* Header */}
