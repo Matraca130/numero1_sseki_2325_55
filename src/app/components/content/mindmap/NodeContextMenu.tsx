@@ -6,7 +6,7 @@
 // macOS-inspired: clean, minimal, premium feel.
 // ============================================================
 
-import { useEffect, useRef, useState, type ElementType } from 'react';
+import { useEffect, useMemo, useRef, useState, type ElementType } from 'react';
 import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapNode, NodeAction } from '@/app/types/mindmap';
@@ -60,6 +60,8 @@ const captionFontSize = 'clamp(0.7rem, 1.3vw, 0.75rem)';
 
 export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse, onColorChange, currentCustomColor }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Close on outside click + keyboard navigation
   useEffect(() => {
@@ -70,13 +72,13 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
 
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       // Arrow key navigation within menu
@@ -112,7 +114,7 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
       // Restore focus to previously focused element
       previouslyFocused?.focus();
     };
-  }, [node, onClose]);
+  }, [node]);
 
   // Reactive small-screen detection (bottom sheet on mobile)
   const [isSmallScreen, setIsSmallScreen] = useState(
@@ -125,10 +127,10 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
-  const adjustedPosition = position ? {
+  const adjustedPosition = useMemo(() => position ? {
     x: isSmallScreen ? 0 : Math.max(4, Math.min(position.x, window.innerWidth - 220)),
     y: isSmallScreen ? 0 : Math.max(4, Math.min(position.y, window.innerHeight - 320)),
-  } : { x: 0, y: 0 };
+  } : null, [position, isSmallScreen]);
 
   const masteryColor = node ? getSafeMasteryColor(node.mastery) : 'gray';
   const masteryPct = node && node.mastery >= 0 ? Math.round(node.mastery * 100) : null;
@@ -180,8 +182,8 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                 : 'min-w-[200px] w-auto rounded-xl border-gray-200/60 shadow-lg'
             }`}
             style={isSmallScreen ? undefined : {
-              left: adjustedPosition.x,
-              top: adjustedPosition.y,
+              left: adjustedPosition!.x,
+              top: adjustedPosition!.y,
               boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
             }}
             role="menu"
@@ -194,7 +196,7 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
             </div>
           )}
           {/* Header with keyword name + mastery */}
-          <div className={`border-b border-gray-100 ${isSmallScreen ? 'px-4 py-3' : 'px-3 py-2.5'}`}>
+          <div className={`border-b border-gray-100 ${isSmallScreen ? 'px-4 py-3' : 'px-3 py-2.5'}`} role="presentation">
             <div className="flex items-center justify-between gap-2">
               <p
                 className="font-semibold text-gray-900 truncate flex-1"
@@ -265,13 +267,13 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                 >
                   Color
                 </span>
-                <div className="flex items-center gap-1.5 ml-auto" role="radiogroup" aria-label="Color del nodo">
+                <div className="flex items-center gap-1.5 ml-auto" role="group" aria-label="Color del nodo">
                   {NODE_COLOR_PALETTE.map(({ hex, label }) => (
                     <button
                       key={hex}
                       onClick={() => { onColorChange(node.id, hex); }}
                       className="rounded-full transition-all duration-100 flex-shrink-0 p-1.5"
-                      role="radio"
+                      role="menuitemradio"
                       aria-checked={currentCustomColor === hex}
                       aria-label={`Color ${label}`}
                       title={label}
