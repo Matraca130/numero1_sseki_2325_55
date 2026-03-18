@@ -302,8 +302,8 @@ interface CustomEdgeResponse {
 export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
   try {
     const [nodesRaw, edgesRaw] = await Promise.all([
-      apiCall<unknown>(`/student-custom-nodes?topic_id=${topicId}`),
-      apiCall<unknown>(`/student-custom-edges?topic_id=${topicId}`),
+      apiCall<unknown>(`/student-custom-nodes?topic_id=${encodeURIComponent(topicId)}`),
+      apiCall<unknown>(`/student-custom-edges?topic_id=${encodeURIComponent(topicId)}`),
     ]);
 
     const customNodes = unwrapItems<CustomNodeResponse>(nodesRaw);
