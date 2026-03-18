@@ -155,9 +155,13 @@ export function useKeyboardNav({
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
 
-  // Keep onQuickAdd ref fresh
+  // Keep callback refs fresh — avoids effect re-registration on parent re-render
   const onQuickAddRef = useRef(onQuickAdd);
   onQuickAddRef.current = onQuickAdd;
+  const onNodeClickRef = useRef(onNodeClick);
+  onNodeClickRef.current = onNodeClick;
+  const onNodeRightClickRef = useRef(onNodeRightClick);
+  onNodeRightClickRef.current = onNodeRightClick;
 
   // Stable ref for focusedNodeId — avoids stale closure in clearFocus
   const focusedNodeIdRef = useRef(focusedNodeId);
@@ -242,7 +246,7 @@ export function useKeyboardNav({
             applyFocusRing(g, null, focused);
             setFocusedNodeId(null);
           }
-          onNodeClick?.(null);
+          onNodeClickRef.current?.(null);
           if (multiSelectedIdsRef.current.size > 0) {
             updateMultiSelection(new Set());
           }
@@ -300,12 +304,12 @@ export function useKeyboardNav({
 
           // Get node position on screen for context menu placement
           const pos = getNodePosition(g, focused);
-          if (pos && onNodeRightClick) {
+          if (pos && onNodeRightClickRef.current) {
             // Convert graph coordinates to client coordinates
             const canvas = container.querySelector('canvas');
             const rect = canvas?.getBoundingClientRect() ?? container.getBoundingClientRect();
             // Use graph.getCanvasByViewport or approximate with center of container
-            onNodeRightClick(node, {
+            onNodeRightClickRef.current(node, {
               x: rect.left + rect.width / 2,
               y: rect.top + rect.height / 2,
             });
@@ -331,7 +335,7 @@ export function useKeyboardNav({
 
             // Also notify parent of selection change
             const nextNode = nodeByIdRef.current.get(nextId);
-            if (nextNode) onNodeClick?.(nextNode);
+            if (nextNode) onNodeClickRef.current?.(nextNode);
           }
           return;
         }
@@ -349,8 +353,9 @@ export function useKeyboardNav({
 
     container.addEventListener('keydown', handleKeyDown);
     return () => container.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps — onNodeClick/onNodeRightClick stabilized via refs
   }, [
-    ready, graphVersion, onNodeClick, onNodeRightClick,
+    ready, graphVersion,
     graphRef, containerRef, collapseAllRef, expandAllRef,
     multiSelectedIdsRef, updateMultiSelection, setShowShortcuts, applyFocusRing,
   ]);
