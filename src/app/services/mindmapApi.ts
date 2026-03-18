@@ -62,7 +62,7 @@ async function fetchConnectionsBatch(
   const batchResults = await Promise.allSettled(
     batches.map(async (batch) => {
       const idsParam = batch.map(id => encodeURIComponent(id)).join(',');
-      const result = await apiCall<unknown>(
+      const result = await apiCall<KeywordConnection[] | { items: KeywordConnection[] }>(
         `/keyword-connections-batch?keyword_ids=${idsParam}`
       );
       return unwrapItems<KeywordConnection>(result);
@@ -314,8 +314,8 @@ interface CustomEdgeResponse {
 export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
   try {
     const [nodesRaw, edgesRaw] = await Promise.all([
-      apiCall<unknown>(`/student-custom-nodes?topic_id=${encodeURIComponent(topicId)}`),
-      apiCall<unknown>(`/student-custom-edges?topic_id=${encodeURIComponent(topicId)}`),
+      apiCall<CustomNodeResponse[] | { items: CustomNodeResponse[] }>(`/student-custom-nodes?topic_id=${encodeURIComponent(topicId)}`),
+      apiCall<CustomEdgeResponse[] | { items: CustomEdgeResponse[] }>(`/student-custom-edges?topic_id=${encodeURIComponent(topicId)}`),
     ]);
 
     const customNodes = unwrapItems<CustomNodeResponse>(nodesRaw);

@@ -1007,7 +1007,7 @@ export function KnowledgeGraph({
     };
 
     const handleNodeDblClick = (evt: G6NodeEvent) => {
-      const nodeId: string = evt.target?.id ?? evt.itemId;
+      const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
       // Skip collapse on leaf nodes (no children) — use ref to avoid stale closure
       const hasChildren = (childrenMapRef.current.get(nodeId)?.length ?? 0) > 0;
