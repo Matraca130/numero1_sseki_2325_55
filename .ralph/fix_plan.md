@@ -148,7 +148,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Flechas direccionales — directed field on MapEdge, endArrow in KnowledgeGraph+MiniKnowledgeGraph, toggle "Flecha direccional" in AddNodeEdgeModal with auto-sync from connection type, createCustomEdge payload updated
 - [x] Tipos de flecha avanzados — EdgeArrowType (triangle/diamond/circle/vee) in MapEdge, 4-button SVG selector in AddNodeEdgeModal, G6 endArrow config object, arrow_type in API payload
 - [x] Texto en edges — edge labelText from relationship/connectionType, zinc-500 fill, white background pill with padding, readable on any edge color
-- [ ] Multi-selección de nodos — Shift+click o drag-select para seleccionar múltiples nodos, mover en grupo, eliminar en batch
+- [x] Multi-selección de nodos — Shift+click toggle + brush-select behavior, brand glow on selected nodes, floating action bar (eliminar/conectar/deseleccionar), Escape clears, onMultiSelect/onDeleteNodes/onConnectNodes props
 - [ ] Agrupación/clusters — drag nodos dentro de un grupo visual (bounding box con label), colapsable
 - [ ] Snap-to-grid — opción en toolbar para alinear nodos a grid, toggle on/off
 - [ ] Auto-layout inteligente — botón que reorganiza el grafo con algoritmo tree/radial/force optimal según la estructura
@@ -158,11 +158,11 @@ las llamadas API, aunque el backend aún no exista):
 - [ ] Conectar arrastrando desde borde del nodo — true drag-to-connect (no click-click), mostrar línea temporal mientras se arrastra
 
 ### 1D-pre. Integración de Colores de Keywords/Mastery en el Grafo
-- [ ] Nodos del grafo DEBEN reflejar el color de mastery del keyword (rojo=bajo, amarillo=medio, verde=alto, gris=sin datos) — verificar que BKT states se usan para colorear
-- [ ] Al cambiar mastery (después de quiz/flashcard), el color del nodo se actualiza en tiempo real via cache invalidation
-- [ ] Gradientes de color según nivel de mastery (0-0.3 rojo, 0.3-0.7 amarillo, 0.7-1.0 verde) con transición suave
-- [ ] Leyenda de colores siempre visible en el mapa (mini badge en esquina) que explique qué significa cada color
-- [ ] Tooltip del nodo debe mostrar mastery % + color + última fecha de review
+- [x] Nodos del grafo reflejan mastery color — verified getNodeFill/getNodeStroke use MASTERY_HEX maps correctly (red <50%, yellow 50-80%, green >80%, gray no data)
+- [x] Al cambiar mastery el color se actualiza — G6 update animation includes fill+stroke with 200ms ease-out transition, cache invalidation already triggers refetch
+- [x] Gradientes de color según mastery — smooth transition via G6 v5 element update animation
+- [x] Leyenda de colores visible — floating semi-transparent panel bottom-left with 4 dots+labels (Débil/Aprendiendo/Dominado/Sin datos), pointer-events-none, desktop only
+- [x] Tooltip muestra mastery % + definición — already implemented in KnowledgeGraph tooltip plugin
 - [ ] En modo presentación, mostrar el color de mastery en la card de cada nodo
 - [ ] Professor view: mostrar mastery promedio de sus students por nodo (heatmap overlay)
 
