@@ -1361,7 +1361,7 @@ export function KnowledgeMapView() {
         {confirmDeleteNode && (
           <ConfirmDialog
             title="¿Eliminar concepto?"
-            description={`\u201c${confirmDeleteNode.label}\u201d será eliminado de tu mapa. Esta acción no se puede deshacer.`}
+            description={`\u201c${confirmDeleteNode.label}\u201d será eliminado de tu mapa. Puedes deshacerlo con Ctrl+Z.`}
             cancelLabel="Cancelar"
             confirmLabel="Eliminar"
             onCancel={() => setConfirmDeleteNode(null)}
