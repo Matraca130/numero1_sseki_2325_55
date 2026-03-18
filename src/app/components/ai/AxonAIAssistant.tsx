@@ -31,6 +31,7 @@ import {
 import clsx from 'clsx';
 import {
   chat,
+  chatStream,
   explainConcept as explainConceptApi,
   generateFlashcard,
   generateQuizQuestion,
@@ -91,6 +92,9 @@ export function AxonAIAssistant({
   const [messageLogIds, setMessageLogIds] = useState<Map<string, string>>(new Map());
   const [feedbackGiven, setFeedbackGiven] = useState<Map<string, 'positive' | 'negative'>>(new Map());
 
+  // Streaming state
+  const [isStreaming, setIsStreaming] = useState(false);
+
   // Flashcard mode state
   const [generatedCards, setGeneratedCards] = useState<GeneratedFlashcard[]>([]);
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
@@ -136,34 +140,73 @@ export function AxonAIAssistant({
     addMessage('user', msg);
     setIsLoading(true);
 
+    // Build history from previous messages (excluding system errors)
+    const history: ChatHistoryEntry[] = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
+
+    // Attempt streaming first, then fall back to non-streaming
+    const streamingMsgId = `msg-${Date.now()}-${Math.random()}`;
     try {
-      // Build history from previous messages (excluding system errors)
-      const history: ChatHistoryEntry[] = messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
-
-      const result: RagChatResponse = await chat(msg, {
-        history,
-        summaryId,
-      });
-
-      const modelMsgId = `msg-${Date.now()}-${Math.random()}`;
+      // Create placeholder message for progressive rendering
       setMessages(prev => [
         ...prev,
-        { id: modelMsgId, role: 'model', content: result.response, timestamp: new Date() },
+        { id: streamingMsgId, role: 'model', content: '', timestamp: new Date() },
       ]);
+      setIsStreaming(true);
+      setIsLoading(false); // Hide loading dots — streaming content is visible
 
-      // Store sources & log_id keyed by message ID for citations/feedback
-      if (result.sources && result.sources.length > 0) {
-        setMessageSources(prev => new Map(prev).set(modelMsgId, result.sources));
+      let accumulated = '';
+
+      await chatStream(msg, {
+        summaryId,
+        history,
+        onChunk: (chunk) => {
+          accumulated += chunk;
+          const current = accumulated;
+          setMessages(prev =>
+            prev.map(m => m.id === streamingMsgId ? { ...m, content: current } : m)
+          );
+        },
+        onSources: (sources) => {
+          setLastSources(sources);
+        },
+        onDone: (meta) => {
+          setLastLogId(meta.log_id);
+        },
+      });
+
+      setIsStreaming(false);
+    } catch {
+      // Streaming failed — remove placeholder and fall back to non-streaming
+      setMessages(prev => prev.filter(m => m.id !== streamingMsgId));
+      setIsStreaming(false);
+      setIsLoading(true);
+
+      try {
+        const result: RagChatResponse = await chat(msg, {
+          history,
+          summaryId,
+        });
+
+        const fallbackMsgId = `msg-${Date.now()}-${Math.random()}`;
+        setMessages(prev => [
+          ...prev,
+          { id: fallbackMsgId, role: 'model' as const, content: result.response, timestamp: new Date() },
+        ]);
+
+        // Store sources & log_id for citations/feedback
+        if (result.sources && result.sources.length > 0) {
+          setMessageSources(prev => new Map(prev).set(fallbackMsgId, result.sources));
+        }
+        if (result.log_id) {
+          setMessageLogIds(prev => new Map(prev).set(fallbackMsgId, result.log_id));
+        }
+      } catch (err: unknown) {
+        addMessage('system', `Erro: ${(err as Error).message}`, true);
+      } finally {
+        setIsLoading(false);
       }
-      if (result.log_id) {
-        setMessageLogIds(prev => new Map(prev).set(modelMsgId, result.log_id));
-      }
-    } catch (err: any) {
-      addMessage('system', `Erro: ${err.message}`, true);
-    } finally {
-      setIsLoading(false);
     }
   }, [input, isLoading, messages, summaryId]);
 
@@ -520,7 +563,7 @@ export function AxonAIAssistant({
             </div>
           ))}
 
-          {isLoading && (
+          {isLoading && !isStreaming && (
             <div className="flex gap-3 justify-start">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
                 <Sparkles size={12} className="text-white" />
