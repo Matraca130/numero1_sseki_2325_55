@@ -19,6 +19,11 @@ export function useSwipeDismiss(onDismiss: () => void) {
     touchRef.current = { startY: e.touches[0].clientY, startTime: Date.now() };
   }, []);
 
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    // Cancel swipe tracking if a second finger is added (pinch-to-zoom)
+    if (e.touches.length > 1) touchRef.current = null;
+  }, []);
+
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
     if (!touchRef.current) return;
     const dy = e.changedTouches[0].clientY - touchRef.current.startY;
@@ -27,5 +32,5 @@ export function useSwipeDismiss(onDismiss: () => void) {
     if (dy > SWIPE_THRESHOLD && dt < TIME_LIMIT) onDismiss();
   }, [onDismiss]);
 
-  return { onTouchStart, onTouchEnd };
+  return { onTouchStart, onTouchMove, onTouchEnd };
 }

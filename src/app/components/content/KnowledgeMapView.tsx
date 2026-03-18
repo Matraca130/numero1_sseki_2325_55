@@ -535,7 +535,7 @@ export function KnowledgeMapView() {
 
   // Swipe-to-dismiss for mobile bottom sheet
   const dismissSelected = useCallback(() => setSelectedNode(null), []);
-  const { onTouchStart: handleSheetTouchStart, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
+  const { onTouchStart: handleSheetTouchStart, onTouchMove: handleSheetTouchMove, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
 
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
@@ -1238,6 +1238,7 @@ export function KnowledgeMapView() {
               role="region"
               aria-label={`Detalles del concepto: ${selectedNode.label}`}
               onTouchStart={handleSheetTouchStart}
+              onTouchMove={handleSheetTouchMove}
               onTouchEnd={handleSheetTouchEnd}
             >
               {/* Mobile drag handle — swipe down to dismiss */}

@@ -239,9 +239,10 @@ export function useKeyboardNav({
           return;
         }
 
-        // ── Escape: clear focus and selection ──
+        // ── Escape: close shortcuts overlay, clear focus and selection ──
         if (e.key === 'Escape') {
           e.preventDefault();
+          setShowShortcuts(false);
           if (focused) {
             applyFocusRing(g, null, focused);
             setFocusedNodeId(null);

@@ -100,9 +100,13 @@ export function invalidateGraphCache(topicId?: string, summaryId?: string): void
         cache.delete(key);
       }
     }
+  } else if (summaryId) {
+    // Only summaryId provided (no topicId) — invalidate the specific
+    // summary key. Course-level caches may be stale but will refresh
+    // on next fetch via TTL; this avoids nuking the entire cache.
+    cache.delete(`s:${summaryId}`);
   } else {
-    // Only summaryId provided (no topicId) — clear entire cache since
-    // we can't determine which topic owns this summary without a lookup.
+    // No identifiers provided — clear entire cache as fallback.
     cache.clear();
   }
   notifyInvalidation();

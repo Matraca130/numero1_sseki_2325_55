@@ -297,6 +297,9 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 84 audit (performance): Fixed Shift+click multi-selection using O(N) loop → diff-based O(delta) applyMultiSelectionState. Stabilized onNodeClick/onNodeRightClick via refs to prevent G6 event re-registration on tool changes (~10 listeners torn down/rebuilt per tool switch).
 - [x] Round 85 audit (keyboard hooks): Fixed useKeyboardNav missing preventDefault on zoom (+/-), fitView (0/f), Escape, and ? shortcuts — browser-native actions (Firefox zoom, Find in page) were firing simultaneously. useSpacePan verified clean. All 995 tests passing.
 - [x] Round 86 audit (callback stability): Stabilized onNodeClick/onNodeRightClick via refs in useKeyboardNav — prevents keyboard event handler re-registration on every parent re-render. Now both KnowledgeGraph (G6 events) and useKeyboardNav (keyboard events) use the ref pattern for these callbacks.
+- [x] Round 87 audit (useFullscreen): Analyzed potential state desync — determined existing design is correct by design (CSS fallback intentional, fullscreenchange only fires for API path). No changes needed.
+- [x] Round 88 audit (test coverage): Added 3 graceful failure tests to useUndoRedo.test.ts — verifies failed undo/redo removes only failed action (not nuclear clear). All 17 tests passing.
+- [x] Round 89 audit (modal guards + focus trap + AI guard): Fixed 4 bugs: (1) AddNodeEdgeModal outer wrapper onClick bypassed save guard during save, (2) NodeAnnotationModal X button not disabled/guarded during save, (3) useFocusTrap didn't recapture focus if activeElement escaped container, (4) suggestStudentConnections wasted AI call on empty nodeIds. Build clean, all tests passing.
 
 ## Completed
 - [x] Search/filter with debounce

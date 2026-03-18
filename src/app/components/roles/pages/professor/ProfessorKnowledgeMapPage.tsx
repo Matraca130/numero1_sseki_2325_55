@@ -211,7 +211,7 @@ export function ProfessorKnowledgeMapPage() {
 
   // Swipe-to-dismiss for mobile bottom sheet
   const dismissSelected = useCallback(() => setSelectedNode(null), []);
-  const { onTouchStart: handleSheetTouchStart, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
+  const { onTouchStart: handleSheetTouchStart, onTouchMove: handleSheetTouchMove, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
 
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
@@ -523,6 +523,7 @@ export function ProfessorKnowledgeMapPage() {
                   className="lg:hidden absolute bottom-3 left-3 right-3 bg-white rounded-2xl shadow-lg border border-gray-200 p-3 z-10 max-h-[40vh] overflow-y-auto"
                   style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                   onTouchStart={handleSheetTouchStart}
+                  onTouchMove={handleSheetTouchMove}
                   onTouchEnd={handleSheetTouchEnd}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
