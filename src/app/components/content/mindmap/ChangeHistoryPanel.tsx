@@ -85,7 +85,7 @@ export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHi
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
