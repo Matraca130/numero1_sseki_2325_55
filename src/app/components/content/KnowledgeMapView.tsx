@@ -218,6 +218,8 @@ export function KnowledgeMapView() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  const deletingNodeRef = useRef(false);
+  const reconnectingRef = useRef(false);
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   // First-visit onboarding tip
@@ -344,15 +346,17 @@ export function KnowledgeMapView() {
 
   const handleAddStickyNote = useCallback(() => {
     if (!effectiveTopicId) return;
-    if (stickyNotes.length >= 10) {
-      toast.error('Maximo 10 notas por tema');
-      return;
-    }
-    const note = createStickyNote();
-    const next = [...stickyNotes, note];
-    setStickyNotes(next);
-    saveStickyNotes(effectiveTopicId, next);
-  }, [effectiveTopicId, stickyNotes]);
+    setStickyNotes(prev => {
+      if (prev.length >= 10) {
+        toast.error('Máximo 10 notas por tema');
+        return prev;
+      }
+      const note = createStickyNote();
+      const next = [...prev, note];
+      saveStickyNotes(effectiveTopicId, next);
+      return next;
+    });
+  }, [effectiveTopicId]);
 
   // ── Custom node colors ────────────────────────────────────
   const [customNodeColors, setCustomNodeColors] = useState<NodeColorMap>(new Map());
@@ -415,7 +419,8 @@ export function KnowledgeMapView() {
   }, []);
 
   const executeDeleteNode = useCallback(async () => {
-    if (!confirmDeleteNode) return;
+    if (!confirmDeleteNode || deletingNodeRef.current) return;
+    deletingNodeRef.current = true;
     try {
       await deleteCustomNode(confirmDeleteNode.id);
       if (!mountedRef.current) return;
@@ -437,11 +442,15 @@ export function KnowledgeMapView() {
       if (!mountedRef.current) return;
       toast.error(e instanceof Error ? e.message : 'Error al eliminar concepto');
       setConfirmDeleteNode(null);
+    } finally {
+      deletingNodeRef.current = false;
     }
   }, [confirmDeleteNode, refetch, pushAction, effectiveTopicId]);
 
   // Handle edge reconnect: delete old edge, create new edge, record undo action
   const handleEdgeReconnect = useCallback(async (result: EdgeReconnectResult) => {
+    if (reconnectingRef.current) return;
+    reconnectingRef.current = true;
     const { oldEdge, movedEndpoint, newNodeId } = result;
     try {
       // Build new edge source/target
@@ -521,6 +530,8 @@ export function KnowledgeMapView() {
     } catch (e: unknown) {
       if (!mountedRef.current) return;
       toast.error(e instanceof Error ? e.message : 'Error al reconectar arista');
+    } finally {
+      reconnectingRef.current = false;
     }
   }, [effectiveTopicId, pushAction, refetch]);
 
@@ -1331,7 +1342,7 @@ export function KnowledgeMapView() {
             existingNodes={graphData?.nodes ?? []}
             onCreated={refetch}
             onNodeCreated={(nodeId, payload) => { pushAction({ type: 'create-node', nodeId, payload }); setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]); haptic(50); }}
-            onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphData?.nodes.find(n => n.id === payload.source_node_id); const tgtNode = graphData?.nodes.find(n => n.id === payload.target_node_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
+            onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphDataNodesRef.current?.find(n => n.id === payload.source_node_id); const tgtNode = graphDataNodesRef.current?.find(n => n.id === payload.target_node_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
             initialEdgeSource={connectSource?.id}
             initialEdgeTarget={connectTarget?.id}
             initialTab={connectSource ? 'edge' : undefined}
