@@ -86,7 +86,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Historial de cambios del mapa — timeline de nodos/edges creados con timestamps — ChangeHistoryPanel integrated into KnowledgeMapView: barrel export in index.ts, state + useEffects for sessionStorage persistence, history entries recorded on node/edge create and node delete, "Historial" button in header (mutually exclusive with AI panel), panel rendered alongside AiTutorPanel
 - [x] Mini-map de navegación (overview en esquina) — G6 tiene plugin minimap built-in — Already implemented: G6 minimap plugin with brand viewport indicator (#2a8c7a), toggle in toolbar, desktop/mobile defaults. Added responsive sizing: 120x80px mobile, 150x100px desktop
 - [x] Modo presentación — navegar nodo por nodo con flechas, mostrando definiciones — PresentationMode.tsx (218 lines) + presentationHelpers.ts (106 lines): fullscreen overlay bg-[#1B3B36]/92, centered white card with keyword name/definition/mastery, arrow key + on-screen chevron navigation, topological sort, graph focusNode integration, progress bar, AnimatePresence slide transitions. "Presentar" button in KnowledgeMapView header
-- [ ] Integrar IA tutor panel con datos REALES del backend — BLOCKED: AI endpoints (/ai/analyze-knowledge-graph, /ai/suggest-student-connections, /ai/student-weak-points) do NOT exist in backend routes-student.ts. Frontend mock fallback works in dev mode
+- [x] Integrar IA tutor panel con datos REALES del backend — UNBLOCKED: 3 backend endpoints created (analyze-graph, suggest-connections, weak-points). Frontend mocks removed, real API connected, build passes
 - [x] Comparar mapa del student vs mapa "ideal" del professor — MapComparisonPanel.tsx: sliding side panel comparing student graph vs base (professor-curated) graph. Shows donut chart of mastery distribution, coverage stats (mastered/learning/weak/no data), knowledge gaps list with "Estudiar" action buttons, student custom additions section, summary card. Click stats to highlight nodes on graph. Integrated into KnowledgeMapView header with GitCompareArrows icon, mutually exclusive with AI/History panels. Barrel export + smoke tests + directory completeness updated
 
 ### ralph-designer: Auditoría premium
@@ -141,11 +141,11 @@ las llamadas API, aunque el backend aún no exista):
 - [ ] Tests para los 3 endpoints
 
 ### 1B. Frontend — Integración con Backend Real
-- [ ] Integrar IA tutor panel con datos REALES del backend — eliminar mock fallback, conectar a los 3 endpoints reales, manejar errores/loading, verificar que los tipos matcheen
+- [x] Integrar IA tutor panel con datos REALES del backend — removed all mock data (MOCK_ANALYZE, MOCK_SUGGESTIONS, MOCK_WEAK_POINTS), connected to real endpoints, added _meta type, relaxed action string unions, build passes clean
 - [ ] Professor template maps — endpoint GET/POST /professor/graph-templates, UI para que el profesor guarde su grafo como template
 
 ### 1C. Herramientas Avanzadas del Grafo (XMind-level)
-- [ ] Flechas direccionales — soportar edges con dirección (flecha de A→B), selector de dirección en AddNodeEdgeModal, render de arrowhead en G6
+- [x] Flechas direccionales — directed field on MapEdge, endArrow in KnowledgeGraph+MiniKnowledgeGraph, toggle "Flecha direccional" in AddNodeEdgeModal with auto-sync from connection type, createCustomEdge payload updated
 - [ ] Tipos de flecha avanzados — diamond, circle, open arrow, closed arrow, selectable en modal
 - [ ] Texto en edges — labels editables sobre las líneas de conexión, doble-click para editar inline
 - [ ] Multi-selección de nodos — Shift+click o drag-select para seleccionar múltiples nodos, mover en grupo, eliminar en batch
