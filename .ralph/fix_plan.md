@@ -131,8 +131,63 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Contract tests para AiTutorPanel props — 20 tests: module contract (2), prop interface (6), scoreColor computation (6), action labels (2), easing math (4). Filesystem-based export check + pure logic tests
 - [x] Contract tests para MapToolsPanel props — 16 tests: module contract (2), MapTool values (4), TOOLS array (7), prop contract (3), active tool logic (2). Filesystem-based export check + replicated logic
 
-## Priority 1 (Features pendientes — menor prioridad)
-- [ ] Professor template maps — BLOCKED: requires backend endpoints
+## Priority 1 — SPRINT NOCTURNO 2026-03-18 (LOOP AUTÓNOMO OPUS)
+
+### 1A. Backend AI Endpoints (en axon-backend rama feature/mindmap-ai-endpoints)
+- [ ] Crear POST /ai/analyze-knowledge-graph — recibe topic_id, analiza BKT states + keyword_connections + embeddings con Gemini, devuelve weak_areas, strong_areas, missing_connections, study_path, overall_score, summary_text
+- [ ] Crear POST /ai/suggest-student-connections — recibe topic_id + existing_node_ids + existing_edge_ids, usa embeddings para encontrar keywords similares, Gemini clasifica tipo de conexión, devuelve [{source, target, type, reason, confidence}]
+- [ ] Crear GET /ai/student-weak-points?topic_id=X — consulta BKT states del student, ordena por mastery ascendente, devuelve [{keyword_id, name, mastery, last_reviewed, recommended_action}]
+- [ ] Registrar los 3 endpoints en routes/ai/index.ts con auth + institution check
+- [ ] Tests para los 3 endpoints
+
+### 1B. Frontend — Integración con Backend Real
+- [ ] Integrar IA tutor panel con datos REALES del backend — eliminar mock fallback, conectar a los 3 endpoints reales, manejar errores/loading, verificar que los tipos matcheen
+- [ ] Professor template maps — endpoint GET/POST /professor/graph-templates, UI para que el profesor guarde su grafo como template
+
+### 1C. Herramientas Avanzadas del Grafo (XMind-level)
+- [ ] Flechas direccionales — soportar edges con dirección (flecha de A→B), selector de dirección en AddNodeEdgeModal, render de arrowhead en G6
+- [ ] Tipos de flecha avanzados — diamond, circle, open arrow, closed arrow, selectable en modal
+- [ ] Texto en edges — labels editables sobre las líneas de conexión, doble-click para editar inline
+- [ ] Multi-selección de nodos — Shift+click o drag-select para seleccionar múltiples nodos, mover en grupo, eliminar en batch
+- [ ] Agrupación/clusters — drag nodos dentro de un grupo visual (bounding box con label), colapsable
+- [ ] Snap-to-grid — opción en toolbar para alinear nodos a grid, toggle on/off
+- [ ] Auto-layout inteligente — botón que reorganiza el grafo con algoritmo tree/radial/force optimal según la estructura
+- [ ] Zoom to fit selection — al seleccionar nodos, zoom automático para que quepan en pantalla
+- [ ] Sticky notes — post-it virtuales que el student puede poner sobre el mapa con texto libre
+- [ ] Colores personalizados para nodos — color picker en context menu del nodo, persistir en localStorage
+- [ ] Conectar arrastrando desde borde del nodo — true drag-to-connect (no click-click), mostrar línea temporal mientras se arrastra
+
+### 1D-pre. Integración de Colores de Keywords/Mastery en el Grafo
+- [ ] Nodos del grafo DEBEN reflejar el color de mastery del keyword (rojo=bajo, amarillo=medio, verde=alto, gris=sin datos) — verificar que BKT states se usan para colorear
+- [ ] Al cambiar mastery (después de quiz/flashcard), el color del nodo se actualiza en tiempo real via cache invalidation
+- [ ] Gradientes de color según nivel de mastery (0-0.3 rojo, 0.3-0.7 amarillo, 0.7-1.0 verde) con transición suave
+- [ ] Leyenda de colores siempre visible en el mapa (mini badge en esquina) que explique qué significa cada color
+- [ ] Tooltip del nodo debe mostrar mastery % + color + última fecha de review
+- [ ] En modo presentación, mostrar el color de mastery en la card de cada nodo
+- [ ] Professor view: mostrar mastery promedio de sus students por nodo (heatmap overlay)
+
+### 1D. Interacciones y UX Premium
+- [ ] Double-click en nodo para expandir/contraer sus hijos (toggle collapse)
+- [ ] Pinch-to-zoom en mobile (touch gesture)
+- [ ] Keyboard navigation — Tab entre nodos, Enter para abrir, Escape para cerrar
+- [ ] Breadcrumb trail — al hacer drill-down en un cluster, mostrar breadcrumb para volver
+- [ ] Quick-add — tecla "+" para agregar nodo conectado al nodo seleccionado sin abrir modal
+- [ ] Drag edge to reconnect — arrastrar el extremo de una edge para cambiar su target
+- [ ] Minimap highlight — al hover sobre minimap, highlight el area correspondiente en el canvas principal
+- [ ] Pan con middle-click o Space+drag
+
+### 1E. QA y Calidad Continua
+- [ ] Audit round 11: buscar bugs en las nuevas features del sprint nocturno
+- [ ] Review findings H1 fix: reemplazar 30+ hardcoded hex colors con palette.ts tokens
+- [ ] Review findings M3 fix: catch blocks vacíos en KnowledgeGraph → error type checking específico
+- [ ] Review findings M1 fix: reemplazar `as any` en tests con typed fixtures
+- [ ] Tests para todas las nuevas features (flechas, multi-select, clusters, sticky notes)
+- [ ] Performance test: simular 500+ nodos, verificar que no hay degradación
+- [ ] Build verification después de cada grupo de cambios
+- [ ] Push al remoto después de cada commit exitoso
+
+### 1F. Features Pendientes (menor prioridad)
+- [ ] Professor template maps — crear/guardar/cargar templates de grafos
 
 ## Priority 2 (Mejoras de UX)
 - [x] Mejorar transiciones entre vistas (fade/slide al navegar desde el mapa) — added 150ms opacity fade-out transition on navigateWithFade before routing to flashcard/quiz/summary
