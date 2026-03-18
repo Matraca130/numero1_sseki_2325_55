@@ -234,13 +234,13 @@ export function KnowledgeGraph({
   // Helper: apply multi-selection visual state to G6 nodes
   const applyMultiSelectionState = useCallback((graph: Graph, ids: Set<string>) => {
     try {
-      // Clear all selected states first, then apply to selected nodes
-      for (const node of data.nodes) {
+      // Use ref for stable reference — avoids stale closure cascade
+      for (const node of dataNodesRef.current) {
         graph.setElementState(node.id, ids.has(node.id) ? ['multiSelected'] : []);
       }
       graph.draw();
     } catch (e) { warnIfNotDestroyed(e); }
-  }, [data.nodes]);
+  }, []);
 
   // Update multi-selection and notify parent
   const updateMultiSelection = useCallback((nextIds: Set<string>) => {
@@ -947,7 +947,8 @@ export function KnowledgeGraph({
     const handleBrushSelect = (evt: { data: { nodes?: string[] } }) => {
       const selectedIds = evt.data?.nodes ?? [];
       if (selectedIds.length > 0) {
-        const next = new Set(selectedIds);
+        // Merge with existing multi-selection (brush requires Shift, so always merge)
+        const next = new Set([...multiSelectedIdsRef.current, ...selectedIds]);
         setMultiSelectedIds(next);
         onMultiSelectRef.current?.(selectedIds);
         // Apply visual state

@@ -128,9 +128,11 @@ export function KnowledgeMapView() {
     courseTopicIds: scope === 'course' ? courseTopicIds : undefined,
   });
 
-  // Stable ref for graphData.nodes — avoids recreating callbacks on every fetch
+  // Stable refs for graphData — avoids recreating callbacks on every fetch
   const graphDataNodesRef = useRef(graphData?.nodes);
   graphDataNodesRef.current = graphData?.nodes;
+  const graphDataEdgesRef = useRef(graphData?.edges);
+  graphDataEdgesRef.current = graphData?.edges;
 
   // Undo/redo history for custom node/edge actions
   const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch);
@@ -438,8 +440,8 @@ export function KnowledgeMapView() {
       const newSource = movedEndpoint === 'source' ? newNodeId : oldEdge.source;
       const newTarget = movedEndpoint === 'target' ? newNodeId : oldEdge.target;
 
-      // Guard: prevent duplicate edges
-      const edgeExists = graphData?.edges.some(
+      // Guard: prevent duplicate edges (use ref for fresh data)
+      const edgeExists = graphDataEdgesRef.current?.some(
         e => e.source === newSource && e.target === newTarget && e.id !== oldEdge.id,
       );
       if (edgeExists) {
