@@ -16,6 +16,7 @@ integraciones rotas, performance, UX issues, y arreglarlos.
 - [x] Buscar inconsistencias de diseño entre componentes — fixed text-lg→clamp() on modal headings, zinc-*→gray-* in MicroGraphPanel, rounded-lg→rounded-full on close buttons
 - [x] Verificar que ErrorBoundary esté en todo componente G6 — all 3 render sites wrapped
 - [x] Verificar que la paleta brand (#2a8c7a) esté aplicada y no haya teal-500 genérico — fixed #f0fdf9 → #e8f5f1 in user-created nodes
+- [x] Round 11 deep audit (19 files): 2 HIGH fixed (mounted guards for handleAiSuggest + executeDeleteConnection in ProfessorKnowledgeMapPage), 5 MEDIUM noted (StickyNote localStorage on every pixel, stale data.nodes closure, invalid focusRingColor CSS). 86 new tests added (presentationHelpers 26, changeHistoryHelpers 20, useEdgeReconnect 24, useCountUp 16)
 
 ## Priority 0B — CAMBIAR TODO A ESPAÑOL (HACER PRIMERO)
 - [x] Cambiar TODA la UI del student de portugués a español en TODOS los componentes del mindmap — Changed all 70+ Portuguese strings to Spanish across 12 files: AddNodeEdgeModal, NodeContextMenu, NodeAnnotationModal, MicroGraphPanel, MiniKnowledgeGraph, KnowledgeGraph (default locale pt→es), GraphToolbar (default locale pt→es), useGraphData, KnowledgeMapView (onboarding, empty states, labels, toasts, aria), useKeywordPopupQueries, useSummaryReaderMutations, useAnnotationMutations, useSummaryViewQueries
