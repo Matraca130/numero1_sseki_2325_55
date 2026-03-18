@@ -83,16 +83,19 @@ export function GraphTemplatePanel({
   const deletingRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const focusTrapRef = useFocusTrap(open);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const [loadTarget, setLoadTarget] = useState<GraphTemplate | null>(null);
 
   // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open]);
 
   // ── Fetch templates on open ───────────────────────────────
 
@@ -118,6 +121,7 @@ export function GraphTemplatePanel({
       setSaveName('');
       setSaveDescription('');
       setDeleteTarget(null);
+      setLoadTarget(null);
     }
   }, [open, loadTemplates]);
 
@@ -192,10 +196,13 @@ export function GraphTemplatePanel({
 
   // ── Load handler ──────────────────────────────────────────
 
-  const handleLoad = useCallback((template: GraphTemplate) => {
-    onLoadTemplate(template.nodes, template.edges);
-    toast.success(`Plantilla "${template.name}" cargada`);
-  }, [onLoadTemplate]);
+  const executeLoad = useCallback(() => {
+    if (!loadTarget) return;
+    onLoadTemplate(loadTarget.nodes, loadTarget.edges);
+    toast.success(`Plantilla "${loadTarget.name}" cargada`);
+    setLoadTarget(null);
+    onCloseRef.current();
+  }, [loadTarget, onLoadTemplate]);
 
   // ── Render ────────────────────────────────────────────────
 
@@ -210,7 +217,8 @@ export function GraphTemplatePanel({
             transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
             ref={focusTrapRef}
             className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
-            role="complementary"
+            role="dialog"
+            aria-modal="true"
             aria-label="Panel de plantillas de grafo"
           >
             {/* Header */}
@@ -431,7 +439,7 @@ export function GraphTemplatePanel({
                       {/* Actions */}
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleLoad(template)}
+                          onClick={() => setLoadTarget(template)}
                           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 font-medium text-white rounded-full transition-colors"
                           style={{
                             backgroundColor: BRAND.primary,
@@ -472,10 +480,23 @@ export function GraphTemplatePanel({
         )}
       </AnimatePresence>
 
+      {/* Load confirmation */}
+      {loadTarget && (
+        <ConfirmDialog
+          title="¿Cargar plantilla?"
+          description={`Cargar "${loadTarget.name}" reemplazará el grafo actual. ¿Continuar?`}
+          cancelLabel="Cancelar"
+          confirmLabel="Cargar"
+          onCancel={() => setLoadTarget(null)}
+          onConfirm={executeLoad}
+          zClass="z-[60]"
+        />
+      )}
+
       {/* Delete confirmation */}
       {deleteTarget && (
         <ConfirmDialog
-          title="\u00bfEliminar plantilla?"
+          title="¿Eliminar plantilla?"
           description={`Se eliminará la plantilla "${deleteTarget.name}". Esta acción no se puede deshacer.`}
           cancelLabel="Cancelar"
           confirmLabel={deleting ? 'Eliminando...' : 'Eliminar'}

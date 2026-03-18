@@ -40,6 +40,8 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   const [saving, setSaving] = useState(false);
   const [shake, setShake] = useState(false);
   const savingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const focusTrapRef = useFocusTrap(!!node);
@@ -76,7 +78,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   useEffect(() => {
     if (!node) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !savingRef.current) onClose();
+      if (e.key === 'Escape' && !savingRef.current) { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';
@@ -86,7 +88,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, [node, onClose]);
+  }, [node]);
 
   const handleSave = useCallback(async () => {
     if (!node || !content.trim() || savingRef.current) return;
