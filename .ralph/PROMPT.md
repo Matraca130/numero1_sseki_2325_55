@@ -98,9 +98,19 @@ The mind map is NOT just a visualization — it's an interactive TOOL where:
 - Si hay más tareas en fix_plan.md, ralph-lead toma las siguientes y repite el ciclo completo
 - SOLO cuando fix_plan.md no tenga tareas pendientes Y los 3 QA aprueben → PARAR
 
+## UX/Performance (MÁXIMA PRIORIDAD)
+- Los nodos deben verse PREMIUM — bordes suaves, sombras sutiles, colores de mastery vibrantes
+- Animaciones a 60fps — usar requestAnimationFrame, CSS transforms (no layout thrashing)
+- Interacciones fluidas: drag suave, zoom sin lag, pan sin jitter
+- Optimizar rendimiento para 500+ nodos — virtualización, culling, batch renders
+- Cada feature nueva debe pasar por revisión de UX: ¿es intuitivo? ¿es fluido? ¿se siente premium?
+- Nodos: rounded, con glow sutil de mastery color, hover scale suave, click feedback visual
+- Edges: anti-aliased, con arrowheads limpios, labels legibles, colores semánticos
+- Múltiples rondas de QA visual después de cada cambio
+
 ## Rules
 - Never use generic teal-500, always use #2a8c7a
-- Never use Haiku model for subagents (Opus or Sonnet only)
+- Always use Opus model for subagents (NEVER Haiku, NEVER Sonnet)
 - Always run npm run build after changes
 - Don't modify src/app/components/ui/ (shadcn primitives)
 - Use ErrorBoundary on all G6 components
