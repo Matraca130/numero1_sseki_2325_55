@@ -216,6 +216,17 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
     };
   }, []);
 
+  // Reset all state when topicId changes (prevents stale data from previous topic)
+  useEffect(() => {
+    setAnalysis(null);
+    setWeakPoints([]);
+    setSuggestions([]);
+    setAcceptedSuggestions(new Set());
+    setAcceptingKey(null);
+    setImprovedNodes([]);
+    prevWeakMapRef.current = new Map();
+  }, [topicId]);
+
   const analyzingRef = useRef(false);
   const handleAnalyze = useCallback(async () => {
     if (analyzingRef.current) return;

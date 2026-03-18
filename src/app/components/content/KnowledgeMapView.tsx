@@ -581,7 +581,8 @@ export function KnowledgeMapView() {
     const weak = nodes.filter(n => n.masteryColor === 'red').length;
     const noData = nodes.filter(n => n.masteryColor === 'gray').length;
 
-    const avgMastery = nodes.reduce((sum, n) => sum + (n.mastery >= 0 ? n.mastery : 0), 0) / total;
+    const withData = nodes.filter(n => n.mastery >= 0);
+    const avgMastery = withData.length > 0 ? withData.reduce((sum, n) => sum + n.mastery, 0) / withData.length : 0;
 
     return { total, mastered, learning, weak, noData, avgMastery };
   }, [graphData]);
