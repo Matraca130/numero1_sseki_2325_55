@@ -41,6 +41,8 @@ export interface StudyPathStep {
 export interface AiResponseMeta {
   model: string;
   tokens: { input: number; output: number };
+  keyword_count?: number;
+  connection_count?: number;
 }
 
 export interface AnalyzeKnowledgeGraphResponse {

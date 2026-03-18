@@ -42,7 +42,7 @@ export function getSafeMasteryColor(mastery: number): MasteryColor {
   return mastery < 0 ? 'gray' : getMasteryColor(mastery);
 }
 
-export function getMasteryLabel(color: MasteryColor, locale: 'pt' | 'es' = 'pt'): string {
+export function getMasteryLabel(color: MasteryColor, locale: 'pt' | 'es' = 'es'): string {
   if (locale === 'pt') {
     switch (color) {
       case 'green':  return 'Dominado';

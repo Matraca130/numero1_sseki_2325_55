@@ -6,7 +6,7 @@
 // Max 10 notes per topic.
 // ============================================================
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { X } from 'lucide-react';
 
 // ── Types ───────────────────────────────────────────────────
@@ -89,7 +89,7 @@ interface StickyNoteProps {
 
 // ── Component ───────────────────────────────────────────────
 
-export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
+export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, noteX: 0, noteY: 0 });
@@ -253,7 +253,7 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
       </div>
     </div>
   );
-}
+});
 
 // ── StickyNotesLayer ────────────────────────────────────────
 
