@@ -110,6 +110,11 @@ function findGaps(data: GraphData): GapNode[] {
 
 function MasteryDonut({ stats }: { stats: CoverageStats }) {
   const { mastered, learning, weak, noData, total } = stats;
+
+  // Hooks MUST be called unconditionally (Rules of Hooks)
+  const pct = Math.round(stats.avgMastery * 100);
+  const animPct = useCountUp(pct, 800);
+
   if (total === 0) return null;
 
   const r = 36;
@@ -131,9 +136,6 @@ function MasteryDonut({ stats }: { stats: CoverageStats }) {
     offset += len;
     return arc;
   });
-
-  const pct = Math.round(stats.avgMastery * 100);
-  const animPct = useCountUp(pct, 800);
 
   return (
     <div className="flex flex-col items-center">
@@ -470,6 +472,7 @@ function StatBadge({
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
+      {...(onClick ? { type: 'button' as const } : {})}
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
       style={{ backgroundColor: bg }}

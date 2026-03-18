@@ -194,8 +194,10 @@ export function GraphToolbar({
   }, [showEdgeLegend, showExportMenu]);
 
   // Handle export action
+  const exportingRef = useRef(false);
   const handleExport = async (exportFn: (() => Promise<void>) | undefined) => {
-    if (!exportFn || exporting) return;
+    if (!exportFn || exportingRef.current) return;
+    exportingRef.current = true;
     setExporting(true);
     setShowExportMenu(false);
     try {
@@ -203,6 +205,7 @@ export function GraphToolbar({
     } catch {
       // Caller may show toast; silently fail here
     } finally {
+      exportingRef.current = false;
       setExporting(false);
     }
   };
