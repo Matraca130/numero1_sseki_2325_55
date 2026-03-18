@@ -29,6 +29,7 @@ import { loadPositions, saveNodePosition } from './useNodePositions';
 import type { PositionMap } from './useNodePositions';
 import { NODE_COLOR_FILL } from './useNodeColors';
 import { useKeyboardNav } from './useKeyboardNav';
+import { useSpacePan } from './useSpacePan';
 
 type Locale = 'pt' | 'es';
 
@@ -84,6 +85,7 @@ const I18N_GRAPH: Record<Locale, {
       ['Enter', 'Menu de contexto'], ['+', 'Adicionar nodo conectado'],
       ['Duplo-clique', 'Recolher/expandir'], ['Ctrl+[', 'Recolher todos'],
       ['Ctrl+]', 'Expandir todos'], ['Shift+clique', 'Selecionar vários'],
+      ['Espaço+arrastar', 'Mover mapa'],
       ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
   },
   es: {
@@ -108,6 +110,7 @@ const I18N_GRAPH: Record<Locale, {
       ['Enter', 'Menu contextual'], ['+', 'Agregar nodo conectado'],
       ['Doble clic', 'Colapsar/expandir'], ['Ctrl+[', 'Colapsar todos'],
       ['Ctrl+]', 'Expandir todos'], ['Shift+clic', 'Seleccionar varios'],
+      ['Espacio+arrastrar', 'Mover mapa'],
       ['Esc', 'Deseleccionar'], ['?', 'Esta ayuda']],
   },
 };
@@ -936,6 +939,13 @@ export function KnowledgeGraph({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps — onCollapseChange stabilized via onCollapseChangeRef
   }, [ready, graphVersion, onNodeClick, onNodeRightClick]);
+
+  // Space+drag panning: hold Space to pan instead of dragging nodes
+  useSpacePan({
+    graphRef: graphRef as React.RefObject<Graph | null>,
+    containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
+    ready,
+  });
 
   // Keyboard navigation: Tab, Arrow keys, Enter, Escape, +, zoom, collapse
   const { focusedNodeId } = useKeyboardNav({

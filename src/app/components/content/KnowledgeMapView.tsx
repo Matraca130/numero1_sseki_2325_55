@@ -908,6 +908,13 @@ export function KnowledgeMapView() {
                 topicId={effectiveTopicId}
                 showMinimap={showMinimap}
                 customNodeColors={customNodeColors}
+                onQuickAdd={(sourceId) => {
+                  const sourceNode = graphData?.nodes.find(n => n.id === sourceId);
+                  if (sourceNode) {
+                    setConnectSource(sourceNode);
+                    setAddModalOpen(true);
+                  }
+                }}
               />
             ) : searchQuery.trim() ? (
               <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
