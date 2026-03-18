@@ -220,20 +220,24 @@ export function useKeyboardNav({
 
         // ── Zoom/view shortcuts ──
         if (e.key === '=' || (e.key === '+' && !focused)) {
+          e.preventDefault();
           g.zoomBy(1.25, { duration: 200 });
           return;
         }
         if (e.key === '-') {
+          e.preventDefault();
           g.zoomBy(0.8, { duration: 200 });
           return;
         }
         if (e.key === '0' || e.key === 'f') {
+          e.preventDefault();
           g.fitView();
           return;
         }
 
         // ── Escape: clear focus and selection ──
         if (e.key === 'Escape') {
+          e.preventDefault();
           if (focused) {
             applyFocusRing(g, null, focused);
             setFocusedNodeId(null);
@@ -259,6 +263,7 @@ export function useKeyboardNav({
 
         // ── ?: toggle shortcut help ──
         if (e.key === '?') {
+          e.preventDefault();
           setShowShortcuts(v => !v);
           return;
         }
