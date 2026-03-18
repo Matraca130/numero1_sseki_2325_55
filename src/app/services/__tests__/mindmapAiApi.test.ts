@@ -116,7 +116,7 @@ describe('getStudentWeakPoints', () => {
     mockApiCall.mockRejectedValueOnce(new Error('Server error'));
 
     await expect(getStudentWeakPoints('topic-fail')).rejects.toThrow(
-      'No se pudieron obtener los puntos debiles del estudiante: Server error',
+      'No se pudieron obtener los puntos débiles del estudiante: Server error',
     );
   });
 });
