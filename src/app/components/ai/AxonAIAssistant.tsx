@@ -101,11 +101,6 @@ export function AxonAIAssistant({
     }
   }, [isOpen, mode]);
 
-  const context: ai.ChatContext = {
-    courseName: currentCourse?.name,
-    topicTitle: currentTopic?.title,
-  };
-
   // ── Chat ──────────────────────────────────────────────
 
   const addMessage = (role: DisplayMessage['role'], content: string, isError = false) => {
@@ -123,20 +118,69 @@ export function AxonAIAssistant({
     addMessage('user', msg);
     setIsLoading(true);
 
-    try {
-      const history: ChatMessage[] = messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
-      history.push({ role: 'user', content: msg });
+    const history: ChatMessage[] = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
 
-      const reply = await ai.chat(history, context);
-      addMessage('model', reply);
-    } catch (err: any) {
-      addMessage('system', `Erro: ${err.message}`, true);
+    const summaryId = currentTopic?.id;
+
+    // Create the model message placeholder for progressive updates
+    const modelMsgId = `msg-${Date.now()}-${Math.random()}`;
+
+    try {
+      // Streaming path
+      setMessages(prev => [
+        ...prev,
+        { id: modelMsgId, role: 'model' as const, content: '', timestamp: new Date(), isError: false },
+      ]);
+
+      await ai.chatStream(
+        msg,
+        { summaryId, history },
+        // onChunk: progressively append text to the model message
+        (chunkText: string) => {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === modelMsgId ? { ...m, content: m.content + chunkText } : m
+            )
+          );
+        },
+        // onSources: log for now (sources display can be enhanced later)
+        (_sources) => {
+          // Sources available — could be surfaced in UI in a future iteration
+        },
+        // onDone: stream complete
+        (_logId) => {
+          // Log ID available for feedback
+        },
+      );
+    } catch {
+      // Fallback to non-streaming chat if streaming fails
+      try {
+        // Remove the empty streaming placeholder if it exists
+        setMessages(prev => prev.filter(m => m.id !== modelMsgId || m.content.length > 0));
+
+        const reply = await ai.chat(msg, { summaryId, history });
+        if (reply.response) {
+          // Only add if the streaming placeholder was removed (empty)
+          setMessages(prev => {
+            const existing = prev.find(m => m.id === modelMsgId);
+            if (existing && existing.content.length > 0) return prev; // streaming partially worked
+            const filtered = prev.filter(m => m.id !== modelMsgId);
+            return [
+              ...filtered,
+              { id: modelMsgId, role: 'model' as const, content: reply.response, timestamp: new Date(), isError: false },
+            ];
+          });
+        }
+      } catch (fallbackErr: any) {
+        setMessages(prev => prev.filter(m => m.id !== modelMsgId || m.content.length > 0));
+        addMessage('system', `Erro: ${fallbackErr.message}`, true);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, context]);
+  }, [input, isLoading, messages, currentTopic]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

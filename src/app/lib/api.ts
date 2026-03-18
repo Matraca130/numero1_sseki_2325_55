@@ -201,3 +201,54 @@ export async function ensureGeneralKeyword(summaryId: string): Promise<string> {
 
   return created.id;
 }
+
+// ── Streaming API call (SSE) ────────────────────────────
+
+/**
+ * Stream an API response via Server-Sent Events.
+ * Returns an async generator that yields parsed SSE data objects.
+ */
+export async function* apiCallStream<T = unknown>(
+  path: string,
+  options: { method?: string; body?: unknown } = {},
+): AsyncGenerator<T> {
+  const url = `${API_BASE}${path}`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${ANON_KEY}`,
+  };
+  const token = getAccessToken();
+  if (token) headers['X-Access-Token'] = token;
+
+  const res = await fetch(url, {
+    method: options.method ?? 'POST',
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Stream error ${res.status}: ${text}`);
+  }
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          yield JSON.parse(line.slice(6)) as T;
+        } catch { /* skip malformed */ }
+      }
+    }
+  }
+}
