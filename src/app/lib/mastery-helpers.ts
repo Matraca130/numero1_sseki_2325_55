@@ -64,6 +64,99 @@ export function getKeywordMastery(subtopicBkts: BktState[]): number {
 /**
  * Tailwind classes for each mastery color.
  */
+// ============================================================
+// Spec v4.2 section 6.2 — Relative Delta Color Scale
+//
+// Instead of absolute mastery thresholds, colors are based on
+// delta = displayMastery / threshold, where threshold depends
+// on clinical_priority (0.0-1.0).
+//
+// Priority mapping (API sends integer 1-3):
+//   1 (low)    -> clinicalPriority 0.0 -> threshold 0.70
+//   2 (medium) -> clinicalPriority 0.5 -> threshold 0.80
+//   3 (high)   -> clinicalPriority 1.0 -> threshold 0.90
+//
+// Delta levels:
+//   >= 1.10  -> blue   (Superado — con buffer)
+//   >= 1.00  -> green  (Dominado — meta alcanzada)
+//   >= 0.85  -> yellow (Proximo — casi listo)
+//   >= 0.50  -> orange (Insuficiente)
+//   <  0.50  -> red    (Critico)
+// ============================================================
+
+/**
+ * Compute the domination threshold from a clinical priority [0.0-1.0].
+ * Linear interpolation: priority 0.0 -> 0.70, priority 1.0 -> 0.90.
+ */
+export function getDominationThreshold(clinicalPriority: number): number {
+  return 0.70 + clinicalPriority * 0.20;
+}
+
+export type DeltaColorLevel = 'red' | 'orange' | 'yellow' | 'green' | 'blue';
+
+/**
+ * Compute the delta color level from a display mastery and threshold.
+ * delta = displayMastery / threshold.
+ */
+export function getDeltaColor(displayMastery: number, threshold: number): DeltaColorLevel {
+  const delta = threshold > 0 ? displayMastery / threshold : 0;
+  if (delta >= 1.10) return 'blue';     // Superado — con buffer
+  if (delta >= 1.00) return 'green';    // Dominado — meta alcanzada
+  if (delta >= 0.85) return 'yellow';   // Proximo — casi listo
+  if (delta >= 0.50) return 'orange';   // Insuficiente
+  return 'red';                          // Critico
+}
+
+/**
+ * Map a DeltaColorLevel to Tailwind CSS classes.
+ */
+export function getDeltaColorClasses(level: DeltaColorLevel): {
+  bg: string;
+  text: string;
+  border: string;
+  dot: string;
+} {
+  const map: Record<DeltaColorLevel, { bg: string; text: string; border: string; dot: string }> = {
+    red:    { bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-300',     dot: 'bg-red-500' },
+    orange: { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-300',  dot: 'bg-orange-500' },
+    yellow: { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-300',   dot: 'bg-amber-500' },
+    green:  { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500' },
+    blue:   { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-300',    dot: 'bg-blue-500' },
+  };
+  return map[level];
+}
+
+/**
+ * Spanish label for a DeltaColorLevel.
+ */
+export function getDeltaColorLabel(level: DeltaColorLevel): string {
+  const labels: Record<DeltaColorLevel, string> = {
+    red: 'Critico',
+    orange: 'Insuficiente',
+    yellow: 'Proximo',
+    green: 'Dominado',
+    blue: 'Superado',
+  };
+  return labels[level];
+}
+
+/**
+ * Convenience wrapper for keyword-level delta color.
+ *
+ * The API returns priority as an integer 1-3:
+ *   1 (low)    -> clinicalPriority 0.0
+ *   2 (medium) -> clinicalPriority 0.5
+ *   3 (high)   -> clinicalPriority 1.0
+ *
+ * @param mastery - keyword mastery [0-1]
+ * @param priority - professor-assigned priority (integer 1-3, defaults to 1)
+ */
+export function getKeywordDeltaColor(mastery: number, priority: number = 1): DeltaColorLevel {
+  const clinicalPriority = Math.max(0, Math.min(1, (priority - 1) / 2));
+  const threshold = getDominationThreshold(clinicalPriority);
+  return getDeltaColor(mastery, threshold);
+}
+
 export function getMasteryTailwind(color: MasteryColor): {
   bg: string;
   text: string;
