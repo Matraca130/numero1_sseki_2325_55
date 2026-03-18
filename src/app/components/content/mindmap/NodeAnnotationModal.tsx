@@ -48,7 +48,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
 
     let cancelled = false;
     setLoading(true);
-    apiCall<StudentNote[] | { items: StudentNote[] }>(`/kw-student-notes?keyword_id=${node.id}`)
+    apiCall<StudentNote[] | { items: StudentNote[] }>(`/kw-student-notes?keyword_id=${encodeURIComponent(node.id)}`)
       .then((result) => {
         if (cancelled) return;
         const notes = Array.isArray(result) ? result : result?.items || [];
@@ -74,7 +74,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   useEffect(() => {
     if (!node) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !savingRef.current) onClose();
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';
@@ -150,7 +150,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 z-50"
-            onClick={onClose}
+            onClick={() => { if (!savingRef.current) onClose(); }}
             aria-hidden="true"
           />
 

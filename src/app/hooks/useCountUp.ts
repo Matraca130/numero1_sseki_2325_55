@@ -15,11 +15,21 @@ import { useState, useEffect, useRef } from 'react';
 export function useCountUp(target: number, duration = 800): number {
   const [value, setValue] = useState(0);
   const prevTargetRef = useRef<number | null>(null);
+  const currentValueRef = useRef(0);
+
+  // Keep ref in sync with state
+  currentValueRef.current = value;
 
   useEffect(() => {
     // Skip if target hasn't actually changed (prevents re-animation on re-renders)
     if (prevTargetRef.current === target) return;
     prevTargetRef.current = target;
+
+    // Guard against NaN/Infinity
+    if (!Number.isFinite(target)) {
+      setValue(0);
+      return;
+    }
 
     if (target === 0) {
       setValue(0);
@@ -33,6 +43,8 @@ export function useCountUp(target: number, duration = 800): number {
       return;
     }
 
+    // Animate from current displayed value to new target (not from 0)
+    const startValue = currentValueRef.current;
     let frame: number;
     let start: number | null = null;
 
@@ -41,7 +53,7 @@ export function useCountUp(target: number, duration = 800): number {
       const progress = Math.min((now - start) / duration, 1);
       // easeOutCubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target * eased));
+      setValue(Math.round(startValue + (target - startValue) * eased));
       if (progress < 1) {
         frame = requestAnimationFrame(step);
       }
@@ -49,7 +61,8 @@ export function useCountUp(target: number, duration = 800): number {
 
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [target, duration]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
 
   return value;
 }
