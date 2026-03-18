@@ -427,6 +427,7 @@ describe('mindmap directory completeness', () => {
       'useSpacePan.ts',
       'useNodePositions.ts',
       'StickyNote.tsx',
+      'graphI18n.ts',
       // Small internal hooks — tested transitively
       'useFocusTrap.ts',
       'useSwipeDismiss.ts',
