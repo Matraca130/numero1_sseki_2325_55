@@ -51,7 +51,7 @@ export function useCreateConnectionMutation(keywordId: string) {
     mutationFn: (data: CreateConnectionInput) =>
       connectionsApi.createConnection(data),
     onSuccess: (_result, variables) => {
-      toast.success('Conexion creada');
+      toast.success('Conexión creada');
       // Invalidate BOTH sides of the connection so any open
       // panel/popup for either keyword refreshes automatically.
       queryClient.invalidateQueries({
@@ -66,7 +66,7 @@ export function useCreateConnectionMutation(keywordId: string) {
       });
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Error al crear conexion');
+      toast.error(err.message || 'Error al crear conexión');
     },
   });
 }
@@ -80,7 +80,7 @@ export function useDeleteConnectionMutation(keywordId: string) {
     mutationFn: (args: { connectionId: string; otherKeywordId: string }) =>
       connectionsApi.deleteConnection(args.connectionId),
     onSuccess: (_result, variables) => {
-      toast.success('Conexion eliminada');
+      toast.success('Conexión eliminada');
       // Invalidate BOTH sides so any open panel/popup refreshes.
       // Mirrors useCreateConnectionMutation bilateral invalidation.
       queryClient.invalidateQueries({
@@ -93,7 +93,7 @@ export function useDeleteConnectionMutation(keywordId: string) {
       }
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar conexion');
+      toast.error(err.message || 'Error al eliminar conexión');
     },
   });
 }

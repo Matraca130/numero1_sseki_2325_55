@@ -22,7 +22,7 @@ export interface HistoryEntry {
   description: string;
   /** ISO timestamp */
   timestamp: string;
-  /** Short label: "Nodo" | "Conexion" */
+  /** Short label: "Nodo" | "Conexión" */
   badge: 'Nodo' | 'Conexión';
 }
 

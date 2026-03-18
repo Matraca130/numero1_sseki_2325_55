@@ -1335,7 +1335,7 @@ export function KnowledgeGraph({
       {ready && breadcrumbs.length > 0 && (
         <nav
           className="absolute top-2 left-2 z-[6] flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm border border-gray-100 px-2 py-1.5 text-[11px] max-w-[calc(100%-1rem)] overflow-x-auto"
-          aria-label="Navegacion del grafo"
+          aria-label="Navegación del grafo"
         >
           <button
             onClick={() => handleBreadcrumbClick(null)}
