@@ -295,7 +295,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
         onReviewRef.current?.(weakIds);
       }
       toast.success('Análisis completado');
-    } catch (err) {
+    } catch (err: unknown) {
       if (import.meta.env.DEV) console.error('AI analysis failed:', err);
       if (mountedRef.current) toast.error('Error al analizar el mapa');
     } finally {
