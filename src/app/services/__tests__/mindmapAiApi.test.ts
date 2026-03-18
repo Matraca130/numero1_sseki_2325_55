@@ -1,8 +1,8 @@
 // ============================================================
-// Tests — mindmapAiApi (AI API service with mock fallbacks)
+// Tests — mindmapAiApi (AI API service)
 //
 // Tests that the API functions call apiCall correctly and
-// fall back to mock data in DEV mode when apiCall throws.
+// throw user-friendly errors when apiCall fails.
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -14,11 +14,6 @@ vi.mock('@/app/lib/api', () => ({
   apiCall: (...args: unknown[]) => mockApiCall(...args),
 }));
 
-// ── Mock import.meta.env.DEV ────────────────────────────────
-
-// Vitest sets import.meta.env.DEV = true by default in test mode,
-// so the mock fallback path will execute when apiCall throws.
-
 import {
   analyzeKnowledgeGraph,
   suggestStudentConnections,
@@ -29,7 +24,6 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.useFakeTimers();
 });
 
 // ── analyzeKnowledgeGraph ───────────────────────────────────
@@ -58,19 +52,12 @@ describe('analyzeKnowledgeGraph', () => {
     expect(result).toEqual(mockResponse);
   });
 
-  it('falls back to mock data in DEV when API fails', async () => {
+  it('throws user-friendly error when API fails', async () => {
     mockApiCall.mockRejectedValueOnce(new Error('Not found'));
 
-    // The function has a setTimeout inside — use real timers for this test
-    vi.useRealTimers();
-    const result = await analyzeKnowledgeGraph('topic-fail');
-
-    expect(result).toBeDefined();
-    expect(result.weak_areas.length).toBeGreaterThan(0);
-    expect(result.strong_areas.length).toBeGreaterThan(0);
-    expect(result.study_path.length).toBeGreaterThan(0);
-    expect(typeof result.overall_score).toBe('number');
-    expect(typeof result.summary_text).toBe('string');
+    await expect(analyzeKnowledgeGraph('topic-fail')).rejects.toThrow(
+      'No se pudo analizar el grafo de conocimiento: Not found',
+    );
   });
 });
 
@@ -99,18 +86,12 @@ describe('suggestStudentConnections', () => {
     expect(result).toEqual(mockResponse);
   });
 
-  it('falls back to mock data in DEV when API fails', async () => {
+  it('throws user-friendly error when API fails', async () => {
     mockApiCall.mockRejectedValueOnce(new Error('Network error'));
 
-    vi.useRealTimers();
-    const result = await suggestStudentConnections('topic-1', [], []);
-
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toHaveProperty('source');
-    expect(result[0]).toHaveProperty('target');
-    expect(result[0]).toHaveProperty('type');
-    expect(result[0]).toHaveProperty('confidence');
+    await expect(suggestStudentConnections('topic-1', [], [])).rejects.toThrow(
+      'No se pudieron obtener sugerencias de conexiones: Network error',
+    );
   });
 });
 
@@ -131,17 +112,11 @@ describe('getStudentWeakPoints', () => {
     expect(result).toEqual(mockResponse);
   });
 
-  it('falls back to mock data in DEV when API fails', async () => {
+  it('throws user-friendly error when API fails', async () => {
     mockApiCall.mockRejectedValueOnce(new Error('Server error'));
 
-    vi.useRealTimers();
-    const result = await getStudentWeakPoints('topic-fail');
-
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toHaveProperty('keyword_id');
-    expect(result[0]).toHaveProperty('name');
-    expect(result[0]).toHaveProperty('mastery');
-    expect(result[0]).toHaveProperty('recommended_action');
+    await expect(getStudentWeakPoints('topic-fail')).rejects.toThrow(
+      'No se pudieron obtener los puntos debiles del estudiante: Server error',
+    );
   });
 });

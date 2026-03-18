@@ -420,6 +420,13 @@ describe('mindmap directory completeness', () => {
       'PresentationMode.tsx',
       'presentationHelpers.ts',
       'index.ts',
+      'GraphTemplatePanel.tsx',
+      'useEdgeReconnect.ts',
+      'useNodeColors.ts',
+      'useKeyboardNav.ts',
+      'useSpacePan.ts',
+      'useNodePositions.ts',
+      'StickyNote.tsx',
       // Small internal hooks — tested transitively
       'useFocusTrap.ts',
       'useSwipeDismiss.ts',
