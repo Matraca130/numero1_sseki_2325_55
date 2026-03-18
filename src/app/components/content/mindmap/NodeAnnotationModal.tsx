@@ -121,8 +121,9 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   }, [node, content, existingNote, onClose, onSaved]);
 
   const handleDelete = useCallback(async () => {
-    if (!existingNote) return;
+    if (!existingNote || savingRef.current) return;
 
+    savingRef.current = true;
     setSaving(true);
     try {
       await apiCall(`/kw-student-notes/${existingNote.id}`, { method: 'DELETE' });
@@ -134,6 +135,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Error al eliminar anotación');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, [existingNote, onClose, onSaved]);
