@@ -204,9 +204,9 @@ export function useUndoRedo(onGraphChanged: () => void) {
           toast.info(`Deshacer: ${verb} de ${label}`);
         }
       } else {
-        // reverseAction failed — clear history to avoid stale stacks
-        setPast([]);
-        setFuture([]);
+        // reverseAction failed — remove only the failed action, preserve rest of history
+        setPast(prev => prev.slice(0, -1));
+        toast.error('No se pudo deshacer la acción');
       }
     } finally {
       if (mountedRef.current) setBusy(false);
@@ -234,9 +234,9 @@ export function useUndoRedo(onGraphChanged: () => void) {
           toast.info(`Rehacer: ${verb} de ${label}`);
         }
       } else {
-        // replayAction failed — clear history to avoid stale stacks
-        setPast([]);
-        setFuture([]);
+        // replayAction failed — remove only the failed action, preserve rest of history
+        setFuture(prev => prev.slice(0, -1));
+        toast.error('No se pudo rehacer la acción');
       }
     } finally {
       if (mountedRef.current) setBusy(false);
