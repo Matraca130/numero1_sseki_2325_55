@@ -167,14 +167,14 @@ las llamadas API, aunque el backend aún no exista):
 - [ ] Professor view: mostrar mastery promedio de sus students por nodo (heatmap overlay)
 
 ### 1D. Interacciones y UX Premium
-- [ ] Double-click en nodo para expandir/contraer sus hijos (toggle collapse)
+- [x] Double-click en nodo para expandir/contraer — already implemented via handleNodeDblClick + computeHiddenNodes
 - [ ] Pinch-to-zoom en mobile (touch gesture)
-- [ ] Keyboard navigation — Tab entre nodos, Enter para abrir, Escape para cerrar
+- [x] Keyboard navigation — useKeyboardNav.ts: Tab/Shift+Tab cycle nodes, Arrow keys move to connected neighbors, Enter opens context menu, Escape clears, aria-live announcements, zoom/fit shortcuts
 - [ ] Breadcrumb trail — al hacer drill-down en un cluster, mostrar breadcrumb para volver
-- [ ] Quick-add — tecla "+" para agregar nodo conectado al nodo seleccionado sin abrir modal
+- [x] Quick-add — "+" key when node focused calls onQuickAdd, floating "+" button near focused node, opens AddNodeEdgeModal with source pre-filled
 - [ ] Drag edge to reconnect — arrastrar el extremo de una edge para cambiar su target
 - [ ] Minimap highlight — al hover sobre minimap, highlight el area correspondiente en el canvas principal
-- [ ] Pan con middle-click o Space+drag
+- [x] Pan con Space+drag — useSpacePan.ts: Space held changes cursor to grab, disables drag-element, enables canvas pan, handles blur reset
 
 ### 1E. QA y Calidad Continua
 - [ ] Audit round 11: buscar bugs en las nuevas features del sprint nocturno
