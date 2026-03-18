@@ -582,7 +582,7 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
           <div className="w-16 h-16 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-5">
-            <MapIcon className="w-8 h-8 text-[#2a8c7a] animate-pulse" />
+            <MapIcon className="w-8 h-8 text-[#2a8c7a] animate-pulse" aria-hidden="true" />
           </div>
           <h2
             className="text-gray-900 mb-2 text-center"
@@ -1094,7 +1094,7 @@ export function KnowledgeMapView() {
 
           {/* First-visit onboarding tips */}
           {showOnboarding && !loading && !isEmpty && filteredGraphData && filteredGraphData.nodes.length > 0 && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl" role="dialog" aria-modal="true" aria-label="Bienvenida al mapa de conocimiento">
               <div className="bg-white rounded-2xl shadow-xl p-5 mx-4 max-w-sm w-full">
                 <h3 className="font-medium text-gray-900 mb-3" style={headingStyle}>
                   ¡Bienvenido al Mapa de Conocimiento!

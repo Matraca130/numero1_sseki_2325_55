@@ -258,14 +258,14 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
               className="border-t border-gray-100 py-1.5"
             >
               <div className={`flex items-center gap-2 ${isSmallScreen ? 'px-4' : 'px-3'}`}>
-                <Palette className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <Palette className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" aria-hidden="true" />
                 <span
                   className="text-gray-500 font-sans"
                   style={{ fontSize: captionFontSize }}
                 >
                   Color
                 </span>
-                <div className="flex items-center gap-1.5 ml-auto">
+                <div className="flex items-center gap-1.5 ml-auto" role="radiogroup" aria-label="Color del nodo">
                   {NODE_COLOR_PALETTE.map(({ hex, label }) => (
                     <button
                       key={hex}

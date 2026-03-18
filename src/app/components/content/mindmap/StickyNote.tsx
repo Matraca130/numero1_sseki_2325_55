@@ -168,6 +168,8 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
     <div
       ref={noteRef}
       className="absolute select-none"
+      role="group"
+      aria-label={`Nota adhesiva: ${note.text || 'vacía'}`}
       style={{
         left: note.x,
         top: note.y,
@@ -222,6 +224,9 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
               opacity: isHovered ? 0.8 : 0,
               pointerEvents: isHovered ? 'auto' : 'none',
             }}
+            tabIndex={0}
+            onFocus={() => setIsHovered(true)}
+            onBlur={() => setIsHovered(false)}
             aria-label="Eliminar nota"
           >
             <X className="w-3 h-3" style={{ color: borderColor }} />

@@ -50,6 +50,17 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
           role="toolbar"
           aria-label="Herramientas del mapa"
           aria-orientation="vertical"
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              const buttons = e.currentTarget.querySelectorAll('button');
+              const current = document.activeElement as HTMLElement;
+              const idx = Array.from(buttons).indexOf(current as HTMLButtonElement);
+              if (idx < 0) return;
+              const next = e.key === 'ArrowDown' ? (idx + 1) % buttons.length : (idx - 1 + buttons.length) % buttons.length;
+              (buttons[next] as HTMLButtonElement).focus();
+            }
+          }}
         >
           {TOOLS.map((tool) => {
             const Icon = tool.icon;

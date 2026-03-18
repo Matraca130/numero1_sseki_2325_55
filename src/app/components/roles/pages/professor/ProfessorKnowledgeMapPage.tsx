@@ -37,8 +37,8 @@ import { apiCall } from '@/app/lib/api';
 import { deleteConnection } from '@/app/services/keywordConnectionsApi';
 import { fetchClassMastery } from '@/app/services/mindmapApi';
 import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers';
-import { useContentTree } from '@/app/context/ContentTreeContext';
 import { usePlatformData } from '@/app/context/PlatformDataContext';
+import { useFlatTopics } from '@/app/hooks/useFlatTopics';
 import { GraphTemplatePanel } from '@/app/components/content/mindmap/GraphTemplatePanel';
 import { headingStyle } from '@/app/design-system';
 
@@ -46,7 +46,7 @@ import { headingStyle } from '@/app/design-system';
 
 export function ProfessorKnowledgeMapPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tree } = useContentTree();
+  const topics = useFlatTopics();
   const { institutionId } = usePlatformData();
 
   // Mounted guard for async operations
@@ -89,27 +89,6 @@ export function ProfessorKnowledgeMapPage() {
   const [heatmapEnabled, setHeatmapEnabled] = useState(false);
   const [heatmapData, setHeatmapData] = useState<ClassMasteryData[] | null>(null);
   const [heatmapLoading, setHeatmapLoading] = useState(false);
-
-  // ── Flatten topics from content tree ────────────────────
-
-  const topics = useMemo(() => {
-    if (!tree?.courses) return [];
-    const result: { id: string; name: string; path: string }[] = [];
-    for (const course of tree.courses) {
-      for (const semester of course.semesters || []) {
-        for (const section of semester.sections || []) {
-          for (const topic of section.topics || []) {
-            result.push({
-              id: topic.id,
-              name: topic.name || 'Sin título',
-              path: `${course.name} > ${semester.name} > ${section.name} > ${topic.name}`,
-            });
-          }
-        }
-      }
-    }
-    return result;
-  }, [tree]);
 
   // ── Heatmap: fetch class mastery when toggled on ──────
 
@@ -610,7 +589,7 @@ export function ProfessorKnowledgeMapPage() {
                             <span className="text-xs font-medium text-gray-700">
                               {count}
                             </span>
-                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden" role="progressbar" aria-label={`${getMasteryLabel(color, 'es')}: ${count} de ${distribution.total}`} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
                               <div
                                 className="h-full rounded-full transition-all"
                                 style={{
@@ -731,7 +710,7 @@ export function ProfessorKnowledgeMapPage() {
                           <p className="text-xs font-medium text-gray-500 mb-1.5">
                             {nodeEdges.length} conexiones
                           </p>
-                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                          <div className="space-y-1 max-h-40 overflow-y-auto" role="list" aria-label="Conexiones del concepto">
                             {nodeEdges.map(edge => {
                               const otherId = edge.source === selectedNode.id ? edge.target : edge.source;
                               const otherNode = graphData.nodes.find(n => n.id === otherId);

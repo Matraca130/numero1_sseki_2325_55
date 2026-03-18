@@ -136,7 +136,7 @@ function MasteryDonut({ stats }: { stats: CoverageStats }) {
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 88 88" className="w-20 h-20">
+      <svg viewBox="0 0 88 88" className="w-20 h-20" role="img" aria-label={`Dominio promedio: ${animPct}%`}>
         {/* Background ring */}
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth="8" />
         {/* Mastery segments */}
@@ -235,12 +235,14 @@ export function MapComparisonPanel({
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
+          role="complementary"
+          aria-label="Panel de comparación de mapa"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-ax-primary-50 flex items-center justify-center">
-                <GitCompareArrows className="w-4 h-4 text-ax-primary-500" />
+                <GitCompareArrows className="w-4 h-4 text-ax-primary-500" aria-hidden="true" />
               </div>
               <h3
                 className="font-semibold text-gray-900"
@@ -376,8 +378,12 @@ export function MapComparisonPanel({
                             key={node.id}
                             className="flex items-center gap-2.5 px-3 py-2 bg-ax-primary-50 rounded-xl cursor-pointer hover:bg-ax-primary-100 transition-colors"
                             onClick={() => onHighlightNodes?.(new Set([node.id]))}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHighlightNodes?.(new Set([node.id])); } }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Resaltar concepto personalizado: ${node.label}`}
                           >
-                            <Plus className="w-3.5 h-3.5 text-ax-primary-500 flex-shrink-0" />
+                            <Plus className="w-3.5 h-3.5 text-ax-primary-500 flex-shrink-0" aria-hidden="true" />
                             <span
                               className="text-ax-primary-500 font-medium truncate"
                               style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
@@ -432,7 +438,7 @@ function EmptyComparison() {
       className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
     >
       <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
-        <GitCompareArrows className="w-7 h-7 text-ax-primary-500" />
+        <GitCompareArrows className="w-7 h-7 text-ax-primary-500" aria-hidden="true" />
       </div>
       <h4
         className="font-semibold text-gray-900 mb-1.5"
@@ -528,7 +534,7 @@ function CustomEdgeItem({ edge, nodeLabels }: { edge: MapEdge; nodeLabels: Map<s
 
   return (
     <div className="flex items-center gap-2.5 px-3 py-2 bg-blue-50 rounded-xl">
-      <Link2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+      <Link2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" aria-hidden="true" />
       <span
         className="text-blue-700 truncate"
         style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}

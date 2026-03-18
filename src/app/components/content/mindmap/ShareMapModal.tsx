@@ -132,7 +132,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
               <div className="flex items-center justify-between px-5 pt-4 sm:pt-5 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-ax-primary-50 flex items-center justify-center">
-                    <Share2 className="w-4 h-4 text-ax-primary-500" />
+                    <Share2 className="w-4 h-4 text-ax-primary-500" aria-hidden="true" />
                   </div>
                   <h2
                     id="share-modal-title"
@@ -172,7 +172,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                       onClick={() => inputRef.current?.select()}
                       aria-label="Enlace para compartir"
                     />
-                    <ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
+                    <ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" aria-hidden="true" />
                   </div>
                   <button
                     onClick={handleCopy}
@@ -207,7 +207,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-ax-primary-600"
                     style={{ backgroundColor: colors.primary[500], fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                   >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                     {copied ? 'Copiado' : 'Copiar enlace'}
                   </button>
                   {supportsShare && (

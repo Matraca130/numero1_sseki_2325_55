@@ -353,12 +353,14 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
+          role="complementary"
+          aria-label="Panel de IA Tutor"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-ax-primary-50 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-ax-primary-500" />
+                <Sparkles className="w-4 h-4 text-ax-primary-500" aria-hidden="true" />
               </div>
               <h3
                 className="font-semibold text-gray-900"
@@ -425,7 +427,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
               >
                 <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
-                  <Brain className="w-7 h-7 text-ax-primary-500" />
+                  <Brain className="w-7 h-7 text-ax-primary-500" aria-hidden="true" />
                 </div>
                 <h4
                   className="font-semibold text-gray-900 mb-1.5"
@@ -451,7 +453,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
             )}
 
             {/* Skeleton loading state */}
-            {analyzing && <AnalysisSkeleton />}
+            {analyzing && <div aria-live="polite" aria-atomic="true"><p className="sr-only">Analizando tu mapa de conocimiento...</p><AnalysisSkeleton /></div>}
 
             {/* Analysis results */}
             {analysis && !analyzing && (
@@ -528,7 +530,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                       className="flex items-center gap-1.5 font-medium text-red-600 mb-3"
                       style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                     >
-                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
                       Puntos débiles ({analysis.weak_areas.length})
                     </h4>
                     <div className="space-y-1.5">
@@ -538,6 +540,10 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                           className="flex items-center justify-between px-3 py-2.5 bg-red-50 rounded-xl cursor-pointer hover:bg-red-100 transition-colors"
                           style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                           onClick={() => onHighlightNodes?.(new Set([wa.keyword_id]))}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHighlightNodes?.(new Set([wa.keyword_id])); } }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Resaltar punto débil: ${wa.keyword_name}, ${Math.round(wa.mastery * 100)}% dominio`}
                         >
                           <span className="font-medium text-red-700 truncate mr-2">{wa.keyword_name}</span>
                           <AnimatedPercent value={wa.mastery} className="text-red-500 flex-shrink-0" />
