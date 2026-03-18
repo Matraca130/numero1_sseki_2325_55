@@ -2,9 +2,10 @@
 // Axon — AI Knowledge Graph Types
 //
 // TypeScript interfaces for AI-powered knowledge graph analysis.
-// These types define the expected responses from backend AI
-// endpoints (which may not exist yet — used with mock data
-// during frontend development).
+// These types match the backend AI endpoint responses:
+//   POST /ai/analyze-knowledge-graph
+//   POST /ai/suggest-student-connections
+//   GET  /ai/student-weak-points
 // ============================================================
 
 // ── Analyze Knowledge Graph ─────────────────────────────────
@@ -31,10 +32,15 @@ export interface MissingConnection {
 
 export interface StudyPathStep {
   step: number;
-  action: 'review' | 'practice' | 'connect' | 'explore';
+  action: string;
   keyword_id: string;
   keyword_name?: string;
   reason: string;
+}
+
+export interface AiResponseMeta {
+  model: string;
+  tokens: { input: number; output: number };
 }
 
 export interface AnalyzeKnowledgeGraphResponse {
@@ -44,6 +50,7 @@ export interface AnalyzeKnowledgeGraphResponse {
   study_path: StudyPathStep[];
   overall_score: number;
   summary_text: string;
+  _meta?: AiResponseMeta;
 }
 
 // ── Suggest Connections ─────────────────────────────────────
@@ -65,7 +72,7 @@ export interface WeakPoint {
   name: string;
   mastery: number;
   last_reviewed: string | null;
-  recommended_action: 'flashcard' | 'quiz' | 'summary' | 'review';
+  recommended_action: string;
 }
 
 export type WeakPointsResponse = WeakPoint[];
