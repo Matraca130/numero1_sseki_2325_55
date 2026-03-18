@@ -89,7 +89,7 @@ describe('suggestStudentConnections', () => {
   it('throws user-friendly error when API fails', async () => {
     mockApiCall.mockRejectedValueOnce(new Error('Network error'));
 
-    await expect(suggestStudentConnections('topic-1', [], [])).rejects.toThrow(
+    await expect(suggestStudentConnections('topic-1', ['n1'], ['e1'])).rejects.toThrow(
       'No se pudieron obtener sugerencias de conexiones: Network error',
     );
   });

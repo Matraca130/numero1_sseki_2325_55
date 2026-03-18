@@ -53,6 +53,9 @@ export async function suggestStudentConnections(
   nodeIds: string[],
   edgeIds: string[],
 ): Promise<SuggestConnectionsResponse> {
+  // Short-circuit: AI cannot suggest connections without existing nodes
+  if (nodeIds.length === 0) return [] as SuggestConnectionsResponse;
+
   try {
     return await apiCall<SuggestConnectionsResponse>(
       '/ai/suggest-student-connections',

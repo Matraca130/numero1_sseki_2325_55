@@ -41,6 +41,13 @@ export function useFocusTrap<T extends HTMLElement = HTMLDivElement>(active: boo
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
+      // If focus escaped the container, bring it back
+      if (!container.contains(document.activeElement)) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+
       if (e.shiftKey) {
         if (document.activeElement === first) {
           e.preventDefault();

@@ -218,7 +218,7 @@ export function AddNodeEdgeModal({
           {/* Modal */}
           <div
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
-            onClick={onClose}
+            onClick={() => { if (!savingRef.current) onClose(); }}
           >
             <motion.div
               ref={focusTrapRef}

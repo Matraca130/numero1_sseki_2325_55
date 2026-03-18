@@ -189,8 +189,9 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                 </h3>
               </div>
               <button
-                onClick={onClose}
-                className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={() => { if (!savingRef.current) onClose(); }}
+                disabled={saving}
+                className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                 aria-label="Cerrar"
               >
                 <X className="w-4 h-4 text-gray-400" />
