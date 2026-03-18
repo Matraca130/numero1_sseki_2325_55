@@ -81,14 +81,23 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
       }
     };
 
+    // Reset when focus leaves the container (e.g. user clicks sidebar while holding Space)
+    const handleFocusOut = () => handleBlur();
+    // Reset on tab switch (visibilitychange is more reliable than blur for tab switches)
+    const handleVisibility = () => { if (document.hidden) handleBlur(); };
+
     container.addEventListener('keydown', handleKeyDown);
     container.addEventListener('keyup', handleKeyUp);
+    container.addEventListener('focusout', handleFocusOut);
     window.addEventListener('blur', handleBlur);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
       container.removeEventListener('keyup', handleKeyUp);
+      container.removeEventListener('focusout', handleFocusOut);
       window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('visibilitychange', handleVisibility);
       // Ensure state is clean on unmount
       if (spaceHeldRef.current) {
         container.style.cursor = '';
