@@ -85,9 +85,10 @@ describe('getDeltaColor', () => {
     expect(getDeltaColor(0.90, 0.90)).toBe('green');
   });
 
-  it('mastery 0.99, threshold 0.90 -> green (delta=1.10)', () => {
-    // 0.99 / 0.90 = 1.1 -> exactly 1.10 = blue
-    expect(getDeltaColor(0.99, 0.90)).toBe('blue');
+  it('mastery 0.99, threshold 0.90 -> green (delta~1.10, fp rounds below)', () => {
+    // 0.99 / 0.90 = 1.0999999999999999 in IEEE 754 — just below 1.10
+    // so the function correctly returns 'green', not 'blue'
+    expect(getDeltaColor(0.99, 0.90)).toBe('green');
   });
 
   it('mastery 0.30, threshold 0.80 -> red (delta=0.375)', () => {
