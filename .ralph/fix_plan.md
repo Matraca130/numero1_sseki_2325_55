@@ -288,6 +288,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 74 audit (bundle + race conditions): Bundle analysis — mindmap code-splitting is correct (G6 lazy, routes lazy, MicroGraphPanel lazy). Large chunks (1.3MB g6, 1.17MB summary mega-chunk, 748kB lucide) are app-wide issues, not mindmap-specific. Race condition audit — all async patterns clean: fetchIdRef triple-guard, G6 init double-mount protection, savingRef double-click guard all verified correct. No code changes needed.
 - [x] Round 75 audit (error boundaries + a11y): Wrapped AiTutorPanel, NodeAnnotationModal, AddNodeEdgeModal in ErrorBoundary (all make API calls, a crash would take down the entire page). Added autoFocus to onboarding dismiss button for keyboard a11y. Remaining low-risk items: GraphToolbar radiogroup/menu arrow-key nav (LOW), StickyNotesLayer outside boundary (localStorage parse is try-caught).
 - [x] Round 76 audit (professor page parity): Fixed 7 issues — wrapped ProfessorAddConnectionModal + GraphTemplatePanel in ErrorBoundary, added mountedRef + savingRef to ProfessorAddConnectionModal (unmount safety + double-submit guard), fixed Escape handler to use stopImmediatePropagation, fixed mountedRef Strict Mode pattern in ProfessorKnowledgeMapPage.
+- [x] Round 77 audit (panels + modals): Added Escape handler + focus trap to GraphTemplatePanel (was keyboard-inaccessible). ShareMapModal and PresentationMode verified clean. Fixed GraphTemplatePanel mountedRef Strict Mode pattern.
 
 ## Completed
 - [x] Search/filter with debounce
