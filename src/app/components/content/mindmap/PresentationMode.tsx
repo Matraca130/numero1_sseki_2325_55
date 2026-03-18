@@ -10,6 +10,7 @@
 // ============================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusTrap } from './useFocusTrap';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { MapNode, MapEdge } from '@/app/types/mindmap';
@@ -45,8 +46,15 @@ export function PresentationMode({
   const [index, setIndex] = useState(() => Math.max(0, Math.min(initialIndex, total - 1)));
   const [direction, setDirection] = useState<SlideDir>('right');
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Clamp index when sorted list changes (e.g. nodes added/removed during presentation)
+  useEffect(() => {
+    if (total > 0) setIndex(i => Math.min(i, total - 1));
+  }, [total]);
+
   const current = sorted[index] as MapNode | undefined;
 
+  useFocusTrap(overlayRef, total > 0);
   useEffect(() => { overlayRef.current?.focus(); }, []);
 
   useEffect(() => {
@@ -104,8 +112,6 @@ export function PresentationMode({
       <div
         className="absolute top-4 left-4 sm:top-6 sm:left-6 text-white/50 font-sans font-medium"
         style={{ fontSize: fs.index }}
-        aria-live="polite"
-        aria-atomic="true"
       >
         {index + 1} de {total}
       </div>
