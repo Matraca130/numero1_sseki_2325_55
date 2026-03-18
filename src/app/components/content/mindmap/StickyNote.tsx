@@ -221,8 +221,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
             style={{
               width: 18,
               height: 18,
-              opacity: isHovered ? 0.8 : 0,
-              pointerEvents: isHovered ? 'auto' : 'none',
+              opacity: isHovered ? 0.8 : 0.3,
             }}
             tabIndex={0}
             onFocus={() => setIsHovered(true)}
