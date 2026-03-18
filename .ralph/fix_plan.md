@@ -149,13 +149,13 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Tipos de flecha avanzados — EdgeArrowType (triangle/diamond/circle/vee) in MapEdge, 4-button SVG selector in AddNodeEdgeModal, G6 endArrow config object, arrow_type in API payload
 - [x] Texto en edges — edge labelText from relationship/connectionType, zinc-500 fill, white background pill with padding, readable on any edge color
 - [x] Multi-selección de nodos — Shift+click toggle + brush-select behavior, brand glow on selected nodes, floating action bar (eliminar/conectar/deseleccionar), Escape clears, onMultiSelect/onDeleteNodes/onConnectNodes props
-- [ ] Agrupación/clusters — drag nodos dentro de un grupo visual (bounding box con label), colapsable
-- [ ] Snap-to-grid — opción en toolbar para alinear nodos a grid, toggle on/off
-- [ ] Auto-layout inteligente — botón que reorganiza el grafo con algoritmo tree/radial/force optimal según la estructura
-- [ ] Zoom to fit selection — al seleccionar nodos, zoom automático para que quepan en pantalla
+- [x] Agrupación/clusters — G6 combo system with "Agrupar" button in multi-select bar, brand-styled rect combos, localStorage persistence, MapCombo type
+- [x] Snap-to-grid — "Cuadrícula" toggle in GraphToolbar with Grid3x3 icon, G6 grid-line plugin (40px), snapline alignment guides, snap on drag-end, localStorage state
+- [x] Auto-layout inteligente — "Organizar" button cycles force→dagre→radial with animated transitions + fitView
+- [x] Zoom to fit selection — "Enfocar" button in multi-select action bar, graph.focusElement with 400ms animation
 - [x] Sticky notes — StickyNote.tsx + StickyNotesLayer: draggable post-its with 4 pastel colors, editable text, delete on hover, max 10 per topic, localStorage persistence, "Nota" button in toolbar with count badge
 - [x] Colores personalizados para nodos — useNodeColors hook with 6 palette colors, inline swatches in NodeContextMenu (user-created only), customNodeColors prop in KnowledgeGraph, custom color overrides teal fill for student nodes
-- [ ] Conectar arrastrando desde borde del nodo — true drag-to-connect (no click-click), mostrar línea temporal mientras se arrastra
+- [x] Conectar arrastrando desde borde del nodo — G6 create-edge behavior with drag trigger, dotted teal temp line, onDragConnect callback, enableDragConnect prop
 
 ### 1D-pre. Integración de Colores de Keywords/Mastery en el Grafo
 - [x] Nodos del grafo reflejan mastery color — verified getNodeFill/getNodeStroke use MASTERY_HEX maps correctly (red <50%, yellow 50-80%, green >80%, gray no data)
