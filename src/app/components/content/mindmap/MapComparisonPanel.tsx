@@ -17,7 +17,8 @@
 // LANG: Spanish
 // ============================================================
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
+import { useFocusTrap } from './useFocusTrap';
 import { GitCompareArrows, X, CheckCircle2, AlertTriangle, XCircle, HelpCircle, Plus, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { headingStyle } from '@/app/design-system';
@@ -190,6 +191,18 @@ export function MapComparisonPanel({
   onHighlightNodes,
   onNavigateToAction,
 }: MapComparisonPanelProps) {
+  const focusTrapRef = useFocusTrap(open);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose]);
+
   const stats = useMemo(() => graphData ? computeStats(graphData) : null, [graphData]);
   const gaps = useMemo(() => graphData ? findGaps(graphData) : [], [graphData]);
   const customNodes = useMemo(
@@ -237,6 +250,7 @@ export function MapComparisonPanel({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+          ref={focusTrapRef}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
           role="complementary"
           aria-label="Panel de comparación de mapa"

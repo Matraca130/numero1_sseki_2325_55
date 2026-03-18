@@ -14,6 +14,8 @@ export function useSwipeDismiss(onDismiss: () => void) {
   const touchRef = useRef<{ startY: number; startTime: number } | null>(null);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    // Ignore multi-touch (e.g. pinch-to-zoom)
+    if (e.touches.length > 1) { touchRef.current = null; return; }
     touchRef.current = { startY: e.touches[0].clientY, startTime: Date.now() };
   }, []);
 

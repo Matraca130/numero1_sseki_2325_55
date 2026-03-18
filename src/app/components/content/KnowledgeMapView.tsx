@@ -1155,21 +1155,25 @@ export function KnowledgeMapView() {
           )}
 
           {/* Change history panel — slides in from right */}
-          <ChangeHistoryPanel
-            open={showHistory}
-            onClose={handleHistoryClose}
-            entries={historyEntries}
-            onClear={handleHistoryClear}
-          />
+          <ErrorBoundary fallback={null}>
+            <ChangeHistoryPanel
+              open={showHistory}
+              onClose={handleHistoryClose}
+              entries={historyEntries}
+              onClear={handleHistoryClear}
+            />
+          </ErrorBoundary>
 
           {/* Map comparison panel — slides in from right */}
-          <MapComparisonPanel
-            open={showComparison}
-            onClose={handleComparisonClose}
-            graphData={graphData}
-            onHighlightNodes={setAiHighlightNodes}
-            onNavigateToAction={handleComparisonNavigate}
-          />
+          <ErrorBoundary fallback={null}>
+            <MapComparisonPanel
+              open={showComparison}
+              onClose={handleComparisonClose}
+              graphData={graphData}
+              onHighlightNodes={setAiHighlightNodes}
+              onNavigateToAction={handleComparisonNavigate}
+            />
+          </ErrorBoundary>
 
           {/* First-visit onboarding tips */}
           {showOnboarding && !loading && !isEmpty && filteredGraphData && filteredGraphData.nodes.length > 0 && (

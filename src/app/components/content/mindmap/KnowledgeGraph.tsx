@@ -1091,23 +1091,34 @@ export function KnowledgeGraph({
     // Long-press for mobile context menu (500ms threshold)
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
+    let longPressStartPos: { x: number; y: number } | null = null;
+    const LONG_PRESS_MOVE_THRESHOLD = 10; // px — cancel if finger moves more than this
+
     const handleNodePointerDown = (evt: G6NodeEvent) => {
       longPressTriggered = false;
+      longPressStartPos = { x: evt.canvas.x, y: evt.canvas.y };
       longPressTimer = setTimeout(() => {
         longPressTriggered = true;
         handleNodeContextMenu(evt);
       }, 500);
     };
-    const handleNodePointerUp = () => {
+    const cancelLongPress = () => {
       if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      longPressStartPos = null;
     };
-    const handleNodePointerLeave = () => {
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    const handleNodePointerMove = (evt: G6NodeEvent) => {
+      if (!longPressTimer || !longPressStartPos) return;
+      const dx = evt.canvas.x - longPressStartPos.x;
+      const dy = evt.canvas.y - longPressStartPos.y;
+      if (dx * dx + dy * dy > LONG_PRESS_MOVE_THRESHOLD * LONG_PRESS_MOVE_THRESHOLD) {
+        cancelLongPress();
+      }
     };
 
     graph.on('node:pointerdown', handleNodePointerDown);
-    graph.on('node:pointerup', handleNodePointerUp);
-    graph.on('node:pointerleave', handleNodePointerLeave);
+    graph.on('node:pointerup', cancelLongPress);
+    graph.on('node:pointerleave', cancelLongPress);
+    graph.on('node:pointermove', handleNodePointerMove);
 
     return () => {
       graph.off('node:click', handleNodeClick);
@@ -1117,8 +1128,9 @@ export function KnowledgeGraph({
       graph.off('canvas:click', handleCanvasClick);
       graph.off('afterbrushselect', handleBrushSelect);
       graph.off('node:pointerdown', handleNodePointerDown);
-      graph.off('node:pointerup', handleNodePointerUp);
-      graph.off('node:pointerleave', handleNodePointerLeave);
+      graph.off('node:pointerup', cancelLongPress);
+      graph.off('node:pointerleave', cancelLongPress);
+      graph.off('node:pointermove', handleNodePointerMove);
       if (longPressTimer) clearTimeout(longPressTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps — onCollapseChange stabilized via onCollapseChangeRef
