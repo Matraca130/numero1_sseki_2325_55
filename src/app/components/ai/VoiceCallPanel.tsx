@@ -5,6 +5,7 @@
 // Uses OpenAI Realtime API via useRealtimeVoice hook
 // ============================================================
 
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Phone,
@@ -23,7 +24,7 @@ interface VoiceCallPanelProps {
 
 // ── Audio Wave Animation (CSS-only) ──────────────────────────
 
-function AudioWaves({ active, color = 'bg-[#2a8c7a]' }: { active: boolean; color?: string }) {
+function AudioWaves({ active, color = 'bg-teal-400' }: { active: boolean; color?: string }) {
   return (
     <div className="flex items-center justify-center gap-1 h-8">
       {[0, 1, 2, 3, 4].map((i) => (
@@ -56,9 +57,9 @@ function StatusIndicator({ aiState }: { aiState: 'listening' | 'thinking' | 'spe
     listening: {
       icon: Mic,
       label: 'Escuchando...',
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-50',
-      waveColor: 'bg-emerald-400',
+      color: 'text-teal-500',
+      bgColor: 'bg-teal-50',
+      waveColor: 'bg-teal-400',
     },
     thinking: {
       icon: Brain,
@@ -70,9 +71,9 @@ function StatusIndicator({ aiState }: { aiState: 'listening' | 'thinking' | 'spe
     speaking: {
       icon: Volume2,
       label: 'Hablando...',
-      color: 'text-[#2a8c7a]',
-      bgColor: 'bg-[#e8f5f1]',
-      waveColor: 'bg-[#2a8c7a]',
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50',
+      waveColor: 'bg-teal-500',
     },
   }[aiState];
 
@@ -131,8 +132,8 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
       {/* ── Idle State ── */}
       {state === 'idle' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-[#e8f5f1] flex items-center justify-center">
-            <Phone size={32} className="text-[#2a8c7a]" />
+          <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center">
+            <Phone size={32} className="text-teal-500" />
           </div>
 
           <div className="text-center">
@@ -146,7 +147,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
 
           <button
             onClick={() => startCall(summaryId)}
-            className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#2a8c7a] text-white font-medium shadow-lg shadow-[#2a8c7a]/20 hover:bg-[#244e47] hover:shadow-xl hover:shadow-[#2a8c7a]/30 transition-all active:scale-95"
+            className="flex items-center gap-2 px-8 py-3 rounded-full bg-teal-500 text-white font-medium shadow-lg shadow-teal-200 hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-300 transition-all active:scale-95"
           >
             <Phone size={18} />
             Iniciar llamada
@@ -161,7 +162,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <Loader2 size={40} className="text-[#2a8c7a]" />
+            <Loader2 size={40} className="text-teal-500" />
           </motion.div>
           <p className="text-sm text-gray-500">Conectando con tu tutor...</p>
         </div>
@@ -183,7 +184,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
                   key="user"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-[#2a8c7a] text-white text-sm"
+                  className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-teal-500 text-white text-sm"
                 >
                   {userTranscript}
                 </motion.div>
@@ -230,7 +231,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
 
           <button
             onClick={() => startCall(summaryId)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#2a8c7a] text-white text-sm font-medium hover:bg-[#244e47] transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 transition-colors"
           >
             Reintentar
           </button>
