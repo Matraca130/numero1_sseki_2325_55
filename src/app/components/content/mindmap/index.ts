@@ -35,3 +35,5 @@ export { ChangeHistoryPanel } from './ChangeHistoryPanel';
 export { ShareMapModal } from './ShareMapModal';
 export { MapComparisonPanel } from './MapComparisonPanel';
 export { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry, createDeleteEdgeEntry } from './changeHistoryHelpers';
+export { I18N_GRAPH } from './graphI18n';
+export type { GraphLocale, GraphI18nStrings } from './graphI18n';
