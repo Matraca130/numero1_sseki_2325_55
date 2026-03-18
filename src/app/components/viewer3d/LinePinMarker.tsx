@@ -191,6 +191,7 @@ export function createAreaPinGroup(data: AreaPinData): THREE.Group {
 export function calculateArea(vertices: THREE.Vector3[]): number {
   if (vertices.length < 3) return 0;
 
+  let area = 0;
   const n = vertices.length;
   const normal = new THREE.Vector3();
 
@@ -204,7 +205,8 @@ export function calculateArea(vertices: THREE.Vector3[]): number {
     normal.z += (curr.x - next.x) * (curr.y + next.y);
   }
 
-  return normal.length() / 2;
+  area = normal.length() / 2;
+  return area;
 }
 
 /**

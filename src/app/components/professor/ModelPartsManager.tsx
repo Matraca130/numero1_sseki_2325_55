@@ -1,24 +1,24 @@
 // ============================================================
-// Axon — ModelPartsManager (Professor)
+// Axon — ModelPartsManager (Professor) — MODULARIZED
 //
 // CRUD for model parts and layers via backend API.
+// Sub-modules extracted in Sprint 1:
+//   - parts-manager/AddLayerDialog.tsx
+//   - parts-manager/AddPartDialog.tsx
+//   - parts-manager/PartRow.tsx
+//   - parts-manager/LayerEditInline.tsx
+//
 // Uses API-first persistence (POST/PUT/DELETE to /model-layers,
 // /model-parts) with localStorage write-through cache for
 // instant UI updates and offline fallback.
-//
-// - Upload .glb per part (reuses ModelUploadZone)
-// - Assign layer_group, color, opacity defaults, order
-// - Manage layers (create, rename, reorder, delete)
-// - Full CRUD with drag-reorder
 // ============================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
-  Layers, Plus, Trash2, Pencil, X, Save, GripVertical,
-  Palette, Eye, Box, ChevronDown, ChevronRight, AlertTriangle,
+  Layers, Plus, Trash2, Pencil,
+  ChevronDown, ChevronRight,
   Loader2,
 } from 'lucide-react';
-import clsx from 'clsx';
 import { toast } from 'sonner';
 import {
   getStoredParts, setStoredParts, getStoredLayers, setStoredLayers,
@@ -29,17 +29,8 @@ import {
   createModelLayer, updateModelLayer, deleteModelLayer as apiDeleteLayer,
   createModelPart, updateModelPart, deleteModelPart as apiDeletePart,
 } from '@/app/lib/model3d-api';
-
-// ── Preset layer colors ──
-const LAYER_COLORS = [
-  '#f5e6d3', '#cc5555', '#4488cc', '#34d399', '#fbbf24',
-  '#a78bfa', '#f472b6', '#94a3b8', '#818cf8', '#fb923c',
-];
-
-// ── UUID helper ──
-function uid(): string {
-  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
-}
+// Sprint 1: extracted sub-components
+import { AddLayerDialog, AddPartDialog, PartRow, LayerEditInline } from './parts-manager';
 
 // ══════════════════════════════════════════════
 // ── Props ──
@@ -239,7 +230,7 @@ export function ModelPartsManager({ modelId, modelName }: ModelPartsManagerProps
           <button
             onClick={() => setShowAddPart(true)}
             disabled={layers.length === 0}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-lg hover:bg-teal-500/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[#5cbdaa] bg-[#2a8c7a]/10 border border-[#2a8c7a]/20 rounded-lg hover:bg-[#2a8c7a]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Plus size={10} /> Parte
           </button>
@@ -368,318 +359,5 @@ export function ModelPartsManager({ modelId, modelName }: ModelPartsManagerProps
         </p>
       )}
     </div>
-  );
-}
-
-
-// ══════════════════════════════════════════════
-// ── Layer Edit Inline ──
-// ══════════════════════════════════════════════
-
-function LayerEditInline({ layer, onSave, onCancel }: {
-  layer: ModelLayerConfig;
-  onSave: (name: string, color: string) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState(layer.name);
-  const [color, setColor] = useState(layer.color_hex);
-
-  return (
-    <div className="flex items-center gap-2 flex-1">
-      <input
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        className="flex-1 px-2 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-1 focus:ring-violet-500/30"
-        autoFocus
-      />
-      <input
-        type="color"
-        value={color}
-        onChange={e => setColor(e.target.value)}
-        className="w-6 h-6 rounded border border-white/10 cursor-pointer bg-transparent"
-      />
-      <button
-        onClick={() => onSave(name.trim() || layer.name, color)}
-        className="p-1 text-teal-400 hover:text-teal-300 rounded transition-colors"
-      >
-        <Save size={10} />
-      </button>
-      <button onClick={onCancel} className="p-1 text-gray-500 hover:text-white rounded transition-colors">
-        <X size={10} />
-      </button>
-    </div>
-  );
-}
-
-
-// ══════════════════════════════════════════════
-// ── Part Row ──
-// ══════════════════════════════════════════════
-
-function PartRow({ part, isEditing, layers, onStartEdit, onSave, onCancelEdit, onDelete }: {
-  part: ModelPartConfig;
-  isEditing: boolean;
-  layers: ModelLayerConfig[];
-  onStartEdit: () => void;
-  onSave: (updates: Partial<ModelPartConfig>) => void;
-  onCancelEdit: () => void;
-  onDelete: () => void;
-}) {
-  const [editName, setEditName] = useState(part.name);
-  const [editUrl, setEditUrl] = useState(part.file_url);
-  const [editLayer, setEditLayer] = useState(part.layer_group);
-  const [editOpacity, setEditOpacity] = useState(Math.round(part.opacity_default * 100));
-
-  if (isEditing) {
-    return (
-      <div className="p-2.5 bg-white/5 rounded-lg border border-white/10 space-y-2">
-        <input
-          type="text"
-          value={editName}
-          onChange={e => setEditName(e.target.value)}
-          placeholder="Nombre de la parte"
-          className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
-          autoFocus
-        />
-        <input
-          type="url"
-          value={editUrl}
-          onChange={e => setEditUrl(e.target.value)}
-          placeholder="URL del .glb"
-          className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30 font-mono"
-        />
-        <div className="flex items-center gap-2">
-          <select
-            value={editLayer}
-            onChange={e => setEditLayer(e.target.value)}
-            className="flex-1 px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none"
-          >
-            {layers.map(l => (
-              <option key={l.id} value={l.name}>{l.name}</option>
-            ))}
-          </select>
-          <span className="text-[9px] text-gray-500">Op:</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={editOpacity}
-            onChange={e => setEditOpacity(Number(e.target.value))}
-            className="w-12 px-1 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white text-center focus:outline-none"
-          />
-          <span className="text-[9px] text-gray-600">%</span>
-        </div>
-        <div className="flex justify-end gap-1.5">
-          <button onClick={onCancelEdit} className="px-2 py-1 text-[9px] text-gray-500 hover:text-white rounded transition-colors">
-            Cancelar
-          </button>
-          <button
-            onClick={() => onSave({
-              name: editName.trim() || part.name,
-              file_url: editUrl.trim() || part.file_url,
-              layer_group: editLayer,
-              opacity_default: editOpacity / 100,
-            })}
-            className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-violet-600 hover:bg-violet-500 rounded transition-colors"
-          >
-            <Save size={8} /> Guardar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
-      <GripVertical size={10} className="text-gray-700 shrink-0" />
-      <Box size={10} className="text-gray-500 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-gray-300 truncate">{part.name}</p>
-        <p className="text-[8px] text-gray-600 truncate font-mono">{part.file_url}</p>
-      </div>
-      <span className="text-[8px] text-gray-600">{Math.round(part.opacity_default * 100)}%</span>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onStartEdit} className="p-0.5 text-gray-500 hover:text-white rounded transition-colors">
-          <Pencil size={10} />
-        </button>
-        <button onClick={onDelete} className="p-0.5 text-gray-500 hover:text-red-400 rounded transition-colors">
-          <Trash2 size={10} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
-// ══════════════════════════════════════════════
-// ── Add Layer Dialog ──
-// ══════════════════════════════════════════════
-
-function AddLayerDialog({ existingNames, onAdd, onCancel }: {
-  existingNames: string[];
-  onAdd: (name: string, color: string) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(LAYER_COLORS[existingNames.length % LAYER_COLORS.length]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    if (existingNames.includes(name.trim())) {
-      toast.error('Ya existe una capa con ese nombre');
-      return;
-    }
-    onAdd(name.trim(), color);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 space-y-3">
-      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-        <Plus size={12} className="text-violet-400" />
-        Nueva Capa
-      </h4>
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Nombre (ej: Huesos, Musculos...)"
-          className="flex-1 px-2.5 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
-          autoFocus
-          required
-        />
-        <input
-          type="color"
-          value={color}
-          onChange={e => setColor(e.target.value)}
-          className="w-8 h-8 rounded-lg border border-white/10 cursor-pointer bg-transparent"
-        />
-      </div>
-      {/* Preset colors */}
-      <div className="flex gap-1.5">
-        {LAYER_COLORS.map(c => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setColor(c)}
-            className={clsx(
-              'w-5 h-5 rounded-full border-2 transition-all',
-              color === c ? 'border-white scale-110' : 'border-transparent hover:border-white/30',
-            )}
-            style={{ backgroundColor: c }}
-          />
-        ))}
-      </div>
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-3 py-1.5 text-[10px] text-gray-500 hover:text-white rounded-lg transition-colors">
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={!name.trim()}
-          className="px-3 py-1.5 text-[10px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors disabled:opacity-50"
-        >
-          Crear Capa
-        </button>
-      </div>
-    </form>
-  );
-}
-
-
-// ══════════════════════════════════════════════
-// ── Add Part Dialog ──
-// ══════════════════════════════════════════════
-
-function AddPartDialog({ layers, onAdd, onCancel }: {
-  layers: ModelLayerConfig[];
-  onAdd: (data: { name: string; file_url: string; layer_group: string; color_hex: string; opacity_default: number }) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [fileUrl, setFileUrl] = useState('');
-  const [layerGroup, setLayerGroup] = useState(layers[0]?.name || '');
-  const [opacity, setOpacity] = useState(100);
-
-  const selectedLayer = layers.find(l => l.name === layerGroup);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !fileUrl.trim()) return;
-    onAdd({
-      name: name.trim(),
-      file_url: fileUrl.trim(),
-      layer_group: layerGroup,
-      color_hex: selectedLayer?.color_hex || '#888888',
-      opacity_default: opacity / 100,
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-4 space-y-3">
-      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-        <Box size={12} className="text-teal-400" />
-        Nueva Parte
-      </h4>
-      <input
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        placeholder="Nombre (ej: Humero, Biceps...)"
-        className="w-full px-2.5 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
-        autoFocus
-        required
-      />
-      <input
-        type="url"
-        value={fileUrl}
-        onChange={e => setFileUrl(e.target.value)}
-        placeholder="URL del archivo .glb"
-        className="w-full px-2.5 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 font-mono"
-        required
-      />
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <label className="text-[9px] text-gray-500 mb-1 block">Capa</label>
-          <select
-            value={layerGroup}
-            onChange={e => setLayerGroup(e.target.value)}
-            className="w-full px-2 py-1.5 text-[10px] bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none"
-          >
-            {layers.map(l => (
-              <option key={l.id} value={l.name}>{l.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-20">
-          <label className="text-[9px] text-gray-500 mb-1 block">Opacidad</label>
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={opacity}
-              onChange={e => setOpacity(Number(e.target.value))}
-              className="w-12 px-1 py-1.5 text-[10px] bg-white/5 border border-white/10 rounded text-white text-center focus:outline-none"
-            />
-            <span className="text-[9px] text-gray-500">%</span>
-          </div>
-        </div>
-      </div>
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-3 py-1.5 text-[10px] text-gray-500 hover:text-white rounded-lg transition-colors">
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={!name.trim() || !fileUrl.trim()}
-          className="px-3 py-1.5 text-[10px] font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors disabled:opacity-50"
-        >
-          Agregar Parte
-        </button>
-      </div>
-    </form>
   );
 }

@@ -65,7 +65,7 @@ export function ClippingPlaneControls({
         max: maxDim * 0.6 + (orientation === 'axial' ? center.y : orientation === 'sagittal' ? center.x : center.z),
       };
     }
-  }, [modelMeshes, modelMeshes.length, orientation]);
+  }, [modelMeshes, orientation]);
 
   // Update clipping plane when params change
   useEffect(() => {
@@ -86,7 +86,7 @@ export function ClippingPlaneControls({
 
     renderer.localClippingEnabled = true;
 
-    // Calculate plane position from slider (0-100 -> world coords)
+    // Calculate plane position from slider (0-100 → world coords)
     const { min, max } = boundsRef.current;
     const worldPos = min + (position / 100) * (max - min);
 

@@ -53,7 +53,7 @@ export {
 };
 export type { Model3D, Model3DPin, Model3DNote, ModelLayer, ModelPart };
 
-// ── Error message extraction ──────────────────────────
+// ── Error message extraction ──────────────────────────────
 // Centralizes safe message extraction from `catch (err: unknown)`.
 // Avoids `err: any` across upload/validation code.
 
@@ -61,7 +61,7 @@ function extractErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-// ── Auth Headers (XHR) ────────────────────────────────
+// ── Auth Headers (XHR) ────────────────────────────────────
 // XHR is required for upload progress tracking (xhr.upload.progress).
 // fetch() / apiCall() don't support upload progress events.
 // This helper centralizes header construction for XHR requests.
@@ -75,14 +75,14 @@ function buildAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-// ── Constants ─────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────
 
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const WARN_FILE_SIZE_BYTES = 50 * 1024 * 1024;  // 50 MB warning threshold
 const ALLOWED_EXTENSIONS = ['.glb', '.gltf'];
 const GLB_MAGIC_BYTES = [0x67, 0x6C, 0x54, 0x46]; // "glTF" -- first 4 bytes of .glb
 
-// ── Validation ────────────────────────────────────────
+// ── Validation ────────────────────────────────────────────
 
 export interface ValidationResult {
   valid: boolean;
@@ -137,7 +137,7 @@ export async function validateModelFile(file: File): Promise<ValidationResult> {
   return { valid: true, warning };
 }
 
-// ── Upload ────────────────────────────────────────────
+// ── Upload ────────────────────────────────────────────────
 
 export interface UploadProgress {
   phase: 'validating' | 'uploading' | 'saving' | 'done' | 'error';
@@ -266,7 +266,7 @@ export async function uploadAndCreateModel(
   }
 }
 
-// ── Helpers ───────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 
 /** Format bytes to human-readable string */
 export function formatFileSize(bytes: number): string {
@@ -290,7 +290,7 @@ function sanitizeFilename(name: string): string {
   return `${sanitized || 'model'}${ext.toLowerCase()}`;
 }
 
-// ── Thumbnail Upload ──────────────────────────────────
+// ── Thumbnail Upload ──────────────────────────────────────
 
 /**
  * Upload a thumbnail image (PNG) for a 3D model.

@@ -10,7 +10,7 @@
 // Uses lib/model3d-api.ts for all operations.
 // ============================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   Box, Pencil, Trash2, X, Save, Loader2, Upload,
   Eye, EyeOff, ChevronDown, ChevronUp, ExternalLink, View,
@@ -167,8 +167,8 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
-              <Box size={20} className="text-teal-600" />
+            <div className="w-10 h-10 rounded-xl bg-[#e6f5f1] border border-[#ccebe3] flex items-center justify-center">
+              <Box size={20} className="text-[#2a8c7a]" />
             </div>
             <div>
               <h2 className="text-gray-900">{topicName}</h2>
@@ -188,7 +188,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
             </button>
             <button
               onClick={() => { setShowUpload(!showUpload); setShowManualForm(false); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors"
             >
               <Upload size={13} />
               Subir Modelo
@@ -206,10 +206,10 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-white rounded-xl border border-teal-200 p-6 space-y-4">
+            <div className="bg-white rounded-xl border border-[#99d7c7] p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <Upload size={14} className="text-teal-600" />
+                  <Upload size={14} className="text-[#2a8c7a]" />
                   Subir archivo 3D
                 </h3>
                 <button
@@ -228,7 +228,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   placeholder="Se usara el nombre del archivo si se deja vacio"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
                 />
               </div>
 
@@ -263,15 +263,15 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
       {/* ── Loading ── */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={24} className="animate-spin text-teal-500" />
+          <Loader2 size={24} className="animate-spin text-[#2a8c7a]" />
         </div>
       )}
 
       {/* ── Empty state ── */}
       {!loading && models.length === 0 && (
         <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
-            <Box size={28} className="text-teal-300" />
+          <div className="w-16 h-16 rounded-2xl bg-[#e6f5f1] flex items-center justify-center mx-auto mb-4">
+            <Box size={28} className="text-[#99d7c7]" />
           </div>
           <p className="text-sm font-medium text-gray-600 mb-1">Sube tu primer modelo 3D</p>
           <p className="text-xs text-gray-400 mb-4">
@@ -279,7 +279,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
           </p>
           <button
             onClick={() => setShowUpload(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors"
           >
             <Upload size={14} />
             Subir Modelo
@@ -317,9 +317,12 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
 
 // ══════════════════════════════════════════════
 // ── Model Card ──
+// Pattern: React.memo with custom comparator — parent passes inline closures
+// that capture model.id, so we compare model data fields instead of callback refs.
+// Internal state (editingTitle, showDetails) is unaffected by memo.
 // ══════════════════════════════════════════════
 
-function ModelCard({
+const ModelCard = memo(function ModelCard({
   model,
   index,
   onUpdate,
@@ -385,7 +388,7 @@ function ModelCard({
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
           isActive ? 'bg-slate-800' : 'bg-red-100'
         }`}>
-          <Box size={18} className={isActive ? 'text-teal-400' : 'text-red-400'} />
+          <Box size={18} className={isActive ? 'text-[#5cbdaa]' : 'text-red-400'} />
         </div>
 
         {/* Title + meta */}
@@ -401,9 +404,9 @@ function ModelCard({
                   if (e.key === 'Escape') { setEditingTitle(false); setTitleDraft(model.title); }
                 }}
                 autoFocus
-                className="flex-1 text-sm font-semibold text-gray-900 border border-teal-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                className="flex-1 text-sm font-semibold text-gray-900 border border-[#2a8c7a] rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20"
               />
-              <button onClick={handleSaveTitle} className="text-teal-600 hover:text-teal-700">
+              <button onClick={handleSaveTitle} className="text-[#2a8c7a] hover:text-[#244e47]">
                 <Save size={13} />
               </button>
               <button onClick={() => { setEditingTitle(false); setTitleDraft(model.title); }} className="text-gray-400 hover:text-gray-600">
@@ -413,7 +416,7 @@ function ModelCard({
           ) : (
             <h4
               className={`text-sm font-semibold truncate cursor-pointer transition-colors ${
-                isActive ? 'text-gray-900 hover:text-teal-700' : 'text-gray-500 line-through'
+                isActive ? 'text-gray-900 hover:text-[#244e47]' : 'text-gray-500 line-through'
               }`}
               onDoubleClick={() => { setTitleDraft(model.title); setEditingTitle(true); }}
             >
@@ -423,7 +426,7 @@ function ModelCard({
 
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {model.file_format && (
-              <span className="text-[10px] text-teal-600 font-semibold uppercase bg-teal-50 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] text-[#2a8c7a] font-semibold uppercase bg-[#e6f5f1] px-1.5 py-0.5 rounded">
                 {model.file_format}
               </span>
             )}
@@ -475,7 +478,7 @@ function ModelCard({
           <div className="w-px h-5 bg-gray-200 mx-0.5" />
           <button
             onClick={onOpen3D}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold text-[#1B3B36] bg-[#e6f5f1] hover:bg-[#ccebe3] border border-[#99d7c7] rounded-lg transition-colors"
             title="Abrir visor 3D"
           >
             <View size={13} />
@@ -539,7 +542,22 @@ function ModelCard({
       </AnimatePresence>
     </motion.div>
   );
-}
+},
+  // Custom arePropsEqual: compare data fields that affect visual output
+  (prev, next) =>
+    prev.model.id === next.model.id &&
+    prev.model.title === next.model.title &&
+    prev.model.is_active === next.model.is_active &&
+    prev.model.file_url === next.model.file_url &&
+    prev.model.file_format === next.model.file_format &&
+    prev.model.file_size_bytes === next.model.file_size_bytes &&
+    prev.model.order_index === next.model.order_index &&
+    prev.model.thumbnail_url === next.model.thumbnail_url &&
+    prev.index === next.index &&
+    // onMoveUp/onMoveDown toggle between function|undefined at list boundaries
+    !!prev.onMoveUp === !!next.onMoveUp &&
+    !!prev.onMoveDown === !!next.onMoveDown
+);
 
 
 // ══════════════════════════════════════════════
@@ -579,10 +597,10 @@ function ManualModelForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-teal-200 p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-[#99d7c7] p-6 space-y-4">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <ExternalLink size={14} className="text-teal-600" />
+          <ExternalLink size={14} className="text-[#2a8c7a]" />
           Crear modelo con URL
         </h3>
         <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600">
@@ -598,7 +616,7 @@ function ManualModelForm({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Ej: Articulacion del Hombro"
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
             required
           />
         </div>
@@ -607,7 +625,7 @@ function ManualModelForm({
           <select
             value={fileFormat}
             onChange={(e) => setFileFormat(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 bg-white"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] bg-white"
           >
             <option value="glb">GLB</option>
             <option value="gltf">glTF</option>
@@ -622,7 +640,7 @@ function ManualModelForm({
           value={fileUrl}
           onChange={(e) => setFileUrl(e.target.value)}
           placeholder="https://storage.example.com/model.glb"
-          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400"
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
           required
         />
       </div>
@@ -638,7 +656,7 @@ function ManualModelForm({
         <button
           type="submit"
           disabled={!title.trim() || !fileUrl.trim() || saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors disabled:opacity-50"
         >
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           Crear Modelo

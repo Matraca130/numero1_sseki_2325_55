@@ -1,20 +1,15 @@
 // ============================================================
-// Axon — PinSystem
+// Axon — PinSystem (MODULARIZED)
 //
 // React component managing pin interactions in the 3D viewer.
+// Sub-modules extracted in Sprint 1:
+//   - PinCreationForm.tsx: inline floating form for pin creation
 //
 // PROFESSOR mode="edit":
-//   Click surface -> raycast -> get geometry + normal -> inline form -> POST /model-3d-pins
+//   Click surface -> raycast -> get geometry + normal -> form -> POST /model-3d-pins
 //
 // STUDENT mode="view":
 //   See pin markers, hover tooltip, click -> popup with info
-//
-// Pin geometry types (DB CHECK): "point" | "line" | "area"
-// Currently only "point" is implemented in the UI.
-// The color selector in the creation form is UI-only (stored in `color` column).
-//
-// Renders HTML overlays positioned via 3D->2D projection.
-// Uses PinMarkerManager to render 3D meshes in the scene.
 //
 // PERFORMANCE (Paso 1):
 //   - Overlay positions updated imperatively via DOM refs (no setState per frame)
@@ -26,17 +21,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import clsx from 'clsx';
-import { MapPin, X, Save, Loader2, Info, Tag, FileText, Zap, Link2 } from 'lucide-react';
+import { MapPin, X, Loader2, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/app/lib/logger';
 import {
-  getModel3DPins, createModel3DPin, updateModel3DPin, deleteModel3DPin,
+  getModel3DPins, createModel3DPin, deleteModel3DPin,
 } from '@/app/lib/model3d-api';
 import type { Model3DPin } from '@/app/lib/model3d-api';
 import { PinMarkerManager } from './PinMarker3D';
 import type { PinMarkerData } from './PinMarker3D';
-// DIFF 9: Import KeywordAutocomplete for F1
-import { KeywordAutocomplete } from './KeywordAutocomplete';
+// Sprint 1: extracted form component
+import { PinCreationForm } from './PinCreationForm';
+import type { PinFormData } from './PinCreationForm';
 
 // ── Reusable temp objects (module-level, zero GC pressure) ──
 const _tempVec3 = new THREE.Vector3();
@@ -46,7 +42,6 @@ const _ndcVec2 = new THREE.Vector2();
 
 export type PinMode = 'view' | 'edit';
 
-// DIFF 10: Added topicId to PinSystemProps
 interface PinSystemProps {
   modelId: string;
   topicId?: string;
@@ -61,14 +56,6 @@ interface PinSystemProps {
   /** Incremented by parent when external pin CRUD occurs -> triggers refetch */
   refreshKey?: number;
 }
-
-// Pin type config — UI-only color categories.
-const PIN_TYPES = [
-  { value: 'info', label: 'Info', icon: Info, color: '#60a5fa' },
-  { value: 'keyword', label: 'Keyword', icon: Tag, color: '#a78bfa' },
-  { value: 'annotation', label: 'Anotacion', icon: FileText, color: '#34d399' },
-  { value: 'quiz', label: 'Quiz', icon: Zap, color: '#fbbf24' },
-] as const;
 
 // DB pin_type -> friendly label (for display of existing pins)
 const PIN_TYPE_DISPLAY: Record<string, string> = {
@@ -258,14 +245,8 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
     };
   }, [handleCanvasClick, handleCanvasMouseMove, containerRef]);
 
-  // ── Create pin (DIFF 9: added keyword_id support) ──
-  const handleCreatePin = useCallback(async (formData: {
-    label: string;
-    description: string;
-    pin_type: string;
-    color: string;
-    keyword_id?: string;
-  }) => {
+  // ── Create pin (uses PinFormData from extracted component) ──
+  const handleCreatePin = useCallback(async (formData: PinFormData) => {
     if (!placementPoint) return;
 
     try {
@@ -335,7 +316,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
             className={clsx(
               'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
               isPlacing
-                ? 'bg-teal-500/30 text-teal-300 border-teal-500/40 animate-pulse'
+                ? 'bg-[#2a8c7a]/30 text-[#5cbdaa] border-[#2a8c7a]/40 animate-pulse'
                 : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white',
             )}
           >
@@ -414,7 +395,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
                   <p className="text-[10px] text-gray-400 leading-relaxed mb-2">{pin.description}</p>
                 )}
 
-                {/* DIFF 9: F1 Keyword link badge */}
+                {/* F1 Keyword link badge */}
                 {pin.keyword_id && (
                   <div className="mb-2 px-2 py-1 rounded-md bg-violet-500/10 border border-violet-500/20">
                     <span className="text-[8px] text-violet-400 flex items-center gap-1">
@@ -445,8 +426,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
         );
       })}
 
-      {/* ── Pin creation form (professor) ── */}
-      {/* DIFF 10: Pass topicId to PinCreationForm */}
+      {/* ── Pin creation form (professor) — Sprint 1: extracted component ── */}
       {showForm && placementPoint && (
         <PinCreationForm
           onSubmit={handleCreatePin}
@@ -456,140 +436,5 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
         />
       )}
     </>
-  );
-}
-
-
-// ══════════════════════════════════════════════
-// ── Pin Creation Form (inline floating) ──
-// ══════════════════════════════════════════════
-
-// DIFF 9: Updated form to include keyword_id and topicId
-function PinCreationForm({
-  onSubmit,
-  onCancel,
-  geometry,
-  topicId,
-}: {
-  onSubmit: (data: { label: string; description: string; pin_type: string; color: string; keyword_id?: string }) => Promise<void>;
-  onCancel: () => void;
-  geometry: THREE.Vector3;
-  topicId?: string;
-}) {
-  const [label, setLabel] = useState('');
-  const [description, setDescription] = useState('');
-  const [pinType, setPinType] = useState('info');
-  const [saving, setSaving] = useState(false);
-  const [keywordId, setKeywordId] = useState<string | null>(null);
-
-  const selectedType = PIN_TYPES.find(t => t.value === pinType) || PIN_TYPES[0];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!label.trim()) return;
-    setSaving(true);
-    try {
-      await onSubmit({
-        label: label.trim(),
-        description: description.trim(),
-        pin_type: pinType,
-        color: selectedType.color,
-        keyword_id: keywordId || undefined,
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-80">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-zinc-900/95 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-2xl space-y-3"
-      >
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-            <MapPin size={12} className="text-teal-400" />
-            Nuevo Pin
-          </h4>
-          <button type="button" onClick={onCancel} className="text-gray-500 hover:text-white transition-colors">
-            <X size={14} />
-          </button>
-        </div>
-
-        {/* Coordinates preview */}
-        <div className="flex items-center gap-2 text-[9px] text-gray-500 font-mono">
-          <span>x:{geometry.x.toFixed(2)}</span>
-          <span>y:{geometry.y.toFixed(2)}</span>
-          <span>z:{geometry.z.toFixed(2)}</span>
-        </div>
-
-        {/* Pin type selector */}
-        <div className="flex gap-1">
-          {PIN_TYPES.map(t => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => setPinType(t.value)}
-              className={clsx(
-                'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-all border',
-                pinType === t.value
-                  ? 'border-white/20 bg-white/10 text-white'
-                  : 'border-transparent bg-white/5 text-gray-500 hover:text-gray-300',
-              )}
-            >
-              <t.icon size={10} />
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* F1: Keyword linking (DIFF 9) */}
-        <KeywordAutocomplete
-          topicId={topicId}
-          value={keywordId}
-          onChange={(id) => setKeywordId(id)}
-        />
-
-        {/* Label */}
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Nombre del punto..."
-          autoFocus
-          className="w-full px-3 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 focus:border-teal-500/30"
-          required
-        />
-
-        {/* Description */}
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Descripcion (opcional)..."
-          rows={2}
-          className="w-full px-3 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 focus:border-teal-500/30 resize-none"
-        />
-
-        {/* Actions */}
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-3 py-1.5 text-[10px] text-gray-500 hover:text-white rounded-lg transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={!label.trim() || saving}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {saving ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
-            Crear Pin
-          </button>
-        </div>
-      </form>
-    </div>
   );
 }

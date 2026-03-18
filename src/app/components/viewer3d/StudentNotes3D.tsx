@@ -16,15 +16,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import {
-  StickyNote, Plus, Trash2, X, Send, Loader2, MapPin, RotateCcw, Pencil, Check,
+  StickyNote, Trash2, X, Send, Loader2, MapPin, Pencil, Check,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { toast } from 'sonner';
-import { logger } from '@/app/lib/logger';
-import {
-  getModel3DNotes, createModel3DNote, updateModel3DNote, deleteModel3DNote, restoreModel3DNote,
-} from '@/app/lib/model3d-api';
-import type { Model3DNote } from '@/app/lib/model3d-api';
+import { useNoteData } from '@/app/hooks/useNoteData';
 
 // ── Reusable temp object (module-level, zero GC pressure) ──
 const _tempVec3 = new THREE.Vector3();
@@ -56,12 +51,13 @@ function getSharedNoteGeo(): THREE.SphereGeometry {
 }
 
 export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMeshes, registerFrameCallback }: StudentNotes3DProps) {
-  const [notes, setNotes] = useState<Model3DNote[]>([]);
-  const [loading, setLoading] = useState(true);
+  // M5 audit: note data layer extracted to shared hook
+  const { notes, loading, addNote, editNote, deleteNote } = useNoteData(modelId);
+
   const [showPanel, setShowPanel] = useState(false);
   const [showMarkers, setShowMarkers] = useState(true);
 
-  // Add note state
+  // Add note state (placement is 3D-specific, stays here)
   const [isPlacing, setIsPlacing] = useState(false);
   const [placementPoint, setPlacementPoint] = useState<THREE.Vector3 | null>(null);
   const [newNote, setNewNote] = useState('');
@@ -77,21 +73,6 @@ export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMesh
 
   // ── Imperative overlay positioning (PERFORMANCE: no setState per frame) ──
   const noteOverlayRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  // ── Fetch notes ──
-  const fetchNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getModel3DNotes(modelId);
-      setNotes(res?.items || []);
-    } catch (err: unknown) {
-      logger.error('StudentNotes3D', 'fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [modelId]);
-
-  useEffect(() => { fetchNotes(); }, [fetchNotes]);
 
   // ── Sync spatial note markers to scene ──
   useEffect(() => {
@@ -202,78 +183,36 @@ export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMesh
   const handleAddNote = useCallback(async () => {
     if (!newNote.trim()) return;
     setSaving(true);
-    try {
-      const data: Parameters<typeof createModel3DNote>[0] = {
-        model_id: modelId,
-        note: newNote.trim(),
-      };
-      if (placementPoint) {
-        data.geometry = {
+    const geometry = placementPoint
+      ? {
           x: parseFloat(placementPoint.x.toFixed(4)),
           y: parseFloat(placementPoint.y.toFixed(4)),
           z: parseFloat(placementPoint.z.toFixed(4)),
-        };
-      }
-      const created = await createModel3DNote(data);
-      setNotes(prev => [...prev, created]);
+        }
+      : undefined;
+    const result = await addNote({ note: newNote.trim(), geometry });
+    if (result) {
       setNewNote('');
       setPlacementPoint(null);
-      toast.success(placementPoint ? 'Nota espacial creada' : 'Nota creada');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al crear nota');
-    } finally {
-      setSaving(false);
     }
-  }, [modelId, newNote, placementPoint]);
+    setSaving(false);
+  }, [newNote, placementPoint, addNote]);
 
   // ── Delete note ──
   const handleDeleteNote = useCallback(async (noteId: string) => {
-    let deletedNote: Model3DNote | undefined;
-
-    // Optimistic: remove from UI + capture for rollback
-    setNotes(prev => {
-      deletedNote = prev.find(n => n.id === noteId);
-      return prev.filter(n => n.id !== noteId);
-    });
-
-    try {
-      await deleteModel3DNote(noteId);
-      toast.success('Nota eliminada', {
-        action: {
-          label: 'Deshacer',
-          onClick: async () => {
-            try {
-              const restored = await restoreModel3DNote(noteId);
-              setNotes(prev => [...prev, restored]);
-              toast.success('Nota restaurada');
-            } catch {
-              toast.error('No se pudo restaurar');
-            }
-          },
-        },
-      });
-    } catch (err: unknown) {
-      // Rollback on network error
-      if (deletedNote) {
-        setNotes(prev => [...prev, deletedNote!]);
-      }
-      toast.error(err instanceof Error ? err.message : 'Error al eliminar');
-    }
-  }, []);
+    await deleteNote(noteId);
+  }, [deleteNote]);
 
   // ── Edit note ──
   const handleEditNote = useCallback(async (noteId: string) => {
     if (!editNoteText.trim()) return;
-    try {
-      await updateModel3DNote(noteId, { note: editNoteText.trim() });
-      setNotes(prev => prev.map(n => n.id === noteId ? { ...n, note: editNoteText.trim() } : n));
+    const success = await editNote(noteId, editNoteText.trim());
+    if (success) {
       setEditingNoteId(null);
       setEditNoteText('');
-      toast.success('Nota actualizada');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al actualizar nota');
     }
-  }, [editNoteText]);
+    // On failure: user stays in edit mode with their text preserved
+  }, [editNoteText, editNote]);
 
   const spatialNotes = notes.filter(n => n.geometry);
   const textOnlyNotes = notes.filter(n => !n.geometry);

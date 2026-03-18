@@ -41,8 +41,8 @@ export function ProfessorModelViewerPage() {
     try {
       const data = await getModel3DById(modelId);
       setModel(data);
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar el modelo');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al cargar el modelo');
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export function ProfessorModelViewerPage() {
     return (
       <div className="h-full flex items-center justify-center bg-zinc-950">
         <div className="text-center">
-          <Loader2 size={28} className="animate-spin text-teal-500 mx-auto mb-3" />
+          <Loader2 size={28} className="animate-spin text-[#2a8c7a] mx-auto mb-3" />
           <p className="text-xs text-gray-500">Cargando modelo 3D...</p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export function ProfessorModelViewerPage() {
             </button>
             <button
               onClick={fetchModel}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-lg hover:bg-teal-500/20 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#5cbdaa] bg-[#2a8c7a]/10 border border-[#2a8c7a]/20 rounded-lg hover:bg-[#2a8c7a]/20 transition-colors"
             >
               Reintentar
             </button>
@@ -107,8 +107,8 @@ export function ProfessorModelViewerPage() {
           </button>
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
-              <Box size={14} className="text-teal-400" />
+            <div className="w-7 h-7 rounded-lg bg-[#2a8c7a]/10 border border-[#2a8c7a]/20 flex items-center justify-center">
+              <Box size={14} className="text-[#5cbdaa]" />
             </div>
             <div>
               <h2 className="text-xs text-white">{model.title}</h2>
@@ -122,7 +122,7 @@ export function ProfessorModelViewerPage() {
         <div className="flex items-center gap-2">
           {/* Format badge */}
           {model.file_format && (
-            <span className="text-[9px] text-teal-500 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
+            <span className="text-[9px] text-[#2a8c7a] font-semibold uppercase bg-[#2a8c7a]/10 px-2 py-0.5 rounded">
               {model.file_format}
             </span>
           )}
@@ -157,7 +157,7 @@ export function ProfessorModelViewerPage() {
                   <p className="text-[10px] text-gray-500 mb-3">{err.message}</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="px-3 py-1.5 text-xs text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-lg hover:bg-teal-500/20 transition-colors"
+                    className="px-3 py-1.5 text-xs text-[#5cbdaa] bg-[#2a8c7a]/10 border border-[#2a8c7a]/20 rounded-lg hover:bg-[#2a8c7a]/20 transition-colors"
                   >
                     Recargar pagina
                   </button>
@@ -168,7 +168,7 @@ export function ProfessorModelViewerPage() {
             <ModelViewer3D
               modelId={model.id}
               modelName={model.title}
-              topicId={model.topic_id}
+              fileUrl={model.file_url}
               mode="edit"
             />
           </ErrorBoundary>
