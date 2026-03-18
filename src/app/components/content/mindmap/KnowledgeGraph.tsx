@@ -420,10 +420,11 @@ export function KnowledgeGraph({
     const nodesWithChildren = new Set(data.edges.map(e => e.source).filter(id => id != null && nodeIds.has(id)));
     setCollapsedNodes(nodesWithChildren);
     onCollapseChangeRef.current?.(nodesWithChildren.size, nodesWithChildren);
-    // Build breadcrumbs for all collapsed parent nodes
+    // Build breadcrumbs using Map lookup (O(N) instead of O(N*M))
+    const nodeById = new Map(data.nodes.map(n => [n.id, n]));
     setBreadcrumbs(
       Array.from(nodesWithChildren).map(id => {
-        const n = data.nodes.find(node => node.id === id);
+        const n = nodeById.get(id);
         return { id, label: n?.label ?? id };
       }),
     );
