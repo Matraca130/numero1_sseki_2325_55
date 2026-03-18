@@ -220,6 +220,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   onReviewRef.current = onReviewNodes;
   const onNavigateRef = useRef(onNavigateToAction);
   onNavigateRef.current = onNavigateToAction;
+  const onEdgeCreatedRef = useRef(onEdgeCreated);
+  onEdgeCreatedRef.current = onEdgeCreated;
   // Guard: discard results from stale topicId when user switches topics mid-analysis
   const analyzeTopicRef = useRef(topicId);
 
@@ -347,14 +349,14 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       });
       if (!mountedRef.current) return;
       setAcceptedSuggestions(prev => new Set(prev).add(key));
-      onEdgeCreated?.();
+      onEdgeCreatedRef.current?.();
       toast.success('Conexión añadida al mapa');
     } catch (err: unknown) {
       if (mountedRef.current) toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     } finally {
       if (mountedRef.current) setAcceptingKey(null);
     }
-  }, [topicId, onEdgeCreated]);
+  }, [topicId]);
 
   const handleDismissSuggestion = useCallback((suggestion: SuggestedConnection) => {
     setSuggestions(prev => prev.filter(s => !(s.source === suggestion.source && s.target === suggestion.target)));
