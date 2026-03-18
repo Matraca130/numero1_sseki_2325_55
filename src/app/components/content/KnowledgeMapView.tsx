@@ -502,7 +502,7 @@ export function KnowledgeMapView() {
           directed: oldEdge.directed,
           arrow_type: oldEdge.arrowType,
         });
-      } catch (createErr) {
+      } catch (createErr: unknown) {
         // Compensate: re-create the old edge since delete already succeeded
         try { await createCustomEdge(oldEdgePayload); } catch { /* best effort */ }
         throw createErr;

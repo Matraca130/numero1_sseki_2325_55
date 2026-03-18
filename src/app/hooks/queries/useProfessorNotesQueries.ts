@@ -44,7 +44,7 @@ export function useProfNotesQuery(keywordId: string) {
   return useQuery({
     queryKey: queryKeys.kwProfNotes(keywordId),
     queryFn: async () => {
-      const result = await apiCall<any>(
+      const result = await apiCall<unknown>(
         `/kw-prof-notes?keyword_id=${keywordId}`,
       );
       return extractItems<KwProfNote>(result);
@@ -96,8 +96,8 @@ export function useUpsertProfNoteMutation(
     onSuccess: () => {
       invalidateProfNotes(queryClient, keywordId, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al guardar nota');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar nota');
     },
   });
 }
@@ -117,8 +117,8 @@ export function useDeleteProfNoteMutation(
       toast.success('Nota eliminada');
       invalidateProfNotes(queryClient, keywordId, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar nota');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar nota');
     },
   });
 }

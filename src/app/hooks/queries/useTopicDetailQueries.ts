@@ -72,12 +72,12 @@ export function useSummarySubCountsQuery(
                 api.getKeywords(s.id),
                 api.getVideos(s.id),
               ]);
-              const extract = (r: PromiseSettledResult<any>): number => {
+              const extract = (r: PromiseSettledResult<unknown>): number => {
                 if (r.status !== 'fulfilled') return 0;
                 const v = r.value;
                 if (Array.isArray(v)) return v.length;
                 if (v && Array.isArray(v.items))
-                  return v.items.filter((i: any) => i.is_active !== false).length;
+                  return v.items.filter((i: Record<string, unknown>) => i.is_active !== false).length;
                 return 0;
               };
               results[s.id] = {
@@ -129,8 +129,8 @@ export function useCreateSummaryMutation(topicId: string) {
       toast.success('Resumen creado');
       invalidateTopic(queryClient, topicId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al crear resumen');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al crear resumen');
     },
   });
 }
@@ -153,8 +153,8 @@ export function useUpdateSummaryMutation(topicId: string) {
       toast.success('Resumen actualizado');
       invalidateTopic(queryClient, topicId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al guardar resumen');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar resumen');
     },
   });
 }
@@ -170,8 +170,8 @@ export function useDeleteSummaryMutation(topicId: string) {
       toast.success('Resumen eliminado');
       invalidateTopic(queryClient, topicId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar resumen');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar resumen');
     },
   });
 }
@@ -187,8 +187,8 @@ export function useRestoreSummaryMutation(topicId: string) {
       toast.success('Resumen restaurado');
       invalidateTopic(queryClient, topicId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al restaurar resumen');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al restaurar resumen');
     },
   });
 }
@@ -209,8 +209,8 @@ export function useToggleStatusMutation(topicId: string) {
       );
       invalidateTopic(queryClient, topicId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al cambiar estado');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al cambiar estado');
     },
   });
 }

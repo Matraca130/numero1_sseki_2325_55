@@ -55,8 +55,8 @@ export function useUpdateVideoMutation(summaryId: string) {
         queryKey: queryKeys.summaryVideos(summaryId),
       });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al actualizar video');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar video');
     },
   });
 }
@@ -74,8 +74,8 @@ export function useDeleteVideoMutation(summaryId: string) {
         queryKey: queryKeys.summaryVideos(summaryId),
       });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar video');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar video');
     },
   });
 }
