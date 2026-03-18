@@ -290,6 +290,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 76 audit (professor page parity): Fixed 7 issues — wrapped ProfessorAddConnectionModal + GraphTemplatePanel in ErrorBoundary, added mountedRef + savingRef to ProfessorAddConnectionModal (unmount safety + double-submit guard), fixed Escape handler to use stopImmediatePropagation, fixed mountedRef Strict Mode pattern in ProfessorKnowledgeMapPage.
 - [x] Round 77 audit (panels + modals): Added Escape handler + focus trap to GraphTemplatePanel (was keyboard-inaccessible). ShareMapModal and PresentationMode verified clean. Fixed GraphTemplatePanel mountedRef Strict Mode pattern.
 - [x] Round 78 audit (AiTutorPanel deep audit): Added Escape handler + focus trap to AiTutorPanel. Fixed 'debiles'→'débiles' accent typo in mindmapAiApi.ts error message. All async safety verified clean (mountedRef, analyzingRef, suggestingRef, acceptingKeyRef).
+- [x] Round 79 audit (panel parity + mobile touch): All 4 slide-in panels now consistent (focus trap, Escape+stopImmediatePropagation, ErrorBoundary). Fixed MapComparisonPanel (missing Escape+focus trap+ErrorBoundary), ChangeHistoryPanel (missing focus trap+ErrorBoundary). Fixed KnowledgeGraph long-press firing mid-drag on mobile (added pointermove cancellation with 10px threshold). Fixed useSwipeDismiss multi-touch guard (pinch no longer triggers dismiss).
 
 ## Completed
 - [x] Search/filter with debounce
