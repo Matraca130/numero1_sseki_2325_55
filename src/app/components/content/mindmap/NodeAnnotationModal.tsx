@@ -253,7 +253,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                   }
                   handleSave();
                 }}
-                disabled={saving}
+                disabled={saving || !content.trim()}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-ax-primary-500 hover:bg-ax-primary-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
               >
                 <Save className="w-3.5 h-3.5" />

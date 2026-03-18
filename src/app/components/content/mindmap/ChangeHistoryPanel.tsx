@@ -81,6 +81,16 @@ export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHi
     return () => { clearInterval(tickRef.current); };
   }, [open, entries.length]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   // Newest-first ordering
   const sortedEntries = useMemo(
     () => [...entries].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),

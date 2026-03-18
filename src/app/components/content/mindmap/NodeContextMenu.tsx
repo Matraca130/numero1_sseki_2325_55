@@ -271,6 +271,8 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                       key={hex}
                       onClick={() => { onColorChange(node.id, hex); }}
                       className="rounded-full transition-all duration-100 flex-shrink-0 p-1.5"
+                      role="radio"
+                      aria-checked={currentCustomColor === hex}
                       aria-label={`Color ${label}`}
                       title={label}
                     >
