@@ -61,6 +61,11 @@ function downloadGraphImage(dataURL: string, ext: string) {
   requestAnimationFrame(() => document.body.removeChild(link));
 }
 
+// ── Layout presets (shared by init and layout-switch) ────────
+const LAYOUT_FORCE = { type: 'd3-force' as const, preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.8 };
+const LAYOUT_RADIAL = { type: 'radial' as const, unitRadius: 120, preventOverlap: true, nodeSize: 50 };
+const LAYOUT_DAGRE = { type: 'dagre' as const, rankdir: 'TB', nodesep: 40, ranksep: 60 };
+
 // I18N strings imported from graphI18n.ts
 
 interface KnowledgeGraphProps {
@@ -374,30 +379,10 @@ export function KnowledgeGraph({
   // Layout config
   const getLayoutConfig = useCallback(() => {
     switch (layout) {
-      case 'radial':
-        return {
-          type: 'radial' as const,
-          unitRadius: 120,
-          preventOverlap: true,
-          nodeSize: 50,
-        };
-      case 'dagre':
-        return {
-          type: 'dagre' as const,
-          rankdir: 'TB',
-          nodesep: 40,
-          ranksep: 60,
-        };
+      case 'radial': return LAYOUT_RADIAL;
+      case 'dagre': return LAYOUT_DAGRE;
       case 'force':
-      default:
-        return {
-          type: 'd3-force' as const,
-          preventOverlap: true,
-          nodeSize: 50,
-          linkDistance: 150,
-          nodeStrength: -200,
-          collideStrength: 0.8,
-        };
+      default: return LAYOUT_FORCE;
     }
   }, [layout]);
 
@@ -1165,18 +1150,9 @@ export function KnowledgeGraph({
       const nextIdx = (idx + 1) % layouts.length;
       const nextType = layouts[nextIdx];
 
-      let layoutConfig: Record<string, unknown>;
-      switch (nextType) {
-        case 'dagre':
-          layoutConfig = { type: 'dagre', rankdir: 'TB', nodesep: 40, ranksep: 60 };
-          break;
-        case 'radial':
-          layoutConfig = { type: 'radial', unitRadius: 120, preventOverlap: true, nodeSize: 50 };
-          break;
-        default:
-          layoutConfig = { type: 'd3-force', preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.8 };
-          break;
-      }
+      const layoutConfig = nextType === 'dagre' ? LAYOUT_DAGRE
+        : nextType === 'radial' ? LAYOUT_RADIAL
+        : LAYOUT_FORCE;
 
       graph.setLayout(layoutConfig);
       graph.layout().then(() => {
