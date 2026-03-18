@@ -292,6 +292,9 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 78 audit (AiTutorPanel deep audit): Added Escape handler + focus trap to AiTutorPanel. Fixed 'debiles'→'débiles' accent typo in mindmapAiApi.ts error message. All async safety verified clean (mountedRef, analyzingRef, suggestingRef, acceptingKeyRef).
 - [x] Round 79 audit (panel parity + mobile touch): All 4 slide-in panels now consistent (focus trap, Escape+stopImmediatePropagation, ErrorBoundary). Fixed MapComparisonPanel (missing Escape+focus trap+ErrorBoundary), ChangeHistoryPanel (missing focus trap+ErrorBoundary). Fixed KnowledgeGraph long-press firing mid-drag on mobile (added pointermove cancellation with 10px threshold). Fixed useSwipeDismiss multi-touch guard (pinch no longer triggers dismiss).
 - [x] Round 80 audit (StickyNote touch + final sweep): Fixed StickyNote delete button untappable on touch devices (was opacity:0 + pointerEvents:none without hover — now always visible at 0.3 opacity). Fixed undo/redo stack nuclear clear on failure — now only removes the failed action and shows error toast, preserving rest of history. Final comprehensive sweep found no HIGH severity issues.
+- [x] Round 81-82 audit: Fixed test failure from R78 accent fix (test expected old spelling). Removed 2 unused imports (LoadingPage, React default). All 995 tests passing.
+- [x] Round 83 audit (barrel exports + integration): Barrel index.ts has zero external consumers (all use direct imports). 6 missing exports noted but LOW priority since barrel is unused. No circular dependencies. Cross-module imports all correct.
+- [x] Round 84 audit (performance): Fixed Shift+click multi-selection using O(N) loop → diff-based O(delta) applyMultiSelectionState. Stabilized onNodeClick/onNodeRightClick via refs to prevent G6 event re-registration on tool changes (~10 listeners torn down/rebuilt per tool switch).
 
 ## Completed
 - [x] Search/filter with debounce
