@@ -152,6 +152,8 @@ export function ProfessorKnowledgeMapPage() {
     setTemplateOverride({ nodes, edges });
     setSelectedNode(null);
     setSearchQuery('');
+    setHeatmapEnabled(false);
+    setHeatmapData(null);
   }, [setSearchQuery]);
 
   const handleNodeClick = useCallback((node: MapNode | null) => {
@@ -161,13 +163,16 @@ export function ProfessorKnowledgeMapPage() {
   const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG } = useGraphControls(graphControlsRef);
 
   const [deleteEdgeId, setDeleteEdgeId] = useState<string | null>(null);
+  const deletingRef = useRef(false);
+  const aiSuggestingRef = useRef(false);
 
   const handleDeleteConnection = useCallback((edgeId: string) => {
     setDeleteEdgeId(edgeId);
   }, []);
 
   const executeDeleteConnection = useCallback(async () => {
-    if (!deleteEdgeId) return;
+    if (!deleteEdgeId || deletingRef.current) return;
+    deletingRef.current = true;
     try {
       await deleteConnection(deleteEdgeId);
       if (!mountedRef.current) return;
@@ -179,11 +184,14 @@ export function ProfessorKnowledgeMapPage() {
       if (!mountedRef.current) return;
       toast.error(err instanceof Error ? err.message : 'Error al eliminar conexión');
       setDeleteEdgeId(null);
+    } finally {
+      deletingRef.current = false;
     }
   }, [deleteEdgeId, refetch, topicId]);
 
   const handleAiSuggest = useCallback(async () => {
-    if (!topicId) return;
+    if (!topicId || aiSuggestingRef.current) return;
+    aiSuggestingRef.current = true;
     setAiSuggesting(true);
     try {
       const result = await apiCall('/ai-suggest-connections', {
@@ -205,6 +213,7 @@ export function ProfessorKnowledgeMapPage() {
       if (!mountedRef.current) return;
       toast.error(err instanceof Error ? err.message : 'Error al generar sugerencias de IA');
     } finally {
+      aiSuggestingRef.current = false;
       if (mountedRef.current) setAiSuggesting(false);
     }
   }, [topicId, refetch]);
