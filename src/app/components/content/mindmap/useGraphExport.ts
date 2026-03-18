@@ -13,6 +13,7 @@
 
 import { useCallback, useRef } from 'react';
 import type { Graph } from '@antv/g6';
+import { toast } from 'sonner';
 
 type ExportFormat = 'png' | 'jpeg';
 
@@ -84,8 +85,9 @@ export function useGraphExport() {
       });
       downloadDataURL(dataURL, buildFilename(format));
     } catch (err) {
-      // Graph may be destroyed or in transition — wrap with context but preserve original
-      throw new Error('No se pudo exportar la imagen del mapa', { cause: err });
+      // Graph may be destroyed or in transition
+      console.error('Export failed:', err);
+      toast.error('No se pudo exportar la imagen del mapa');
     }
   }, []);
 

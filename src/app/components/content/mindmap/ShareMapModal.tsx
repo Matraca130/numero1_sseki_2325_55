@@ -89,6 +89,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
     } catch (err: unknown) {
       // User cancelled the share — not an error
       if (err instanceof Error && err.name === 'AbortError') return;
+      console.warn('Share failed:', err);
     }
   }, [shareUrl, topicName]);
 
