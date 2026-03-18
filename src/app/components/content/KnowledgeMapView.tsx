@@ -23,6 +23,8 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 /** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
 const haptic = (ms = 50) => navigator?.vibrate?.(ms);
+/** Stable empty array to avoid creating new reference on every render. */
+const EMPTY_NODES: import('./mindmap').MapNode[] = [];
 import { useNavigate, useSearchParams } from 'react-router';
 import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows, StickyNote as StickyNoteIcon } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
@@ -633,6 +635,26 @@ export function KnowledgeMapView() {
     else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
   }, [navigateWithFade]);
 
+  const handleAddModalClose = useCallback(() => {
+    setAddModalOpen(false);
+    setConnectSource(null);
+    setConnectTarget(null);
+  }, []);
+
+  const handleNodeCreated = useCallback((nodeId: string, payload: { label: string }) => {
+    pushAction({ type: 'create-node', nodeId, payload: payload as Parameters<typeof pushAction>[0]['payload'] });
+    setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]);
+    haptic(50);
+  }, [pushAction]);
+
+  const handleEdgeCreated = useCallback((edgeId: string, payload: { source_node_id: string; target_node_id: string }) => {
+    pushAction({ type: 'create-edge', edgeId, payload: payload as Parameters<typeof pushAction>[0]['payload'] });
+    const srcNode = graphDataNodesRef.current?.find(n => n.id === payload.source_node_id);
+    const tgtNode = graphDataNodesRef.current?.find(n => n.id === payload.target_node_id);
+    setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]);
+    haptic(50);
+  }, [pushAction]);
+
   // ── Derived data ────────────────────────────────────────
 
   const masteryStats = useMemo(() => {
@@ -641,16 +663,24 @@ export function KnowledgeMapView() {
     const total = nodes.length;
     if (total === 0) return null;
 
-    const mastered = nodes.filter(n => n.masteryColor === 'green').length;
-    const learning = nodes.filter(n => n.masteryColor === 'yellow').length;
-    const weak = nodes.filter(n => n.masteryColor === 'red').length;
-    const noData = nodes.filter(n => n.masteryColor === 'gray').length;
-
-    const withData = nodes.filter(n => n.mastery >= 0);
-    const avgMastery = withData.length > 0 ? withData.reduce((sum, n) => sum + n.mastery, 0) / withData.length : 0;
+    let mastered = 0, learning = 0, weak = 0, noData = 0, masterySum = 0, masteryCount = 0;
+    for (const n of nodes) {
+      if (n.masteryColor === 'green') mastered++;
+      else if (n.masteryColor === 'yellow') learning++;
+      else if (n.masteryColor === 'red') weak++;
+      else noData++;
+      if (n.mastery >= 0) { masterySum += n.mastery; masteryCount++; }
+    }
+    const avgMastery = masteryCount > 0 ? masterySum / masteryCount : 0;
 
     return { total, mastered, learning, weak, noData, avgMastery };
   }, [graphData]);
+
+  // Connection count for selected node detail panel (avoids O(E) filter on every render)
+  const selectedNodeConnections = useMemo(() => {
+    if (!graphData?.edges || !selectedNode) return 0;
+    return graphData.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id).length;
+  }, [graphData?.edges, selectedNode]);
 
   // Animated mastery percentage (count-up effect, respects reduced-motion)
   const targetPct = masteryStats ? Math.round(masteryStats.avgMastery * 100) : 0;
@@ -1315,9 +1345,7 @@ export function KnowledgeMapView() {
                 </span>
                 {graphData && (
                   <span>
-                    {graphData.edges.filter(
-                      e => e.source === selectedNode.id || e.target === selectedNode.id
-                    ).length} conexiones
+                    {selectedNodeConnections} conexiones
                   </span>
                 )}
                 {selectedNode.isUserCreated && (
@@ -1372,12 +1400,12 @@ export function KnowledgeMapView() {
         )}>
           <AddNodeEdgeModal
             open={addModalOpen}
-            onClose={() => { setAddModalOpen(false); setConnectSource(null); setConnectTarget(null); }}
+            onClose={handleAddModalClose}
             topicId={effectiveTopicId}
-            existingNodes={graphData?.nodes ?? []}
+            existingNodes={graphData?.nodes ?? EMPTY_NODES}
             onCreated={refetch}
-            onNodeCreated={(nodeId, payload) => { pushAction({ type: 'create-node', nodeId, payload }); setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]); haptic(50); }}
-            onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphDataNodesRef.current?.find(n => n.id === payload.source_node_id); const tgtNode = graphDataNodesRef.current?.find(n => n.id === payload.target_node_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
+            onNodeCreated={handleNodeCreated}
+            onEdgeCreated={handleEdgeCreated}
             initialEdgeSource={connectSource?.id}
             initialEdgeTarget={connectTarget?.id}
             initialTab={connectSource ? 'edge' : undefined}
