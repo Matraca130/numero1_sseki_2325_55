@@ -123,9 +123,16 @@ export function useUndoRedo(onGraphChanged: () => void) {
         }
         case 'reconnect-edge': {
           // Undo reconnect: delete the new edge, re-create the old edge
+          // Uses compensating rollback if step 2 fails after step 1 succeeds
           await deleteCustomEdge(action.newEdgeId);
-          const res = await createCustomEdge(action.oldPayload);
-          return { ...action, oldEdgeId: res.id };
+          try {
+            const res = await createCustomEdge(action.oldPayload);
+            return { ...action, oldEdgeId: res.id };
+          } catch (recreateErr) {
+            // Step 2 failed — rollback step 1 by re-creating the deleted edge
+            try { await createCustomEdge(action.newPayload); } catch { /* best-effort rollback */ }
+            throw recreateErr;
+          }
         }
       }
     } catch (err: unknown) {
@@ -157,9 +164,16 @@ export function useUndoRedo(onGraphChanged: () => void) {
           return action;
         case 'reconnect-edge': {
           // Redo reconnect: delete the old edge, re-create the new edge
+          // Uses compensating rollback if step 2 fails after step 1 succeeds
           await deleteCustomEdge(action.oldEdgeId);
-          const res = await createCustomEdge(action.newPayload);
-          return { ...action, newEdgeId: res.id };
+          try {
+            const res = await createCustomEdge(action.newPayload);
+            return { ...action, newEdgeId: res.id };
+          } catch (recreateErr) {
+            // Step 2 failed — rollback step 1 by re-creating the deleted edge
+            try { await createCustomEdge(action.oldPayload); } catch { /* best-effort rollback */ }
+            throw recreateErr;
+          }
         }
       }
     } catch (err: unknown) {

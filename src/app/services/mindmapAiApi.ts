@@ -40,6 +40,7 @@ export async function analyzeKnowledgeGraph(
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(
       `No se pudo analizar el grafo de conocimiento: ${message}`,
+      { cause: err },
     );
   }
 }
@@ -69,6 +70,7 @@ export async function suggestStudentConnections(
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(
       `No se pudieron obtener sugerencias de conexiones: ${message}`,
+      { cause: err },
     );
   }
 }
@@ -88,6 +90,7 @@ export async function getStudentWeakPoints(
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(
       `No se pudieron obtener los puntos debiles del estudiante: ${message}`,
+      { cause: err },
     );
   }
 }
