@@ -89,7 +89,7 @@ export async function getStudentWeakPoints(
     const message =
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(
-      `No se pudieron obtener los puntos debiles del estudiante: ${message}`,
+      `No se pudieron obtener los puntos débiles del estudiante: ${message}`,
       { cause: err },
     );
   }

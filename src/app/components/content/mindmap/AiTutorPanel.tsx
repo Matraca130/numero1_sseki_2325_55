@@ -17,6 +17,7 @@ import { Sparkles, AlertTriangle, CheckCircle2, Route, X, Layers, HelpCircle, Fi
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { analyzeKnowledgeGraph, suggestStudentConnections, getStudentWeakPoints } from '@/app/services/mindmapAiApi';
+import { useFocusTrap } from './useFocusTrap';
 import type { AnalyzeKnowledgeGraphResponse, WeakPoint, SuggestedConnection } from '@/app/types/mindmap-ai';
 import { createCustomEdge } from '@/app/services/mindmapApi';
 import { colors, headingStyle } from '@/app/design-system';
@@ -209,12 +210,18 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
 
   // Mounted guard — prevents state updates after unmount
   const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; if (improvedTimerRef.current) clearTimeout(improvedTimerRef.current); }; }, []);
+  const focusTrapRef = useFocusTrap(open);
+
+  // Close on Escape key
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      if (improvedTimerRef.current) clearTimeout(improvedTimerRef.current);
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
     };
-  }, []);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose]);
 
   // Reset all state when topicId changes (prevents stale data from previous topic)
   useEffect(() => {
@@ -376,6 +383,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 320 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+          ref={focusTrapRef}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
           role="complementary"
           aria-label="Panel de IA Tutor"
