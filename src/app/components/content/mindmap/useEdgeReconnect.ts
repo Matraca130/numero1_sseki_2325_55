@@ -204,8 +204,8 @@ export function useEdgeReconnect({
     // Size the overlay to match the container
     const resize = () => {
       const rect = container.getBoundingClientRect();
-      overlay.width = Math.round(rect.width * devicePixelRatio);
-      overlay.height = Math.round(rect.height * devicePixelRatio);
+      overlay.width = Math.round(rect.width * (window.devicePixelRatio || 1));
+      overlay.height = Math.round(rect.height * (window.devicePixelRatio || 1));
       overlay.style.width = `${rect.width}px`;
       overlay.style.height = `${rect.height}px`;
     };
@@ -231,7 +231,7 @@ export function useEdgeReconnect({
     const ctx = overlay.getContext('2d');
     if (!ctx) return;
 
-    const dpr = devicePixelRatio;
+    const dpr = (window.devicePixelRatio || 1);
     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
     if (!ds) return;
