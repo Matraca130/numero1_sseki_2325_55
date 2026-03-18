@@ -1183,7 +1183,12 @@ export function KnowledgeMapView() {
           )}
 
           {/* Sticky notes layer — floats above graph, below modals */}
-          <ErrorBoundary fallback={null}>
+          <ErrorBoundary fallback={(_err, reset) => (
+            <div className="absolute bottom-3 right-3 z-10 bg-white rounded-lg shadow border border-gray-200 px-3 py-2 flex items-center gap-2">
+              <p className="text-xs text-gray-500">Error en notas</p>
+              <button onClick={reset} className="text-xs font-medium text-[#2a8c7a] hover:underline">Reintentar</button>
+            </div>
+          )}>
             <StickyNotesLayer
               topicId={effectiveTopicId}
               notes={stickyNotes}
@@ -1313,17 +1318,26 @@ export function KnowledgeMapView() {
           </ErrorBoundary>
 
           {/* Context menu overlay — uses fixed positioning, safe outside overflow */}
-          <NodeContextMenu
-            node={contextMenu?.node ?? null}
-            position={contextMenu?.position ?? null}
-            onAction={handleAction}
-            onClose={handleContextMenuClose}
-            hasChildren={contextMenu?.node ? nodesWithChildren.has(contextMenu.node.id) : false}
-            isCollapsed={contextMenu?.node ? collapsedNodeIds.has(contextMenu.node.id) : false}
-            onToggleCollapse={contextMenu?.node ? (() => { const id = contextMenu.node.id; return () => graphControlsRef.current?.toggleCollapse(id); })() : undefined}
-            onColorChange={handleNodeColorChange}
-            currentCustomColor={contextMenu?.node ? customNodeColors.get(contextMenu.node.id) : undefined}
-          />
+          <ErrorBoundary fallback={(_err, reset) => (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={reset}>
+              <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex flex-col items-center gap-2">
+                <p className="text-sm text-gray-600">Error en menú contextual</p>
+                <button onClick={reset} className="text-sm font-medium text-[#2a8c7a] hover:underline">Cerrar</button>
+              </div>
+            </div>
+          )}>
+            <NodeContextMenu
+              node={contextMenu?.node ?? null}
+              position={contextMenu?.position ?? null}
+              onAction={handleAction}
+              onClose={handleContextMenuClose}
+              hasChildren={contextMenu?.node ? nodesWithChildren.has(contextMenu.node.id) : false}
+              isCollapsed={contextMenu?.node ? collapsedNodeIds.has(contextMenu.node.id) : false}
+              onToggleCollapse={contextMenu?.node ? (() => { const id = contextMenu.node.id; return () => graphControlsRef.current?.toggleCollapse(id); })() : undefined}
+              onColorChange={handleNodeColorChange}
+              currentCustomColor={contextMenu?.node ? customNodeColors.get(contextMenu.node.id) : undefined}
+            />
+          </ErrorBoundary>
 
           {/* Selected node detail panel (bottom sheet on mobile, floating card on desktop) */}
           {selectedNode && !contextMenu && (
@@ -1439,7 +1453,17 @@ export function KnowledgeMapView() {
         </ErrorBoundary>
 
         {/* Share map modal */}
-        <ErrorBoundary fallback={null}>
+        <ErrorBoundary fallback={(_err, reset) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-xl shadow-lg px-6 py-5 flex flex-col items-center gap-3 max-w-xs">
+              <p className="text-sm text-gray-600 text-center">Error al cargar compartir</p>
+              <div className="flex gap-2">
+                <button onClick={() => { setShowShareModal(false); reset(); }} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cerrar</button>
+                <button onClick={reset} className="text-sm px-3 py-1.5 rounded-lg bg-[#2a8c7a] text-white hover:bg-[#244e47]">Reintentar</button>
+              </div>
+            </div>
+          </div>
+        )}>
           <ShareMapModal
             open={showShareModal}
             onClose={() => setShowShareModal(false)}

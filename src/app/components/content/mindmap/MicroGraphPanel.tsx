@@ -127,28 +127,34 @@ export function MicroGraphPanel({
   // Error state: show a retry bar instead of hiding the panel entirely
   if (error) {
     return (
-      <ErrorBoundary fallback={null}>
-        <div className={wrapperClass}>
-          <button
-            onClick={() => refetch()}
-            className={`w-full flex items-center gap-2 text-xs font-medium transition-colors min-h-[44px] ${
-              variant === 'card'
-                ? 'px-4 py-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
-                : 'px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
-            }`}
-            aria-label="Mapa no disponible. Toca para reintentar."
-          >
-            <Brain size={variant === 'card' ? 14 : 13} className="text-gray-400" />
-            <span>Mapa no disponible</span>
-            <RefreshCw size={12} className="ml-auto" />
-          </button>
-        </div>
-      </ErrorBoundary>
+      <div className={wrapperClass}>
+        <button
+          onClick={() => refetch()}
+          className={`w-full flex items-center gap-2 text-xs font-medium transition-colors min-h-[44px] ${
+            variant === 'card'
+              ? 'px-4 py-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
+              : 'px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
+          }`}
+          aria-label="Mapa no disponible. Toca para reintentar."
+        >
+          <Brain size={variant === 'card' ? 14 : 13} className="text-gray-400" />
+          <span>Mapa no disponible</span>
+          <RefreshCw size={12} className="ml-auto" />
+        </button>
+      </div>
     );
   }
 
   return (
-    <ErrorBoundary fallback={<div className={wrapperClass}><span className="px-4 py-2 text-xs text-gray-400">Grafo no disponible</span></div>}>
+    <ErrorBoundary fallback={(_err, reset) => (
+      <div className={wrapperClass}>
+        <button onClick={reset} className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50/80 min-h-[44px]">
+          <Brain size={13} className="text-gray-400" />
+          <span>Grafo no disponible</span>
+          <RefreshCw size={12} className="ml-auto" />
+        </button>
+      </div>
+    )}>
       <div className={wrapperClass}>
         {/* Toggle bar */}
         <button
