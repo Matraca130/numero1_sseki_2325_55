@@ -20,7 +20,7 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
-import { Maximize2, X, Link, Trash2, Plus, Group, Focus } from 'lucide-react';
+import { Maximize2, X, Link, Trash2, Plus, Group, Focus, ChevronRight } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
@@ -71,6 +71,7 @@ const I18N_GRAPH: Record<Locale, {
   quickAdd: string; focusedNode: (label: string) => string;
   groupSelection: string; focusSelection: string;
   groupLabel: (n: number) => string;
+  breadcrumbRoot: string;
   keys: [string, string][];
 }> = {
   pt: {
@@ -92,6 +93,7 @@ const I18N_GRAPH: Record<Locale, {
     focusedNode: (label) => `Nodo focado: ${label}`,
     groupSelection: 'Agrupar', focusSelection: 'Enfocar',
     groupLabel: (n) => `Grupo ${n}`,
+    breadcrumbRoot: 'Mapa completo',
     keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
       ['Tab', 'Navegar entre nodos'], ['Setas', 'Mover entre vizinhos'],
       ['Enter', 'Menu de contexto'], ['+', 'Adicionar nodo conectado'],
@@ -119,6 +121,7 @@ const I18N_GRAPH: Record<Locale, {
     focusedNode: (label) => `Nodo enfocado: ${label}`,
     groupSelection: 'Agrupar', focusSelection: 'Enfocar',
     groupLabel: (n) => `Grupo ${n}`,
+    breadcrumbRoot: 'Mapa completo',
     keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
       ['Tab', 'Navegar entre nodos'], ['Flechas', 'Mover entre vecinos'],
       ['Enter', 'Menu contextual'], ['+', 'Agregar nodo conectado'],
@@ -212,6 +215,9 @@ export function KnowledgeGraph({
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
   const multiSelectedIdsRef = useRef(multiSelectedIds);
   multiSelectedIdsRef.current = multiSelectedIds;
+
+  // Breadcrumb trail for drill-down navigation
+  const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string; label: string }>>([]);
 
   // Grid state: controlled or uncontrolled
   const [gridEnabledInternal, setGridEnabledInternal] = useState(() => loadGridEnabled());
@@ -465,6 +471,7 @@ export function KnowledgeGraph({
       const empty = new Set<string>();
       setCollapsedNodes(empty);
       onCollapseChangeRef.current?.(0, empty);
+      setBreadcrumbs([]);
     }
     prevNodeSetRef.current = nodeSetKey;
   }, [nodeSetKey]);
@@ -486,11 +493,19 @@ export function KnowledgeGraph({
     const nodesWithChildren = new Set(data.edges.map(e => e.source).filter(id => id != null && nodeIds.has(id)));
     setCollapsedNodes(nodesWithChildren);
     onCollapseChangeRef.current?.(nodesWithChildren.size, nodesWithChildren);
+    // Build breadcrumbs for all collapsed parent nodes
+    setBreadcrumbs(
+      Array.from(nodesWithChildren).map(id => {
+        const n = data.nodes.find(node => node.id === id);
+        return { id, label: n?.label ?? id };
+      }),
+    );
   };
   expandAllRef.current = () => {
     const empty = new Set<string>();
     setCollapsedNodes(empty);
     onCollapseChangeRef.current?.(0, empty);
+    setBreadcrumbs([]);
   };
   toggleCollapseRef.current = (nodeId: string) => {
     // We need the return value synchronously, so read current state from a ref
@@ -966,12 +981,25 @@ export function KnowledgeGraph({
       // Skip collapse on leaf nodes (no children) — use ref to avoid stale closure
       const hasChildren = (childrenMapRef.current.get(nodeId)?.length ?? 0) > 0;
       if (!hasChildren) return;
+
+      // Resolve the node label for the breadcrumb trail
+      const nodeData = graph.getNodeData(nodeId);
+      const nodeLabel = String(nodeData?.data?.fullLabel || nodeData?.data?.label || nodeId);
+
       setCollapsedNodes(prev => {
         const next = new Set(prev);
-        if (next.has(nodeId)) {
+        const wasCollapsed = next.has(nodeId);
+        if (wasCollapsed) {
           next.delete(nodeId);
+          // Expanding: remove this node from breadcrumbs
+          setBreadcrumbs(bc => bc.filter(b => b.id !== nodeId));
         } else {
           next.add(nodeId);
+          // Collapsing: push breadcrumb if not already present
+          setBreadcrumbs(bc => {
+            if (bc.some(b => b.id === nodeId)) return bc;
+            return [...bc, { id: nodeId, label: nodeLabel }];
+          });
         }
         onCollapseChangeRef.current?.(next.size, next);
         return next;
@@ -1207,6 +1235,41 @@ export function KnowledgeGraph({
     }
   }, []);
 
+  // Handler: breadcrumb click — zoom to the clicked node, or fit-view for root
+  const handleBreadcrumbClick = useCallback((crumbId: string | null) => {
+    const graph = graphRef.current;
+    if (!graph) return;
+
+    if (crumbId === null) {
+      // "Mapa completo" — expand all collapsed nodes and fit view
+      setCollapsedNodes(new Set());
+      setBreadcrumbs([]);
+      onCollapseChangeRef.current?.(0, new Set());
+      try { graph.fitView(undefined, { duration: 400, easing: 'ease-out' }); } catch { /* */ }
+    } else {
+      // Clicked a specific breadcrumb — remove all breadcrumbs after it,
+      // expand the nodes that were removed, and focus on the clicked node
+      setBreadcrumbs(prev => {
+        const idx = prev.findIndex(b => b.id === crumbId);
+        if (idx < 0) return prev;
+        const removed = prev.slice(idx + 1);
+        // Expand removed nodes
+        if (removed.length > 0) {
+          setCollapsedNodes(cn => {
+            const next = new Set(cn);
+            for (const r of removed) next.delete(r.id);
+            onCollapseChangeRef.current?.(next.size, next);
+            return next;
+          });
+        }
+        return prev.slice(0, idx + 1);
+      });
+      try {
+        graph.focusElement([crumbId], { duration: 400, easing: 'ease-in-out' });
+      } catch { /* graph may be destroyed */ }
+    }
+  }, []);
+
   return (
     <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
       <div
@@ -1220,6 +1283,37 @@ export function KnowledgeGraph({
         aria-describedby="kg-shortcut-desc"
         aria-busy={!ready}
       />
+      {/* Breadcrumb trail — visible when user has drilled into collapsed branches */}
+      {ready && breadcrumbs.length > 0 && (
+        <nav
+          className="absolute top-2 left-2 z-[6] flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm border border-gray-100 px-2 py-1.5 text-[11px] max-w-[calc(100%-1rem)] overflow-x-auto"
+          aria-label="Navegacion del grafo"
+        >
+          <button
+            onClick={() => handleBreadcrumbClick(null)}
+            className="text-teal-700 hover:text-teal-900 hover:underline whitespace-nowrap font-medium transition-colors"
+          >
+            {t.breadcrumbRoot}
+          </button>
+          {breadcrumbs.map((crumb, i) => (
+            <span key={crumb.id} className="flex items-center gap-0.5">
+              <ChevronRight className="w-3 h-3 text-gray-300 flex-shrink-0" />
+              {i < breadcrumbs.length - 1 ? (
+                <button
+                  onClick={() => handleBreadcrumbClick(crumb.id)}
+                  className="text-teal-700 hover:text-teal-900 hover:underline whitespace-nowrap transition-colors"
+                >
+                  {crumb.label}
+                </button>
+              ) : (
+                <span className="text-gray-600 font-medium whitespace-nowrap">
+                  {crumb.label}
+                </span>
+              )}
+            </span>
+          ))}
+        </nav>
+      )}
       {/* Screen reader shortcut description */}
       <div id="kg-shortcut-desc" className="sr-only">
         {t.srDesc}
