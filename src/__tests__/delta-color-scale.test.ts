@@ -69,7 +69,7 @@ describe('getDeltaColor', () => {
     expect(getDeltaColor(0.70, 0.70)).toBe('green');
   });
 
-  it('mastery 0.70, threshold 0.80 -> orange (delta=0.875)', () => {
+  it('mastery 0.70, threshold 0.80 -> yellow (delta=0.875, >= 0.85)', () => {
     // 0.70 / 0.80 = 0.875 -> >= 0.85 = yellow
     // NOTE: 0.875 >= 0.85, so this is actually yellow per the code
     const delta = 0.70 / 0.80; // 0.875
