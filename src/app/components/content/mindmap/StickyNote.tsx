@@ -100,6 +100,8 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
 
   // ── Drag handlers ───────────────────────────────────────
 
+  const captureRef = useRef<{ el: HTMLElement; pid: number } | null>(null);
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // Only drag from the header area (not from textarea)
     if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
@@ -112,7 +114,9 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
       noteX: note.x,
       noteY: note.y,
     };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    captureRef.current = { el, pid: e.pointerId };
   }, [note.x, note.y]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -127,10 +131,13 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
     });
   }, [isDragging, note, onUpdate]);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+  const handlePointerUp = useCallback((_e: React.PointerEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    if (captureRef.current) {
+      try { captureRef.current.el.releasePointerCapture(captureRef.current.pid); } catch { /* may already be released */ }
+      captureRef.current = null;
+    }
   }, [isDragging]);
 
   // ── Text change ─────────────────────────────────────────
@@ -256,16 +263,24 @@ interface StickyNotesLayerProps {
  * Parent must be position: relative.
  */
 export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesLayerProps) {
+  // Debounce localStorage writes to avoid jank during drag (M-1 perf fix)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSave = useCallback((tid: string, data: StickyNoteData[]) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveStickyNotes(tid, data), 150);
+  }, []);
+  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
+
   const handleUpdate = useCallback((updated: StickyNoteData) => {
     const next = notes.map(n => n.id === updated.id ? updated : n);
     onNotesChange(next);
-    if (topicId) saveStickyNotes(topicId, next);
-  }, [notes, onNotesChange, topicId]);
+    if (topicId) debouncedSave(topicId, next);
+  }, [notes, onNotesChange, topicId, debouncedSave]);
 
   const handleDelete = useCallback((id: string) => {
     const next = notes.filter(n => n.id !== id);
     onNotesChange(next);
-    if (topicId) saveStickyNotes(topicId, next);
+    if (topicId) saveStickyNotes(topicId, next); // immediate save on delete
   }, [notes, onNotesChange, topicId]);
 
   if (notes.length === 0) return null;
