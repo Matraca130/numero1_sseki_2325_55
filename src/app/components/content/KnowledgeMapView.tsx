@@ -222,6 +222,8 @@ export function KnowledgeMapView() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     try { return !localStorage.getItem('axon_map_onboarded'); } catch { return true; }
   });
+  const showOnboardingRef = useRef(showOnboarding);
+  showOnboardingRef.current = showOnboarding;
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false);
     try { localStorage.setItem('axon_map_onboarded', '1'); } catch {}
@@ -539,6 +541,7 @@ export function KnowledgeMapView() {
 
   useEffect(() => {
     const handleToolKey = (e: KeyboardEvent) => {
+      if (showOnboardingRef.current) return;
       const el = e.target as HTMLElement;
       if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable) return;
       const map: Record<string, MapTool> = { v: 'pointer', n: 'add-node', c: 'connect', d: 'delete', a: 'annotate' };
