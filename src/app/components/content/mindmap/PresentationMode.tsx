@@ -9,7 +9,7 @@
 // Mobile: On-screen arrow buttons.
 // ============================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusTrap } from './useFocusTrap';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -45,7 +45,7 @@ export function PresentationMode({
 
   const [index, setIndex] = useState(() => Math.max(0, Math.min(initialIndex, total - 1)));
   const [direction, setDirection] = useState<SlideDir>('right');
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useFocusTrap<HTMLDivElement>(total > 0);
 
   // Clamp index when sorted list changes (e.g. nodes added/removed during presentation)
   useEffect(() => {
@@ -54,8 +54,7 @@ export function PresentationMode({
 
   const current = sorted[index] as MapNode | undefined;
 
-  useFocusTrap(overlayRef, total > 0);
-  useEffect(() => { overlayRef.current?.focus(); }, []);
+  useEffect(() => { overlayRef.current?.focus(); }, [overlayRef]);
 
   useEffect(() => {
     if (current && onNodeFocus) onNodeFocus(current.id);
