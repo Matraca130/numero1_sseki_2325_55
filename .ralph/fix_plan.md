@@ -153,8 +153,8 @@ las llamadas API, aunque el backend aún no exista):
 - [ ] Snap-to-grid — opción en toolbar para alinear nodos a grid, toggle on/off
 - [ ] Auto-layout inteligente — botón que reorganiza el grafo con algoritmo tree/radial/force optimal según la estructura
 - [ ] Zoom to fit selection — al seleccionar nodos, zoom automático para que quepan en pantalla
-- [ ] Sticky notes — post-it virtuales que el student puede poner sobre el mapa con texto libre
-- [ ] Colores personalizados para nodos — color picker en context menu del nodo, persistir en localStorage
+- [x] Sticky notes — StickyNote.tsx + StickyNotesLayer: draggable post-its with 4 pastel colors, editable text, delete on hover, max 10 per topic, localStorage persistence, "Nota" button in toolbar with count badge
+- [x] Colores personalizados para nodos — useNodeColors hook with 6 palette colors, inline swatches in NodeContextMenu (user-created only), customNodeColors prop in KnowledgeGraph, custom color overrides teal fill for student nodes
 - [ ] Conectar arrastrando desde borde del nodo — true drag-to-connect (no click-click), mostrar línea temporal mientras se arrastra
 
 ### 1D-pre. Integración de Colores de Keywords/Mastery en el Grafo
