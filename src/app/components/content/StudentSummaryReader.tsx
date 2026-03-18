@@ -47,6 +47,7 @@ import {
   paginateLines,
   renderPlainLine,
 } from '@/app/lib/summary-content-helpers';
+import { sanitizeHtml } from '@/app/lib/sanitize';
 
 // ── Extracted atoms (Phase B.2) ───────────────────────────
 import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
@@ -333,7 +334,7 @@ export function StudentSummaryReader({
                     >
                       {isHtmlContent ? (
                         <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
-                          <div className={proseClasses} dangerouslySetInnerHTML={{ __html: htmlPages[safePage] || '' }} />
+                          <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPages[safePage] || '') }} />
                         </KeywordHighlighterInline>
                       ) : (
                         <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
@@ -443,7 +444,7 @@ export function StudentSummaryReader({
                       >
                         {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
                           <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
-                            <div className={proseClasses} dangerouslySetInnerHTML={{ __html: enrichHtmlWithImages(chunk.content) }} />
+                            <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content)) }} />
                           </KeywordHighlighterInline>
                         ) : (
                           <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
