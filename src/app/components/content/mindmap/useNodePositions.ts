@@ -10,7 +10,26 @@
 // ============================================================
 
 const STORAGE_PREFIX = 'axon_node_pos_';
+const COMBO_STORAGE_PREFIX = 'axon_combos_';
+const TOPIC_INDEX_KEY = 'axon_node_pos_index';
 const MAX_POSITIONS = 500;
+const MAX_TOPICS = 50;
+
+/** Track topic access order and evict oldest keys when over MAX_TOPICS */
+function touchTopicIndex(topicId: string): void {
+  try {
+    const raw = localStorage.getItem(TOPIC_INDEX_KEY);
+    const ids: string[] = raw ? JSON.parse(raw) : [];
+    const filtered = ids.filter(id => id !== topicId);
+    filtered.push(topicId);
+    while (filtered.length > MAX_TOPICS) {
+      const evicted = filtered.shift()!;
+      localStorage.removeItem(STORAGE_PREFIX + evicted);
+      localStorage.removeItem(COMBO_STORAGE_PREFIX + evicted);
+    }
+    localStorage.setItem(TOPIC_INDEX_KEY, JSON.stringify(filtered));
+  } catch { /* ignore */ }
+}
 
 export interface NodePosition {
   x: number;
@@ -48,6 +67,7 @@ let memoryCache: { topicId: string; map: Map<string, NodePosition> } | null = nu
 /** Save a single node position (merges with existing) */
 export function saveNodePosition(topicId: string, nodeId: string, pos: NodePosition): void {
   try {
+    touchTopicIndex(topicId);
     let existing: Map<string, NodePosition>;
     if (memoryCache && memoryCache.topicId === topicId) {
       existing = memoryCache.map;
@@ -84,8 +104,6 @@ export function clearPositions(topicId: string): void {
 
 // ── Combo (Group) Persistence ───────────────────────────────
 
-const COMBO_STORAGE_PREFIX = 'axon_combos_';
-
 export interface PersistedCombo {
   id: string;
   label: string;
@@ -113,6 +131,7 @@ export function loadCombos(topicId: string): PersistedCombo[] {
 /** Save combos for a topic */
 export function saveCombos(topicId: string, combos: PersistedCombo[]): void {
   try {
+    touchTopicIndex(topicId);
     if (combos.length === 0) {
       localStorage.removeItem(COMBO_STORAGE_PREFIX + topicId);
     } else {
