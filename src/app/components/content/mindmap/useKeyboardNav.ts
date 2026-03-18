@@ -215,8 +215,11 @@ export function useKeyboardNav({
       if (!g) return;
 
       try {
+        // Read focused node from ref (avoids effect re-registration on every keystroke)
+        const focused = focusedNodeIdRef.current;
+
         // ── Zoom/view shortcuts ──
-        if (e.key === '=' || (e.key === '+' && !focusedNodeId)) {
+        if (e.key === '=' || (e.key === '+' && !focused)) {
           g.zoomBy(1.25, { duration: 200 });
           return;
         }
@@ -231,8 +234,8 @@ export function useKeyboardNav({
 
         // ── Escape: clear focus and selection ──
         if (e.key === 'Escape') {
-          if (focusedNodeId) {
-            applyFocusRing(g, null, focusedNodeId);
+          if (focused) {
+            applyFocusRing(g, null, focused);
             setFocusedNodeId(null);
           }
           onNodeClick?.(null);
@@ -265,8 +268,8 @@ export function useKeyboardNav({
           e.preventDefault();
           if (currentNodes.length === 0) return;
 
-          const currentIndex = focusedNodeId
-            ? currentNodes.findIndex(n => n.id === focusedNodeId)
+          const currentIndex = focused
+            ? currentNodes.findIndex(n => n.id === focused)
             : -1;
 
           let nextIndex: number;
@@ -278,21 +281,20 @@ export function useKeyboardNav({
             nextIndex = (currentIndex + step + currentNodes.length) % currentNodes.length;
           }
           const nextNodeId = currentNodes[nextIndex].id;
-          const prevId = focusedNodeId;
 
           setFocusedNodeId(nextNodeId);
-          applyFocusRing(g, nextNodeId, prevId);
+          applyFocusRing(g, nextNodeId, focused);
           return;
         }
 
         // ── Enter: open context menu for focused node ──
-        if (e.key === 'Enter' && focusedNodeId) {
+        if (e.key === 'Enter' && focused) {
           e.preventDefault();
-          const node = nodeByIdRef.current.get(focusedNodeId);
+          const node = nodeByIdRef.current.get(focused);
           if (!node) return;
 
           // Get node position on screen for context menu placement
-          const pos = getNodePosition(g, focusedNodeId);
+          const pos = getNodePosition(g, focused);
           if (pos && onNodeRightClick) {
             // Convert graph coordinates to client coordinates
             const canvas = container.querySelector('canvas');
@@ -307,7 +309,7 @@ export function useKeyboardNav({
         }
 
         // ── Arrow keys: navigate to connected nodes by direction ──
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && focusedNodeId) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && focused) {
           e.preventDefault();
           const dirMap: Record<string, 'up' | 'down' | 'left' | 'right'> = {
             ArrowUp: 'up',
@@ -316,12 +318,11 @@ export function useKeyboardNav({
             ArrowRight: 'right',
           };
           const direction = dirMap[e.key];
-          const neighbors = getNeighborIds(focusedNodeId, currentEdges);
-          const nextId = findNeighborInDirection(g, focusedNodeId, neighbors, direction);
+          const neighbors = getNeighborIds(focused, currentEdges);
+          const nextId = findNeighborInDirection(g, focused, neighbors, direction);
           if (nextId) {
-            const prevId = focusedNodeId;
             setFocusedNodeId(nextId);
-            applyFocusRing(g, nextId, prevId);
+            applyFocusRing(g, nextId, focused);
 
             // Also notify parent of selection change
             const nextNode = nodeByIdRef.current.get(nextId);
@@ -331,9 +332,9 @@ export function useKeyboardNav({
         }
 
         // ── + key: quick-add node connected to focused/selected node ──
-        if (e.key === '+' && focusedNodeId) {
+        if (e.key === '+' && focused) {
           e.preventDefault();
-          onQuickAddRef.current?.(focusedNodeId);
+          onQuickAddRef.current?.(focused);
           return;
         }
       } catch {
@@ -344,7 +345,7 @@ export function useKeyboardNav({
     container.addEventListener('keydown', handleKeyDown);
     return () => container.removeEventListener('keydown', handleKeyDown);
   }, [
-    ready, graphVersion, focusedNodeId, onNodeClick, onNodeRightClick,
+    ready, graphVersion, onNodeClick, onNodeRightClick,
     graphRef, containerRef, collapseAllRef, expandAllRef,
     multiSelectedIdsRef, updateMultiSelection, setShowShortcuts, applyFocusRing,
   ]);

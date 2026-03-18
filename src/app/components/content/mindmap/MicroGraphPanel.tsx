@@ -148,7 +148,7 @@ export function MicroGraphPanel({
   }
 
   return (
-    <ErrorBoundary fallback={null}>
+    <ErrorBoundary fallback={<div className={wrapperClass}><span className="px-4 py-2 text-xs text-gray-400">Grafo no disponible</span></div>}>
       <div className={wrapperClass}>
         {/* Toggle bar */}
         <button
