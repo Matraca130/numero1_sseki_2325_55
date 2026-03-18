@@ -81,3 +81,66 @@ export function clearPositions(topicId: string): void {
   }
   if (memoryCache?.topicId === topicId) memoryCache = null;
 }
+
+// ── Combo (Group) Persistence ───────────────────────────────
+
+const COMBO_STORAGE_PREFIX = 'axon_combos_';
+
+export interface PersistedCombo {
+  id: string;
+  label: string;
+  nodeIds: string[];
+  collapsed: boolean;
+}
+
+/** Load saved combos for a topic */
+export function loadCombos(topicId: string): PersistedCombo[] {
+  try {
+    const raw = localStorage.getItem(COMBO_STORAGE_PREFIX + topicId);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as unknown[];
+    return arr.filter((item): item is PersistedCombo =>
+      !!item && typeof item === 'object' &&
+      'id' in item && typeof (item as PersistedCombo).id === 'string' &&
+      'label' in item && typeof (item as PersistedCombo).label === 'string' &&
+      'nodeIds' in item && Array.isArray((item as PersistedCombo).nodeIds)
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Save combos for a topic */
+export function saveCombos(topicId: string, combos: PersistedCombo[]): void {
+  try {
+    if (combos.length === 0) {
+      localStorage.removeItem(COMBO_STORAGE_PREFIX + topicId);
+    } else {
+      localStorage.setItem(COMBO_STORAGE_PREFIX + topicId, JSON.stringify(combos));
+    }
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
+// ── Grid Toggle Persistence ─────────────────────────────────
+
+const GRID_STORAGE_KEY = 'axon_grid_enabled';
+
+/** Load grid enabled state */
+export function loadGridEnabled(): boolean {
+  try {
+    return localStorage.getItem(GRID_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Save grid enabled state */
+export function saveGridEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(GRID_STORAGE_KEY, enabled ? '1' : '0');
+  } catch {
+    // Silently ignore
+  }
+}

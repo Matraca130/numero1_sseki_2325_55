@@ -69,31 +69,35 @@ const I18N_GRAPH: Record<Locale, {
   masteryLow: string; masteryMid: string; masteryHigh: string; masteryNone: string;
   masteryLegend: string;
   quickAdd: string; focusedNode: (label: string) => string;
+  groupSelection: string; focusSelection: string;
+  groupLabel: (n: number) => string;
   keys: [string, string][];
 }> = {
   pt: {
-    noData: 'Sem dados', mastery: 'Domínio',
+    noData: 'Sem dados', mastery: 'Dominio',
     ariaLabel: 'Mapa de conhecimento interativo', ariaRoleDesc: 'grafo de conhecimento',
     srDesc: 'Use Tab para navegar entre nodos, setas para mover entre vizinhos, Enter para menu de contexto, + para adicionar nodo conectado. Esc para desmarcar. ? para atalhos.',
     nCollapsed: (n) => `${n} nodos recolhidos`, allExpanded: 'Todos os nodos expandidos',
-    mobileHint: 'Arraste para mover · Pinça para zoom · Segure para menu',
+    mobileHint: 'Arraste para mover · Pinca para zoom · Segure para menu',
     reviewAlert: 'IA recomenda revisar',
-    fitView: 'Ajustar à vista', shortcuts: 'Atalhos', search: 'buscar',
+    fitView: 'Ajustar a vista', shortcuts: 'Atalhos', search: 'buscar',
     closeShortcuts: 'Fechar atalhos', shortcutDialog: 'Atalhos de teclado',
     nSelected: (n) => `${n} nodos selecionados`,
     deleteSelection: 'Eliminar', connect: 'Conectar', deselect: 'Deselecionar',
-    shiftClickHint: 'Shift+clique para selecionar vários',
+    shiftClickHint: 'Shift+clique para selecionar varios',
     masteryLow: 'Fraco (<50%)', masteryMid: 'Aprendendo (50-80%)',
     masteryHigh: 'Dominado (>80%)', masteryNone: 'Sem dados',
-    masteryLegend: 'Domínio',
+    masteryLegend: 'Dominio',
     quickAdd: 'Adicionar conceito conectado',
     focusedNode: (label) => `Nodo focado: ${label}`,
+    groupSelection: 'Agrupar', focusSelection: 'Enfocar',
+    groupLabel: (n) => `Grupo ${n}`,
     keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
       ['Tab', 'Navegar entre nodos'], ['Setas', 'Mover entre vizinhos'],
       ['Enter', 'Menu de contexto'], ['+', 'Adicionar nodo conectado'],
       ['Duplo-clique', 'Recolher/expandir'], ['Ctrl+[', 'Recolher todos'],
-      ['Ctrl+]', 'Expandir todos'], ['Shift+clique', 'Selecionar vários'],
-      ['Espaço+arrastar', 'Mover mapa'],
+      ['Ctrl+]', 'Expandir todos'], ['Shift+clique', 'Selecionar varios'],
+      ['Espaco+arrastar', 'Mover mapa'],
       ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
   },
   es: {
@@ -101,7 +105,7 @@ const I18N_GRAPH: Record<Locale, {
     ariaLabel: 'Mapa de conocimiento interactivo', ariaRoleDesc: 'grafo de conocimiento',
     srDesc: 'Use Tab para navegar entre nodos, flechas para mover entre vecinos, Enter para menu contextual, + para agregar nodo conectado. Esc para deseleccionar. ? para atajos.',
     nCollapsed: (n) => `${n} nodos colapsados`, allExpanded: 'Todos los nodos expandidos',
-    mobileHint: 'Arrastre para mover · Pellizque para zoom · Mantenga para menú',
+    mobileHint: 'Arrastre para mover · Pellizque para zoom · Mantenga para menu',
     reviewAlert: 'IA recomienda revisar',
     fitView: 'Ajustar a la vista', shortcuts: 'Atajos', search: 'buscar',
     closeShortcuts: 'Cerrar atajos', shortcutDialog: 'Atajos de teclado',
@@ -113,6 +117,8 @@ const I18N_GRAPH: Record<Locale, {
     masteryLegend: 'Dominio',
     quickAdd: 'Agregar concepto conectado',
     focusedNode: (label) => `Nodo enfocado: ${label}`,
+    groupSelection: 'Agrupar', focusSelection: 'Enfocar',
+    groupLabel: (n) => `Grupo ${n}`,
     keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
       ['Tab', 'Navegar entre nodos'], ['Flechas', 'Mover entre vecinos'],
       ['Enter', 'Menu contextual'], ['+', 'Agregar nodo conectado'],
@@ -156,6 +162,14 @@ interface KnowledgeGraphProps {
   customNodeColors?: Map<string, string>;
   /** Called when user presses "+" with a node focused — opens quick-add flow */
   onQuickAdd?: (sourceNodeId: string) => void;
+  /** Whether grid lines are visible on the canvas */
+  showGrid?: boolean;
+  /** Callback when grid toggle changes */
+  onGridChange?: (enabled: boolean) => void;
+  /** Whether to enable drag-to-connect from node borders */
+  enableDragConnect?: boolean;
+  /** Called when user creates a new edge by dragging from one node to another */
+  onDragConnect?: (sourceId: string, targetId: string) => void;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -180,6 +194,10 @@ export function KnowledgeGraph({
   showMasteryLegend = true,
   customNodeColors,
   onQuickAdd,
+  showGrid: showGridProp,
+  onGridChange,
+  enableDragConnect = false,
+  onDragConnect,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -194,6 +212,34 @@ export function KnowledgeGraph({
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
   const multiSelectedIdsRef = useRef(multiSelectedIds);
   multiSelectedIdsRef.current = multiSelectedIds;
+
+  // Grid state: controlled or uncontrolled
+  const [gridEnabledInternal, setGridEnabledInternal] = useState(() => loadGridEnabled());
+  const gridEnabled = showGridProp ?? gridEnabledInternal;
+
+  // Combo/group state
+  const [combos, setCombos] = useState<PersistedCombo[]>([]);
+  const comboCounterRef = useRef(0);
+
+  // Load combos when topic changes
+  useEffect(() => {
+    if (topicId) {
+      const loaded = loadCombos(topicId);
+      setCombos(loaded);
+      comboCounterRef.current = loaded.length;
+    } else {
+      setCombos([]);
+      comboCounterRef.current = 0;
+    }
+  }, [topicId]);
+
+  // Stable ref for onDragConnect
+  const onDragConnectRef = useRef(onDragConnect);
+  onDragConnectRef.current = onDragConnect;
+
+  // Stable ref for gridEnabled (used in event handlers)
+  const gridEnabledRef = useRef(gridEnabled);
+  gridEnabledRef.current = gridEnabled;
 
   // Stable ref for onCollapseChange to avoid stale closures in setter callbacks
   const onCollapseChangeRef = useRef(onCollapseChange);
@@ -251,6 +297,17 @@ export function KnowledgeGraph({
     if (graph) applyMultiSelectionState(graph, nextIds);
   }, [applyMultiSelectionState]);
 
+  // Build node-to-combo lookup from combos state
+  const nodeToCombo = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const combo of combos) {
+      for (const nId of combo.nodeIds) {
+        map.set(nId, combo.id);
+      }
+    }
+    return map;
+  }, [combos]);
+
   // Transform Axon data → G6 format, respecting collapsed and highlight state
   const g6Data = useCallback((collapsed: Set<string>, positions?: PositionMap) => {
     const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
@@ -274,8 +331,10 @@ export function KnowledgeGraph({
             : baseLabel;
 
         const savedPos = positions?.get(node.id);
+        const comboId = nodeToCombo.get(node.id);
         return {
           id: node.id,
+          ...(comboId ? { combo: comboId } : {}),
           data: {
             label: displayLabel,
             fullLabel: node.label,
@@ -356,8 +415,14 @@ export function KnowledgeGraph({
         };
       });
 
-    return { nodes, edges };
-  }, [data, highlightNodeIds, reviewNodeIds, childrenMap, customNodeColors]);
+    // Build G6 combo data from persisted combos
+    const g6Combos = combos.map(c => ({
+      id: c.id,
+      data: { label: c.label },
+    }));
+
+    return { nodes, edges, combos: g6Combos };
+  }, [data, highlightNodeIds, reviewNodeIds, childrenMap, customNodeColors, combos, nodeToCombo]);
 
   // Layout config
   const getLayoutConfig = useCallback(() => {
@@ -407,8 +472,8 @@ export function KnowledgeGraph({
   // Stable identity key for data+layout to avoid unnecessary graph recreations
   const dataKey = useRef('');
   const currentDataKey = useMemo(
-    () => layout + ':' + nodeSetKey + '|' + data.edges.map(e => e.id).sort().join(',') + '|mm:' + (showMinimap ? '1' : '0'),
-    [layout, nodeSetKey, data.edges, showMinimap],
+    () => layout + ':' + nodeSetKey + '|' + data.edges.map(e => e.id).sort().join(',') + '|mm:' + (showMinimap ? '1' : '0') + '|grid:' + (gridEnabled ? '1' : '0') + '|dc:' + (enableDragConnect ? '1' : '0'),
+    [layout, nodeSetKey, data.edges, showMinimap, gridEnabled, enableDragConnect],
   );
 
   // Stable refs so collapseAll/expandAll/toggleCollapse in onReady always use latest state
@@ -558,6 +623,27 @@ export function KnowledgeGraph({
             lineWidth: 1,
           },
         },
+        // Drag-to-connect: drag from node border to create edge
+        ...(enableDragConnect ? [{
+          type: 'create-edge' as const,
+          key: 'create-edge',
+          trigger: 'drag' as const,
+          style: {
+            stroke: '#2a8c7a',
+            lineWidth: 2,
+            lineDash: [6, 3],
+          },
+          onCreate: (edgeData: { id?: string; source?: string; target?: string }) => {
+            const src = edgeData.source;
+            const tgt = edgeData.target;
+            if (src && tgt && src !== tgt) {
+              // Notify parent — actual persistence handled externally
+              onDragConnectRef.current?.(src, tgt);
+            }
+            // Return undefined to cancel G6's internal edge creation — parent handles it
+            return undefined;
+          },
+        }] : []),
       ],
       plugins: [
         {
@@ -618,7 +704,46 @@ export function KnowledgeGraph({
           },
           delay: 150,
         }] : []),
+        // Grid lines — toggleable, subtle background grid
+        ...(gridEnabled ? [{
+          type: 'grid-line' as const,
+          key: 'grid-line',
+          size: 40,
+          stroke: 'rgba(42, 140, 122, 0.08)',
+          lineWidth: 1,
+          border: false,
+          follow: true,
+        }] : []),
+        // Snapline — alignment guides when dragging nodes (active when grid is on)
+        ...(gridEnabled ? [{
+          type: 'snapline' as const,
+          key: 'snapline',
+          tolerance: 20,
+          autoSnap: true,
+          verticalLineStyle: { stroke: '#2a8c7a', lineWidth: 1, opacity: 0.5 },
+          horizontalLineStyle: { stroke: '#2a8c7a', lineWidth: 1, opacity: 0.5 },
+        }] : []),
       ],
+      // Combo (group) config
+      combo: {
+        type: 'rect' as const,
+        style: {
+          fill: 'rgba(42, 140, 122, 0.05)',
+          stroke: 'rgba(42, 140, 122, 0.2)',
+          lineWidth: 1.5,
+          radius: 12,
+          padding: [20, 16, 16, 16],
+          labelText: (d: { id?: string; data?: Record<string, unknown> }) => String(d?.data?.label || ''),
+          labelFill: '#2a8c7a',
+          labelFontSize: 11,
+          labelFontFamily: 'Inter, sans-serif',
+          labelFontWeight: 600,
+          labelPlacement: 'top',
+          cursor: 'pointer',
+          collapsedMarker: true,
+          collapsedMarkerFill: '#2a8c7a',
+        },
+      },
       animation: true,
     });
 
@@ -670,7 +795,7 @@ export function KnowledgeGraph({
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDataKey, layout, showMinimap]);
+  }, [currentDataKey, layout, showMinimap, gridEnabled, enableDragConnect]);
 
   // ResizeObserver: auto-resize graph when container dimensions change
   // Compare dimensions before calling resize() to avoid infinite loops
@@ -880,15 +1005,24 @@ export function KnowledgeGraph({
       }
     };
 
-    // Save node position after drag for persistence
+    // Save node position after drag for persistence (with optional snap-to-grid)
+    const GRID_SIZE = 40;
     const handleNodeDragEnd = (evt: G6NodeEvent) => {
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId || !topicIdRef.current) return;
       try {
         const nodeData = graph.getNodeData(nodeId);
         if (nodeData?.style) {
-          const { x, y } = nodeData.style as { x?: number; y?: number };
+          let { x, y } = nodeData.style as { x?: number; y?: number };
           if (typeof x === 'number' && typeof y === 'number') {
+            // Snap to grid when enabled
+            if (gridEnabledRef.current) {
+              x = Math.round(x / GRID_SIZE) * GRID_SIZE;
+              y = Math.round(y / GRID_SIZE) * GRID_SIZE;
+              // Move node to snapped position
+              graph.updateNodeData([{ id: nodeId, style: { x, y } }]);
+              graph.draw();
+            }
             saveNodePosition(topicIdRef.current, nodeId, { x, y });
           }
         }
@@ -978,6 +1112,100 @@ export function KnowledgeGraph({
       return node?.isUserCreated;
     });
   }, [multiSelectedIds, multiSelectedCount, nodeById]);
+
+  // Handler: group selected nodes into a combo
+  const handleGroupSelection = useCallback(() => {
+    const ids = Array.from(multiSelectedIds);
+    if (ids.length < 2) return;
+
+    comboCounterRef.current += 1;
+    const comboId = `combo-${Date.now()}-${comboCounterRef.current}`;
+    const newCombo: PersistedCombo = {
+      id: comboId,
+      label: t.groupLabel(comboCounterRef.current),
+      nodeIds: ids,
+      collapsed: false,
+    };
+
+    const nextCombos = [...combos, newCombo];
+    setCombos(nextCombos);
+    if (topicId) saveCombos(topicId, nextCombos);
+
+    // Add combo to G6 graph directly for immediate visual feedback
+    const graph = graphRef.current;
+    if (graph) {
+      try {
+        graph.addComboData([{ id: comboId, data: { label: newCombo.label } }]);
+        // Update nodes to belong to combo
+        graph.updateNodeData(ids.map(nId => ({ id: nId, combo: comboId })));
+        graph.draw();
+      } catch {
+        // Graph may be in transition
+      }
+    }
+
+    // Clear selection
+    updateMultiSelection(new Set());
+  }, [multiSelectedIds, combos, topicId, t, updateMultiSelection]);
+
+  // Handler: focus/zoom to fit multi-selected nodes
+  const handleFocusSelection = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph || multiSelectedIds.size === 0) return;
+    const ids = Array.from(multiSelectedIds);
+    try {
+      graph.focusElement(ids, { duration: 400, easing: 'ease-in-out' });
+    } catch {
+      // graph may be destroyed
+    }
+  }, [multiSelectedIds]);
+
+  // Handler: toggle grid
+  const handleGridToggle = useCallback(() => {
+    const next = !gridEnabled;
+    setGridEnabledInternal(next);
+    saveGridEnabled(next);
+    onGridChange?.(next);
+  }, [gridEnabled, onGridChange]);
+
+  // Handler: auto-layout cycle (force → dagre → radial → force)
+  const handleAutoLayout = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+
+    // Cycle through layouts
+    const layouts = ['d3-force', 'dagre', 'radial'] as const;
+    type LayoutKey = typeof layouts[number];
+    try {
+      const currentLayout = graph.getLayout();
+      const currentType = Array.isArray(currentLayout)
+        ? String((currentLayout[0] as Record<string, unknown>)?.type || 'd3-force')
+        : String((currentLayout as Record<string, unknown>)?.type || 'd3-force');
+      const idx = layouts.indexOf(currentType as LayoutKey);
+      const nextIdx = (idx + 1) % layouts.length;
+      const nextType = layouts[nextIdx];
+
+      let layoutConfig: Record<string, unknown>;
+      switch (nextType) {
+        case 'dagre':
+          layoutConfig = { type: 'dagre', rankdir: 'TB', nodesep: 40, ranksep: 60 };
+          break;
+        case 'radial':
+          layoutConfig = { type: 'radial', unitRadius: 120, preventOverlap: true, nodeSize: 50 };
+          break;
+        default:
+          layoutConfig = { type: 'd3-force', preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.8 };
+          break;
+      }
+
+      graph.setLayout(layoutConfig);
+      graph.layout().then(() => {
+        try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
+      }).catch(() => { /* layout may fail if destroyed */ });
+    } catch {
+      // graph may be destroyed
+    }
+  }, []);
 
   return (
     <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
@@ -1075,6 +1303,24 @@ export function KnowledgeGraph({
               <span className="hidden sm:inline">{t.connect}</span>
             </button>
           )}
+          {multiSelectedCount >= 2 && (
+            <button
+              onClick={handleGroupSelection}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 transition-colors"
+              title={t.groupSelection}
+            >
+              <Group className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.groupSelection}</span>
+            </button>
+          )}
+          <button
+            onClick={handleFocusSelection}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 transition-colors"
+            title={t.focusSelection}
+          >
+            <Focus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t.focusSelection}</span>
+          </button>
           <button
             onClick={() => updateMultiSelection(new Set())}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"

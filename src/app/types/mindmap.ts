@@ -121,6 +121,17 @@ export const MASTERY_HEX_LIGHT: Record<MasteryColor, string> = {
   gray:   '#f3f4f6', // gray-100
 };
 
+// ── Combo / Group Data ──────────────────────────────────────
+
+/** A visual grouping (combo) of nodes in the knowledge graph */
+export interface MapCombo {
+  id: string;
+  /** Display label for the group */
+  label: string;
+  /** Whether the group is collapsed */
+  collapsed?: boolean;
+}
+
 // ── Context menu action ─────────────────────────────────────
 
 export type NodeAction = 'flashcard' | 'quiz' | 'summary' | 'annotate' | 'details';
@@ -156,6 +167,12 @@ export interface GraphControls {
   focusNode?: (nodeId: string) => void;
   /** Clear multi-selection */
   clearMultiSelection?: () => void;
+  /** Toggle grid lines on/off */
+  toggleGrid?: () => void;
+  /** Cycle through auto-layout algorithms */
+  autoLayout?: () => void;
+  /** Whether grid is currently enabled */
+  gridEnabled?: boolean;
 }
 
 // ── Graph Helpers ──────────────────────────────────────────

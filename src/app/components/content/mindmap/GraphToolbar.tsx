@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon, Grid3x3, Shuffle } from 'lucide-react';
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
@@ -28,6 +28,8 @@ const I18N: Record<Locale, {
   matchOf: (match: number, total: number) => string;
   exportLabel: string; exportPNG: string; exportJPEG: string; exporting: string;
   minimap: string; minimapToggle: string;
+  grid: string; gridToggle: string;
+  autoLayout: string; autoLayoutLabel: string;
 }> = {
   pt: {
     force: 'Força', radial: 'Radial', tree: 'Árvore',
@@ -40,18 +42,22 @@ const I18N: Record<Locale, {
     matchOf: (match, total) => `${match} de ${total}`,
     exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...',
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
+    grid: 'Quadrícula', gridToggle: 'Mostrar/ocultar quadrícula',
+    autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
   },
   es: {
-    force: 'Fuerza', radial: 'Radial', tree: 'Árbol',
+    force: 'Fuerza', radial: 'Radial', tree: 'Arbol',
     zoomIn: 'Acercar', zoomOut: 'Alejar', fitView: 'Ajustar a la vista',
     collapse: 'Colapsar', expand: 'Expandir', expandN: (n) => `Expandir (${n})`,
-    search: 'Buscar concepto...', clear: 'Limpiar búsqueda', nodes: 'nodos', connections: 'conexiones',
+    search: 'Buscar concepto...', clear: 'Limpiar busqueda', nodes: 'nodos', connections: 'conexiones',
     toolbar: 'Controles del grafo', layoutGroup: 'Tipo de layout', zoomGroup: 'Controles de zoom',
-    collapseGroup: 'Controles de expansión', edgeLegendTitle: 'Tipos de conexión',
-    edgeLegendToggle: 'Mostrar leyenda de tipos de conexión', masteryGroup: 'Leyenda de dominio',
+    collapseGroup: 'Controles de expansion', edgeLegendTitle: 'Tipos de conexion',
+    edgeLegendToggle: 'Mostrar leyenda de tipos de conexion', masteryGroup: 'Leyenda de dominio',
     matchOf: (match, total) => `${match} de ${total}`,
     exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...',
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
+    grid: 'Cuadricula', gridToggle: 'Mostrar/ocultar cuadricula',
+    autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
   },
 };
 
@@ -91,6 +97,12 @@ interface GraphToolbarProps {
   showMinimap?: boolean;
   /** Toggle minimap visibility */
   onMinimapToggle?: () => void;
+  /** Whether grid lines are currently visible */
+  showGrid?: boolean;
+  /** Toggle grid visibility */
+  onGridToggle?: () => void;
+  /** Trigger auto-layout reorganization */
+  onAutoLayout?: () => void;
 }
 
 // ── Mastery Legend ───────────────────────────────────────────
@@ -139,6 +151,9 @@ export function GraphToolbar({
   onExportJPEG,
   showMinimap,
   onMinimapToggle,
+  showGrid,
+  onGridToggle,
+  onAutoLayout,
 }: GraphToolbarProps) {
   const t = I18N[locale];
   const [showEdgeLegend, setShowEdgeLegend] = useState(false);
@@ -421,6 +436,39 @@ export function GraphToolbar({
           </div>
         ))}
       </div>
+
+      {/* Grid toggle */}
+      {onGridToggle && (
+        <button
+          onClick={onGridToggle}
+          className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
+            showGrid
+              ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
+              : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
+          }`}
+          style={{ fontSize: fontSize.xs }}
+          title={t.grid}
+          aria-label={t.gridToggle}
+          aria-pressed={!!showGrid}
+        >
+          <Grid3x3 className="w-3.5 h-3.5" />
+          <span>{t.grid}</span>
+        </button>
+      )}
+
+      {/* Auto-layout */}
+      {onAutoLayout && (
+        <button
+          onClick={onAutoLayout}
+          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
+          style={{ fontSize: fontSize.xs }}
+          title={t.autoLayout}
+          aria-label={t.autoLayoutLabel}
+        >
+          <Shuffle className="w-3.5 h-3.5" />
+          <span>{t.autoLayout}</span>
+        </button>
+      )}
 
       {/* Minimap toggle — hidden on mobile (minimap not useful on small screens) */}
       {onMinimapToggle && (
