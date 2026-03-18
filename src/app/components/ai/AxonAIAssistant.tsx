@@ -173,9 +173,9 @@ export function AxonAIAssistant({
             ];
           });
         }
-      } catch (fallbackErr: any) {
+      } catch (fallbackErr: unknown) {
         setMessages(prev => prev.filter(m => m.id !== modelMsgId || m.content.length > 0));
-        addMessage('system', `Erro: ${fallbackErr.message}`, true);
+        addMessage('system', `Erro: ${(fallbackErr as Error).message}`, true);
       }
     } finally {
       setIsLoading(false);
