@@ -46,22 +46,12 @@ const MAX_SUBTOPIC_IDS_PER_BATCH = 200;
 
 // ── Mastery Color Helpers ─────────────────────────────────
 
-/** Mastery color matching the dashboard convention in studentApi.ts */
-export type MasteryColor = 'green' | 'yellow' | 'red';
-
 /**
- * Convert a numeric mastery [0-1] to a dashboard color.
- * Thresholds match studentApi.ts: green >= 0.80, yellow >= 0.50, red < 0.50.
- *
- * NOTE: These thresholds differ from MASTERY_THRESHOLD (0.75) intentionally:
- * - Color is for DISPLAY (3-level visual feedback)
- * - MASTERY_THRESHOLD is for LOGIC (binary "mastered" decision for AI targeting)
+ * Re-export canonical MasteryColor from mastery-helpers to avoid duplicate type.
+ * Includes 'gray' for keywords with no subtopic data.
  */
-export function getMasteryColor(mastery: number): MasteryColor {
-  if (mastery >= 0.80) return 'green';
-  if (mastery >= 0.50) return 'yellow';
-  return 'red';
-}
+export type { MasteryColor } from '@/app/lib/mastery-helpers';
+export { getMasteryColor } from '@/app/lib/mastery-helpers';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -87,7 +77,7 @@ export interface KeywordMasteryInfo {
   summary_id: string;
   /** Professor-assigned priority (higher = more important). Defaults to 1. */
   priority: number;
-  /** Aggregated mastery [0-1] = avg(subtopics.p_know). 0 if no subtopics. */
+  /** Aggregated mastery [0-1] = avg(subtopics.p_know). -1 if no subtopics (no data). */
   mastery: number;
   /** All subtopics with their individual mastery data */
   subtopics: SubtopicMasteryInfo[];
@@ -323,8 +313,8 @@ function buildKeywordMasteryMap(
     const subtopicsTotal = subtopicInfos.length;
     const subtopicsMastered = subtopicInfos.filter((s) => s.isMastered).length;
 
-    // Mastery = avg(p_know) of subtopics. If no subtopics, mastery = 0.
-    let mastery = 0;
+    // Mastery = avg(p_know) of subtopics. -1 sentinel = no data (renders gray).
+    let mastery = -1;
     if (subtopicsTotal > 0) {
       const sum = subtopicInfos.reduce((acc, s) => acc + s.p_know, 0);
       mastery = sum / subtopicsTotal;
@@ -488,7 +478,7 @@ export function computeLocalKeywordMastery(
     const subtopicsTotal = newSubtopics.length;
     const subtopicsMastered = newSubtopics.filter((s) => s.isMastered).length;
 
-    let mastery = 0;
+    let mastery = -1;
     if (subtopicsTotal > 0) {
       const sum = newSubtopics.reduce((acc, s) => acc + s.p_know, 0);
       mastery = sum / subtopicsTotal;

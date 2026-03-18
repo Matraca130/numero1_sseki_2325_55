@@ -17,7 +17,7 @@
 // LANG: Spanish
 // ============================================================
 
-import { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useFocusTrap } from './useFocusTrap';
 import { GitCompareArrows, X, CheckCircle2, AlertTriangle, XCircle, HelpCircle, Plus, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -192,16 +192,18 @@ export function MapComparisonPanel({
   onNavigateToAction,
 }: MapComparisonPanelProps) {
   const focusTrapRef = useFocusTrap(open);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open]);
 
   const stats = useMemo(() => graphData ? computeStats(graphData) : null, [graphData]);
   const gaps = useMemo(() => graphData ? findGaps(graphData) : [], [graphData]);
@@ -252,7 +254,8 @@ export function MapComparisonPanel({
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           ref={focusTrapRef}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
-          role="complementary"
+          role="dialog"
+          aria-modal="true"
           aria-label="Panel de comparación de mapa"
         >
           {/* Header */}
@@ -486,7 +489,7 @@ function StatBadge({
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
-      {...(onClick ? { type: 'button' as const } : {})}
+      {...(onClick ? { type: 'button' as const, 'aria-label': `Resaltar ${label.toLowerCase()}: ${count}` } : {})}
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
       style={{ backgroundColor: bg }}
@@ -536,7 +539,7 @@ function GapItem({
       )}
       <button
         onClick={onStudy}
-        className="sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 px-2.5 py-1 min-h-[44px] sm:min-h-0 text-ax-primary-500 bg-ax-primary-50 rounded-full transition-opacity flex-shrink-0"
+        className="sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 focus:opacity-100 px-2.5 py-1 min-h-[44px] sm:min-h-0 text-ax-primary-500 bg-ax-primary-50 rounded-full transition-opacity flex-shrink-0"
         style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
         title="Estudiar este concepto"
       >
