@@ -13,7 +13,7 @@
 //   getMessagingSettings, updateMessagingSettings, testMessagingConnection
 // ============================================================
 
-import { type ReactNode, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePlatformData } from '@/app/context/PlatformDataContext';
 import {
   getMessagingSettings,
@@ -92,7 +92,7 @@ function MessagingError({ message, onRetry }: { message: string; onRetry: () => 
 
 interface ChannelCardProps {
   channel: MessagingChannel;
-  icon: ReactNode;
+  icon: React.ReactNode;
   title: string;
   description: string;
   data: MessagingSettingsData | null;
@@ -225,7 +225,7 @@ function ChannelCard({ channel, icon, title, description, data, loading, onSave,
                 <Input
                   id={`${channel}-token`}
                   type={showTokens ? 'text' : 'password'}
-                  placeholder={hasCredentials ? '••••••••  (ya configurado — dejar vacio para mantener)' : 'Pegar bot token de @BotFather'}
+                  placeholder={hasCredentials ? '••••••••  (ya configurado — dejar vacío para mantener)' : 'Pegar bot token de @BotFather'}
                   value={telegramToken}
                   onChange={(e) => setTelegramToken(e.target.value)}
                   className="pr-10"
@@ -351,7 +351,7 @@ function ChannelCard({ channel, icon, title, description, data, loading, onSave,
                   placeholder={
                     (data?.settings as WhatsAppSettingsResponse)?.has_verify_token
                       ? '••••••••  (ya configurado)'
-                      : 'Token de verificacion del webhook'
+                      : 'Token de verificación del webhook'
                   }
                   value={waVerifyToken}
                   onChange={(e) => setWaVerifyToken(e.target.value)}
@@ -372,7 +372,7 @@ function ChannelCard({ channel, icon, title, description, data, loading, onSave,
           className="gap-2"
         >
           {testing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-          Probar conexion
+          Probar conexión
         </Button>
 
         <Button
@@ -438,7 +438,7 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
       } else {
         setWhatsappData((prev) => prev ? { ...prev, ...result, is_enabled: isEnabled } : result);
       }
-      toast.success(`Configuracion de ${channel === 'telegram' ? 'Telegram' : 'WhatsApp'} guardada`);
+      toast.success(`Configuración de ${channel === 'telegram' ? 'Telegram' : 'WhatsApp'} guardada`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       toast.error(`Error: ${msg}`);
@@ -450,9 +450,9 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
     try {
       const result = await testMessagingConnection(channel);
       if (result.success) {
-        toast.success(result.message || 'Conexion exitosa');
+        toast.success(result.message || 'Conexión exitosa');
       } else {
-        toast.error(result.error || 'La conexion fallo');
+        toast.error(result.error || 'La conexión falló');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
@@ -469,8 +469,8 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
 
       <PageHeader
         icon={<MessageCircle size={22} />}
-        title="Integraciones de Mensajeria"
-        subtitle="Configura los bots de Telegram y WhatsApp para tu institucion"
+        title="Integraciones de Mensajería"
+        subtitle="Configura los bots de Telegram y WhatsApp para tu institución"
         accent="blue"
         actions={
           onBack ? (
@@ -486,7 +486,7 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
       <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 flex items-start gap-3">
         <AlertCircle size={18} className="text-blue-500 mt-0.5 shrink-0" />
         <div className="text-sm text-blue-700">
-          <p className="font-medium mb-1">Como obtener los tokens</p>
+          <p className="font-medium mb-1">Cómo obtener los tokens</p>
           <ul className="space-y-1 text-blue-600">
             <li><strong>Telegram:</strong> Habla con <code className="bg-blue-100 px-1 rounded">@BotFather</code> en Telegram y usa <code className="bg-blue-100 px-1 rounded">/newbot</code> para crear tu bot y obtener el token.</li>
             <li><strong>WhatsApp:</strong> Ve a <code className="bg-blue-100 px-1 rounded">developers.facebook.com</code>, crea una app de tipo Business y configura la API de WhatsApp Cloud.</li>
@@ -510,7 +510,7 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
         channel="whatsapp"
         icon={<MessageCircle size={20} />}
         title="WhatsApp Business"
-        description="Integra WhatsApp Business API para comunicacion con estudiantes"
+        description="Integra WhatsApp Business API para comunicación con estudiantes"
         data={whatsappData}
         loading={loading}
         onSave={handleSave}
