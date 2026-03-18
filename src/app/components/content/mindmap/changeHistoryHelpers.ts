@@ -44,10 +44,15 @@ export function loadHistory(topicId: string): HistoryEntry[] {
   }
 }
 
-/** Save history entries to sessionStorage */
+const MAX_HISTORY_ENTRIES = 100;
+
+/** Save history entries to sessionStorage (capped at 100 entries) */
 export function saveHistory(topicId: string, entries: HistoryEntry[]): void {
   try {
-    sessionStorage.setItem(storageKey(topicId), JSON.stringify(entries));
+    const capped = entries.length > MAX_HISTORY_ENTRIES
+      ? entries.slice(-MAX_HISTORY_ENTRIES)
+      : entries;
+    sessionStorage.setItem(storageKey(topicId), JSON.stringify(capped));
   } catch {
     // sessionStorage full or blocked — silently ignore
   }
