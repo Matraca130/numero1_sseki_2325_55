@@ -33,6 +33,8 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const focusTrapRef = useFocusTrap(open);
   const inputRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Build the share URL from the current origin
   const shareUrl = `${window.location.origin}/student/knowledge-map?topicId=${encodeURIComponent(topicId)}&shared=1`;
@@ -50,7 +52,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';
@@ -60,7 +62,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const handleCopy = useCallback(async () => {
     try {

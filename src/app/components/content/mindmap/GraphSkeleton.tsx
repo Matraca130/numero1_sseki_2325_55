@@ -12,6 +12,8 @@
 // Respects prefers-reduced-motion by disabling animation.
 // ============================================================
 
+import { useId } from 'react';
+
 const NODES = [
   { cx: 88, cy: 84, r: 22 },
   { cx: 200, cy: 50, r: 26 },
@@ -53,11 +55,15 @@ export function GraphSkeleton({
   className = '',
   variant = 'default',
 }: GraphSkeletonProps) {
+  const uniqueId = useId();
+  const gradientId = `skeleton-shimmer-${uniqueId}`;
   const isMini = variant === 'mini';
   const nodes = isMini ? MINI_NODES : NODES;
   const edges = isMini ? MINI_EDGES : EDGES;
   const viewBox = isMini ? '0 0 280 110' : '0 0 400 260';
   const labelIndices = isMini ? [0, 1, 3] : [0, 1, 3, 4, 6];
+  const prefersReducedMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const wrapperClass = isMini
     ? `w-full bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center justify-center overflow-hidden ${className}`
@@ -72,20 +78,22 @@ export function GraphSkeleton({
       >
         <defs>
           {/* Shimmer gradient that sweeps left-to-right */}
-          <linearGradient id={`skeleton-shimmer-${variant}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#e5e7eb" />
             <stop offset="40%" stopColor="#e5e7eb" />
             <stop offset="50%" stopColor="#f3f4f6" />
             <stop offset="60%" stopColor="#e5e7eb" />
             <stop offset="100%" stopColor="#e5e7eb" />
-            <animateTransform
-              attributeName="gradientTransform"
-              type="translate"
-              from="-1 0"
-              to="1 0"
-              dur="1.8s"
-              repeatCount="indefinite"
-            />
+            {!prefersReducedMotion && (
+              <animateTransform
+                attributeName="gradientTransform"
+                type="translate"
+                from="-1 0"
+                to="1 0"
+                dur="1.8s"
+                repeatCount="indefinite"
+              />
+            )}
           </linearGradient>
         </defs>
 
@@ -113,7 +121,7 @@ export function GraphSkeleton({
             cx={node.cx}
             cy={node.cy}
             r={node.r}
-            fill={`url(#skeleton-shimmer-${variant})`}
+            fill={`url(#${gradientId})`}
             stroke={i % 2 === 0 ? '#d1d5db' : '#e5e7eb'}
             strokeWidth={isMini ? 1 : 1.5}
           />
@@ -131,7 +139,7 @@ export function GraphSkeleton({
               width={w}
               height={h}
               rx={h / 2}
-              fill={`url(#skeleton-shimmer-${variant})`}
+              fill={`url(#${gradientId})`}
             />
           );
         })}
