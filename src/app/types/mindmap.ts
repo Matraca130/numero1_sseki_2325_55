@@ -121,6 +121,20 @@ export const MASTERY_HEX_LIGHT: Record<MasteryColor, string> = {
   gray:   '#f3f4f6', // gray-100
 };
 
+// ── Class Mastery (Professor Heatmap) ───────────────────────
+
+/** Aggregated BKT mastery data per keyword for professor heatmap overlay */
+export interface ClassMasteryData {
+  keyword_id: string;
+  keyword_name: string;
+  /** Average mastery across all students [0-1] */
+  avg_mastery: number;
+  /** Total students who have interacted with this keyword */
+  student_count: number;
+  /** Students with mastery < 0.30 (struggling) */
+  weak_student_count: number;
+}
+
 // ── Combo / Group Data ──────────────────────────────────────
 
 /** A visual grouping (combo) of nodes in the knowledge graph */

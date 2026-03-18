@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { MapNode, MapEdge } from '@/app/types/mindmap';
-import { MASTERY_HEX } from '@/app/types/mindmap';
+import { MASTERY_HEX, MASTERY_HEX_LIGHT } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
 import {
   presentationFontSize as fs,
@@ -139,7 +139,8 @@ export function PresentationMode({
             animate="center"
             exit="exit"
             transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8"
+            className="rounded-2xl shadow-2xl p-6 sm:p-8"
+            style={{ backgroundColor: MASTERY_HEX_LIGHT[mc] }}
           >
             {/* Mastery header */}
             <div className="flex items-center gap-2 mb-4">

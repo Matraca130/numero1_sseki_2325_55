@@ -11,10 +11,10 @@
 // ROUTE: /professor/knowledge-map
 // ============================================================
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import {
-  Brain, RefreshCw, ChevronDown, Link2, Sparkles, Loader2, Trash2, X, Maximize2, Minimize2,
+  Brain, RefreshCw, ChevronDown, Link2, Sparkles, Loader2, Trash2, X, Maximize2, Minimize2, Thermometer,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FadeIn } from '@/app/components/shared/FadeIn';
@@ -31,10 +31,11 @@ import { ConfirmDialog } from '@/app/components/content/mindmap/ConfirmDialog';
 import { useFullscreen } from '@/app/components/content/mindmap/useFullscreen';
 import { GraphSkeleton } from '@/app/components/content/mindmap/GraphSkeleton';
 import { ProfessorAddConnectionModal } from './ProfessorAddConnectionModal';
-import type { MapNode, GraphControls } from '@/app/types/mindmap';
+import type { MapNode, GraphControls, ClassMasteryData, GraphData } from '@/app/types/mindmap';
 import { MASTERY_HEX, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import { apiCall } from '@/app/lib/api';
 import { deleteConnection } from '@/app/services/keywordConnectionsApi';
+import { fetchClassMastery } from '@/app/services/mindmapApi';
 import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { headingStyle } from '@/app/design-system';
@@ -71,6 +72,11 @@ export function ProfessorKnowledgeMapPage() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
+  // Heatmap overlay state
+  const [heatmapEnabled, setHeatmapEnabled] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<ClassMasteryData[] | null>(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+
   // ── Flatten topics from content tree ────────────────────
 
   const topics = useMemo(() => {
@@ -92,6 +98,40 @@ export function ProfessorKnowledgeMapPage() {
     return result;
   }, [tree]);
 
+  // ── Heatmap: fetch class mastery when toggled on ──────
+
+  useEffect(() => {
+    if (!heatmapEnabled || !topicId || !graphData) {
+      setHeatmapData(null);
+      return;
+    }
+    let cancelled = false;
+    setHeatmapLoading(true);
+    fetchClassMastery(topicId, graphData.nodes)
+      .then(data => { if (!cancelled) setHeatmapData(data); })
+      .catch(() => { if (!cancelled) setHeatmapData(null); })
+      .finally(() => { if (!cancelled) setHeatmapLoading(false); });
+    return () => { cancelled = true; };
+  }, [heatmapEnabled, topicId, graphData]);
+
+  /** Graph data with class-wide mastery overlaid when heatmap is active */
+  const heatmapGraphData = useMemo((): GraphData | null => {
+    if (!heatmapEnabled || !heatmapData || !filteredGraphData) return null;
+    const masteryLookup = new Map(heatmapData.map(d => [d.keyword_id, d]));
+    return {
+      ...filteredGraphData,
+      nodes: filteredGraphData.nodes.map(node => {
+        const cm = masteryLookup.get(node.id);
+        if (!cm) return node;
+        return {
+          ...node,
+          mastery: cm.avg_mastery,
+          masteryColor: getSafeMasteryColor(cm.avg_mastery),
+        };
+      }),
+    };
+  }, [heatmapEnabled, heatmapData, filteredGraphData]);
+
   // ── Handlers ────────────────────────────────────────────
 
   const handleTopicSelect = useCallback((tid: string) => {
@@ -100,6 +140,8 @@ export function ProfessorKnowledgeMapPage() {
     setCollapsedCount(0);
     setSearchQuery('');
     setShowAddConnection(false);
+    setHeatmapEnabled(false);
+    setHeatmapData(null);
   }, [setSearchParams, setSearchQuery]);
 
   const handleNodeClick = useCallback((node: MapNode | null) => {
@@ -242,6 +284,23 @@ export function ProfessorKnowledgeMapPage() {
                     )}
                     <span className="hidden sm:inline">{aiSuggesting ? 'Sugiriendo...' : 'IA sugerir'}</span>
                   </button>
+                  <button
+                    onClick={() => setHeatmapEnabled(v => !v)}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-2 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                      heatmapEnabled
+                        ? 'text-white bg-rose-500 border-rose-500 hover:bg-rose-600'
+                        : 'text-gray-600 bg-white border-gray-200 hover:border-rose-300 hover:text-rose-600'
+                    }`}
+                    aria-label={heatmapEnabled ? 'Desactivar mapa de calor' : 'Activar mapa de calor'}
+                    aria-pressed={heatmapEnabled}
+                  >
+                    {heatmapLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Thermometer className="w-3.5 h-3.5" />
+                    )}
+                    <span className="hidden sm:inline">Mapa de calor</span>
+                  </button>
                 </>
               )}
               <button
@@ -371,18 +430,33 @@ export function ProfessorKnowledgeMapPage() {
                   </div>
                 }>
                   {filteredGraphData && filteredGraphData.nodes.length > 0 ? (
-                    <KnowledgeGraph
-                      data={filteredGraphData}
-                      onNodeClick={handleNodeClick}
-                      selectedNodeId={selectedNode?.id}
-                      layout={layout}
-                      onReady={(controls) => { graphControlsRef.current = controls; }}
-                      highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : undefined}
-                      onCollapseChange={(count) => setCollapsedCount(count)}
-                      locale="es"
-                      topicId={topicId}
-                      showMinimap={showMinimap}
-                    />
+                    <>
+                      <KnowledgeGraph
+                        data={heatmapGraphData ?? filteredGraphData}
+                        onNodeClick={handleNodeClick}
+                        selectedNodeId={selectedNode?.id}
+                        layout={layout}
+                        onReady={(controls) => { graphControlsRef.current = controls; }}
+                        highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : undefined}
+                        onCollapseChange={(count) => setCollapsedCount(count)}
+                        locale="es"
+                        topicId={topicId}
+                        showMinimap={showMinimap}
+                      />
+                      {/* Heatmap overlay badge */}
+                      {heatmapEnabled && heatmapData && (
+                        <div className="absolute top-3 left-3 z-[6] flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur rounded-full border border-rose-200 shadow-sm">
+                          <Thermometer className="w-3.5 h-3.5 text-rose-500" />
+                          <span className="text-xs font-medium text-rose-600">Mapa de calor</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Vista previa</span>
+                        </div>
+                      )}
+                      {heatmapLoading && (
+                        <div className="absolute inset-0 z-[5] bg-white/40 rounded-2xl flex items-center justify-center pointer-events-none">
+                          <Loader2 className="w-5 h-5 animate-spin text-rose-500" />
+                        </div>
+                      )}
+                    </>
                   ) : searchQuery.trim() ? (
                     <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
                       <div className="flex flex-col items-center text-center px-4">
@@ -455,6 +529,19 @@ export function ProfessorKnowledgeMapPage() {
                       {selectedNode.definition}
                     </p>
                   )}
+                  {/* Heatmap mobile detail */}
+                  {heatmapEnabled && heatmapData && (() => {
+                    const cm = heatmapData.find(d => d.keyword_id === selectedNode.id);
+                    if (!cm) return null;
+                    return (
+                      <div className="flex items-center gap-2 mt-2 text-[11px]">
+                        <Thermometer className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                        <span className="text-gray-500">Clase: {Math.round(cm.avg_mastery * 100)}%</span>
+                        <span className="text-gray-400">|</span>
+                        <span className="text-red-500">{cm.weak_student_count} con dificultades</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -501,6 +588,45 @@ export function ProfessorKnowledgeMapPage() {
                   </div>
                 )}
 
+                {/* Heatmap summary */}
+                {heatmapEnabled && heatmapData && heatmapData.length > 0 && (
+                  <div className="p-4 border-b border-gray-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Thermometer className="w-3.5 h-3.5 text-rose-500" />
+                      <h3
+                        className="text-xs font-semibold text-rose-600 uppercase tracking-wider"
+                        style={headingStyle}
+                      >
+                        Mapa de calor
+                      </h3>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium ml-auto">Vista previa</span>
+                    </div>
+                    {(() => {
+                      const avgAll = heatmapData.reduce((s, d) => s + d.avg_mastery, 0) / heatmapData.length;
+                      const totalWeak = heatmapData.reduce((s, d) => s + d.weak_student_count, 0);
+                      const weakNodes = heatmapData.filter(d => d.avg_mastery < 0.3).length;
+                      return (
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Dominio promedio</span>
+                            <span className="font-medium" style={{ color: MASTERY_HEX[getSafeMasteryColor(avgAll)] }}>
+                              {Math.round(avgAll * 100)}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Conceptos criticos</span>
+                            <span className="font-medium text-red-500">{weakNodes}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Alumnos en riesgo</span>
+                            <span className="font-medium text-red-500">{totalWeak}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 {/* Selected node detail */}
                 {selectedNode ? (
                   <div className="p-4 flex-1 overflow-y-auto">
@@ -520,6 +646,35 @@ export function ProfessorKnowledgeMapPage() {
                         {Number.isFinite(selectedNode.mastery) && selectedNode.mastery >= 0 && ` — ${Math.round(selectedNode.mastery * 100)}%`}
                       </span>
                     </div>
+                    {/* Heatmap node detail */}
+                    {heatmapEnabled && heatmapData && (() => {
+                      const cm = heatmapData.find(d => d.keyword_id === selectedNode.id);
+                      if (!cm) return null;
+                      return (
+                        <div className="mb-3 p-2 bg-rose-50 rounded-lg border border-rose-100">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Thermometer className="w-3 h-3 text-rose-500" />
+                            <span className="text-[11px] font-medium text-rose-600">Datos de clase</span>
+                          </div>
+                          <div className="space-y-0.5 text-[11px]">
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Dominio promedio</span>
+                              <span className="font-medium" style={{ color: MASTERY_HEX[getSafeMasteryColor(cm.avg_mastery)] }}>
+                                {Math.round(cm.avg_mastery * 100)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Alumnos</span>
+                              <span className="font-medium text-gray-700">{cm.student_count}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Con dificultades</span>
+                              <span className="font-medium text-red-500">{cm.weak_student_count}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {selectedNode.definition && (
                       <p className="text-xs text-gray-500 mb-3">
                         {selectedNode.definition}

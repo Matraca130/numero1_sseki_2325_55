@@ -23,7 +23,7 @@ import {
 } from '@/app/services/keywordMasteryApi';
 import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
 import type { KeywordConnection } from '@/app/types/keyword-connections';
-import type { GraphData, MapNode, MapEdge } from '@/app/types/mindmap';
+import type { GraphData, MapNode, MapEdge, ClassMasteryData } from '@/app/types/mindmap';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -210,6 +210,42 @@ export async function fetchGraphByCourse(topicIds: string[]): Promise<GraphData>
   const connections = await fetchConnectionsBatch(keywordIds);
 
   return buildGraphData(merged, connections, topicMap);
+}
+
+// ── Class Mastery (Professor Heatmap) ────────────────────────
+
+/**
+ * Fetch aggregated BKT mastery data per keyword for a topic.
+ * Used by the professor heatmap overlay to visualize class-wide mastery.
+ *
+ * TODO: Backend endpoint `/ai/class-mastery` not yet deployed.
+ * Currently returns mock data for preview purposes.
+ */
+export async function fetchClassMastery(
+  topicId: string,
+  graphNodes: MapNode[],
+): Promise<ClassMasteryData[]> {
+  try {
+    return await apiCall<ClassMasteryData[]>(
+      `/ai/class-mastery?topic_id=${encodeURIComponent(topicId)}`
+    );
+  } catch (e: unknown) {
+    // Endpoint not deployed yet — return mock data based on graph nodes
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+      if (import.meta.env.DEV) {
+        console.info('[MindmapApi] /ai/class-mastery not deployed, using mock data');
+      }
+      return graphNodes.map((node) => ({
+        keyword_id: node.id,
+        keyword_name: node.label,
+        avg_mastery: Math.random() * 0.85 + 0.1, // 0.10 – 0.95
+        student_count: Math.floor(Math.random() * 30) + 5,
+        weak_student_count: Math.floor(Math.random() * 10),
+      }));
+    }
+    throw e;
+  }
 }
 
 // ── Student Custom Nodes & Edges ────────────────────────────
