@@ -8,9 +8,9 @@
 // Delta levels (spec v4.2):
 //   >= 1.10  -> blue   (Superado)
 //   >= 1.00  -> green  (Dominado)
-//   >= 0.85  -> yellow (Proximo)
+//   >= 0.85  -> yellow (Próximo)
 //   >= 0.50  -> orange (Insuficiente)
-//   <  0.50  -> red    (Critico)
+//   <  0.50  -> red    (Crítico)
 //
 // RUN: pnpm test
 // ============================================================
@@ -69,7 +69,7 @@ describe('getDeltaColor', () => {
     expect(getDeltaColor(0.70, 0.70)).toBe('green');
   });
 
-  it('mastery 0.70, threshold 0.80 -> orange (delta=0.875)', () => {
+  it('mastery 0.70, threshold 0.80 -> yellow (delta=0.875, >= 0.85)', () => {
     // 0.70 / 0.80 = 0.875 -> >= 0.85 = yellow
     // NOTE: 0.875 >= 0.85, so this is actually yellow per the code
     const delta = 0.70 / 0.80; // 0.875
@@ -147,6 +147,24 @@ describe('getDeltaColor', () => {
     // threshold = 1.0, mastery = 1.1 => delta = 1.1
     expect(getDeltaColor(1.10, 1.0)).toBe('blue');
   });
+
+  // -- Just below thresholds (floating point edge cases) --
+
+  it('delta just below 0.50 -> red', () => {
+    expect(getDeltaColor(0.3499, 0.70)).toBe('red'); // 0.3499/0.70 = 0.4998
+  });
+
+  it('delta just below 0.85 -> orange', () => {
+    expect(getDeltaColor(0.5949, 0.70)).toBe('orange'); // 0.5949/0.70 = 0.8498
+  });
+
+  it('delta just below 1.00 -> yellow', () => {
+    expect(getDeltaColor(0.6999, 0.70)).toBe('yellow'); // 0.6999/0.70 = 0.9998
+  });
+
+  it('delta just below 1.10 -> green', () => {
+    expect(getDeltaColor(0.7699, 0.70)).toBe('green'); // 0.7699/0.70 = 1.0998
+  });
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -216,16 +234,16 @@ describe('getDeltaColorClasses', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('getDeltaColorLabel', () => {
-  it('red -> Critico', () => {
-    expect(getDeltaColorLabel('red')).toBe('Critico');
+  it('red -> Crítico', () => {
+    expect(getDeltaColorLabel('red')).toBe('Crítico');
   });
 
   it('orange -> Insuficiente', () => {
     expect(getDeltaColorLabel('orange')).toBe('Insuficiente');
   });
 
-  it('yellow -> Proximo', () => {
-    expect(getDeltaColorLabel('yellow')).toBe('Proximo');
+  it('yellow -> Próximo', () => {
+    expect(getDeltaColorLabel('yellow')).toBe('Próximo');
   });
 
   it('green -> Dominado', () => {
