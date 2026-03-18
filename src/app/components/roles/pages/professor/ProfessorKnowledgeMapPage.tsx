@@ -454,7 +454,7 @@ export function ProfessorKnowledgeMapPage() {
                 })}
                 {selectedNode && (
                   <>
-                    <span className="text-gray-300">|</span>
+                    <span className="text-gray-300" aria-hidden="true">|</span>
                     <span className="text-xs text-gray-700 font-medium truncate max-w-[80px] sm:max-w-[120px]">
                       {selectedNode.label}
                     </span>
@@ -553,6 +553,8 @@ export function ProfessorKnowledgeMapPage() {
               {selectedNode && (
                 <div
                   className="lg:hidden absolute bottom-3 left-3 right-3 bg-white rounded-2xl shadow-lg border border-gray-200 p-3 z-10 max-h-[40vh] overflow-y-auto"
+                  role="region"
+                  aria-label={`Detalle de ${selectedNode.label}`}
                   style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                   onTouchStart={handleSheetTouchStart}
                   onTouchMove={handleSheetTouchMove}
@@ -757,7 +759,7 @@ export function ProfessorKnowledgeMapPage() {
                               const otherId = edge.source === selectedNode.id ? edge.target : edge.source;
                               const otherNode = nodeById.get(otherId);
                               return (
-                                <div key={edge.id} className="flex items-center gap-1.5 group">
+                                <div key={edge.id} className="flex items-center gap-1.5 group" role="listitem">
                                   <span
                                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                                     style={{ backgroundColor: edge.connectionType ? CONNECTION_TYPE_MAP.get(edge.connectionType)?.color || '#d1d5db' : '#d1d5db' }}
