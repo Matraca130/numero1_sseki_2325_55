@@ -42,6 +42,9 @@ export interface MapNode {
 /** Line style for custom edges */
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
 
+/** Arrowhead shape for directed edges */
+export type EdgeArrowType = 'triangle' | 'diamond' | 'circle' | 'vee';
+
 /** An edge in the knowledge graph (connection between keywords) */
 export interface MapEdge {
   id: string;
@@ -61,6 +64,8 @@ export interface MapEdge {
   customColor?: string;
   /** Whether this edge is directed (shows arrowhead from source to target) */
   directed?: boolean;
+  /** Arrowhead shape when directed (default: 'triangle') */
+  arrowType?: 'triangle' | 'diamond' | 'circle' | 'vee';
 }
 
 /** Complete graph data for G6 */
@@ -128,6 +133,8 @@ export interface G6NodeEvent {
   clientX?: number;
   clientY?: number;
   preventDefault?: () => void;
+  /** Native DOM event — used to detect modifier keys (Shift, Ctrl) */
+  originalEvent?: MouseEvent | PointerEvent;
 }
 
 /** Imperative controls exposed via KnowledgeGraph onReady callback */
@@ -145,6 +152,8 @@ export interface GraphControls {
   exportJPEG: () => Promise<void>;
   /** Focus (zoom + pan) the graph on a specific node by ID */
   focusNode?: (nodeId: string) => void;
+  /** Clear multi-selection */
+  clearMultiSelection?: () => void;
 }
 
 // ── Graph Helpers ──────────────────────────────────────────

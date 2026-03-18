@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { createCustomNode, createCustomEdge } from '@/app/services/mindmapApi';
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
 import { CONNECTION_TYPES, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
-import type { MapNode } from '@/app/types/mindmap';
+import type { MapNode, EdgeArrowType } from '@/app/types/mindmap';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 
@@ -74,6 +74,7 @@ export function AddNodeEdgeModal({
   const [edgeDirected, setEdgeDirected] = useState(!!initialEdgeSource);
   const [edgeLineStyle, setEdgeLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
   const [edgeColor, setEdgeColor] = useState(colors.primary[500]);
+  const [edgeArrowType, setEdgeArrowType] = useState<EdgeArrowType>('triangle');
 
   const focusTrapRef = useFocusTrap(open);
   const nodeLabelRef = useRef<HTMLInputElement>(null);
@@ -135,6 +136,7 @@ export function AddNodeEdgeModal({
     setEdgeDirected(false);
     setEdgeLineStyle('solid');
     setEdgeColor(colors.primary[500]);
+    setEdgeArrowType('triangle');
   };
 
   const handleCreateNode = async () => {
@@ -172,6 +174,7 @@ export function AddNodeEdgeModal({
         line_style: edgeLineStyle !== 'solid' ? edgeLineStyle as 'dashed' | 'dotted' : undefined,
         custom_color: edgeColor !== colors.primary[500] ? edgeColor : undefined,
         directed: edgeDirected || undefined,
+        arrow_type: edgeDirected && edgeArrowType !== 'triangle' ? edgeArrowType : undefined,
       };
       const res = await createCustomEdge(payload);
       toast.success('Conexión añadida al mapa');
@@ -430,6 +433,54 @@ export function AddNodeEdgeModal({
                         />
                       </button>
                     </div>
+                    {/* Arrow type selector — only when directed */}
+                    {edgeDirected && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Tipo de flecha
+                        </label>
+                        <div className="flex gap-1.5" role="radiogroup" aria-label="Tipo de flecha">
+                          {([
+                            { type: 'triangle' as const, label: 'Triangulo' },
+                            { type: 'diamond' as const, label: 'Diamante' },
+                            { type: 'circle' as const, label: 'Circulo' },
+                            { type: 'vee' as const, label: 'Abierta' },
+                          ]).map(({ type, label }) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => setEdgeArrowType(type)}
+                              className={`flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-[10px] transition-colors ${
+                                edgeArrowType === type
+                                  ? 'border-ax-primary-500 bg-ax-primary-50 text-ax-primary-500 font-medium'
+                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                              }`}
+                              role="radio"
+                              aria-checked={edgeArrowType === type}
+                              aria-label={label}
+                            >
+                              <svg width="28" height="14" viewBox="0 0 28 14" className="flex-shrink-0">
+                                <line x1="0" y1="7" x2="18" y2="7" stroke="currentColor" strokeWidth="1.5" />
+                                {type === 'triangle' && (
+                                  <polygon points="18,3 28,7 18,11" fill="currentColor" />
+                                )}
+                                {type === 'diamond' && (
+                                  <polygon points="18,7 23,3 28,7 23,11" fill="currentColor" />
+                                )}
+                                {type === 'circle' && (
+                                  <circle cx="23" cy="7" r="4" fill="currentColor" />
+                                )}
+                                {type === 'vee' && (
+                                  <polyline points="18,3 28,7 18,11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                                )}
+                              </svg>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Line style + color row */}
                     <div className="flex gap-3">
                       <div className="flex-1">

@@ -234,6 +234,8 @@ export interface CreateCustomEdgePayload {
   custom_color?: string;
   /** Whether the edge is directed (shows arrowhead from source to target) */
   directed?: boolean;
+  /** Arrowhead shape when directed (default: 'triangle') */
+  arrow_type?: 'triangle' | 'diamond' | 'circle' | 'vee';
 }
 
 /** Backend response for custom node */
@@ -254,6 +256,7 @@ interface CustomEdgeResponse {
   line_style?: 'dashed' | 'dotted';
   custom_color?: string;
   directed?: boolean;
+  arrow_type?: 'triangle' | 'diamond' | 'circle' | 'vee';
 }
 
 /**
@@ -291,6 +294,7 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
       lineStyle: e.line_style,
       customColor: e.custom_color,
       directed: e.directed,
+      arrowType: e.arrow_type,
     }));
 
     return { nodes, edges };

@@ -18,9 +18,9 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
-import { Maximize2 } from 'lucide-react';
+import { Maximize2, X, Link, Trash2 } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
-import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
+import { MASTERY_HEX, MASTERY_HEX_LIGHT, truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
 import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
 import { loadPositions, saveNodePosition } from './useNodePositions';
@@ -51,6 +51,10 @@ const I18N_GRAPH: Record<Locale, {
   srDesc: string; nCollapsed: (n: number) => string; allExpanded: string;
   mobileHint: string; fitView: string; shortcuts: string; search: string;
   closeShortcuts: string; shortcutDialog: string;
+  nSelected: (n: number) => string; deleteSelection: string; connect: string;
+  deselect: string; shiftClickHint: string;
+  masteryLow: string; masteryMid: string; masteryHigh: string; masteryNone: string;
+  masteryLegend: string;
   keys: [string, string][];
 }> = {
   pt: {
@@ -62,9 +66,16 @@ const I18N_GRAPH: Record<Locale, {
     reviewAlert: 'IA recomenda revisar',
     fitView: 'Ajustar à vista', shortcuts: 'Atalhos', search: 'buscar',
     closeShortcuts: 'Fechar atalhos', shortcutDialog: 'Atalhos de teclado',
+    nSelected: (n) => `${n} nodos selecionados`,
+    deleteSelection: 'Eliminar', connect: 'Conectar', deselect: 'Deselecionar',
+    shiftClickHint: 'Shift+clique para selecionar vários',
+    masteryLow: 'Fraco (<50%)', masteryMid: 'Aprendendo (50-80%)',
+    masteryHigh: 'Dominado (>80%)', masteryNone: 'Sem dados',
+    masteryLegend: 'Domínio',
     keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
       ['Duplo-clique', 'Recolher/expandir'], ['Ctrl+[', 'Recolher todos'],
-      ['Ctrl+]', 'Expandir todos'], ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
+      ['Ctrl+]', 'Expandir todos'], ['Shift+clique', 'Selecionar vários'],
+      ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
   },
   es: {
     noData: 'Sin datos', mastery: 'Dominio',
@@ -75,9 +86,16 @@ const I18N_GRAPH: Record<Locale, {
     reviewAlert: 'IA recomienda revisar',
     fitView: 'Ajustar a la vista', shortcuts: 'Atajos', search: 'buscar',
     closeShortcuts: 'Cerrar atajos', shortcutDialog: 'Atajos de teclado',
+    nSelected: (n) => `${n} nodos seleccionados`,
+    deleteSelection: 'Eliminar', connect: 'Conectar', deselect: 'Deseleccionar',
+    shiftClickHint: 'Shift+clic para seleccionar varios',
+    masteryLow: 'Debil (<50%)', masteryMid: 'Aprendiendo (50-80%)',
+    masteryHigh: 'Dominado (>80%)', masteryNone: 'Sin datos',
+    masteryLegend: 'Dominio',
     keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
       ['Doble clic', 'Colapsar/expandir'], ['Ctrl+[', 'Colapsar todos'],
-      ['Ctrl+]', 'Expandir todos'], ['Esc', 'Deseleccionar'], ['?', 'Esta ayuda']],
+      ['Ctrl+]', 'Expandir todos'], ['Shift+clic', 'Seleccionar varios'],
+      ['Esc', 'Deseleccionar'], ['?', 'Esta ayuda']],
   },
 };
 
@@ -102,6 +120,14 @@ interface KnowledgeGraphProps {
   topicId?: string;
   /** Whether to show the minimap navigation overview */
   showMinimap?: boolean;
+  /** Called when multi-selected nodes change (Shift+click or brush-select) */
+  onMultiSelect?: (nodeIds: string[]) => void;
+  /** Called when user clicks "Eliminar seleccion" in the multi-select action bar */
+  onDeleteNodes?: (nodeIds: string[]) => void;
+  /** Called when user clicks "Conectar" with exactly 2 nodes selected */
+  onConnectNodes?: (sourceId: string, targetId: string) => void;
+  /** Whether to show the mastery color legend */
+  showMasteryLegend?: boolean;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -120,6 +146,10 @@ export function KnowledgeGraph({
   reviewNodeIds,
   topicId,
   showMinimap = false,
+  onMultiSelect,
+  onDeleteNodes,
+  onConnectNodes,
+  showMasteryLegend = true,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -131,6 +161,7 @@ export function KnowledgeGraph({
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMobileHint, setShowMobileHint] = useState(true);
+  const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
 
   // Stable ref for onCollapseChange to avoid stale closures in setter callbacks
   const onCollapseChangeRef = useRef(onCollapseChange);
@@ -250,15 +281,18 @@ export function KnowledgeGraph({
               : edge.isUserCreated && !edge.lineStyle ? [6, 3]
               : undefined,
             opacity: edgeDimmed ? 0.2 : 1,
-            endArrow: edge.directed || !!edge.sourceKeywordId,
+            endArrow: (edge.directed || !!edge.sourceKeywordId)
+              ? { type: edge.arrowType || 'triangle', size: 8 }
+              : false,
             labelText: edge.label || undefined,
-            labelFill: edge.label ? colors.text.secondary : undefined,
+            labelFill: edge.label ? '#71717a' : undefined,
             labelFontSize: edge.label ? 10 : undefined,
             labelFontFamily: edge.label ? 'Inter, sans-serif' : undefined,
             labelBackground: !!edge.label,
-            labelBackgroundFill: edge.label ? colors.surface.card : undefined,
+            labelBackgroundFill: edge.label ? '#ffffff' : undefined,
             labelBackgroundOpacity: edge.label ? 0.85 : undefined,
             labelBackgroundRadius: edge.label ? 4 : undefined,
+            labelPadding: edge.label ? [2, 6, 2, 6] : undefined,
           },
         };
       });
