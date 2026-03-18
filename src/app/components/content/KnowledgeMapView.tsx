@@ -941,7 +941,7 @@ export function KnowledgeMapView() {
                   <span className="hidden sm:inline">Actualizar</span>
                 </button>
                 <button
-                  onClick={() => { setShowAiPanel(v => !v); if (!showAiPanel) { setShowHistory(false); setShowComparison(false); } }}
+                  onClick={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } return !v; }); }}
                   className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
                     showAiPanel
                       ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
@@ -954,7 +954,7 @@ export function KnowledgeMapView() {
                   <span className="hidden sm:inline">IA</span>
                 </button>
                 <button
-                  onClick={() => { setShowHistory(v => !v); if (!showHistory) { setShowAiPanel(false); setShowComparison(false); } }}
+                  onClick={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
                   className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-full border shadow-sm transition-colors ${
                     showHistory ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30' : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
                   }`}
@@ -987,7 +987,7 @@ export function KnowledgeMapView() {
                   </button>
                 )}
                 <button
-                  onClick={() => { setShowComparison(v => !v); if (!showComparison) { setShowAiPanel(false); setShowHistory(false); } }}
+                  onClick={() => { setShowComparison(v => { if (!v) { setShowAiPanel(false); setShowHistory(false); } return !v; }); }}
                   className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
                     showComparison
                       ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
@@ -1163,6 +1163,21 @@ export function KnowledgeMapView() {
               </div>
             ) : null}
           </ErrorBoundary>
+
+          {/* Hint when all nodes are collapsed — canvas appears empty */}
+          {collapsedCount > 0 && filteredGraphData && collapsedCount >= filteredGraphData.nodes.length && (
+            <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
+              <div className="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 px-5 py-4 text-center max-w-[260px]">
+                <p className="text-sm font-medium text-gray-600 mb-2">Todas las ramas están colapsadas</p>
+                <button
+                  onClick={() => graphControlsRef.current?.expandAll()}
+                  className="text-xs font-medium text-[#2a8c7a] hover:underline"
+                >
+                  Expandir todo
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sticky notes layer — floats above graph, below modals */}
           <ErrorBoundary fallback={null}>
