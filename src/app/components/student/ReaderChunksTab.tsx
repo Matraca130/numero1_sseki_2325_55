@@ -15,6 +15,7 @@ import type { Chunk } from '@/app/services/summariesApi';
 import { SummaryViewer } from '@/app/components/student/SummaryViewer';
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
 import { enrichHtmlWithImages, renderPlainLine } from '@/app/lib/summary-content-helpers';
+import { sanitizeHtml } from '@/app/lib/sanitize';
 import { proseClasses } from '@/app/components/design-kit';
 import { ListSkeleton } from '@/app/components/student/reader-atoms';
 
@@ -70,7 +71,7 @@ export function ReaderChunksTab({
               >
                 {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
                   <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>
-                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: enrichHtmlWithImages(chunk.content) }} />
+                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content)) }} />
                   </KeywordHighlighterInline>
                 ) : (
                   <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>

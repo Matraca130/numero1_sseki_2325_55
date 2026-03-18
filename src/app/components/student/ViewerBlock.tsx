@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import { sanitizeHtml } from '@/app/lib/sanitize';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       return (
         <div
           className="axon-prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
           role="article"
         />
       );
@@ -225,7 +226,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             {/<[a-z][\s\S]*>/i.test(text) ? (
               <div
                 className="text-sm text-gray-700 leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0"
-                dangerouslySetInnerHTML={{ __html: text }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }}
               />
             ) : (
               <p className="text-sm text-gray-700 leading-relaxed">{text}</p>
