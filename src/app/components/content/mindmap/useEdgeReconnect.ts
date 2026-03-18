@@ -166,6 +166,8 @@ interface DragState {
   startY: number;
   /** Whether the drag has been activated (passed threshold) */
   activated: boolean;
+  /** The real pointerId used for setPointerCapture (needed for release) */
+  capturedPointerId: number;
 }
 
 // ── Hook ────────────────────────────────────────────────────
@@ -324,8 +326,6 @@ export function useEdgeReconnect({
     const getUserEdges = (): MapEdge[] =>
       edgesRef.current.filter(e => e.isUserCreated);
 
-    let hoverEndpointTimer: ReturnType<typeof setTimeout> | null = null;
-
     // We need to listen on the actual canvas element or the container
     // Using pointer events on container (capturing) so we get all events
     const handlePointerDown = (e: PointerEvent) => {
@@ -366,6 +366,7 @@ export function useEdgeReconnect({
             startX: screenX,
             startY: screenY,
             activated: false,
+            capturedPointerId: -1,
           };
           return;
         }
@@ -385,6 +386,7 @@ export function useEdgeReconnect({
             startX: screenX,
             startY: screenY,
             activated: false,
+            capturedPointerId: -1,
           };
           return;
         }
@@ -430,6 +432,7 @@ export function useEdgeReconnect({
 
         // Activate the drag: capture pointer and dim the original edge
         ds.activated = true;
+        ds.capturedPointerId = e.pointerId;
         container.setPointerCapture(e.pointerId);
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'auto';
@@ -550,7 +553,7 @@ export function useEdgeReconnect({
       if (e.key === 'Escape' && dragStateRef.current) {
         e.preventDefault();
         e.stopPropagation();
-        handlePointerCancel(new PointerEvent('pointercancel', { pointerId: 0 }));
+        handlePointerCancel(new PointerEvent('pointercancel', { pointerId: dragStateRef.current.capturedPointerId }));
       }
     };
 
@@ -566,7 +569,6 @@ export function useEdgeReconnect({
       container.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('pointercancel', handlePointerCancel);
       document.removeEventListener('keydown', handleKeyDown);
-      if (hoverEndpointTimer) clearTimeout(hoverEndpointTimer);
       cancelAnimationFrame(rafRef.current);
     };
   }, [enabled, ready, graphVersion, graphRef, containerRef, draw]);

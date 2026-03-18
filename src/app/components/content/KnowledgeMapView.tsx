@@ -416,13 +416,22 @@ export function KnowledgeMapView() {
       const newSource = movedEndpoint === 'source' ? newNodeId : oldEdge.source;
       const newTarget = movedEndpoint === 'target' ? newNodeId : oldEdge.target;
 
+      // Guard: prevent duplicate edges
+      const edgeExists = graphData?.edges.some(
+        e => e.source === newSource && e.target === newTarget && e.id !== oldEdge.id,
+      );
+      if (edgeExists) {
+        toast.warning('Ya existe una conexión entre estos nodos');
+        return;
+      }
+
       // Delete the old edge
       await deleteCustomEdge(oldEdge.id);
 
       // Create the new edge (preserving label, connection type, style, etc.)
-      const newEdgeRes = await createCustomEdge({
-        source_node_id: newSource,
-        target_node_id: newTarget,
+      const oldEdgePayload = {
+        source_node_id: oldEdge.source,
+        target_node_id: oldEdge.target,
         label: oldEdge.label,
         connection_type: oldEdge.connectionType,
         topic_id: effectiveTopicId,
@@ -430,15 +439,12 @@ export function KnowledgeMapView() {
         custom_color: oldEdge.customColor,
         directed: oldEdge.directed,
         arrow_type: oldEdge.arrowType,
-      });
-
-      // Record for undo
-      pushAction({
-        type: 'reconnect-edge',
-        oldEdgeId: oldEdge.id,
-        oldPayload: {
-          source_node_id: oldEdge.source,
-          target_node_id: oldEdge.target,
+      };
+      let newEdgeRes;
+      try {
+        newEdgeRes = await createCustomEdge({
+          source_node_id: newSource,
+          target_node_id: newTarget,
           label: oldEdge.label,
           connection_type: oldEdge.connectionType,
           topic_id: effectiveTopicId,
@@ -446,7 +452,18 @@ export function KnowledgeMapView() {
           custom_color: oldEdge.customColor,
           directed: oldEdge.directed,
           arrow_type: oldEdge.arrowType,
-        },
+        });
+      } catch (createErr) {
+        // Compensate: re-create the old edge since delete already succeeded
+        try { await createCustomEdge(oldEdgePayload); } catch { /* best effort */ }
+        throw createErr;
+      }
+
+      // Record for undo
+      pushAction({
+        type: 'reconnect-edge',
+        oldEdgeId: oldEdge.id,
+        oldPayload: oldEdgePayload,
         newEdgeId: newEdgeRes.id,
         newPayload: {
           source_node_id: newSource,
