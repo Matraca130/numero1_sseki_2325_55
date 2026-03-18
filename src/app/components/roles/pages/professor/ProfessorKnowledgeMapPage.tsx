@@ -49,6 +49,10 @@ export function ProfessorKnowledgeMapPage() {
   const { tree } = useContentTree();
   const { institutionId } = usePlatformData();
 
+  // Mounted guard for async operations
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   // Template panel state
   const [showTemplatePanel, setShowTemplatePanel] = useState(false);
   const [templateOverride, setTemplateOverride] = useState<GraphData | null>(null);
@@ -177,11 +181,13 @@ export function ProfessorKnowledgeMapPage() {
     if (!deleteEdgeId) return;
     try {
       await deleteConnection(deleteEdgeId);
+      if (!mountedRef.current) return;
       toast.success('Conexión eliminada');
       setDeleteEdgeId(null);
-      if (topicId) invalidateGraphCache(topicId); // triggers refetch via event bus
+      if (topicId) invalidateGraphCache(topicId);
       else refetch();
     } catch (err: unknown) {
+      if (!mountedRef.current) return;
       toast.error(err instanceof Error ? err.message : 'Error al eliminar conexión');
       setDeleteEdgeId(null);
     }
@@ -195,6 +201,7 @@ export function ProfessorKnowledgeMapPage() {
         method: 'POST',
         body: JSON.stringify({ topic_id: topicId }),
       });
+      if (!mountedRef.current) return;
       const count = result?.connections_created ?? result?.created ?? null;
       if (count === 0) {
         toast.info('El grafo ya está bien conectado — no se agregaron nuevas conexiones.');
@@ -203,12 +210,13 @@ export function ProfessorKnowledgeMapPage() {
       } else {
         toast.success('Sugerencias de IA aplicadas. Actualizando grafo...');
       }
-      if (topicId) invalidateGraphCache(topicId); // triggers refetch via event bus
+      if (topicId) invalidateGraphCache(topicId);
       else refetch();
     } catch (err: unknown) {
+      if (!mountedRef.current) return;
       toast.error(err instanceof Error ? err.message : 'Error al generar sugerencias de IA');
     } finally {
-      setAiSuggesting(false);
+      if (mountedRef.current) setAiSuggesting(false);
     }
   }, [topicId, refetch]);
 
@@ -644,7 +652,7 @@ export function ProfessorKnowledgeMapPage() {
                             </span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-gray-500">Conceptos criticos</span>
+                            <span className="text-gray-500">Conceptos cr\u00edticos</span>
                             <span className="font-medium text-red-500">{weakNodes}</span>
                           </div>
                           <div className="flex justify-between text-xs">
