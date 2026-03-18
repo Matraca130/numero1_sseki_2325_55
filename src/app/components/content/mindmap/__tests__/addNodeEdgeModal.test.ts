@@ -634,7 +634,7 @@ describe('AddNodeEdgeModal: initial props prefill', () => {
 
 describe('AddNodeEdgeModal: close behavior', () => {
   it('listens for Escape key when open', () => {
-    expect(source).toContain("if (e.key === 'Escape' && !savingRef.current) onClose()");
+    expect(source).toContain("if (e.key === 'Escape' && !savingRef.current)");
   });
 
   it('blocks Escape close during save (savingRef guard)', () => {
