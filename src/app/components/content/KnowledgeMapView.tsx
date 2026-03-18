@@ -1101,7 +1101,7 @@ export function KnowledgeMapView() {
 
         {/* Graph canvas */}
         <div className="flex-1 min-h-0 relative">
-          {/* Floating tool palette — hidden on mobile (tools not practical with touch) */}
+          {/* Floating tool palette — horizontal bottom bar on mobile, vertical left on desktop */}
           <MapToolsPanel
             activeTool={activeTool}
             onToolChange={handleToolChange}

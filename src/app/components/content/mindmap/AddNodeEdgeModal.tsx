@@ -553,7 +553,7 @@ export function AddNodeEdgeModal({
                           key={c}
                           type="button"
                           onClick={() => setEdgeColor(c)}
-                          className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${
+                          className={`w-8 h-8 sm:w-5 sm:h-5 rounded-full border-2 transition-transform hover:scale-110 ${
                             edgeColor === c ? 'border-gray-800 scale-110' : 'border-transparent'
                           }`}
                           style={{ backgroundColor: c }}
