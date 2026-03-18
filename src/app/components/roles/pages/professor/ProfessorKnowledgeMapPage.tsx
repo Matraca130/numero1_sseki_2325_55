@@ -230,14 +230,25 @@ export function ProfessorKnowledgeMapPage() {
   const distribution = useMemo(() => {
     if (!graphData) return null;
     const nodes = graphData.nodes;
-    return {
-      total: nodes.length,
-      green: nodes.filter(n => n.masteryColor === 'green').length,
-      yellow: nodes.filter(n => n.masteryColor === 'yellow').length,
-      red: nodes.filter(n => n.masteryColor === 'red').length,
-      gray: nodes.filter(n => n.masteryColor === 'gray').length,
-      edges: graphData.edges.length,
-    };
+    let green = 0, yellow = 0, red = 0, gray = 0;
+    for (const n of nodes) {
+      if (n.masteryColor === 'green') green++;
+      else if (n.masteryColor === 'yellow') yellow++;
+      else if (n.masteryColor === 'red') red++;
+      else gray++;
+    }
+    return { total: nodes.length, green, yellow, red, gray, edges: graphData.edges.length };
+  }, [graphData]);
+
+  // Memoize selected node's connections + node lookup map (avoids O(N*M) in render)
+  const selectedNodeConnections = useMemo(() => {
+    if (!selectedNode || !graphData) return [];
+    return graphData.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id);
+  }, [selectedNode, graphData]);
+
+  const nodeById = useMemo(() => {
+    if (!graphData) return new Map<string, MapNode>();
+    return new Map(graphData.nodes.map(n => [n.id, n]));
   }, [graphData]);
 
   // ── Render ──────────────────────────────────────────────
@@ -563,9 +574,9 @@ export function ProfessorKnowledgeMapPage() {
                       {getMasteryLabel(selectedNode.masteryColor, 'es')}
                       {Number.isFinite(selectedNode.mastery) && selectedNode.mastery >= 0 && ` — ${Math.round(selectedNode.mastery * 100)}%`}
                     </span>
-                    {graphData && (
+                    {selectedNodeConnections.length > 0 && (
                       <span>
-                        · {graphData.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id).length} conexiones
+                        · {selectedNodeConnections.length} conexiones
                       </span>
                     )}
                   </div>
@@ -726,22 +737,19 @@ export function ProfessorKnowledgeMapPage() {
                       </p>
                     )}
                     {/* Connections with delete buttons */}
-                    {graphData && (() => {
-                      const nodeEdges = graphData.edges.filter(
-                        e => e.source === selectedNode.id || e.target === selectedNode.id
-                      );
-                      if (nodeEdges.length === 0) return (
+                    {(() => {
+                      if (selectedNodeConnections.length === 0) return (
                         <div className="text-xs text-gray-500 mb-2">Sin conexiones</div>
                       );
                       return (
                         <div className="mb-2">
                           <p className="text-xs font-medium text-gray-500 mb-1.5">
-                            {nodeEdges.length} conexiones
+                            {selectedNodeConnections.length} conexiones
                           </p>
                           <div className="space-y-1 max-h-40 overflow-y-auto" role="list" aria-label="Conexiones del concepto">
-                            {nodeEdges.map(edge => {
+                            {selectedNodeConnections.map(edge => {
                               const otherId = edge.source === selectedNode.id ? edge.target : edge.source;
-                              const otherNode = graphData.nodes.find(n => n.id === otherId);
+                              const otherNode = nodeById.get(otherId);
                               return (
                                 <div key={edge.id} className="flex items-center gap-1.5 group">
                                   <span
