@@ -5,7 +5,7 @@
 // Extracted from ProfessorKnowledgeMapPage for modularity.
 // ============================================================
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { X, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,6 +36,9 @@ export function ProfessorAddConnectionModal({
   const [connType, setConnType] = useState('asociacion');
   const [connLabel, setConnLabel] = useState('');
   const [connSaving, setConnSaving] = useState(false);
+  const savingRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const focusTrapRef = useFocusTrap(open);
 
   const sortedNodes = useMemo(
@@ -57,7 +60,7 @@ export function ProfessorAddConnectionModal({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
     };
     document.addEventListener('keydown', handler);
     document.documentElement.style.overflow = 'hidden';
@@ -73,7 +76,8 @@ export function ProfessorAddConnectionModal({
   }, [open, onClose]);
 
   const handleCreate = useCallback(async () => {
-    if (!connSource || !connTarget || connSource === connTarget) return;
+    if (!connSource || !connTarget || connSource === connTarget || savingRef.current) return;
+    savingRef.current = true;
     setConnSaving(true);
     const [a, b] = connSource < connTarget ? [connSource, connTarget] : [connTarget, connSource];
     try {
@@ -93,7 +97,8 @@ export function ProfessorAddConnectionModal({
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     } finally {
-      setConnSaving(false);
+      savingRef.current = false;
+      if (mountedRef.current) setConnSaving(false);
     }
   }, [connSource, connTarget, connType, connLabel, topicId, onClose, onCreated]);
 

@@ -51,7 +51,7 @@ export function ProfessorKnowledgeMapPage() {
 
   // Mounted guard for async operations
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   // Template panel state
   const [showTemplatePanel, setShowTemplatePanel] = useState(false);
@@ -780,25 +780,29 @@ export function ProfessorKnowledgeMapPage() {
         )}
         {/* Graph Template Panel */}
         {topicId && institutionId && (
-          <GraphTemplatePanel
-            open={showTemplatePanel}
-            onClose={() => setShowTemplatePanel(false)}
-            institutionId={institutionId}
-            topicId={topicId}
-            currentNodes={graphData?.nodes ?? []}
-            currentEdges={graphData?.edges ?? []}
-            onLoadTemplate={handleLoadTemplate}
-          />
+          <ErrorBoundary fallback={null}>
+            <GraphTemplatePanel
+              open={showTemplatePanel}
+              onClose={() => setShowTemplatePanel(false)}
+              institutionId={institutionId}
+              topicId={topicId}
+              currentNodes={graphData?.nodes ?? []}
+              currentEdges={graphData?.edges ?? []}
+              onLoadTemplate={handleLoadTemplate}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Add Connection Modal */}
-        <ProfessorAddConnectionModal
-          open={showAddConnection}
-          onClose={() => setShowAddConnection(false)}
-          nodes={graphData?.nodes ?? []}
-          topicId={topicId}
-          onCreated={refetch}
-        />
+        <ErrorBoundary fallback={null}>
+          <ProfessorAddConnectionModal
+            open={showAddConnection}
+            onClose={() => setShowAddConnection(false)}
+            nodes={graphData?.nodes ?? []}
+            topicId={topicId}
+            onCreated={refetch}
+          />
+        </ErrorBoundary>
 
         {/* Delete connection confirmation dialog */}
         {deleteEdgeId && (
