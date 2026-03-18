@@ -303,7 +303,8 @@ export function ProfessorKnowledgeMapPage() {
                   </button>
                   <button
                     onClick={() => setHeatmapEnabled(v => !v)}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-2 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                    disabled={heatmapLoading}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-2 text-xs font-medium rounded-full border shadow-sm transition-colors disabled:opacity-50 ${
                       heatmapEnabled
                         ? 'text-white bg-rose-500 border-rose-500 hover:bg-rose-600'
                         : 'text-gray-600 bg-white border-gray-200 hover:border-rose-300 hover:text-rose-600'

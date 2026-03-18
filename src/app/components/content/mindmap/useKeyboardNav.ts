@@ -159,6 +159,10 @@ export function useKeyboardNav({
   const onQuickAddRef = useRef(onQuickAdd);
   onQuickAddRef.current = onQuickAdd;
 
+  // Stable ref for focusedNodeId — avoids stale closure in clearFocus
+  const focusedNodeIdRef = useRef(focusedNodeId);
+  focusedNodeIdRef.current = focusedNodeId;
+
   // Apply focus ring visual to G6 node
   const applyFocusRing = useCallback((graph: Graph, nodeId: string | null, prevId: string | null) => {
     try {
@@ -178,14 +182,15 @@ export function useKeyboardNav({
 
   const clearFocus = useCallback(() => {
     const graph = graphRef.current;
-    if (graph && focusedNodeId) {
+    const currentFocused = focusedNodeIdRef.current;
+    if (graph && currentFocused) {
       try {
-        graph.setElementState(focusedNodeId, []);
+        graph.setElementState(currentFocused, []);
         graph.draw();
       } catch { /* graph may be destroyed */ }
     }
     setFocusedNodeId(null);
-  }, [graphRef, focusedNodeId]);
+  }, [graphRef]);
 
   // Sync: when selectedNodeId changes externally, also set focus
   useEffect(() => {
@@ -240,12 +245,12 @@ export function useKeyboardNav({
         // ── Ctrl+[/]: collapse/expand all ──
         if (e.key === '[' && e.ctrlKey) {
           e.preventDefault();
-          collapseAllRef.current();
+          collapseAllRef.current?.();
           return;
         }
         if (e.key === ']' && e.ctrlKey) {
           e.preventDefault();
-          expandAllRef.current();
+          expandAllRef.current?.();
           return;
         }
 
