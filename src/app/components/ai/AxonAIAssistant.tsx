@@ -25,6 +25,8 @@ import {
   Zap,
   ArrowLeft,
   Phone,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 import clsx from 'clsx';
 import {
@@ -32,6 +34,7 @@ import {
   explainConcept as explainConceptApi,
   generateFlashcard,
   generateQuizQuestion,
+  submitRagFeedback,
 } from '@/app/services/aiService';
 import type {
   ChatHistoryEntry,
@@ -83,9 +86,10 @@ export function AxonAIAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Chat RAG metadata (for future citations feature)
-  const [lastSources, setLastSources] = useState<RagChatResponse['sources']>([]);
-  const [lastLogId, setLastLogId] = useState<string | null>(null);
+  // Chat RAG metadata — per-message citations & feedback
+  const [messageSources, setMessageSources] = useState<Map<string, Array<{ chunk_id: string; summary_title: string; similarity: number }>>>(new Map());
+  const [messageLogIds, setMessageLogIds] = useState<Map<string, string>>(new Map());
+  const [feedbackGiven, setFeedbackGiven] = useState<Map<string, 'positive' | 'negative'>>(new Map());
 
   // Flashcard mode state
   const [generatedCards, setGeneratedCards] = useState<GeneratedFlashcard[]>([]);
@@ -143,9 +147,19 @@ export function AxonAIAssistant({
         summaryId,
       });
 
-      addMessage('model', result.response);
-      setLastSources(result.sources);
-      setLastLogId(result.log_id);
+      const modelMsgId = `msg-${Date.now()}-${Math.random()}`;
+      setMessages(prev => [
+        ...prev,
+        { id: modelMsgId, role: 'model', content: result.response, timestamp: new Date() },
+      ]);
+
+      // Store sources & log_id keyed by message ID for citations/feedback
+      if (result.sources && result.sources.length > 0) {
+        setMessageSources(prev => new Map(prev).set(modelMsgId, result.sources));
+      }
+      if (result.log_id) {
+        setMessageLogIds(prev => new Map(prev).set(modelMsgId, result.log_id));
+      }
     } catch (err: any) {
       addMessage('system', `Erro: ${err.message}`, true);
     } finally {
@@ -233,6 +247,27 @@ export function AxonAIAssistant({
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // ── RAG Feedback ───────────────────────────────────────
+
+  const handleRagFeedback = async (msgId: string, feedback: 'positive' | 'negative') => {
+    const logId = messageLogIds.get(msgId);
+    if (!logId || feedbackGiven.has(msgId)) return;
+
+    // Optimistic update
+    setFeedbackGiven(prev => new Map(prev).set(msgId, feedback));
+
+    try {
+      await submitRagFeedback({ logId, feedback });
+    } catch {
+      // Revert on failure
+      setFeedbackGiven(prev => {
+        const next = new Map(prev);
+        next.delete(msgId);
+        return next;
+      });
+    }
   };
 
   // ── Render ────────────────────────────────────────────
@@ -415,15 +450,71 @@ export function AxonAIAssistant({
               >
                 {renderMarkdown(msg.content)}
 
-                {/* Copy button */}
+                {/* Action buttons: copy + feedback */}
                 {msg.role === 'model' && (
-                  <button
-                    aria-label="Copiar respuesta"
-                    onClick={() => copyText(msg.content, msg.id)}
-                    className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500"
-                  >
-                    {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
-                  </button>
+                  <div className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    {/* Feedback buttons (only when log_id exists) */}
+                    {messageLogIds.has(msg.id) && (
+                      <>
+                        <button
+                          aria-label="Respuesta util"
+                          onClick={() => handleRagFeedback(msg.id, 'positive')}
+                          disabled={feedbackGiven.has(msg.id)}
+                          className={clsx(
+                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                            feedbackGiven.get(msg.id) === 'positive'
+                              ? "text-emerald-500 border-emerald-300"
+                              : feedbackGiven.has(msg.id)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-400 hover:text-emerald-500"
+                          )}
+                        >
+                          <ThumbsUp size={12} />
+                        </button>
+                        <button
+                          aria-label="Respuesta no util"
+                          onClick={() => handleRagFeedback(msg.id, 'negative')}
+                          disabled={feedbackGiven.has(msg.id)}
+                          className={clsx(
+                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                            feedbackGiven.get(msg.id) === 'negative'
+                              ? "text-red-500 border-red-300"
+                              : feedbackGiven.has(msg.id)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-500"
+                          )}
+                        >
+                          <ThumbsDown size={12} />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      aria-label="Copiar respuesta"
+                      onClick={() => copyText(msg.content, msg.id)}
+                      className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                    >
+                      {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                )}
+
+                {/* Citations (collapsible) */}
+                {msg.role === 'model' && messageSources.has(msg.id) && (
+                  <details className="mt-3 border-t border-gray-100 pt-2">
+                    <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-violet-500 select-none">
+                      Fontes ({messageSources.get(msg.id)!.length})
+                    </summary>
+                    <ul className="mt-1.5 space-y-1">
+                      {messageSources.get(msg.id)!.map((src, si) => (
+                        <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
+                          <span className="truncate mr-2">{src.summary_title}</span>
+                          <span className="shrink-0 text-[10px] font-mono text-violet-500">
+                            {(src.similarity * 100).toFixed(0)}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
               </div>
             </div>
