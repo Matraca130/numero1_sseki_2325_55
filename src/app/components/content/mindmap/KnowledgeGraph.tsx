@@ -148,6 +148,7 @@ export function KnowledgeGraph({
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const mountedRef = useRef(true);
+  const layoutInProgressRef = useRef(false);
   const [ready, setReady] = useState(false);
   // Incremented on each graph re-creation so event-handler effects re-register
   const [graphVersion, setGraphVersion] = useState(0);
@@ -1136,7 +1137,7 @@ export function KnowledgeGraph({
   // Handler: auto-layout cycle (force → dagre → radial → force)
   const handleAutoLayout = useCallback(() => {
     const graph = graphRef.current;
-    if (!graph) return;
+    if (!graph || layoutInProgressRef.current) return;
 
     // Cycle through layouts
     const layouts = ['d3-force', 'dagre', 'radial'] as const;
@@ -1154,13 +1155,16 @@ export function KnowledgeGraph({
         : nextType === 'radial' ? LAYOUT_RADIAL
         : LAYOUT_FORCE;
 
+      layoutInProgressRef.current = true;
       graph.setLayout(layoutConfig);
       graph.layout().then(() => {
         if (!mountedRef.current) return;
         try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
-      }).catch(() => { /* layout may fail if destroyed */ });
+      }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
+        layoutInProgressRef.current = false;
+      });
     } catch {
-      // graph may be destroyed
+      layoutInProgressRef.current = false;
     }
   }, []);
 

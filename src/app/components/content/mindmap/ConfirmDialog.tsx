@@ -19,6 +19,8 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   /** CSS z-index class for the overlay/dialog. Default: 'z-50' */
   zClass?: string;
+  /** Disable the confirm button (e.g. during async operations) */
+  confirmDisabled?: boolean;
 }
 
 export function ConfirmDialog({
@@ -29,6 +31,7 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
   zClass = 'z-50',
+  confirmDisabled = false,
 }: ConfirmDialogProps) {
   const focusTrapRef = useFocusTrap(true);
 
@@ -80,7 +83,8 @@ export function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors shadow-sm"
+            disabled={confirmDisabled}
+            className="px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {confirmLabel}
           </button>

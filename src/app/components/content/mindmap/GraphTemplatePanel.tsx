@@ -464,6 +464,7 @@ export function GraphTemplatePanel({
           confirmLabel={deleting ? 'Eliminando...' : 'Eliminar'}
           onCancel={() => { if (!deleting) setDeleteTarget(null); }}
           onConfirm={executeDelete}
+          confirmDisabled={deleting}
           zClass="z-[60]"
         />
       )}
