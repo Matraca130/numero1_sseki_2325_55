@@ -3,32 +3,17 @@
 // PERF-70: All pages lazy-loaded to reduce initial bundle size.
 //
 // FIX: Quizzes, Curriculum, Flashcards routes restored from
-// placeholder to real page components. The original PERF-70
-// refactor accidentally replaced ALL routes with lazyPlaceholder.
+// placeholder to real page components.
+// PERF-R14: Replaced dynamic import('lucide-react') (pulled
+// entire 748kB icon library) with tree-shakeable named imports
+// via professor-placeholders.tsx.
 // ============================================================
 import type { RouteObject } from 'react-router';
 import { lazyRetry } from '@/app/utils/lazyRetry';
 
-const lazyPlaceholder = (title: string, desc: string, iconName: string) => ({
-  lazy: async () => {
-    const [{ PlaceholderPage }, lucideIcons] = await Promise.all([
-      import('@/app/components/roles/PlaceholderPage'),
-      import('lucide-react'),
-    ]);
-    const React = await import('react');
-    const Icon = (lucideIcons as any)[iconName];
-    const Component = () => PlaceholderPage({
-      title,
-      description: desc,
-      icon: Icon ? React.createElement(Icon, { size: 20 }) : null,
-    });
-    return { Component };
-  },
-});
-
 export const professorChildren: RouteObject[] = [
-  { index: true,        ...lazyPlaceholder('Dashboard',   'Panel del profesor', 'LayoutDashboard') },
-  { path: 'courses',    ...lazyPlaceholder('Cursos',      'Gestion de cursos', 'BookOpen') },
+  { index: true,        lazy: () => import('./professor-placeholders').then(m => ({ Component: m.ProfessorDashboardPlaceholder })) },
+  { path: 'courses',    lazy: () => import('./professor-placeholders').then(m => ({ Component: m.ProfessorCoursesPlaceholder })) },
   {
     path: 'curriculum',
     lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorCurriculumPage')).then(m => ({ Component: m.ProfessorCurriculumPage })),
@@ -45,7 +30,7 @@ export const professorChildren: RouteObject[] = [
     path: 'knowledge-map',
     lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorKnowledgeMapPage')).then(m => ({ Component: m.ProfessorKnowledgeMapPage })),
   },
-  { path: 'students',   ...lazyPlaceholder('Estudiantes', 'Seguimiento de alumnos', 'Users') },
-  { path: 'ai',         ...lazyPlaceholder('IA',          'Herramientas de IA', 'Sparkles') },
-  { path: 'settings',   ...lazyPlaceholder('Ajustes',     'Configuracion del profesor', 'Settings') },
+  { path: 'students',   lazy: () => import('./professor-placeholders').then(m => ({ Component: m.ProfessorStudentsPlaceholder })) },
+  { path: 'ai',         lazy: () => import('./professor-placeholders').then(m => ({ Component: m.ProfessorAIPlaceholder })) },
+  { path: 'settings',   lazy: () => import('./professor-placeholders').then(m => ({ Component: m.ProfessorSettingsPlaceholder })) },
 ];

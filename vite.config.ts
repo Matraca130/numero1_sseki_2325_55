@@ -38,6 +38,9 @@ export default defineConfig({
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-dates': ['date-fns'],
           'vendor-g6': ['@antv/g6'],
+          // PERF-R14: Break up mega-chunks by isolating shared heavy deps
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-sonner': ['sonner'],
         },
       },
     },

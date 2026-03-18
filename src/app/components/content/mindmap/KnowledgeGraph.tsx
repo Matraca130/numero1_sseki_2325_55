@@ -1176,6 +1176,7 @@ export function KnowledgeGraph({
 
       graph.setLayout(layoutConfig);
       graph.layout().then(() => {
+        if (!mountedRef.current) return;
         try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
       }).catch(() => { /* layout may fail if destroyed */ });
     } catch {

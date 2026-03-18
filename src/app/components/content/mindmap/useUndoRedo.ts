@@ -187,6 +187,10 @@ export function useUndoRedo(onGraphChanged: () => void) {
         const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
         toast.info(`Deshacer: ${verb} de ${label}`);
       }
+    } else {
+      // reverseAction failed — clear history to avoid stale stacks
+      setPast([]);
+      setFuture([]);
     }
     setBusy(false);
   }, [reverseAction, onGraphChanged]);
@@ -208,6 +212,10 @@ export function useUndoRedo(onGraphChanged: () => void) {
         const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
         toast.info(`Rehacer: ${verb} de ${label}`);
       }
+    } else {
+      // replayAction failed — clear history to avoid stale stacks
+      setPast([]);
+      setFuture([]);
     }
     setBusy(false);
   }, [replayAction, onGraphChanged]);

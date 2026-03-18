@@ -83,10 +83,9 @@ export function useGraphExport() {
         encoderOptions: format === 'jpeg' ? 0.92 : 1,
       });
       downloadDataURL(dataURL, buildFilename(format));
-    } catch {
-      // Graph may be destroyed or in transition — fail silently
-      // The caller can wrap in try/catch + toast if needed
-      throw new Error('No se pudo exportar la imagen del mapa');
+    } catch (err) {
+      // Graph may be destroyed or in transition — wrap with context but preserve original
+      throw new Error('No se pudo exportar la imagen del mapa', { cause: err });
     }
   }, []);
 
