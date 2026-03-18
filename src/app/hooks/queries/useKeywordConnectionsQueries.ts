@@ -65,8 +65,8 @@ export function useCreateConnectionMutation(keywordId: string) {
         queryKey: queryKeys.kwConnections(targetId),
       });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al crear conexión');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     },
   });
 }
@@ -92,8 +92,8 @@ export function useDeleteConnectionMutation(keywordId: string) {
         });
       }
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar conexión');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar conexión');
     },
   });
 }
