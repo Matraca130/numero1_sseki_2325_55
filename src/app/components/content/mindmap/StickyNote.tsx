@@ -248,7 +248,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
           ref={textareaRef}
           value={note.text}
           onChange={handleTextChange}
-          placeholder="Escribe aqui..."
+          placeholder="Escribe aquí..."
           className="w-full bg-transparent resize-none outline-none px-2 py-1.5 font-sans"
           style={{
             fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)',
