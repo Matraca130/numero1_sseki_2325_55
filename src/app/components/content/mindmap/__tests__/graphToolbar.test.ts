@@ -238,7 +238,7 @@ describe('GraphToolbar: export dropdown', () => {
   });
 
   it('toggles export menu on button click', () => {
-    expect(source).toContain('onClick={() => setShowExportMenu(v => !v)}');
+    expect(source).toContain('setShowExportMenu(v => !v)');
   });
 
   it('disables export button while exporting', () => {
@@ -505,7 +505,7 @@ describe('GraphToolbar: mastery color correctness (via MASTERY_HEX)', () => {
 
 describe('GraphToolbar: edge legend', () => {
   it('renders edge legend toggle button', () => {
-    expect(source).toContain('onClick={() => setShowEdgeLegend(v => !v)}');
+    expect(source).toContain('setShowEdgeLegend(v => !v)');
   });
 
   it('toggle button has correct aria-label', () => {
