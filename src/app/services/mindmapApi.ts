@@ -23,7 +23,7 @@ import {
 } from '@/app/services/keywordMasteryApi';
 import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
 import type { KeywordConnection } from '@/app/types/keyword-connections';
-import type { GraphData, MapNode, MapEdge, ClassMasteryData } from '@/app/types/mindmap';
+import type { GraphData, MapNode, MapEdge, ClassMasteryData, GraphTemplate } from '@/app/types/mindmap';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -366,4 +366,39 @@ export async function createCustomEdge(payload: CreateCustomEdgePayload): Promis
 /** Delete a custom edge */
 export async function deleteCustomEdge(edgeId: string): Promise<void> {
   await apiCall(`/student-custom-edges/${edgeId}`, { method: 'DELETE' });
+}
+
+// ── Professor Graph Templates ───────────────────────────────
+
+export async function fetchGraphTemplates(
+  institutionId: string,
+): Promise<GraphTemplate[]> {
+  const result = await apiCall<unknown>(
+    `/professor/graph-templates?institution_id=${encodeURIComponent(institutionId)}`,
+  );
+  return unwrapItems<GraphTemplate>(result);
+}
+
+export interface CreateGraphTemplatePayload {
+  name: string;
+  description?: string;
+  institution_id: string;
+  topic_id: string;
+  nodes: MapNode[];
+  edges: MapEdge[];
+}
+
+export async function createGraphTemplate(
+  payload: CreateGraphTemplatePayload,
+): Promise<GraphTemplate> {
+  return apiCall<GraphTemplate>('/professor/graph-templates', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteGraphTemplate(templateId: string): Promise<void> {
+  await apiCall(`/professor/graph-templates/${encodeURIComponent(templateId)}`, {
+    method: 'DELETE',
+  });
 }

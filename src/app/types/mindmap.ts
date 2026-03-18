@@ -146,6 +146,21 @@ export interface MapCombo {
   collapsed?: boolean;
 }
 
+// ── Graph Template (Professor template maps) ────────────────
+
+/** A saved graph template that professors can create and load */
+export interface GraphTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  institution_id: string;
+  professor_id: string;
+  topic_id: string;
+  nodes: MapNode[];
+  edges: MapEdge[];
+  created_at: string;
+}
+
 // ── Context menu action ─────────────────────────────────────
 
 export type NodeAction = 'flashcard' | 'quiz' | 'summary' | 'annotate' | 'details';

@@ -19,6 +19,7 @@ export { MapToolsPanel } from './MapToolsPanel';
 export type { MapTool } from './MapToolsPanel';
 export { AiTutorPanel } from './AiTutorPanel';
 export { GraphSkeleton } from './GraphSkeleton';
+export { GraphTemplatePanel } from './GraphTemplatePanel';
 export { useUndoRedo } from './useUndoRedo';
 export { useEdgeReconnect } from './useEdgeReconnect';
 export type { EdgeReconnectResult } from './useEdgeReconnect';

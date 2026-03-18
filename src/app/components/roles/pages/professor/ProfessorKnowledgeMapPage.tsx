@@ -14,7 +14,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import {
-  Brain, RefreshCw, ChevronDown, Link2, Sparkles, Loader2, Trash2, X, Maximize2, Minimize2, Thermometer,
+  Brain, RefreshCw, ChevronDown, Link2, Sparkles, Loader2, Trash2, X, Maximize2, Minimize2, Thermometer, LayoutTemplate,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FadeIn } from '@/app/components/shared/FadeIn';
@@ -31,13 +31,15 @@ import { ConfirmDialog } from '@/app/components/content/mindmap/ConfirmDialog';
 import { useFullscreen } from '@/app/components/content/mindmap/useFullscreen';
 import { GraphSkeleton } from '@/app/components/content/mindmap/GraphSkeleton';
 import { ProfessorAddConnectionModal } from './ProfessorAddConnectionModal';
-import type { MapNode, GraphControls, ClassMasteryData, GraphData } from '@/app/types/mindmap';
+import type { MapNode, MapEdge, GraphControls, ClassMasteryData, GraphData } from '@/app/types/mindmap';
 import { MASTERY_HEX, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import { apiCall } from '@/app/lib/api';
 import { deleteConnection } from '@/app/services/keywordConnectionsApi';
 import { fetchClassMastery } from '@/app/services/mindmapApi';
 import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { useContentTree } from '@/app/context/ContentTreeContext';
+import { usePlatformData } from '@/app/context/PlatformDataContext';
+import { GraphTemplatePanel } from '@/app/components/content/mindmap/GraphTemplatePanel';
 import { headingStyle } from '@/app/design-system';
 
 // ── Component ───────────────────────────────────────────────
@@ -45,12 +47,19 @@ import { headingStyle } from '@/app/design-system';
 export function ProfessorKnowledgeMapPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { tree } = useContentTree();
+  const { institutionId } = usePlatformData();
+
+  // Template panel state
+  const [showTemplatePanel, setShowTemplatePanel] = useState(false);
+  const [templateOverride, setTemplateOverride] = useState<GraphData | null>(null);
 
   // Topic selection
   const topicId = searchParams.get('topicId') || undefined;
 
   // Graph data
-  const { graphData, loading, error, refetch, isEmpty } = useGraphData({ topicId, skipCustomNodes: true });
+  const { graphData: fetchedGraphData, loading, error, refetch, isEmpty: fetchedIsEmpty } = useGraphData({ topicId, skipCustomNodes: true });
+  const graphData = templateOverride ?? fetchedGraphData;
+  const isEmpty = templateOverride ? false : fetchedIsEmpty;
 
   // Search (shared hook: debounce + filter + highlight)
   const {
@@ -140,9 +149,17 @@ export function ProfessorKnowledgeMapPage() {
     setCollapsedCount(0);
     setSearchQuery('');
     setShowAddConnection(false);
+    setShowTemplatePanel(false);
+    setTemplateOverride(null);
     setHeatmapEnabled(false);
     setHeatmapData(null);
   }, [setSearchParams, setSearchQuery]);
+
+  const handleLoadTemplate = useCallback((nodes: MapNode[], edges: MapEdge[]) => {
+    setTemplateOverride({ nodes, edges });
+    setSelectedNode(null);
+    setSearchQuery('');
+  }, [setSearchQuery]);
 
   const handleNodeClick = useCallback((node: MapNode | null) => {
     setSelectedNode(node);
@@ -283,6 +300,19 @@ export function ProfessorKnowledgeMapPage() {
                       <Sparkles className="w-3.5 h-3.5" />
                     )}
                     <span className="hidden sm:inline">{aiSuggesting ? 'Sugiriendo...' : 'IA sugerir'}</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowTemplatePanel(v => !v); }}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-2 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                      showTemplatePanel
+                        ? 'text-white bg-[#2a8c7a] border-[#2a8c7a] hover:bg-[#244e47]'
+                        : 'text-gray-600 bg-white border-gray-200 hover:border-[#2a8c7a] hover:text-[#2a8c7a]'
+                    }`}
+                    aria-label={showTemplatePanel ? 'Cerrar plantillas' : 'Abrir plantillas'}
+                    aria-pressed={showTemplatePanel}
+                  >
+                    <LayoutTemplate className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Plantillas</span>
                   </button>
                   <button
                     onClick={() => setHeatmapEnabled(v => !v)}
@@ -749,6 +779,19 @@ export function ProfessorKnowledgeMapPage() {
             </div>
           </>
         )}
+        {/* Graph Template Panel */}
+        {topicId && institutionId && (
+          <GraphTemplatePanel
+            open={showTemplatePanel}
+            onClose={() => setShowTemplatePanel(false)}
+            institutionId={institutionId}
+            topicId={topicId}
+            currentNodes={graphData?.nodes ?? []}
+            currentEdges={graphData?.edges ?? []}
+            onLoadTemplate={handleLoadTemplate}
+          />
+        )}
+
         {/* Add Connection Modal */}
         <ProfessorAddConnectionModal
           open={showAddConnection}
