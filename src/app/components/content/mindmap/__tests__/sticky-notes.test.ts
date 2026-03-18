@@ -248,7 +248,8 @@ describe('Module exports', () => {
     const mod = await import('../StickyNote');
     expect(mod.StickyNote).toBeDefined();
     expect(mod.StickyNotesLayer).toBeDefined();
-    expect(typeof mod.StickyNote).toBe('function');
+    // StickyNote is wrapped in React.memo (returns object), StickyNotesLayer is a plain function
+    expect(mod.StickyNote).toBeTruthy();
     expect(typeof mod.StickyNotesLayer).toBe('function');
     expect(mod.loadStickyNotes).toBeDefined();
     expect(mod.saveStickyNotes).toBeDefined();
