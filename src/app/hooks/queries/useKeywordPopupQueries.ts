@@ -169,7 +169,7 @@ export function useKeywordPopupQueries(
 
       if (unresolvedIds.length > 0) {
         const results = await Promise.allSettled(
-          unresolvedIds.map((id) => apiCall<any>(`/keywords/${id}`)),
+          unresolvedIds.map((id) => apiCall<Record<string, unknown>>(`/keywords/${id}`)),
         );
         results.forEach((r, i) => {
           if (r.status === 'fulfilled' && r.value) {
@@ -192,7 +192,7 @@ export function useKeywordPopupQueries(
       );
       if (missingSummaryId.length > 0) {
         const results = await Promise.allSettled(
-          missingSummaryId.map((e) => apiCall<any>(`/keywords/${e.id}`)),
+          missingSummaryId.map((e) => apiCall<Record<string, unknown>>(`/keywords/${e.id}`)),
         );
         results.forEach((r, i) => {
           if (r.status === 'fulfilled' && r.value) {
@@ -227,7 +227,7 @@ export function useKeywordPopupQueries(
     queryFn: async () => {
       const result = await studentApi.getKwStudentNotes(keywordId);
       return extractItems<KwStudentNote>(result).filter(
-        (n) => !(n as any).deleted_at,
+        (n) => !('deleted_at' in n && n.deleted_at),
       );
     },
     staleTime: STUDENT_STALE,
