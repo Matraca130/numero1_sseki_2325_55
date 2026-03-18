@@ -200,6 +200,12 @@ export function KnowledgeGraph({
   const onMultiSelectRef = useRef(onMultiSelect);
   onMultiSelectRef.current = onMultiSelect;
 
+  // Stable refs for event callbacks — prevents G6 event re-registration on prop change
+  const onNodeClickRef = useRef(onNodeClick);
+  onNodeClickRef.current = onNodeClick;
+  const onNodeRightClickRef = useRef(onNodeRightClick);
+  onNodeRightClickRef.current = onNodeRightClick;
+
   // Track mount state to guard async callbacks
   useEffect(() => {
     mountedRef.current = true;
@@ -965,17 +971,10 @@ export function KnowledgeGraph({
             next.add(nodeId);
           }
           onMultiSelectRef.current?.(Array.from(next));
-          // Apply visual state — use setTimeout to ensure state is committed
+          // Apply visual state — diff-based O(delta) instead of O(N)
           requestAnimationFrame(() => {
             const g = graphRef.current;
-            if (g) {
-              try {
-                for (const nId of dataNodesRef.current.map(n => n.id)) {
-                  g.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
-                }
-                g.draw();
-              } catch (e: unknown) { warnIfNotDestroyed(e); }
-            }
+            if (g) applyMultiSelectionState(g, next);
           });
           return next;
         });
@@ -988,8 +987,8 @@ export function KnowledgeGraph({
       }
 
       const nodeData = graph.getNodeData(nodeId);
-      if (nodeData && onNodeClick) {
-        onNodeClick(nodeData.data._raw as MapNode);
+      if (nodeData && onNodeClickRef.current) {
+        onNodeClickRef.current(nodeData.data._raw as MapNode);
       }
     };
 
@@ -998,9 +997,9 @@ export function KnowledgeGraph({
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
       const nodeData = graph.getNodeData(nodeId);
-      if (nodeData && onNodeRightClick) {
+      if (nodeData && onNodeRightClickRef.current) {
         const { client } = evt;
-        onNodeRightClick(nodeData.data._raw as MapNode, {
+        onNodeRightClickRef.current(nodeData.data._raw as MapNode, {
           x: client?.x ?? evt.clientX ?? 0,
           y: client?.y ?? evt.clientY ?? 0,
         });
@@ -1040,7 +1039,7 @@ export function KnowledgeGraph({
 
     const handleCanvasClick = () => {
       // Deselect node when clicking on empty canvas
-      onNodeClick?.(null);
+      onNodeClickRef.current?.(null);
       setShowShortcuts(false);
       // Clear multi-selection
       if (multiSelectedIdsRef.current.size > 0) {
@@ -1133,8 +1132,8 @@ export function KnowledgeGraph({
       graph.off('node:pointermove', handleNodePointerMove);
       if (longPressTimer) clearTimeout(longPressTimer);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps — onCollapseChange stabilized via onCollapseChangeRef
-  }, [ready, graphVersion, onNodeClick, onNodeRightClick]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps — callbacks stabilized via refs (onNodeClickRef, onNodeRightClickRef, onCollapseChangeRef)
+  }, [ready, graphVersion]);
 
   // Space+drag panning: hold Space to pan instead of dragging nodes
   useSpacePan({
