@@ -254,7 +254,13 @@ export function KnowledgeGraph({
         if (!prev.has(id)) graph.setElementState(id, ['multiSelected']);
       }
       for (const id of prev) {
-        if (!ids.has(id)) graph.setElementState(id, []);
+        if (!ids.has(id)) {
+          // Only remove 'multiSelected', preserve other states (hover, selected)
+          try {
+            const states = graph.getElementState(id);
+            graph.setElementState(id, states.filter(s => s !== 'multiSelected'));
+          } catch { graph.setElementState(id, []); }
+        }
       }
       prevMultiRef.current = new Set(ids);
       graph.draw();
@@ -722,9 +728,9 @@ export function KnowledgeGraph({
       setReady(true);
       setGraphVersion(v => v + 1);
       onReady?.({
-        zoomIn: () => { try { graph.zoomBy(1.25, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
-        zoomOut: () => { try { graph.zoomBy(0.8, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
-        fitView: () => { try { graph.fitView(); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        zoomIn: () => { const g = graphRef.current; if (!g) return; try { g.zoomBy(1.25, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        zoomOut: () => { const g = graphRef.current; if (!g) return; try { g.zoomBy(0.8, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        fitView: () => { const g = graphRef.current; if (!g) return; try { g.fitView(); } catch (e: unknown) { warnIfNotDestroyed(e); } },
         collapseAll: () => collapseAllRef.current(),
         expandAll: () => expandAllRef.current(),
         toggleCollapse: (nodeId: string) => toggleCollapseRef.current(nodeId),
@@ -745,7 +751,8 @@ export function KnowledgeGraph({
           } catch (e: unknown) { warnIfNotDestroyed(e); }
         },
         focusNode: (nodeId: string) => {
-          try { graph.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch (e: unknown) { warnIfNotDestroyed(e); }
+          const g = graphRef.current; if (!g) return;
+          try { g.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch (e: unknown) { warnIfNotDestroyed(e); }
         },
         clearMultiSelection: () => {
           updateMultiSelection(new Set());
@@ -1098,7 +1105,7 @@ export function KnowledgeGraph({
       longPressStartPos = { x: evt.canvas.x, y: evt.canvas.y };
       longPressTimer = setTimeout(() => {
         longPressTriggered = true;
-        handleNodeContextMenu(evt);
+        try { handleNodeContextMenu(evt); } catch (e: unknown) { warnIfNotDestroyed(e); }
       }, 500);
     };
     const cancelLongPress = () => {
