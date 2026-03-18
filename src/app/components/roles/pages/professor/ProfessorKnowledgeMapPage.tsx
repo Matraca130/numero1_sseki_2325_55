@@ -454,7 +454,7 @@ export function ProfessorKnowledgeMapPage() {
             <div className="flex flex-1 min-h-0 gap-4 relative">
               {/* Graph */}
               <div className="flex-1 min-h-0 relative overflow-hidden">
-                <ErrorBoundary fallback={
+                <ErrorBoundary fallback={(_err, reset) => (
                   <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center gap-3 px-4">
                     <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
                       <RefreshCw className="w-6 h-6 text-red-400" />
@@ -463,10 +463,16 @@ export function ProfessorKnowledgeMapPage() {
                       className="text-gray-500 text-center"
                       style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                     >
-                      Error al renderizar el grafo. Intenta actualizar la página.
+                      Error al renderizar el grafo.
                     </p>
+                    <button
+                      onClick={reset}
+                      className="text-sm font-medium text-[#2a8c7a] hover:underline"
+                    >
+                      Reintentar
+                    </button>
                   </div>
-                }>
+                )}>
                   {filteredGraphData && filteredGraphData.nodes.length > 0 ? (
                     <>
                       <KnowledgeGraph
@@ -790,7 +796,12 @@ export function ProfessorKnowledgeMapPage() {
         )}
         {/* Graph Template Panel */}
         {topicId && institutionId && (
-          <ErrorBoundary fallback={null}>
+          <ErrorBoundary fallback={(_err, reset) => (
+            <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <p className="text-sm text-gray-500">Error al cargar plantillas.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+            </div>
+          )}>
             <GraphTemplatePanel
               open={showTemplatePanel}
               onClose={() => setShowTemplatePanel(false)}
@@ -804,7 +815,14 @@ export function ProfessorKnowledgeMapPage() {
         )}
 
         {/* Add Connection Modal */}
-        <ErrorBoundary fallback={null}>
+        <ErrorBoundary fallback={(_err, reset) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
+              <p className="text-sm text-gray-500 mb-3">Error al cargar el formulario.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+            </div>
+          </div>
+        )}>
           <ProfessorAddConnectionModal
             open={showAddConnection}
             onClose={() => setShowAddConnection(false)}

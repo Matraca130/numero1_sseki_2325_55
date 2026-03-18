@@ -79,6 +79,8 @@ export function GraphTemplatePanel({
 
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  const savingRef = useRef(false);
+  const deletingRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const focusTrapRef = useFocusTrap(open);
 
@@ -129,6 +131,7 @@ export function GraphTemplatePanel({
   // ── Save handler ──────────────────────────────────────────
 
   const handleSave = useCallback(async () => {
+    if (savingRef.current) return;
     const trimmedName = saveName.trim();
     if (!trimmedName) {
       toast.error('El nombre es obligatorio');
@@ -138,6 +141,7 @@ export function GraphTemplatePanel({
       toast.error('El grafo actual no tiene nodos');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       const created = await createGraphTemplate({
@@ -159,6 +163,7 @@ export function GraphTemplatePanel({
         toast.error(err instanceof Error ? err.message : 'Error al guardar plantilla');
       }
     } finally {
+      savingRef.current = false;
       if (mountedRef.current) setSaving(false);
     }
   }, [saveName, saveDescription, institutionId, topicId, currentNodes, currentEdges]);
@@ -166,7 +171,8 @@ export function GraphTemplatePanel({
   // ── Delete handler ────────────────────────────────────────
 
   const executeDelete = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     try {
       await deleteGraphTemplate(deleteTarget.id);
@@ -179,6 +185,7 @@ export function GraphTemplatePanel({
         toast.error(err instanceof Error ? err.message : 'Error al eliminar plantilla');
       }
     } finally {
+      deletingRef.current = false;
       if (mountedRef.current) setDeleting(false);
     }
   }, [deleteTarget]);

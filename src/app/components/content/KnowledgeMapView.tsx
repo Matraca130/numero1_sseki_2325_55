@@ -879,7 +879,7 @@ export function KnowledgeMapView() {
                 <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5">
                   <button
                     onClick={() => { undo(); haptic(30); }}
-                    disabled={!canUndo || undoBusy}
+                    disabled={!canUndo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
                     className="flex items-center gap-1 px-2 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
                     aria-label="Deshacer (Ctrl+Z)"
                     title="Deshacer (Ctrl+Z)"
@@ -888,7 +888,7 @@ export function KnowledgeMapView() {
                   </button>
                   <button
                     onClick={() => { redo(); haptic(30); }}
-                    disabled={!canRedo || undoBusy}
+                    disabled={!canRedo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
                     className="flex items-center gap-1 px-2 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
                     aria-label="Rehacer (Ctrl+Y)"
                     title="Rehacer (Ctrl+Y)"
@@ -1068,7 +1068,7 @@ export function KnowledgeMapView() {
             onToolChange={handleToolChange}
             visible={!loading && !!filteredGraphData && filteredGraphData.nodes.length > 0}
           />
-          <ErrorBoundary fallback={
+          <ErrorBoundary fallback={(_err, reset) => (
             <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center gap-3 px-4">
               <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
                 <RefreshCw className="w-6 h-6 text-red-400" />
@@ -1077,10 +1077,16 @@ export function KnowledgeMapView() {
                 className="text-gray-500 text-center"
                 style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
               >
-                Error al renderizar el grafo. Intenta actualizar la página.
+                Error al renderizar el grafo.
               </p>
+              <button
+                onClick={reset}
+                className="text-sm font-medium text-[#2a8c7a] hover:underline"
+              >
+                Reintentar
+              </button>
             </div>
-          }>
+          )}>
             {filteredGraphData && filteredGraphData.nodes.length > 0 ? (
               <KnowledgeGraph
                 data={filteredGraphData}
@@ -1149,7 +1155,12 @@ export function KnowledgeMapView() {
 
           {/* AI Tutor panel — slides in from right */}
           {effectiveTopicId && (
-            <ErrorBoundary fallback={null}>
+            <ErrorBoundary fallback={(_err, reset) => (
+              <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <p className="text-sm text-gray-500">Error al cargar el panel de IA.</p>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+              </div>
+            )}>
               <AiTutorPanel
                 topicId={effectiveTopicId}
                 open={showAiPanel}
@@ -1166,7 +1177,12 @@ export function KnowledgeMapView() {
           )}
 
           {/* Change history panel — slides in from right */}
-          <ErrorBoundary fallback={null}>
+          <ErrorBoundary fallback={(_err, reset) => (
+            <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <p className="text-sm text-gray-500">Error al cargar el historial.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+            </div>
+          )}>
             <ChangeHistoryPanel
               open={showHistory}
               onClose={handleHistoryClose}
@@ -1176,7 +1192,12 @@ export function KnowledgeMapView() {
           </ErrorBoundary>
 
           {/* Map comparison panel — slides in from right */}
-          <ErrorBoundary fallback={null}>
+          <ErrorBoundary fallback={(_err, reset) => (
+            <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <p className="text-sm text-gray-500">Error al cargar la comparación.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+            </div>
+          )}>
             <MapComparisonPanel
               open={showComparison}
               onClose={handleComparisonClose}
@@ -1220,7 +1241,14 @@ export function KnowledgeMapView() {
           )}
 
           {/* Annotation modal — rendered outside overflow context via fixed positioning */}
-          <ErrorBoundary fallback={null}>
+          <ErrorBoundary fallback={(_err, reset) => (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+              <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
+                <p className="text-sm text-gray-500 mb-3">Error al cargar la anotación.</p>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+              </div>
+            </div>
+          )}>
             <NodeAnnotationModal
               node={annotationNode}
               onClose={() => setAnnotationNode(null)}
@@ -1334,7 +1362,14 @@ export function KnowledgeMapView() {
         </div>
 
         {/* Add custom node/edge modal */}
-        <ErrorBoundary fallback={null}>
+        <ErrorBoundary fallback={(_err, reset) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
+              <p className="text-sm text-gray-500 mb-3">Error al cargar el formulario.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+            </div>
+          </div>
+        )}>
           <AddNodeEdgeModal
             open={addModalOpen}
             onClose={() => { setAddModalOpen(false); setConnectSource(null); setConnectTarget(null); }}
@@ -1370,16 +1405,28 @@ export function KnowledgeMapView() {
         )}
 
         {/* Presentation mode overlay */}
-        <AnimatePresence>
-          {presentationMode && filteredGraphData && filteredGraphData.nodes.length > 0 && (
-            <PresentationMode
-              nodes={filteredGraphData.nodes}
-              edges={filteredGraphData.edges}
-              onExit={() => setPresentationMode(false)}
-              onNodeFocus={handlePresentationFocus}
-            />
-          )}
-        </AnimatePresence>
+        <ErrorBoundary fallback={(_err, reset) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
+              <p className="text-sm text-gray-500 mb-3">Error en modo presentación.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => { reset(); setPresentationMode(false); }} className="text-sm text-gray-500 hover:underline">Salir</button>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+              </div>
+            </div>
+          </div>
+        )}>
+          <AnimatePresence>
+            {presentationMode && filteredGraphData && filteredGraphData.nodes.length > 0 && (
+              <PresentationMode
+                nodes={filteredGraphData.nodes}
+                edges={filteredGraphData.edges}
+                onExit={() => setPresentationMode(false)}
+                onNodeFocus={handlePresentationFocus}
+              />
+            )}
+          </AnimatePresence>
+        </ErrorBoundary>
       </div>
     </FadeIn>
   );

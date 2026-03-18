@@ -1419,8 +1419,9 @@ export function KnowledgeGraph({
               }}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               title={t.deleteSelection}
+              aria-label={t.deleteSelection}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">{t.deleteSelection}</span>
             </button>
           )}
@@ -1433,8 +1434,9 @@ export function KnowledgeGraph({
               }}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 transition-colors"
               title={t.connect}
+              aria-label={t.connect}
             >
-              <Link className="w-3.5 h-3.5" />
+              <Link className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">{t.connect}</span>
             </button>
           )}
@@ -1443,8 +1445,9 @@ export function KnowledgeGraph({
               onClick={handleGroupSelection}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 transition-colors"
               title={t.groupSelection}
+              aria-label={t.groupSelection}
             >
-              <Group className="w-3.5 h-3.5" />
+              <Group className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">{t.groupSelection}</span>
             </button>
           )}
@@ -1452,16 +1455,18 @@ export function KnowledgeGraph({
             onClick={handleFocusSelection}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 transition-colors"
             title={t.focusSelection}
+            aria-label={t.focusSelection}
           >
-            <Focus className="w-3.5 h-3.5" />
+            <Focus className="w-3.5 h-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">{t.focusSelection}</span>
           </button>
           <button
             onClick={() => updateMultiSelection(new Set())}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
             title={t.deselect}
+            aria-label={t.deselect}
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">{t.deselect}</span>
           </button>
         </div>
