@@ -247,6 +247,10 @@ export function AxonAIAssistant({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            role="dialog"
+            aria-label="Asistente AI Axon"
+            aria-modal="true"
+            onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
             className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col"
           >
             {/* ── Header ── */}
@@ -270,6 +274,7 @@ export function AxonAIAssistant({
 
               <button
                 onClick={onClose}
+                aria-label="Cerrar asistente"
                 className="relative w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
               >
                 <X size={18} />
@@ -277,7 +282,7 @@ export function AxonAIAssistant({
             </div>
 
             {/* ── Mode tabs ── */}
-            <div className="shrink-0 px-3 py-2 bg-white border-b border-gray-200/60 flex gap-1">
+            <div role="tablist" className="shrink-0 px-3 py-2 bg-white border-b border-gray-200/60 flex gap-1">
               {([
                 { id: 'chat', icon: Sparkles, label: 'Chat' },
                 { id: 'flashcards', icon: Layers, label: 'Flashcards' },
@@ -287,6 +292,8 @@ export function AxonAIAssistant({
               ] as const).map(tab => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={mode === tab.id}
                   onClick={() => resetMode(tab.id)}
                   className={clsx(
                     "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all",
@@ -323,7 +330,7 @@ export function AxonAIAssistant({
     return (
       <>
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
+        <div role="log" aria-live="polite" className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-8 space-y-6">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center border border-violet-200/60">
@@ -388,6 +395,7 @@ export function AxonAIAssistant({
                 {/* Copy button */}
                 {msg.role === 'model' && (
                   <button
+                    aria-label="Copiar respuesta"
                     onClick={() => copyText(msg.content, msg.id)}
                     className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500"
                   >
@@ -430,6 +438,7 @@ export function AxonAIAssistant({
           <div className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
+              aria-label="Escribe tu mensaje"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -439,6 +448,7 @@ export function AxonAIAssistant({
               style={{ maxHeight: '120px' }}
             />
             <button
+              aria-label="Enviar mensaje"
               onClick={() => sendChat()}
               disabled={!input.trim() || isLoading}
               className={clsx(
@@ -796,6 +806,7 @@ export function AxonAIAssistant({
                 <ArrowLeft size={14} /> Voltar
               </button>
               <button
+                aria-label="Copiar respuesta"
                 onClick={() => copyText(explanation, 'explanation')}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500"
               >
