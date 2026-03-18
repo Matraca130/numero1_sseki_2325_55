@@ -84,6 +84,8 @@ export function ProfessorKnowledgeMapPage() {
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
+  const handleGraphReady = useCallback((controls: GraphControls) => { graphControlsRef.current = controls; }, []);
+  const handleCollapseChange = useCallback((count: number) => setCollapsedCount(count), []);
 
   // Heatmap overlay state
   const [heatmapEnabled, setHeatmapEnabled] = useState(false);
@@ -462,9 +464,9 @@ export function ProfessorKnowledgeMapPage() {
                         onNodeClick={handleNodeClick}
                         selectedNodeId={selectedNode?.id}
                         layout={layout}
-                        onReady={(controls) => { graphControlsRef.current = controls; }}
+                        onReady={handleGraphReady}
                         highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : undefined}
-                        onCollapseChange={(count) => setCollapsedCount(count)}
+                        onCollapseChange={handleCollapseChange}
                         locale="es"
                         topicId={topicId}
                         showMinimap={showMinimap}
