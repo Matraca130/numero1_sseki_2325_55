@@ -231,6 +231,14 @@ export function KnowledgeMapView() {
     try { localStorage.setItem('axon_map_onboarded', '1'); } catch {}
   }, []);
 
+  // Dismiss onboarding with Escape key
+  useEffect(() => {
+    if (!showOnboarding) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismissOnboarding(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [showOnboarding, dismissOnboarding]);
+
   // Stable callbacks for KnowledgeGraph (avoids unnecessary child re-renders)
   const handleGraphReady = useCallback((controls: GraphControls) => {
     graphControlsRef.current = controls;

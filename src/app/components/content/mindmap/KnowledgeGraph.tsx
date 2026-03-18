@@ -154,7 +154,9 @@ export function KnowledgeGraph({
   const [graphVersion, setGraphVersion] = useState(0);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showMobileHint, setShowMobileHint] = useState(true);
+  const [showMobileHint, setShowMobileHint] = useState(() => {
+    try { return !sessionStorage.getItem('axon_map_mobile_hint_seen'); } catch { return true; }
+  });
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
   const multiSelectedIdsRef = useRef(multiSelectedIds);
   multiSelectedIdsRef.current = multiSelectedIds;
@@ -213,7 +215,10 @@ export function KnowledgeGraph({
   // Auto-dismiss mobile hint after 4 seconds
   useEffect(() => {
     if (!ready || !showMobileHint) return;
-    const hintTimer = setTimeout(() => setShowMobileHint(false), 4000);
+    const hintTimer = setTimeout(() => {
+      setShowMobileHint(false);
+      try { sessionStorage.setItem('axon_map_mobile_hint_seen', '1'); } catch {}
+    }, 4000);
     return () => clearTimeout(hintTimer);
   }, [ready, showMobileHint]);
 
