@@ -57,31 +57,38 @@ async function fetchConnectionsBatch(
   const allConnections: KeywordConnection[] = [];
   const seenIds = new Set<string>();
 
-  // Fetch all batches in parallel for better latency with 100+ nodes
-  const batchResults = await Promise.all(
+  // Fetch all batches in parallel — use allSettled so one bad batch
+  // doesn't break the entire graph, but surface real errors
+  const batchResults = await Promise.allSettled(
     batches.map(async (batch) => {
-      try {
-        const idsParam = batch.map(id => encodeURIComponent(id)).join(',');
-        const result = await apiCall<unknown>(
-          `/keyword-connections-batch?keyword_ids=${idsParam}`
-        );
-        return unwrapItems<KeywordConnection>(result);
-      } catch (e) {
-        if (import.meta.env.DEV) {
-          console.warn('[MindmapApi] connections-batch failed:', e);
-        }
-        return [];
-      }
+      const idsParam = batch.map(id => encodeURIComponent(id)).join(',');
+      const result = await apiCall<unknown>(
+        `/keyword-connections-batch?keyword_ids=${idsParam}`
+      );
+      return unwrapItems<KeywordConnection>(result);
     })
   );
 
-  for (const connections of batchResults) {
-    for (const conn of connections) {
-      if (!seenIds.has(conn.id)) {
-        seenIds.add(conn.id);
-        allConnections.push(conn);
+  let failedBatches = 0;
+  for (const result of batchResults) {
+    if (result.status === 'fulfilled') {
+      for (const conn of result.value) {
+        if (!seenIds.has(conn.id)) {
+          seenIds.add(conn.id);
+          allConnections.push(conn);
+        }
+      }
+    } else {
+      failedBatches++;
+      if (import.meta.env.DEV) {
+        console.warn('[MindmapApi] connections-batch failed:', result.reason);
       }
     }
+  }
+
+  // If ALL batches failed, throw so the caller knows connections are unavailable
+  if (failedBatches > 0 && allConnections.length === 0 && batches.length > 0) {
+    throw new Error('No se pudieron cargar las conexiones del mapa.');
   }
 
   return allConnections;
@@ -246,8 +253,8 @@ export async function fetchClassMastery(
           };
         });
       }
-      // Production: return empty array instead of fake data
-      return [];
+      // Production: surface error so the UI can show feedback
+      throw new Error('El mapa de calor no está disponible en este momento.');
     }
     throw e;
   }
