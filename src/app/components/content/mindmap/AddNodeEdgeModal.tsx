@@ -451,9 +451,9 @@ export function AddNodeEdgeModal({
                         </label>
                         <div className="flex gap-1.5" role="radiogroup" aria-label="Tipo de flecha">
                           {([
-                            { type: 'triangle' as const, label: 'Triangulo' },
+                            { type: 'triangle' as const, label: 'Triángulo' },
                             { type: 'diamond' as const, label: 'Diamante' },
-                            { type: 'circle' as const, label: 'Circulo' },
+                            { type: 'circle' as const, label: 'Círculo' },
                             { type: 'vee' as const, label: 'Abierta' },
                           ]).map(({ type, label }) => (
                             <button

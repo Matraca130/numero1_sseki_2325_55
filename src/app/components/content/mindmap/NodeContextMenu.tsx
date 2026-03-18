@@ -218,7 +218,7 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                   aria-hidden="true"
                 />
                 <span className="text-gray-500" style={{ fontSize: captionFontSize }}>
-                  {getMasteryLabel(masteryColor)} — {masteryPct}%
+                  {getMasteryLabel(masteryColor, 'es')} — {masteryPct}%
                 </span>
               </div>
             )}

@@ -46,18 +46,18 @@ const I18N: Record<Locale, {
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
   },
   es: {
-    force: 'Fuerza', radial: 'Radial', tree: 'Arbol',
+    force: 'Fuerza', radial: 'Radial', tree: 'Árbol',
     zoomIn: 'Acercar', zoomOut: 'Alejar', fitView: 'Ajustar a la vista',
     collapse: 'Colapsar', expand: 'Expandir', expandN: (n) => `Expandir (${n})`,
-    search: 'Buscar concepto...', clear: 'Limpiar busqueda', nodes: 'nodos', connections: 'conexiones',
+    search: 'Buscar concepto...', clear: 'Limpiar búsqueda', nodes: 'nodos', connections: 'conexiones',
     toolbar: 'Controles del grafo', layoutGroup: 'Tipo de layout', zoomGroup: 'Controles de zoom',
-    collapseGroup: 'Controles de expansion', edgeLegendTitle: 'Tipos de conexion',
-    edgeLegendToggle: 'Mostrar leyenda de tipos de conexion', masteryGroup: 'Leyenda de dominio',
+    collapseGroup: 'Controles de expansión', edgeLegendTitle: 'Tipos de conexión',
+    edgeLegendToggle: 'Mostrar leyenda de tipos de conexión', masteryGroup: 'Leyenda de dominio',
     matchOf: (match, total) => `${match} de ${total}`,
     exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...',
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
-    grid: 'Cuadricula', gridToggle: 'Mostrar/ocultar cuadricula',
-    autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
+    grid: 'Cuadrícula', gridToggle: 'Mostrar/ocultar cuadrícula',
+    autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automáticamente',
   },
 };
 
@@ -250,7 +250,7 @@ export function GraphToolbar({
         <button
           onClick={onZoomOut}
           className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
-          title="Zoom out (-)"
+          title={`${t.zoomOut} (-)`}
           aria-label={t.zoomOut}
         >
           <ZoomOut className="w-4 h-4" />
@@ -266,7 +266,7 @@ export function GraphToolbar({
         <button
           onClick={onZoomIn}
           className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
-          title="Zoom in (+)"
+          title={`${t.zoomIn} (+)`}
           aria-label={t.zoomIn}
         >
           <ZoomIn className="w-4 h-4" />

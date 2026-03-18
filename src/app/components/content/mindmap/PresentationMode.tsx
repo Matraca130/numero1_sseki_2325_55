@@ -208,7 +208,7 @@ export function PresentationMode({
             {/* Study resource counts */}
             {(current.flashcardCount || current.quizCount) ? (
               <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100 font-sans text-gray-400" style={{ fontSize: fs.mastery }}>
-                {current.flashcardCount ? <span>{current.flashcardCount} flashcards</span> : null}
+                {current.flashcardCount ? <span>{current.flashcardCount} tarjetas</span> : null}
                 {current.quizCount ? <span>{current.quizCount} preguntas</span> : null}
               </div>
             ) : null}
