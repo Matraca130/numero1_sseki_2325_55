@@ -218,6 +218,10 @@ export function KnowledgeMapView() {
   const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const activeToolRef = useRef(activeTool);
+  activeToolRef.current = activeTool;
+  const connectSourceRef = useRef(connectSource);
+  connectSourceRef.current = connectSource;
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const deletingNodeRef = useRef(false);
@@ -264,24 +268,26 @@ export function KnowledgeMapView() {
   // ── Handlers ────────────────────────────────────────────
 
   const handleNodeClick = useCallback((node: MapNode | null) => {
+    const tool = activeToolRef.current;
+    const source = connectSourceRef.current;
     if (!node) {
       setSelectedNode(null);
       setContextMenu(null);
       // Cancel connect mode on canvas click
-      if (activeTool === 'connect' && connectSource) {
+      if (tool === 'connect' && source) {
         setConnectSource(null);
         setConnectTarget(null);
         toast.info('Conexión cancelada');
       }
       // In add-node mode, clicking canvas opens the add modal
-      if (activeTool === 'add-node') {
+      if (tool === 'add-node') {
         setAddModalOpen(true);
         setActiveTool('pointer');
       }
       return;
     }
     // Tool-specific node click behavior
-    switch (activeTool) {
+    switch (tool) {
       case 'annotate':
         setAnnotationNode(node);
         setActiveTool('pointer');
@@ -295,11 +301,11 @@ export function KnowledgeMapView() {
         }
         return;
       case 'connect':
-        if (!connectSource) {
+        if (!source) {
           // First click: select source
           setConnectSource(node);
           toast.info(`Origen: "${node.label}" — Ahora selecciona el destino`);
-        } else if (connectSource.id === node.id) {
+        } else if (source.id === node.id) {
           // Clicked same node: cancel
           setConnectSource(null);
           setConnectTarget(null);
@@ -314,7 +320,7 @@ export function KnowledgeMapView() {
       default:
         setSelectedNode(node);
     }
-  }, [activeTool, connectSource]);
+  }, []);
 
   const handleNodeRightClick = useCallback((node: MapNode, position: { x: number; y: number }) => {
     setContextMenu({ node, position });
@@ -1159,11 +1165,13 @@ export function KnowledgeMapView() {
           </ErrorBoundary>
 
           {/* Sticky notes layer — floats above graph, below modals */}
-          <StickyNotesLayer
-            topicId={effectiveTopicId}
-            notes={stickyNotes}
-            onNotesChange={setStickyNotes}
-          />
+          <ErrorBoundary fallback={null}>
+            <StickyNotesLayer
+              topicId={effectiveTopicId}
+              notes={stickyNotes}
+              onNotesChange={setStickyNotes}
+            />
+          </ErrorBoundary>
 
           {/* Connect tool indicator — shows source node name */}
           {activeTool === 'connect' && connectSource && (
@@ -1413,12 +1421,14 @@ export function KnowledgeMapView() {
         </ErrorBoundary>
 
         {/* Share map modal */}
-        <ShareMapModal
-          open={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          topicId={effectiveTopicId}
-          topicName={currentTopic?.title || allTopics.find(t => t.id === topicId)?.name}
-        />
+        <ErrorBoundary fallback={null}>
+          <ShareMapModal
+            open={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            topicId={effectiveTopicId}
+            topicName={currentTopic?.title || allTopics.find(t => t.id === topicId)?.name}
+          />
+        </ErrorBoundary>
 
         {/* Delete confirmation dialog (replaces window.confirm for PWA compatibility) */}
         {confirmDeleteNode && (
