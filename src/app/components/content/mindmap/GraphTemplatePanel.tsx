@@ -33,8 +33,8 @@ const BRAND = {
   primary: '#2a8c7a',
   dark: '#1B3B36',
   hover: '#244e47',
-  light: '#e6f5f2',
-  border: '#c3e3dc',
+  light: '#e8f5f1',
+  border: '#b3ddd2',
 } as const;
 
 // ── Props ────────────────────────────────────────────────────
@@ -186,8 +186,7 @@ export function GraphTemplatePanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 320 }}
             transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] border-l shadow-lg z-20 flex flex-col overflow-hidden"
-            style={{ backgroundColor: '#F8FAFA', borderColor: '#e5e7eb' }}
+            className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
@@ -207,7 +206,7 @@ export function GraphTemplatePanel({
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="w-8 h-8 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 aria-label="Cerrar panel de plantillas"
               >
                 <X className="w-4 h-4" />
@@ -236,7 +235,7 @@ export function GraphTemplatePanel({
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
                   className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3"
                 >
                   <h4
@@ -261,8 +260,7 @@ export function GraphTemplatePanel({
                       onChange={(e) => setSaveName(e.target.value)}
                       placeholder="Ej: Sistema cardiovascular base"
                       maxLength={100}
-                      className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-shadow"
-                      style={{ focusRingColor: BRAND.primary } as React.CSSProperties}
+                      className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] transition-shadow font-sans"
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
                     />
                   </div>
@@ -271,16 +269,16 @@ export function GraphTemplatePanel({
                       htmlFor="template-description"
                       className="block font-sans text-xs text-gray-500 mb-1"
                     >
-                      Descripcion (opcional)
+                      Descripción (opcional)
                     </label>
                     <textarea
                       id="template-description"
                       value={saveDescription}
                       onChange={(e) => setSaveDescription(e.target.value)}
-                      placeholder="Breve descripcion de la plantilla..."
+                      placeholder="Breve descripción de la plantilla..."
                       maxLength={300}
                       rows={2}
-                      className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-shadow resize-none"
+                      className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] transition-shadow resize-none font-sans"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -309,7 +307,7 @@ export function GraphTemplatePanel({
                     </button>
                   </div>
                   <p className="text-xs text-gray-400 font-sans">
-                    {currentNodes.length} nodos y {currentEdges.length} conexiones se guardaran.
+                    {currentNodes.length} nodos y {currentEdges.length} conexiones se guardarán.
                   </p>
                 </motion.div>
               )}
@@ -327,7 +325,7 @@ export function GraphTemplatePanel({
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                   className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
                 >
                   <div
@@ -346,7 +344,7 @@ export function GraphTemplatePanel({
                     className="text-gray-500 leading-relaxed font-sans"
                     style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                   >
-                    Guarda un grafo como plantilla para reutilizarlo rapidamente en futuros topicos.
+                    Guarda un grafo como plantilla para reutilizarlo rápidamente en futuros tópicos.
                   </p>
                 </motion.div>
               )}
@@ -364,7 +362,7 @@ export function GraphTemplatePanel({
                       key={template.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: index * 0.04, ease: 'easeOut' }}
+                      transition={{ duration: 0.2, delay: index * 0.04, ease: [0.32, 0.72, 0, 1] }}
                       className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 group hover:border-gray-200 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
@@ -420,7 +418,7 @@ export function GraphTemplatePanel({
                         </button>
                         <button
                           onClick={() => setDeleteTarget(template)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                          className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
                           aria-label={`Eliminar plantilla ${template.name}`}
                           title="Eliminar"
                         >
@@ -450,8 +448,8 @@ export function GraphTemplatePanel({
       {/* Delete confirmation */}
       {deleteTarget && (
         <ConfirmDialog
-          title="Eliminar plantilla?"
-          description={`Se eliminara la plantilla "${deleteTarget.name}". Esta accion no se puede deshacer.`}
+          title="\u00bfEliminar plantilla?"
+          description={`Se eliminará la plantilla "${deleteTarget.name}". Esta acción no se puede deshacer.`}
           cancelLabel="Cancelar"
           confirmLabel={deleting ? 'Eliminando...' : 'Eliminar'}
           onCancel={() => { if (!deleting) setDeleteTarget(null); }}

@@ -214,7 +214,7 @@ export function AddNodeEdgeModal({
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
@@ -570,7 +570,7 @@ export function AddNodeEdgeModal({
               <div className="flex justify-end gap-2 px-5 pt-2" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-full transition-colors"
+                  className="px-4 py-2.5 min-h-[44px] text-sm font-medium text-gray-500 hover:text-gray-700 rounded-full transition-colors"
                   disabled={saving}
                 >
                   Cancelar
@@ -585,7 +585,7 @@ export function AddNodeEdgeModal({
                     if (!saving) (tab === 'node' ? handleCreateNode : handleCreateEdge)();
                   }}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors disabled:opacity-50 bg-ax-primary-500 hover:bg-ax-primary-600 shadow-sm"
+                  className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-sm font-medium text-white rounded-full transition-colors disabled:opacity-50 bg-ax-primary-500 hover:bg-ax-primary-600 shadow-sm"
                 >
                   {saving ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

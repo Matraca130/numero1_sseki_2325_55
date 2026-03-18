@@ -369,7 +369,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               aria-label="Cerrar panel IA"
             >
               <X className="w-4 h-4" />
@@ -385,7 +385,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: pullDistance > 8 ? 40 : 0, opacity: progress }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
                   className="flex items-center justify-center overflow-hidden -mt-1 mb-1"
                 >
                   {releasing ? (
@@ -396,7 +396,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                     <motion.div
                       className="flex items-center gap-1.5"
                       animate={{ rotate: pastThreshold ? 180 : 0 }}
-                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
                     >
                       <ArrowDown
                         className="w-3.5 h-3.5"
@@ -421,7 +421,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
+                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
               >
                 <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
@@ -502,7 +502,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
                       className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-4 overflow-hidden"
                     >
                       <h4
@@ -721,7 +721,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleAcceptSuggestion(s)}
-                                  className="w-7 h-7 flex items-center justify-center rounded-full text-ax-primary-500 hover:bg-ax-primary-50 transition-colors"
+                                  className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-ax-primary-500 hover:bg-ax-primary-50 transition-colors"
                                   aria-label="Aceptar conexión"
                                   title="Aceptar"
                                 >
@@ -729,7 +729,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                                 </button>
                                 <button
                                   onClick={() => handleDismissSuggestion(s)}
-                                  className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+                                  className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
                                   aria-label="Rechazar conexión"
                                   title="Rechazar"
                                 >

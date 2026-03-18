@@ -173,7 +173,7 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
             initial={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.95, y: -2 }}
             animate={isSmallScreen ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
             exit={isSmallScreen ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.95, y: -2 }}
-            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
             className={`fixed z-50 bg-white/[0.98] backdrop-blur-sm border ${
               isSmallScreen
                 ? 'bottom-0 left-0 right-0 rounded-t-2xl w-full max-h-[75dvh] overflow-y-auto border-gray-200 shadow-xl'
@@ -204,7 +204,7 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
               </p>
               <button
                 onClick={onClose}
-                className="p-1.5 -mr-0.5 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
+                className="p-2.5 -mr-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                 aria-label="Cerrar"
               >
                 <X className="w-3.5 h-3.5 text-gray-400" />
@@ -270,17 +270,21 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
                     <button
                       key={hex}
                       onClick={() => { onColorChange(node.id, hex); }}
-                      className="rounded-full transition-all duration-100 flex-shrink-0"
-                      style={{
-                        width: 18,
-                        height: 18,
-                        backgroundColor: hex,
-                        outline: currentCustomColor === hex ? `2px solid ${hex}` : '2px solid transparent',
-                        outlineOffset: 1,
-                      }}
+                      className="rounded-full transition-all duration-100 flex-shrink-0 p-1.5"
                       aria-label={`Color ${label}`}
                       title={label}
-                    />
+                    >
+                      <span
+                        className="block rounded-full"
+                        style={{
+                          width: 18,
+                          height: 18,
+                          backgroundColor: hex,
+                          outline: currentCustomColor === hex ? `2px solid ${hex}` : '2px solid transparent',
+                          outlineOffset: 1,
+                        }}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>

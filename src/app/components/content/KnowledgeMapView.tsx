@@ -743,7 +743,7 @@ export function KnowledgeMapView() {
                 {effectiveTopicId && scope === 'topic' && (
                   <button
                     onClick={() => setAddModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-full shadow-sm transition-colors hover:bg-[#244e47]"
+                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-white rounded-full shadow-sm transition-colors hover:bg-[#244e47]"
                     style={{ backgroundColor: '#2a8c7a' }}
                     aria-label="Añadir concepto al mapa"
                   >
@@ -754,7 +754,7 @@ export function KnowledgeMapView() {
                 {effectiveTopicId && (
                   <button
                     onClick={handleAddStickyNote}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
                     aria-label="Agregar nota adhesiva"
                     title="Agregar nota adhesiva"
                   >
@@ -775,7 +775,7 @@ export function KnowledgeMapView() {
                   <button
                     onClick={() => { undo(); haptic(30); }}
                     disabled={!canUndo || undoBusy}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
+                    className="flex items-center gap-1 px-2 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
                     aria-label="Deshacer (Ctrl+Z)"
                     title="Deshacer (Ctrl+Z)"
                   >
@@ -784,7 +784,7 @@ export function KnowledgeMapView() {
                   <button
                     onClick={() => { redo(); haptic(30); }}
                     disabled={!canRedo || undoBusy}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
+                    className="flex items-center gap-1 px-2 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
                     aria-label="Rehacer (Ctrl+Y)"
                     title="Rehacer (Ctrl+Y)"
                   >
@@ -793,7 +793,7 @@ export function KnowledgeMapView() {
                 </div>
                 <button
                   onClick={refetch}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
                   aria-label="Actualizar mapa"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -801,7 +801,7 @@ export function KnowledgeMapView() {
                 </button>
                 <button
                   onClick={() => { setShowAiPanel(v => !v); if (!showAiPanel) { setShowHistory(false); setShowComparison(false); } }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
                     showAiPanel
                       ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
                       : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
@@ -814,7 +814,7 @@ export function KnowledgeMapView() {
                 </button>
                 <button
                   onClick={() => { setShowHistory(v => !v); if (!showHistory) { setShowAiPanel(false); setShowComparison(false); } }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-full border shadow-sm transition-colors ${
                     showHistory ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30' : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
                   }`}
                   style={{ fontSize: 'clamp(0.7rem, 1.1vw, 0.75rem)' }}
@@ -826,7 +826,7 @@ export function KnowledgeMapView() {
                 {filteredGraphData && filteredGraphData.nodes.length > 0 && (
                   <button
                     onClick={() => setPresentationMode(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
                     aria-label={`Modo presentaci\u00f3n`}
                     title={`Modo presentaci\u00f3n`}
                   >
@@ -837,7 +837,7 @@ export function KnowledgeMapView() {
                 {effectiveTopicId && (
                   <button
                     onClick={() => setShowShareModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
                     aria-label="Compartir mapa"
                     title="Compartir mapa"
                   >
@@ -847,7 +847,7 @@ export function KnowledgeMapView() {
                 )}
                 <button
                   onClick={() => { setShowComparison(v => !v); if (!showComparison) { setShowAiPanel(false); setShowHistory(false); } }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
                     showComparison
                       ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
                       : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
@@ -860,7 +860,7 @@ export function KnowledgeMapView() {
                 </button>
                 <button
                   onClick={toggleFullscreen}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
                   aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
                   title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
                 >
@@ -900,7 +900,7 @@ export function KnowledgeMapView() {
             </h2>
             <button
               onClick={toggleFullscreen}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
               aria-label="Salir de pantalla completa"
             >
               <Minimize2 className="w-3.5 h-3.5" />

@@ -251,7 +251,7 @@ export function MapComparisonPanel({
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               aria-label="Cerrar panel de comparaci\u00f3n"
             >
               <X className="w-4 h-4" />
@@ -428,7 +428,7 @@ function EmptyComparison() {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center"
     >
       <div className="w-14 h-14 rounded-2xl bg-ax-primary-50 flex items-center justify-center mb-4">
@@ -512,7 +512,7 @@ function GapItem({
       )}
       <button
         onClick={onStudy}
-        className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-ax-primary-500 bg-ax-primary-50 rounded-full transition-opacity flex-shrink-0"
+        className="sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 px-2.5 py-1 min-h-[44px] sm:min-h-0 text-ax-primary-500 bg-ax-primary-50 rounded-full transition-opacity flex-shrink-0"
         style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
         title="Estudiar este concepto"
       >
