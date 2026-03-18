@@ -70,6 +70,7 @@ function computeStats(data: GraphData): CoverageStats {
 
   let mastered = 0, learning = 0, weak = 0, noData = 0;
   let masterySum = 0;
+  let masteryCount = 0;
   for (const n of baseNodes) {
     switch (n.masteryColor) {
       case 'green': mastered++; break;
@@ -77,7 +78,7 @@ function computeStats(data: GraphData): CoverageStats {
       case 'red': weak++; break;
       default: noData++;
     }
-    if (n.mastery >= 0) masterySum += n.mastery;
+    if (n.mastery >= 0) { masterySum += n.mastery; masteryCount++; }
   }
 
   const total = baseNodes.length;
@@ -87,7 +88,7 @@ function computeStats(data: GraphData): CoverageStats {
     learning,
     weak,
     noData,
-    avgMastery: total > 0 ? masterySum / total : 0,
+    avgMastery: masteryCount > 0 ? masterySum / masteryCount : 0,
     customNodes: customNodes.length,
     customEdges: customEdges.length,
     baseNodes: total,

@@ -29,9 +29,11 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || spaceHeldRef.current) return;
-      // Don't intercept Space in input fields
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Don't intercept Space in input fields or interactive elements
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A') return;
+      if (el?.isContentEditable || el?.getAttribute('role') === 'button') return;
 
       e.preventDefault();
       spaceHeldRef.current = true;

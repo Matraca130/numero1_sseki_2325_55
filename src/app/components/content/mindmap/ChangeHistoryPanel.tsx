@@ -208,6 +208,7 @@ function TimelineEntry({ entry, index }: { entry: HistoryEntry; index: number })
 
   return (
     <motion.div
+      role="listitem"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.3), ease: 'easeOut' }}
