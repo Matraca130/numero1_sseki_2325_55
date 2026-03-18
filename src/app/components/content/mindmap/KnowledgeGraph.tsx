@@ -994,7 +994,7 @@ export function KnowledgeGraph({
       }
 
       const nodeData = graph.getNodeData(nodeId);
-      if (nodeData && onNodeClickRef.current) {
+      if (nodeData?.data?._raw && onNodeClickRef.current) {
         onNodeClickRef.current(nodeData.data._raw as MapNode);
       }
     };
@@ -1004,7 +1004,7 @@ export function KnowledgeGraph({
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
       const nodeData = graph.getNodeData(nodeId);
-      if (nodeData && onNodeRightClickRef.current) {
+      if (nodeData?.data?._raw && onNodeRightClickRef.current) {
         const { client } = evt;
         onNodeRightClickRef.current(nodeData.data._raw as MapNode, {
           x: client?.x ?? evt.clientX ?? 0,
@@ -1104,6 +1104,7 @@ export function KnowledgeGraph({
       longPressTriggered = false;
       longPressStartPos = { x: evt.canvas.x, y: evt.canvas.y };
       longPressTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
         longPressTriggered = true;
         try { handleNodeContextMenu(evt); } catch (e: unknown) { warnIfNotDestroyed(e); }
       }, 500);

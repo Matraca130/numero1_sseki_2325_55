@@ -190,6 +190,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => setIsHovered(true)}
+      onTouchEnd={() => setIsHovered(false)}
     >
       <div
         className="rounded-lg overflow-hidden"
