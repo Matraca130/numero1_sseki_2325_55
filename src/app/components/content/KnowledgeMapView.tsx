@@ -128,6 +128,10 @@ export function KnowledgeMapView() {
     courseTopicIds: scope === 'course' ? courseTopicIds : undefined,
   });
 
+  // Stable ref for graphData.nodes — avoids recreating callbacks on every fetch
+  const graphDataNodesRef = useRef(graphData?.nodes);
+  graphDataNodesRef.current = graphData?.nodes;
+
   // Undo/redo history for custom node/edge actions
   const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch);
 
@@ -496,9 +500,9 @@ export function KnowledgeMapView() {
         },
       });
 
-      // Find node labels for toast
-      const srcNode = graphData?.nodes.find(n => n.id === newSource);
-      const tgtNode = graphData?.nodes.find(n => n.id === newTarget);
+      // Find node labels for toast (use ref for stable callback)
+      const srcNode = graphDataNodesRef.current?.find(n => n.id === newSource);
+      const tgtNode = graphDataNodesRef.current?.find(n => n.id === newTarget);
       toast.success(`Arista reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
       haptic(50);
       refetch();
@@ -506,7 +510,16 @@ export function KnowledgeMapView() {
       if (!mountedRef.current) return;
       toast.error(e instanceof Error ? e.message : 'Error al reconectar arista');
     }
-  }, [effectiveTopicId, pushAction, refetch, graphData?.nodes]);
+  }, [effectiveTopicId, pushAction, refetch]);
+
+  // Quick-add handler: open AddNodeEdgeModal with source pre-filled
+  const handleQuickAdd = useCallback((sourceId: string) => {
+    const sourceNode = graphDataNodesRef.current?.find(n => n.id === sourceId);
+    if (sourceNode) {
+      setConnectSource(sourceNode);
+      setAddModalOpen(true);
+    }
+  }, []);
 
   // Swipe-to-dismiss for mobile bottom sheet
   const dismissSelected = useCallback(() => setSelectedNode(null), []);
@@ -1009,13 +1022,7 @@ export function KnowledgeMapView() {
                 topicId={effectiveTopicId}
                 showMinimap={showMinimap}
                 customNodeColors={customNodeColors}
-                onQuickAdd={(sourceId) => {
-                  const sourceNode = graphData?.nodes.find(n => n.id === sourceId);
-                  if (sourceNode) {
-                    setConnectSource(sourceNode);
-                    setAddModalOpen(true);
-                  }
-                }}
+                onQuickAdd={handleQuickAdd}
                 enableEdgeReconnect
                 onEdgeReconnect={handleEdgeReconnect}
               />
