@@ -20,6 +20,8 @@ export type { MapTool } from './MapToolsPanel';
 export { AiTutorPanel } from './AiTutorPanel';
 export { GraphSkeleton } from './GraphSkeleton';
 export { useUndoRedo } from './useUndoRedo';
+export { useEdgeReconnect } from './useEdgeReconnect';
+export type { EdgeReconnectResult } from './useEdgeReconnect';
 export { loadPositions, saveNodePosition, clearPositions } from './useNodePositions';
 export { loadNodeColors, saveNodeColor, removeNodeColor, NODE_COLOR_PALETTE, NODE_COLOR_FILL } from './useNodeColors';
 export { StickyNote, StickyNotesLayer, loadStickyNotes, saveStickyNotes, createStickyNote, STICKY_COLORS } from './StickyNote';

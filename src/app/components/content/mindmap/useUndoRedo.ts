@@ -48,7 +48,20 @@ interface DeleteEdgeAction {
   payload: CreateCustomEdgePayload;
 }
 
-type UndoableAction = CreateNodeAction | DeleteNodeAction | CreateEdgeAction | DeleteEdgeAction;
+/** Reconnect edge: stores both the old and new edge data so it can be fully reversed */
+interface ReconnectEdgeAction {
+  type: 'reconnect-edge';
+  /** ID of the old edge that was deleted */
+  oldEdgeId: string;
+  /** Payload to re-create the old edge (for undo) */
+  oldPayload: CreateCustomEdgePayload;
+  /** ID of the new edge that was created */
+  newEdgeId: string;
+  /** Payload to re-create the new edge (for redo) */
+  newPayload: CreateCustomEdgePayload;
+}
+
+type UndoableAction = CreateNodeAction | DeleteNodeAction | CreateEdgeAction | DeleteEdgeAction | ReconnectEdgeAction;
 
 const MAX_HISTORY = 30;
 
@@ -108,6 +121,12 @@ export function useUndoRedo(onGraphChanged: () => void) {
           const res = await createCustomEdge(action.payload);
           return { ...action, edgeId: res.id };
         }
+        case 'reconnect-edge': {
+          // Undo reconnect: delete the new edge, re-create the old edge
+          await deleteCustomEdge(action.newEdgeId);
+          const res = await createCustomEdge(action.oldPayload);
+          return { ...action, oldEdgeId: res.id };
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error';
@@ -136,6 +155,12 @@ export function useUndoRedo(onGraphChanged: () => void) {
         case 'delete-edge':
           await deleteCustomEdge(action.edgeId);
           return action;
+        case 'reconnect-edge': {
+          // Redo reconnect: delete the old edge, re-create the new edge
+          await deleteCustomEdge(action.oldEdgeId);
+          const res = await createCustomEdge(action.newPayload);
+          return { ...action, newEdgeId: res.id };
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error';
@@ -155,9 +180,13 @@ export function useUndoRedo(onGraphChanged: () => void) {
       // Push the updated action (with server-assigned IDs) onto the redo stack
       setFuture(prev => [...prev, updated]);
       onGraphChanged();
-      const label = updated.type.includes('node') ? 'concepto' : 'conexión';
-      const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
-      toast.info(`Deshacer: ${verb} de ${label}`);
+      if (updated.type === 'reconnect-edge') {
+        toast.info('Deshacer: Reconexión de arista');
+      } else {
+        const label = updated.type.includes('node') ? 'concepto' : 'conexión';
+        const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
+        toast.info(`Deshacer: ${verb} de ${label}`);
+      }
     }
     setBusy(false);
   }, [reverseAction, onGraphChanged]);
@@ -172,9 +201,13 @@ export function useUndoRedo(onGraphChanged: () => void) {
       setFuture(prev => prev.slice(0, -1));
       setPast(prev => [...prev, updated]);
       onGraphChanged();
-      const label = updated.type.includes('node') ? 'concepto' : 'conexión';
-      const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
-      toast.info(`Rehacer: ${verb} de ${label}`);
+      if (updated.type === 'reconnect-edge') {
+        toast.info('Rehacer: Reconexión de arista');
+      } else {
+        const label = updated.type.includes('node') ? 'concepto' : 'conexión';
+        const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
+        toast.info(`Rehacer: ${verb} de ${label}`);
+      }
     }
     setBusy(false);
   }, [replayAction, onGraphChanged]);

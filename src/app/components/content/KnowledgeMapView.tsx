@@ -41,7 +41,8 @@ import { GraphToolbar } from './mindmap/GraphToolbar';
 import { useGraphData } from './mindmap/useGraphData';
 import { useGraphSearch } from './mindmap/useGraphSearch';
 import { AddNodeEdgeModal } from './mindmap/AddNodeEdgeModal';
-import { deleteCustomNode } from '@/app/services/mindmapApi';
+import { deleteCustomNode, deleteCustomEdge, createCustomEdge } from '@/app/services/mindmapApi';
+import type { EdgeReconnectResult } from './mindmap/useEdgeReconnect';
 import { useSwipeDismiss } from './mindmap/useSwipeDismiss';
 import { useSearchFocus } from './mindmap/useSearchFocus';
 import { useGraphControls } from './mindmap/useGraphControls';
@@ -406,6 +407,70 @@ export function KnowledgeMapView() {
       setConfirmDeleteNode(null);
     }
   }, [confirmDeleteNode, refetch, pushAction, effectiveTopicId]);
+
+  // Handle edge reconnect: delete old edge, create new edge, record undo action
+  const handleEdgeReconnect = useCallback(async (result: EdgeReconnectResult) => {
+    const { oldEdge, movedEndpoint, newNodeId } = result;
+    try {
+      // Build new edge source/target
+      const newSource = movedEndpoint === 'source' ? newNodeId : oldEdge.source;
+      const newTarget = movedEndpoint === 'target' ? newNodeId : oldEdge.target;
+
+      // Delete the old edge
+      await deleteCustomEdge(oldEdge.id);
+
+      // Create the new edge (preserving label, connection type, style, etc.)
+      const newEdgeRes = await createCustomEdge({
+        source_node_id: newSource,
+        target_node_id: newTarget,
+        label: oldEdge.label,
+        connection_type: oldEdge.connectionType,
+        topic_id: effectiveTopicId,
+        line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
+        custom_color: oldEdge.customColor,
+        directed: oldEdge.directed,
+        arrow_type: oldEdge.arrowType,
+      });
+
+      // Record for undo
+      pushAction({
+        type: 'reconnect-edge',
+        oldEdgeId: oldEdge.id,
+        oldPayload: {
+          source_node_id: oldEdge.source,
+          target_node_id: oldEdge.target,
+          label: oldEdge.label,
+          connection_type: oldEdge.connectionType,
+          topic_id: effectiveTopicId,
+          line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
+          custom_color: oldEdge.customColor,
+          directed: oldEdge.directed,
+          arrow_type: oldEdge.arrowType,
+        },
+        newEdgeId: newEdgeRes.id,
+        newPayload: {
+          source_node_id: newSource,
+          target_node_id: newTarget,
+          label: oldEdge.label,
+          connection_type: oldEdge.connectionType,
+          topic_id: effectiveTopicId,
+          line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
+          custom_color: oldEdge.customColor,
+          directed: oldEdge.directed,
+          arrow_type: oldEdge.arrowType,
+        },
+      });
+
+      // Find node labels for toast
+      const srcNode = graphData?.nodes.find(n => n.id === newSource);
+      const tgtNode = graphData?.nodes.find(n => n.id === newTarget);
+      toast.success(`Arista reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
+      haptic(50);
+      refetch();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al reconectar arista');
+    }
+  }, [effectiveTopicId, pushAction, refetch, graphData?.nodes]);
 
   // Swipe-to-dismiss for mobile bottom sheet
   const dismissSelected = useCallback(() => setSelectedNode(null), []);
@@ -915,6 +980,8 @@ export function KnowledgeMapView() {
                     setAddModalOpen(true);
                   }
                 }}
+                enableEdgeReconnect
+                onEdgeReconnect={handleEdgeReconnect}
               />
             ) : searchQuery.trim() ? (
               <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">

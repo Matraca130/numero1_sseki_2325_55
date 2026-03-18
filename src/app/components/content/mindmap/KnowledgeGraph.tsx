@@ -30,6 +30,8 @@ import type { PositionMap, PersistedCombo } from './useNodePositions';
 import { NODE_COLOR_FILL } from './useNodeColors';
 import { useKeyboardNav } from './useKeyboardNav';
 import { useSpacePan } from './useSpacePan';
+import { useEdgeReconnect } from './useEdgeReconnect';
+import type { EdgeReconnectResult } from './useEdgeReconnect';
 
 type Locale = 'pt' | 'es';
 
@@ -173,6 +175,10 @@ interface KnowledgeGraphProps {
   enableDragConnect?: boolean;
   /** Called when user creates a new edge by dragging from one node to another */
   onDragConnect?: (sourceId: string, targetId: string) => void;
+  /** Whether to enable dragging edge endpoints to reconnect to different nodes (custom edges only) */
+  enableEdgeReconnect?: boolean;
+  /** Called when a user-created edge is reconnected to a different node */
+  onEdgeReconnect?: (result: EdgeReconnectResult) => void;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -201,6 +207,8 @@ export function KnowledgeGraph({
   onGridChange,
   enableDragConnect = false,
   onDragConnect,
+  enableEdgeReconnect = false,
+  onEdgeReconnect,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1105,6 +1113,17 @@ export function KnowledgeGraph({
     graphRef: graphRef as React.RefObject<Graph | null>,
     containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
     ready,
+  });
+
+  // Edge reconnect: drag endpoint of custom edges to reconnect
+  useEdgeReconnect({
+    graphRef: graphRef as React.RefObject<Graph | null>,
+    containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
+    ready,
+    graphVersion,
+    edges: data.edges,
+    onReconnect: onEdgeReconnect,
+    enabled: enableEdgeReconnect,
   });
 
   // Keyboard navigation: Tab, Arrow keys, Enter, Escape, +, zoom, collapse
