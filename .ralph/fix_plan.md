@@ -284,6 +284,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 4 audit: fixed useLocalGraph returning empty graph when focalNodeId doesn't exist (now returns null → parent falls back to full graph)
 - [x] Round 5 audit: fixed MiniKnowledgeGraph not styling user-created nodes/edges differently — now uses #e8f5f1 fill, #2a8c7a stroke, dashed borders for custom nodes and edges, consistent with KnowledgeGraph.tsx. Fixed KeywordPopup ConnectForm not invalidating graph cache on connection created — now calls invalidateGraphCache() so mindmap shows new connections
 - [x] Round 6 audit: fixed 2 critical missed graph cache invalidation points — useAdaptiveSession.ts finishSession() and ReviewSessionView.tsx completion flow now call invalidateGraphCache() after submitting batch reviews. Without this fix, mastery data on mindmap would be stale after adaptive flashcard sessions and spaced repetition reviews
+- [x] Round 73 audit (hooks deep-dive + regression scan): Fixed ChangeHistoryPanel.tsx Escape handler using stopPropagation→stopImmediatePropagation (stopPropagation doesn't prevent sibling document-level listeners). All 5 hooks audited (useUndoRedo, useGraphData, useGraphSearch, useLocalGraph, useNodeColors) — all have tests, no bugs found. Regression scan on 5 recently changed files (AddNodeEdgeModal, NodeAnnotationModal, StickyNote, GraphToolbar, ChangeHistoryPanel) — mountedRef/notesRef patterns all correct, no regressions.
 
 ## Completed
 - [x] Search/filter with debounce
