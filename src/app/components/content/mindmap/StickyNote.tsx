@@ -92,9 +92,15 @@ interface StickyNoteProps {
 export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  // Local drag offset — avoids re-rendering other notes during drag
+  const [dragOffset, setDragOffset] = useState<{ dx: number; dy: number } | null>(null);
   const dragStartRef = useRef({ x: 0, y: 0, noteX: 0, noteY: 0 });
   const noteRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const noteDataRef = useRef(note);
+  noteDataRef.current = note;
 
   const borderColor = BORDER_COLORS[note.color] || '#d1d5db';
 
@@ -108,37 +114,41 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
+    setDragOffset({ dx: 0, dy: 0 });
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      noteX: note.x,
-      noteY: note.y,
+      noteX: noteDataRef.current.x,
+      noteY: noteDataRef.current.y,
     };
     const el = e.currentTarget as HTMLElement;
     el.setPointerCapture(e.pointerId);
     captureRef.current = { el, pid: e.pointerId };
-  }, [note.x, note.y]);
+  }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
     e.preventDefault();
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
-    onUpdate({
-      ...note,
-      x: Math.max(0, dragStartRef.current.noteX + dx),
-      y: Math.max(0, dragStartRef.current.noteY + dy),
-    });
-  }, [isDragging, note, onUpdate]);
+    // Only update local offset — no parent re-render during drag
+    setDragOffset({ dx, dy });
+  }, [isDragging]);
 
   const handlePointerUp = useCallback((_e: React.PointerEvent) => {
     if (!isDragging) return;
+    // Commit final position to parent on drag end
+    const ds = dragStartRef.current;
+    const finalX = Math.max(0, ds.noteX + (dragOffset?.dx ?? 0));
+    const finalY = Math.max(0, ds.noteY + (dragOffset?.dy ?? 0));
+    onUpdateRef.current({ ...noteDataRef.current, x: finalX, y: finalY });
+    setDragOffset(null);
     setIsDragging(false);
     if (captureRef.current) {
       try { captureRef.current.el.releasePointerCapture(captureRef.current.pid); } catch { /* may already be released */ }
       captureRef.current = null;
     }
-  }, [isDragging]);
+  }, [isDragging, dragOffset]);
 
   // ── Text change ─────────────────────────────────────────
 
@@ -171,8 +181,8 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
       role="group"
       aria-label={`Nota adhesiva: ${note.text || 'vacía'}`}
       style={{
-        left: note.x,
-        top: note.y,
+        left: dragOffset ? Math.max(0, dragStartRef.current.noteX + dragOffset.dx) : note.x,
+        top: dragOffset ? Math.max(0, dragStartRef.current.noteY + dragOffset.dy) : note.y,
         zIndex: isDragging ? 25 : 20,
         width: 150,
         touchAction: 'none',
