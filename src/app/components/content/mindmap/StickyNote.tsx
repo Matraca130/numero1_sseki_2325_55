@@ -276,17 +276,20 @@ export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesL
   }, []);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
+
   const handleUpdate = useCallback((updated: StickyNoteData) => {
-    const next = notes.map(n => n.id === updated.id ? updated : n);
+    const next = notesRef.current.map(n => n.id === updated.id ? updated : n);
     onNotesChange(next);
     if (topicId) debouncedSave(topicId, next);
-  }, [notes, onNotesChange, topicId, debouncedSave]);
+  }, [onNotesChange, topicId, debouncedSave]);
 
   const handleDelete = useCallback((id: string) => {
-    const next = notes.filter(n => n.id !== id);
+    const next = notesRef.current.filter(n => n.id !== id);
     onNotesChange(next);
     if (topicId) saveStickyNotes(topicId, next); // immediate save on delete
-  }, [notes, onNotesChange, topicId]);
+  }, [onNotesChange, topicId]);
 
   if (notes.length === 0) return null;
 
