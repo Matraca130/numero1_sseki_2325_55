@@ -177,10 +177,10 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Pan con Space+drag — useSpacePan.ts: Space held changes cursor to grab, disables drag-element, enables canvas pan, handles blur reset
 
 ### 1E. QA y Calidad Continua
-- [ ] Audit round 11: buscar bugs en las nuevas features del sprint nocturno
-- [ ] Review findings H1 fix: reemplazar 30+ hardcoded hex colors con palette.ts tokens
-- [ ] Review findings M3 fix: catch blocks vacíos en KnowledgeGraph → error type checking específico
-- [ ] Review findings M1 fix: reemplazar `as any` en tests con typed fixtures
+- [x] Audit round 11: deep audit of all new code — memory leaks clean, stale closures safe, TypeScript clean, event listeners all cleaned up. APPROVED
+- [x] Review findings H1 fix: AiTutorPanel/ShareMapModal/PresentationMode/GraphToolbar already use colors.* tokens (fixed in prior round)
+- [x] Review findings M3 fix: warnIfNotDestroyed() helper added, all 14 catch blocks now filter errors properly
+- [x] Review findings M1 fix: replaced 6 `as any` in graphHelpers.test.ts with MapEdge[], 2 in useUndoRedo.test.ts with satisfies types
 - [ ] Tests para todas las nuevas features (flechas, multi-select, clusters, sticky notes)
 - [ ] Performance test: simular 500+ nodos, verificar que no hay degradación
 - [ ] Build verification después de cada grupo de cambios
