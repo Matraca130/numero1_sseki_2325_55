@@ -214,6 +214,12 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   const focusTrapRef = useFocusTrap(open);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const onHighlightRef = useRef(onHighlightNodes);
+  onHighlightRef.current = onHighlightNodes;
+  const onReviewRef = useRef(onReviewNodes);
+  onReviewRef.current = onReviewNodes;
+  const onNavigateRef = useRef(onNavigateToAction);
+  onNavigateRef.current = onNavigateToAction;
   // Guard: discard results from stale topicId when user switches topics mid-analysis
   const analyzeTopicRef = useRef(topicId);
 
@@ -283,8 +289,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       // Highlight weak nodes on the graph
       if (result.weak_areas.length > 0) {
         const weakIds = new Set(result.weak_areas.map(w => w.keyword_id));
-        onHighlightNodes?.(weakIds);
-        onReviewNodes?.(weakIds);
+        onHighlightRef.current?.(weakIds);
+        onReviewRef.current?.(weakIds);
       }
       toast.success('Análisis completado');
     } catch (err) {
@@ -294,12 +300,12 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       analyzingRef.current = false;
       if (mountedRef.current) setAnalyzing(false);
     }
-  }, [topicId, onHighlightNodes, onReviewNodes]);
+  }, [topicId]);
 
   const handleWeakPointClick = useCallback((wp: WeakPoint) => {
-    onHighlightNodes?.(new Set([wp.keyword_id]));
-    onNavigateToAction?.(wp.keyword_id, wp.recommended_action);
-  }, [onHighlightNodes, onNavigateToAction]);
+    onHighlightRef.current?.(new Set([wp.keyword_id]));
+    onNavigateRef.current?.(wp.keyword_id, wp.recommended_action);
+  }, []);
 
   const suggestingRef = useRef(false);
   const handleSuggestConnections = useCallback(async () => {
@@ -580,8 +586,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                           key={wa.keyword_id}
                           className="flex items-center justify-between px-3 py-2.5 bg-red-50 rounded-xl cursor-pointer hover:bg-red-100 transition-colors"
                           style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
-                          onClick={() => onHighlightNodes?.(new Set([wa.keyword_id]))}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHighlightNodes?.(new Set([wa.keyword_id])); } }}
+                          onClick={() => onHighlightRef.current?.(new Set([wa.keyword_id]))}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHighlightRef.current?.(new Set([wa.keyword_id])); } }}
                           role="button"
                           tabIndex={0}
                           aria-label={`Resaltar punto débil: ${wa.keyword_name}, ${Math.round(wa.mastery * 100)}% dominio`}
