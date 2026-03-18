@@ -321,6 +321,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 95 audit (graphHelpers): (1) computeHiddenNodes rewritten — old root-based BFS failed on cyclic graphs (collapse did nothing); new descendant-based BFS works on any topology, (2) escHtml undefined input guard added. All 666 mindmap tests passing.
 - [x] Round 96 audit (export + share): (1) useGraphExport catch now shows toast.error instead of re-throwing unhandled promise rejection, (2) ShareMapModal non-abort Web Share API errors logged to console.
 - [x] Round 97 audit (SpacePan + test coverage): (1) useSpacePan added focusout + visibilitychange handlers to prevent permanent drag-element disable when focus leaves container, (2) New useFocusTrap.test.ts (7 tests), (3) New useSwipeDismiss.test.ts (7 tests). Total: 1012 tests across 49 files.
+- [x] Round 111 audit (components): 3 HIGH fixes + 1 MEDIUM. (A) MapComparisonPanel — highlight state leaked when panel closed (nodes stayed highlighted with no dismiss). Added cleanup effect to clear onHighlightNodes on close. (B) PresentationMode — onExit used directly in useCallback (stale closure risk). Stabilized via onExitRef pattern. Also locked body scroll behind overlay. (C) MapToolsPanel — keyboard shortcuts (V/N/C/D/A) shown in tooltips but never wired to any keydown handler. Added useEffect with document keydown listener + input/textarea/contentEditable guards. Build clean, pushed.
 
 ## Completed
 - [x] Search/filter with debounce
