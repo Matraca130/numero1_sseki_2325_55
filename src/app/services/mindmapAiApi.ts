@@ -35,7 +35,7 @@ export async function analyzeKnowledgeGraph(
         body: JSON.stringify({ topic_id: topicId }),
       },
     );
-  } catch (err) {
+  } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(
@@ -65,7 +65,7 @@ export async function suggestStudentConnections(
         }),
       },
     );
-  } catch (err) {
+  } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(
@@ -85,7 +85,7 @@ export async function getStudentWeakPoints(
     return await apiCall<WeakPointsResponse>(
       `/ai/student-weak-points?topic_id=${encodeURIComponent(topicId)}`,
     );
-  } catch (err) {
+  } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : 'Error desconocido';
     throw new Error(

@@ -211,7 +211,7 @@ export function useGraphData({ topicId, summaryId, courseTopicIds, skipCustomNod
 
       setCache(key, data);
       setGraphData(data);
-    } catch (e) {
+    } catch (e: unknown) {
       if (fetchId !== fetchIdRef.current) return;
       setError(e instanceof Error ? e.message : 'Error al cargar grafo');
     } finally {

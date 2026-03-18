@@ -247,7 +247,7 @@ export function KnowledgeGraph({
       }
       prevMultiRef.current = new Set(ids);
       graph.draw();
-    } catch (e) { warnIfNotDestroyed(e); }
+    } catch (e: unknown) { warnIfNotDestroyed(e); }
   }, []);
 
   // Update multi-selection and notify parent
@@ -711,9 +711,9 @@ export function KnowledgeGraph({
       setReady(true);
       setGraphVersion(v => v + 1);
       onReady?.({
-        zoomIn: () => { try { graph.zoomBy(1.25, { duration: 200 }); } catch (e) { warnIfNotDestroyed(e); } },
-        zoomOut: () => { try { graph.zoomBy(0.8, { duration: 200 }); } catch (e) { warnIfNotDestroyed(e); } },
-        fitView: () => { try { graph.fitView(); } catch (e) { warnIfNotDestroyed(e); } },
+        zoomIn: () => { try { graph.zoomBy(1.25, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        zoomOut: () => { try { graph.zoomBy(0.8, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        fitView: () => { try { graph.fitView(); } catch (e: unknown) { warnIfNotDestroyed(e); } },
         collapseAll: () => collapseAllRef.current(),
         expandAll: () => expandAllRef.current(),
         toggleCollapse: (nodeId: string) => toggleCollapseRef.current(nodeId),
@@ -723,7 +723,7 @@ export function KnowledgeGraph({
           try {
             const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/png', encoderOptions: 1 });
             downloadGraphImage(dataURL, 'png');
-          } catch (e) { warnIfNotDestroyed(e); }
+          } catch (e: unknown) { warnIfNotDestroyed(e); }
         },
         exportJPEG: async () => {
           const g = graphRef.current;
@@ -731,10 +731,10 @@ export function KnowledgeGraph({
           try {
             const dataURL = await g.toDataURL({ mode: 'overall', type: 'image/jpeg', encoderOptions: 0.92 });
             downloadGraphImage(dataURL, 'jpg');
-          } catch (e) { warnIfNotDestroyed(e); }
+          } catch (e: unknown) { warnIfNotDestroyed(e); }
         },
         focusNode: (nodeId: string) => {
-          try { graph.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch (e) { warnIfNotDestroyed(e); }
+          try { graph.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch (e: unknown) { warnIfNotDestroyed(e); }
         },
         clearMultiSelection: () => {
           updateMultiSelection(new Set());
@@ -769,7 +769,7 @@ export function KnowledgeGraph({
           prevSizeRef.current = { w, h };
           g.resize(w, h);
         }
-      } catch (e) { warnIfNotDestroyed(e); }
+      } catch (e: unknown) { warnIfNotDestroyed(e); }
     });
     ro.observe(container);
     return () => ro.disconnect();
@@ -789,7 +789,7 @@ export function KnowledgeGraph({
     try {
       graph.setData(g6Data(collapsedNodes));
       graph.draw();
-    } catch (e) { warnIfNotDestroyed(e); }
+    } catch (e: unknown) { warnIfNotDestroyed(e); }
 
     // After setData rebuilds the graph, bump epoch to force highlight effect to reapply
     // (setData wipes highlight styling, but highlight deps may not have changed)
@@ -879,7 +879,7 @@ export function KnowledgeGraph({
       if (nodeUpdates.length > 0) graph.updateNodeData(nodeUpdates);
       if (edgeUpdates.length > 0) graph.updateEdgeData(edgeUpdates);
       graph.draw();
-    } catch (e) { warnIfNotDestroyed(e); }
+    } catch (e: unknown) { warnIfNotDestroyed(e); }
   // highlightEpoch forces reapplication after setData rebuilds the graph
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightNodeIds, reviewNodeIds, ready, highlightEpoch]);
@@ -933,7 +933,7 @@ export function KnowledgeGraph({
       try {
         graph.updateNodeData(updates);
         graph.draw();
-      } catch (e) { warnIfNotDestroyed(e); }
+      } catch (e: unknown) { warnIfNotDestroyed(e); }
     }
   }, [selectedNodeId, ready, graphVersion, nodeById]);
 
@@ -969,7 +969,7 @@ export function KnowledgeGraph({
                   g.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
                 }
                 g.draw();
-              } catch (e) { warnIfNotDestroyed(e); }
+              } catch (e: unknown) { warnIfNotDestroyed(e); }
             }
           });
           return next;
@@ -1073,7 +1073,7 @@ export function KnowledgeGraph({
             saveNodePosition(topicIdRef.current, nodeId, { x, y });
           }
         }
-      } catch (e) { warnIfNotDestroyed(e); }
+      } catch (e: unknown) { warnIfNotDestroyed(e); }
     };
 
     graph.on('node:click', handleNodeClick);
@@ -1376,7 +1376,7 @@ export function KnowledgeGraph({
       {/* Mobile floating fit-view button — easy reset after accidental zoom */}
       {ready && !showMobileHint && (
         <button
-          onClick={() => { try { graphRef.current?.fitView(); } catch (e) { warnIfNotDestroyed(e); } }}
+          onClick={() => { try { graphRef.current?.fitView(); } catch (e: unknown) { warnIfNotDestroyed(e); } }}
           className="absolute right-2 sm:hidden p-3 bg-white/90 rounded-full shadow-sm border border-gray-200 text-gray-500 active:bg-gray-100 transition-colors z-[5]"
           style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
           aria-label={t.fitView}
