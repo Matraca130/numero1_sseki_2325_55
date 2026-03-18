@@ -67,7 +67,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="absolute z-10 flex gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 p-1.5 bottom-3 left-1/2 -translate-x-1/2 flex-row sm:bottom-auto sm:left-3 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col"
+          className="absolute z-20 flex gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 p-1.5 bottom-3 left-1/2 -translate-x-1/2 flex-row sm:bottom-auto sm:left-3 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col"
           role="toolbar"
           aria-label="Herramientas del mapa"
           onKeyDown={(e) => {
