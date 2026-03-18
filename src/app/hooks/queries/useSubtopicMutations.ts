@@ -69,8 +69,8 @@ export function useCreateSubtopicMutation(summaryId: string) {
       toast.success('Subtema creado');
       invalidateSubtopicCaches(queryClient, variables.keyword_id, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al crear subtema');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al crear subtema');
     },
   });
 }
@@ -95,8 +95,8 @@ export function useUpdateSubtopicMutation(summaryId: string) {
       }
       invalidateSubtopicCaches(queryClient, variables.keywordId, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al actualizar subtema');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar subtema');
     },
   });
 }
@@ -113,8 +113,8 @@ export function useDeleteSubtopicMutation(summaryId: string) {
       toast.success('Subtema eliminado');
       invalidateSubtopicCaches(queryClient, variables.keywordId, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar subtema');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar subtema');
     },
   });
 }
