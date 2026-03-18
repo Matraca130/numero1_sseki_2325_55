@@ -828,7 +828,10 @@ export function KnowledgeMapView() {
             subtitle={scope === 'course' ? (currentCourse?.name || 'Todos los temas') : (currentTopic?.title || 'Visualiza tu dominio')}
             onBack={() => navigate(-1)}
             actionButton={
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+              <div
+                className="flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap justify-end overflow-x-auto sm:overflow-x-visible max-w-full"
+                style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+              >
                 {/* Topic switcher */}
                 {allTopics.length > 1 && scope === 'topic' && (
                   <div className="relative">

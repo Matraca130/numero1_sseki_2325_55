@@ -63,24 +63,24 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 hidden sm:flex flex-col gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 p-1.5"
+          className="absolute z-10 flex gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 p-1.5 bottom-3 left-1/2 -translate-x-1/2 flex-row sm:bottom-auto sm:left-3 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col"
           role="toolbar"
           aria-label="Herramientas del mapa"
-          aria-orientation="vertical"
           onKeyDown={(e) => {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-              e.preventDefault();
-              const buttons = e.currentTarget.querySelectorAll('button');
-              const current = document.activeElement as HTMLElement;
-              const idx = Array.from(buttons).indexOf(current as HTMLButtonElement);
-              if (idx < 0) return;
-              const next = e.key === 'ArrowDown' ? (idx + 1) % buttons.length : (idx - 1 + buttons.length) % buttons.length;
-              (buttons[next] as HTMLButtonElement).focus();
-            }
+            const isNav = ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key);
+            if (!isNav) return;
+            e.preventDefault();
+            const buttons = e.currentTarget.querySelectorAll('button');
+            const current = document.activeElement as HTMLElement;
+            const idx = Array.from(buttons).indexOf(current as HTMLButtonElement);
+            if (idx < 0) return;
+            const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+            const next = forward ? (idx + 1) % buttons.length : (idx - 1 + buttons.length) % buttons.length;
+            (buttons[next] as HTMLButtonElement).focus();
           }}
         >
           {TOOLS.map((tool) => {
@@ -90,7 +90,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
               <button
                 key={tool.id}
                 onClick={() => onToolChange(tool.id)}
-                className={`relative p-2.5 rounded-xl transition-colors group ${
+                className={`relative p-3 sm:p-2.5 rounded-xl transition-colors group ${
                   isActive
                     ? 'bg-ax-primary-50 text-ax-primary-500'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
@@ -101,7 +101,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
               >
                 <Icon className="w-4 h-4" />
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-ax-primary-500 rounded-full" />
+                  <span className="absolute rounded-full bg-ax-primary-500 bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-4 sm:bottom-auto sm:left-0 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:h-4 sm:w-0.5" />
                 )}
               </button>
             );

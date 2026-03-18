@@ -189,6 +189,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={() => setIsHovered(true)}
     >
       <div
         className="rounded-lg overflow-hidden"
@@ -229,9 +230,9 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
             onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
             className="rounded-full transition-opacity flex items-center justify-center"
             style={{
-              width: 18,
-              height: 18,
-              opacity: isHovered ? 0.8 : 0.3,
+              width: 28,
+              height: 28,
+              opacity: isHovered ? 0.8 : 0.5,
             }}
             tabIndex={0}
             onFocus={() => setIsHovered(true)}
