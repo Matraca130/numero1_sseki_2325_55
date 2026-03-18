@@ -12,6 +12,7 @@ import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { colors } from '@/app/design-system';
+import { toast } from 'sonner';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -203,7 +204,7 @@ export function GraphToolbar({
     try {
       await exportFn();
     } catch {
-      // Caller may show toast; silently fail here
+      toast.error('No se pudo exportar el mapa');
     } finally {
       exportingRef.current = false;
       setExporting(false);
