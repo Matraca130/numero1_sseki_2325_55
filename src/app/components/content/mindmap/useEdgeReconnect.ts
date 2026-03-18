@@ -168,6 +168,8 @@ interface DragState {
   activated: boolean;
   /** The real pointerId used for setPointerCapture (needed for release) */
   capturedPointerId: number;
+  /** Cached node screen positions at drag start (avoids O(N) per pointermove) */
+  cachedPositions: NodeScreenPos[] | null;
 }
 
 // ── Hook ────────────────────────────────────────────────────
@@ -367,6 +369,7 @@ export function useEdgeReconnect({
             startY: screenY,
             activated: false,
             capturedPointerId: -1,
+            cachedPositions: null,
           };
           return;
         }
@@ -387,6 +390,7 @@ export function useEdgeReconnect({
             startY: screenY,
             activated: false,
             capturedPointerId: -1,
+            cachedPositions: null,
           };
           return;
         }
@@ -433,6 +437,8 @@ export function useEdgeReconnect({
         // Activate the drag: capture pointer and dim the original edge
         ds.activated = true;
         ds.capturedPointerId = e.pointerId;
+        // Cache node positions once at drag start (avoids O(N) per pointermove)
+        ds.cachedPositions = getNodeScreenPositions(graph);
         container.setPointerCapture(e.pointerId);
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'auto';
@@ -448,8 +454,8 @@ export function useEdgeReconnect({
       ds.dragX = e.clientX;
       ds.dragY = e.clientY;
 
-      // Find nearest valid node for snapping
-      const nodePositions = getNodeScreenPositions(graph);
+      // Find nearest valid node for snapping (use cached positions)
+      const nodePositions = ds.cachedPositions || getNodeScreenPositions(graph);
       const fixedNodeId = ds.endpoint === 'source' ? ds.edge.target : ds.edge.source;
       const nearest = findNearestNode(
         nodePositions,
