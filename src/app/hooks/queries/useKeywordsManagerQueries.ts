@@ -128,8 +128,8 @@ export function useCreateKeywordMutation(summaryId: string) {
       toast.success('Keyword creado');
       invalidateKeywords(queryClient, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al crear keyword');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al crear keyword');
     },
   });
 }
@@ -153,8 +153,8 @@ export function useUpdateKeywordMutation(summaryId: string) {
       toast.success('Keyword actualizado');
       invalidateKeywords(queryClient, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al guardar keyword');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar keyword');
     },
   });
 }
@@ -170,8 +170,8 @@ export function useDeleteKeywordMutation(summaryId: string) {
       toast.success('Keyword eliminado');
       invalidateKeywords(queryClient, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar keyword');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar keyword');
     },
   });
 }
@@ -187,8 +187,8 @@ export function useRestoreKeywordMutation(summaryId: string) {
       toast.success('Keyword restaurado');
       invalidateKeywords(queryClient, summaryId);
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al restaurar keyword');
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Error al restaurar keyword');
     },
   });
 }
