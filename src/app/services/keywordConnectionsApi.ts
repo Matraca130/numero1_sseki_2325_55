@@ -28,7 +28,7 @@ export async function getConnections(
   keywordId: string,
 ): Promise<KeywordConnection[]> {
   const result = await apiCall<unknown>(
-    `/keyword-connections?keyword_id=${keywordId}`,
+    `/keyword-connections?keyword_id=${encodeURIComponent(keywordId)}`,
   );
   return extractItems<KeywordConnection>(result);
 }
@@ -47,7 +47,7 @@ export async function createConnection(
 // ── DELETE connection ─────────────────────────────────────
 
 export async function deleteConnection(id: string): Promise<void> {
-  await apiCall(`/keyword-connections/${id}`, { method: 'DELETE' });
+  await apiCall(`/keyword-connections/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 // ── GET keyword search (cross-summary) ────────────────────
