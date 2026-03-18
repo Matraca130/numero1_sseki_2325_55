@@ -204,13 +204,16 @@ export async function ensureGeneralKeyword(summaryId: string): Promise<string> {
 
 // ── Streaming API call (SSE) ────────────────────────────
 
+/** Default streaming timeout in milliseconds (longer than regular 15s) */
+const DEFAULT_STREAM_TIMEOUT_MS = 30_000;
+
 /**
  * Stream an API response via Server-Sent Events.
  * Returns an async generator that yields parsed SSE data objects.
  */
 export async function* apiCallStream<T = unknown>(
   path: string,
-  options: { method?: string; body?: unknown } = {},
+  options: { method?: string; body?: unknown; timeout?: number } = {},
 ): AsyncGenerator<T> {
   const url = `${API_BASE}${path}`;
   const headers: Record<string, string> = {
@@ -220,35 +223,53 @@ export async function* apiCallStream<T = unknown>(
   const token = getAccessToken();
   if (token) headers['X-Access-Token'] = token;
 
-  const res = await fetch(url, {
-    method: options.method ?? 'POST',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutMs = options.timeout ?? DEFAULT_STREAM_TIMEOUT_MS;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Stream error ${res.status}: ${text}`);
-  }
+  try {
+    const res = await fetch(url, {
+      method: options.method ?? 'POST',
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    });
 
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Stream error ${res.status}: ${text}`);
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    if (!res.body) {
+      throw new Error('Stream response has no body');
+    }
 
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
 
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          yield JSON.parse(line.slice(6)) as T;
-        } catch { /* skip malformed */ }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            yield JSON.parse(line.slice(6)) as T;
+          } catch { /* skip malformed */ }
+        }
       }
     }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Stream timeout after ${timeoutMs}ms: ${options.method ?? 'POST'} ${path}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }

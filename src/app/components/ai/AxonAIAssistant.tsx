@@ -67,6 +67,7 @@ export function AxonAIAssistant({
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Flashcard mode state
@@ -133,6 +134,7 @@ export function AxonAIAssistant({
         ...prev,
         { id: modelMsgId, role: 'model' as const, content: '', timestamp: new Date(), isError: false },
       ]);
+      setIsStreaming(true);
 
       await ai.chatStream(
         msg,
@@ -178,6 +180,7 @@ export function AxonAIAssistant({
         addMessage('system', `Erro: ${(fallbackErr as Error).message}`, true);
       }
     } finally {
+      setIsStreaming(false);
       setIsLoading(false);
     }
   }, [input, isLoading, messages, currentTopic]);
@@ -442,7 +445,7 @@ export function AxonAIAssistant({
             </div>
           ))}
 
-          {isLoading && (
+          {isLoading && !isStreaming && (
             <div className="flex gap-3 justify-start">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
                 <Sparkles size={12} className="text-white" />
