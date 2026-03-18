@@ -343,8 +343,10 @@ export function KnowledgeGraph({
         };
       });
 
+    const visibleNodeIds = new Set(nodes.map(n => n.id));
     const edges = data.edges
-      .filter(edge => !hidden.has(edge.source) && !hidden.has(edge.target))
+      .filter(edge => !hidden.has(edge.source) && !hidden.has(edge.target)
+        && visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
       .map((edge) => ({
         id: edge.id,
         source: edge.source,
