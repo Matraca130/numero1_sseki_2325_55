@@ -147,7 +147,8 @@ interface RawBktState {
 function unwrapItems<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result;
   if (result && typeof result === 'object' && 'items' in result) {
-    return (result as { items: T[] }).items || [];
+    const items = (result as { items: unknown }).items;
+    return Array.isArray(items) ? items : [];
   }
   return [];
 }
@@ -172,7 +173,7 @@ async function fetchKeywordsForSummaries(
   if (summaryIds.length === 0) return [];
 
   const tasks = summaryIds.map((sid) => () =>
-    apiCall<unknown>(`/keywords?summary_id=${sid}`)
+    apiCall<unknown>(`/keywords?summary_id=${encodeURIComponent(sid)}`)
   );
   const results = await parallelWithLimit(tasks, 4);
 
@@ -208,7 +209,7 @@ async function fetchSubtopicsBatch(
   // For most topics (< 50 keywords), this is a single chunk anyway.
   // For larger topics, parallel fetches reduce wall-clock time.
   const tasks = chunks_.map((batch) => async () => {
-    const idsParam = batch.join(',');
+    const idsParam = batch.map(id => encodeURIComponent(id)).join(',');
     const result = await apiCall<unknown>(
       `/subtopics-batch?keyword_ids=${idsParam}`
     );
@@ -242,7 +243,7 @@ async function fetchBktStatesBatch(
 
   // OPT-2: Parallelize chunk fetches (each chunk is independent)
   const tasks = chunks_.map((batch) => async () => {
-    const idsParam = batch.join(',');
+    const idsParam = batch.map(id => encodeURIComponent(id)).join(',');
     // IMPORTANT: Backend spaced-rep.ts defaults to limit=100 on GET /bkt-states.
     // Without explicit limit, responses with >100 matching rows are silently truncated.
     // We request limit=<batch_size> to ensure ALL BKT states for our subtopic_ids are returned.
@@ -356,8 +357,9 @@ export async function fetchKeywordMasteryByTopic(
   topicId: string
 ): Promise<KeywordMasteryMap> {
   // Step 1: Get summaries for this topic
-  const topicData = await apiCall<any>(`/topic-progress?topic_id=${encodeURIComponent(topicId)}`);
-  const summaries: { id: string }[] = topicData?.summaries || [];
+  const topicData = await apiCall<{ summaries?: unknown }>(`/topic-progress?topic_id=${encodeURIComponent(topicId)}`);
+  const rawSummaries = topicData?.summaries;
+  const summaries: { id: string }[] = Array.isArray(rawSummaries) ? rawSummaries : [];
 
   if (summaries.length === 0) {
     return new Map();

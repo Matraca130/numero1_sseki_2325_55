@@ -30,7 +30,8 @@ import type { GraphData, MapNode, MapEdge, ClassMasteryData, GraphTemplate } fro
 function unwrapItems<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result;
   if (result && typeof result === 'object' && 'items' in result) {
-    return (result as { items: T[] }).items || [];
+    const items = (result as { items: unknown }).items;
+    return Array.isArray(items) ? items : [];
   }
   return [];
 }
