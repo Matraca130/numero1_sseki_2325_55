@@ -55,6 +55,13 @@ export function ProfessorAddConnectionModal({
     [sortedNodes, connSource],
   );
 
+  // Reset connTarget if it equals the newly selected connSource
+  useEffect(() => {
+    if (connSource && connTarget && connSource === connTarget) {
+      setConnTarget('');
+    }
+  }, [connSource, connTarget]);
+
   // Reset form when modal closes
   useEffect(() => {
     if (!open) {
@@ -120,7 +127,7 @@ export function ProfessorAddConnectionModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => { if (!savingRef.current) onClose(); }}
+            onClick={() => { if (!savingRef.current) onCloseRef.current(); }}
             aria-hidden="true"
           />
           <motion.div
@@ -129,7 +136,7 @@ export function ProfessorAddConnectionModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.2 }}
-            onClick={() => { if (!savingRef.current) onClose(); }}
+            onClick={() => { if (!savingRef.current) onCloseRef.current(); }}
           >
             <div
               ref={focusTrapRef}
@@ -152,9 +159,10 @@ export function ProfessorAddConnectionModal({
                   Agregar conexión
                 </h2>
                 <button
-                  onClick={onClose}
+                  onClick={() => { if (!savingRef.current) onCloseRef.current(); }}
                   className="p-2.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   aria-label="Cerrar"
+                  disabled={connSaving}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -224,8 +232,9 @@ export function ProfessorAddConnectionModal({
               </div>
               <div className="flex justify-end gap-2 px-5 pt-2" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                 <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                  onClick={() => { if (!savingRef.current) onCloseRef.current(); }}
+                  disabled={connSaving}
+                  className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>
