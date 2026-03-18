@@ -146,8 +146,8 @@ las llamadas API, aunque el backend aún no exista):
 
 ### 1C. Herramientas Avanzadas del Grafo (XMind-level)
 - [x] Flechas direccionales — directed field on MapEdge, endArrow in KnowledgeGraph+MiniKnowledgeGraph, toggle "Flecha direccional" in AddNodeEdgeModal with auto-sync from connection type, createCustomEdge payload updated
-- [ ] Tipos de flecha avanzados — diamond, circle, open arrow, closed arrow, selectable en modal
-- [ ] Texto en edges — labels editables sobre las líneas de conexión, doble-click para editar inline
+- [x] Tipos de flecha avanzados — EdgeArrowType (triangle/diamond/circle/vee) in MapEdge, 4-button SVG selector in AddNodeEdgeModal, G6 endArrow config object, arrow_type in API payload
+- [x] Texto en edges — edge labelText from relationship/connectionType, zinc-500 fill, white background pill with padding, readable on any edge color
 - [ ] Multi-selección de nodos — Shift+click o drag-select para seleccionar múltiples nodos, mover en grupo, eliminar en batch
 - [ ] Agrupación/clusters — drag nodos dentro de un grupo visual (bounding box con label), colapsable
 - [ ] Snap-to-grid — opción en toolbar para alinear nodos a grid, toggle on/off
