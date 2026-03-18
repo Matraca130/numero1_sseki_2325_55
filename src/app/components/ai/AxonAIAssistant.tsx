@@ -21,6 +21,8 @@ import {
   Copy,
   Check,
   AlertCircle,
+  ThumbsUp,
+  ThumbsDown,
   Lightbulb,
   Zap,
   ArrowLeft,
@@ -28,6 +30,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as ai from '@/app/services/aiService';
+import { submitRagFeedback } from '@/app/services/aiService';
 import type { ChatMessage, GeneratedFlashcard, GeneratedQuestion } from '@/app/services/aiService';
 import { VoiceCallPanel } from './VoiceCallPanel';
 
@@ -69,6 +72,11 @@ export function AxonAIAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // RAG citations & feedback state
+  const [messageSources, setMessageSources] = useState<Map<string, Array<{chunk_id: string, summary_title: string, similarity: number}>>>(new Map());
+  const [messageLogIds, setMessageLogIds] = useState<Map<string, string>>(new Map());
+  const [feedbackGiven, setFeedbackGiven] = useState<Map<string, 'positive' | 'negative'>>(new Map());
+
   // Flashcard mode state
   const [flashcardTopic, setFlashcardTopic] = useState('');
   const [flashcardCount, setFlashcardCount] = useState(5);
@@ -108,11 +116,13 @@ export function AxonAIAssistant({
 
   // ── Chat ──────────────────────────────────────────────
 
-  const addMessage = (role: DisplayMessage['role'], content: string, isError = false) => {
+  const addMessage = (role: DisplayMessage['role'], content: string, isError = false): string => {
+    const id = `msg-${Date.now()}-${Math.random()}`;
     setMessages(prev => [
       ...prev,
-      { id: `msg-${Date.now()}-${Math.random()}`, role, content, timestamp: new Date(), isError },
+      { id, role, content, timestamp: new Date(), isError },
     ]);
+    return id;
   };
 
   const sendChat = useCallback(async (text?: string) => {
@@ -130,7 +140,22 @@ export function AxonAIAssistant({
       history.push({ role: 'user', content: msg });
 
       const reply = await ai.chat(history, context);
-      addMessage('model', reply);
+
+      // reply may be a string (legacy) or RagChatResponse object
+      const isRagResponse = typeof reply === 'object' && reply !== null && 'response' in reply;
+      const replyText = isRagResponse ? (reply as any).response : reply;
+      const msgId = addMessage('model', replyText);
+
+      // Store RAG sources and log_id if available
+      if (isRagResponse) {
+        const ragReply = reply as { response: string; sources: Array<{chunk_id: string, summary_title: string, similarity: number}>; log_id: string };
+        if (ragReply.sources?.length) {
+          setMessageSources(prev => new Map(prev).set(msgId, ragReply.sources));
+        }
+        if (ragReply.log_id) {
+          setMessageLogIds(prev => new Map(prev).set(msgId, ragReply.log_id));
+        }
+      }
     } catch (err: any) {
       addMessage('system', `Erro: ${err.message}`, true);
     } finally {
@@ -210,6 +235,19 @@ export function AxonAIAssistant({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // ── RAG Feedback ────────────────────────────────────────
+
+  const handleRagFeedback = async (msgId: string, feedback: 'positive' | 'negative') => {
+    const logId = messageLogIds.get(msgId);
+    if (!logId || feedbackGiven.has(msgId)) return;
+    setFeedbackGiven(prev => new Map(prev).set(msgId, feedback));
+    try {
+      await submitRagFeedback({ logId, feedback });
+    } catch {
+      // Silently fail — feedback is best-effort
+    }
+  };
+
   // ── Render ────────────────────────────────────────────
 
   const resetMode = (newMode: AssistantMode) => {
@@ -247,6 +285,10 @@ export function AxonAIAssistant({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            role="dialog"
+            aria-label="Asistente AI Axon"
+            aria-modal="true"
+            onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
             className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col"
           >
             {/* ── Header ── */}
@@ -270,6 +312,7 @@ export function AxonAIAssistant({
 
               <button
                 onClick={onClose}
+                aria-label="Cerrar asistente"
                 className="relative w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
               >
                 <X size={18} />
@@ -277,7 +320,7 @@ export function AxonAIAssistant({
             </div>
 
             {/* ── Mode tabs ── */}
-            <div className="shrink-0 px-3 py-2 bg-white border-b border-gray-200/60 flex gap-1">
+            <div role="tablist" className="shrink-0 px-3 py-2 bg-white border-b border-gray-200/60 flex gap-1">
               {([
                 { id: 'chat', icon: Sparkles, label: 'Chat' },
                 { id: 'flashcards', icon: Layers, label: 'Flashcards' },
@@ -287,6 +330,8 @@ export function AxonAIAssistant({
               ] as const).map(tab => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={mode === tab.id}
                   onClick={() => resetMode(tab.id)}
                   className={clsx(
                     "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all",
@@ -323,7 +368,7 @@ export function AxonAIAssistant({
     return (
       <>
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
+        <div role="log" aria-live="polite" className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-8 space-y-6">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center border border-violet-200/60">
@@ -385,14 +430,65 @@ export function AxonAIAssistant({
               >
                 {renderMarkdown(msg.content)}
 
-                {/* Copy button */}
+                {/* Citations */}
+                {msg.role === 'model' && messageSources.get(msg.id) && messageSources.get(msg.id)!.length > 0 && (
+                  <details className="mt-1 text-xs text-gray-500">
+                    <summary className="cursor-pointer hover:text-gray-700">
+                      Fuentes ({messageSources.get(msg.id)!.length})
+                    </summary>
+                    <ul className="mt-1 space-y-0.5 pl-3">
+                      {messageSources.get(msg.id)!.map((s, i) => (
+                        <li key={i} className="flex items-center gap-1">
+                          <span className="font-medium">{s.summary_title}</span>
+                          <span className="text-gray-400">({Math.round(s.similarity * 100)}%)</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
+                {/* Action buttons: copy + feedback */}
                 {msg.role === 'model' && (
-                  <button
-                    onClick={() => copyText(msg.content, msg.id)}
-                    className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500"
-                  >
-                    {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
-                  </button>
+                  <div className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <button
+                      onClick={() => copyText(msg.content, msg.id)}
+                      className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500"
+                    >
+                      {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                    {messageLogIds.has(msg.id) && (
+                      <>
+                        <button
+                          onClick={() => handleRagFeedback(msg.id, 'positive')}
+                          disabled={feedbackGiven.has(msg.id)}
+                          className={clsx(
+                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                            feedbackGiven.get(msg.id) === 'positive'
+                              ? "text-emerald-500 border-emerald-300"
+                              : feedbackGiven.has(msg.id)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-400 hover:text-emerald-500"
+                          )}
+                        >
+                          <ThumbsUp size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleRagFeedback(msg.id, 'negative')}
+                          disabled={feedbackGiven.has(msg.id)}
+                          className={clsx(
+                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                            feedbackGiven.get(msg.id) === 'negative'
+                              ? "text-red-500 border-red-300"
+                              : feedbackGiven.has(msg.id)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-500"
+                          )}
+                        >
+                          <ThumbsDown size={12} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -430,6 +526,7 @@ export function AxonAIAssistant({
           <div className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
+              aria-label="Escribe tu mensaje"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
