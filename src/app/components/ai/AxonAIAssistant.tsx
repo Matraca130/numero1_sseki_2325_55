@@ -31,7 +31,7 @@ import {
 import clsx from 'clsx';
 import * as ai from '@/app/services/aiService';
 import { submitRagFeedback } from '@/app/services/aiService';
-import type { ChatMessage, GeneratedFlashcard, GeneratedQuestion } from '@/app/services/aiService';
+import type { ChatMessage, GeneratedFlashcard, GeneratedQuestion, RagChatResponse } from '@/app/services/aiService';
 import { VoiceCallPanel } from './VoiceCallPanel';
 
 // ── Types ─────────────────────────────────────────────────
@@ -139,25 +139,18 @@ export function AxonAIAssistant({
         .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
       history.push({ role: 'user', content: msg });
 
-      const reply = await ai.chat(history, context);
-
-      // reply may be a string (legacy) or RagChatResponse object
-      const isRagResponse = typeof reply === 'object' && reply !== null && 'response' in reply;
-      const replyText = isRagResponse ? (reply as any).response : reply;
-      const msgId = addMessage('model', replyText);
+      const reply: RagChatResponse = await ai.chat(history, context);
+      const msgId = addMessage('model', reply.response);
 
       // Store RAG sources and log_id if available
-      if (isRagResponse) {
-        const ragReply = reply as { response: string; sources: Array<{chunk_id: string, summary_title: string, similarity: number}>; log_id: string };
-        if (ragReply.sources?.length) {
-          setMessageSources(prev => new Map(prev).set(msgId, ragReply.sources));
-        }
-        if (ragReply.log_id) {
-          setMessageLogIds(prev => new Map(prev).set(msgId, ragReply.log_id));
-        }
+      if (reply.sources?.length) {
+        setMessageSources(prev => new Map(prev).set(msgId, reply.sources));
       }
-    } catch (err: any) {
-      addMessage('system', `Erro: ${err.message}`, true);
+      if (reply.log_id) {
+        setMessageLogIds(prev => new Map(prev).set(msgId, reply.log_id));
+      }
+    } catch (err: unknown) {
+      addMessage('system', `Erro: ${err instanceof Error ? err.message : String(err)}`, true);
     } finally {
       setIsLoading(false);
     }
