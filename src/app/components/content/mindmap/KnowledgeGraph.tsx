@@ -837,17 +837,21 @@ export function KnowledgeGraph({
       const strokeColor = needsReview ? '#f97316' : getNodeStroke(node.masteryColor);
       const baseLabel = truncateLabel(node.label);
 
+      // Only override lineWidth for highlighted/review nodes — collapsed lineWidth is set by g6Data
+      const styleUpdate: Record<string, unknown> = {
+        shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
+        shadowBlur: isHighlighted ? 10 : needsReview ? 8 : 0,
+        opacity: isDimmed ? 0.35 : 1,
+        labelText: needsReview ? '\u26a0 ' + baseLabel : baseLabel,
+        labelFill: isDimmed ? colors.text.tertiary : needsReview ? '#c2410c' : colors.text.primary,
+      };
+      if (isHighlighted) styleUpdate.lineWidth = 3;
+      else if (needsReview) styleUpdate.lineWidth = 2.5;
+
       nodeUpdates.push({
         id: node.id,
         data: { needsReview },
-        style: {
-          lineWidth: isHighlighted ? 3 : needsReview ? 2.5 : node.isUserCreated ? 2 : 1.5,
-          shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
-          shadowBlur: isHighlighted ? 10 : needsReview ? 8 : 0,
-          opacity: isDimmed ? 0.35 : 1,
-          labelText: needsReview ? '\u26a0 ' + baseLabel : baseLabel,
-          labelFill: isDimmed ? colors.text.tertiary : needsReview ? '#c2410c' : colors.text.primary,
-        },
+        style: styleUpdate,
       });
     }
 
