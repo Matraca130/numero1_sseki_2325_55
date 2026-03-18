@@ -544,6 +544,8 @@ export function KnowledgeMapView() {
       if (showOnboardingRef.current) return;
       const el = e.target as HTMLElement;
       if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable) return;
+      // Suppress tool shortcuts when any modal/dialog is open
+      if (el?.closest('[role="dialog"], [role="alertdialog"]')) return;
       const map: Record<string, MapTool> = { v: 'pointer', n: 'add-node', c: 'connect', d: 'delete', a: 'annotate' };
       const tool = map[e.key.toLowerCase()];
       if (tool) handleToolChange(tool);

@@ -77,6 +77,11 @@ export function AddNodeEdgeModal({
   const [edgeColor, setEdgeColor] = useState(colors.primary[500]);
   const [edgeArrowType, setEdgeArrowType] = useState<EdgeArrowType>('triangle');
 
+  // Clear target if it matches source (prevents self-loop edge)
+  useEffect(() => {
+    if (edgeSource && edgeSource === edgeTarget) setEdgeTarget('');
+  }, [edgeSource, edgeTarget]);
+
   const focusTrapRef = useFocusTrap(open);
   const nodeLabelRef = useRef<HTMLInputElement>(null);
   const edgeSourceRef = useRef<HTMLSelectElement>(null);
