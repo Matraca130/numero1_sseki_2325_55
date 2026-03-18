@@ -789,10 +789,17 @@ export function KnowledgeGraph({
       graph.setData(g6Data(collapsedNodes));
       graph.draw();
     } catch (e) { warnIfNotDestroyed(e); }
+
+    // After setData rebuilds the graph, bump epoch to force highlight effect to reapply
+    // (setData wipes highlight styling, but highlight deps may not have changed)
+    setHighlightEpoch(e => e + 1);
   // Note: `data` is intentionally excluded — `g6Data` already captures it via its own deps.
   // Including both causes graph.draw() to fire twice per data update.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g6Data, ready, collapsedNodes]);
+
+  // Counter that increments when setData rebuilds the graph, forcing highlight effect to reapply
+  const [highlightEpoch, setHighlightEpoch] = useState(0);
 
   // Apply highlight/review styling incrementally via updateNodeData (avoids full setData rebuild)
   const prevHighlightRef = useRef<Set<string> | undefined>();
@@ -815,7 +822,15 @@ export function KnowledgeGraph({
     const nodeUpdates: { id: string; style: Record<string, unknown>; data?: Record<string, unknown> }[] = [];
     const edgeUpdates: { id: string; style: Record<string, unknown> }[] = [];
 
+    // Only update nodes/edges currently in the G6 graph (skip hidden/collapsed)
+    let visibleNodeIds: Set<string> | null = null;
+    try {
+      const gNodes = graph.getNodeData();
+      visibleNodeIds = new Set(gNodes.map((n: { id: string }) => n.id));
+    } catch { /* fallback: update all */ }
+
     for (const node of dataNodesRef.current) {
+      if (visibleNodeIds && !visibleNodeIds.has(node.id)) continue;
       const isHighlighted = hasHighlight && highlightNodeIds!.has(node.id);
       const isDimmed = hasHighlight && !isHighlighted;
       const needsReview = hasReview && reviewNodeIds!.has(node.id);
@@ -837,6 +852,8 @@ export function KnowledgeGraph({
     }
 
     for (const edge of dataEdgesRef.current) {
+      // Skip edges whose endpoints are hidden
+      if (visibleNodeIds && (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target))) continue;
       const edgeHighlighted = hasHighlight && highlightNodeIds!.has(edge.source) && highlightNodeIds!.has(edge.target);
       const edgeDimmed = hasHighlight && !edgeHighlighted;
       edgeUpdates.push({
@@ -850,8 +867,9 @@ export function KnowledgeGraph({
       if (edgeUpdates.length > 0) graph.updateEdgeData(edgeUpdates);
       graph.draw();
     } catch (e) { warnIfNotDestroyed(e); }
+  // highlightEpoch forces reapplication after setData rebuilds the graph
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightNodeIds, reviewNodeIds, ready]);
+  }, [highlightNodeIds, reviewNodeIds, ready, highlightEpoch]);
 
   // Highlight selected node — O(1) lookup via memoized map
   const nodeById = useMemo(
