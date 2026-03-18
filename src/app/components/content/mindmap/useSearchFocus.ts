@@ -10,8 +10,10 @@ import { useEffect, type RefObject } from 'react';
 export function useSearchFocus(inputRef: RefObject<HTMLInputElement | null>) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
+      const el = e.target as HTMLElement;
+      const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (el?.isContentEditable) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();

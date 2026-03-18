@@ -32,6 +32,7 @@ export function loadNodeColors(topicId: string): NodeColorMap {
 
 /** Save a custom color for a node (merges with existing) */
 export function saveNodeColor(topicId: string, nodeId: string, color: string): void {
+  if (!color.startsWith('#')) return; // reject non-hex colors
   try {
     const existing = loadNodeColors(topicId);
     existing.set(nodeId, color);
