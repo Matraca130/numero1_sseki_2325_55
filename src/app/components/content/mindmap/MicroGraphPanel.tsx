@@ -15,15 +15,15 @@ import { useState, useCallback, useEffect, useMemo, useSyncExternalStore, lazy, 
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, ChevronDown, RefreshCw } from 'lucide-react';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
-import { GraphSkeleton } from '@/app/components/content/mindmap/GraphSkeleton';
-import { useGraphData } from '@/app/components/content/mindmap/useGraphData';
-import { useLocalGraph } from '@/app/components/content/mindmap/useLocalGraph';
+import { GraphSkeleton } from './GraphSkeleton';
+import { useGraphData } from './useGraphData';
+import { useLocalGraph } from './useLocalGraph';
 import type { MapNode } from '@/app/types/mindmap';
 
 // Lazy-load MiniKnowledgeGraph — avoids pulling G6 into the
 // initial bundle of quiz/flashcard/summary views.
 const MiniKnowledgeGraph = lazy(() =>
-  import('@/app/components/content/mindmap/MiniKnowledgeGraph').then(m => ({
+  import('./MiniKnowledgeGraph').then(m => ({
     default: m.MiniKnowledgeGraph,
   }))
 );

@@ -7,7 +7,7 @@
 
 import { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { useFocusTrap } from '@/app/components/content/mindmap/useFocusTrap';
+import { useFocusTrap } from './useFocusTrap';
 import { headingStyle } from '@/app/design-system';
 
 interface ConfirmDialogProps {

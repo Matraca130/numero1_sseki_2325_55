@@ -40,6 +40,8 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   const [saving, setSaving] = useState(false);
   const [shake, setShake] = useState(false);
   const savingRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const focusTrapRef = useFocusTrap(!!node);
 
   // Fetch existing note when node changes
@@ -116,7 +118,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
       toast.error(e instanceof Error ? e.message : 'Error al guardar anotación');
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   }, [node, content, existingNote, onClose, onSaved]);
 
@@ -136,7 +138,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
       toast.error(e instanceof Error ? e.message : 'Error al eliminar anotación');
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   }, [existingNote, onClose, onSaved]);
 

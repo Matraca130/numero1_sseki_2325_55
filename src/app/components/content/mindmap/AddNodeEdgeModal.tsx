@@ -61,6 +61,8 @@ export function AddNodeEdgeModal({
   const [tab, setTab] = useState<TabType>(initialTab || 'node');
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const [shake, setShake] = useState(false);
 
   // Node form
@@ -165,7 +167,7 @@ export function AddNodeEdgeModal({
       toast.error(err instanceof Error ? err.message : 'Error al crear concepto');
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   };
 
@@ -195,7 +197,7 @@ export function AddNodeEdgeModal({
       toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   };
 
