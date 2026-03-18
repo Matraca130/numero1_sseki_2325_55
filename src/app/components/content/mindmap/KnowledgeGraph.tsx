@@ -198,6 +198,10 @@ export function KnowledgeGraph({
     return () => { mountedRef.current = false; };
   }, []);
 
+  // Stable ref for data.nodes — avoids stale closure in event handlers
+  const dataNodesRef = useRef(data.nodes);
+  dataNodesRef.current = data.nodes;
+
   // Auto-dismiss mobile hint after 4 seconds
   useEffect(() => {
     if (!ready || !showMobileHint) return;
@@ -875,7 +879,7 @@ export function KnowledgeGraph({
             const g = graphRef.current;
             if (g) {
               try {
-                for (const nId of data.nodes.map(n => n.id)) {
+                for (const nId of dataNodesRef.current.map(n => n.id)) {
                   g.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
                 }
                 g.draw();
@@ -962,7 +966,7 @@ export function KnowledgeGraph({
         onMultiSelectRef.current?.(selectedIds);
         // Apply visual state
         try {
-          for (const nId of data.nodes.map(n => n.id)) {
+          for (const nId of dataNodesRef.current.map(n => n.id)) {
             graph.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
           }
           graph.draw();
