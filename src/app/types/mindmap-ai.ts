@@ -74,7 +74,7 @@ export interface WeakPoint {
   name: string;
   mastery: number;
   last_reviewed: string | null;
-  recommended_action: string;
+  recommended_action: 'flashcard' | 'quiz' | 'summary' | 'review';
 }
 
 export type WeakPointsResponse = WeakPoint[];

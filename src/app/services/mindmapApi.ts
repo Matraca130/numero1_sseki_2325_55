@@ -235,14 +235,16 @@ export async function fetchClassMastery(
     if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
       if (import.meta.env.DEV) {
         console.info('[MindmapApi] /ai/class-mastery not deployed, using mock data');
+        return graphNodes.map((node) => ({
+          keyword_id: node.id,
+          keyword_name: node.label,
+          avg_mastery: Math.random() * 0.85 + 0.1, // 0.10 – 0.95
+          student_count: Math.floor(Math.random() * 30) + 5,
+          weak_student_count: Math.floor(Math.random() * 10),
+        }));
       }
-      return graphNodes.map((node) => ({
-        keyword_id: node.id,
-        keyword_name: node.label,
-        avg_mastery: Math.random() * 0.85 + 0.1, // 0.10 – 0.95
-        student_count: Math.floor(Math.random() * 30) + 5,
-        weak_student_count: Math.floor(Math.random() * 10),
-      }));
+      // Production: return empty array instead of fake data
+      return [];
     }
     throw e;
   }
@@ -352,7 +354,7 @@ export async function createCustomNode(payload: CreateCustomNodePayload): Promis
 
 /** Delete a custom node */
 export async function deleteCustomNode(nodeId: string): Promise<void> {
-  await apiCall(`/student-custom-nodes/${nodeId}`, { method: 'DELETE' });
+  await apiCall(`/student-custom-nodes/${encodeURIComponent(nodeId)}`, { method: 'DELETE' });
 }
 
 /** Create a custom edge between two nodes */
@@ -365,7 +367,7 @@ export async function createCustomEdge(payload: CreateCustomEdgePayload): Promis
 
 /** Delete a custom edge */
 export async function deleteCustomEdge(edgeId: string): Promise<void> {
-  await apiCall(`/student-custom-edges/${edgeId}`, { method: 'DELETE' });
+  await apiCall(`/student-custom-edges/${encodeURIComponent(edgeId)}`, { method: 'DELETE' });
 }
 
 // ── Professor Graph Templates ───────────────────────────────
