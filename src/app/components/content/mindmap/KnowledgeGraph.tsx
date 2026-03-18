@@ -743,6 +743,7 @@ export function KnowledgeGraph({
     }).catch((e) => { warnIfNotDestroyed(e); });
 
     return () => {
+      layoutInProgressRef.current = false;
       graph.destroy();
       graphRef.current = null;
     };
@@ -1249,7 +1250,7 @@ export function KnowledgeGraph({
       layoutInProgressRef.current = true;
       graph.setLayout(layoutConfig);
       graph.layout().then(() => {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || graphRef.current !== graph) return;
         try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
       }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
         layoutInProgressRef.current = false;
