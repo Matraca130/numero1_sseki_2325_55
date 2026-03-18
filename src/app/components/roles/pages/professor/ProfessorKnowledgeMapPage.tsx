@@ -92,9 +92,16 @@ export function ProfessorKnowledgeMapPage() {
 
   // ── Heatmap: fetch class mastery when toggled on ──────
 
+  // Stable key for graphData nodes to avoid re-fetching on every reference change
+  const graphNodeKey = useMemo(
+    () => graphData?.nodes.map(n => n.id).sort().join(',') ?? '',
+    [graphData?.nodes],
+  );
+
   useEffect(() => {
     if (!heatmapEnabled || !topicId || !graphData) {
       setHeatmapData(null);
+      setHeatmapLoading(false);
       return;
     }
     let cancelled = false;
@@ -104,7 +111,8 @@ export function ProfessorKnowledgeMapPage() {
       .catch(() => { if (!cancelled) setHeatmapData(null); })
       .finally(() => { if (!cancelled) setHeatmapLoading(false); });
     return () => { cancelled = true; };
-  }, [heatmapEnabled, topicId, graphData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heatmapEnabled, topicId, graphNodeKey]);
 
   /** Graph data with class-wide mastery overlaid when heatmap is active */
   const heatmapGraphData = useMemo((): GraphData | null => {
