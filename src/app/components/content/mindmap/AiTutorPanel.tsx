@@ -511,6 +511,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
                 className="space-y-3"
+                aria-live="polite"
+                aria-atomic="true"
               >
                 {/* Overall score card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col items-center">
@@ -722,7 +724,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
 
                 {/* Suggested connections list */}
                 {suggestions.length > 0 && (
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 space-y-2" aria-live="polite">
                     <h4
                       className="flex items-center gap-1.5 font-medium text-gray-600 px-1"
                       style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
