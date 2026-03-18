@@ -134,10 +134,10 @@ las llamadas API, aunque el backend aún no exista):
 ## Priority 1 — SPRINT NOCTURNO 2026-03-18 (LOOP AUTÓNOMO OPUS)
 
 ### 1A. Backend AI Endpoints (en axon-backend rama feature/mindmap-ai-endpoints)
-- [ ] Crear POST /ai/analyze-knowledge-graph — recibe topic_id, analiza BKT states + keyword_connections + embeddings con Gemini, devuelve weak_areas, strong_areas, missing_connections, study_path, overall_score, summary_text
-- [ ] Crear POST /ai/suggest-student-connections — recibe topic_id + existing_node_ids + existing_edge_ids, usa embeddings para encontrar keywords similares, Gemini clasifica tipo de conexión, devuelve [{source, target, type, reason, confidence}]
-- [ ] Crear GET /ai/student-weak-points?topic_id=X — consulta BKT states del student, ordena por mastery ascendente, devuelve [{keyword_id, name, mastery, last_reviewed, recommended_action}]
-- [ ] Registrar los 3 endpoints en routes/ai/index.ts con auth + institution check
+- [x] Crear POST /ai/analyze-knowledge-graph — analyzes BKT states + keyword_connections via Claude, returns weak/strong areas, missing connections, study path, overall score. Auth + institution check + PF-05 compliant
+- [x] Crear POST /ai/suggest-student-connections — uses Claude to suggest 3-8 new connections based on existing graph + keyword definitions. Validates against real keyword IDs
+- [x] Crear GET /ai/student-weak-points — pure DB query: keywords→subtopics→bkt_states, returns mastery-sorted weak keywords with recommended_action (review/flashcard/quiz)
+- [x] Registrar los 3 endpoints en routes/ai/index.ts con auth + institution check + rate limit middleware
 - [ ] Tests para los 3 endpoints
 
 ### 1B. Frontend — Integración con Backend Real
