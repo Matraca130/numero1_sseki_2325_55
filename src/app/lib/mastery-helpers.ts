@@ -131,9 +131,9 @@ export function getDeltaColorClasses(level: DeltaColorLevel): {
  */
 export function getDeltaColorLabel(level: DeltaColorLevel): string {
   const labels: Record<DeltaColorLevel, string> = {
-    red: 'Critico',
+    red: 'Crítico',
     orange: 'Insuficiente',
-    yellow: 'Proximo',
+    yellow: 'Próximo',
     green: 'Dominado',
     blue: 'Superado',
   };
