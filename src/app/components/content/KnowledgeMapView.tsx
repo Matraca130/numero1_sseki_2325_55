@@ -29,7 +29,7 @@ import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { useCountUp } from '@/app/hooks/useCountUp';
-import { LoadingPage, EmptyState, ErrorState } from '@/app/components/shared/PageStates';
+import { EmptyState, ErrorState } from '@/app/components/shared/PageStates';
 import { FadeIn } from '@/app/components/shared/FadeIn';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { useApp } from '@/app/context/AppContext';

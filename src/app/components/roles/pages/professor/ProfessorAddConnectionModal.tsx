@@ -5,7 +5,7 @@
 // Extracted from ProfessorKnowledgeMapPage for modularity.
 // ============================================================
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { X, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
