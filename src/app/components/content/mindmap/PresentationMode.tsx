@@ -56,9 +56,11 @@ export function PresentationMode({
 
   useEffect(() => { overlayRef.current?.focus(); }, [overlayRef]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps — depend on ID, not object reference
+  const currentId = current?.id;
   useEffect(() => {
-    if (current && onNodeFocus) onNodeFocus(current.id);
-  }, [current, onNodeFocus]);
+    if (currentId && onNodeFocus) onNodeFocus(currentId);
+  }, [currentId, onNodeFocus]);
 
   const goNext = useCallback(() => {
     setDirection('right');

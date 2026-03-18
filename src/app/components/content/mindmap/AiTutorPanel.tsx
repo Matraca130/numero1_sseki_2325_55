@@ -281,7 +281,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
         onReviewNodes?.(weakIds);
       }
       toast.success('Análisis completado');
-    } catch {
+    } catch (err) {
+      console.error('AI analysis failed:', err);
       if (mountedRef.current) toast.error('Error al analizar el mapa');
     } finally {
       analyzingRef.current = false;
@@ -385,7 +386,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           ref={focusTrapRef}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
-          role="complementary"
+          role="dialog"
+          aria-modal="true"
           aria-label="Panel de IA Tutor"
         >
           {/* Header */}
@@ -475,7 +477,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                 </p>
                 <button
                   onClick={handleAnalyze}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-ax-primary-600"
+                  disabled={analyzing}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 font-medium text-white rounded-full transition-colors hover:bg-ax-primary-600 disabled:opacity-60"
                   style={{ backgroundColor: colors.primary[500], fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                 >
                   <Sparkles className="w-4 h-4" />
