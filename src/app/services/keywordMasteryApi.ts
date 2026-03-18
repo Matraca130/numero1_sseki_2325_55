@@ -356,7 +356,7 @@ export async function fetchKeywordMasteryByTopic(
   topicId: string
 ): Promise<KeywordMasteryMap> {
   // Step 1: Get summaries for this topic
-  const topicData = await apiCall<any>(`/topic-progress?topic_id=${topicId}`);
+  const topicData = await apiCall<any>(`/topic-progress?topic_id=${encodeURIComponent(topicId)}`);
   const summaries: { id: string }[] = topicData?.summaries || [];
 
   if (summaries.length === 0) {
@@ -401,7 +401,7 @@ export async function fetchKeywordMasteryBySummary(
   summaryId: string
 ): Promise<KeywordMasteryMap> {
   // Step 1: Get keywords for this summary
-  const kwResult = await apiCall<unknown>(`/keywords?summary_id=${summaryId}`);
+  const kwResult = await apiCall<unknown>(`/keywords?summary_id=${encodeURIComponent(summaryId)}`);
   const keywords = unwrapItems<RawKeyword>(kwResult).filter(
     (kw) => !kw.deleted_at && kw.is_active !== false
   );
@@ -511,10 +511,12 @@ export function computeTopicMasterySummary(
   const keywordsTotal = keywords.length;
   const keywordsMastered = keywords.filter((kw) => kw.isMastered).length;
 
+  // Exclude sentinel mastery=-1 (no subtopic data) from average calculation
+  const withData = keywords.filter((kw) => kw.mastery >= 0);
   let overallMastery = 0;
-  if (keywordsTotal > 0) {
-    const sum = keywords.reduce((acc, kw) => acc + kw.mastery, 0);
-    overallMastery = sum / keywordsTotal;
+  if (withData.length > 0) {
+    const sum = withData.reduce((acc, kw) => acc + kw.mastery, 0);
+    overallMastery = sum / withData.length;
   }
 
   // Sort by mastery ascending, then by priority descending (tiebreaker)
@@ -526,8 +528,11 @@ export function computeTopicMasterySummary(
 
   const allKeywordsByMastery = [...keywords].sort(sortByMasteryThenPriority);
 
-  // Only unmastered keywords for AI targeting
-  const weakestKeywords = allKeywordsByMastery.filter((kw) => !kw.isMastered);
+  // Only unmastered keywords with actual data for AI targeting
+  // (mastery=-1 means no subtopics exist — not a weak area, just no data)
+  const weakestKeywords = allKeywordsByMastery.filter(
+    (kw) => !kw.isMastered && kw.mastery >= 0
+  );
 
   return {
     keywordsTotal,
