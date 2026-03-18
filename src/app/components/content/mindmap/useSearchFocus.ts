@@ -14,6 +14,7 @@ export function useSearchFocus(inputRef: RefObject<HTMLInputElement | null>) {
       const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (el?.isContentEditable) return;
+      if (el?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();

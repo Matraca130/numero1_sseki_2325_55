@@ -34,6 +34,7 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
       const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A') return;
       if (el?.isContentEditable || el?.getAttribute('role') === 'button') return;
+      if (el?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
 
       e.preventDefault();
       spaceHeldRef.current = true;
