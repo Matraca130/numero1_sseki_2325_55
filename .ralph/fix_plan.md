@@ -373,3 +373,12 @@ las llamadas API, aunque el backend aún no exista):
 - [x] useKeywordConnectionsQueries: fix 4 toast messages missing accent on "Conexión" (LOW)
 - [x] useKeywordConnectionsQueries: replace 2x `err: any` → `err: unknown` with proper instanceof checks (types)
 - [x] useUndoRedo: add dialog guard to Ctrl+Z/Y keyboard handler — consistent with guards in all other keyboard hooks (a11y)
+
+## Round 128 — Continuous Audit (2026-03-18)
+- [x] Backend redeployed: `supabase functions deploy server` from feature/mindmap-ai-endpoints branch to fix "route not found" on POST /keyword-connections (stale deployment)
+- [x] Deep component audit: NodeContextMenu, ShareMapModal, PresentationMode, ChangeHistoryPanel, MapComparisonPanel, GraphTemplatePanel, AddNodeEdgeModal, NodeAnnotationModal, StickyNote, GraphToolbar — ALL CLEAN
+- [x] Service layer audit: mindmapApi.ts, keywordConnectionsApi.ts, api.ts — ALL CLEAN
+- [x] Types audit: mindmap.ts, keyword-connections.ts — ALL CLEAN
+- [x] Helper audit: graphHelpers.ts, changeHistoryHelpers.ts, presentationHelpers.ts — ALL CLEAN
+- [x] Build passes (45s), 1106 tests pass (33 test files), zero warnings
+- Status: Codebase is in excellent shape. No bugs, edge cases, or UX issues found in this round.
