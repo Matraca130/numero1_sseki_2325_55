@@ -800,6 +800,7 @@ export function KnowledgeGraph({
 
   // Counter that increments when setData rebuilds the graph, forcing highlight effect to reapply
   const [highlightEpoch, setHighlightEpoch] = useState(0);
+  const prevEpochRef = useRef(0);
 
   // Apply highlight/review styling incrementally via updateNodeData (avoids full setData rebuild)
   const prevHighlightRef = useRef<Set<string> | undefined>();
@@ -810,11 +811,18 @@ export function KnowledgeGraph({
 
     const prevHL = prevHighlightRef.current;
     const prevRV = prevReviewRef.current;
+    const epochChanged = prevEpochRef.current !== highlightEpoch;
     prevHighlightRef.current = highlightNodeIds;
     prevReviewRef.current = reviewNodeIds;
+    prevEpochRef.current = highlightEpoch;
 
-    // Skip if nothing changed
-    if (prevHL === highlightNodeIds && prevRV === reviewNodeIds) return;
+    // Skip if nothing changed (unless graph was rebuilt via epoch)
+    if (!epochChanged && prevHL === highlightNodeIds && prevRV === reviewNodeIds) return;
+
+    // No highlights/reviews active and none were active before — skip
+    const hasHighlightOrReview = (highlightNodeIds && highlightNodeIds.size > 0) || (reviewNodeIds && reviewNodeIds.size > 0);
+    const hadHighlightOrReview = (prevHL && prevHL.size > 0) || (prevRV && prevRV.size > 0);
+    if (!hasHighlightOrReview && !hadHighlightOrReview && !epochChanged) return;
 
     const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
     const hasReview = reviewNodeIds && reviewNodeIds.size > 0;
