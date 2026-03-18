@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 import { createCustomNode, createCustomEdge } from '@/app/services/mindmapApi';
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
-import { CONNECTION_TYPES } from '@/app/types/mindmap';
+import { CONNECTION_TYPES, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import type { MapNode } from '@/app/types/mindmap';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
@@ -71,6 +71,7 @@ export function AddNodeEdgeModal({
   const [edgeTarget, setEdgeTarget] = useState(initialEdgeTarget || '');
   const [edgeLabel, setEdgeLabel] = useState('');
   const [edgeType, setEdgeType] = useState('asociacion');
+  const [edgeDirected, setEdgeDirected] = useState(!!initialEdgeSource);
   const [edgeLineStyle, setEdgeLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
   const [edgeColor, setEdgeColor] = useState(colors.primary[500]);
 
@@ -99,7 +100,10 @@ export function AddNodeEdgeModal({
       setTab('node');
     } else {
       if (initialTab) setTab(initialTab);
-      if (initialEdgeSource) setEdgeSource(initialEdgeSource);
+      if (initialEdgeSource) {
+        setEdgeSource(initialEdgeSource);
+        setEdgeDirected(true); // Connect tool defaults to directed
+      }
       if (initialEdgeTarget) setEdgeTarget(initialEdgeTarget);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -128,6 +132,7 @@ export function AddNodeEdgeModal({
     setEdgeTarget('');
     setEdgeLabel('');
     setEdgeType('asociacion');
+    setEdgeDirected(false);
     setEdgeLineStyle('solid');
     setEdgeColor(colors.primary[500]);
   };
@@ -166,6 +171,7 @@ export function AddNodeEdgeModal({
         topic_id: topicId,
         line_style: edgeLineStyle !== 'solid' ? edgeLineStyle as 'dashed' | 'dotted' : undefined,
         custom_color: edgeColor !== colors.primary[500] ? edgeColor : undefined,
+        directed: edgeDirected || undefined,
       };
       const res = await createCustomEdge(payload);
       toast.success('Conexión añadida al mapa');
@@ -379,7 +385,13 @@ export function AddNodeEdgeModal({
                       <select
                         id="custom-edge-type"
                         value={edgeType}
-                        onChange={(e) => setEdgeType(e.target.value)}
+                        onChange={(e) => {
+                          const newType = e.target.value;
+                          setEdgeType(newType);
+                          // Auto-sync directed toggle from connection type metadata
+                          const meta = CONNECTION_TYPE_MAP.get(newType);
+                          if (meta) setEdgeDirected(meta.directed);
+                        }}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                       >
                         {CONNECTION_TYPES.map((ct) => (
@@ -388,6 +400,35 @@ export function AddNodeEdgeModal({
                           </option>
                         ))}
                       </select>
+                    </div>
+                    {/* Directed edge toggle */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <label htmlFor="custom-edge-directed" className="block text-xs font-medium text-gray-600">
+                          Flecha direccional
+                        </label>
+                        {edgeDirected && edgeSource && edgeTarget && (
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                            De {sortedNodes.find(n => n.id === edgeSource)?.label ?? 'origen'} → {sortedNodes.find(n => n.id === edgeTarget)?.label ?? 'destino'}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        id="custom-edge-directed"
+                        type="button"
+                        role="switch"
+                        aria-checked={edgeDirected}
+                        onClick={() => setEdgeDirected(d => !d)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ax-primary-500/20 ${
+                          edgeDirected ? 'bg-ax-primary-500' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            edgeDirected ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
                     </div>
                     {/* Line style + color row */}
                     <div className="flex gap-3">

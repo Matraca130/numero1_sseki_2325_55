@@ -120,7 +120,7 @@ export function MiniKnowledgeGraph({
             : edge.lineStyle === 'dotted' ? [2, 4]
             : edge.isUserCreated && !edge.lineStyle ? [6, 3]
             : undefined,
-          endArrow: !!edge.sourceKeywordId,
+          endArrow: edge.directed || !!edge.sourceKeywordId,
         },
       };
     });

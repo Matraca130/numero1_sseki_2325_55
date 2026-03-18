@@ -250,7 +250,7 @@ export function KnowledgeGraph({
               : edge.isUserCreated && !edge.lineStyle ? [6, 3]
               : undefined,
             opacity: edgeDimmed ? 0.2 : 1,
-            endArrow: !!edge.sourceKeywordId,
+            endArrow: edge.directed || !!edge.sourceKeywordId,
             labelText: edge.label || undefined,
             labelFill: edge.label ? colors.text.secondary : undefined,
             labelFontSize: edge.label ? 10 : undefined,

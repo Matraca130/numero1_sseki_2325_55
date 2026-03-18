@@ -59,6 +59,8 @@ export interface MapEdge {
   lineStyle?: EdgeLineStyle;
   /** Custom color hex for student-created edges */
   customColor?: string;
+  /** Whether this edge is directed (shows arrowhead from source to target) */
+  directed?: boolean;
 }
 
 /** Complete graph data for G6 */

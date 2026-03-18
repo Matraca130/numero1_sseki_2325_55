@@ -232,6 +232,8 @@ export interface CreateCustomEdgePayload {
   line_style?: 'dashed' | 'dotted';
   /** Custom color hex (overrides connection type default) */
   custom_color?: string;
+  /** Whether the edge is directed (shows arrowhead from source to target) */
+  directed?: boolean;
 }
 
 /** Backend response for custom node */
@@ -251,6 +253,7 @@ interface CustomEdgeResponse {
   connection_type?: string;
   line_style?: 'dashed' | 'dotted';
   custom_color?: string;
+  directed?: boolean;
 }
 
 /**
@@ -287,6 +290,7 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
       isUserCreated: true,
       lineStyle: e.line_style,
       customColor: e.custom_color,
+      directed: e.directed,
     }));
 
     return { nodes, edges };
