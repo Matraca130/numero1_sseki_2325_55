@@ -124,7 +124,7 @@ export function AddNodeEdgeModal({
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !savingRef.current) { e.stopPropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape' && !savingRef.current) { e.stopImmediatePropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';

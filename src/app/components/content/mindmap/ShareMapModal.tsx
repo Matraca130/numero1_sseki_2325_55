@@ -52,7 +52,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';

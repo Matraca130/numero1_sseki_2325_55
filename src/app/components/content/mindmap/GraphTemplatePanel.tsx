@@ -91,7 +91,7 @@ export function GraphTemplatePanel({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
