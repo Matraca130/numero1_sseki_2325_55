@@ -51,7 +51,7 @@ async function fetchKeywordSuggestions(
   if (!summary?.topic_id) return [];
 
   // Step 2: Get all summaries in the same topic
-  const siblingResult = await apiCall<any>(`/summaries?topic_id=${summary.topic_id}`);
+  const siblingResult = await apiCall<unknown>(`/summaries?topic_id=${summary.topic_id}`);
   const siblings = extractItems<Summary>(siblingResult)
     .filter(s => s.id !== summaryId && s.is_active);
 
@@ -61,7 +61,7 @@ async function fetchKeywordSuggestions(
   const keywordBatches = await Promise.all(
     siblings.map(async (sib) => {
       try {
-        const result = await apiCall<any>(`/keywords?summary_id=${sib.id}`);
+        const result = await apiCall<unknown>(`/keywords?summary_id=${sib.id}`);
         const keywords = extractItems<SummaryKeyword>(result)
           .filter(k => k.is_active);
         return keywords.map(k => ({

@@ -57,7 +57,7 @@ export function useKeywordDetailQueries(
     queryFn: async () => {
       const result = await studentApi.getKwStudentNotes(keywordId!);
       return extractItems<KwStudentNote>(result).filter(
-        (n) => !(n as any).deleted_at,
+        (n) => !('deleted_at' in n && n.deleted_at),
       );
     },
     enabled: !!keywordId,
