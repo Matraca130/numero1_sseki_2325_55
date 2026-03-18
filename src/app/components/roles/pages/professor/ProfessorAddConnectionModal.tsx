@@ -39,6 +39,8 @@ export function ProfessorAddConnectionModal({
   const savingRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const focusTrapRef = useFocusTrap(open);
 
   const sortedNodes = useMemo(
@@ -60,7 +62,7 @@ export function ProfessorAddConnectionModal({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
+      if (e.key === 'Escape' && !savingRef.current) { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     document.documentElement.style.overflow = 'hidden';
@@ -73,7 +75,7 @@ export function ProfessorAddConnectionModal({
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const handleCreate = useCallback(async () => {
     if (!connSource || !connTarget || connSource === connTarget || savingRef.current) return;
@@ -111,7 +113,7 @@ export function ProfessorAddConnectionModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => { if (!savingRef.current) onClose(); }}
             aria-hidden="true"
           />
           <motion.div
@@ -120,7 +122,7 @@ export function ProfessorAddConnectionModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose}
+            onClick={() => { if (!savingRef.current) onClose(); }}
           >
             <div
               ref={focusTrapRef}
