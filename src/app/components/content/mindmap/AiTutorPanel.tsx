@@ -263,8 +263,10 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       if (!mountedRef.current || analyzeTopicRef.current !== topicId) return;
 
       // ── Detect improved nodes (was weak, now gone or in strong) ──
-      const newWeakIds = new Set(result.weak_areas.map(w => w.keyword_id));
-      const strongIds = new Set(result.strong_areas.map(s => s.keyword_id));
+      const weakAreas = Array.isArray(result.weak_areas) ? result.weak_areas : [];
+      const strongAreas = Array.isArray(result.strong_areas) ? result.strong_areas : [];
+      const newWeakIds = new Set(weakAreas.map(w => w.keyword_id));
+      const strongIds = new Set(strongAreas.map(s => s.keyword_id));
       if (prevWeakMapRef.current.size > 0) {
         const improved: Array<{ id: string; name: string }> = [];
         for (const [id, name] of prevWeakMapRef.current) {
@@ -283,14 +285,14 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       }
       // Store current weak areas for next comparison
       const nextWeakMap = new Map<string, string>();
-      for (const wa of result.weak_areas) nextWeakMap.set(wa.keyword_id, wa.keyword_name);
+      for (const wa of weakAreas) nextWeakMap.set(wa.keyword_id, wa.keyword_name);
       prevWeakMapRef.current = nextWeakMap;
 
       setAnalysis(result);
       setWeakPoints(weak);
       // Highlight weak nodes on the graph
-      if (result.weak_areas.length > 0) {
-        const weakIds = new Set(result.weak_areas.map(w => w.keyword_id));
+      if (weakAreas.length > 0) {
+        const weakIds = new Set(weakAreas.map(w => w.keyword_id));
         onHighlightRef.current?.(weakIds);
         onReviewRef.current?.(weakIds);
       }
@@ -735,8 +737,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                     {suggestions.map((s) => {
                       const key = `${s.source}-${s.target}`;
                       const accepted = acceptedSuggestions.has(key);
-                      const sourceName = nodeLabels?.get(s.source) || s.source.slice(0, 8);
-                      const targetName = nodeLabels?.get(s.target) || s.target.slice(0, 8);
+                      const sourceName = nodeLabels?.get(s.source) || s.source?.slice(0, 8) || '?';
+                      const targetName = nodeLabels?.get(s.target) || s.target?.slice(0, 8) || '?';
                       return (
                         <div
                           key={key}

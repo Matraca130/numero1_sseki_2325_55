@@ -664,8 +664,8 @@ export function ProfessorKnowledgeMapPage() {
                       <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium ml-auto">Vista previa</span>
                     </div>
                     {(() => {
-                      const avgAll = heatmapData.reduce((s, d) => s + d.avg_mastery, 0) / heatmapData.length;
-                      const totalWeak = heatmapData.reduce((s, d) => s + d.weak_student_count, 0);
+                      const avgAll = heatmapData.reduce((s, d) => s + (d.avg_mastery ?? 0), 0) / heatmapData.length;
+                      const totalWeak = heatmapData.reduce((s, d) => s + (d.weak_student_count ?? 0), 0);
                       const weakNodes = heatmapData.filter(d => d.avg_mastery < 0.3).length;
                       return (
                         <div className="space-y-1.5">
