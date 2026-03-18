@@ -209,9 +209,13 @@ export function useKeyboardNav({
     if (!graph || !container || !ready) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input/textarea
-      const tag = (e.target as HTMLElement)?.tagName;
+      // Ignore if user is typing in an input/textarea/contenteditable
+      const target = e.target as HTMLElement;
+      const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (target?.isContentEditable) return;
+      // Ignore if any modal/dialog is open (don't hijack keyboard inside modals)
+      if (target?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
 
       const currentNodes = nodesRef.current;
       const currentEdges = edgesRef.current;
