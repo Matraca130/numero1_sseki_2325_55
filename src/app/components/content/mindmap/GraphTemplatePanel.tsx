@@ -101,6 +101,12 @@ export function GraphTemplatePanel({
   useEffect(() => {
     if (open) {
       loadTemplates();
+    } else {
+      // Reset save form state when panel closes
+      setShowSaveForm(false);
+      setSaveName('');
+      setSaveDescription('');
+      setDeleteTarget(null);
     }
   }, [open, loadTemplates]);
 

@@ -171,60 +171,72 @@ export function useUndoRedo(onGraphChanged: () => void) {
 
   const undo = useCallback(async () => {
     if (busyRef.current || pastRef.current.length === 0) return;
+    busyRef.current = true; // sync guard — prevents double-undo before React re-renders
     setBusy(true);
-    const action = pastRef.current[pastRef.current.length - 1];
-    const updated = await reverseAction(action);
-    if (!mountedRef.current) return; // unmounted during async
-    if (updated) {
-      setPast(prev => prev.slice(0, -1));
-      // Push the updated action (with server-assigned IDs) onto the redo stack
-      setFuture(prev => [...prev, updated]);
-      onGraphChanged();
-      if (updated.type === 'reconnect-edge') {
-        toast.info('Deshacer: Reconexión de arista');
+    try {
+      const action = pastRef.current[pastRef.current.length - 1];
+      const updated = await reverseAction(action);
+      if (!mountedRef.current) return; // unmounted during async
+      if (updated) {
+        setPast(prev => prev.slice(0, -1));
+        // Push the updated action (with server-assigned IDs) onto the redo stack
+        setFuture(prev => [...prev, updated]);
+        onGraphChanged();
+        if (updated.type === 'reconnect-edge') {
+          toast.info('Deshacer: Reconexión de arista');
+        } else {
+          const label = updated.type.includes('node') ? 'concepto' : 'conexión';
+          const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
+          toast.info(`Deshacer: ${verb} de ${label}`);
+        }
       } else {
-        const label = updated.type.includes('node') ? 'concepto' : 'conexión';
-        const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
-        toast.info(`Deshacer: ${verb} de ${label}`);
+        // reverseAction failed — clear history to avoid stale stacks
+        setPast([]);
+        setFuture([]);
       }
-    } else {
-      // reverseAction failed — clear history to avoid stale stacks
-      setPast([]);
-      setFuture([]);
+    } finally {
+      if (mountedRef.current) setBusy(false);
+      busyRef.current = false;
     }
-    setBusy(false);
   }, [reverseAction, onGraphChanged]);
 
   const redo = useCallback(async () => {
     if (busyRef.current || futureRef.current.length === 0) return;
+    busyRef.current = true; // sync guard — prevents double-redo before React re-renders
     setBusy(true);
-    const action = futureRef.current[futureRef.current.length - 1];
-    const updated = await replayAction(action);
-    if (!mountedRef.current) return; // unmounted during async
-    if (updated) {
-      setFuture(prev => prev.slice(0, -1));
-      setPast(prev => [...prev, updated]);
-      onGraphChanged();
-      if (updated.type === 'reconnect-edge') {
-        toast.info('Rehacer: Reconexión de arista');
+    try {
+      const action = futureRef.current[futureRef.current.length - 1];
+      const updated = await replayAction(action);
+      if (!mountedRef.current) return; // unmounted during async
+      if (updated) {
+        setFuture(prev => prev.slice(0, -1));
+        setPast(prev => [...prev, updated]);
+        onGraphChanged();
+        if (updated.type === 'reconnect-edge') {
+          toast.info('Rehacer: Reconexión de arista');
+        } else {
+          const label = updated.type.includes('node') ? 'concepto' : 'conexión';
+          const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
+          toast.info(`Rehacer: ${verb} de ${label}`);
+        }
       } else {
-        const label = updated.type.includes('node') ? 'concepto' : 'conexión';
-        const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
-        toast.info(`Rehacer: ${verb} de ${label}`);
+        // replayAction failed — clear history to avoid stale stacks
+        setPast([]);
+        setFuture([]);
       }
-    } else {
-      // replayAction failed — clear history to avoid stale stacks
-      setPast([]);
-      setFuture([]);
+    } finally {
+      if (mountedRef.current) setBusy(false);
+      busyRef.current = false;
     }
-    setBusy(false);
   }, [replayAction, onGraphChanged]);
 
   // Keyboard shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (el?.isContentEditable) return;
 
       const isCtrl = e.ctrlKey || e.metaKey;
       if (!isCtrl) return;
