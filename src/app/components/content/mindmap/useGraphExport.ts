@@ -86,7 +86,7 @@ export function useGraphExport() {
       downloadDataURL(dataURL, buildFilename(format));
     } catch (err) {
       // Graph may be destroyed or in transition
-      console.error('Export failed:', err);
+      if (import.meta.env.DEV) console.error('Export failed:', err);
       toast.error('No se pudo exportar la imagen del mapa');
     }
   }, []);

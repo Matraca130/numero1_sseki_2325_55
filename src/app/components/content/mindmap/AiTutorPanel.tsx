@@ -282,7 +282,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       }
       toast.success('Análisis completado');
     } catch (err) {
-      console.error('AI analysis failed:', err);
+      if (import.meta.env.DEV) console.error('AI analysis failed:', err);
       if (mountedRef.current) toast.error('Error al analizar el mapa');
     } finally {
       analyzingRef.current = false;
