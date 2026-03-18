@@ -363,3 +363,11 @@ las llamadas API, aunque el backend aún no exista):
 - [x] MicroGraphPanel stale isMobileSize fix
 - [x] DeleteConnectionDialog focus trap
 - [x] XP toast timer leak fix
+
+## Round 125 — Continuous Audit (2026-03-18)
+- [x] PresentationMode: lock both html+body overflow for iOS Safari scroll prevention (MEDIUM)
+- [x] KnowledgeGraph: fix "Navegacion" → "Navegación" aria-label accent (LOW)
+- [x] changeHistoryHelpers: fix "Conexion" → "Conexión" in JSDoc comment (LOW)
+- [x] useKeywordConnectionsQueries: fix 4 toast messages missing accent on "Conexión" (LOW)
+- [x] useKeywordConnectionsQueries: replace 2x `err: any` → `err: unknown` with proper instanceof checks (types)
+- [x] useUndoRedo: add dialog guard to Ctrl+Z/Y keyboard handler — consistent with guards in all other keyboard hooks (a11y)
