@@ -578,6 +578,42 @@ export function KnowledgeMapView() {
     [graphData?.edges],
   );
 
+  // Stable callbacks for panel props (avoids inline closures causing re-renders)
+  const graphDataRef = useRef(graphData);
+  graphDataRef.current = graphData;
+
+  const handleAiPanelClose = useCallback(() => {
+    setShowAiPanel(false);
+    setAiHighlightNodes(undefined);
+    setAiReviewNodes(undefined);
+  }, []);
+
+  const handleComparisonClose = useCallback(() => {
+    setShowComparison(false);
+    setAiHighlightNodes(undefined);
+  }, []);
+
+  const handleHistoryClose = useCallback(() => setShowHistory(false), []);
+  const handleHistoryClear = useCallback(() => {
+    setHistoryEntries([]);
+    clearHistoryStorage(effectiveTopicId);
+  }, [effectiveTopicId]);
+
+  const handleNavigateToAction = useCallback((kwId: string, action: string) => {
+    if (action === 'flashcard' || action === 'review') navigateWithFade(`/student/flashcards?keywordId=${kwId}`);
+    else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
+    else if (action === 'summary') {
+      const matchNode = graphDataRef.current?.nodes.find(n => n.id === kwId);
+      const sParam = matchNode?.summaryId ? `?summaryId=${matchNode.summaryId}` : '';
+      navigateWithFade(`/student/summary/${effectiveTopicId}${sParam}`);
+    }
+  }, [navigateWithFade, effectiveTopicId]);
+
+  const handleComparisonNavigate = useCallback((kwId: string, action: string) => {
+    if (action === 'flashcard') navigateWithFade(`/student/flashcards?keywordId=${kwId}`);
+    else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
+  }, [navigateWithFade]);
+
   // ── Derived data ────────────────────────────────────────
 
   const masteryStats = useMemo(() => {
@@ -1097,18 +1133,10 @@ export function KnowledgeMapView() {
             <AiTutorPanel
               topicId={effectiveTopicId}
               open={showAiPanel}
-              onClose={() => { setShowAiPanel(false); setAiHighlightNodes(undefined); setAiReviewNodes(undefined); }}
+              onClose={handleAiPanelClose}
               onHighlightNodes={setAiHighlightNodes}
               onReviewNodes={setAiReviewNodes}
-              onNavigateToAction={(kwId, action) => {
-                if (action === 'flashcard' || action === 'review') navigateWithFade(`/student/flashcards?keywordId=${kwId}`);
-                else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
-                else if (action === 'summary') {
-                  const matchNode = graphData?.nodes.find(n => n.id === kwId);
-                  const sParam = matchNode?.summaryId ? `?summaryId=${matchNode.summaryId}` : '';
-                  navigateWithFade(`/student/summary/${effectiveTopicId}${sParam}`);
-                }
-              }}
+              onNavigateToAction={handleNavigateToAction}
               existingNodeIds={existingNodeIds}
               existingEdgeIds={existingEdgeIds}
               onEdgeCreated={refetch}
@@ -1119,21 +1147,18 @@ export function KnowledgeMapView() {
           {/* Change history panel — slides in from right */}
           <ChangeHistoryPanel
             open={showHistory}
-            onClose={() => setShowHistory(false)}
+            onClose={handleHistoryClose}
             entries={historyEntries}
-            onClear={() => { setHistoryEntries([]); clearHistoryStorage(effectiveTopicId); }}
+            onClear={handleHistoryClear}
           />
 
           {/* Map comparison panel — slides in from right */}
           <MapComparisonPanel
             open={showComparison}
-            onClose={() => { setShowComparison(false); setAiHighlightNodes(undefined); }}
+            onClose={handleComparisonClose}
             graphData={graphData}
             onHighlightNodes={setAiHighlightNodes}
-            onNavigateToAction={(kwId, action) => {
-              if (action === 'flashcard') navigateWithFade(`/student/flashcards?keywordId=${kwId}`);
-              else if (action === 'quiz') navigateWithFade(`/student/quizzes?keywordId=${kwId}`);
-            }}
+            onNavigateToAction={handleComparisonNavigate}
           />
 
           {/* First-visit onboarding tips */}
