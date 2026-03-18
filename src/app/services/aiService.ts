@@ -46,7 +46,7 @@ export type {
 } from './ai-service/as-types';
 
 // Chat (RAG)
-export { chat, chatText, explainConcept } from './ai-service/as-chat';
+export { chat, chatText, chatStream, explainConcept } from './ai-service/as-chat';
 
 // Generate (basic)
 export { generateFlashcard, generateQuizQuestion } from './ai-service/as-generate';
