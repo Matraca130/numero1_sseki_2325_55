@@ -1016,17 +1016,8 @@ export function KnowledgeGraph({
     const handleBrushSelect = (evt: { data: { nodes?: string[] } }) => {
       const selectedIds = evt.data?.nodes ?? [];
       if (selectedIds.length > 0) {
-        // Merge with existing multi-selection (brush requires Shift, so always merge)
         const next = new Set([...multiSelectedIdsRef.current, ...selectedIds]);
-        setMultiSelectedIds(next);
-        onMultiSelectRef.current?.(Array.from(next));
-        // Apply visual state
-        try {
-          for (const nId of dataNodesRef.current.map(n => n.id)) {
-            graph.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
-          }
-          graph.draw();
-        } catch (e) { warnIfNotDestroyed(e); }
+        updateMultiSelection(next);
       }
     };
 
