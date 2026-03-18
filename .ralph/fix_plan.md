@@ -296,6 +296,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 83 audit (barrel exports + integration): Barrel index.ts has zero external consumers (all use direct imports). 6 missing exports noted but LOW priority since barrel is unused. No circular dependencies. Cross-module imports all correct.
 - [x] Round 84 audit (performance): Fixed Shift+click multi-selection using O(N) loop → diff-based O(delta) applyMultiSelectionState. Stabilized onNodeClick/onNodeRightClick via refs to prevent G6 event re-registration on tool changes (~10 listeners torn down/rebuilt per tool switch).
 - [x] Round 85 audit (keyboard hooks): Fixed useKeyboardNav missing preventDefault on zoom (+/-), fitView (0/f), Escape, and ? shortcuts — browser-native actions (Firefox zoom, Find in page) were firing simultaneously. useSpacePan verified clean. All 995 tests passing.
+- [x] Round 86 audit (callback stability): Stabilized onNodeClick/onNodeRightClick via refs in useKeyboardNav — prevents keyboard event handler re-registration on every parent re-render. Now both KnowledgeGraph (G6 events) and useKeyboardNav (keyboard events) use the ref pattern for these callbacks.
 
 ## Completed
 - [x] Search/filter with debounce
