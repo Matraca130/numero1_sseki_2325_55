@@ -201,10 +201,10 @@ function EmptyHistory() {
 }
 
 function TimelineEntry({ entry, index }: { entry: HistoryEntry; index: number }) {
-  const Icon = ACTION_ICON[entry.type];
-  const dotColor = DOT_COLOR[entry.type];
-  const iconBg = ICON_BG[entry.type];
-  const iconColor = ICON_COLOR[entry.type];
+  const Icon = ACTION_ICON[entry.type] || Plus;
+  const dotColor = DOT_COLOR[entry.type] || colors.text.tertiary;
+  const iconBg = ICON_BG[entry.type] || '#f3f4f6';
+  const iconColor = ICON_COLOR[entry.type] || colors.text.tertiary;
 
   return (
     <motion.div

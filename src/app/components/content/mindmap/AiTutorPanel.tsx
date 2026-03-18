@@ -276,8 +276,10 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
     onNavigateToAction?.(wp.keyword_id, wp.recommended_action);
   }, [onHighlightNodes, onNavigateToAction]);
 
+  const suggestingRef = useRef(false);
   const handleSuggestConnections = useCallback(async () => {
-    if (!existingNodeIds?.length) return;
+    if (suggestingRef.current || !existingNodeIds?.length) return;
+    suggestingRef.current = true;
     setSuggestingConnections(true);
     try {
       const result = await suggestStudentConnections(topicId, existingNodeIds, existingEdgeIds || []);
@@ -290,13 +292,19 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
     } catch {
       if (mountedRef.current) toast.error('Error al sugerir conexiones');
     } finally {
+      suggestingRef.current = false;
       if (mountedRef.current) setSuggestingConnections(false);
     }
   }, [topicId, existingNodeIds, existingEdgeIds]);
 
+  const acceptedRef = useRef(acceptedSuggestions);
+  acceptedRef.current = acceptedSuggestions;
+  const acceptingKeyRef = useRef(acceptingKey);
+  acceptingKeyRef.current = acceptingKey;
+
   const handleAcceptSuggestion = useCallback(async (suggestion: SuggestedConnection) => {
     const key = `${suggestion.source}-${suggestion.target}`;
-    if (acceptedSuggestions.has(key) || acceptingKey === key) return;
+    if (acceptedRef.current.has(key) || acceptingKeyRef.current === key) return;
     setAcceptingKey(key);
     try {
       await createCustomEdge({
@@ -315,7 +323,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
     } finally {
       if (mountedRef.current) setAcceptingKey(null);
     }
-  }, [topicId, onEdgeCreated, acceptedSuggestions, acceptingKey]);
+  }, [topicId, onEdgeCreated]);
 
   const handleDismissSuggestion = useCallback((suggestion: SuggestedConnection) => {
     setSuggestions(prev => prev.filter(s => !(s.source === suggestion.source && s.target === suggestion.target)));

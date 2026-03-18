@@ -34,11 +34,21 @@ function storageKey(topicId: string): string {
   return `${STORAGE_PREFIX}${topicId}`;
 }
 
+/** Validate that a parsed value looks like a HistoryEntry */
+function isValidEntry(v: unknown): v is HistoryEntry {
+  if (!v || typeof v !== 'object') return false;
+  const e = v as Record<string, unknown>;
+  return typeof e.id === 'string' && typeof e.type === 'string' && typeof e.description === 'string' && typeof e.timestamp === 'string';
+}
+
 /** Load history entries from sessionStorage */
 export function loadHistory(topicId: string): HistoryEntry[] {
   try {
     const raw = sessionStorage.getItem(storageKey(topicId));
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidEntry);
   } catch {
     return [];
   }
