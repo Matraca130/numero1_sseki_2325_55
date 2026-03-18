@@ -207,6 +207,8 @@ export function KnowledgeGraph({
   // Stable ref for data.nodes — avoids stale closure in event handlers
   const dataNodesRef = useRef(data.nodes);
   dataNodesRef.current = data.nodes;
+  const dataEdgesRef = useRef(data.edges);
+  dataEdgesRef.current = data.edges;
 
   // Auto-dismiss mobile hint after 4 seconds
   useEffect(() => {
@@ -231,13 +233,19 @@ export function KnowledgeGraph({
   const topicIdRef = useRef(topicId);
   topicIdRef.current = topicId;
 
-  // Helper: apply multi-selection visual state to G6 nodes
+  // Helper: apply multi-selection visual state to G6 nodes (diff-based for O(delta) perf)
+  const prevMultiRef = useRef<Set<string>>(new Set());
   const applyMultiSelectionState = useCallback((graph: Graph, ids: Set<string>) => {
     try {
-      // Use ref for stable reference — avoids stale closure cascade
-      for (const node of dataNodesRef.current) {
-        graph.setElementState(node.id, ids.has(node.id) ? ['multiSelected'] : []);
+      const prev = prevMultiRef.current;
+      // Only update nodes that changed state (O(delta) instead of O(N))
+      for (const id of ids) {
+        if (!prev.has(id)) graph.setElementState(id, ['multiSelected']);
       }
+      for (const id of prev) {
+        if (!ids.has(id)) graph.setElementState(id, []);
+      }
+      prevMultiRef.current = new Set(ids);
       graph.draw();
     } catch (e) { warnIfNotDestroyed(e); }
   }, []);
@@ -261,27 +269,20 @@ export function KnowledgeGraph({
     return map;
   }, [combos]);
 
-  // Transform Axon data → G6 format, respecting collapsed and highlight state
+  // Transform Axon data → G6 format (structural only — highlight/review styling applied separately)
   const g6Data = useCallback((collapsed: Set<string>, positions?: PositionMap) => {
-    const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
-    const hasReview = reviewNodeIds && reviewNodeIds.size > 0;
     const hidden = computeHiddenNodes(data.nodes, data.edges, collapsed, childrenMap);
 
     const nodes = data.nodes
       .filter(node => !hidden.has(node.id))
       .map((node) => {
-        const isHighlighted = hasHighlight && highlightNodeIds!.has(node.id);
-        const isDimmed = hasHighlight && !isHighlighted;
-        const needsReview = hasReview && reviewNodeIds!.has(node.id);
-        const strokeColor = needsReview ? '#f97316' : getNodeStroke(node.masteryColor);
+        const strokeColor = getNodeStroke(node.masteryColor);
         const isCollapsed = collapsed.has(node.id);
         const childCount = childrenMap.get(node.id)?.length ?? 0;
         const baseLabel = truncateLabel(node.label);
         const displayLabel = isCollapsed && childCount > 0
           ? baseLabel + ` (+${childCount})`
-          : needsReview
-            ? '\u26a0 ' + baseLabel
-            : baseLabel;
+          : baseLabel;
 
         const savedPos = positions?.get(node.id);
         const comboId = nodeToCombo.get(node.id);
@@ -300,7 +301,7 @@ export function KnowledgeGraph({
             flashcardCount: node.flashcardCount,
             quizCount: node.quizCount,
             annotation: node.annotation,
-            needsReview,
+            needsReview: false,
             _raw: node,
           },
           style: {
@@ -310,17 +311,16 @@ export function KnowledgeGraph({
             stroke: node.isUserCreated && customNodeColors?.get(node.id)
               ? customNodeColors.get(node.id)!
               : node.isUserCreated ? colors.primary[500] : strokeColor,
-            lineWidth: isHighlighted ? 3 : needsReview ? 2.5 : isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
+            lineWidth: isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
             lineDash: isCollapsed ? [4, 4] : node.isUserCreated ? [6, 3] : undefined,
-            shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
-            shadowBlur: isHighlighted ? 10 : needsReview ? 8 : 0,
-            opacity: isDimmed ? 0.35 : 1,
+            shadowColor: 'transparent',
+            shadowBlur: 0,
+            opacity: 1,
             labelText: displayLabel,
-            labelFill: isDimmed ? colors.text.tertiary : needsReview ? '#c2410c' : colors.text.primary,
+            labelFill: colors.text.primary,
             labelFontSize: 12,
             labelFontFamily: 'Inter, sans-serif',
             size: Math.max(32, Math.min(56, 32 + (node.mastery >= 0 ? node.mastery * 24 : 0))),
-            // Apply saved position from last drag (used as initial position for layout)
             ...(savedPos ? { x: savedPos.x, y: savedPos.y } : {}),
           },
         };
@@ -328,45 +328,37 @@ export function KnowledgeGraph({
 
     const edges = data.edges
       .filter(edge => !hidden.has(edge.source) && !hidden.has(edge.target))
-      .map((edge) => {
-        const edgeHighlighted =
-          hasHighlight &&
-          highlightNodeIds!.has(edge.source) &&
-          highlightNodeIds!.has(edge.target);
-        const edgeDimmed = hasHighlight && !edgeHighlighted;
-
-        return {
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          data: {
-            label: edge.label,
-            connectionType: edge.connectionType,
-            _raw: edge,
-          },
-          style: {
-            stroke: edge.customColor || (edge.isUserCreated ? colors.primary[500] : getEdgeColor(edge.connectionType)),
-            lineWidth: edge.isUserCreated ? 2 : 1.5,
-            lineDash: edge.lineStyle === 'dashed' ? [6, 3]
-              : edge.lineStyle === 'dotted' ? [2, 4]
-              : edge.isUserCreated && !edge.lineStyle ? [6, 3]
-              : undefined,
-            opacity: edgeDimmed ? 0.2 : 1,
-            endArrow: (edge.directed || !!edge.sourceKeywordId)
-              ? { type: edge.arrowType || 'triangle', size: 8 }
-              : false,
-            labelText: edge.label || undefined,
-            labelFill: edge.label ? '#71717a' : undefined,
-            labelFontSize: edge.label ? 10 : undefined,
-            labelFontFamily: edge.label ? 'Inter, sans-serif' : undefined,
-            labelBackground: !!edge.label,
-            labelBackgroundFill: edge.label ? '#ffffff' : undefined,
-            labelBackgroundOpacity: edge.label ? 0.85 : undefined,
-            labelBackgroundRadius: edge.label ? 4 : undefined,
-            labelPadding: edge.label ? [2, 6, 2, 6] : undefined,
-          },
-        };
-      });
+      .map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        data: {
+          label: edge.label,
+          connectionType: edge.connectionType,
+          _raw: edge,
+        },
+        style: {
+          stroke: edge.customColor || (edge.isUserCreated ? colors.primary[500] : getEdgeColor(edge.connectionType)),
+          lineWidth: edge.isUserCreated ? 2 : 1.5,
+          lineDash: edge.lineStyle === 'dashed' ? [6, 3]
+            : edge.lineStyle === 'dotted' ? [2, 4]
+            : edge.isUserCreated && !edge.lineStyle ? [6, 3]
+            : undefined,
+          opacity: 1,
+          endArrow: (edge.directed || !!edge.sourceKeywordId)
+            ? { type: edge.arrowType || 'triangle', size: 8 }
+            : false,
+          labelText: edge.label || undefined,
+          labelFill: edge.label ? '#71717a' : undefined,
+          labelFontSize: edge.label ? 10 : undefined,
+          labelFontFamily: edge.label ? 'Inter, sans-serif' : undefined,
+          labelBackground: !!edge.label,
+          labelBackgroundFill: edge.label ? '#ffffff' : undefined,
+          labelBackgroundOpacity: edge.label ? 0.85 : undefined,
+          labelBackgroundRadius: edge.label ? 4 : undefined,
+          labelPadding: edge.label ? [2, 6, 2, 6] : undefined,
+        },
+      }));
 
     // Build G6 combo data from persisted combos
     const g6Combos = combos.map(c => ({
@@ -375,7 +367,7 @@ export function KnowledgeGraph({
     }));
 
     return { nodes, edges, combos: g6Combos };
-  }, [data, highlightNodeIds, reviewNodeIds, childrenMap, customNodeColors, combos, nodeToCombo]);
+  }, [data, childrenMap, customNodeColors, combos, nodeToCombo]);
 
   // Layout config
   const getLayoutConfig = useCallback(() => {
@@ -389,10 +381,17 @@ export function KnowledgeGraph({
 
   // Reset collapsed nodes when the underlying data set changes (e.g. topic switch)
   const prevNodeSetRef = useRef('');
-  const nodeSetKey = useMemo(
-    () => data.nodes.map(n => n.id).sort().join(','),
-    [data.nodes],
-  );
+  // O(N) fingerprint: count + simple hash of all IDs (avoids O(N log N) sort+join)
+  const nodeSetKey = useMemo(() => {
+    const n = data.nodes;
+    if (n.length === 0) return '0';
+    let hash = 0;
+    for (let i = 0; i < n.length; i++) {
+      const id = n[i].id;
+      for (let j = 0; j < id.length; j++) hash = ((hash << 5) - hash + id.charCodeAt(j)) | 0;
+    }
+    return `${n.length}:${hash}`;
+  }, [data.nodes]);
   useEffect(() => {
     if (prevNodeSetRef.current && prevNodeSetRef.current !== nodeSetKey) {
       const empty = new Set<string>();
@@ -405,9 +404,19 @@ export function KnowledgeGraph({
 
   // Stable identity key for data+layout to avoid unnecessary graph recreations
   const dataKey = useRef('');
+  const edgeSetKey = useMemo(() => {
+    const e = data.edges;
+    if (e.length === 0) return '0';
+    let hash = 0;
+    for (let i = 0; i < e.length; i++) {
+      const id = e[i].id;
+      for (let j = 0; j < id.length; j++) hash = ((hash << 5) - hash + id.charCodeAt(j)) | 0;
+    }
+    return `${e.length}:${hash}`;
+  }, [data.edges]);
   const currentDataKey = useMemo(
-    () => layout + ':' + nodeSetKey + '|' + data.edges.map(e => e.id).sort().join(',') + '|mm:' + (showMinimap ? '1' : '0') + '|grid:' + (gridEnabled ? '1' : '0') + '|dc:' + (enableDragConnect ? '1' : '0'),
-    [layout, nodeSetKey, data.edges, showMinimap, gridEnabled, enableDragConnect],
+    () => `${layout}:${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}|dc:${enableDragConnect ? '1' : '0'}`,
+    [layout, nodeSetKey, edgeSetKey, showMinimap, gridEnabled, enableDragConnect],
   );
 
   // Stable refs so collapseAll/expandAll/toggleCollapse in onReady always use latest state
@@ -784,6 +793,65 @@ export function KnowledgeGraph({
   // Including both causes graph.draw() to fire twice per data update.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g6Data, ready, collapsedNodes]);
+
+  // Apply highlight/review styling incrementally via updateNodeData (avoids full setData rebuild)
+  const prevHighlightRef = useRef<Set<string> | undefined>();
+  const prevReviewRef = useRef<Set<string> | undefined>();
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || !ready) return;
+
+    const prevHL = prevHighlightRef.current;
+    const prevRV = prevReviewRef.current;
+    prevHighlightRef.current = highlightNodeIds;
+    prevReviewRef.current = reviewNodeIds;
+
+    // Skip if nothing changed
+    if (prevHL === highlightNodeIds && prevRV === reviewNodeIds) return;
+
+    const hasHighlight = highlightNodeIds && highlightNodeIds.size > 0;
+    const hasReview = reviewNodeIds && reviewNodeIds.size > 0;
+
+    const nodeUpdates: { id: string; style: Record<string, unknown>; data?: Record<string, unknown> }[] = [];
+    const edgeUpdates: { id: string; style: Record<string, unknown> }[] = [];
+
+    for (const node of dataNodesRef.current) {
+      const isHighlighted = hasHighlight && highlightNodeIds!.has(node.id);
+      const isDimmed = hasHighlight && !isHighlighted;
+      const needsReview = hasReview && reviewNodeIds!.has(node.id);
+      const strokeColor = needsReview ? '#f97316' : getNodeStroke(node.masteryColor);
+      const baseLabel = truncateLabel(node.label);
+
+      nodeUpdates.push({
+        id: node.id,
+        data: { needsReview },
+        style: {
+          lineWidth: isHighlighted ? 3 : needsReview ? 2.5 : node.isUserCreated ? 2 : 1.5,
+          shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
+          shadowBlur: isHighlighted ? 10 : needsReview ? 8 : 0,
+          opacity: isDimmed ? 0.35 : 1,
+          labelText: needsReview ? '\u26a0 ' + baseLabel : baseLabel,
+          labelFill: isDimmed ? colors.text.tertiary : needsReview ? '#c2410c' : colors.text.primary,
+        },
+      });
+    }
+
+    for (const edge of dataEdgesRef.current) {
+      const edgeHighlighted = hasHighlight && highlightNodeIds!.has(edge.source) && highlightNodeIds!.has(edge.target);
+      const edgeDimmed = hasHighlight && !edgeHighlighted;
+      edgeUpdates.push({
+        id: edge.id,
+        style: { opacity: edgeDimmed ? 0.2 : 1 },
+      });
+    }
+
+    try {
+      if (nodeUpdates.length > 0) graph.updateNodeData(nodeUpdates);
+      if (edgeUpdates.length > 0) graph.updateEdgeData(edgeUpdates);
+      graph.draw();
+    } catch (e) { warnIfNotDestroyed(e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightNodeIds, reviewNodeIds, ready]);
 
   // Highlight selected node — O(1) lookup via memoized map
   const nodeById = useMemo(

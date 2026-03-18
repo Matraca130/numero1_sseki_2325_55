@@ -568,6 +568,16 @@ export function KnowledgeMapView() {
     return new Map(graphData.nodes.map(n => [n.id, n.label]));
   }, [graphData]);
 
+  // Memoized ID arrays for AiTutorPanel (avoids new refs every render)
+  const existingNodeIds = useMemo(
+    () => graphData?.nodes.map(n => n.id),
+    [graphData?.nodes],
+  );
+  const existingEdgeIds = useMemo(
+    () => graphData?.edges.map(e => e.id),
+    [graphData?.edges],
+  );
+
   // ── Derived data ────────────────────────────────────────
 
   const masteryStats = useMemo(() => {
@@ -1099,8 +1109,8 @@ export function KnowledgeMapView() {
                   navigateWithFade(`/student/summary/${effectiveTopicId}${sParam}`);
                 }
               }}
-              existingNodeIds={graphData ? graphData.nodes.map(n => n.id) : undefined}
-              existingEdgeIds={graphData ? graphData.edges.map(e => e.id) : undefined}
+              existingNodeIds={existingNodeIds}
+              existingEdgeIds={existingEdgeIds}
               onEdgeCreated={refetch}
               nodeLabels={nodeLabels}
             />
