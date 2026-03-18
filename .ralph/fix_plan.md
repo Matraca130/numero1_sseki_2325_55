@@ -163,8 +163,8 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Gradientes de color según mastery — smooth transition via G6 v5 element update animation
 - [x] Leyenda de colores visible — floating semi-transparent panel bottom-left with 4 dots+labels (Débil/Aprendiendo/Dominado/Sin datos), pointer-events-none, desktop only
 - [x] Tooltip muestra mastery % + definición — already implemented in KnowledgeGraph tooltip plugin
-- [ ] En modo presentación, mostrar el color de mastery en la card de cada nodo
-- [ ] Professor view: mostrar mastery promedio de sus students por nodo (heatmap overlay)
+- [x] En modo presentación, mastery color en card — added MASTERY_HEX_LIGHT background tint to presentation cards (dot, label, %, progress bar already existed)
+- [x] Professor heatmap overlay — Thermometer toggle, fetchClassMastery with 404 fallback to mock, heatmapGraphData replaces node mastery with class avg, sidebar summary + node detail, "Vista previa" badge
 
 ### 1D. Interacciones y UX Premium
 - [x] Double-click en nodo para expandir/contraer — already implemented via handleNodeDblClick + computeHiddenNodes
