@@ -570,6 +570,22 @@ export function useEdgeReconnect({
       container.removeEventListener('pointercancel', handlePointerCancel);
       document.removeEventListener('keydown', handleKeyDown);
       cancelAnimationFrame(rafRef.current);
+      // Restore edge state + cursor if unmount/re-run happens during active drag
+      const ds = dragStateRef.current;
+      if (ds) {
+        if (ds.capturedPointerId >= 0) {
+          try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* already released */ }
+        }
+        if (ds.activated && graph) {
+          try {
+            graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
+            graph.draw();
+          } catch { /* graph may be destroyed */ }
+        }
+        dragStateRef.current = null;
+      }
+      const canvasEl = container.querySelector('canvas');
+      if (canvasEl) canvasEl.style.cursor = '';
     };
   }, [enabled, ready, graphVersion, graphRef, containerRef, draw]);
 

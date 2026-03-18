@@ -105,9 +105,6 @@ export function invalidateGraphCache(topicId?: string, summaryId?: string): void
     // summary key. Course-level caches may be stale but will refresh
     // on next fetch via TTL; this avoids nuking the entire cache.
     cache.delete(`s:${summaryId}`);
-  } else {
-    // No identifiers provided — clear entire cache as fallback.
-    cache.clear();
   }
   notifyInvalidation();
 }
