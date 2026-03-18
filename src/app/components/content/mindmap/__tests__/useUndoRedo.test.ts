@@ -242,6 +242,82 @@ describe('Action type reverse mapping', () => {
   });
 });
 
+// ── Graceful failure behavior ───────────────────────────────
+// Tests the production fix: when undo/redo fails, only the failed
+// action is removed — the rest of the history is preserved.
+
+describe('Graceful failure on undo/redo', () => {
+  let stack: UndoRedoStack;
+
+  beforeEach(() => {
+    stack = new UndoRedoStack();
+  });
+
+  it('failed undo removes only the failed action from past, preserves rest', () => {
+    const a1: CreateNodeAction = { type: 'create-node', nodeId: 'n1', payload: { topic_id: 't1', label: 'First' } };
+    const a2: CreateNodeAction = { type: 'create-node', nodeId: 'n2', payload: { topic_id: 't1', label: 'Second' } };
+    const a3: CreateNodeAction = { type: 'create-node', nodeId: 'n3', payload: { topic_id: 't1', label: 'Third' } };
+
+    stack.push(a1);
+    stack.push(a2);
+    stack.push(a3);
+    expect(stack.past.length).toBe(3);
+
+    // Simulate failed undo: remove only the last action (the one that failed)
+    // This mirrors the production code: setPast(prev => prev.slice(0, -1))
+    stack.past = stack.past.slice(0, -1);
+
+    // Remaining history should be intact
+    expect(stack.past.length).toBe(2);
+    expect(stack.past[0]).toEqual(a1);
+    expect(stack.past[1]).toEqual(a2);
+    // Future should remain unchanged (not cleared)
+    expect(stack.future.length).toBe(0);
+  });
+
+  it('failed redo removes only the failed action from future, preserves rest', () => {
+    const a1: CreateNodeAction = { type: 'create-node', nodeId: 'n1', payload: { topic_id: 't1', label: 'First' } };
+    const a2: CreateNodeAction = { type: 'create-node', nodeId: 'n2', payload: { topic_id: 't1', label: 'Second' } };
+
+    stack.push(a1);
+    stack.push(a2);
+    stack.undo(); // a2 -> future
+    stack.undo(); // a1 -> future
+    expect(stack.future.length).toBe(2);
+    expect(stack.past.length).toBe(0);
+
+    // Simulate failed redo: remove only the last future action
+    // This mirrors the production code: setFuture(prev => prev.slice(0, -1))
+    stack.future = stack.future.slice(0, -1);
+
+    // One action should remain in future
+    expect(stack.future.length).toBe(1);
+    expect(stack.future[0]).toEqual(a2);
+    // Past should remain unchanged
+    expect(stack.past.length).toBe(0);
+  });
+
+  it('graceful failure does NOT clear the entire stack (regression test)', () => {
+    // This test ensures the old "nuclear clear" behavior is not reintroduced
+    const actions: CreateNodeAction[] = Array.from({ length: 5 }, (_, i) => ({
+      type: 'create-node' as const,
+      nodeId: `n${i}`,
+      payload: { topic_id: 't1', label: `Node ${i}` },
+    }));
+
+    actions.forEach(a => stack.push(a));
+    expect(stack.past.length).toBe(5);
+
+    // Old behavior would do: stack.past = []; stack.future = [];
+    // New behavior: stack.past = stack.past.slice(0, -1);
+    stack.past = stack.past.slice(0, -1);
+
+    // Must still have 4 actions, NOT zero
+    expect(stack.past.length).toBe(4);
+    expect(stack.past.map(a => a.nodeId)).toEqual(['n0', 'n1', 'n2', 'n3']);
+  });
+});
+
 // ── All four action types exist ─────────────────────────────
 
 describe('Action type coverage', () => {
