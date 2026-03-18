@@ -251,6 +251,7 @@ export function useUndoRedo(onGraphChanged: () => void) {
       const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (el?.isContentEditable) return;
+      if (el?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
 
       const isCtrl = e.ctrlKey || e.metaKey;
       if (!isCtrl) return;
