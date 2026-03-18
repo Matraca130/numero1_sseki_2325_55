@@ -302,6 +302,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 89 audit (modal guards + focus trap + AI guard): Fixed 4 bugs: (1) AddNodeEdgeModal outer wrapper onClick bypassed save guard during save, (2) NodeAnnotationModal X button not disabled/guarded during save, (3) useFocusTrap didn't recapture focus if activeElement escaped container, (4) suggestStudentConnections wasted AI call on empty nodeIds. Build clean, all tests passing.
 - [x] Round 90 audit (keyboard + cache + touch): (1) Escape now closes shortcut overlay via setShowShortcuts(false), (2) invalidateGraphCache with only summaryId now deletes specific key instead of cache.clear(), (3) useSwipeDismiss added onTouchMove to cancel tracking when second finger added mid-gesture. Updated both consumer components.
 - [x] Round 91 audit (professor page): (1) Added ref-based double-submit guards to executeDeleteConnection and handleAiSuggest, (2) handleLoadTemplate now clears heatmap state to prevent stale class-mastery overlay on template nodes.
+- [x] Round 92 audit (student view): (1) executeDeleteNode + handleEdgeReconnect ref-based busy guards, (2) onEdgeCreated uses graphDataNodesRef instead of stale graphData closure, (3) handleAddStickyNote uses functional updater to prevent stale closure under rapid clicks, (4) Fixed accent: Máximo.
 
 ## Completed
 - [x] Search/filter with debounce
