@@ -147,7 +147,7 @@ export function KnowledgeMapView() {
     setSearchQuery('');
   }, [setSearchParams, setSearchQuery]);
 
-  // Clear selection when topicId changes (e.g. from context navigation)
+  // Clear selection + stale state when topicId changes (e.g. from context navigation)
   const prevTopicIdRef = useRef(topicId);
   useEffect(() => {
     if (prevTopicIdRef.current !== topicId) {
@@ -157,6 +157,18 @@ export function KnowledgeMapView() {
       setCollapsedCount(0);
       setCollapsedNodeIds(new Set());
       clearHistory();
+      // Reset stale AI/panel/connect state from previous topic
+      setAiHighlightNodes(undefined);
+      setAiReviewNodes(undefined);
+      setConnectSource(null);
+      setConnectTarget(null);
+      setConfirmDeleteNode(null);
+      setAnnotationNode(null);
+      setShowAiPanel(false);
+      setShowHistory(false);
+      setShowComparison(false);
+      setPresentationMode(false);
+      setActiveTool('pointer');
     }
   }, [topicId, clearHistory]);
 
@@ -198,6 +210,8 @@ export function KnowledgeMapView() {
   const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   // First-visit onboarding tip
@@ -388,6 +402,7 @@ export function KnowledgeMapView() {
     if (!confirmDeleteNode) return;
     try {
       await deleteCustomNode(confirmDeleteNode.id);
+      if (!mountedRef.current) return;
       // Record for undo — store enough data to re-create the node
       pushAction({
         type: 'delete-node',
@@ -399,10 +414,11 @@ export function KnowledgeMapView() {
         },
       });
       setHistoryEntries(prev => [...prev, createDeleteNodeEntry(confirmDeleteNode.label)]);
-      setSelectedNode(null);
+      setSelectedNode(prev => prev?.id === confirmDeleteNode.id ? null : prev);
       setConfirmDeleteNode(null);
       refetch();
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       toast.error(e instanceof Error ? e.message : 'Error al eliminar concepto');
       setConfirmDeleteNode(null);
     }
@@ -459,6 +475,8 @@ export function KnowledgeMapView() {
         throw createErr;
       }
 
+      if (!mountedRef.current) return;
+
       // Record for undo
       pushAction({
         type: 'reconnect-edge',
@@ -485,6 +503,7 @@ export function KnowledgeMapView() {
       haptic(50);
       refetch();
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       toast.error(e instanceof Error ? e.message : 'Error al reconectar arista');
     }
   }, [effectiveTopicId, pushAction, refetch, graphData?.nodes]);
