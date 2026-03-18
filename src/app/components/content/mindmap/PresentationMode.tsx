@@ -9,7 +9,7 @@
 // Mobile: On-screen arrow buttons.
 // ============================================================
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusTrap } from './useFocusTrap';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -47,6 +47,17 @@ export function PresentationMode({
   const [direction, setDirection] = useState<SlideDir>('right');
   const overlayRef = useFocusTrap<HTMLDivElement>(total > 0);
 
+  // Stabilize onExit via ref to avoid stale closure in handleKeyDown
+  const onExitRef = useRef(onExit);
+  onExitRef.current = onExit;
+
+  // Lock body scroll while presentation is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   // Clamp index when sorted list changes (e.g. nodes added/removed during presentation)
   useEffect(() => {
     if (total > 0) setIndex(i => Math.min(i, total - 1));
@@ -76,9 +87,9 @@ export function PresentationMode({
     switch (e.key) {
       case 'ArrowRight': case 'ArrowDown': e.preventDefault(); goNext(); break;
       case 'ArrowLeft': case 'ArrowUp': e.preventDefault(); goPrev(); break;
-      case 'Escape': e.preventDefault(); onExit(); break;
+      case 'Escape': e.preventDefault(); onExitRef.current(); break;
     }
-  }, [goNext, goPrev, onExit]);
+  }, [goNext, goPrev]);
 
   if (total === 0 || !current) return null;
 

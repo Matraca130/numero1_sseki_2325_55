@@ -205,6 +205,11 @@ export function MapComparisonPanel({
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
+  // Clear highlight state when panel closes so nodes don't stay highlighted
+  useEffect(() => {
+    if (!open) onHighlightNodes?.(undefined);
+  }, [open, onHighlightNodes]);
+
   const stats = useMemo(() => graphData ? computeStats(graphData) : null, [graphData]);
   const gaps = useMemo(() => graphData ? findGaps(graphData) : [], [graphData]);
   const customNodes = useMemo(
