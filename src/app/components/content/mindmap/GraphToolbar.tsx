@@ -160,6 +160,8 @@ export function GraphToolbar({
   const [showEdgeLegend, setShowEdgeLegend] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const edgeLegendRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
@@ -207,7 +209,7 @@ export function GraphToolbar({
       toast.error('No se pudo exportar el mapa');
     } finally {
       exportingRef.current = false;
-      setExporting(false);
+      if (mountedRef.current) setExporting(false);
     }
   };
 

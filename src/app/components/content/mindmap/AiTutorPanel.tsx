@@ -212,16 +212,20 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; if (improvedTimerRef.current) clearTimeout(improvedTimerRef.current); }; }, []);
   const focusTrapRef = useFocusTrap(open);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  // Guard: discard results from stale topicId when user switches topics mid-analysis
+  const analyzeTopicRef = useRef(topicId);
 
   // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open]);
 
   // Reset all state when topicId changes (prevents stale data from previous topic)
   useEffect(() => {
@@ -238,6 +242,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   const handleAnalyze = useCallback(async () => {
     if (analyzingRef.current) return;
     analyzingRef.current = true;
+    analyzeTopicRef.current = topicId;
     setAnalyzing(true);
     try {
       // Reset previous results at the start of fetch (not before)
@@ -246,7 +251,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
         analyzeKnowledgeGraph(topicId),
         getStudentWeakPoints(topicId),
       ]);
-      if (!mountedRef.current) return;
+      // Discard results if topicId changed while request was in-flight
+      if (!mountedRef.current || analyzeTopicRef.current !== topicId) return;
 
       // ── Detect improved nodes (was weak, now gone or in strong) ──
       const newWeakIds = new Set(result.weak_areas.map(w => w.keyword_id));

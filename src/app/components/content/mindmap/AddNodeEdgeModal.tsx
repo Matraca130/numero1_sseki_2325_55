@@ -63,6 +63,8 @@ export function AddNodeEdgeModal({
   const savingRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const [shake, setShake] = useState(false);
 
   // Node form
@@ -122,7 +124,7 @@ export function AddNodeEdgeModal({
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !savingRef.current) onClose();
+      if (e.key === 'Escape' && !savingRef.current) { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';
@@ -132,7 +134,7 @@ export function AddNodeEdgeModal({
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const resetForms = () => {
     setNodeLabel('');
