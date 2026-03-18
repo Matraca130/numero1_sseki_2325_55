@@ -118,7 +118,7 @@ export function AddNodeEdgeModal({
       if (initialEdgeTarget) setEdgeTarget(initialEdgeTarget);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, initialEdgeSource, initialEdgeTarget, initialTab]);
 
   // Escape key to close + prevent body scroll on mobile
   useEffect(() => {

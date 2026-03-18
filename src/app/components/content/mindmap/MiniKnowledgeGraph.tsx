@@ -77,6 +77,11 @@ export function MiniKnowledgeGraph({
   const [ready, setReady] = useState(false);
   const prevDataKeyRef = useRef<string>('');
   const justInitializedRef = useRef(false);
+  // Stabilize callbacks/values via refs to avoid stale closures in G6 handlers
+  const onNodeClickRef = useRef(onNodeClick);
+  onNodeClickRef.current = onNodeClick;
+  const focalNodeIdRef = useRef(focalNodeId);
+  focalNodeIdRef.current = focalNodeId;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -104,7 +109,7 @@ export function MiniKnowledgeGraph({
     const nodes = data.nodes.map((node) => ({
       id: node.id,
       data: { _raw: node },
-      style: buildNodeStyle(node, node.id === focalNodeId),
+      style: buildNodeStyle(node, node.id === focalNodeIdRef.current),
     }));
 
     const edges = data.edges.map((edge) => {
@@ -216,7 +221,7 @@ export function MiniKnowledgeGraph({
     }
   }, [focalNodeId, ready, data.nodes]);
 
-  // Effect 3: Click handler
+  // Effect 3: Click handler (uses ref to avoid re-subscribing on callback change)
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph || !ready) return;
@@ -225,14 +230,14 @@ export function MiniKnowledgeGraph({
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
       const nodeData = graph.getNodeData(nodeId);
-      if (nodeData && onNodeClick) {
-        onNodeClick(nodeData.data._raw as MapNode);
+      if (nodeData && onNodeClickRef.current) {
+        onNodeClickRef.current(nodeData.data._raw as MapNode);
       }
     };
 
     graph.on('node:click', handler);
     return () => { graph.off('node:click', handler); };
-  }, [ready, onNodeClick]);
+  }, [ready]);
 
   if (data.nodes.length === 0) return null;
 

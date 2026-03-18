@@ -377,7 +377,7 @@ export function GraphToolbar({
       {hasExport && (
         <div className="relative" ref={exportMenuRef}>
           <button
-            onClick={() => setShowExportMenu(v => !v)}
+            onClick={() => { setShowExportMenu(v => !v); setShowEdgeLegend(false); }}
             disabled={exporting}
             className={`flex items-center gap-1.5 px-3 min-h-[44px] sm:min-h-0 sm:py-1.5 rounded-full font-medium font-sans transition-all duration-150 border ${
               showExportMenu
@@ -500,7 +500,7 @@ export function GraphToolbar({
       {/* Edge type legend toggle — available on all screen sizes */}
       <div className="relative" ref={edgeLegendRef}>
         <button
-          onClick={() => setShowEdgeLegend(v => !v)}
+          onClick={() => { setShowEdgeLegend(v => !v); setShowExportMenu(false); }}
           className={`flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full transition-all duration-150 ${
             showEdgeLegend ? 'text-ax-primary-500 bg-ax-primary-50' : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
           }`}
