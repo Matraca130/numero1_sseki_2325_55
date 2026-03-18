@@ -128,6 +128,12 @@ export function PresentationMode({
         <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
       </button>
 
+      {/* SR-only live region — announces slide content on change */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {current.label} — {masteryLabel(mc)} {masteryPercent(current.mastery)}.
+        {current.definition ? ` ${current.definition}` : ' Sin definición disponible.'}
+      </div>
+
       {/* Card with slide animation */}
       <div className="w-full max-w-lg px-4 sm:px-0">
         <AnimatePresence mode="wait" custom={direction}>
