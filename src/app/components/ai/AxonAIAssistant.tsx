@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '@/app/context/AppContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { headingStyle, components, colors } from '@/app/design-system';
+
 import {
   X,
   Send,
@@ -24,14 +24,36 @@ import {
   Lightbulb,
   Zap,
   ArrowLeft,
+  Phone,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 import clsx from 'clsx';
-import * as ai from '@/app/services/aiService';
-import type { ChatMessage, GeneratedFlashcard, GeneratedQuestion } from '@/app/services/aiService';
+import {
+  chat,
+  chatStream,
+  explainConcept as explainConceptApi,
+  generateFlashcard,
+  generateQuizQuestion,
+  submitRagFeedback,
+} from '@/app/services/aiService';
+import type {
+  ChatHistoryEntry,
+  RagChatResponse,
+  GeneratedFlashcard,
+  GeneratedQuestion,
+} from '@/app/services/aiService';
+import { VoiceCallPanel } from './VoiceCallPanel';
 
 // ── Types ─────────────────────────────────────────────────
 
-type AssistantMode = 'chat' | 'flashcards' | 'quiz' | 'explain';
+type AssistantMode = 'chat' | 'flashcards' | 'quiz' | 'explain' | 'voice';
+
+interface AxonAIAssistantProps {
+  isOpen: boolean;
+  onClose: () => void;
+  summaryId?: string;
+}
 
 interface DisplayMessage {
   id: string;
@@ -54,10 +76,8 @@ const QUICK_PROMPTS = [
 export function AxonAIAssistant({
   isOpen,
   onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+  summaryId,
+}: AxonAIAssistantProps) {
   const { currentCourse, currentTopic } = useApp();
 
   // State
@@ -67,21 +87,25 @@ export function AxonAIAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Chat RAG metadata — per-message citations & feedback
+  const [messageSources, setMessageSources] = useState<Map<string, Array<{ chunk_id: string; summary_title: string; similarity: number }>>>(new Map());
+  const [messageLogIds, setMessageLogIds] = useState<Map<string, string>>(new Map());
+  const [feedbackGiven, setFeedbackGiven] = useState<Map<string, 'positive' | 'negative'>>(new Map());
+
+  // Streaming state
+  const [isStreaming, setIsStreaming] = useState(false);
+
   // Flashcard mode state
-  const [flashcardTopic, setFlashcardTopic] = useState('');
-  const [flashcardCount, setFlashcardCount] = useState(5);
   const [generatedCards, setGeneratedCards] = useState<GeneratedFlashcard[]>([]);
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
 
   // Quiz mode state
-  const [quizTopic, setQuizTopic] = useState('');
-  const [quizDifficulty, setQuizDifficulty] = useState<'basic' | 'intermediate' | 'advanced'>('intermediate');
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuestion[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Map<number, number>>(new Map());
   const [showExplanations, setShowExplanations] = useState<Set<number>>(new Set());
 
   // Explain mode state
-  const [explainConcept, setExplainConcept] = useState('');
+  const [explainConceptText, setExplainConceptText] = useState('');
   const [explanation, setExplanation] = useState('');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -98,11 +122,6 @@ export function AxonAIAssistant({
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [isOpen, mode]);
-
-  const context: ai.ChatContext = {
-    courseName: currentCourse?.name,
-    topicTitle: currentTopic?.title,
-  };
 
   // ── Chat ──────────────────────────────────────────────
 
@@ -121,20 +140,77 @@ export function AxonAIAssistant({
     addMessage('user', msg);
     setIsLoading(true);
 
-    try {
-      const history: ChatMessage[] = messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
-      history.push({ role: 'user', content: msg });
+    // Build history from previous messages (excluding system errors)
+    const history: ChatHistoryEntry[] = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
 
-      const reply = await ai.chat(history, context);
-      addMessage('model', reply);
-    } catch (err: any) {
-      addMessage('system', `Erro: ${err.message}`, true);
-    } finally {
-      setIsLoading(false);
+    // Attempt streaming first, then fall back to non-streaming
+    const streamingMsgId = `msg-${Date.now()}-${Math.random()}`;
+    try {
+      // Create placeholder message for progressive rendering
+      setMessages(prev => [
+        ...prev,
+        { id: streamingMsgId, role: 'model', content: '', timestamp: new Date() },
+      ]);
+      setIsStreaming(true);
+      setIsLoading(false); // Hide loading dots — streaming content is visible
+
+      let accumulated = '';
+
+      await chatStream(msg, {
+        summaryId,
+        history,
+        onChunk: (chunk) => {
+          accumulated += chunk;
+          const current = accumulated;
+          setMessages(prev =>
+            prev.map(m => m.id === streamingMsgId ? { ...m, content: current } : m)
+          );
+        },
+        onSources: (sources) => {
+          setMessageSources(prev => new Map(prev).set(streamingMsgId, sources));
+        },
+        onDone: (meta) => {
+          if (meta.log_id) {
+            setMessageLogIds(prev => new Map(prev).set(streamingMsgId, meta.log_id));
+          }
+        },
+      });
+
+      setIsStreaming(false);
+    } catch {
+      // Streaming failed — remove placeholder and fall back to non-streaming
+      setMessages(prev => prev.filter(m => m.id !== streamingMsgId));
+      setIsStreaming(false);
+      setIsLoading(true);
+
+      try {
+        const result: RagChatResponse = await chat(msg, {
+          history,
+          summaryId,
+        });
+
+        const fallbackMsgId = `msg-${Date.now()}-${Math.random()}`;
+        setMessages(prev => [
+          ...prev,
+          { id: fallbackMsgId, role: 'model' as const, content: result.response, timestamp: new Date() },
+        ]);
+
+        // Store sources & log_id for citations/feedback
+        if (result.sources && result.sources.length > 0) {
+          setMessageSources(prev => new Map(prev).set(fallbackMsgId, result.sources));
+        }
+        if (result.log_id) {
+          setMessageLogIds(prev => new Map(prev).set(fallbackMsgId, result.log_id));
+        }
+      } catch (err: unknown) {
+        addMessage('system', `Erro: ${(err as Error).message}`, true);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [input, isLoading, messages, context]);
+  }, [input, isLoading, messages, summaryId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -146,16 +222,21 @@ export function AxonAIAssistant({
   // ── Flashcards ────────────────────────────────────────
 
   const generateFlashcardsFn = async () => {
-    const topic = flashcardTopic.trim() || currentTopic?.title || currentCourse?.name;
-    if (!topic) return;
+    if (!summaryId) return;
     setIsLoading(true);
     setGeneratedCards([]);
     setFlippedCards(new Set());
     try {
-      const cards = await ai.generateFlashcards(topic, flashcardCount);
+      // Generate multiple flashcards sequentially (API returns one at a time)
+      const count = 5;
+      const cards: GeneratedFlashcard[] = [];
+      for (let i = 0; i < count; i++) {
+        const card = await generateFlashcard({ summaryId });
+        cards.push(card);
+      }
       setGeneratedCards(cards);
-    } catch (err: any) {
-      addMessage('system', `Erro ao gerar flashcards: ${err.message}`, true);
+    } catch (err: unknown) {
+      addMessage('system', `Erro ao gerar flashcards: ${(err as Error).message}`, true);
       setMode('chat');
     } finally {
       setIsLoading(false);
@@ -165,17 +246,22 @@ export function AxonAIAssistant({
   // ── Quiz ──────────────────────────────────────────────
 
   const generateQuizFn = async () => {
-    const topic = quizTopic.trim() || currentTopic?.title || currentCourse?.name;
-    if (!topic) return;
+    if (!summaryId) return;
     setIsLoading(true);
     setGeneratedQuiz([]);
     setSelectedAnswers(new Map());
     setShowExplanations(new Set());
     try {
-      const questions = await ai.generateQuiz(topic, 3, quizDifficulty);
+      // Generate multiple quiz questions sequentially (API returns one at a time)
+      const count = 3;
+      const questions: GeneratedQuestion[] = [];
+      for (let i = 0; i < count; i++) {
+        const q = await generateQuizQuestion({ summaryId });
+        questions.push(q);
+      }
       setGeneratedQuiz(questions);
-    } catch (err: any) {
-      addMessage('system', `Erro ao gerar quiz: ${err.message}`, true);
+    } catch (err: unknown) {
+      addMessage('system', `Erro ao gerar quiz: ${(err as Error).message}`, true);
       setMode('chat');
     } finally {
       setIsLoading(false);
@@ -185,15 +271,15 @@ export function AxonAIAssistant({
   // ── Explain ───────────────────────────────────────────
 
   const explainFn = async () => {
-    const concept = explainConcept.trim();
+    const concept = explainConceptText.trim();
     if (!concept) return;
     setIsLoading(true);
     setExplanation('');
     try {
-      const result = await ai.explainConcept(concept, currentCourse?.name);
+      const result = await explainConceptApi(concept, summaryId);
       setExplanation(result);
-    } catch (err: any) {
-      addMessage('system', `Erro ao explicar: ${err.message}`, true);
+    } catch (err: unknown) {
+      addMessage('system', `Erro ao explicar: ${(err as Error).message}`, true);
       setMode('chat');
     } finally {
       setIsLoading(false);
@@ -208,21 +294,40 @@ export function AxonAIAssistant({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // ── RAG Feedback ───────────────────────────────────────
+
+  const handleRagFeedback = async (msgId: string, feedback: 'positive' | 'negative') => {
+    const logId = messageLogIds.get(msgId);
+    if (!logId || feedbackGiven.has(msgId)) return;
+
+    // Optimistic update
+    setFeedbackGiven(prev => new Map(prev).set(msgId, feedback));
+
+    try {
+      await submitRagFeedback({ logId, feedback });
+    } catch {
+      // Revert on failure
+      setFeedbackGiven(prev => {
+        const next = new Map(prev);
+        next.delete(msgId);
+        return next;
+      });
+    }
+  };
+
   // ── Render ────────────────────────────────────────────
 
   const resetMode = (newMode: AssistantMode) => {
     setMode(newMode);
     if (newMode === 'flashcards') {
       setGeneratedCards([]);
-      setFlashcardTopic(currentTopic?.title || '');
     }
     if (newMode === 'quiz') {
       setGeneratedQuiz([]);
-      setQuizTopic(currentTopic?.title || '');
     }
     if (newMode === 'explain') {
       setExplanation('');
-      setExplainConcept('');
+      setExplainConceptText('');
     }
   };
 
@@ -245,6 +350,10 @@ export function AxonAIAssistant({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            role="dialog"
+            aria-label="Asistente AI Axon"
+            aria-modal="true"
+            onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
             className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col"
           >
             {/* ── Header ── */}
@@ -268,6 +377,7 @@ export function AxonAIAssistant({
 
               <button
                 onClick={onClose}
+                aria-label="Cerrar asistente"
                 className="relative w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
               >
                 <X size={18} />
@@ -275,15 +385,18 @@ export function AxonAIAssistant({
             </div>
 
             {/* ── Mode tabs ── */}
-            <div className="shrink-0 px-3 py-2 bg-white border-b border-gray-200/60 flex gap-1">
+            <div role="tablist" className="shrink-0 px-3 py-2 bg-white border-b border-gray-200/60 flex gap-1">
               {([
                 { id: 'chat', icon: Sparkles, label: 'Chat' },
                 { id: 'flashcards', icon: Layers, label: 'Flashcards' },
                 { id: 'quiz', icon: GraduationCap, label: 'Quiz' },
                 { id: 'explain', icon: BookOpen, label: 'Explicar' },
+                { id: 'voice', icon: Phone, label: 'Llamar' },
               ] as const).map(tab => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={mode === tab.id}
                   onClick={() => resetMode(tab.id)}
                   className={clsx(
                     "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all",
@@ -304,6 +417,7 @@ export function AxonAIAssistant({
               {mode === 'flashcards' && renderFlashcards()}
               {mode === 'quiz' && renderQuiz()}
               {mode === 'explain' && renderExplain()}
+              {mode === 'voice' && <VoiceCallPanel />}
             </div>
           </motion.div>
         </>
@@ -319,7 +433,7 @@ export function AxonAIAssistant({
     return (
       <>
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
+        <div role="log" aria-live="polite" className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-8 space-y-6">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center border border-violet-200/60">
@@ -330,7 +444,7 @@ export function AxonAIAssistant({
                   Como posso ajudar?
                 </h3>
                 <p className="text-gray-400 text-sm mt-1">
-                  Pergunte sobre qualquer tópico de medicina
+                  Pergunte sobre qualquer topico de medicina
                 </p>
               </div>
 
@@ -381,20 +495,77 @@ export function AxonAIAssistant({
               >
                 {renderMarkdown(msg.content)}
 
-                {/* Copy button */}
+                {/* Action buttons: copy + feedback */}
                 {msg.role === 'model' && (
-                  <button
-                    onClick={() => copyText(msg.content, msg.id)}
-                    className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500"
-                  >
-                    {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
-                  </button>
+                  <div className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    {/* Feedback buttons (only when log_id exists) */}
+                    {messageLogIds.has(msg.id) && (
+                      <>
+                        <button
+                          aria-label="Respuesta util"
+                          onClick={() => handleRagFeedback(msg.id, 'positive')}
+                          disabled={feedbackGiven.has(msg.id)}
+                          className={clsx(
+                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                            feedbackGiven.get(msg.id) === 'positive'
+                              ? "text-emerald-500 border-emerald-300"
+                              : feedbackGiven.has(msg.id)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-400 hover:text-emerald-500"
+                          )}
+                        >
+                          <ThumbsUp size={12} />
+                        </button>
+                        <button
+                          aria-label="Respuesta no util"
+                          onClick={() => handleRagFeedback(msg.id, 'negative')}
+                          disabled={feedbackGiven.has(msg.id)}
+                          className={clsx(
+                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                            feedbackGiven.get(msg.id) === 'negative'
+                              ? "text-red-500 border-red-300"
+                              : feedbackGiven.has(msg.id)
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-500"
+                          )}
+                        >
+                          <ThumbsDown size={12} />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      aria-label="Copiar respuesta"
+                      onClick={() => copyText(msg.content, msg.id)}
+                      className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                    >
+                      {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                )}
+
+                {/* Citations (collapsible) */}
+                {msg.role === 'model' && messageSources.has(msg.id) && (
+                  <details className="mt-3 border-t border-gray-100 pt-2">
+                    <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-violet-500 select-none">
+                      Fontes ({messageSources.get(msg.id)!.length})
+                    </summary>
+                    <ul className="mt-1.5 space-y-1">
+                      {messageSources.get(msg.id)!.map((src, si) => (
+                        <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
+                          <span className="truncate mr-2">{src.summary_title}</span>
+                          <span className="shrink-0 text-[10px] font-mono text-violet-500">
+                            {(src.similarity * 100).toFixed(0)}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
               </div>
             </div>
           ))}
 
-          {isLoading && (
+          {isLoading && !isStreaming && (
             <div className="flex gap-3 justify-start">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
                 <Sparkles size={12} className="text-white" />
@@ -426,6 +597,7 @@ export function AxonAIAssistant({
           <div className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
+              aria-label="Escribe tu mensaje"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -435,6 +607,7 @@ export function AxonAIAssistant({
               style={{ maxHeight: '120px' }}
             />
             <button
+              aria-label="Enviar mensaje"
               onClick={() => sendChat()}
               disabled={!input.trim() || isLoading}
               className={clsx(
@@ -468,42 +641,23 @@ export function AxonAIAssistant({
               <h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Gerar Flashcards com IA
               </h3>
-              <p className="text-gray-400 text-xs mt-1">Crie flashcards de alta qualidade para qualquer tópico</p>
+              <p className="text-gray-400 text-xs mt-1">
+                {summaryId
+                  ? 'Gere flashcards baseados no resumo atual'
+                  : 'Navega a un resumen para generar flashcards'}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200/60 space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Tópico</label>
-                <input
-                  type="text"
-                  value={flashcardTopic}
-                  onChange={e => setFlashcardTopic(e.target.value)}
-                  placeholder={currentTopic?.title || "Ex: Fisiologia Renal"}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Quantidade</label>
-                <div className="flex gap-2">
-                  {[3, 5, 8, 10].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setFlashcardCount(n)}
-                      className={clsx(
-                        "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                        flashcardCount === n
-                          ? "bg-violet-100 text-violet-700 border border-violet-300"
-                          : "bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100"
-                      )}
-                    >
-                      {n}
-                    </button>
-                  ))}
+              {!summaryId && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle size={14} className="text-amber-500 shrink-0" />
+                  <p className="text-xs text-amber-700">Navega a un resumen para generar flashcards con IA.</p>
                 </div>
-              </div>
+              )}
               <button
                 onClick={generateFlashcardsFn}
-                disabled={isLoading}
+                disabled={isLoading || !summaryId}
                 className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
@@ -586,46 +740,23 @@ export function AxonAIAssistant({
               <h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Quiz com IA
               </h3>
-              <p className="text-gray-400 text-xs mt-1">Questões no estilo residência médica</p>
+              <p className="text-gray-400 text-xs mt-1">
+                {summaryId
+                  ? 'Questoes no estilo residencia medica'
+                  : 'Navega a un resumen para generar quiz'}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200/60 space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Tópico</label>
-                <input
-                  type="text"
-                  value={quizTopic}
-                  onChange={e => setQuizTopic(e.target.value)}
-                  placeholder={currentTopic?.title || "Ex: Farmacologia dos Antibióticos"}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Dificuldade</label>
-                <div className="flex gap-2">
-                  {([
-                    { id: 'basic', label: 'Basica', color: 'emerald' },
-                    { id: 'intermediate', label: 'Intermediaria', color: 'amber' },
-                    { id: 'advanced', label: 'Avancada', color: 'red' },
-                  ] as const).map(d => (
-                    <button
-                      key={d.id}
-                      onClick={() => setQuizDifficulty(d.id)}
-                      className={clsx(
-                        "flex-1 py-2 rounded-lg text-xs font-medium transition-all",
-                        quizDifficulty === d.id
-                          ? `bg-${d.color}-100 text-${d.color}-700 border border-${d.color}-300`
-                          : "bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100"
-                      )}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
+              {!summaryId && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle size={14} className="text-amber-500 shrink-0" />
+                  <p className="text-xs text-amber-700">Navega a un resumen para generar quiz con IA.</p>
                 </div>
-              </div>
+              )}
               <button
                 onClick={generateQuizFn}
-                disabled={isLoading}
+                disabled={isLoading || !summaryId}
                 className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
@@ -645,7 +776,9 @@ export function AxonAIAssistant({
             {generatedQuiz.map((q, qi) => {
               const selected = selectedAnswers.get(qi);
               const isAnswered = selected !== undefined;
-              const isCorrect = selected === q.correctAnswer;
+              // correct_answer is a string; find its index in options
+              const correctIdx = q.options.findIndex(o => o === q.correct_answer);
+              const isCorrect = selected === correctIdx;
               const showExp = showExplanations.has(qi);
 
               return (
@@ -662,7 +795,7 @@ export function AxonAIAssistant({
                   </div>
                   <div className="px-4 pb-3 space-y-2">
                     {q.options.map((opt, oi) => {
-                      const isThisCorrect = oi === q.correctAnswer;
+                      const isThisCorrect = oi === correctIdx;
                       const isThisSelected = selected === oi;
                       return (
                         <button
@@ -750,8 +883,8 @@ export function AxonAIAssistant({
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Conceito</label>
                 <textarea
-                  value={explainConcept}
-                  onChange={e => setExplainConcept(e.target.value)}
+                  value={explainConceptText}
+                  onChange={e => setExplainConceptText(e.target.value)}
                   placeholder="Ex: Potencial de acao no neuronio"
                   rows={3}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 resize-none"
@@ -759,7 +892,7 @@ export function AxonAIAssistant({
               </div>
               <button
                 onClick={explainFn}
-                disabled={!explainConcept.trim() || isLoading}
+                disabled={!explainConceptText.trim() || isLoading}
                 className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
@@ -777,7 +910,7 @@ export function AxonAIAssistant({
               ].map((s, i) => (
                 <button
                   key={i}
-                  onClick={() => { setExplainConcept(s); }}
+                  onClick={() => { setExplainConceptText(s); }}
                   className="w-full text-left px-3 py-2 bg-white rounded-lg border border-gray-200/60 text-sm text-gray-600 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all"
                 >
                   {s}
@@ -792,6 +925,7 @@ export function AxonAIAssistant({
                 <ArrowLeft size={14} /> Voltar
               </button>
               <button
+                aria-label="Copiar respuesta"
                 onClick={() => copyText(explanation, 'explanation')}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500"
               >
@@ -810,7 +944,7 @@ export function AxonAIAssistant({
                   <BookOpen size={14} className="text-white" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-gray-800">{explainConcept}</h4>
+                  <h4 className="text-sm font-bold text-gray-800">{explainConceptText}</h4>
                   <p className="text-[10px] text-gray-400">Explicacao gerada por Axon AI</p>
                 </div>
               </div>
@@ -820,7 +954,7 @@ export function AxonAIAssistant({
             </motion.div>
 
             <button
-              onClick={() => { setExplanation(''); setExplainConcept(''); }}
+              onClick={() => { setExplanation(''); setExplainConceptText(''); }}
               className="w-full py-2.5 border-2 border-dashed border-emerald-300/60 text-emerald-600 rounded-xl text-sm font-medium hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
             >
               <RotateCcw size={14} /> Novo Conceito

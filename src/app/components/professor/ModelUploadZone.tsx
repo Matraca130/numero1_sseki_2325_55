@@ -158,19 +158,19 @@ export function ModelUploadZone({ onFileSelected, progress, onReset, disabled }:
   // ── Uploading state ──
   if (isUploading && progress) {
     return (
-      <div className="rounded-xl border-2 border-teal-200 bg-teal-50/30 p-5">
+      <div className="rounded-xl border-2 border-[#99d7c7] bg-[#e6f5f1]/30 p-5">
         <div className="flex items-center gap-3 mb-3">
-          <Loader2 size={18} className="text-teal-600 animate-spin" />
+          <Loader2 size={18} className="text-[#2a8c7a] animate-spin" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-teal-800 truncate">{selectedFileName}</p>
-            <p className="text-xs text-teal-600 mt-0.5">{progress.message}</p>
+            <p className="text-sm font-medium text-[#1B3B36] truncate">{selectedFileName}</p>
+            <p className="text-xs text-[#2a8c7a] mt-0.5">{progress.message}</p>
           </div>
-          <span className="text-xs font-semibold text-teal-700">{progress.percent}%</span>
+          <span className="text-xs font-semibold text-[#244e47]">{progress.percent}%</span>
         </div>
         {/* Progress bar */}
-        <div className="w-full h-2 bg-teal-100 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-[#ccebe3] rounded-full overflow-hidden">
           <div
-            className="h-full bg-teal-500 rounded-full transition-all duration-300 ease-out"
+            className="h-full bg-[#2a8c7a] rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progress.percent}%` }}
           />
         </div>
@@ -189,10 +189,10 @@ export function ModelUploadZone({ onFileSelected, progress, onReset, disabled }:
         className={clsx(
           'relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all',
           isDragging
-            ? 'border-teal-400 bg-teal-50/50 scale-[1.01]'
+            ? 'border-[#2a8c7a] bg-[#e6f5f1]/50 scale-[1.01]'
             : validationError
               ? 'border-red-300 bg-red-50/30'
-              : 'border-gray-200 bg-gray-50/50 hover:border-teal-300 hover:bg-teal-50/20',
+              : 'border-gray-200 bg-gray-50/50 hover:border-[#2a8c7a]/60 hover:bg-[#e6f5f1]/20',
           disabled && 'opacity-50 cursor-not-allowed',
         )}
       >
@@ -208,12 +208,12 @@ export function ModelUploadZone({ onFileSelected, progress, onReset, disabled }:
         <div className="flex flex-col items-center">
           <div className={clsx(
             'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors',
-            isDragging ? 'bg-teal-100' : validationError ? 'bg-red-100' : 'bg-gray-100',
+            isDragging ? 'bg-[#ccebe3]' : validationError ? 'bg-red-100' : 'bg-gray-100',
           )}>
             {validationError ? (
               <AlertTriangle size={24} className="text-red-400" />
             ) : (
-              <Upload size={24} className={isDragging ? 'text-teal-600' : 'text-gray-400'} />
+              <Upload size={24} className={isDragging ? 'text-[#2a8c7a]' : 'text-gray-400'} />
             )}
           </div>
 
@@ -231,10 +231,10 @@ export function ModelUploadZone({ onFileSelected, progress, onReset, disabled }:
             <>
               <p className="text-sm text-gray-600 mb-1">
                 {isDragging ? (
-                  <span className="text-teal-600 font-medium">Suelta el archivo aqui</span>
+                  <span className="text-[#2a8c7a] font-medium">Suelta el archivo aqui</span>
                 ) : (
                   <>
-                    <span className="text-teal-600 font-medium">Haz clic para seleccionar</span>{' '}
+                    <span className="text-[#2a8c7a] font-medium">Haz clic para seleccionar</span>{' '}
                     o arrastra un archivo
                   </>
                 )}

@@ -1,6 +1,9 @@
 // ============================================================
 // Axon — StudyHub shared helpers & constants
-// Extracted from StudyHubView.tsx (zero functional changes)
+// Extracted from StudyHubView.tsx
+//
+// AUDIT v2: Added touchedTopicIds + nextTopicId to
+// SectionProgress so cards can show per-topic real status.
 // ============================================================
 import type { TreeSection } from '@/app/services/contentTreeApi';
 import type { StudySession } from '@/app/types/student';
@@ -27,6 +30,10 @@ export function formatRelativeTime(isoDate: string | undefined | null): string |
   return diffM === 1 ? 'hace 1 mes' : `hace ${diffM} meses`;
 }
 
+// ── Topic status type ────────────────────────────────────────
+
+export type TopicStatus = 'not-started' | 'in-progress' | 'mastered';
+
 // ── Section progress computation ─────────────────────────────
 
 export interface SectionProgress {
@@ -34,6 +41,10 @@ export interface SectionProgress {
   progress: number; // 0-100
   lastActivity: string | undefined;
   nextTopicName: string | undefined;
+  /** IDs of topics that have at least 1 session or courseProgress entry */
+  touchedTopicIds: string[];
+  /** First topic in order that hasn't been touched — suggested "next" */
+  nextTopicId: string | undefined;
 }
 
 /** Compute per-section stats from real sessions + courseProgress */
@@ -74,6 +85,8 @@ export function computeSectionProgress(
     progress,
     lastActivity: formatRelativeTime(latestSessionDate),
     nextTopicName: nextTopic?.name,
+    touchedTopicIds: Array.from(touchedTopicIds),
+    nextTopicId: nextTopic?.id,
   };
 }
 

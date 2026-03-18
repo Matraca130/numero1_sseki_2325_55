@@ -10,14 +10,14 @@
 //   that increments a shared refreshKey in the parent.
 // ============================================================
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsType } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MapPin, Search, Pencil, Trash2, X, Save, Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { getModel3DPins, updateModel3DPin, deleteModel3DPin } from '@/app/lib/model3d-api';
+import { updateModel3DPin, deleteModel3DPin } from '@/app/lib/model3d-api';
 import type { Model3DPin } from '@/app/lib/model3d-api';
-import { logger } from '@/app/lib/logger';
+import { usePinData } from '@/app/hooks/usePinData';
 
 // ── Pin type labels (DB types + legacy for backward compat) ──
 const PIN_TYPE_LABELS: Record<string, string> = {
@@ -43,28 +43,14 @@ interface PinEditorProps {
 }
 
 export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }: PinEditorProps) {
-  const [pins, setPins] = useState<Model3DPin[]>([]);
-  const [loading, setLoading] = useState(true);
+  // M5 audit: pin data layer extracted to shared hook (dedup with PinSystem)
+  const { pins, loading, setPins } = usePinData(modelId, { tag: 'PinEditor' });
+
   const [filter, setFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [saving, setSaving] = useState(false);
-
-  // ── Fetch pins on mount ──
-  const fetchPins = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getModel3DPins(modelId);
-      setPins(res?.items || []);
-    } catch (err: unknown) {
-      logger.error('PinEditor', 'fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [modelId]);
-
-  useEffect(() => { fetchPins(); }, [fetchPins]);
 
   // Filter pins
   const filtered = useMemo(() => {
@@ -162,7 +148,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
         <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-          <MapPin size={13} className="text-teal-400" />
+          <MapPin size={13} className="text-[#5cbdaa]" />
           Pins ({pins.length})
         </h4>
         <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
@@ -180,7 +166,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Buscar pins..."
-              className="w-full pl-7 pr-3 py-1.5 text-[10px] bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
+              className="w-full pl-7 pr-3 py-1.5 text-[10px] bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2a8c7a]/30"
             />
           </div>
         </div>
@@ -217,7 +203,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
                   value={editLabel}
                   onChange={(e) => setEditLabel(e.target.value)}
                   placeholder="Label..."
-                  className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
+                  className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2a8c7a]/30"
                   autoFocus
                 />
                 <textarea
@@ -225,7 +211,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
                   onChange={(e) => setEditDesc(e.target.value)}
                   placeholder="Descripcion..."
                   rows={2}
-                  className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 resize-none"
+                  className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2a8c7a]/30 resize-none"
                 />
                 <div className="flex justify-end gap-1.5">
                   <button
@@ -237,7 +223,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
                   <button
                     onClick={() => saveEdit(pin.id)}
                     disabled={saving}
-                    className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-teal-600 hover:bg-teal-500 rounded transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded transition-colors disabled:opacity-50"
                   >
                     {saving ? <Loader2 size={8} className="animate-spin" /> : <Save size={8} />}
                     Guardar
@@ -267,7 +253,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => flyToPin(pin)}
-                    className="p-1 text-gray-500 hover:text-teal-400 rounded transition-colors"
+                    className="p-1 text-gray-500 hover:text-[#5cbdaa] rounded transition-colors"
                     title="Ir al pin"
                   >
                     <Eye size={11} />

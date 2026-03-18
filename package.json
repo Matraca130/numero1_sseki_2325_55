@@ -89,7 +89,10 @@
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "jsdom": "^26.1.0"
   },
   "pnpm": {
     "overrides": {

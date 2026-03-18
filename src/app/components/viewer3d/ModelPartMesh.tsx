@@ -305,16 +305,8 @@ export class ModelPartLoader {
   }
 
   /** Get part states for UI */
-  getPartStates(): Array<{
-    id: string;
-    name: string;
-    layer: string;
-    visible: boolean;
-    opacity: number;
-    loaded: boolean;
-    loading: boolean;
-  }> {
-    const states: any[] = [];
+  getPartStates(): PartState[] {
+    const states: PartState[] = [];
     for (const [, part] of this.parts) {
       states.push({
         id: part.config.id,
@@ -398,4 +390,14 @@ export class ModelPartLoader {
   dispose(): void {
     this.clear();
   }
+}
+
+export interface PartState {
+  id: string;
+  name: string;
+  layer: string;
+  visible: boolean;
+  opacity: number;
+  loaded: boolean;
+  loading: boolean;
 }

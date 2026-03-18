@@ -1,5 +1,5 @@
 // ============================================================
-// Axon — CaptureViewDialog (Professor: Screenshot -> Flashcard)
+// Axon — CaptureViewDialog (Professor: Screenshot → Flashcard)
 //
 // Allows the professor to capture the current 3D view and
 // create a flashcard with the captured image.
@@ -14,9 +14,9 @@
 // ZERO new backend endpoints — reuses uploadThumbnail + createFlashcard.
 // ============================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import * as THREE from 'three';
-import { Camera, X, Save, Loader2, FileText, RotateCcw } from 'lucide-react';
+import { Camera, X, Save, Loader2, Image, FileText, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadThumbnail } from '@/app/lib/model3d-api';
 import { logger } from '@/app/lib/logger';
@@ -90,9 +90,8 @@ export function CaptureViewDialog({
         try {
           const { apiCall } = await import('@/app/lib/api');
           // Try to get a summary for this topic
-          const summariesRes = await apiCall<{ items?: Array<{ id: string }> } | Array<{ id: string }>>(`/summaries?topic_id=${topicId}&limit=1`);
-          const summaries = Array.isArray(summariesRes) ? summariesRes : (summariesRes?.items || []);
-          const summaryId = summaries[0]?.id;
+          const summaries = await apiCall<{ items?: Array<{ id: string }> }>(`/summaries?topic_id=${topicId}&limit=1`);
+          const summaryId = summaries?.items?.[0]?.id;
 
           if (summaryId) {
             // Get or create "General" keyword
@@ -100,14 +99,16 @@ export function CaptureViewDialog({
             const keyword = await ensureGeneralKeyword(summaryId);
 
             // Create flashcard with image
-            const { createFlashcard } = await import('@/app/services/flashcardApi');
-            await createFlashcard({
-              summary_id: summaryId,
-              keyword_id: keyword.id,
-              front: front.trim(),
-              back: back.trim() || `Imagen del modelo 3D: ${modelName}`,
-              source: 'manual',
-              front_image_url: imageUrl,
+            await apiCall('/flashcards', {
+              method: 'POST',
+              body: JSON.stringify({
+                summary_id: summaryId,
+                keyword_id: keyword.id,
+                front: front.trim(),
+                back: back.trim() || `Imagen del modelo 3D: ${modelName}`,
+                source: 'manual',
+                front_image_url: imageUrl,
+              }),
             });
 
             toast.success('Flashcard creada con imagen 3D');
@@ -174,7 +175,7 @@ export function CaptureViewDialog({
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Camera size={13} className="text-teal-400" />
+                <Camera size={13} className="text-[#5cbdaa]" />
                 Captura de Vista 3D
               </h4>
               <button onClick={handleClose} className="text-gray-500 hover:text-white transition-colors">
@@ -213,7 +214,7 @@ export function CaptureViewDialog({
                     value={front}
                     onChange={(e) => setFront(e.target.value)}
                     placeholder="Ej: Identifica esta estructura..."
-                    className="w-full px-3 py-2 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
+                    className="w-full px-3 py-2 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2a8c7a]/30"
                   />
                 </div>
 
@@ -227,7 +228,7 @@ export function CaptureViewDialog({
                     onChange={(e) => setBack(e.target.value)}
                     placeholder="Ej: Es el humero proximal, articulacion glenohumeral..."
                     rows={3}
-                    className="w-full px-3 py-2 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 resize-none"
+                    className="w-full px-3 py-2 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2a8c7a]/30 resize-none"
                   />
                 </div>
               </div>
@@ -244,7 +245,7 @@ export function CaptureViewDialog({
               <button
                 onClick={handleUploadAndSave}
                 disabled={!front.trim() || saving}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-semibold text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors disabled:opacity-50"
               >
                 {saving ? (
                   <>

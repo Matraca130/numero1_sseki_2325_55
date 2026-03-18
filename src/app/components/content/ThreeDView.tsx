@@ -4,12 +4,12 @@
 // 3-level navigation for 3D anatomical models:
 //   Level 1: Atlas grid (AtlasScreen — extracted to AtlasScreen.tsx)
 //   Level 2: Section detail (SectionScreen)
-//   Level 3: 3D viewer (ViewerScreen -> ModelViewer3D)
+//   Level 3: 3D viewer (ViewerScreen → ModelViewer3D)
 //
-// Data flow: ContentTree -> fetch models per topic -> group by section
+// Data flow: ContentTree → fetch models per topic → group by section
 // ============================================================
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Box, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
@@ -174,7 +174,7 @@ export function ThreeDView() {
         <AxonPageHeader title="Atlas 3D" subtitle="Explore modelos anatomicos interativos" />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-gray-400">
-            <Loader2 size={32} className="animate-spin text-teal-500" />
+            <Loader2 size={32} className="animate-spin text-[#2a8c7a]" />
             <p className="text-sm">Carregando modelos...</p>
           </div>
         </div>
@@ -238,6 +238,7 @@ function ThreeDErrorFallback() {
 function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; onBack: () => void }) {
   return (
     <div className="flex flex-col h-full bg-[#111118] relative overflow-hidden">
+      {/* Header */}
       <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118]/80 backdrop-blur-lg border-b border-white/10">
         <div className="flex items-center gap-4">
           <button
@@ -258,6 +259,7 @@ function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; on
         </div>
       </div>
 
+      {/* 3D Viewport — ModelViewer3D fills remaining space */}
       <div className="flex-1 relative z-10">
         <div className="flex flex-col items-center justify-center h-full text-gray-400">
           <AlertTriangle size={32} className="text-red-500" />
@@ -270,7 +272,7 @@ function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; on
 
 // ══════════════════════════════════════════════
 // ── Level 2: Section Screen (Models) ──
-// ══════════════════════════════════════════════
+// ═════════════════════════════════════════════���
 function SectionScreen({
   sectionData,
   onBack,
@@ -292,7 +294,7 @@ function SectionScreen({
         statsLeft={
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Box size={13} className="text-teal-500" />
+              <Box size={13} className="text-[#2a8c7a]" />
               <span className="text-xs text-gray-500"><span className="font-semibold text-gray-700">{models.length}</span> modelos</span>
             </div>
           </div>
@@ -319,18 +321,18 @@ function SectionScreen({
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start gap-3">
                   <div className={`${iconClasses('md')} flex-shrink-0 mt-0.5`}>
-                    <Box size={20} className="text-teal-600" />
+                    <Box size={20} className="text-[#2a8c7a]" />
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900" style={headingStyle}>
                       {model.title}
                     </h4>
-                    <p className="text-xs text-teal-600 font-semibold uppercase tracking-wider mt-0.5">
+                    <p className="text-xs text-[#2a8c7a] font-semibold uppercase tracking-wider mt-0.5">
                       {topicName}
                     </p>
                   </div>
                 </div>
-                <span className="text-sm font-semibold text-teal-600">
+                <span className="text-sm font-semibold text-[#2a8c7a]">
                   {model.file_format?.toUpperCase() || '3D'}
                 </span>
               </div>
@@ -370,6 +372,20 @@ function ViewerScreen({
   model: Model3D;
   onBack: () => void;
 }) {
+  // F3 audit: Esc key navigates back to section screen.
+  // Guard: only fires when not typing in an input (PinEditor, Notes, etc.)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      onBack();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onBack]);
+
   return (
     <div className="flex flex-col h-full bg-[#111118] relative overflow-hidden">
       {/* Header */}
@@ -398,8 +414,7 @@ function ViewerScreen({
         <ErrorBoundary
           fallback={<ModelViewerErrorFallback modelName={model.title} onBack={onBack} />}
         >
-          {/* DIFF 12 (CRITICAL): Pass topicId to enable F1 KeywordAutocomplete + F5 CaptureViewDialog */}
-          <ModelViewer3D modelId={model.id} modelName={model.title} topicId={model.topic_id} />
+          <ModelViewer3D modelId={model.id} modelName={model.title} fileUrl={model.file_url} />
         </ErrorBoundary>
       </div>
     </div>

@@ -113,7 +113,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
         <div className="flex items-center gap-1">
           <button
             onClick={handleShowAll}
-            className="p-1 text-gray-500 hover:text-teal-400 rounded transition-colors"
+            className="p-1 text-gray-500 hover:text-[#5cbdaa] rounded transition-colors"
             title="Mostrar todo"
           >
             <Eye size={12} />

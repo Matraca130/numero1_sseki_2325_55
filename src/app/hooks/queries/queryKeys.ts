@@ -111,4 +111,9 @@ export const queryKeys = {
   studentStats: () => ['student-stats'] as const,
   dailyActivities: () => ['daily-activities'] as const,
   studySessions: () => ['study-sessions'] as const,
+
+  // ── StudyHub progress (course-level aggregation) ──────
+  allReadingStates: () => ['all-reading-states'] as const,
+  allBktStates: () => ['all-bkt-states'] as const,
+  courseProgress: (courseId: string) => ['course-progress', courseId] as const,
 } as const;

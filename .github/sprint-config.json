@@ -1,0 +1,46 @@
+{
+  "$schema": "./sprint-config.schema.json",
+  "_comment": "Config consumida por el CI workflow sprint-preflight.yml. Editar aquí, NO en el workflow.",
+
+  "phantomGuard": {
+    "_comment": "Archivos que alguna vez se referenciaron en planning pero NO existen. Si alguien los agrega como target, CI falla.",
+    "knownPhantoms": [
+      "src/app/components/content/SummarySessionNew.tsx"
+    ]
+  },
+
+  "localOnlyFiles": {
+    "_comment": "Archivos que existen localmente pero NUNCA deben aparecer en un PR (conflicto de rutas o dominio de otro agente).",
+    "blocked": [
+      "src/app/components/content/StudentSummaryRedirect.tsx",
+      "src/app/components/content/SectionStudyPlanView.tsx"
+    ]
+  },
+
+  "sizeCaps": {
+    "_comment": "Archivos modularizados con tope máximo en KB. Si crecen más allá, es regresión. Caps set from measured sizes on main + headroom.",
+    "files": {
+      "src/app/components/content/StudentSummariesView.tsx": 22,
+      "src/app/components/content/StudentSummaryReader.tsx": 25
+    }
+  },
+
+  "paletteAudit": {
+    "_comment": "Archivos que ya pasaron auditoría de paleta. No deben tener colores genéricos brand.",
+    "auditedFiles": [
+      "src/app/components/content/StudentSummariesView.tsx"
+    ],
+    "forbiddenPatterns": [
+      "\\b(bg|text|border)-(violet|purple|indigo)-(50|100|200|300|400|500|600|700|800|900)\\b"
+    ],
+    "allowedNeutrals": ["zinc", "gray", "white", "black", "slate"]
+  },
+
+  "modularizationLog": {
+    "_comment": "Registro de modularizaciones completadas. CI verifica que el header del archivo lo refleje.",
+    "completed": {
+      "src/app/components/content/StudentSummaryReader.tsx": "Phase B (51KB→21KB): mutations hook, helpers, AnnotationsTab, KeywordsTab",
+      "src/app/components/content/StudentSummariesView.tsx": "Sprint 1 PR#100: SummaryCard + summary-helpers extracted, palette audit"
+    }
+  }
+}

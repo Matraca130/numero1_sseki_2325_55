@@ -4,15 +4,15 @@
 // State machine for multi-click pin placement:
 //
 // LINE mode (pin_type='line'):
-//   1. Click point A on surface -> marker appears
-//   2. Click point B on surface -> line created + form shows
-//   3. Submit -> POST /model-3d-pins with pin_type='line',
+//   1. Click point A on surface → marker appears
+//   2. Click point B on surface → line created + form shows
+//   3. Submit → POST /model-3d-pins with pin_type='line',
 //      geometry=pointA, normal=pointB (repurposing normal field)
 //
 // AREA mode (pin_type='area'):
-//   1. Click points on surface -> vertices appear, edges drawn
-//   2. Double-click or click "Cerrar" -> polygon closed
-//   3. Submit -> POST /model-3d-pins with pin_type='area',
+//   1. Click points on surface → vertices appear, edges drawn
+//   2. Double-click or click "Cerrar" → polygon closed
+//   3. Submit → POST /model-3d-pins with pin_type='area',
 //      geometry=centroid, description=JSON(vertices)
 //
 // Renders preview geometry in the Three.js scene during placement.
@@ -136,7 +136,7 @@ export function MultiPointPlacer({
     updatePreview();
   }, [updatePreview]);
 
-  // Mouse -> NDC
+  // Mouse → NDC
   const getMouseNDC = useCallback((e: MouseEvent): THREE.Vector2 | null => {
     if (!containerRef.current) return null;
     const rect = containerRef.current.getBoundingClientRect();

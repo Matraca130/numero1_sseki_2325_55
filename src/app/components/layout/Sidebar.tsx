@@ -91,7 +91,7 @@ export function Sidebar() {
                     components.sidebar.navItem.base,
                     'min-h-[44px]',
                     active
-                      ? clsx(components.sidebar.navItem.active, currentCourse.accentColor.replace('text-', 'text-'))
+                      ? clsx(components.sidebar.navItem.active, currentCourse.accentColor || '')
                       : components.sidebar.navItem.inactive
                   );
                 }}
@@ -128,10 +128,19 @@ export function Sidebar() {
             return (
               <button
                 key={`secondary-${idx}`}
-                className={clsx(components.sidebar.navItem.base, 'min-h-[44px]', components.sidebar.navItem.inactive)}
+                disabled
+                aria-label={`${item.label} — Próximamente`}
+                title="Próximamente"
+                className={clsx(
+                  components.sidebar.navItem.base,
+                  'min-h-[44px]',
+                  components.sidebar.navItem.inactive,
+                  'opacity-50 cursor-not-allowed'
+                )}
               >
-                <Icon size={20} className="text-gray-500 group-hover:text-white" />
+                <Icon size={20} className="text-gray-500" />
                 <span>{item.label}</span>
+                <span className="ml-auto text-[9px] text-gray-600 uppercase tracking-wider">Pronto</span>
               </button>
             );
           })}

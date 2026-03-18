@@ -46,7 +46,7 @@ export type {
 } from './ai-service/as-types';
 
 // Chat (RAG)
-export { chat, chatText, explainConcept } from './ai-service/as-chat';
+export { chat, chatText, chatStream, explainConcept } from './ai-service/as-chat';
 
 // Generate (basic)
 export { generateFlashcard, generateQuizQuestion } from './ai-service/as-generate';
@@ -62,6 +62,18 @@ export { submitRagFeedback, getRagAnalytics, getEmbeddingCoverage } from './ai-s
 
 // Ingest (PDF, Embeddings, Re-chunk)
 export { ingestPdf, ingestEmbeddings, reChunk } from './ai-service/as-ingest';
+
+// Realtime Voice (Voice Call)
+export {
+  createRealtimeSession,
+  RealtimeVoiceClient,
+} from './ai-service/as-realtime';
+export type {
+  RealtimeSession,
+  VoiceCallState,
+  AISpeakingState,
+  RealtimeCallbacks,
+} from './ai-service/as-realtime';
 
 // Legacy (deprecated)
 export { listModels, generateFlashcards, generateQuiz } from './ai-service/as-legacy';

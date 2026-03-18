@@ -6,8 +6,8 @@
 //
 // Algorithm:
 //   1. Compute centroid of all visible parts
-//   2. For each part, compute direction vector (part center -> global centroid)
-//   3. Translate part along that vector x explodeAmount
+//   2. For each part, compute direction vector (part center → global centroid)
+//   3. Translate part along that vector × explodeAmount
 //   4. Original positions are stored for reset
 //
 // Uses ModelPartLoader (parts already managed by Three.js groups).
@@ -108,14 +108,14 @@ export function ExplodeControl({ partLoader, scene, modelMeshes }: ExplodeContro
 
     // Compute model diagonal for proportional scaling
     const modelBox = new THREE.Box3().setFromObject(scene);
-    _modelDiagonal = modelBox.getSize(new THREE.Vector3()).length() || 3;
+    _modelDiagonal = modelBox.getSize(new THREE.Vector3()).length();
   }, [scene, partLoader]);
 
   // Apply explosion amount
   useEffect(() => {
     if (!scene || !initializedRef.current) return;
 
-    const scale = (amount / 100) * _modelDiagonal;
+    const scale = amount / 100 * _modelDiagonal; // max 3 units of displacement
 
     scene.traverse((obj) => {
       if (obj.userData?.partId && obj instanceof THREE.Group) {

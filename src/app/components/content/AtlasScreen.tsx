@@ -5,7 +5,7 @@
 // Extracted from ThreeDView.tsx to comply with <500 lines rule.
 // ============================================================
 
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { motion } from 'motion/react';
 import { Box, Search } from 'lucide-react';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
@@ -49,8 +49,6 @@ export function AtlasScreen({
     })).filter(c => c.sections.length > 0);
   }, [allCoursesSections, searchQuery]);
 
-  let colorIdx = 0;
-
   return (
     <div className="flex flex-col min-h-full bg-gray-50">
       <AxonPageHeader
@@ -59,7 +57,7 @@ export function AtlasScreen({
         statsLeft={
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-teal-500" />
+              <div className="w-2 h-2 rounded-full bg-[#2a8c7a]" />
               <span className="text-xs text-gray-500"><span className="font-semibold text-gray-700">{totalModels}</span> modelos</span>
             </div>
           </div>
@@ -72,7 +70,7 @@ export function AtlasScreen({
               placeholder="Buscar modelo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-4 py-1.5 text-xs bg-white border border-gray-200 rounded-lg text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 w-52"
+              className="pl-8 pr-4 py-1.5 text-xs bg-white border border-gray-200 rounded-lg text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] w-52"
             />
           </div>
         }
@@ -87,11 +85,17 @@ export function AtlasScreen({
           </div>
         )}
 
-        {filteredCourses.map(({ course, sections }) => (
+        {filteredCourses.map(({ course, sections }, courseIdx) => {
+          // Global section offset = sum of section counts in all previous courses
+          const sectionOffset = filteredCourses
+            .slice(0, courseIdx)
+            .reduce((acc, c) => acc + c.sections.length, 0);
+
+          return (
           <div key={course.id}>
             {/* Course header */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-3 h-3 rounded-full bg-teal-500" />
+              <div className="w-3 h-3 rounded-full bg-[#2a8c7a]" />
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide" style={headingStyle}>{course.name}</h3>
               <div className="flex-1 h-px bg-gray-200" />
               <span className="text-[10px] text-rose-400 font-medium">
@@ -101,9 +105,8 @@ export function AtlasScreen({
 
             {/* Sections grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sections.map((sec) => {
-                const color = SECTION_COLORS[colorIdx % SECTION_COLORS.length];
-                colorIdx++;
+              {sections.map((sec, secIdx) => {
+                const color = SECTION_COLORS[(sectionOffset + secIdx) % SECTION_COLORS.length];
                 return (
                   <SectionCard
                     key={sec.sectionId}
@@ -115,7 +118,8 @@ export function AtlasScreen({
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {filteredCourses.length === 0 && searchQuery.trim() && (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -131,9 +135,11 @@ export function AtlasScreen({
 
 // ══════════════════════════════════════════════
 // ── Section Card (grid item) ──
+// Pattern: React.memo with custom comparator — callbacks are inline closures
+// from .map(), so we compare data fields instead of function references.
 // ══════════════════════════════════════════════
 
-function SectionCard({
+const SectionCard = memo(function SectionCard({
   sectionData,
   color,
   onOpen,
@@ -174,7 +180,7 @@ function SectionCard({
               className="transition-all duration-500"
             />
           </svg>
-          <span className="absolute text-[10px] font-semibold text-teal-600">{totalCount}</span>
+          <span className="absolute text-[10px] font-semibold text-[#2a8c7a]">{totalCount}</span>
         </div>
       </div>
 
@@ -210,4 +216,11 @@ function SectionCard({
       </div>
     </motion.button>
   );
-}
+},
+  // Custom arePropsEqual: compare data identity, skip callback refs
+  (prev, next) =>
+    prev.sectionData.sectionId === next.sectionData.sectionId &&
+    prev.sectionData.totalCount === next.sectionData.totalCount &&
+    prev.sectionData.models.length === next.sectionData.models.length &&
+    prev.color === next.color
+);
