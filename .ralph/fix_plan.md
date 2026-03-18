@@ -291,6 +291,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 77 audit (panels + modals): Added Escape handler + focus trap to GraphTemplatePanel (was keyboard-inaccessible). ShareMapModal and PresentationMode verified clean. Fixed GraphTemplatePanel mountedRef Strict Mode pattern.
 - [x] Round 78 audit (AiTutorPanel deep audit): Added Escape handler + focus trap to AiTutorPanel. Fixed 'debiles'→'débiles' accent typo in mindmapAiApi.ts error message. All async safety verified clean (mountedRef, analyzingRef, suggestingRef, acceptingKeyRef).
 - [x] Round 79 audit (panel parity + mobile touch): All 4 slide-in panels now consistent (focus trap, Escape+stopImmediatePropagation, ErrorBoundary). Fixed MapComparisonPanel (missing Escape+focus trap+ErrorBoundary), ChangeHistoryPanel (missing focus trap+ErrorBoundary). Fixed KnowledgeGraph long-press firing mid-drag on mobile (added pointermove cancellation with 10px threshold). Fixed useSwipeDismiss multi-touch guard (pinch no longer triggers dismiss).
+- [x] Round 80 audit (StickyNote touch + final sweep): Fixed StickyNote delete button untappable on touch devices (was opacity:0 + pointerEvents:none without hover — now always visible at 0.3 opacity). Fixed undo/redo stack nuclear clear on failure — now only removes the failed action and shows error toast, preserving rest of history. Final comprehensive sweep found no HIGH severity issues.
 
 ## Completed
 - [x] Search/filter with debounce
