@@ -60,6 +60,7 @@ export function AddNodeEdgeModal({
 }: AddNodeEdgeModalProps) {
   const [tab, setTab] = useState<TabType>(initialTab || 'node');
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [shake, setShake] = useState(false);
 
   // Node form
@@ -114,7 +115,7 @@ export function AddNodeEdgeModal({
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !savingRef.current) onClose();
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';
@@ -140,7 +141,8 @@ export function AddNodeEdgeModal({
   };
 
   const handleCreateNode = async () => {
-    if (!nodeLabel.trim()) return;
+    if (!nodeLabel.trim() || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const payload: CreateCustomNodePayload = {
@@ -157,12 +159,14 @@ export function AddNodeEdgeModal({
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al crear concepto');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const handleCreateEdge = async () => {
-    if (!edgeSource || !edgeTarget || edgeSource === edgeTarget) return;
+    if (!edgeSource || !edgeTarget || edgeSource === edgeTarget || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const payload: CreateCustomEdgePayload = {
@@ -185,6 +189,7 @@ export function AddNodeEdgeModal({
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -199,7 +204,7 @@ export function AddNodeEdgeModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => { if (!savingRef.current) onClose(); }}
             aria-hidden="true"
           />
 

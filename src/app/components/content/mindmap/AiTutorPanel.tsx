@@ -198,6 +198,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   const [suggestions, setSuggestions] = useState<SuggestedConnection[]>([]);
   const [suggestingConnections, setSuggestingConnections] = useState(false);
   const [acceptedSuggestions, setAcceptedSuggestions] = useState<Set<string>>(new Set());
+  const [acceptingKey, setAcceptingKey] = useState<string | null>(null);
 
   // ── Improved-node detection ──────────────────────────────────
   // Stores previous weak area IDs+names so we can detect when a
@@ -295,6 +296,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
 
   const handleAcceptSuggestion = useCallback(async (suggestion: SuggestedConnection) => {
     const key = `${suggestion.source}-${suggestion.target}`;
+    if (acceptedSuggestions.has(key) || acceptingKey === key) return;
+    setAcceptingKey(key);
     try {
       await createCustomEdge({
         source_node_id: suggestion.source,
@@ -309,8 +312,10 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       toast.success('Conexión añadida al mapa');
     } catch (err: unknown) {
       if (mountedRef.current) toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
+    } finally {
+      if (mountedRef.current) setAcceptingKey(null);
     }
-  }, [topicId, onEdgeCreated]);
+  }, [topicId, onEdgeCreated, acceptedSuggestions, acceptingKey]);
 
   const handleDismissSuggestion = useCallback((suggestion: SuggestedConnection) => {
     setSuggestions(prev => prev.filter(s => !(s.source === suggestion.source && s.target === suggestion.target)));
@@ -727,7 +732,8 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleAcceptSuggestion(s)}
-                                  className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-ax-primary-500 hover:bg-ax-primary-50 transition-colors"
+                                  disabled={acceptingKey === key}
+                                  className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-ax-primary-500 hover:bg-ax-primary-50 disabled:opacity-50 transition-colors"
                                   aria-label="Aceptar conexión"
                                   title="Aceptar"
                                 >
