@@ -300,6 +300,7 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Round 87 audit (useFullscreen): Analyzed potential state desync — determined existing design is correct by design (CSS fallback intentional, fullscreenchange only fires for API path). No changes needed.
 - [x] Round 88 audit (test coverage): Added 3 graceful failure tests to useUndoRedo.test.ts — verifies failed undo/redo removes only failed action (not nuclear clear). All 17 tests passing.
 - [x] Round 89 audit (modal guards + focus trap + AI guard): Fixed 4 bugs: (1) AddNodeEdgeModal outer wrapper onClick bypassed save guard during save, (2) NodeAnnotationModal X button not disabled/guarded during save, (3) useFocusTrap didn't recapture focus if activeElement escaped container, (4) suggestStudentConnections wasted AI call on empty nodeIds. Build clean, all tests passing.
+- [x] Round 90 audit (keyboard + cache + touch): (1) Escape now closes shortcut overlay via setShowShortcuts(false), (2) invalidateGraphCache with only summaryId now deletes specific key instead of cache.clear(), (3) useSwipeDismiss added onTouchMove to cancel tracking when second finger added mid-gesture. Updated both consumer components.
 
 ## Completed
 - [x] Search/filter with debounce
