@@ -1138,18 +1138,20 @@ export function KnowledgeMapView() {
 
           {/* AI Tutor panel — slides in from right */}
           {effectiveTopicId && (
-            <AiTutorPanel
-              topicId={effectiveTopicId}
-              open={showAiPanel}
-              onClose={handleAiPanelClose}
-              onHighlightNodes={setAiHighlightNodes}
-              onReviewNodes={setAiReviewNodes}
-              onNavigateToAction={handleNavigateToAction}
-              existingNodeIds={existingNodeIds}
-              existingEdgeIds={existingEdgeIds}
-              onEdgeCreated={refetch}
-              nodeLabels={nodeLabels}
-            />
+            <ErrorBoundary fallback={null}>
+              <AiTutorPanel
+                topicId={effectiveTopicId}
+                open={showAiPanel}
+                onClose={handleAiPanelClose}
+                onHighlightNodes={setAiHighlightNodes}
+                onReviewNodes={setAiReviewNodes}
+                onNavigateToAction={handleNavigateToAction}
+                existingNodeIds={existingNodeIds}
+                existingEdgeIds={existingEdgeIds}
+                onEdgeCreated={refetch}
+                nodeLabels={nodeLabels}
+              />
+            </ErrorBoundary>
           )}
 
           {/* Change history panel — slides in from right */}
@@ -1192,6 +1194,7 @@ export function KnowledgeMapView() {
                 </ul>
                 <button
                   onClick={dismissOnboarding}
+                  autoFocus
                   className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors hover:bg-[#244e47]"
                   style={{ backgroundColor: '#2a8c7a' }}
                 >
@@ -1202,11 +1205,13 @@ export function KnowledgeMapView() {
           )}
 
           {/* Annotation modal — rendered outside overflow context via fixed positioning */}
-          <NodeAnnotationModal
-            node={annotationNode}
-            onClose={() => setAnnotationNode(null)}
-            onSaved={refetch}
-          />
+          <ErrorBoundary fallback={null}>
+            <NodeAnnotationModal
+              node={annotationNode}
+              onClose={() => setAnnotationNode(null)}
+              onSaved={refetch}
+            />
+          </ErrorBoundary>
 
           {/* Context menu overlay — uses fixed positioning, safe outside overflow */}
           <NodeContextMenu
@@ -1313,18 +1318,20 @@ export function KnowledgeMapView() {
         </div>
 
         {/* Add custom node/edge modal */}
-        <AddNodeEdgeModal
-          open={addModalOpen}
-          onClose={() => { setAddModalOpen(false); setConnectSource(null); setConnectTarget(null); }}
-          topicId={effectiveTopicId}
-          existingNodes={graphData?.nodes ?? []}
-          onCreated={refetch}
-          onNodeCreated={(nodeId, payload) => { pushAction({ type: 'create-node', nodeId, payload }); setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]); haptic(50); }}
-          onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphData?.nodes.find(n => n.id === payload.source_node_id); const tgtNode = graphData?.nodes.find(n => n.id === payload.target_node_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
-          initialEdgeSource={connectSource?.id}
-          initialEdgeTarget={connectTarget?.id}
-          initialTab={connectSource ? 'edge' : undefined}
-        />
+        <ErrorBoundary fallback={null}>
+          <AddNodeEdgeModal
+            open={addModalOpen}
+            onClose={() => { setAddModalOpen(false); setConnectSource(null); setConnectTarget(null); }}
+            topicId={effectiveTopicId}
+            existingNodes={graphData?.nodes ?? []}
+            onCreated={refetch}
+            onNodeCreated={(nodeId, payload) => { pushAction({ type: 'create-node', nodeId, payload }); setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]); haptic(50); }}
+            onEdgeCreated={(edgeId, payload) => { pushAction({ type: 'create-edge', edgeId, payload }); const srcNode = graphData?.nodes.find(n => n.id === payload.source_node_id); const tgtNode = graphData?.nodes.find(n => n.id === payload.target_node_id); setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]); haptic(50); }}
+            initialEdgeSource={connectSource?.id}
+            initialEdgeTarget={connectTarget?.id}
+            initialTab={connectSource ? 'edge' : undefined}
+          />
+        </ErrorBoundary>
 
         {/* Share map modal */}
         <ShareMapModal
