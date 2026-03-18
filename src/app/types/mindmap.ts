@@ -33,6 +33,8 @@ export interface MapNode {
   isUserCreated?: boolean;
   /** Student's personal micro-annotation */
   annotation?: string;
+  /** Custom fill color hex chosen by student (user-created nodes only) */
+  customColor?: string;
   /** Number of flashcards available for this keyword */
   flashcardCount?: number;
   /** Number of quiz questions available */

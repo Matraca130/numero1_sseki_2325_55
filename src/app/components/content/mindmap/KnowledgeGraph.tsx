@@ -20,13 +20,15 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
-import { Maximize2, X, Link, Trash2 } from 'lucide-react';
+import { Maximize2, X, Link, Trash2, Plus } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
 import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
 import { loadPositions, saveNodePosition } from './useNodePositions';
 import type { PositionMap } from './useNodePositions';
+import { NODE_COLOR_FILL } from './useNodeColors';
+import { useKeyboardNav } from './useKeyboardNav';
 
 type Locale = 'pt' | 'es';
 
@@ -57,12 +59,13 @@ const I18N_GRAPH: Record<Locale, {
   deselect: string; shiftClickHint: string;
   masteryLow: string; masteryMid: string; masteryHigh: string; masteryNone: string;
   masteryLegend: string;
+  quickAdd: string; focusedNode: (label: string) => string;
   keys: [string, string][];
 }> = {
   pt: {
     noData: 'Sem dados', mastery: 'Domínio',
     ariaLabel: 'Mapa de conhecimento interativo', ariaRoleDesc: 'grafo de conhecimento',
-    srDesc: 'Use + e - para zoom, 0 para ajustar vista, duplo-clique em um nodo para recolher/expandir ramos. Ctrl+[ recolhe todos, Ctrl+] expande todos. ? para atalhos.',
+    srDesc: 'Use Tab para navegar entre nodos, setas para mover entre vizinhos, Enter para menu de contexto, + para adicionar nodo conectado. Esc para desmarcar. ? para atalhos.',
     nCollapsed: (n) => `${n} nodos recolhidos`, allExpanded: 'Todos os nodos expandidos',
     mobileHint: 'Arraste para mover · Pinça para zoom · Segure para menu',
     reviewAlert: 'IA recomenda revisar',
@@ -74,7 +77,11 @@ const I18N_GRAPH: Record<Locale, {
     masteryLow: 'Fraco (<50%)', masteryMid: 'Aprendendo (50-80%)',
     masteryHigh: 'Dominado (>80%)', masteryNone: 'Sem dados',
     masteryLegend: 'Domínio',
+    quickAdd: 'Adicionar conceito conectado',
+    focusedNode: (label) => `Nodo focado: ${label}`,
     keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
+      ['Tab', 'Navegar entre nodos'], ['Setas', 'Mover entre vizinhos'],
+      ['Enter', 'Menu de contexto'], ['+', 'Adicionar nodo conectado'],
       ['Duplo-clique', 'Recolher/expandir'], ['Ctrl+[', 'Recolher todos'],
       ['Ctrl+]', 'Expandir todos'], ['Shift+clique', 'Selecionar vários'],
       ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
@@ -82,7 +89,7 @@ const I18N_GRAPH: Record<Locale, {
   es: {
     noData: 'Sin datos', mastery: 'Dominio',
     ariaLabel: 'Mapa de conocimiento interactivo', ariaRoleDesc: 'grafo de conocimiento',
-    srDesc: 'Use + y - para zoom, 0 para ajustar vista, doble clic en un nodo para colapsar/expandir ramas. Ctrl+[ colapsa todos, Ctrl+] expande todos. ? para atajos.',
+    srDesc: 'Use Tab para navegar entre nodos, flechas para mover entre vecinos, Enter para menu contextual, + para agregar nodo conectado. Esc para deseleccionar. ? para atajos.',
     nCollapsed: (n) => `${n} nodos colapsados`, allExpanded: 'Todos los nodos expandidos',
     mobileHint: 'Arrastre para mover · Pellizque para zoom · Mantenga para menú',
     reviewAlert: 'IA recomienda revisar',
@@ -94,7 +101,11 @@ const I18N_GRAPH: Record<Locale, {
     masteryLow: 'Debil (<50%)', masteryMid: 'Aprendiendo (50-80%)',
     masteryHigh: 'Dominado (>80%)', masteryNone: 'Sin datos',
     masteryLegend: 'Dominio',
+    quickAdd: 'Agregar concepto conectado',
+    focusedNode: (label) => `Nodo enfocado: ${label}`,
     keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
+      ['Tab', 'Navegar entre nodos'], ['Flechas', 'Mover entre vecinos'],
+      ['Enter', 'Menu contextual'], ['+', 'Agregar nodo conectado'],
       ['Doble clic', 'Colapsar/expandir'], ['Ctrl+[', 'Colapsar todos'],
       ['Ctrl+]', 'Expandir todos'], ['Shift+clic', 'Seleccionar varios'],
       ['Esc', 'Deseleccionar'], ['?', 'Esta ayuda']],
@@ -130,6 +141,10 @@ interface KnowledgeGraphProps {
   onConnectNodes?: (sourceId: string, targetId: string) => void;
   /** Whether to show the mastery color legend */
   showMasteryLegend?: boolean;
+  /** Custom node colors map: nodeId → hex color (for user-created nodes) */
+  customNodeColors?: Map<string, string>;
+  /** Called when user presses "+" with a node focused — opens quick-add flow */
+  onQuickAdd?: (sourceNodeId: string) => void;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -152,6 +167,8 @@ export function KnowledgeGraph({
   onDeleteNodes,
   onConnectNodes,
   showMasteryLegend = true,
+  customNodeColors,
+  onQuickAdd,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -266,8 +283,12 @@ export function KnowledgeGraph({
             _raw: node,
           },
           style: {
-            fill: node.isUserCreated ? colors.primary[50] : getNodeFill(node.masteryColor),
-            stroke: node.isUserCreated ? colors.primary[500] : strokeColor,
+            fill: node.isUserCreated && customNodeColors?.get(node.id)
+              ? (NODE_COLOR_FILL[customNodeColors.get(node.id)!] || colors.primary[50])
+              : node.isUserCreated ? colors.primary[50] : getNodeFill(node.masteryColor),
+            stroke: node.isUserCreated && customNodeColors?.get(node.id)
+              ? customNodeColors.get(node.id)!
+              : node.isUserCreated ? colors.primary[500] : strokeColor,
             lineWidth: isHighlighted ? 3 : needsReview ? 2.5 : isCollapsed ? 2.5 : node.isUserCreated ? 2 : 1.5,
             lineDash: isCollapsed ? [4, 4] : node.isUserCreated ? [6, 3] : undefined,
             shadowColor: isHighlighted ? strokeColor : needsReview ? '#f97316' : 'transparent',
@@ -327,7 +348,7 @@ export function KnowledgeGraph({
       });
 
     return { nodes, edges };
-  }, [data, highlightNodeIds, reviewNodeIds, childrenMap]);
+  }, [data, highlightNodeIds, reviewNodeIds, childrenMap, customNodeColors]);
 
   // Layout config
   const getLayoutConfig = useCallback(() => {
@@ -916,46 +937,27 @@ export function KnowledgeGraph({
   // eslint-disable-next-line react-hooks/exhaustive-deps — onCollapseChange stabilized via onCollapseChangeRef
   }, [ready, graphVersion, onNodeClick, onNodeRightClick]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || !ready) return;
+  // Keyboard navigation: Tab, Arrow keys, Enter, Escape, +, zoom, collapse
+  const { focusedNodeId } = useKeyboardNav({
+    graphRef: graphRef as React.RefObject<Graph | null>,
+    containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
+    ready,
+    graphVersion,
+    nodes: data.nodes,
+    edges: data.edges,
+    selectedNodeId,
+    onNodeClick,
+    onNodeRightClick,
+    onQuickAdd,
+    collapseAllRef: collapseAllRef as React.RefObject<() => void>,
+    expandAllRef: expandAllRef as React.RefObject<() => void>,
+    multiSelectedIdsRef: multiSelectedIdsRef as React.RefObject<Set<string>>,
+    updateMultiSelection,
+    setShowShortcuts,
+  });
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input/textarea
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-      try {
-        if (e.key === '=' || e.key === '+') {
-          graph.zoomBy(1.25, { duration: 200 });
-        } else if (e.key === '-') {
-          graph.zoomBy(0.8, { duration: 200 });
-        } else if (e.key === '0' || e.key === 'f') {
-          graph.fitView();
-        } else if (e.key === 'Escape') {
-          onNodeClick?.(null);
-          if (multiSelectedIdsRef.current.size > 0) {
-            updateMultiSelection(new Set());
-          }
-        } else if (e.key === '[' && e.ctrlKey) {
-          e.preventDefault();
-          collapseAllRef.current();
-        } else if (e.key === ']' && e.ctrlKey) {
-          e.preventDefault();
-          expandAllRef.current();
-        } else if (e.key === '?') {
-          setShowShortcuts(v => !v);
-        }
-      } catch {
-        // graph may be in transition
-      }
-    };
-
-    const container = containerRef.current;
-    container?.addEventListener('keydown', handleKeyDown);
-    return () => container?.removeEventListener('keydown', handleKeyDown);
-  }, [ready, graphVersion, onNodeClick]);
+  // Focused node data for quick-add button positioning and aria
+  const focusedNode = focusedNodeId ? nodeById.get(focusedNodeId) : null;
 
   const collapsedCount = collapsedNodes.size;
   const multiSelectedCount = multiSelectedIds.size;
@@ -992,6 +994,22 @@ export function KnowledgeGraph({
           ? t.nCollapsed(collapsedCount)
           : ready ? t.allExpanded : ''}
       </div>
+      {/* Screen reader announcement for focused node */}
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">
+        {focusedNode ? t.focusedNode(focusedNode.label) : ''}
+      </div>
+      {/* Quick-add "+" button — appears near selected/focused node */}
+      {ready && focusedNodeId && onQuickAdd && (
+        <button
+          onClick={() => onQuickAdd(focusedNodeId)}
+          className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg shadow-lg border border-gray-200 text-xs text-teal-700 hover:bg-teal-50 active:bg-teal-100 transition-colors"
+          aria-label={t.quickAdd}
+          title={t.quickAdd}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{t.quickAdd}</span>
+        </button>
+      )}
       {/* Mobile hint overlay — auto-dismisses after 4s */}
       {ready && showMobileHint && data.nodes.length > 5 && (
         <div className="absolute left-1/2 -translate-x-1/2 sm:hidden pointer-events-none transition-opacity duration-500" style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>

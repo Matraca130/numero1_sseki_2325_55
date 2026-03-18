@@ -24,7 +24,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 /** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
 const haptic = (ms = 50) => navigator?.vibrate?.(ms);
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows, StickyNote as StickyNoteIcon } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
@@ -55,6 +55,10 @@ import { PresentationMode } from './mindmap/PresentationMode';
 import { ChangeHistoryPanel } from './mindmap/ChangeHistoryPanel';
 import { ShareMapModal } from './mindmap/ShareMapModal';
 import { MapComparisonPanel } from './mindmap/MapComparisonPanel';
+import { StickyNotesLayer, loadStickyNotes, createStickyNote, saveStickyNotes } from './mindmap/StickyNote';
+import type { StickyNoteData } from './mindmap/StickyNote';
+import { loadNodeColors, saveNodeColor } from './mindmap/useNodeColors';
+import type { NodeColorMap } from './mindmap/useNodeColors';
 import { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry } from './mindmap/changeHistoryHelpers';
 import type { HistoryEntry } from './mindmap/changeHistoryHelpers';
 import type { MapTool } from './mindmap/MapToolsPanel';
@@ -296,6 +300,48 @@ export function KnowledgeMapView() {
   useEffect(() => {
     if (effectiveTopicId && historyEntries.length > 0) saveHistory(effectiveTopicId, historyEntries);
   }, [effectiveTopicId, historyEntries]);
+
+  // ── Sticky notes ───────────────────────────────────────────
+  const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
+  useEffect(() => {
+    if (effectiveTopicId) {
+      setStickyNotes(loadStickyNotes(effectiveTopicId));
+    } else {
+      setStickyNotes([]);
+    }
+  }, [effectiveTopicId]);
+
+  const handleAddStickyNote = useCallback(() => {
+    if (!effectiveTopicId) return;
+    if (stickyNotes.length >= 10) {
+      toast.error('Maximo 10 notas por tema');
+      return;
+    }
+    const note = createStickyNote();
+    const next = [...stickyNotes, note];
+    setStickyNotes(next);
+    saveStickyNotes(effectiveTopicId, next);
+  }, [effectiveTopicId, stickyNotes]);
+
+  // ── Custom node colors ────────────────────────────────────
+  const [customNodeColors, setCustomNodeColors] = useState<NodeColorMap>(new Map());
+  useEffect(() => {
+    if (effectiveTopicId) {
+      setCustomNodeColors(loadNodeColors(effectiveTopicId));
+    } else {
+      setCustomNodeColors(new Map());
+    }
+  }, [effectiveTopicId]);
+
+  const handleNodeColorChange = useCallback((nodeId: string, color: string) => {
+    if (!effectiveTopicId) return;
+    saveNodeColor(effectiveTopicId, nodeId, color);
+    setCustomNodeColors(prev => {
+      const next = new Map(prev);
+      next.set(nodeId, color);
+      return next;
+    });
+  }, [effectiveTopicId]);
 
   const handleAction = useCallback((action: NodeAction, node: MapNode) => {
     setContextMenu(null);
@@ -623,6 +669,25 @@ export function KnowledgeMapView() {
                     <span className="hidden sm:inline">Añadir</span>
                   </button>
                 )}
+                {effectiveTopicId && (
+                  <button
+                    onClick={handleAddStickyNote}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                    aria-label="Agregar nota adhesiva"
+                    title="Agregar nota adhesiva"
+                  >
+                    <StickyNoteIcon className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Nota</span>
+                    {stickyNotes.length > 0 && (
+                      <span
+                        className="px-1.5 py-0.5 rounded-full font-medium"
+                        style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)', backgroundColor: '#e8f5f1', color: '#2a8c7a' }}
+                      >
+                        {stickyNotes.length}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {/* Undo / Redo */}
                 <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5">
                   <button
@@ -842,6 +907,7 @@ export function KnowledgeMapView() {
                 reviewNodeIds={aiReviewNodes}
                 topicId={effectiveTopicId}
                 showMinimap={showMinimap}
+                customNodeColors={customNodeColors}
               />
             ) : searchQuery.trim() ? (
               <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
@@ -865,6 +931,13 @@ export function KnowledgeMapView() {
               </div>
             ) : null}
           </ErrorBoundary>
+
+          {/* Sticky notes layer — floats above graph, below modals */}
+          <StickyNotesLayer
+            topicId={effectiveTopicId}
+            notes={stickyNotes}
+            onNotesChange={setStickyNotes}
+          />
 
           {/* Connect tool indicator — shows source node name */}
           {activeTool === 'connect' && connectSource && (
@@ -976,6 +1049,8 @@ export function KnowledgeMapView() {
             hasChildren={contextMenu?.node ? nodesWithChildren.has(contextMenu.node.id) : false}
             isCollapsed={contextMenu?.node ? collapsedNodeIds.has(contextMenu.node.id) : false}
             onToggleCollapse={contextMenu?.node ? (() => { const id = contextMenu.node.id; return () => graphControlsRef.current?.toggleCollapse(id); })() : undefined}
+            onColorChange={handleNodeColorChange}
+            currentCustomColor={contextMenu?.node ? customNodeColors.get(contextMenu.node.id) : undefined}
           />
 
           {/* Selected node detail panel (bottom sheet on mobile, floating card on desktop) */}

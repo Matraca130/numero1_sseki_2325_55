@@ -7,11 +7,12 @@
 // ============================================================
 
 import { useEffect, useRef, useState, type ElementType } from 'react';
-import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown } from 'lucide-react';
+import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapNode, NodeAction } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers';
+import { NODE_COLOR_PALETTE } from './useNodeColors';
 
 // ── Icon map ────────────────────────────────────────────────
 
@@ -44,6 +45,10 @@ interface NodeContextMenuProps {
   isCollapsed?: boolean;
   /** Toggle collapse for this node */
   onToggleCollapse?: () => void;
+  /** Callback when user selects a custom color (user-created nodes only) */
+  onColorChange?: (nodeId: string, color: string) => void;
+  /** Current custom color of the node (if any) */
+  currentCustomColor?: string;
 }
 
 // ── Shared styles ───────────────────────────────────────────
@@ -53,7 +58,7 @@ const captionFontSize = 'clamp(0.7rem, 1.3vw, 0.75rem)';
 
 // ── Component ───────────────────────────────────────────────
 
-export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse }: NodeContextMenuProps) {
+export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse, onColorChange, currentCustomColor }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click + keyboard navigation
@@ -247,6 +252,40 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
               );
             })}
           </div>
+          {/* Custom color swatches (user-created nodes only) */}
+          {node.isUserCreated && onColorChange && (
+            <div
+              className="border-t border-gray-100 py-1.5"
+            >
+              <div className={`flex items-center gap-2 ${isSmallScreen ? 'px-4' : 'px-3'}`}>
+                <Palette className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <span
+                  className="text-gray-500 font-sans"
+                  style={{ fontSize: captionFontSize }}
+                >
+                  Color
+                </span>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  {NODE_COLOR_PALETTE.map(({ hex, label }) => (
+                    <button
+                      key={hex}
+                      onClick={() => { onColorChange(node.id, hex); }}
+                      className="rounded-full transition-all duration-100 flex-shrink-0"
+                      style={{
+                        width: 18,
+                        height: 18,
+                        backgroundColor: hex,
+                        outline: currentCustomColor === hex ? `2px solid ${hex}` : '2px solid transparent',
+                        outlineOffset: 1,
+                      }}
+                      aria-label={`Color ${label}`}
+                      title={label}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {/* Collapse/expand branch action (only for non-leaf nodes) */}
           {hasChildren && onToggleCollapse && (
             <div
