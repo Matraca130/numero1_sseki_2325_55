@@ -118,7 +118,7 @@ export function ProfessorKnowledgeMapPage() {
 
   /** Graph data with class-wide mastery overlaid when heatmap is active */
   const heatmapGraphData = useMemo((): GraphData | null => {
-    if (!heatmapEnabled || !heatmapData || !filteredGraphData) return null;
+    if (!heatmapEnabled || !heatmapData || heatmapData.length === 0 || !filteredGraphData) return null;
     const masteryLookup = new Map(heatmapData.map(d => [d.keyword_id, d]));
     return {
       ...filteredGraphData,
@@ -321,6 +321,7 @@ export function ProfessorKnowledgeMapPage() {
                     }`}
                     aria-label={heatmapEnabled ? 'Desactivar mapa de calor' : 'Activar mapa de calor'}
                     aria-pressed={heatmapEnabled}
+                    title={heatmapEnabled ? 'Desactivar mapa de calor' : 'Activar mapa de calor'}
                   >
                     {heatmapLoading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -472,7 +473,7 @@ export function ProfessorKnowledgeMapPage() {
                         showMinimap={showMinimap}
                       />
                       {/* Heatmap overlay badge */}
-                      {heatmapEnabled && heatmapData && (
+                      {heatmapEnabled && heatmapData && heatmapData.length > 0 && (
                         <div className="absolute top-3 left-3 z-[6] flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur rounded-full border border-rose-200 shadow-sm">
                           <Thermometer className="w-3.5 h-3.5 text-rose-500" />
                           <span className="text-xs font-medium text-rose-600">Mapa de calor</span>

@@ -235,13 +235,16 @@ export async function fetchClassMastery(
     if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
       if (import.meta.env.DEV) {
         console.info('[MindmapApi] /ai/class-mastery not deployed, using mock data');
-        return graphNodes.map((node) => ({
-          keyword_id: node.id,
-          keyword_name: node.label,
-          avg_mastery: Math.random() * 0.85 + 0.1, // 0.10 – 0.95
-          student_count: Math.floor(Math.random() * 30) + 5,
-          weak_student_count: Math.floor(Math.random() * 10),
-        }));
+        return graphNodes.map((node) => {
+          const studentCount = Math.floor(Math.random() * 30) + 5;
+          return {
+            keyword_id: node.id,
+            keyword_name: node.label,
+            avg_mastery: Math.random() * 0.85 + 0.1, // 0.10 – 0.95
+            student_count: studentCount,
+            weak_student_count: Math.floor(Math.random() * Math.min(studentCount, 10)),
+          };
+        });
       }
       // Production: return empty array instead of fake data
       return [];
