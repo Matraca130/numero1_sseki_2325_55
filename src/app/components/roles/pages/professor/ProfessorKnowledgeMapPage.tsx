@@ -134,6 +134,12 @@ export function ProfessorKnowledgeMapPage() {
     };
   }, [heatmapEnabled, heatmapData, filteredGraphData]);
 
+  // Memoized O(1) lookup for heatmap data by keyword_id (avoids inline .find() in render)
+  const heatmapLookup = useMemo(() => {
+    if (!heatmapData) return null;
+    return new Map(heatmapData.map(d => [d.keyword_id, d]));
+  }, [heatmapData]);
+
   // ── Handlers ────────────────────────────────────────────
 
   const handleTopicSelect = useCallback((tid: string) => {
@@ -586,8 +592,8 @@ export function ProfessorKnowledgeMapPage() {
                     </p>
                   )}
                   {/* Heatmap mobile detail */}
-                  {heatmapEnabled && heatmapData && (() => {
-                    const cm = heatmapData.find(d => d.keyword_id === selectedNode.id);
+                  {heatmapEnabled && heatmapLookup && (() => {
+                    const cm = heatmapLookup.get(selectedNode.id);
                     if (!cm) return null;
                     return (
                       <div className="flex items-center gap-2 mt-2 text-[11px]">
@@ -703,8 +709,8 @@ export function ProfessorKnowledgeMapPage() {
                       </span>
                     </div>
                     {/* Heatmap node detail */}
-                    {heatmapEnabled && heatmapData && (() => {
-                      const cm = heatmapData.find(d => d.keyword_id === selectedNode.id);
+                    {heatmapEnabled && heatmapLookup && (() => {
+                      const cm = heatmapLookup.get(selectedNode.id);
                       if (!cm) return null;
                       return (
                         <div className="mb-3 p-2 bg-rose-50 rounded-lg border border-rose-100">

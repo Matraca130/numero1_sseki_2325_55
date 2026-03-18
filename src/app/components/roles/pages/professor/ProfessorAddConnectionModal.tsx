@@ -41,11 +41,18 @@ export function ProfessorAddConnectionModal({
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const onCreatedRef = useRef(onCreated);
+  onCreatedRef.current = onCreated;
   const focusTrapRef = useFocusTrap(open);
 
   const sortedNodes = useMemo(
     () => [...nodes].sort((a, b) => a.label.localeCompare(b.label)),
     [nodes],
+  );
+
+  const targetNodes = useMemo(
+    () => sortedNodes.filter((n) => n.id !== connSource),
+    [sortedNodes, connSource],
   );
 
   // Reset form when modal closes
@@ -62,7 +69,7 @@ export function ProfessorAddConnectionModal({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !savingRef.current) { e.stopPropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape' && !savingRef.current) { e.stopImmediatePropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     document.documentElement.style.overflow = 'hidden';
@@ -93,16 +100,16 @@ export function ProfessorAddConnectionModal({
         }),
       });
       toast.success('Conexión creada');
-      onClose();
+      onCloseRef.current();
       if (topicId) invalidateGraphCache(topicId);
-      onCreated();
+      onCreatedRef.current();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
     } finally {
       savingRef.current = false;
       if (mountedRef.current) setConnSaving(false);
     }
-  }, [connSource, connTarget, connType, connLabel, topicId, onClose, onCreated]);
+  }, [connSource, connTarget, connType, connLabel, topicId]);
 
   return (
     <AnimatePresence>
@@ -180,9 +187,7 @@ export function ProfessorAddConnectionModal({
                     className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                   >
                     <option value="">Seleccionar...</option>
-                    {sortedNodes
-                      .filter((n) => n.id !== connSource)
-                      .map((n) => (
+                    {targetNodes.map((n) => (
                         <option key={n.id} value={n.id}>{n.label}</option>
                       ))}
                   </select>
