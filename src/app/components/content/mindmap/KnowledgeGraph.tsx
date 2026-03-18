@@ -14,13 +14,15 @@
 //   - Keyboard shortcuts (+/- zoom, Esc deselect)
 //   - Hover tooltips with definition
 //   - Responsive container
+//   - Multi-selection (Shift+click / brush-select) with action bar
+//   - Mastery color legend (bottom-left)
 // ============================================================
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
 import { Maximize2, X, Link, Trash2 } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
-import { MASTERY_HEX, MASTERY_HEX_LIGHT, truncateLabel } from '@/app/types/mindmap';
+import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
 import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
 import { loadPositions, saveNodePosition } from './useNodePositions';
@@ -162,10 +164,16 @@ export function KnowledgeGraph({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMobileHint, setShowMobileHint] = useState(true);
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
+  const multiSelectedIdsRef = useRef(multiSelectedIds);
+  multiSelectedIdsRef.current = multiSelectedIds;
 
   // Stable ref for onCollapseChange to avoid stale closures in setter callbacks
   const onCollapseChangeRef = useRef(onCollapseChange);
   onCollapseChangeRef.current = onCollapseChange;
+
+  // Stable ref for onMultiSelect
+  const onMultiSelectRef = useRef(onMultiSelect);
+  onMultiSelectRef.current = onMultiSelect;
 
   // Track mount state to guard async callbacks
   useEffect(() => {
@@ -195,6 +203,27 @@ export function KnowledgeGraph({
   // Stable ref for topicId to use in event handlers
   const topicIdRef = useRef(topicId);
   topicIdRef.current = topicId;
+
+  // Helper: apply multi-selection visual state to G6 nodes
+  const applyMultiSelectionState = useCallback((graph: Graph, ids: Set<string>) => {
+    try {
+      // Clear all selected states first, then apply to selected nodes
+      for (const node of data.nodes) {
+        graph.setElementState(node.id, ids.has(node.id) ? ['multiSelected'] : []);
+      }
+      graph.draw();
+    } catch {
+      // Graph may be destroyed
+    }
+  }, [data.nodes]);
+
+  // Update multi-selection and notify parent
+  const updateMultiSelection = useCallback((nextIds: Set<string>) => {
+    setMultiSelectedIds(nextIds);
+    onMultiSelectRef.current?.(Array.from(nextIds));
+    const graph = graphRef.current;
+    if (graph) applyMultiSelectionState(graph, nextIds);
+  }, [applyMultiSelectionState]);
 
   // Transform Axon data → G6 format, respecting collapsed and highlight state
   const g6Data = useCallback((collapsed: Set<string>, positions?: PositionMap) => {
@@ -433,6 +462,14 @@ export function KnowledgeGraph({
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
+          multiSelected: {
+            stroke: '#2a8c7a',
+            lineWidth: 3.5,
+            shadowColor: 'rgba(42, 140, 122, 0.6)',
+            shadowBlur: 14,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
+          },
         },
         animation: {
           enter: [
@@ -479,6 +516,17 @@ export function KnowledgeGraph({
         {
           type: 'hover-activate',
           degree: 1,
+        },
+        {
+          type: 'brush-select',
+          key: 'brush-select',
+          trigger: 'shift',
+          style: {
+            fill: '#2a8c7a',
+            fillOpacity: 0.1,
+            stroke: '#2a8c7a',
+            lineWidth: 1,
+          },
         },
       ],
       plugins: [
@@ -580,6 +628,9 @@ export function KnowledgeGraph({
         },
         focusNode: (nodeId: string) => {
           try { graph.focusElements([nodeId], { animation: { duration: 400, easing: 'ease-in-out' } }); } catch { /* graph may be destroyed */ }
+        },
+        clearMultiSelection: () => {
+          updateMultiSelection(new Set());
         },
       });
     }).catch(() => { /* G6 render may fail if destroyed during layout */ });
@@ -706,6 +757,40 @@ export function KnowledgeGraph({
       if (longPressTriggered) { longPressTriggered = false; return; }
       const nodeId = evt.target?.id ?? evt.itemId;
       if (!nodeId) return;
+
+      // Shift+click: toggle node in multi-selection set
+      const isShift = evt.originalEvent?.shiftKey ?? false;
+      if (isShift) {
+        setMultiSelectedIds(prev => {
+          const next = new Set(prev);
+          if (next.has(nodeId)) {
+            next.delete(nodeId);
+          } else {
+            next.add(nodeId);
+          }
+          onMultiSelectRef.current?.(Array.from(next));
+          // Apply visual state — use setTimeout to ensure state is committed
+          requestAnimationFrame(() => {
+            const g = graphRef.current;
+            if (g) {
+              try {
+                for (const nId of data.nodes.map(n => n.id)) {
+                  g.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
+                }
+                g.draw();
+              } catch { /* graph may be destroyed */ }
+            }
+          });
+          return next;
+        });
+        return;
+      }
+
+      // Normal click: clear multi-selection if any, then fire single click
+      if (multiSelectedIdsRef.current.size > 0) {
+        updateMultiSelection(new Set());
+      }
+
       const nodeData = graph.getNodeData(nodeId);
       if (nodeData && onNodeClick) {
         onNodeClick(nodeData.data._raw as MapNode);
@@ -748,6 +833,27 @@ export function KnowledgeGraph({
       // Deselect node when clicking on empty canvas
       onNodeClick?.(null);
       setShowShortcuts(false);
+      // Clear multi-selection
+      if (multiSelectedIdsRef.current.size > 0) {
+        updateMultiSelection(new Set());
+      }
+    };
+
+    // Brush-select event: G6 fires 'afterbrushselect' with selected element IDs
+    const handleBrushSelect = (evt: { data: { nodes?: string[] } }) => {
+      const selectedIds = evt.data?.nodes ?? [];
+      if (selectedIds.length > 0) {
+        const next = new Set(selectedIds);
+        setMultiSelectedIds(next);
+        onMultiSelectRef.current?.(selectedIds);
+        // Apply visual state
+        try {
+          for (const nId of data.nodes.map(n => n.id)) {
+            graph.setElementState(nId, next.has(nId) ? ['multiSelected'] : []);
+          }
+          graph.draw();
+        } catch { /* graph may be destroyed */ }
+      }
     };
 
     // Save node position after drag for persistence
@@ -772,6 +878,7 @@ export function KnowledgeGraph({
     graph.on('node:dblclick', handleNodeDblClick);
     graph.on('node:dragend', handleNodeDragEnd);
     graph.on('canvas:click', handleCanvasClick);
+    graph.on('afterbrushselect', handleBrushSelect);
 
     // Long-press for mobile context menu (500ms threshold)
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -800,6 +907,7 @@ export function KnowledgeGraph({
       graph.off('node:dblclick', handleNodeDblClick);
       graph.off('node:dragend', handleNodeDragEnd);
       graph.off('canvas:click', handleCanvasClick);
+      graph.off('afterbrushselect', handleBrushSelect);
       graph.off('node:pointerdown', handleNodePointerDown);
       graph.off('node:pointerup', handleNodePointerUp);
       graph.off('node:pointerleave', handleNodePointerLeave);
@@ -827,6 +935,9 @@ export function KnowledgeGraph({
           graph.fitView();
         } else if (e.key === 'Escape') {
           onNodeClick?.(null);
+          if (multiSelectedIdsRef.current.size > 0) {
+            updateMultiSelection(new Set());
+          }
         } else if (e.key === '[' && e.ctrlKey) {
           e.preventDefault();
           collapseAllRef.current();
@@ -847,6 +958,16 @@ export function KnowledgeGraph({
   }, [ready, graphVersion, onNodeClick]);
 
   const collapsedCount = collapsedNodes.size;
+  const multiSelectedCount = multiSelectedIds.size;
+
+  // Check if any selected nodes are user-created (deletable)
+  const selectedUserCreatedIds = useMemo(() => {
+    if (multiSelectedCount === 0) return [];
+    return Array.from(multiSelectedIds).filter(id => {
+      const node = nodeById.get(id);
+      return node?.isUserCreated;
+    });
+  }, [multiSelectedIds, multiSelectedCount, nodeById]);
 
   return (
     <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
@@ -890,9 +1011,94 @@ export function KnowledgeGraph({
           <Maximize2 className="w-5 h-5" />
         </button>
       )}
+      {/* Multi-selection floating action bar */}
+      {ready && multiSelectedCount > 0 && (
+        <div
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white rounded-xl shadow-lg border border-gray-200 px-3 py-2 text-xs"
+          role="toolbar"
+          aria-label={t.nSelected(multiSelectedCount)}
+        >
+          <span className="font-medium text-gray-700 whitespace-nowrap">
+            {t.nSelected(multiSelectedCount)}
+          </span>
+          <div className="w-px h-4 bg-gray-200" />
+          {selectedUserCreatedIds.length > 0 && onDeleteNodes && (
+            <button
+              onClick={() => {
+                onDeleteNodes(selectedUserCreatedIds);
+                updateMultiSelection(new Set());
+              }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+              title={t.deleteSelection}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.deleteSelection}</span>
+            </button>
+          )}
+          {multiSelectedCount === 2 && onConnectNodes && (
+            <button
+              onClick={() => {
+                const ids = Array.from(multiSelectedIds);
+                onConnectNodes(ids[0], ids[1]);
+                updateMultiSelection(new Set());
+              }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 transition-colors"
+              title={t.connect}
+            >
+              <Link className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.connect}</span>
+            </button>
+          )}
+          <button
+            onClick={() => updateMultiSelection(new Set())}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            title={t.deselect}
+          >
+            <X className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t.deselect}</span>
+          </button>
+        </div>
+      )}
+      {/* Mastery color legend — bottom-left, always visible */}
+      {ready && showMasteryLegend && data.nodes.length > 0 && (
+        <div className="absolute bottom-2 left-2 z-[4] bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-100 px-2.5 py-2 text-[10px] pointer-events-none hidden sm:block">
+          <div className="font-semibold text-gray-500 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+            {t.masteryLegend}
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: MASTERY_HEX.red }} />
+              <span className="text-gray-500">{t.masteryLow}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: MASTERY_HEX.yellow }} />
+              <span className="text-gray-500">{t.masteryMid}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: MASTERY_HEX.green }} />
+              <span className="text-gray-500">{t.masteryHigh}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: MASTERY_HEX.gray }} />
+              <span className="text-gray-500">{t.masteryNone}</span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Desktop: press ? for shortcut hint */}
-      {ready && !showShortcuts && (
+      {ready && !showShortcuts && !showMasteryLegend && (
         <div className="absolute bottom-2 left-2 hidden sm:flex items-center gap-2 pointer-events-none">
+          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+            ? {t.shortcuts}
+          </p>
+          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+            / {t.search}
+          </p>
+        </div>
+      )}
+      {/* Desktop: shortcut hint — repositioned when legend is visible */}
+      {ready && !showShortcuts && showMasteryLegend && (
+        <div className="absolute bottom-2 left-28 hidden sm:flex items-center gap-2 pointer-events-none">
           <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
             ? {t.shortcuts}
           </p>
