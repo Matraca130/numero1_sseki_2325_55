@@ -32,7 +32,7 @@ export interface MissingConnection {
 
 export interface StudyPathStep {
   step: number;
-  action: string;
+  action: 'review' | 'quiz' | 'flashcard';
   keyword_id: string;
   keyword_name?: string;
   reason: string;

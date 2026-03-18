@@ -25,7 +25,7 @@ export interface KeywordConnection {
   connection_type: string | null;
   source_keyword_id: string | null;
   /** Will be populated once backend migration adds created_by column */
-  created_by: string | null;
+  created_by?: string | null;
   created_at: string;
   /** PostgREST embedded keyword object from LIST join (keyword_a) */
   keyword_a?: {

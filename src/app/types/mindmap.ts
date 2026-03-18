@@ -67,7 +67,7 @@ export interface MapEdge {
   /** Whether this edge is directed (shows arrowhead from source to target) */
   directed?: boolean;
   /** Arrowhead shape when directed (default: 'triangle') */
-  arrowType?: 'triangle' | 'diamond' | 'circle' | 'vee';
+  arrowType?: EdgeArrowType;
 }
 
 /** Complete graph data for G6 */
