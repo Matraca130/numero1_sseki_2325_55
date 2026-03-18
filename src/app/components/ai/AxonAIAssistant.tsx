@@ -169,10 +169,12 @@ export function AxonAIAssistant({
           );
         },
         onSources: (sources) => {
-          setLastSources(sources);
+          setMessageSources(prev => new Map(prev).set(streamingMsgId, sources));
         },
         onDone: (meta) => {
-          setLastLogId(meta.log_id);
+          if (meta.log_id) {
+            setMessageLogIds(prev => new Map(prev).set(streamingMsgId, meta.log_id));
+          }
         },
       });
 
@@ -233,8 +235,8 @@ export function AxonAIAssistant({
         cards.push(card);
       }
       setGeneratedCards(cards);
-    } catch (err: any) {
-      addMessage('system', `Erro ao gerar flashcards: ${err.message}`, true);
+    } catch (err: unknown) {
+      addMessage('system', `Erro ao gerar flashcards: ${(err as Error).message}`, true);
       setMode('chat');
     } finally {
       setIsLoading(false);
@@ -258,8 +260,8 @@ export function AxonAIAssistant({
         questions.push(q);
       }
       setGeneratedQuiz(questions);
-    } catch (err: any) {
-      addMessage('system', `Erro ao gerar quiz: ${err.message}`, true);
+    } catch (err: unknown) {
+      addMessage('system', `Erro ao gerar quiz: ${(err as Error).message}`, true);
       setMode('chat');
     } finally {
       setIsLoading(false);
@@ -276,8 +278,8 @@ export function AxonAIAssistant({
     try {
       const result = await explainConceptApi(concept, summaryId);
       setExplanation(result);
-    } catch (err: any) {
-      addMessage('system', `Erro ao explicar: ${err.message}`, true);
+    } catch (err: unknown) {
+      addMessage('system', `Erro ao explicar: ${(err as Error).message}`, true);
       setMode('chat');
     } finally {
       setIsLoading(false);
