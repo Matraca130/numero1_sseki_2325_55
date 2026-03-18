@@ -15,6 +15,7 @@ import {
   computeHiddenNodes,
 } from '../graphHelpers';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
+import type { MapEdge } from '@/app/types/mindmap';
 
 // ── getNodeFill ─────────────────────────────────────────────
 
@@ -99,7 +100,7 @@ describe('buildChildrenMap', () => {
       { id: 'e2', source: 'a', target: 'c' },
       { id: 'e3', source: 'b', target: 'd' },
     ];
-    const cm = buildChildrenMap(edges as any);
+    const cm = buildChildrenMap(edges as MapEdge[]);
     expect(cm.get('a')).toEqual(['b', 'c']);
     expect(cm.get('b')).toEqual(['d']);
     expect(cm.has('c')).toBe(false);
@@ -129,7 +130,7 @@ describe('computeHiddenNodes', () => {
       { id: 'e1', source: 'a', target: 'b' },
       { id: 'e2', source: 'b', target: 'c' },
     ];
-    const hidden = computeHiddenNodes(nodes, edges as any, new Set());
+    const hidden = computeHiddenNodes(nodes, edges as MapEdge[], new Set());
     expect(hidden.size).toBe(0);
   });
 
@@ -140,7 +141,7 @@ describe('computeHiddenNodes', () => {
       { id: 'e2', source: 'b', target: 'c' },
     ];
     // Collapse 'a' → 'b' and 'c' should be hidden
-    const hidden = computeHiddenNodes(nodes, edges as any, new Set(['a']));
+    const hidden = computeHiddenNodes(nodes, edges as MapEdge[], new Set(['a']));
     expect(hidden.has('b')).toBe(true);
     expect(hidden.has('c')).toBe(true);
     expect(hidden.has('a')).toBe(false);
@@ -156,7 +157,7 @@ describe('computeHiddenNodes', () => {
       { id: 'e4', source: 'c', target: 'd' },
     ];
     // Collapse 'b' → 'd' still reachable via 'c'
-    const hidden = computeHiddenNodes(nodes, edges as any, new Set(['b']));
+    const hidden = computeHiddenNodes(nodes, edges as MapEdge[], new Set(['b']));
     expect(hidden.has('d')).toBe(false);
     expect(hidden.has('b')).toBe(false);
   });
@@ -164,8 +165,8 @@ describe('computeHiddenNodes', () => {
   it('accepts prebuilt children map', () => {
     const nodes = [mkNode('a'), mkNode('b')];
     const edges = [{ id: 'e1', source: 'a', target: 'b' }];
-    const cm = buildChildrenMap(edges as any);
-    const hidden = computeHiddenNodes(nodes, edges as any, new Set(['a']), cm);
+    const cm = buildChildrenMap(edges as MapEdge[]);
+    const hidden = computeHiddenNodes(nodes, edges as MapEdge[], new Set(['a']), cm);
     expect(hidden.has('b')).toBe(true);
   });
 });

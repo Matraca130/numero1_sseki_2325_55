@@ -10,6 +10,7 @@
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
 
 // ── Mock dependencies ───────────────────────────────────────
 
@@ -222,7 +223,7 @@ describe('Action type reverse mapping', () => {
   it('reversing delete-node calls createCustomNode', async () => {
     const { createCustomNode } = await import('@/app/services/mindmapApi');
     mockCreateNode.mockResolvedValueOnce({ id: 'new-id' });
-    const result = await createCustomNode({ topic_id: 't1', label: 'Test' } as any);
+    const result = await createCustomNode({ topic_id: 't1', label: 'Test' } as CreateCustomNodePayload);
     expect(result.id).toBe('new-id');
   });
 
@@ -236,7 +237,7 @@ describe('Action type reverse mapping', () => {
   it('reversing delete-edge calls createCustomEdge', async () => {
     const { createCustomEdge } = await import('@/app/services/mindmapApi');
     mockCreateEdge.mockResolvedValueOnce({ id: 'new-edge-id' });
-    const result = await createCustomEdge({ topic_id: 't1', source_keyword_id: 's1', target_keyword_id: 't1' } as any);
+    const result = await createCustomEdge({ topic_id: 't1', source_node_id: 's1', target_node_id: 't1' } as CreateCustomEdgePayload);
     expect(result.id).toBe('new-edge-id');
   });
 });
