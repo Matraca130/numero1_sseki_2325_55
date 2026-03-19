@@ -33,6 +33,7 @@ import {
   loadKeywordNames,
 } from '@/app/components/student/quiz-session-helpers';
 import { useQuizBkt } from '@/app/components/student/useQuizBkt';
+import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
 
 // ── Return type ──────────────────────────────────────────
 
@@ -102,6 +103,7 @@ export function useQuizSession(
 
   // BKT tracking (M-5: extracted to hook)
   const { handleBktUpdate, resetBkt } = useQuizBkt();
+  const { markSessionComplete } = useStudyPlanBridge();
 
   // Immediate guard against double-submit (React state is async)
   const submittingRef = useRef(false);
@@ -311,7 +313,8 @@ export function useQuizSession(
 
     setClosingSession(false);
     setPhase('results');
-  }, [sessionId, quizId]);
+    markSessionComplete('quiz');
+  }, [sessionId, quizId, markSessionComplete]);
 
   // ── Restart session ─────────────────────────────────────
 

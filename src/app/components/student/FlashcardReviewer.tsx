@@ -54,6 +54,7 @@ import { SessionXPSummary } from '@/app/components/gamification/SessionXPSummary
 import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar';
 import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
+import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
 
 // ── Props ─────────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [clozeReady, setClozeReady] = useState(false);
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
+  const { markSessionComplete } = useStudyPlanBridge();
 
   useEffect(() => { retryPendingBatches(); }, []);
 
@@ -183,9 +185,10 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
         await postSessionAnalytics({ totalReviews: totalCards, correctReviews, durationSeconds });
         try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
         gamificationApi.checkBadges(institutionId).catch(() => {});
+        markSessionComplete('flashcard');
       })();
     }
-  }, [sessionId, currentCard, currentIndex, totalCards, queueReview, submitBatch, masteryMap, recordXP, endXP, institutionId]);
+  }, [sessionId, currentCard, currentIndex, totalCards, queueReview, submitBatch, masteryMap, recordXP, endXP, institutionId, markSessionComplete]);
 
   useEffect(() => {
     if (phase !== 'reviewing') return;

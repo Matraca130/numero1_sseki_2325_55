@@ -43,6 +43,7 @@ import { SessionXPSummary } from '@/app/components/gamification/SessionXPSummary
 import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar';
 import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
+import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
 
 interface ReviewQueueItem { card: FlashcardItem; fsrsState: StudyQueueItem; }
 interface ReviewSessionViewProps { onClose?: () => void; masteryMap?: Map<string, { p_know: number }>; }
@@ -66,6 +67,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
   const gradesRef = useRef<number[]>([]);
   const cardStartTime = useRef<number>(Date.now());
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
+  const { markSessionComplete } = useStudyPlanBridge();
 
   useEffect(() => { retryPendingBatches(); }, []);
 
@@ -144,9 +146,10 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
         await postSessionAnalytics({ totalReviews: newGrades.length, correctReviews, durationSeconds });
         try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
         gamificationApi.checkBadges(institutionId).catch(() => {});
+        markSessionComplete('flashcard');
       })();
     }
-  }, [sessionId, currentItem, currentIdx, queue, queueReview, submitBatch, stopTimer, masteryMap, recordXP, endXP, institutionId]);
+  }, [sessionId, currentItem, currentIdx, queue, queueReview, submitBatch, stopTimer, masteryMap, recordXP, endXP, institutionId, markSessionComplete]);
 
   const gradeDistribution = useMemo(() => { const dist = [0, 0, 0, 0, 0]; for (const g of gradesRef.current) { if (g >= 1 && g <= 5) dist[g - 1]++; } return dist; }, [grades]);
   const correctPercentage = useMemo(() => { if (grades.length === 0) return 0; return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100); }, [grades]);

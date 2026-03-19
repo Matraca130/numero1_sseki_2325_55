@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import * as studentApi from '@/app/services/studentSummariesApi';
 import type { ReadingState, TextAnnotation, KwStudentNote } from '@/app/services/studentSummariesApi';
 import { queryKeys } from '@/app/hooks/queries/queryKeys';
+import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
 
 // ── Args ──────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ export function useSummaryReaderMutations({
   onKwNoteUpdated,
 }: UseSummaryReaderMutationsArgs): UseSummaryReaderMutationsReturn {
   const rqClient = useQueryClient();
+  const { markSessionComplete } = useStudyPlanBridge();
 
   // ── XP Toast state (mutation side effect) ───────────────
   const [showXpToast, setShowXpToast] = useState(false);
@@ -99,6 +101,7 @@ export function useSummaryReaderMutations({
       setTimeout(() => setShowXpToast(false), 3000);
       toast.success('Resumen marcado como leido');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
+      markSessionComplete('reading');
     },
     onError: (err: any) => toast.error(err.message || 'Error al marcar como leido'),
   });
