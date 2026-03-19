@@ -1,16 +1,16 @@
 // ============================================================
-// Pure Logic Tests — Relative Delta Color Scale (Spec v4.2 s6.2)
+// Pure Logic Tests — Relative Delta Color Scale (unified)
 //
 // PURPOSE: Validate the delta-based mastery color system where
 // colors depend on displayMastery / threshold, and threshold
 // varies with clinical_priority.
 //
-// Delta levels (spec v4.2):
-//   >= 1.10  -> blue   (Superado)
-//   >= 1.00  -> green  (Dominado)
-//   >= 0.85  -> yellow (Próximo)
-//   >= 0.50  -> orange (Insuficiente)
-//   <  0.50  -> red    (Crítico)
+// Delta levels (unified):
+//   >= 1.10  -> blue   (Maestria)
+//   >= 1.00  -> green  (Consolidado)
+//   >= 0.85  -> yellow (En progreso)
+//   >= 0.50  -> red    (Emergente)
+//   <  0.50  -> gray   (Por descubrir)
 //
 // RUN: pnpm test
 // ============================================================
@@ -22,6 +22,7 @@ import {
   getDeltaColorClasses,
   getDeltaColorLabel,
   getKeywordDeltaColor,
+  getKeywordDeltaColorSafe,
   type DeltaColorLevel,
 } from '@/app/lib/mastery-helpers';
 
@@ -63,21 +64,19 @@ describe('getDominationThreshold', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('getDeltaColor', () => {
-  // -- Spec v4.2 examples --
+  // -- Spec examples --
 
-  it('mastery 0.70, threshold 0.70 -> green (delta=1.00, dominado)', () => {
+  it('mastery 0.70, threshold 0.70 -> green (delta=1.00, consolidado)', () => {
     expect(getDeltaColor(0.70, 0.70)).toBe('green');
   });
 
   it('mastery 0.70, threshold 0.80 -> yellow (delta=0.875, >= 0.85)', () => {
-    // 0.70 / 0.80 = 0.875 -> >= 0.85 = yellow
-    // NOTE: 0.875 >= 0.85, so this is actually yellow per the code
     const delta = 0.70 / 0.80; // 0.875
     expect(delta).toBeGreaterThanOrEqual(0.85);
     expect(getDeltaColor(0.70, 0.80)).toBe('yellow');
   });
 
-  it('mastery 0.85, threshold 0.90 -> yellow (delta=0.944, proximo)', () => {
+  it('mastery 0.85, threshold 0.90 -> yellow (delta=0.944, en progreso)', () => {
     expect(getDeltaColor(0.85, 0.90)).toBe('yellow');
   });
 
@@ -86,12 +85,11 @@ describe('getDeltaColor', () => {
   });
 
   it('mastery 0.99, threshold 0.90 -> blue (delta rounds to 1.10)', () => {
-    // 0.99 / 0.90 = 1.1 -> rounds to 1.10 = blue (Superado)
     expect(getDeltaColor(0.99, 0.90)).toBe('blue');
   });
 
-  it('mastery 0.30, threshold 0.80 -> red (delta=0.375)', () => {
-    expect(getDeltaColor(0.30, 0.80)).toBe('red');
+  it('mastery 0.30, threshold 0.80 -> gray (delta=0.375)', () => {
+    expect(getDeltaColor(0.30, 0.80)).toBe('gray');
   });
 
   // -- Same mastery, different thresholds = different colors --
@@ -110,31 +108,30 @@ describe('getDeltaColor', () => {
 
   // -- Edge cases --
 
-  it('mastery 0, threshold 0.70 -> red', () => {
-    expect(getDeltaColor(0, 0.70)).toBe('red');
+  it('mastery 0, threshold 0.70 -> gray', () => {
+    expect(getDeltaColor(0, 0.70)).toBe('gray');
   });
 
   it('mastery 1.0, threshold 0.70 -> blue', () => {
-    // 1.0 / 0.70 = 1.4286 -> blue
     expect(getDeltaColor(1.0, 0.70)).toBe('blue');
   });
 
-  it('threshold 0 -> red (guard against division by zero)', () => {
-    expect(getDeltaColor(0.85, 0)).toBe('red');
+  it('threshold 0 -> gray (guard against division by zero)', () => {
+    expect(getDeltaColor(0.85, 0)).toBe('gray');
   });
 
-  it('negative mastery -> red', () => {
-    expect(getDeltaColor(-0.5, 0.70)).toBe('red');
+  it('negative mastery -> gray', () => {
+    expect(getDeltaColor(-0.5, 0.70)).toBe('gray');
   });
 
   // -- Boundary precision --
 
-  it('delta exactly 0.50 -> orange (not red)', () => {
+  it('delta exactly 0.50 -> red (not gray)', () => {
     // threshold = 1.0, mastery = 0.5 => delta = 0.5
-    expect(getDeltaColor(0.50, 1.0)).toBe('orange');
+    expect(getDeltaColor(0.50, 1.0)).toBe('red');
   });
 
-  it('delta exactly 0.85 -> yellow (not orange)', () => {
+  it('delta exactly 0.85 -> yellow (not red)', () => {
     // threshold = 1.0, mastery = 0.85 => delta = 0.85
     expect(getDeltaColor(0.85, 1.0)).toBe('yellow');
   });
@@ -150,14 +147,14 @@ describe('getDeltaColor', () => {
 
   // -- Just below thresholds (floating point edge cases) --
 
-  it('delta just below 0.50 -> red', () => {
+  it('delta just below 0.50 -> gray', () => {
     // delta must round to 0.49 (< 0.50). 0.34 / 0.70 = 0.4857 -> rounds to 0.49
-    expect(getDeltaColor(0.34, 0.70)).toBe('red');
+    expect(getDeltaColor(0.34, 0.70)).toBe('gray');
   });
 
-  it('delta just below 0.85 -> orange', () => {
+  it('delta just below 0.85 -> red', () => {
     // delta must round to 0.84 (< 0.85). 0.59 / 0.70 = 0.8428 -> rounds to 0.84
-    expect(getDeltaColor(0.59, 0.70)).toBe('orange');
+    expect(getDeltaColor(0.59, 0.70)).toBe('red');
   });
 
   it('delta just below 1.00 -> yellow', () => {
@@ -176,12 +173,22 @@ describe('getDeltaColor', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('getDeltaColorClasses', () => {
+  it('gray returns zinc Tailwind classes', () => {
+    const c = getDeltaColorClasses('gray');
+    expect(c.bg).toContain('zinc');
+    expect(c.text).toContain('zinc');
+    expect(c.border).toContain('zinc');
+    expect(c.dot).toContain('zinc');
+    expect(c.hex).toBe('#a1a1aa');
+  });
+
   it('red returns red Tailwind classes', () => {
     const c = getDeltaColorClasses('red');
     expect(c.bg).toContain('red');
     expect(c.text).toContain('red');
     expect(c.border).toContain('red');
     expect(c.dot).toContain('red');
+    expect(c.hex).toBe('#ef4444');
   });
 
   it('green returns emerald Tailwind classes', () => {
@@ -190,6 +197,7 @@ describe('getDeltaColorClasses', () => {
     expect(c.text).toContain('emerald');
     expect(c.border).toContain('emerald');
     expect(c.dot).toContain('emerald');
+    expect(c.hex).toBe('#10b981');
   });
 
   it('blue returns blue Tailwind classes', () => {
@@ -198,38 +206,34 @@ describe('getDeltaColorClasses', () => {
     expect(c.text).toContain('blue');
     expect(c.border).toContain('blue');
     expect(c.dot).toContain('blue');
-  });
-
-  it('all 5 levels return valid objects with bg, text, border, dot', () => {
-    const levels: DeltaColorLevel[] = ['red', 'orange', 'yellow', 'green', 'blue'];
-    for (const level of levels) {
-      const classes = getDeltaColorClasses(level);
-      expect(classes).toHaveProperty('bg');
-      expect(classes).toHaveProperty('text');
-      expect(classes).toHaveProperty('border');
-      expect(classes).toHaveProperty('dot');
-      expect(typeof classes.bg).toBe('string');
-      expect(typeof classes.text).toBe('string');
-      expect(typeof classes.border).toBe('string');
-      expect(typeof classes.dot).toBe('string');
-      // Each class should be a non-empty string
-      expect(classes.bg.length).toBeGreaterThan(0);
-      expect(classes.text.length).toBeGreaterThan(0);
-      expect(classes.border.length).toBeGreaterThan(0);
-      expect(classes.dot.length).toBeGreaterThan(0);
-    }
-  });
-
-  it('orange returns orange Tailwind classes', () => {
-    const c = getDeltaColorClasses('orange');
-    expect(c.bg).toContain('orange');
-    expect(c.text).toContain('orange');
+    expect(c.hex).toBe('#3b82f6');
   });
 
   it('yellow returns amber Tailwind classes', () => {
     const c = getDeltaColorClasses('yellow');
     expect(c.bg).toContain('amber');
     expect(c.text).toContain('amber');
+    expect(c.hex).toBe('#f59e0b');
+  });
+
+  it('all 5 levels return valid objects with all 8 properties', () => {
+    const levels: DeltaColorLevel[] = ['gray', 'red', 'yellow', 'green', 'blue'];
+    for (const level of levels) {
+      const classes = getDeltaColorClasses(level);
+      expect(classes).toHaveProperty('bg');
+      expect(classes).toHaveProperty('text');
+      expect(classes).toHaveProperty('border');
+      expect(classes).toHaveProperty('dot');
+      expect(classes).toHaveProperty('bgLight');
+      expect(classes).toHaveProperty('hoverBg');
+      expect(classes).toHaveProperty('ring');
+      expect(classes).toHaveProperty('hex');
+      // Each class should be a non-empty string
+      expect(typeof classes.bg).toBe('string');
+      expect(classes.bg.length).toBeGreaterThan(0);
+      expect(typeof classes.hex).toBe('string');
+      expect(classes.hex).toMatch(/^#[0-9a-f]{6}$/);
+    }
   });
 });
 
@@ -238,24 +242,24 @@ describe('getDeltaColorClasses', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('getDeltaColorLabel', () => {
-  it('red -> Crítico', () => {
-    expect(getDeltaColorLabel('red')).toBe('Crítico');
+  it('gray -> Por descubrir', () => {
+    expect(getDeltaColorLabel('gray')).toBe('Por descubrir');
   });
 
-  it('orange -> Insuficiente', () => {
-    expect(getDeltaColorLabel('orange')).toBe('Insuficiente');
+  it('red -> Emergente', () => {
+    expect(getDeltaColorLabel('red')).toBe('Emergente');
   });
 
-  it('yellow -> Próximo', () => {
-    expect(getDeltaColorLabel('yellow')).toBe('Próximo');
+  it('yellow -> En progreso', () => {
+    expect(getDeltaColorLabel('yellow')).toBe('En progreso');
   });
 
-  it('green -> Dominado', () => {
-    expect(getDeltaColorLabel('green')).toBe('Dominado');
+  it('green -> Consolidado', () => {
+    expect(getDeltaColorLabel('green')).toBe('Consolidado');
   });
 
-  it('blue -> Superado', () => {
-    expect(getDeltaColorLabel('blue')).toBe('Superado');
+  it('blue -> Maestria', () => {
+    expect(getDeltaColorLabel('blue')).toBe('Maestr\u00eda');
   });
 });
 
@@ -280,10 +284,7 @@ describe('getKeywordDeltaColor', () => {
   });
 
   it('default priority (no arg) uses priority 1', () => {
-    // priority 1 -> clinicalPriority 0.0 -> threshold 0.70
-    // mastery 0.70 / 0.70 = 1.00 -> green
     expect(getKeywordDeltaColor(0.70)).toBe('green');
-    // Verify it matches explicit priority 1
     expect(getKeywordDeltaColor(0.70)).toBe(getKeywordDeltaColor(0.70, 1));
   });
 
@@ -301,7 +302,6 @@ describe('getKeywordDeltaColor', () => {
     expect(colorMed).toBe('green');
     expect(colorHigh).toBe('yellow');
 
-    // All three must be different
     expect(colorLow).not.toBe(colorMed);
     expect(colorMed).not.toBe(colorHigh);
     expect(colorLow).not.toBe(colorHigh);
@@ -309,23 +309,47 @@ describe('getKeywordDeltaColor', () => {
 });
 
 // ══════════════════════════════════════════════════════════════
-// SUITE 6: Spec v4.2 progression table verification
+// SUITE 5b: getKeywordDeltaColorSafe
 // ══════════════════════════════════════════════════════════════
 
-describe('Spec v4.2 progression table: quiz on trivial connection', () => {
+describe('getKeywordDeltaColorSafe', () => {
+  it('null mastery -> gray', () => {
+    expect(getKeywordDeltaColorSafe(null)).toBe('gray');
+  });
+
+  it('negative mastery -> gray', () => {
+    expect(getKeywordDeltaColorSafe(-1)).toBe('gray');
+    expect(getKeywordDeltaColorSafe(-0.5)).toBe('gray');
+  });
+
+  it('valid mastery delegates to getKeywordDeltaColor', () => {
+    expect(getKeywordDeltaColorSafe(0.70, 1)).toBe('green');
+    expect(getKeywordDeltaColorSafe(0.85, 3)).toBe('yellow');
+  });
+
+  it('zero mastery -> gray (delta < 0.50)', () => {
+    expect(getKeywordDeltaColorSafe(0, 1)).toBe('gray');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// SUITE 6: Progression table verification (trivial connection)
+// ══════════════════════════════════════════════════════════════
+
+describe('Progression table: quiz on trivial connection', () => {
   // trivial -> priority 1 -> clinicalPriority 0.0 -> threshold 0.70
   const threshold = 0.70;
 
-  it('mastery 0.13 -> red (delta=0.19)', () => {
+  it('mastery 0.13 -> gray (delta=0.19)', () => {
     const delta = 0.13 / threshold;
     expect(delta).toBeCloseTo(0.186, 2);
-    expect(getDeltaColor(0.13, threshold)).toBe('red');
+    expect(getDeltaColor(0.13, threshold)).toBe('gray');
   });
 
-  it('mastery 0.43 -> orange (delta=0.61)', () => {
+  it('mastery 0.43 -> red (delta=0.61)', () => {
     const delta = 0.43 / threshold;
     expect(delta).toBeCloseTo(0.614, 2);
-    expect(getDeltaColor(0.43, threshold)).toBe('orange');
+    expect(getDeltaColor(0.43, threshold)).toBe('red');
   });
 
   it('mastery 0.64 -> yellow (delta=0.91)', () => {
@@ -345,20 +369,20 @@ describe('Spec v4.2 progression table: quiz on trivial connection', () => {
   });
 });
 
-describe('Spec v4.2 progression table: quiz on vital connection', () => {
+describe('Progression table: quiz on vital connection', () => {
   // vital -> priority 3 -> clinicalPriority 1.0 -> threshold 0.90
   const threshold = 0.90;
 
-  it('mastery 0.51 -> orange (delta=0.57)', () => {
+  it('mastery 0.51 -> red (delta=0.57)', () => {
     const delta = 0.51 / threshold;
     expect(delta).toBeCloseTo(0.567, 2);
-    expect(getDeltaColor(0.51, threshold)).toBe('orange');
+    expect(getDeltaColor(0.51, threshold)).toBe('red');
   });
 
-  it('mastery 0.70 -> orange (delta=0.78)', () => {
+  it('mastery 0.70 -> red (delta=0.78)', () => {
     const delta = 0.70 / threshold;
     expect(delta).toBeCloseTo(0.778, 2);
-    expect(getDeltaColor(0.70, threshold)).toBe('orange');
+    expect(getDeltaColor(0.70, threshold)).toBe('red');
   });
 
   it('mastery 0.80 -> yellow (delta=0.89)', () => {
