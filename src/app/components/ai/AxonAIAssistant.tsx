@@ -157,16 +157,22 @@ export function AxonAIAssistant({
       setIsLoading(false); // Hide loading dots — streaming content is visible
 
       let accumulated = '';
+      let rafId: number | null = null;
 
       await chatStream(msg, {
         summaryId,
         history,
         onChunk: (chunk) => {
           accumulated += chunk;
-          const current = accumulated;
-          setMessages(prev =>
-            prev.map(m => m.id === streamingMsgId ? { ...m, content: current } : m)
-          );
+          if (!rafId) {
+            rafId = requestAnimationFrame(() => {
+              const current = accumulated;
+              setMessages(prev =>
+                prev.map(m => m.id === streamingMsgId ? { ...m, content: current } : m)
+              );
+              rafId = null;
+            });
+          }
         },
         onSources: (sources) => {
           setMessageSources(prev => new Map(prev).set(streamingMsgId, sources));
@@ -178,9 +184,19 @@ export function AxonAIAssistant({
         },
       });
 
+      // Flush any pending RAF frame so the final text is rendered
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      setMessages(prev =>
+        prev.map(m => m.id === streamingMsgId ? { ...m, content: accumulated } : m)
+      );
+
       setIsStreaming(false);
     } catch {
       // Streaming failed — remove placeholder and fall back to non-streaming
+      if (rafId) cancelAnimationFrame(rafId);
       setMessages(prev => prev.filter(m => m.id !== streamingMsgId));
       setIsStreaming(false);
       setIsLoading(true);
