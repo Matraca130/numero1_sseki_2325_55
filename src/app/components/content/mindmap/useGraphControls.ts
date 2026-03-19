@@ -6,6 +6,7 @@
 // ============================================================
 
 import { useCallback, type RefObject } from 'react';
+import { toast } from 'sonner';
 import type { GraphControls } from '@/app/types/mindmap';
 
 export function useGraphControls(ref: RefObject<GraphControls | null>) {
@@ -14,8 +15,12 @@ export function useGraphControls(ref: RefObject<GraphControls | null>) {
   const handleFitView = useCallback(() => { ref.current?.fitView(); }, [ref]);
   const handleCollapseAll = useCallback(() => { ref.current?.collapseAll(); }, [ref]);
   const handleExpandAll = useCallback(() => { ref.current?.expandAll(); }, [ref]);
-  const handleExportPNG = useCallback(async () => { await ref.current?.exportPNG(); }, [ref]);
-  const handleExportJPEG = useCallback(async () => { await ref.current?.exportJPEG(); }, [ref]);
+  const handleExportPNG = useCallback(async () => {
+    try { await ref.current?.exportPNG(); } catch { toast.error('No se pudo exportar como PNG'); }
+  }, [ref]);
+  const handleExportJPEG = useCallback(async () => {
+    try { await ref.current?.exportJPEG(); } catch { toast.error('No se pudo exportar como JPEG'); }
+  }, [ref]);
 
   return { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG };
 }

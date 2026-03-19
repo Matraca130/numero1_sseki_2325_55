@@ -39,6 +39,7 @@ function getCached(key: string): GraphData | null {
 }
 
 function setCache(key: string, data: GraphData): void {
+  if (!key) return; // Don't cache under empty key
   // Delete first so re-set moves key to end of insertion order (LRU correctness)
   cache.delete(key);
   // Evict least-recently-used if at max
@@ -93,13 +94,14 @@ export function invalidateGraphCache(topicId?: string, summaryId?: string): void
     if (summaryId) cache.delete(`s:${summaryId}`);
     // Also invalidate any course-level caches that include this topic.
     // Course keys are comma-separated sorted IDs prefixed with "c:".
+    // Collect keys first, then delete to avoid mutating Map during iteration.
+    const keysToDelete: string[] = [];
     for (const key of cache.keys()) {
       if (!key.startsWith('c:')) continue;
       const ids = key.slice(2).split(',');
-      if (ids.includes(topicId)) {
-        cache.delete(key);
-      }
+      if (ids.includes(topicId)) keysToDelete.push(key);
     }
+    for (const key of keysToDelete) cache.delete(key);
   } else if (summaryId) {
     // Only summaryId provided (no topicId) — invalidate the specific
     // summary key. Course-level caches may be stale but will refresh
@@ -232,9 +234,15 @@ export function useGraphData({ topicId, summaryId, courseTopicIds, skipCustomNod
 
   // Auto-refetch when cache is invalidated externally
   // (e.g. after quiz/flashcard completion in another view)
+  // Debounced to coalesce rapid invalidation bursts (e.g. batch quiz submit)
   useEffect(() => {
     if (!hasSource) return;
-    return onGraphCacheInvalidation(() => { fetchDataRef.current(true); });
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = onGraphCacheInvalidation(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { fetchDataRef.current(true); }, 300);
+    });
+    return () => { unsub(); if (debounceTimer) clearTimeout(debounceTimer); };
   }, [hasSource]);
 
   // refetch always skips cache

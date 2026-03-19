@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { invalidateGraphCache } from './useGraphData';
 import {
   createCustomNode,
   deleteCustomNode,
@@ -190,7 +191,12 @@ export function useUndoRedo(onGraphChanged: () => void) {
     try {
       const action = pastRef.current[pastRef.current.length - 1];
       const updated = await reverseAction(action);
-      if (!mountedRef.current) return; // unmounted during async
+      if (!mountedRef.current) {
+        // Server state changed but component unmounted — invalidate cache so
+        // next mount gets fresh data instead of stale undo/redo stacks
+        invalidateGraphCache();
+        return;
+      }
       if (updated) {
         setPast(prev => prev.slice(0, -1));
         // Push the updated action (with server-assigned IDs) onto the redo stack
@@ -221,7 +227,11 @@ export function useUndoRedo(onGraphChanged: () => void) {
     try {
       const action = futureRef.current[futureRef.current.length - 1];
       const updated = await replayAction(action);
-      if (!mountedRef.current) return; // unmounted during async
+      if (!mountedRef.current) {
+        // Server state changed but component unmounted — invalidate cache
+        invalidateGraphCache();
+        return;
+      }
       if (updated) {
         setFuture(prev => prev.slice(0, -1));
         setPast(prev => [...prev, updated]);
