@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { headingStyle, components } from '@/app/design-system';
+import { aiDistributeTasks } from '@/app/services/aiService';
+import type { StudentProfilePayload, PlanContextPayload } from '@/app/services/aiService';
 
 // ──────────── Constants ────────────
 const TOTAL_STEPS = 6;
@@ -105,6 +107,8 @@ export function StudyOrganizerWizard() {
   const [selectedTopics, setSelectedTopics] = useState<{ courseId: string; courseName: string; sectionTitle: string; topicTitle: string; topicId: string }[]>([]);
   const [completionDate, setCompletionDate] = useState('');
   const [weeklyHours, setWeeklyHours] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPowered, setAiPowered] = useState(false);
 
   const totalWeeklyHours = weeklyHours.reduce((a, b) => a + b, 0);
 
@@ -183,124 +187,197 @@ export function StudyOrganizerWizard() {
   };
 
   // Generate plan
-  const generatePlan = () => {
-    const tasks: StudyPlanTask[] = [];
+  const generatePlan = async () => {
+    setAiLoading(true);
+    setAiPowered(false);
+
     const today = getAxonToday();
     const endDate = new Date(completionDate);
-    let currentDay = new Date(today);
-    let taskIndex = 0;
 
-    // ── Phase 3: Sort topics by priority (weakest first) ────────
-    const sortedTopics = [...selectedTopics].sort((a, b) => {
-      const mA = topicMastery.get(a.topicId);
-      const mB = topicMastery.get(b.topicId);
-      const prioA = mA?.priorityScore ?? 50;
-      const prioB = mB?.priorityScore ?? 50;
-      return prioB - prioA; // highest priority first
-    });
-
-    // ── Phase 3: Compute per-topic time multipliers based on mastery ──
-    // Weak topics (low mastery) get 1.5x time, strong topics get 0.7x
-    const getTimeMultiplier = (topicId: string): number => {
-      const m = topicMastery.get(topicId);
-      if (!m || m.totalAttempts === 0) return 1.0; // no data = standard
-      if (m.masteryPercent < 30) return 1.5;       // very weak
-      if (m.masteryPercent < 50) return 1.3;       // weak
-      if (m.masteryPercent >= 80) return 0.7;      // strong
-      if (m.masteryPercent >= 65) return 0.85;     // decent
-      return 1.0;
+    // ── Build AI payloads ────────────────────────────────────
+    const planContext: PlanContextPayload = {
+      tasks: selectedTopics.flatMap(topic =>
+        selectedMethods.map(method => ({
+          topicId: topic.topicId,
+          topicTitle: topic.topicTitle,
+          method,
+          estimatedMinutes: getTimeEstimate(method).estimatedMinutes,
+          completed: false,
+          scheduledDate: '',
+        }))
+      ),
+      completionDate,
+      weeklyHours,
     };
 
-    // Create all task items: topic × method (sorted by priority)
-    // Phase 4: Use real time estimates from study history instead of static defaults
-    const allItems: { topicTitle: string; sectionTitle: string; courseName: string; courseId: string; topicId: string; method: string; minutes: number }[] = [];
-    for (const topic of sortedTopics) {
-      const multiplier = getTimeMultiplier(topic.topicId);
-      for (const methodId of selectedMethods) {
-        const timeEst = getTimeEstimate(methodId);
-        const baseMinutes = timeEst.estimatedMinutes;
-        allItems.push({
-          topicTitle: topic.topicTitle,
-          sectionTitle: topic.sectionTitle,
-          courseName: topic.courseName,
-          courseId: topic.courseId,
-          topicId: topic.topicId,
-          method: methodId,
-          minutes: Math.round(baseMinutes * multiplier),
-        });
+    const profile: StudentProfilePayload = {
+      topicMastery: Object.fromEntries(
+        selectedTopics.map(t => {
+          const m = topicMastery.get(t.topicId);
+          return [t.topicId, {
+            masteryPercent: m?.masteryPercent ?? 0,
+            pKnow: m?.pKnow ?? null,
+            needsReview: m?.needsReview ?? false,
+            totalAttempts: m?.totalAttempts ?? 0,
+            priorityScore: m?.priorityScore ?? 50,
+          }];
+        })
+      ),
+      sessionHistory: [],
+      dailyActivity: [],
+      stats: { totalStudyMinutes: 0, totalSessions: 0, currentStreak: 0, avgMinutesPerSession: null },
+      studyMethods: selectedMethods,
+    };
+
+    // ── Try AI distribution first ────────────────────────────
+    let aiDistribution: { topicId: string; method: string; scheduledDate: string; estimatedMinutes: number; reason: string }[] | null = null;
+    try {
+      const result = await aiDistributeTasks(profile, planContext);
+      if (result?._meta?.aiPowered && result.distribution?.length) {
+        aiDistribution = result.distribution;
+        setAiPowered(true);
       }
+    } catch {
+      // Graceful degradation — fall through to algorithmic
     }
 
-    // ── Phase 3: Interleave weak topics more frequently ──────────
-    // Group items by priority tier and interleave
-    const highPriority = allItems.filter(item => {
-      const m = topicMastery.get(item.topicId);
-      return (m?.priorityScore ?? 50) >= 60;
-    });
-    const normalPriority = allItems.filter(item => {
-      const m = topicMastery.get(item.topicId);
-      return (m?.priorityScore ?? 50) < 60;
-    });
+    setAiLoading(false);
 
-    // Interleave: 2 high-priority items, then 1 normal, repeat
-    const interleaved: typeof allItems = [];
-    let hi = 0, lo = 0;
-    while (hi < highPriority.length || lo < normalPriority.length) {
-      if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
-      if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
-      if (lo < normalPriority.length) interleaved.push(normalPriority[lo++]);
-    }
+    // ── Build tasks ──────────────────────────────────────────
+    let tasks: StudyPlanTask[];
 
-    // Distribute tasks across days
-    let itemIdx = 0;
-    while (currentDay <= endDate && itemIdx < interleaved.length) {
-      const dayOfWeek = currentDay.getDay(); // 0=Sun ... 6=Sat
-      // Map to our weeklyHours array: [Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6]
-      const hoursIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const availableMinutes = weeklyHours[hoursIdx] * 60;
+    if (aiDistribution) {
+      // Use AI distribution
+      let taskIndex = 0;
+      tasks = aiDistribution.map((item) => ({
+        id: `task-${taskIndex++}`,
+        date: new Date(item.scheduledDate),
+        title: selectedTopics.find(t => t.topicId === item.topicId)?.topicTitle || item.topicId,
+        subject: selectedTopics.find(t => t.topicId === item.topicId)?.courseName || '',
+        subjectColor: getSubjectColor(selectedTopics.find(t => t.topicId === item.topicId)?.courseId || ''),
+        method: item.method,
+        estimatedMinutes: item.estimatedMinutes,
+        completed: false,
+        topicId: item.topicId,
+      }));
+    } else {
+      // ── Algorithmic fallback (existing logic) ──────────────
+      tasks = [];
+      let currentDay = new Date(today);
+      let taskIndex = 0;
 
-      if (availableMinutes > 0) {
-        let usedMinutes = 0;
-        while (usedMinutes < availableMinutes && itemIdx < interleaved.length) {
-          const item = interleaved[itemIdx];
-          if (usedMinutes + item.minutes <= availableMinutes + 10) { // small tolerance
-            tasks.push({
-              id: `task-${taskIndex++}`,
-              date: new Date(currentDay),
-              title: `${item.topicTitle}`,
-              subject: item.courseName,
-              subjectColor: getSubjectColor(item.courseId),
-              method: item.method,
-              estimatedMinutes: item.minutes,
-              completed: false,
-              topicId: item.topicId,
-            });
-            usedMinutes += item.minutes;
-            itemIdx++;
-          } else {
-            break;
-          }
+      // Phase 3: Sort topics by priority (weakest first)
+      const sortedTopics = [...selectedTopics].sort((a, b) => {
+        const mA = topicMastery.get(a.topicId);
+        const mB = topicMastery.get(b.topicId);
+        const prioA = mA?.priorityScore ?? 50;
+        const prioB = mB?.priorityScore ?? 50;
+        return prioB - prioA; // highest priority first
+      });
+
+      // Phase 3: Compute per-topic time multipliers based on mastery
+      // Weak topics (low mastery) get 1.5x time, strong topics get 0.7x
+      const getTimeMultiplier = (topicId: string): number => {
+        const m = topicMastery.get(topicId);
+        if (!m || m.totalAttempts === 0) return 1.0; // no data = standard
+        if (m.masteryPercent < 30) return 1.5;       // very weak
+        if (m.masteryPercent < 50) return 1.3;       // weak
+        if (m.masteryPercent >= 80) return 0.7;      // strong
+        if (m.masteryPercent >= 65) return 0.85;     // decent
+        return 1.0;
+      };
+
+      // Create all task items: topic x method (sorted by priority)
+      // Phase 4: Use real time estimates from study history instead of static defaults
+      const allItems: { topicTitle: string; sectionTitle: string; courseName: string; courseId: string; topicId: string; method: string; minutes: number }[] = [];
+      for (const topic of sortedTopics) {
+        const multiplier = getTimeMultiplier(topic.topicId);
+        for (const methodId of selectedMethods) {
+          const timeEst = getTimeEstimate(methodId);
+          const baseMinutes = timeEst.estimatedMinutes;
+          allItems.push({
+            topicTitle: topic.topicTitle,
+            sectionTitle: topic.sectionTitle,
+            courseName: topic.courseName,
+            courseId: topic.courseId,
+            topicId: topic.topicId,
+            method: methodId,
+            minutes: Math.round(baseMinutes * multiplier),
+          });
         }
       }
 
-      currentDay.setDate(currentDay.getDate() + 1);
-    }
-
-    // If items remain, distribute on the last days
-    while (itemIdx < interleaved.length) {
-      const item = interleaved[itemIdx];
-      tasks.push({
-        id: `task-${taskIndex++}`,
-        date: new Date(endDate),
-        title: `${item.topicTitle}`,
-        subject: item.courseName,
-        subjectColor: getSubjectColor(item.courseId),
-        method: item.method,
-        estimatedMinutes: item.minutes,
-        completed: false,
-        topicId: item.topicId,
+      // Phase 3: Interleave weak topics more frequently
+      // Group items by priority tier and interleave
+      const highPriority = allItems.filter(item => {
+        const m = topicMastery.get(item.topicId);
+        return (m?.priorityScore ?? 50) >= 60;
       });
-      itemIdx++;
+      const normalPriority = allItems.filter(item => {
+        const m = topicMastery.get(item.topicId);
+        return (m?.priorityScore ?? 50) < 60;
+      });
+
+      // Interleave: 2 high-priority items, then 1 normal, repeat
+      const interleaved: typeof allItems = [];
+      let hi = 0, lo = 0;
+      while (hi < highPriority.length || lo < normalPriority.length) {
+        if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
+        if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
+        if (lo < normalPriority.length) interleaved.push(normalPriority[lo++]);
+      }
+
+      // Distribute tasks across days
+      let itemIdx = 0;
+      while (currentDay <= endDate && itemIdx < interleaved.length) {
+        const dayOfWeek = currentDay.getDay(); // 0=Sun ... 6=Sat
+        // Map to our weeklyHours array: [Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6]
+        const hoursIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const availableMinutes = weeklyHours[hoursIdx] * 60;
+
+        if (availableMinutes > 0) {
+          let usedMinutes = 0;
+          while (usedMinutes < availableMinutes && itemIdx < interleaved.length) {
+            const item = interleaved[itemIdx];
+            if (usedMinutes + item.minutes <= availableMinutes + 10) { // small tolerance
+              tasks.push({
+                id: `task-${taskIndex++}`,
+                date: new Date(currentDay),
+                title: `${item.topicTitle}`,
+                subject: item.courseName,
+                subjectColor: getSubjectColor(item.courseId),
+                method: item.method,
+                estimatedMinutes: item.minutes,
+                completed: false,
+                topicId: item.topicId,
+              });
+              usedMinutes += item.minutes;
+              itemIdx++;
+            } else {
+              break;
+            }
+          }
+        }
+
+        currentDay.setDate(currentDay.getDate() + 1);
+      }
+
+      // If items remain, distribute on the last days
+      while (itemIdx < interleaved.length) {
+        const item = interleaved[itemIdx];
+        tasks.push({
+          id: `task-${taskIndex++}`,
+          date: new Date(endDate),
+          title: `${item.topicTitle}`,
+          subject: item.courseName,
+          subjectColor: getSubjectColor(item.courseId),
+          method: item.method,
+          estimatedMinutes: item.minutes,
+          completed: false,
+          topicId: item.topicId,
+        });
+        itemIdx++;
+      }
     }
 
     const plan: StudyPlan = {
@@ -881,6 +958,12 @@ export function StudyOrganizerWizard() {
             <Sparkles size={24} className="text-teal-500" />
             Seu plano está pronto!
           </h2>
+          {aiPowered && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-xs font-semibold text-teal-700">
+              <Sparkles size={12} />
+              Optimizado con IA
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-5">
@@ -1157,10 +1240,25 @@ export function StudyOrganizerWizard() {
             ) : (
               <button
                 onClick={generatePlan}
-                className="flex items-center gap-2 px-8 py-3 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 shadow-lg shadow-teal-200 transition-all"
+                disabled={aiLoading}
+                className={clsx(
+                  "flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-lg shadow-teal-200 transition-all",
+                  aiLoading
+                    ? "bg-teal-500 text-white cursor-wait"
+                    : "bg-teal-600 text-white hover:bg-teal-700"
+                )}
               >
-                <Sparkles size={18} />
-                Gerar Plano de Estudo
+                {aiLoading ? (
+                  <>
+                    <Sparkles size={18} className="animate-pulse" />
+                    Claude esta analizando tu perfil...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={18} />
+                    Gerar Plano de Estudo
+                  </>
+                )}
               </button>
             )}
           </div>
