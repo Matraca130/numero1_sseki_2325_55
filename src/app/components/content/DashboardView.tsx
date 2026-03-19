@@ -14,8 +14,6 @@ import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudyPlansContext } from '@/app/context/StudyPlansContext';
-import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
-import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
 import {
   Flame,
   Trophy,
@@ -38,15 +36,7 @@ export function DashboardView() {
   const { stats, dailyActivity, bktStates, isConnected } = useStudentDataContext();
   const { tree } = useContentTree();
   const { navigateTo } = useStudentNav();
-  const { topicMastery } = useTopicMasteryContext();
-  const { getEstimate } = useStudyTimeEstimatesContext();
-  const { plans: studyPlans, loading: plansLoading, toggleTaskComplete, setRescheduleData } = useStudyPlansContext();
-
-  // Inject mastery + estimate data for reschedule engine
-  React.useEffect(() => {
-    setRescheduleData({ topicMastery, getTimeEstimate: getEstimate });
-    return () => setRescheduleData(null);
-  }, [topicMastery, getEstimate, setRescheduleData]);
+  const { plans: studyPlans, loading: plansLoading, toggleTaskComplete } = useStudyPlansContext();
 
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
 

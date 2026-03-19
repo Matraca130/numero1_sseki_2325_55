@@ -8,17 +8,11 @@
 // ============================================================
 import React from 'react';
 import { useStudyPlansContext } from '@/app/context/StudyPlansContext';
-import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
-import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
 import { SkeletonSchedule } from '@/app/components/shared/Skeletons';
 import { DefaultScheduleView } from '@/app/components/schedule/DefaultScheduleView';
 import { StudyPlanDashboard } from '@/app/components/schedule/StudyPlanDashboard';
 
 export function ScheduleView() {
-  // PERF-S4: Use shared context instead of per-component hook instance.
-  const { topicMastery } = useTopicMasteryContext();
-  const { getEstimate } = useStudyTimeEstimatesContext();
-
   const {
     plans,
     loading: plansLoading,
@@ -26,14 +20,7 @@ export function ScheduleView() {
     reorderTasks,
     updatePlanStatus,
     deletePlan,
-    setRescheduleData,
   } = useStudyPlansContext();
-
-  // Inject mastery + estimate data for reschedule engine
-  React.useEffect(() => {
-    setRescheduleData({ topicMastery, getTimeEstimate: getEstimate });
-    return () => setRescheduleData(null);
-  }, [topicMastery, getEstimate, setRescheduleData]);
 
   if (plansLoading) {
     return <SkeletonSchedule />;

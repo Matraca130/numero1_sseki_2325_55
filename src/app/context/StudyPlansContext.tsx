@@ -1,19 +1,16 @@
 // ============================================================
 // Axon — StudyPlansContext
 // Thin context wrapper around useStudyPlans hook.
-// Provides a single shared instance across the component tree
-// and exposes setRescheduleData for injecting mastery/estimate
-// data from consuming components.
+// Provides a single shared instance across the component tree.
+// Consumes TopicMasteryContext + StudyTimeEstimatesContext
+// directly so reschedule data is always available regardless
+// of which view the student is on.
 // ============================================================
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { useStudyPlans, type UseStudyPlansOptions } from '@/app/hooks/useStudyPlans';
+import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
+import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
 import type { StudyPlan } from '@/app/context/AppContext';
-import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
-
-interface RescheduleData {
-  topicMastery: Map<string, TopicMasteryInfo>;
-  getTimeEstimate: (methodId: string) => { estimatedMinutes: number };
-}
 
 interface StudyPlansContextValue {
   plans: StudyPlan[];
@@ -25,27 +22,20 @@ interface StudyPlansContextValue {
   reorderTasks: (planId: string, orderedIds: string[]) => Promise<void>;
   updatePlanStatus: (planId: string, status: 'active' | 'completed' | 'archived') => Promise<void>;
   deletePlan: (planId: string) => Promise<void>;
-  /** Inject mastery + time estimate data for reschedule engine */
-  setRescheduleData: (data: RescheduleData | null) => void;
 }
 
 const StudyPlansCtx = createContext<StudyPlansContextValue | null>(null);
 
 export function StudyPlansProvider({ children }: { children: React.ReactNode }) {
-  const [rescheduleData, setRescheduleDataState] = useState<RescheduleData | null>(null);
+  const { topicMastery } = useTopicMasteryContext();
+  const { getEstimate } = useStudyTimeEstimatesContext();
 
-  const opts: UseStudyPlansOptions | undefined = rescheduleData
-    ? {
-        topicMastery: rescheduleData.topicMastery,
-        getTimeEstimate: rescheduleData.getTimeEstimate,
-      }
-    : undefined;
+  const opts: UseStudyPlansOptions | undefined =
+    topicMastery.size > 0
+      ? { topicMastery, getTimeEstimate: getEstimate }
+      : undefined;
 
   const hook = useStudyPlans(opts);
-
-  const setRescheduleData = useCallback((data: RescheduleData | null) => {
-    setRescheduleDataState(data);
-  }, []);
 
   const value = useMemo<StudyPlansContextValue>(() => ({
     plans: hook.plans,
@@ -57,8 +47,7 @@ export function StudyPlansProvider({ children }: { children: React.ReactNode }) 
     reorderTasks: hook.reorderTasks,
     updatePlanStatus: hook.updatePlanStatus,
     deletePlan: hook.deletePlan,
-    setRescheduleData,
-  }), [hook, setRescheduleData]);
+  }), [hook]);
 
   return <StudyPlansCtx.Provider value={value}>{children}</StudyPlansCtx.Provider>;
 }
