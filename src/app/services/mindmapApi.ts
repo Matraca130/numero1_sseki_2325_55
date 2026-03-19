@@ -27,6 +27,15 @@ import type { GraphData, MapNode, MapEdge, ClassMasteryData, GraphTemplate } fro
 
 // ── Helpers ─────────────────────────────────────────────────
 
+/** Check if an error is a 404 (endpoint not deployed / not found).
+ * Matches apiCall's error format: "API Error 404" or "Invalid response from server (404)" */
+function isNotFoundError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  // Match "API Error 404", "(404)", or "not found" — but exclude generic 500 messages
+  // that happen to contain "not found" (e.g. "Database table not found")
+  return /\b404\b/.test(msg) || msg.toLowerCase() === 'not found';
+}
+
 function unwrapItems<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result;
   if (result && typeof result === 'object' && 'items' in result) {
@@ -240,8 +249,7 @@ export async function fetchClassMastery(
     );
   } catch (e: unknown) {
     // Endpoint not deployed yet — return mock data based on graph nodes
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+    if (isNotFoundError(e)) {
       if (import.meta.env.DEV) {
         console.info('[MindmapApi] /ai/class-mastery not deployed, using mock data');
         return graphNodes.map((node) => {
@@ -350,8 +358,7 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
     return { nodes, edges };
   } catch (e: unknown) {
     // Swallow 404s (endpoint not deployed yet). Re-throw all other errors.
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('404') || msg.toLowerCase().includes('not found')) return { nodes: [], edges: [] };
+    if (isNotFoundError(e)) return { nodes: [], edges: [] };
     throw e;
   }
 }

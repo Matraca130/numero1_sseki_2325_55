@@ -12,11 +12,11 @@ import type { MasteryColor } from '@/app/lib/mastery-helpers';
 // ── Node style helpers ──────────────────────────────────────
 
 export function getNodeFill(masteryColor: MasteryColor): string {
-  return MASTERY_HEX_LIGHT[masteryColor];
+  return MASTERY_HEX_LIGHT[masteryColor] ?? MASTERY_HEX_LIGHT.gray;
 }
 
 export function getNodeStroke(masteryColor: MasteryColor): string {
-  return MASTERY_HEX[masteryColor];
+  return MASTERY_HEX[masteryColor] ?? MASTERY_HEX.gray;
 }
 
 export function getEdgeColor(connectionType?: string): string {
@@ -28,8 +28,9 @@ export function getEdgeColor(connectionType?: string): string {
 // ── HTML escape for tooltip content (prevent XSS) ───────────
 
 export function escHtml(s: string): string {
-  if (!s) return '';
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const str = String(s ?? '');
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // ── Collapse helpers ─────────────────────────────────────────
