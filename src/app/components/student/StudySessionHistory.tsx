@@ -169,7 +169,7 @@ export function StudySessionHistory({
             ) : (
               <div className="divide-y divide-gray-50">
                 {/* ── Summary row ── */}
-                <div className="px-4 py-2.5 bg-gray-50/50 flex items-center gap-4 text-[10px] text-gray-500">
+                <div className="px-4 py-2.5 bg-[#F0F2F5]/50 flex items-center gap-4 text-[10px] text-gray-500">
                   <span>{totalReviews} revisiones totales</span>
                   <span>&middot;</span>
                   <span>{totalCorrect} correctas</span>

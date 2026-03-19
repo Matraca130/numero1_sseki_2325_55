@@ -636,7 +636,7 @@ export function AxonAIAssistant({
                             </summary>
                             <ul className="mt-1.5 space-y-1">
                               {messageSources.get(msg.id)!.map((src, si) => (
-                                <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
+                                <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-[#F0F2F5] rounded-md px-2 py-1.5">
                                   <span className="truncate mr-2">{src.summary_title}</span>
                                   <span className="shrink-0 text-[10px] font-mono text-violet-500">
                                     {(src.similarity * 100).toFixed(0)}%
@@ -675,7 +675,7 @@ export function AxonAIAssistant({
               onKeyDown={handleKeyDown}
               placeholder="Pergunte sobre medicina..."
               rows={1}
-              className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 resize-none"
+              className="flex-1 px-4 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 resize-none"
               style={{ maxHeight: '120px' }}
             />
             <button
@@ -959,7 +959,7 @@ export function AxonAIAssistant({
                   onChange={e => setExplainConceptText(e.target.value)}
                   placeholder="Ex: Potencial de acao no neuronio"
                   rows={3}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 resize-none"
+                  className="w-full px-3 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 resize-none"
                 />
               </div>
               <button

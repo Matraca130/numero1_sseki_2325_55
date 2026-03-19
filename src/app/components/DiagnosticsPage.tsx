@@ -285,7 +285,7 @@ export function DiagnosticsPage() {
       case 'running':
         return 'border-l-blue-500 bg-blue-50';
       default:
-        return 'border-l-gray-300 bg-gray-50';
+        return 'border-l-gray-300 bg-[#F0F2F5]';
     }
   };
 
