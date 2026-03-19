@@ -20,7 +20,7 @@ export function loadNodeColors(topicId: string): NodeColorMap {
     const obj = JSON.parse(raw) as Record<string, unknown>;
     const map = new Map<string, string>();
     for (const [id, val] of Object.entries(obj)) {
-      if (typeof val === 'string' && val.startsWith('#')) {
+      if (typeof val === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(val)) {
         map.set(id, val);
       }
     }
@@ -32,7 +32,7 @@ export function loadNodeColors(topicId: string): NodeColorMap {
 
 /** Save a custom color for a node (merges with existing) */
 export function saveNodeColor(topicId: string, nodeId: string, color: string): void {
-  if (!color.startsWith('#')) return; // reject non-hex colors
+  if (!/^#[0-9a-fA-F]{3,8}$/.test(color)) return; // reject non-hex colors
   try {
     const existing = loadNodeColors(topicId);
     existing.set(nodeId, color);

@@ -171,7 +171,17 @@ export function useKeyboardNav({
   const applyFocusRing = useCallback((graph: Graph, nodeId: string | null, prevId: string | null) => {
     try {
       if (prevId) {
-        graph.setElementState(prevId, []);
+        // Only remove 'selected' state — preserve other states (highlight, hover, etc.)
+        try {
+          const currentStates = graph.getElementState(prevId);
+          const filtered = Array.isArray(currentStates)
+            ? currentStates.filter((s: string) => s !== 'selected')
+            : [];
+          graph.setElementState(prevId, filtered);
+        } catch {
+          // Fallback: clear all states if getElementState is unavailable
+          graph.setElementState(prevId, []);
+        }
       }
       if (nodeId) {
         graph.setElementState(nodeId, ['selected']);
@@ -189,7 +199,12 @@ export function useKeyboardNav({
     const currentFocused = focusedNodeIdRef.current;
     if (graph && currentFocused) {
       try {
-        graph.setElementState(currentFocused, []);
+        // Only remove 'selected' state — preserve other states
+        const currentStates = graph.getElementState(currentFocused);
+        const filtered = Array.isArray(currentStates)
+          ? currentStates.filter((s: string) => s !== 'selected')
+          : [];
+        graph.setElementState(currentFocused, filtered);
         graph.draw();
       } catch { /* graph may be destroyed */ }
     }
@@ -310,14 +325,20 @@ export function useKeyboardNav({
           // Get node position on screen for context menu placement
           const pos = getNodePosition(g, focused);
           if (pos && onNodeRightClickRef.current) {
-            // Convert graph coordinates to client coordinates
-            const canvas = container.querySelector('canvas');
-            const rect = canvas?.getBoundingClientRect() ?? container.getBoundingClientRect();
-            // Use graph.getCanvasByViewport or approximate with center of container
-            onNodeRightClickRef.current(node, {
-              x: rect.left + rect.width / 2,
-              y: rect.top + rect.height / 2,
-            });
+            // Convert graph coordinates to client (screen) coordinates
+            let clientX: number;
+            let clientY: number;
+            try {
+              const clientPt = g.getClientByCanvas([pos.x, pos.y]);
+              clientX = clientPt[0];
+              clientY = clientPt[1];
+            } catch {
+              // Fallback to container center if conversion fails
+              const rect = container.getBoundingClientRect();
+              clientX = rect.left + rect.width / 2;
+              clientY = rect.top + rect.height / 2;
+            }
+            onNodeRightClickRef.current(node, { x: clientX, y: clientY });
           }
           return;
         }

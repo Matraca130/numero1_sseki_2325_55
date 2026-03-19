@@ -74,7 +74,10 @@ export function useGraphExport() {
 
   const doExport = useCallback(async (format: ExportFormat) => {
     const graph = graphRef.current;
-    if (!graph) return;
+    if (!graph) {
+      toast.error('El mapa aún no está listo para exportar');
+      return;
+    }
 
     try {
       const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
