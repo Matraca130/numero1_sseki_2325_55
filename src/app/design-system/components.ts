@@ -1,10 +1,20 @@
 /**
  * @module @axon/design-system/components
- * @version 1.0.0
+ * @version 1.1.0
  *
  * Recetas Tailwind para componentes: cards, botones, iconos,
  * filtros, progress bars, sidebar, header, KPI, charts.
  * Incluye helpers utilitarios para clases compuestas.
+ *
+ * Changelog v1.1.0:
+ *   - cardDark.base: #2c3e50 → #1a2e2a (Axon Dark Panel)
+ *   - filterButton.activeDark: #2c3e50 → #1a2e2a
+ *   - sidebar.bgOuter/bgInner: → #1B3B36 (Axon Dark Teal)
+ *   - navItem.active: sky-500 → #2a8c7a (Teal Accent)
+ *   - navItem.inactive: gray-400 → #8fbfb3
+ *   - sectionLabel: gray-500 → #6db5a5
+ *   - header.height: h-12 → h-14 (56px)
+ *   - header.bg: #1e293b → #1B3B36
  *
  * Standalone:  import { components, iconClasses, cardClasses, ctaButtonClasses } from '@/app/design-system/components';
  * Barrel:      import { components, iconClasses } from '@/app/design-system';
@@ -37,9 +47,9 @@ export const components = {
     paddingXl: 'p-7',
   },
 
-  /** Card oscuro (performance) */
+  /** Card oscuro — Axon Dark Panel (#1a2e2a) */
   cardDark: {
-    base:     'bg-[#2c3e50] rounded-2xl text-white shadow-lg',
+    base:     'bg-[#1a2e2a] rounded-2xl text-white shadow-lg',
     padding:  'p-7',
   },
 
@@ -63,8 +73,8 @@ export const components = {
   filterButton: {
     active:   'bg-teal-500 text-white shadow-sm',
     inactive: 'text-gray-500 hover:text-gray-700',
-    /** Variante dark (WelcomeView) */
-    activeDark:   'bg-[#2c3e50] text-white',
+    /** Variante dark (WelcomeView) — Axon Dark Panel */
+    activeDark:   'bg-[#1a2e2a] text-white',
     inactiveDark: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
   },
 
@@ -104,24 +114,24 @@ export const components = {
     subtitleFont: 'Georgia, serif',
   },
 
-  /** Sidebar */
+  /** Sidebar — Axon Dark Teal (#1B3B36) */
   sidebar: {
     width:        260,
-    bgOuter:      '#1c1c1e',
-    bgInner:      '#2d3e50',
+    bgOuter:      '#1B3B36',
+    bgInner:      '#1B3B36',
     borderColor:  'rgba(255,255,255,0.05)',
     navItem: {
       base:     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group',
-      active:   'bg-sky-500/10 text-sky-400 shadow-sm border border-sky-500/20',
-      inactive: 'text-gray-400 hover:text-white hover:bg-white/5',
+      active:   'bg-[#2a8c7a]/15 text-[#2a8c7a] shadow-sm border border-[#2a8c7a]/20',
+      inactive: 'text-[#8fbfb3] hover:text-white hover:bg-white/5',
     },
-    sectionLabel: 'px-3 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2',
+    sectionLabel: 'px-3 text-xs font-bold text-[#6db5a5] uppercase tracking-widest mb-2',
   },
 
-  /** Header / Top Nav */
+  /** Header / Top Nav — Axon Dark Teal, 56px (h-14) */
   header: {
-    height:    'h-12',
-    bg:        'bg-[#1e293b]',
+    height:    'h-14',
+    bg:        'bg-[#1B3B36]',
     border:    'border-b border-white/10',
     menuBtn:   'p-2 bg-white/[0.08] hover:bg-white/15 border border-white/[0.1] rounded-lg text-white',
   },

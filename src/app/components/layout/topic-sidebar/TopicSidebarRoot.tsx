@@ -109,7 +109,7 @@ export function TopicSidebarRoot() {
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="hidden md:flex w-72 shrink-0 h-full bg-white border-r border-zinc-300 flex-col items-center justify-center">
+      <div className="hidden lg:flex w-72 shrink-0 h-full bg-white border-r border-zinc-300 flex-col items-center justify-center">
         <Loader2 className="w-5 h-5 text-teal-500 animate-spin" />
         <p className="text-xs text-zinc-400 mt-2">Cargando contenido...</p>
       </div>
@@ -119,7 +119,7 @@ export function TopicSidebarRoot() {
   // ── Error state with retry ──
   if (error) {
     return (
-      <div className="hidden md:flex w-72 shrink-0 h-full bg-white border-r border-zinc-300 flex-col items-center justify-center px-6 gap-3">
+      <div className="hidden lg:flex w-72 shrink-0 h-full bg-white border-r border-zinc-300 flex-col items-center justify-center px-6 gap-3">
         <AlertTriangle className="w-6 h-6 text-amber-500" />
         <p className="text-xs text-zinc-500 text-center">{error}</p>
         <button
@@ -136,7 +136,7 @@ export function TopicSidebarRoot() {
   // ── Empty state ──
   if (!tree || tree.courses.length === 0) {
     return (
-      <div className="hidden md:flex w-72 shrink-0 h-full bg-white border-r border-zinc-300 flex-col items-center justify-center px-6">
+      <div className="hidden lg:flex w-72 shrink-0 h-full bg-white border-r border-zinc-300 flex-col items-center justify-center px-6">
         <p className="text-xs text-zinc-400 text-center">
           No hay contenido disponible
         </p>
@@ -175,7 +175,7 @@ export function TopicSidebarRoot() {
         animate={{ width: 288, opacity: 1 }}
         exit={{ width: 0, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className={`${SIDEBAR_CLASSES} hidden md:flex`}
+        className={`${SIDEBAR_CLASSES} hidden lg:flex`}
       >
         {sidebarContent}
       </motion.div>
@@ -183,7 +183,7 @@ export function TopicSidebarRoot() {
       {/* ── Mobile: trigger button ── */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-4 left-4 z-30 md:hidden p-3 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 transition-colors"
+        className="fixed bottom-4 left-4 z-30 lg:hidden p-3 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 transition-colors"
         aria-label="Abrir menu de contenido"
       >
         <PanelLeft size={20} />
@@ -199,7 +199,7 @@ export function TopicSidebarRoot() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 z-40 md:hidden"
+              className="fixed inset-0 bg-black/40 z-40 lg:hidden"
               onClick={() => setMobileOpen(false)}
               aria-hidden="true"
             />
@@ -210,7 +210,7 @@ export function TopicSidebarRoot() {
               animate={{ x: 0 }}
               exit={{ x: -288 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-white shadow-xl md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-white shadow-xl lg:hidden"
             >
               {sidebarContent}
             </motion.div>

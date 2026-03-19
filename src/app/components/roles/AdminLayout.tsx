@@ -6,7 +6,7 @@ import { RoleShell, type NavItemConfig } from '../layout/RoleShell';
 import { PlatformDataProvider } from '@/app/context/PlatformDataContext';
 import {
   LayoutDashboard, Users, FileText, ShieldCheck,
-  Settings, BarChart3, Shield,
+  Settings, BarChart3, Shield, Activity,
 } from 'lucide-react';
 
 const NAV_ITEMS: NavItemConfig[] = [
@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Contenido', path: '/admin/content', icon: <FileText size={16} /> },
   { label: 'Permisos', path: '/admin/scopes', icon: <ShieldCheck size={16} /> },
   { label: 'Reportes', path: '/admin/reports', icon: <BarChart3 size={16} /> },
+  { label: 'AI Health', path: '/admin/ai-health', icon: <Activity size={16} /> },
   { label: 'Configuracion', path: '/admin/settings', icon: <Settings size={16} /> },
 ];
 

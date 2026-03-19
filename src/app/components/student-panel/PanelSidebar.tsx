@@ -18,7 +18,7 @@ import { NavItem } from '@/app/components/shared/NavItem';
 
 export function PanelSidebar() {
   return (
-    <aside className="w-56 bg-[#2d3e50] text-white flex flex-col">
+    <aside className="w-56 bg-[#1a2e2a] text-white flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">

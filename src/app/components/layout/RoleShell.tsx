@@ -178,7 +178,7 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
   };
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 text-gray-900 font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-[#F0F2F5] text-gray-900 font-sans overflow-hidden">
       
       {/* ── Desktop Sidebar (always visible on lg+) ── */}
       <div className="hidden lg:flex shrink-0">
