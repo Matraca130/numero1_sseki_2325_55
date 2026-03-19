@@ -163,7 +163,7 @@ export interface GraphTemplate {
 
 // ── Context menu action ─────────────────────────────────────
 
-export type NodeAction = 'flashcard' | 'quiz' | 'summary' | 'annotate' | 'details';
+export type NodeAction = 'flashcard' | 'quiz' | 'summary' | 'annotate' | 'details' | 'connect';
 
 // ── G6 Event / Controls ────────────────────────────────────
 

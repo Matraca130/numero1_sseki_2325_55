@@ -70,7 +70,7 @@ const LAYOUT_DAGRE = { type: 'dagre' as const, rankdir: 'TB', nodesep: 40, ranks
 
 interface KnowledgeGraphProps {
   data: GraphData;
-  onNodeClick?: (node: MapNode | null) => void;
+  onNodeClick?: (node: MapNode | null, position?: { x: number; y: number }) => void;
   onNodeRightClick?: (node: MapNode, position: { x: number; y: number }) => void;
   selectedNodeId?: string | null;
   layout?: 'force' | 'radial' | 'dagre';
@@ -337,7 +337,7 @@ export function KnowledgeGraph({
             labelFill: colors.text.primary,
             labelFontSize: 12,
             labelFontFamily: 'Inter, sans-serif',
-            size: Math.max(32, Math.min(56, 32 + (node.mastery >= 0 ? node.mastery * 24 : 0))),
+            size: Math.max(44, Math.min(56, 44 + (node.mastery >= 0 ? node.mastery * 12 : 0))),
             ...(savedPos ? { x: savedPos.x, y: savedPos.y } : {}),
           },
         };
@@ -533,6 +533,13 @@ export function KnowledgeGraph({
             lineWidth: 3.5,
             shadowColor: 'rgba(42, 140, 122, 0.6)',
             shadowBlur: 14,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
+          },
+          active: {
+            lineWidth: 3,
+            shadowColor: 'rgba(42, 140, 122, 0.7)',
+            shadowBlur: 20,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
@@ -997,7 +1004,10 @@ export function KnowledgeGraph({
 
       const nodeData = graph.getNodeData(nodeId);
       if (nodeData?.data?._raw && onNodeClickRef.current) {
-        onNodeClickRef.current(nodeData.data._raw as MapNode);
+        onNodeClickRef.current(nodeData.data._raw as MapNode, {
+          x: evt.client?.x ?? evt.clientX ?? 0,
+          y: evt.client?.y ?? evt.clientY ?? 0,
+        });
       }
     };
 
@@ -1105,6 +1115,10 @@ export function KnowledgeGraph({
     const handleNodePointerDown = (evt: G6NodeEvent) => {
       longPressTriggered = false;
       longPressStartPos = { x: evt.canvas.x, y: evt.canvas.y };
+      const nodeId = evt.target?.id ?? evt.itemId;
+      if (nodeId) {
+        try { graph.setElementState(nodeId, ['active']); } catch (e: unknown) { warnIfNotDestroyed(e); }
+      }
       longPressTimer = setTimeout(() => {
         if (!mountedRef.current) return;
         longPressTriggered = true;
@@ -1114,6 +1128,13 @@ export function KnowledgeGraph({
     const cancelLongPress = () => {
       if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
       longPressStartPos = null;
+    };
+    const clearActiveState = (evt: G6NodeEvent) => {
+      cancelLongPress();
+      const nodeId = evt.target?.id ?? evt.itemId;
+      if (nodeId) {
+        try { graph.setElementState(nodeId, []); } catch (e: unknown) { warnIfNotDestroyed(e); }
+      }
     };
     const handleNodePointerMove = (evt: G6NodeEvent) => {
       if (!longPressTimer || !longPressStartPos) return;
@@ -1125,8 +1146,8 @@ export function KnowledgeGraph({
     };
 
     graph.on('node:pointerdown', handleNodePointerDown);
-    graph.on('node:pointerup', cancelLongPress);
-    graph.on('node:pointerleave', cancelLongPress);
+    graph.on('node:pointerup', clearActiveState);
+    graph.on('node:pointerleave', clearActiveState);
     graph.on('node:pointermove', handleNodePointerMove);
 
     return () => {
@@ -1137,8 +1158,8 @@ export function KnowledgeGraph({
       graph.off('canvas:click', handleCanvasClick);
       graph.off('afterbrushselect', handleBrushSelect);
       graph.off('node:pointerdown', handleNodePointerDown);
-      graph.off('node:pointerup', cancelLongPress);
-      graph.off('node:pointerleave', cancelLongPress);
+      graph.off('node:pointerup', clearActiveState);
+      graph.off('node:pointerleave', clearActiveState);
       graph.off('node:pointermove', handleNodePointerMove);
       if (longPressTimer) clearTimeout(longPressTimer);
     };

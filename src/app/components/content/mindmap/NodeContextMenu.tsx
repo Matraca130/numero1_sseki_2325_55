@@ -7,12 +7,13 @@
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState, type ElementType } from 'react';
-import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown, Palette } from 'lucide-react';
+import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown, Palette, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapNode, NodeAction } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { NODE_COLOR_PALETTE } from './useNodeColors';
+import { useSwipeDismiss } from './useSwipeDismiss';
 
 // ── Icon map ────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ const ICONS: Record<NodeAction, ElementType> = {
   flashcard: Layers,
   quiz: HelpCircle,
   summary: FileText,
+  connect: Link2,
   annotate: Edit3,
   details: Info,
 };
@@ -28,6 +30,7 @@ const LABELS: Record<NodeAction, string> = {
   flashcard: 'Flashcards',
   quiz: 'Quiz',
   summary: 'Ver resumen',
+  connect: 'Conectar',
   annotate: 'Anotación',
   details: 'Detalles',
 };
@@ -49,6 +52,8 @@ interface NodeContextMenuProps {
   onColorChange?: (nodeId: string, color: string) => void;
   /** Current custom color of the node (if any) */
   currentCustomColor?: string;
+  /** Whether to hide the "connect" action (e.g. professor view) */
+  hideConnect?: boolean;
 }
 
 // ── Shared styles ───────────────────────────────────────────
@@ -58,7 +63,7 @@ const captionFontSize = 'clamp(0.7rem, 1.3vw, 0.75rem)';
 
 // ── Component ───────────────────────────────────────────────
 
-export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse, onColorChange, currentCustomColor }: NodeContextMenuProps) {
+export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse, onColorChange, currentCustomColor, hideConnect }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -139,9 +144,12 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
     'flashcard',
     'quiz',
     ...(node?.summaryId ? ['summary' as const] : []),
+    ...(!hideConnect ? ['connect' as const] : []),
     'annotate',
     'details',
   ];
+
+  const { onTouchStart: swipeStart, onTouchMove: swipeMove, onTouchEnd: swipeEnd } = useSwipeDismiss(onClose);
 
   // Prevent body scroll when bottom sheet is open on mobile (lock both html + body for iOS Safari)
   useEffect(() => {
@@ -188,6 +196,9 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
             }}
             role="menu"
             aria-label={`Acciones para ${node.label}`}
+            onTouchStart={isSmallScreen ? swipeStart : undefined}
+            onTouchMove={isSmallScreen ? swipeMove : undefined}
+            onTouchEnd={isSmallScreen ? swipeEnd : undefined}
           >
           {/* Mobile drag handle */}
           {isSmallScreen && (

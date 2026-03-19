@@ -140,16 +140,20 @@ describe('NodeContextMenu: LABELS map', () => {
     expect(source).toContain("annotate: 'Anotaci\u00f3n'");
   });
 
+  it('maps connect to "Conectar"', () => {
+    expect(source).toContain("connect: 'Conectar'");
+  });
+
   it('maps details to "Detalles"', () => {
     expect(source).toContain("details: 'Detalles'");
   });
 
-  it('has exactly 5 action labels matching the 5 icons', () => {
+  it('has exactly 6 action labels matching the 6 icons', () => {
     const labelMatches = source.match(/LABELS:\s*Record<NodeAction,\s*string>\s*=\s*\{([^}]+)\}/s);
     expect(labelMatches).not.toBeNull();
     const body = labelMatches![1];
     const entries = body.split(',').filter(e => e.includes(':'));
-    expect(entries.length).toBe(5);
+    expect(entries.length).toBe(6);
   });
 });
 

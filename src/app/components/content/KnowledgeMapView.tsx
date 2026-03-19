@@ -26,7 +26,7 @@ const haptic = (ms = 50) => navigator?.vibrate?.(ms);
 /** Stable empty array to avoid creating new reference on every render. */
 const EMPTY_NODES: import('./mindmap').MapNode[] = [];
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, Edit3, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows, StickyNote as StickyNoteIcon } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows, StickyNote as StickyNoteIcon } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
@@ -45,7 +45,6 @@ import { useGraphSearch } from './mindmap/useGraphSearch';
 import { AddNodeEdgeModal } from './mindmap/AddNodeEdgeModal';
 import { deleteCustomNode, deleteCustomEdge, createCustomEdge } from '@/app/services/mindmapApi';
 import type { EdgeReconnectResult } from './mindmap/useEdgeReconnect';
-import { useSwipeDismiss } from './mindmap/useSwipeDismiss';
 import { useSearchFocus } from './mindmap/useSearchFocus';
 import { useGraphControls } from './mindmap/useGraphControls';
 import { ConfirmDialog } from './mindmap/ConfirmDialog';
@@ -267,7 +266,7 @@ export function KnowledgeMapView() {
 
   // ── Handlers ────────────────────────────────────────────
 
-  const handleNodeClick = useCallback((node: MapNode | null) => {
+  const handleNodeClick = useCallback((node: MapNode | null, position?: { x: number; y: number }) => {
     const tool = activeToolRef.current;
     const source = connectSourceRef.current;
     if (!node) {
@@ -319,10 +318,13 @@ export function KnowledgeMapView() {
         return;
       default:
         setSelectedNode(node);
+        setContextMenu({ node, position: position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 } });
+        haptic(10);
     }
   }, []);
 
   const handleNodeRightClick = useCallback((node: MapNode, position: { x: number; y: number }) => {
+    haptic(30);
     setContextMenu({ node, position });
   }, []);
 
@@ -404,6 +406,11 @@ export function KnowledgeMapView() {
         }
         break;
       }
+      case 'connect':
+        setConnectSource(node);
+        setActiveTool('connect');
+        toast.info(`Origen: "${node.label}" — Ahora selecciona el destino`);
+        break;
       case 'annotate':
         setAnnotationNode(node);
         break;
@@ -552,9 +559,6 @@ export function KnowledgeMapView() {
     }
   }, []);
 
-  // Swipe-to-dismiss for mobile bottom sheet
-  const dismissSelected = useCallback(() => setSelectedNode(null), []);
-  const { onTouchStart: handleSheetTouchStart, onTouchMove: handleSheetTouchMove, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
 
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
@@ -682,11 +686,6 @@ export function KnowledgeMapView() {
     return { total, mastered, learning, weak, noData, avgMastery };
   }, [graphData]);
 
-  // Connection count for selected node detail panel (avoids O(E) filter on every render)
-  const selectedNodeConnections = useMemo(() => {
-    if (!graphData?.edges || !selectedNode) return 0;
-    return graphData.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id).length;
-  }, [graphData?.edges, selectedNode]);
 
   // Animated mastery percentage (count-up effect, respects reduced-motion)
   const targetPct = masteryStats ? Math.round(masteryStats.avgMastery * 100) : 0;
@@ -1339,94 +1338,6 @@ export function KnowledgeMapView() {
             />
           </ErrorBoundary>
 
-          {/* Selected node detail panel (bottom sheet on mobile, floating card on desktop) */}
-          {selectedNode && !contextMenu && (
-            <div
-              className="absolute bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-64 bg-white rounded-t-2xl sm:rounded-xl shadow-lg border border-gray-200 p-4 z-10 max-h-[55dvh] overflow-y-auto"
-              style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-              role="region"
-              aria-label={`Detalles del concepto: ${selectedNode.label}`}
-              onTouchStart={handleSheetTouchStart}
-              onTouchMove={handleSheetTouchMove}
-              onTouchEnd={handleSheetTouchEnd}
-            >
-              {/* Mobile drag handle — swipe down to dismiss */}
-              <div className="flex sm:hidden justify-center -mt-2 mb-2">
-                <div className="w-8 h-1 rounded-full bg-gray-300" />
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <h3
-                  className="font-medium text-gray-900 mb-1"
-                  style={headingStyle}
-                >
-                  {selectedNode.label}
-                </h3>
-                <button
-                  onClick={() => setSelectedNode(null)}
-                  className="p-3 -mr-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-                  aria-label="Cerrar"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              {selectedNode.definition && (
-                <p className="text-xs text-gray-500 mb-2 line-clamp-3">
-                  {selectedNode.definition}
-                </p>
-              )}
-              {selectedNode.annotation && (
-                <p className="text-xs text-[#2a8c7a] mb-2 italic line-clamp-2">
-                  &ldquo;{selectedNode.annotation}&rdquo;
-                </p>
-              )}
-              <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400">
-                <span>
-                  Dominio: {Number.isFinite(selectedNode.mastery) && selectedNode.mastery >= 0 ? `${Math.round(selectedNode.mastery * 100)}%` : 'Sin datos'}
-                </span>
-                {graphData && (
-                  <span>
-                    {selectedNodeConnections} conexiones
-                  </span>
-                )}
-                {selectedNode.isUserCreated && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: '#e8f5f1', color: '#2a8c7a' }}>
-                    Tu concepto
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-1.5 sm:gap-2 mt-3">
-                <button
-                  onClick={() => handleAction('flashcard', selectedNode)}
-                  className="flex-1 min-w-0 px-2 sm:px-3 py-3 sm:py-2 text-xs font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full hover:bg-[#d0ebe6] transition-colors truncate"
-                >
-                  Flashcards
-                </button>
-                <button
-                  onClick={() => handleAction('quiz', selectedNode)}
-                  className="flex-1 min-w-0 px-2 sm:px-3 py-3 sm:py-2 text-xs font-medium text-[#2a8c7a] bg-[#e8f5f1] rounded-full hover:bg-[#d0ebe6] transition-colors truncate"
-                >
-                  Quiz
-                </button>
-                <button
-                  onClick={() => handleAction('annotate', selectedNode)}
-                  className="px-3 py-3 sm:py-2 text-xs font-medium text-gray-500 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
-                  aria-label="Anotar concepto"
-                  title="Anotar"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
-                {selectedNode.isUserCreated && (
-                  <button
-                    onClick={() => handleDeleteCustomNode(selectedNode)}
-                    className="px-3 py-3 sm:py-2 text-xs font-medium text-red-500 bg-red-50 rounded-full hover:bg-red-100 transition-colors flex-shrink-0"
-                    aria-label="Eliminar concepto personalizado"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Add custom node/edge modal */}
