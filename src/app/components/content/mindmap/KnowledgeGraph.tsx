@@ -211,6 +211,8 @@ export function KnowledgeGraph({
   onNodeRightClickRef.current = onNodeRightClick;
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   // Track mount state to guard async callbacks
   useEffect(() => {
@@ -748,7 +750,7 @@ export function KnowledgeGraph({
       if (!mountedRef.current || graphRef.current !== graph) return;
       setReady(true);
       setGraphVersion(v => v + 1);
-      onReady?.({
+      onReadyRef.current?.({
         zoomIn: () => { const g = graphRef.current; if (!g) return; try { g.zoomBy(1.25, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
         zoomOut: () => { const g = graphRef.current; if (!g) return; try { g.zoomBy(0.8, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
         fitView: () => { const g = graphRef.current; if (!g) return; try { g.fitView(); } catch (e: unknown) { warnIfNotDestroyed(e); } },
