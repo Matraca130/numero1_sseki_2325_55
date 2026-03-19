@@ -9,8 +9,8 @@
 // useState + 2 useEffect + 1 useCallback of manual fetching
 // and shares cache with KeywordHighlighterInline.
 //
-// Mastery color = AVG(subtopics BKT p_know):
-//   >= 0.80 | >= 0.50 | < 0.50 | sin datos
+// Phase 2: Migrated to Delta Mastery color system. Badge colors
+// now use getDeltaColorClasses via keywordDeltaColorMap.
 // ============================================================
 import React, { useState } from 'react';
 import { Tag, Loader2 } from 'lucide-react';
@@ -18,10 +18,7 @@ import clsx from 'clsx';
 import { SmartPopup } from './SmartPopup';
 import { KeywordPopup } from './KeywordPopup';
 import { MasteryIndicator } from '@/app/components/shared/MasteryIndicator';
-import {
-  getMasteryColor,
-  getMasteryTailwind,
-} from '@/app/lib/mastery-helpers';
+import { getDeltaColorClasses, type DeltaColorLevel } from '@/app/lib/mastery-helpers';
 import { useKeywordMasteryQuery } from '@/app/hooks/queries/useKeywordMasteryQuery';
 
 interface KeywordBadgesProps {
@@ -33,53 +30,32 @@ interface KeywordBadgesProps {
 export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesProps) {
   const [openKeywordId, setOpenKeywordId] = useState<string | null>(null);
 
-  // ── React Query: keywords + BKT + subtopics → mastery ──
+  // ── React Query: keywords + BKT + subtopics -> mastery ──
   const {
     keywords,
     keywordsLoading,
     bktMap,
     keywordMasteryMap,
+    keywordDeltaColorMap,
     dataReady,
   } = useKeywordMasteryQuery(summaryId);
 
-  // ── Badge color helper ──────────────────────────────────
-  function getBadgeClasses(kwId: string): string {
+  // ── Badge style helper (unified Delta colors) ──────────
+  function getBadgeStyles(kwId: string): { base: string; hover: string; ring: string } {
     if (!dataReady) {
-      return 'bg-zinc-500/20 text-zinc-400';
+      return {
+        base: 'bg-zinc-500/20 text-zinc-400',
+        hover: 'hover:bg-zinc-500/30 hover:text-zinc-300',
+        ring: 'focus:ring-zinc-500/30',
+      };
     }
-    const mastery = keywordMasteryMap.get(kwId) ?? -1;
-    if (mastery < 0) {
-      return 'bg-zinc-500/20 text-zinc-400';
-    }
-    const color = getMasteryColor(mastery);
-    const tw = getMasteryTailwind(color);
-    return `${tw.bgLight} ${tw.textDark}`;
-  }
-
-  function getBadgeHoverClasses(kwId: string): string {
-    if (!dataReady) return 'hover:bg-zinc-500/30 hover:text-zinc-300';
-    const mastery = keywordMasteryMap.get(kwId) ?? -1;
-    if (mastery < 0) return 'hover:bg-zinc-500/30 hover:text-zinc-300';
-    const color = getMasteryColor(mastery);
-    switch (color) {
-      case 'green':  return 'hover:bg-emerald-500/30 hover:text-emerald-300';
-      case 'yellow': return 'hover:bg-amber-500/30 hover:text-amber-300';
-      case 'red':    return 'hover:bg-red-500/30 hover:text-red-300';
-      default:       return 'hover:bg-zinc-500/30 hover:text-zinc-300';
-    }
-  }
-
-  function getBadgeRingClass(kwId: string): string {
-    if (!dataReady) return 'focus:ring-zinc-500/30';
-    const mastery = keywordMasteryMap.get(kwId) ?? -1;
-    if (mastery < 0) return 'focus:ring-zinc-500/30';
-    const color = getMasteryColor(mastery);
-    switch (color) {
-      case 'green':  return 'focus:ring-emerald-500/30';
-      case 'yellow': return 'focus:ring-amber-500/30';
-      case 'red':    return 'focus:ring-red-500/30';
-      default:       return 'focus:ring-zinc-500/30';
-    }
+    const level: DeltaColorLevel = keywordDeltaColorMap.get(kwId) ?? 'gray';
+    const dc = getDeltaColorClasses(level);
+    return {
+      base: `${dc.bgLight} ${dc.text}`,
+      hover: dc.hoverBg,
+      ring: `focus:${dc.ring}`,
+    };
   }
 
   if (keywordsLoading) {
@@ -125,6 +101,8 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
       <div className="flex flex-wrap gap-2">
         {keywords.map(kw => {
           const mastery = keywordMasteryMap.get(kw.id) ?? -1;
+          const deltaLevel: DeltaColorLevel = keywordDeltaColorMap.get(kw.id) ?? 'gray';
+          const styles = getBadgeStyles(kw.id);
           return (
             <SmartPopup
               key={kw.id}
@@ -137,12 +115,12 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
                     'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all',
                     'focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-transparent',
                     'active:scale-95',
-                    getBadgeClasses(kw.id),
-                    getBadgeHoverClasses(kw.id),
-                    getBadgeRingClass(kw.id),
+                    styles.base,
+                    styles.hover,
+                    styles.ring,
                   )}
                 >
-                  <MasteryIndicator pMastery={mastery} size="sm" variant="dot" showTooltip={false} />
+                  <MasteryIndicator deltaLevel={deltaLevel} pMastery={mastery} size="sm" variant="dot" showTooltip={false} />
                   {kw.name}
                 </button>
               }

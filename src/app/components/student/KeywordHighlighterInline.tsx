@@ -14,6 +14,9 @@
 // InlineKeywordPopover, which uses @floating-ui/react for
 // dynamic positioning. Replaces frozen DOMRect snapshot.
 //
+// Phase 2: Migrated to Delta Mastery color system. Highlights
+// now use getDeltaColorClasses via keywordDeltaColorMap.
+//
 // Usage:
 //   <KeywordHighlighterInline summaryId={id}>
 //     <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
@@ -31,7 +34,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
-import { getMasteryColor } from '@/app/lib/mastery-helpers';
+import { getDeltaColorClasses, type DeltaColorLevel } from '@/app/lib/mastery-helpers';
 import { InlineKeywordPopover } from './InlineKeywordPopover';
 import { useKeywordMasteryQuery } from '@/app/hooks/queries/useKeywordMasteryQuery';
 
@@ -47,7 +50,7 @@ function escapeRegex(s: string): string {
  * with its text content, then normalize() to merge adjacent text nodes.
  *
  * Why: The TreeWalker effect injects highlight <span>s into the live DOM.
- *      When the effect re-runs (e.g. keywordMasteryMap changes), we must
+ *      When the effect re-runs (e.g. keywordDeltaColorMap changes), we must
  *      restore the DOM to its un-highlighted state FIRST; otherwise the
  *      walker finds text nodes INSIDE existing highlight spans → creates
  *      nested <span class="axon-kw-highlight"> elements.
@@ -67,53 +70,21 @@ function stripHighlights(container: HTMLElement): void {
   container.normalize();
 }
 
-// ── Mastery color -> Tailwind classes for highlight ────────
+// ── Delta color -> Tailwind classes for highlight ──────────
 
-function getHighlightClasses(mastery: number): {
+function getHighlightClasses(level: DeltaColorLevel): {
   bg: string;
   hoverBg: string;
   border: string;
   text: string;
 } {
-  if (mastery < 0) {
-    return {
-      bg: 'bg-violet-100/60',
-      hoverBg: 'hover:bg-violet-200/80',
-      border: 'border-b-2 border-violet-300',
-      text: 'text-violet-800',
-    };
-  }
-  const color = getMasteryColor(mastery);
-  switch (color) {
-    case 'green':
-      return {
-        bg: 'bg-emerald-100/60',
-        hoverBg: 'hover:bg-emerald-200/80',
-        border: 'border-b-2 border-emerald-400',
-        text: 'text-emerald-800',
-      };
-    case 'yellow':
-      return {
-        bg: 'bg-amber-100/60',
-        hoverBg: 'hover:bg-amber-200/80',
-        border: 'border-b-2 border-amber-400',
-        text: 'text-amber-800',
-      };
-    case 'red':
-      return {
-        bg: 'bg-red-100/60',
-        hoverBg: 'hover:bg-red-200/80',
-        border: 'border-b-2 border-red-400',
-        text: 'text-red-800',
-      };
-    default:
-      return {
-        bg: 'bg-violet-100/60',
-        hoverBg: 'hover:bg-violet-200/80',
-        border: 'border-b-2 border-violet-300',
-        text: 'text-violet-800',
-      };
-  }
+  const dc = getDeltaColorClasses(level);
+  return {
+    bg: dc.bgLight,
+    hoverBg: dc.hoverBg,
+    border: `border-b-2 ${dc.border}`,
+    text: dc.text,
+  };
 }
 
 // ── Types ─────────────────────────────────────────────────
@@ -184,7 +155,7 @@ export function KeywordHighlighterInline({
   const {
     keywords,
     bktMap,
-    keywordMasteryMap,
+    keywordDeltaColorMap,
     dataReady,
   } = useKeywordMasteryQuery(summaryId);
 
@@ -226,26 +197,26 @@ export function KeywordHighlighterInline({
     if (plainText || !containerRef.current || keywords.length === 0) return;
 
     // ── FIX-I1: Don't strip/re-walk while popup is open ─────
-    // If BKT refetches while popup is open, keywordMasteryMap changes
+    // If BKT refetches while popup is open, keywordDeltaColorMap changes
     // and this effect re-runs. Without this guard, stripHighlights()
     // would destroy the anchor span → autoUpdate detects reference
     // gone → hide.referenceHidden → popup closes unexpectedly.
     // When popup closes, activeKeywordId becomes null → deps change
-    // → effect re-runs normally with fresh mastery colors.
+    // → effect re-runs normally with fresh delta colors.
     if (activeKeywordId) return;
     if (!dataReady) return;
 
     const container = containerRef.current;
 
     // ── Strip previous highlights to prevent nested spans on re-run ──
-    // Without this, when deps change (e.g. keywordMasteryMap updates),
+    // Without this, when deps change (e.g. keywordDeltaColorMap updates),
     // the TreeWalker finds text nodes INSIDE old highlight <span>s and
     // wraps them again → nested .axon-kw-highlight elements.
     stripHighlights(container);
 
     // Build regex from keyword names
     // C-1 FIX: Removed \b word boundaries — they fail for accented
-    // Spanish chars (á,é,í,ó,ú,ñ) because JS \b uses ASCII-only \w.
+    // Spanish chars (a,e,i,o,u,n) because JS \b uses ASCII-only \w.
     // Lookbehinds (?<!...) would fix it but crash Safari <16.4 (SyntaxError).
     // Pragmatic: longest-first sorting already prevents most false positives;
     // plain text mode has used this same approach without issues.
@@ -290,8 +261,8 @@ export function KeywordHighlighterInline({
         );
 
         if (kw) {
-          const mastery = keywordMasteryMap.get(kw.id) ?? -1;
-          const classes = getHighlightClasses(mastery);
+          const deltaLevel = keywordDeltaColorMap.get(kw.id) ?? 'gray';
+          const classes = getHighlightClasses(deltaLevel);
           const span = document.createElement('span');
           span.textContent = matchedText;
           span.className = `axon-kw-highlight cursor-pointer rounded-sm px-0.5 -mx-0.5 transition-all ${classes.bg} ${classes.hoverBg} ${classes.border} ${classes.text}`;
@@ -334,14 +305,14 @@ export function KeywordHighlighterInline({
     // containerRef.current may be null if the <div> unmounted (e.g.
     // switching from HTML mode to plainText mode) — guard handles it.
     return () => {
-      // FIX-I1: Don't strip in cleanup if popup is still open —
+      // FIX-I1: Don't strip in cleanup if popup is still open --
       // isPopupOpenRef reads the CURRENT value (set during render),
       // not the stale closure value from when this cleanup was created.
       if (containerRef.current && !isPopupOpenRef.current) {
         stripHighlights(containerRef.current);
       }
     };
-  }, [keywords, keywordMasteryMap, plainText, handleKeywordClick, dataReady, activeKeywordId]);
+  }, [keywords, keywordDeltaColorMap, plainText, handleKeywordClick, dataReady, activeKeywordId]);
 
   // ── Plain text mode: React-rendered segments ────────────
   const segments = useMemo(() => {
@@ -361,8 +332,8 @@ export function KeywordHighlighterInline({
             }
 
             const kw = seg.keyword;
-            const mastery = keywordMasteryMap.get(kw.id) ?? -1;
-            const classes = getHighlightClasses(mastery);
+            const deltaLevel = keywordDeltaColorMap.get(kw.id) ?? 'gray';
+            const classes = getHighlightClasses(deltaLevel);
 
             return (
               <span
