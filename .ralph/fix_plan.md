@@ -382,3 +382,10 @@ las llamadas API, aunque el backend aún no exista):
 - [x] Helper audit: graphHelpers.ts, changeHistoryHelpers.ts, presentationHelpers.ts — ALL CLEAN
 - [x] Build passes (45s), 1106 tests pass (33 test files), zero warnings
 - Status: Codebase is in excellent shape. No bugs, edge cases, or UX issues found in this round.
+
+## Round 129 — Fullscreen Fix (2026-03-18)
+- [x] useFullscreen: fixed fullscreen toggle not responding — root cause was FadeIn (motion.div) applying CSS transforms that create a new containing block, breaking `position: fixed` in descendant elements. The `fixed inset-0 z-50` class was relative to the FadeIn wrapper instead of the viewport (CRITICAL — user-reported bug)
+- [x] Fix: useFullscreen now walks up DOM tree on enter, clears ancestor transforms with `!important`, and restores them on exit/unmount. Works for both KnowledgeMapView (student) and ProfessorKnowledgeMapPage (professor)
+- [x] KnowledgeGraph render catch: added `setReady(true)` in render().catch() to prevent perpetual loading state on G6 render failure (HIGH)
+- [x] useGraphExport: `catch (err)` → `catch (err: unknown)` for type safety consistency (LOW)
+- [x] Build passes, 34 mindmap smoke tests pass, 1106 total tests pass
