@@ -228,6 +228,24 @@ export function ProfessorKnowledgeMapPage() {
   const dismissSelected = useCallback(() => setSelectedNode(null), []);
   const { onTouchStart: handleSheetTouchStart, onTouchMove: handleSheetTouchMove, onTouchEnd: handleSheetTouchEnd } = useSwipeDismiss(dismissSelected);
 
+  // Escape key deselects node / closes panels
+  const selectedNodeRef = useRef(selectedNode);
+  selectedNodeRef.current = selectedNode;
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Don't intercept if a dialog/modal handles Escape
+      const el = e.target as HTMLElement | null;
+      if (el?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
+      if (selectedNodeRef.current) {
+        e.preventDefault();
+        setSelectedNode(null);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
 
@@ -293,7 +311,7 @@ export function ProfessorKnowledgeMapPage() {
                   className="appearance-none bg-white border border-gray-200 rounded-full px-4 py-2 pr-8 text-sm text-gray-700 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 min-w-0 max-w-[50vw] sm:max-w-xs"
                   aria-label="Seleccionar tópico"
                 >
-                  <option value="">Seleccionar tópico...</option>
+                  <option value="" disabled>Seleccionar tópico...</option>
                   {topics.map(t => (
                     <option key={t.id} value={t.id} title={t.path}>{t.name}</option>
                   ))}
@@ -360,10 +378,11 @@ export function ProfessorKnowledgeMapPage() {
               )}
               <button
                 onClick={refetch}
-                className="p-2.5 text-gray-400 hover:text-amber-600 bg-white rounded-full border border-gray-200 shadow-sm hover:border-amber-200 transition-colors"
+                disabled={loading}
+                className="p-2.5 text-gray-400 hover:text-amber-600 bg-white rounded-full border border-gray-200 shadow-sm hover:border-amber-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Actualizar"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className={`w-4 h-4${loading ? ' animate-spin' : ''}`} />
               </button>
               <button
                 onClick={toggleFullscreen}

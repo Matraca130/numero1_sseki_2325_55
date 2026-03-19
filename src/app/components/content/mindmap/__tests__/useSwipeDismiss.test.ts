@@ -18,10 +18,11 @@ import { useSwipeDismiss } from '../useSwipeDismiss';
 
 // ── Synthetic event helpers ─────────────────────────────────
 
-const touchStart = (clientY: number, touchCount = 1) => ({
+const touchStart = (clientY: number, touchCount = 1, scrollTop = 0) => ({
   touches: Array.from({ length: touchCount }, (_, i) =>
     i === 0 ? { clientY } : { clientY: 0 },
   ) as unknown as React.TouchList,
+  currentTarget: { scrollTop } as unknown as EventTarget & HTMLElement,
 } as React.TouchEvent);
 
 const touchMove = (touchCount = 1) => ({
@@ -145,7 +146,24 @@ describe('useSwipeDismiss', () => {
   });
 
   // ══════════════════════════════════════════════════════════════
-  // SUITE 4: Boundary
+  // SUITE 4: Scroll-aware dismiss
+  // ══════════════════════════════════════════════════════════════
+
+  it('does NOT dismiss when sheet is scrolled down (scrollTop > 1)', () => {
+    const { result } = renderHook(() => useSwipeDismiss(onDismiss));
+
+    act(() => {
+      result.current.onTouchStart(touchStart(100, 1, 50)); // scrolled down 50px
+    });
+    act(() => {
+      result.current.onTouchEnd(touchEnd(100 + SWIPE_THRESHOLD + 20));
+    });
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // SUITE 5: Boundary
   // ══════════════════════════════════════════════════════════════
 
   it('does NOT call onDismiss at exactly the threshold (dy === 60, needs dy > 60)', () => {
