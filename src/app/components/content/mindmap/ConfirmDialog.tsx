@@ -5,7 +5,7 @@
 // (DeleteConnectionDialog) for delete confirmations.
 // ============================================================
 
-import { useEffect } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { motion } from 'motion/react';
 import { useFocusTrap } from './useFocusTrap';
 import { headingStyle } from '@/app/design-system';
@@ -34,14 +34,21 @@ export function ConfirmDialog({
   confirmDisabled = false,
 }: ConfirmDialogProps) {
   const focusTrapRef = useFocusTrap(true);
+  const uid = useId();
+  const titleId = `confirm-title-${uid}`;
+  const descId = `confirm-desc-${uid}`;
+
+  // Ref-stabilize onCancel to avoid effect churn
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') onCancelRef.current();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, []);
 
   return (
     <>
@@ -61,17 +68,17 @@ export function ConfirmDialog({
         className={`fixed ${zClass} left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-lg p-5 w-[90vw] max-w-sm`}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-desc"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
       >
         <h3
-          id="confirm-dialog-title"
+          id={titleId}
           className="font-medium text-gray-900 mb-2"
           style={{ ...headingStyle, fontSize: 'clamp(0.95rem, 1.5vw, 1.05rem)' }}
         >
           {title}
         </h3>
-        <p id="confirm-dialog-desc" className="text-sm text-gray-500 mb-4 font-sans">
+        <p id={descId} className="text-sm text-gray-500 mb-4 font-sans">
           {description}
         </p>
         <div className="flex justify-end gap-2">

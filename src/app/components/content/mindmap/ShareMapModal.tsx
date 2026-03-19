@@ -36,8 +36,10 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Build the share URL from the current origin
-  const shareUrl = `${window.location.origin}/student/knowledge-map?topicId=${encodeURIComponent(topicId)}&shared=1`;
+  // Build the share URL from the current origin (SSR-safe)
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/student/knowledge-map?topicId=${encodeURIComponent(topicId)}&shared=1`
+    : '';
 
   // Auto-select input on open
   useEffect(() => {
@@ -105,11 +107,10 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
             aria-hidden="true"
           />
 
-          {/* Modal */}
+          {/* Modal wrapper — click outside closes */}
           <div
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
             onClick={onClose}

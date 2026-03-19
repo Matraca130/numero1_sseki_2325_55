@@ -49,7 +49,7 @@ export function useGraphSearch(graphData: GraphData | null): UseGraphSearchResul
     const q = searchQuery.trim().toLowerCase();
     return new Set(
       graphData.nodes
-        .filter((n) => n.label.toLowerCase().includes(q))
+        .filter((n) => (n.label ?? '').toLowerCase().includes(q))
         .map((n) => n.id)
     );
   }, [graphData, searchQuery]);
@@ -62,7 +62,7 @@ export function useGraphSearch(graphData: GraphData | null): UseGraphSearchResul
     const q = debouncedSearch.trim().toLowerCase();
     const debouncedMatchIds = new Set(
       graphData.nodes
-        .filter((n) => n.label.toLowerCase().includes(q))
+        .filter((n) => (n.label ?? '').toLowerCase().includes(q))
         .map((n) => n.id)
     );
 
