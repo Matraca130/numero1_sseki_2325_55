@@ -105,12 +105,12 @@ const MAX_SESSION_DURATION = 120;
 // ── Statistical helpers ──────────────────────────────────────
 
 /**
- * Compute session duration in minutes from start/end timestamps.
+ * Compute session duration in minutes from created_at/completed_at timestamps.
  * Returns null for invalid/incomplete sessions.
  */
-function sessionDurationMinutes(session: StudySessionRecord): number | null {
-  if (!session.completed_at || !session.started_at) return null;
-  const start = new Date(session.started_at).getTime();
+export function sessionDurationMinutes(session: StudySessionRecord): number | null {
+  if (!session.completed_at || !session.created_at) return null;
+  const start = new Date(session.created_at).getTime();
   const end = new Date(session.completed_at).getTime();
   if (isNaN(start) || isNaN(end) || end <= start) return null;
   const minutes = (end - start) / (1000 * 60);

@@ -197,11 +197,10 @@ export interface StudySessionRecord {
   student_id?: string;
   course_id?: string | null;
   session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
-  started_at: string;
   completed_at?: string | null;
   total_reviews: number;
   correct_reviews: number;
-  created_at?: string;
+  created_at: string;
 }
 
 export async function createStudySession(
