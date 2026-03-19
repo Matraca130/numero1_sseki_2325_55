@@ -86,11 +86,12 @@ export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHi
     return () => { clearInterval(tickRef.current); };
   }, [open]);
 
-  // Close on Escape key
+  // Close on Escape key — use stopPropagation (not stopImmediatePropagation)
+  // so sibling document-level handlers (edge reconnect cancel, etc.) still fire
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);

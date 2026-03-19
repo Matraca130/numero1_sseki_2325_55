@@ -16,10 +16,10 @@ export function useGraphControls(ref: RefObject<GraphControls | null>) {
   const handleCollapseAll = useCallback(() => { ref.current?.collapseAll(); }, [ref]);
   const handleExpandAll = useCallback(() => { ref.current?.expandAll(); }, [ref]);
   const handleExportPNG = useCallback(async () => {
-    try { await ref.current?.exportPNG(); } catch { toast.error('No se pudo exportar como PNG'); }
+    try { await ref.current?.exportPNG(); } catch (err) { if (import.meta.env.DEV) console.error('PNG export failed:', err); toast.error('No se pudo exportar como PNG'); }
   }, [ref]);
   const handleExportJPEG = useCallback(async () => {
-    try { await ref.current?.exportJPEG(); } catch { toast.error('No se pudo exportar como JPEG'); }
+    try { await ref.current?.exportJPEG(); } catch (err) { if (import.meta.env.DEV) console.error('JPEG export failed:', err); toast.error('No se pudo exportar como JPEG'); }
   }, [ref]);
 
   return { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG };

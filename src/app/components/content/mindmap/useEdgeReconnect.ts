@@ -554,7 +554,8 @@ export function useEdgeReconnect({
       dragStateRef.current = null;
     };
 
-    // Keydown: Escape cancels drag
+    // Keydown: Escape cancels drag — use capture phase so it fires
+    // before panel-level bubble handlers that may stopPropagation
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && dragStateRef.current) {
         e.preventDefault();
@@ -567,14 +568,14 @@ export function useEdgeReconnect({
     container.addEventListener('pointermove', handlePointerMove);
     container.addEventListener('pointerup', handlePointerUp);
     container.addEventListener('pointercancel', handlePointerCancel);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDown, { capture: true });
       container.removeEventListener('pointermove', handlePointerMove);
       container.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('pointercancel', handlePointerCancel);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
       cancelAnimationFrame(rafRef.current);
       // Restore edge state + cursor if unmount/re-run happens during active drag
       const ds = dragStateRef.current;

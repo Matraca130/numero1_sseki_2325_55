@@ -195,20 +195,25 @@ export function MapComparisonPanel({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Close on Escape key
+  // Close on Escape key — use stopPropagation (not stopImmediatePropagation)
+  // so sibling document-level handlers (edge reconnect cancel, etc.) still fire
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
+  // Ref-stabilize onHighlightNodes to avoid re-running cleanup effect on parent re-render
+  const onHighlightNodesRef = useRef(onHighlightNodes);
+  onHighlightNodesRef.current = onHighlightNodes;
+
   // Clear highlight state when panel closes so nodes don't stay highlighted
   useEffect(() => {
-    if (!open) onHighlightNodes?.(undefined);
-  }, [open, onHighlightNodes]);
+    if (!open) onHighlightNodesRef.current?.(undefined);
+  }, [open]);
 
   const stats = useMemo(() => graphData ? computeStats(graphData) : null, [graphData]);
   const gaps = useMemo(() => graphData ? findGaps(graphData) : [], [graphData]);

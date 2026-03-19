@@ -75,6 +75,8 @@ export function saveNodePosition(topicId: string, nodeId: string, pos: NodePosit
       existing = loadPositions(topicId);
       memoryCache = { topicId, map: existing };
     }
+    // Delete + re-set to move to end of insertion order (LRU eviction)
+    existing.delete(nodeId);
     existing.set(nodeId, pos);
 
     // Evict oldest entries if over limit
@@ -92,10 +94,11 @@ export function saveNodePosition(topicId: string, nodeId: string, pos: NodePosit
   }
 }
 
-/** Clear saved positions for a topic */
+/** Clear saved positions and combos for a topic */
 export function clearPositions(topicId: string): void {
   try {
     localStorage.removeItem(STORAGE_PREFIX + topicId);
+    localStorage.removeItem(COMBO_STORAGE_PREFIX + topicId);
   } catch {
     // Silently ignore
   }
