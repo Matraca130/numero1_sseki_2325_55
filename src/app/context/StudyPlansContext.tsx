@@ -6,7 +6,7 @@
 // directly so reschedule data is always available regardless
 // of which view the student is on.
 // ============================================================
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useStudyPlans, type UseStudyPlansOptions } from '@/app/hooks/useStudyPlans';
 import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
@@ -22,6 +22,8 @@ interface StudyPlansContextValue {
   reorderTasks: (planId: string, orderedIds: string[]) => Promise<void>;
   updatePlanStatus: (planId: string, status: 'active' | 'completed' | 'archived') => Promise<void>;
   deletePlan: (planId: string) => Promise<void>;
+  /** Find first pending (incomplete) task matching a topic + method. */
+  findPendingTask: (topicId: string, method: string) => { planId: string; taskId: string } | null;
 }
 
 const StudyPlansCtx = createContext<StudyPlansContextValue | null>(null);
@@ -37,6 +39,17 @@ export function StudyPlansProvider({ children }: { children: React.ReactNode }) 
 
   const hook = useStudyPlans(opts);
 
+  const findPendingTask = useCallback((topicId: string, method: string) => {
+    for (const plan of hook.plans) {
+      for (const task of plan.tasks) {
+        if (!task.completed && task.topicId === topicId && task.method === method) {
+          return { planId: plan.id, taskId: task.id };
+        }
+      }
+    }
+    return null;
+  }, [hook.plans]);
+
   const value = useMemo<StudyPlansContextValue>(() => ({
     plans: hook.plans,
     loading: hook.loading,
@@ -47,7 +60,8 @@ export function StudyPlansProvider({ children }: { children: React.ReactNode }) 
     reorderTasks: hook.reorderTasks,
     updatePlanStatus: hook.updatePlanStatus,
     deletePlan: hook.deletePlan,
-  }), [hook]);
+    findPendingTask,
+  }), [hook, findPendingTask]);
 
   return <StudyPlansCtx.Provider value={value}>{children}</StudyPlansCtx.Provider>;
 }
