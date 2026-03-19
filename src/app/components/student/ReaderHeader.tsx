@@ -29,6 +29,7 @@ import {
 } from '@/app/components/design-kit';
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
 import { renderPlainLine } from '@/app/lib/summary-content-helpers';
+import { sanitizeHtml } from '@/app/lib/sanitize';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ export function ReaderHeader({
                 >
                   {isHtmlContent ? (
                     <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={onNavigateKeyword}>
-                      <div className={proseClasses} dangerouslySetInnerHTML={{ __html: htmlPages[safePage] || '' }} />
+                      <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPages[safePage] || '') }} />
                     </KeywordHighlighterInline>
                   ) : (
                     <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={onNavigateKeyword}>

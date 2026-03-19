@@ -101,9 +101,14 @@ export const router = createBrowserRouter([
           // Uses layout/StudentLayout (responsive, all providers including
           // TopicMastery, StudyPlans, StudyTimeEstimates).
           {
-            path: 'student',
-            lazy: () => import('@/app/components/layout/StudentLayout').then(m => ({ Component: m.StudentLayout })),
-            children: studentChildren,
+            element: <RequireRole roles={['student']} />,
+            children: [
+              {
+                path: 'student',
+                lazy: () => import('@/app/components/layout/StudentLayout').then(m => ({ Component: m.StudentLayout })),
+                children: studentChildren,
+              },
+            ],
           },
 
           // ── Catch-all → redirect by role ───────────────────

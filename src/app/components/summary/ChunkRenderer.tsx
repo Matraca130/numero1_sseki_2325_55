@@ -12,6 +12,7 @@ import { motion } from 'motion/react';
 import { Layers } from 'lucide-react';
 import type { Chunk } from '@/app/services/summariesApi';
 import { enrichHtmlWithImages, renderPlainLine } from '@/app/lib/summary-content-helpers';
+import { sanitizeHtml } from '@/app/lib/sanitize';
 
 interface ChunkRendererProps {
   chunks: Chunk[];
@@ -62,7 +63,7 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, loading
           {isHtml(chunk.content) ? (
             <div
               className="axon-prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: enrichHtmlWithImages(chunk.content, 'light') }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content, 'light')) }}
             />
           ) : (
             <div className="text-gray-600 leading-relaxed">

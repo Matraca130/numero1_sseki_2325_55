@@ -11,6 +11,7 @@
 //   - ChunkRenderer.tsx (enrichment + renderPlainLine, both with 'light' variant)
 // ============================================================
 import React from 'react';
+import { sanitizeHtml } from '@/app/lib/sanitize';
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ export function enrichHtmlWithImages(html: string, variant: 'light' | 'dark' = '
     (url) =>
       `<img src="${url}" alt="" loading="lazy" class="rounded-xl border ${borderColor} shadow-sm max-w-full h-auto mx-auto block my-4" />`
   );
-  return result;
+  return sanitizeHtml(result);
 }
 
 // ── Pagination ────────────────────────────────────────────
