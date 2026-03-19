@@ -40,8 +40,19 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   const [saving, setSaving] = useState(false);
   const [shake, setShake] = useState(false);
   const savingRef = useRef(false);
+  const initialContentRef = useRef('');
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  /** Guard close: warn if user has unsaved changes */
+  const safeClose = useCallback(() => {
+    if (savingRef.current) return;
+    if (content !== initialContentRef.current && content.trim()) {
+      // eslint-disable-next-line no-restricted-globals
+      if (!confirm('¿Descartar cambios sin guardar?')) return;
+    }
+    onCloseRef.current();
+  }, [content]);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const focusTrapRef = useFocusTrap(!!node);
@@ -59,9 +70,11 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
         if (notes.length > 0) {
           setExistingNote(notes[0]);
           setContent(notes[0].content || '');
+          initialContentRef.current = notes[0].content || '';
         } else {
           setExistingNote(null);
           setContent('');
+          initialContentRef.current = '';
         }
       })
       .catch(() => {
@@ -74,11 +87,15 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
     return () => { cancelled = true; };
   }, [node]);
 
+  // Stable ref for handleSave so the keyboard shortcut doesn't need it as dependency
+  const handleSaveRef = useRef<() => void>();
+
   // Close on Escape key + prevent body scroll
   useEffect(() => {
     if (!node) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !savingRef.current) { e.stopImmediatePropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); safeClose(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSaveRef.current?.(); }
     };
     document.addEventListener('keydown', handleKey);
     document.documentElement.style.overflow = 'hidden';
@@ -123,6 +140,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
       if (mountedRef.current) setSaving(false);
     }
   }, [node, content, existingNote, onClose, onSaved]);
+  handleSaveRef.current = handleSave;
 
   const handleDelete = useCallback(async () => {
     if (!existingNote || savingRef.current) return;
@@ -154,7 +172,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 z-50"
-            onClick={() => { if (!savingRef.current) onClose(); }}
+            onClick={safeClose}
             aria-hidden="true"
           />
 
@@ -191,7 +209,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
                 </h3>
               </div>
               <button
-                onClick={() => { if (!savingRef.current) onClose(); }}
+                onClick={safeClose}
                 disabled={saving}
                 className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                 aria-label="Cerrar"

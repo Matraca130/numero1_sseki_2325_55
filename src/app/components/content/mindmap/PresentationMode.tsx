@@ -96,6 +96,25 @@ export function PresentationMode({
     }
   }, [goNext, goPrev]);
 
+  // Swipe gesture support for mobile navigation
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    const dt = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+    // Require: horizontal swipe > 50px, mostly horizontal, under 500ms
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 500) {
+      if (dx < 0) goNext(); else goPrev();
+    }
+  }, [goNext, goPrev]);
+
   if (total === 0 || !current) return null;
 
   const progressPct = ((index + 1) / total) * 100;
@@ -108,6 +127,8 @@ export function PresentationMode({
       style={{ backgroundColor: 'rgba(27,59,54,0.92)' }}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       role="dialog"
       aria-modal="true"
       aria-label={`Modo presentaci\u00f3n \u2014 ${index + 1} de ${total}`}

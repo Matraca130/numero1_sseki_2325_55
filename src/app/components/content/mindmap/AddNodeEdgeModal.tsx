@@ -249,7 +249,7 @@ export function AddNodeEdgeModal({
                   Personalizar mapa mental
                 </h2>
                 <button
-                  onClick={onClose}
+                  onClick={() => { if (!savingRef.current) onClose(); }}
                   className="p-3 -mr-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   aria-label="Cerrar"
                 >

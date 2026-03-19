@@ -8,6 +8,7 @@
 
 import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -297,9 +298,24 @@ export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesL
   }, [onNotesChange, topicId, debouncedSave]);
 
   const handleDelete = useCallback((id: string) => {
+    const deleted = notesRef.current.find(n => n.id === id);
     const next = notesRef.current.filter(n => n.id !== id);
     onNotesChange(next);
-    if (topicId) saveStickyNotes(topicId, next); // immediate save on delete
+    if (topicId) saveStickyNotes(topicId, next);
+    // Toast with undo — restore the note if user clicks "Deshacer"
+    if (deleted) {
+      toast('Nota eliminada', {
+        action: {
+          label: 'Deshacer',
+          onClick: () => {
+            const restored = [...notesRef.current, deleted];
+            onNotesChange(restored);
+            if (topicId) saveStickyNotes(topicId, restored);
+          },
+        },
+        duration: 5000,
+      });
+    }
   }, [onNotesChange, topicId]);
 
   if (notes.length === 0) return null;
