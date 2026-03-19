@@ -9,7 +9,8 @@
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
+import { useUI } from '@/app/context/UIContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { AnimatePresence, motion } from 'motion/react';
@@ -21,7 +22,8 @@ import clsx from 'clsx';
 import { headingStyle } from '@/app/design-system';
 
 export function TopicSidebar() {
-  const { currentTopic, setCurrentTopic, setSidebarOpen } = useApp();
+  const { currentTopic, setCurrentTopic } = useNavigation();
+  const { setSidebarOpen } = useUI();
   const { navigateTo } = useStudentNav();
   const { tree, loading, selectedTopicId, selectTopic } = useContentTree();
 

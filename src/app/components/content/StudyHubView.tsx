@@ -18,7 +18,7 @@
 // Palette: Axon Medical Academy
 // ============================================================
 import React, { useMemo } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useNavigate } from 'react-router';
@@ -38,7 +38,7 @@ import { axon, tint } from '@/app/lib/palette';
 // ── Main export ──────────────────────────────────────────────
 
 export function StudyHubView() {
-  const { currentTopic, setCurrentTopic } = useApp();
+  const { currentTopic, setCurrentTopic } = useNavigation();
   const { tree, loading, error, selectTopic } = useContentTree();
   const { stats, profile, sessions } = useStudentDataContext();
   const navigate = useNavigate();

@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import type { Course, Topic } from '@/app/data/courses';
+import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
+import { UIProvider } from '@/app/context/UIContext';
+import { NavigationProvider } from '@/app/context/NavigationContext';
 
 // @refresh reset
 
-// ── Re-export ViewType from its canonical location ───────────
+// ── Re-exports for backwards compatibility ───────────────────
 // Keeps existing `import { ViewType } from '@/app/context/AppContext'` working.
 export type { ViewType } from '@/app/hooks/useStudentNav';
-
-export type ThemeType = 'dark' | 'light';
+// Re-export UI types so existing `import { ThemeType } from '@/app/context/AppContext'` still works
+export type { ThemeType } from '@/app/context/UIContext';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -37,13 +38,9 @@ export interface StudyPlan {
   totalEstimatedHours: number;
 }
 
-interface AppContextType {
-  currentCourse: Course;
-  setCurrentCourse: (course: Course) => void;
-  currentTopic: Topic | null;
-  setCurrentTopic: (topic: Topic) => void;
-  isSidebarOpen: boolean;
-  setSidebarOpen: (isOpen: boolean) => void;
+// ── Study Session Context ────────────────────────────────────
+
+interface StudySessionContextType {
   isStudySessionActive: boolean;
   setStudySessionActive: (active: boolean) => void;
   studyPlans: StudyPlan[];
@@ -53,28 +50,11 @@ interface AppContextType {
   setQuizAutoStart: (v: boolean) => void;
   flashcardAutoStart: boolean;
   setFlashcardAutoStart: (v: boolean) => void;
-  theme: ThemeType;
-  setTheme: (theme: ThemeType) => void;
 }
 
 const noop = () => {};
 
-// Fallback empty course when no mock/real data is loaded yet
-const emptyCourse: Course = {
-  id: '',
-  name: '',
-  color: 'bg-gray-400',
-  accentColor: 'text-gray-400',
-  semesters: [],
-};
-
-const defaultContextValue: AppContextType = {
-  currentCourse: emptyCourse,
-  setCurrentCourse: noop,
-  currentTopic: null,
-  setCurrentTopic: noop,
-  isSidebarOpen: true,
-  setSidebarOpen: noop,
+const defaultStudySessionValue: StudySessionContextType = {
   isStudySessionActive: false,
   setStudySessionActive: noop,
   studyPlans: [],
@@ -84,23 +64,17 @@ const defaultContextValue: AppContextType = {
   setQuizAutoStart: noop,
   flashcardAutoStart: false,
   setFlashcardAutoStart: noop,
-  theme: 'light',
-  setTheme: noop,
 };
 
-const AppContext = createContext<AppContextType>(defaultContextValue);
+const StudySessionContext = createContext<StudySessionContextType>(defaultStudySessionValue);
 
-// ── Provider ─────────────────────────────────────────────────
+// ── Study Session Provider ───────────────────────────────────
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentCourse, setCurrentCourse] = useState<Course>(emptyCourse);
-  const [currentTopic, setCurrentTopic] = useState<Topic | null>(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+function StudySessionProvider({ children }: { children: ReactNode }) {
   const [isStudySessionActive, setStudySessionActive] = useState(false);
   const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
   const [quizAutoStart, setQuizAutoStart] = useState(false);
   const [flashcardAutoStart, setFlashcardAutoStart] = useState(false);
-  const [theme, setTheme] = useState<ThemeType>('light');
 
   const addStudyPlan = useCallback((plan: StudyPlan) => {
     setStudyPlans(prev => {
@@ -127,13 +101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const value = useMemo<AppContextType>(() => ({
-    currentCourse,
-    setCurrentCourse,
-    currentTopic,
-    setCurrentTopic,
-    isSidebarOpen,
-    setSidebarOpen,
+  const value = useMemo<StudySessionContextType>(() => ({
     isStudySessionActive,
     setStudySessionActive,
     studyPlans,
@@ -143,21 +111,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setQuizAutoStart,
     flashcardAutoStart,
     setFlashcardAutoStart,
-    theme,
-    setTheme,
   }), [
-    currentCourse, currentTopic,
-    isSidebarOpen, isStudySessionActive, studyPlans, addStudyPlan,
-    toggleTaskComplete, quizAutoStart, flashcardAutoStart, theme,
+    isStudySessionActive, studyPlans, addStudyPlan,
+    toggleTaskComplete, quizAutoStart, flashcardAutoStart,
   ]);
 
   return (
-    <AppContext.Provider value={value}>
+    <StudySessionContext.Provider value={value}>
       {children}
-    </AppContext.Provider>
+    </StudySessionContext.Provider>
   );
 }
 
+export function useStudySession() {
+  return useContext(StudySessionContext);
+}
+
+// ── Composed AppProvider ─────────────────────────────────────
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  return (
+    <UIProvider>
+      <NavigationProvider>
+        <StudySessionProvider>{children}</StudySessionProvider>
+      </NavigationProvider>
+    </UIProvider>
+  );
+}
+
+// ── Legacy useApp hook (backwards compat) ────────────────────
+// Re-composes all three contexts into a single object so existing
+// consumers continue to work without changes. New code should
+// import from the specific context instead.
+
+// We need to import the hooks here to compose them
+import { useUI } from '@/app/context/UIContext';
+import { useNavigation } from '@/app/context/NavigationContext';
+
 export function useApp() {
-  return useContext(AppContext);
+  const ui = useUI();
+  const nav = useNavigation();
+  const session = useStudySession();
+  return { ...ui, ...nav, ...session };
 }
