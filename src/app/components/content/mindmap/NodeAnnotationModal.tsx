@@ -6,7 +6,7 @@
 // Obsidian-inspired: quick note attached to a concept.
 // ============================================================
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { X, Save, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import type { MapNode } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
+import { ConfirmDialog } from './ConfirmDialog';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -33,12 +34,13 @@ interface StudentNote {
 
 // ── Component ───────────────────────────────────────────────
 
-export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationModalProps) {
+export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationModalProps) {
   const [content, setContent] = useState('');
   const [existingNote, setExistingNote] = useState<StudentNote | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shake, setShake] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const savingRef = useRef(false);
   const initialContentRef = useRef('');
   const onCloseRef = useRef(onClose);
@@ -48,8 +50,8 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   const safeClose = useCallback(() => {
     if (savingRef.current) return;
     if (content !== initialContentRef.current && content.trim()) {
-      // eslint-disable-next-line no-restricted-globals
-      if (!confirm('¿Descartar cambios sin guardar?')) return;
+      setShowDiscardConfirm(true);
+      return;
     }
     onCloseRef.current();
   }, [content]);
@@ -167,6 +169,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   }, [existingNote, onClose, onSaved]);
 
   return (
+    <>
     <AnimatePresence>
       {node && (
         <>
@@ -291,5 +294,19 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
         </>
       )}
     </AnimatePresence>
+
+    {/* Discard-changes confirm (replaces native window.confirm) */}
+    {showDiscardConfirm && (
+      <ConfirmDialog
+        title="Cambios sin guardar"
+        description="¿Descartar los cambios de tu anotación?"
+        cancelLabel="Seguir editando"
+        confirmLabel="Descartar"
+        zClass="z-[60]"
+        onCancel={() => setShowDiscardConfirm(false)}
+        onConfirm={() => { setShowDiscardConfirm(false); onCloseRef.current(); }}
+      />
+    )}
+    </>
   );
-}
+});
