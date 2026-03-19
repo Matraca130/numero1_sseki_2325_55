@@ -489,6 +489,12 @@ export function KnowledgeMapView() {
       const newSource = movedEndpoint === 'source' ? newNodeId : oldEdge.source;
       const newTarget = movedEndpoint === 'target' ? newNodeId : oldEdge.target;
 
+      // Guard: prevent self-loops
+      if (newSource === newTarget) {
+        toast.warning('No puedes conectar un nodo consigo mismo');
+        return;
+      }
+
       // Guard: prevent duplicate edges (use ref for fresh data)
       const edgeExists = graphDataEdgesRef.current?.some(
         e => e.source === newSource && e.target === newTarget && e.id !== oldEdge.id,

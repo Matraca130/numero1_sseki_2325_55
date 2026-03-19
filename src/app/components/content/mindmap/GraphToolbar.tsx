@@ -463,7 +463,7 @@ export function GraphToolbar({
               }`}
               style={{
                 fontSize: fontSize.xs,
-                ...(isActive ? { ringColor: MASTERY_HEX[color] } : {}),
+                ...(isActive ? { boxShadow: `0 0 0 2px ${MASTERY_HEX[color]}` } : {}),
               }}
               title={`Filtrar: ${getMasteryLabel(color, locale)}`}
               aria-pressed={isActive}

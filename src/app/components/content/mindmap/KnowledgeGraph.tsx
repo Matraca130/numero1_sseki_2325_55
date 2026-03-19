@@ -152,6 +152,7 @@ export function KnowledgeGraph({
   const graphRef = useRef<Graph | null>(null);
   const mountedRef = useRef(true);
   const layoutInProgressRef = useRef(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ready, setReady] = useState(false);
   // Incremented on each graph re-creation so event-handler effects re-register
   const [graphVersion, setGraphVersion] = useState(0);
@@ -782,6 +783,8 @@ export function KnowledgeGraph({
 
     return () => {
       layoutInProgressRef.current = false;
+      // Clear any pending long-press timer to prevent firing on a destroyed graph
+      if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
       graph.destroy();
       graphRef.current = null;
     };
@@ -792,9 +795,9 @@ export function KnowledgeGraph({
   const prevLayoutRef = useRef(layout);
   useEffect(() => {
     const graph = graphRef.current;
-    if (!graph || !ready || layoutInProgressRef.current) return;
     if (prevLayoutRef.current === layout) return;
     prevLayoutRef.current = layout;
+    if (!graph || !ready || layoutInProgressRef.current) return;
 
     const layoutConfig = layout === 'dagre' ? LAYOUT_DAGRE
       : layout === 'radial' ? LAYOUT_RADIAL
@@ -868,7 +871,7 @@ export function KnowledgeGraph({
   const prevReviewRef = useRef<Set<string> | undefined>();
   useEffect(() => {
     const graph = graphRef.current;
-    if (!graph || !ready) return;
+    if (!graph || !ready || layoutInProgressRef.current) return;
 
     const prevHL = prevHighlightRef.current;
     const prevRV = prevReviewRef.current;
@@ -1140,8 +1143,6 @@ export function KnowledgeGraph({
     graph.on('afterbrushselect', handleBrushSelect);
 
     // Long-press for mobile context menu (500ms threshold)
-    let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-
     let longPressStartPos: { x: number; y: number } | null = null;
     const LONG_PRESS_MOVE_THRESHOLD = 10; // px — cancel if finger moves more than this
 
@@ -1152,14 +1153,14 @@ export function KnowledgeGraph({
       if (nodeId) {
         try { graph.setElementState(nodeId, ['active']); } catch (e: unknown) { warnIfNotDestroyed(e); }
       }
-      longPressTimer = setTimeout(() => {
+      longPressTimerRef.current = setTimeout(() => {
         if (!mountedRef.current) return;
         longPressTriggered = true;
         try { handleNodeContextMenu(evt); } catch (e: unknown) { warnIfNotDestroyed(e); }
       }, 500);
     };
     const cancelLongPress = () => {
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
       longPressStartPos = null;
     };
     const clearActiveState = (evt: G6NodeEvent) => {
@@ -1170,7 +1171,7 @@ export function KnowledgeGraph({
       }
     };
     const handleNodePointerMove = (evt: G6NodeEvent) => {
-      if (!longPressTimer || !longPressStartPos) return;
+      if (!longPressTimerRef.current || !longPressStartPos) return;
       const dx = evt.canvas.x - longPressStartPos.x;
       const dy = evt.canvas.y - longPressStartPos.y;
       if (dx * dx + dy * dy > LONG_PRESS_MOVE_THRESHOLD * LONG_PRESS_MOVE_THRESHOLD) {
@@ -1206,7 +1207,7 @@ export function KnowledgeGraph({
       graph.off('node:pointerleave', clearActiveState);
       graph.off('node:pointermove', handleNodePointerMove);
       graph.off('afterviewportchange', handleViewportChange);
-      if (longPressTimer) clearTimeout(longPressTimer);
+      if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps — callbacks stabilized via refs (onNodeClickRef, onNodeRightClickRef, onCollapseChangeRef)
   }, [ready, graphVersion]);
