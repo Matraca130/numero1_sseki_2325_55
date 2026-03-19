@@ -111,11 +111,9 @@ export function AddNodeEdgeModal({
       setTab('node');
     } else {
       if (initialTab) setTab(initialTab);
-      if (initialEdgeSource) {
-        setEdgeSource(initialEdgeSource);
-        setEdgeDirected(true); // Connect tool defaults to directed
-      }
-      if (initialEdgeTarget) setEdgeTarget(initialEdgeTarget);
+      setEdgeSource(initialEdgeSource || '');
+      if (initialEdgeSource) setEdgeDirected(true); // Connect tool defaults to directed
+      setEdgeTarget(initialEdgeTarget || '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialEdgeSource, initialEdgeTarget, initialTab]);

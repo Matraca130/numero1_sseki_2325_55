@@ -349,6 +349,14 @@ export function KnowledgeMapView() {
     setContextMenu(null);
   }, []);
 
+  // Stable callback for toggling collapse from context menu — avoids IIFE in JSX
+  const contextMenuRef = useRef(contextMenu);
+  contextMenuRef.current = contextMenu;
+  const handleToggleCollapse = useCallback(() => {
+    const id = contextMenuRef.current?.node?.id;
+    if (id) graphControlsRef.current?.toggleCollapse(id);
+  }, []);
+
   // Effective topicId for custom node creation and navigation fallback
   const effectiveTopicId = topicId || courseTopicIds[0] || '';
 
@@ -1371,7 +1379,7 @@ export function KnowledgeMapView() {
               onClose={handleContextMenuClose}
               hasChildren={contextMenu?.node ? nodesWithChildren.has(contextMenu.node.id) : false}
               isCollapsed={contextMenu?.node ? collapsedNodeIds.has(contextMenu.node.id) : false}
-              onToggleCollapse={contextMenu?.node ? (() => { const id = contextMenu.node.id; return () => graphControlsRef.current?.toggleCollapse(id); })() : undefined}
+              onToggleCollapse={contextMenu?.node ? handleToggleCollapse : undefined}
               onColorChange={handleNodeColorChange}
               currentCustomColor={contextMenu?.node ? customNodeColors.get(contextMenu.node.id) : undefined}
             />

@@ -612,16 +612,15 @@ describe('AddNodeEdgeModal: initial props prefill', () => {
   });
 
   it('applies initialEdgeSource when modal opens', () => {
-    expect(source).toContain('if (initialEdgeSource)');
-    expect(source).toContain('setEdgeSource(initialEdgeSource)');
+    expect(source).toContain("setEdgeSource(initialEdgeSource || '')");
   });
 
   it('sets directed=true when initialEdgeSource is provided (connect tool default)', () => {
-    expect(source).toContain('setEdgeDirected(true); // Connect tool defaults to directed');
+    expect(source).toContain('if (initialEdgeSource) setEdgeDirected(true); // Connect tool defaults to directed');
   });
 
   it('applies initialEdgeTarget when modal opens', () => {
-    expect(source).toContain('if (initialEdgeTarget) setEdgeTarget(initialEdgeTarget)');
+    expect(source).toContain("setEdgeTarget(initialEdgeTarget || '')");
   });
 
   it('initializes edgeDirected from initialEdgeSource', () => {
