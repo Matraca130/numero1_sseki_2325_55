@@ -103,7 +103,7 @@ export function StudentDataPanel() {
   return (
     <div className="flex min-h-screen bg-[#f5f3ef]">
       {/* Left Sidebar */}
-      <aside className="w-56 bg-[#2d3e50] text-white flex flex-col">
+      <aside className="w-56 bg-[#1a2e2a] text-white flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -253,7 +253,7 @@ export function StudentDataPanel() {
                       onClick={() => setTimeFilter(f)}
                       className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all ${
                         timeFilter === f
-                          ? 'bg-[#2d3e50] text-white'
+                          ? 'bg-[#1a2e2a] text-white'
                           : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                       }`}
                     >
@@ -315,7 +315,7 @@ export function StudentDataPanel() {
             {seeded && (
               <div className="w-80 space-y-6 flex-shrink-0">
                 {/* Daily Performance Card */}
-                <div className="bg-[#2d3e50] rounded-2xl p-6 text-white">
+                <div className="bg-[#1a2e2a] rounded-2xl p-6 text-white">
                   <h3 className="text-xl font-bold mb-6">Desempenho Diário</h3>
                   
                   {/* Circular Progress */}

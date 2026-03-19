@@ -104,7 +104,7 @@ export function Sidebar() {
 
                   return (
                     <>
-                      <Icon size={20} className={active ? "text-current" : "text-gray-500 group-hover:text-white"} />
+                      <Icon size={20} className={active ? "text-current" : "text-[#8fbfb3] group-hover:text-white"} />
                       <span>{item.label}</span>
                       {active && (
                         <motion.div
@@ -138,9 +138,9 @@ export function Sidebar() {
                   'opacity-50 cursor-not-allowed'
                 )}
               >
-                <Icon size={20} className="text-gray-500" />
+                <Icon size={20} className="text-[#8fbfb3]" />
                 <span>{item.label}</span>
-                <span className="ml-auto text-[9px] text-gray-600 uppercase tracking-wider">Pronto</span>
+                <span className="ml-auto text-[9px] text-[#6db5a5] uppercase tracking-wider">Pronto</span>
               </button>
             );
           })}

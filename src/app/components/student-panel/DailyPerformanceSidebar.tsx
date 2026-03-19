@@ -36,7 +36,7 @@ export function DailyPerformanceSidebar({
   return (
     <div className="w-80 space-y-6 flex-shrink-0">
       {/* Daily Performance Card */}
-      <div className="bg-[#2d3e50] rounded-2xl p-6 text-white">
+      <div className="bg-[#1a2e2a] rounded-2xl p-6 text-white">
         <h3 className="text-xl font-bold mb-6">Rendimiento Diario</h3>
 
         <CircularProgress percent={dailyProgress} size={192} strokeWidth={12}>

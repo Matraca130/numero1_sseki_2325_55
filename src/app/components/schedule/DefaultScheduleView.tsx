@@ -224,7 +224,7 @@ export function DefaultScheduleView() {
         </div>
 
         {/* Right Sidebar — Desktop: fixed width, Mobile: full-width below */}
-        <div className="w-full lg:w-96 bg-[#2d3e50] lg:border-l border-white/10 shadow-xl flex flex-col lg:sticky lg:top-0 lg:self-start lg:max-h-screen">
+        <div className="w-full lg:w-96 bg-[#1a2e2a] lg:border-l border-white/10 shadow-xl flex flex-col lg:sticky lg:top-0 lg:self-start lg:max-h-screen">
           <div className="p-4 lg:p-6 border-b border-white/10 flex items-center justify-between bg-[#263545]">
             <h3 className="font-semibold text-white text-base lg:text-lg" style={headingStyle}>Detalles del Dia</h3>
             <span className="text-sm font-medium text-[#99d7c7] bg-axon-accent/20 px-3 py-1 rounded-full">
@@ -232,7 +232,7 @@ export function DefaultScheduleView() {
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar-light p-4 lg:p-6 space-y-6 lg:space-y-8 bg-[#2d3e50]">
+          <div className="flex-1 overflow-y-auto custom-scrollbar-light p-4 lg:p-6 space-y-6 lg:space-y-8 bg-[#1a2e2a]">
             {/* What to study today */}
             <section>
               <div className="flex items-center gap-2 mb-3 lg:mb-4">
@@ -340,7 +340,7 @@ export function DefaultScheduleView() {
                       <div className="absolute left-3.5 top-2 bottom-4 w-px bg-white/15" />
                       {COMPLETED_TASKS.map((task) => (
                         <div key={task.id} className="relative pl-8 flex items-center justify-between group">
-                          <div className="absolute left-2 w-3 h-3 rounded-full bg-axon-accent border-2 border-[#2d3e50] shadow-sm z-10" />
+                          <div className="absolute left-2 w-3 h-3 rounded-full bg-axon-accent border-2 border-[#1a2e2a] shadow-sm z-10" />
                           <div className="flex-1">
                             <h5 className="text-sm font-medium text-white/70 group-hover:text-white transition-colors">{task.title}</h5>
                             <p className="text-[10px] text-white/40">{task.date}</p>
