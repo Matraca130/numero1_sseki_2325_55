@@ -110,7 +110,7 @@ export function MasteryOverview() {
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                 filter !== 'all'
                   ? 'border-[#2a8c7a]/50 bg-[#e6f5f1] text-[#1B3B36]'
-                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:text-gray-700'
+                  : 'border-gray-200 bg-[#F0F2F5] text-gray-500 hover:text-gray-700'
               }`}
             >
               <Filter className="w-3.5 h-3.5" />
@@ -147,7 +147,7 @@ export function MasteryOverview() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar..."
-              className="w-36 sm:w-44 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-gray-50 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#2a8c7a]/50 focus:ring-1 focus:ring-[#2a8c7a]/20 transition-colors"
+              className="w-36 sm:w-44 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-[#F0F2F5] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#2a8c7a]/50 focus:ring-1 focus:ring-[#2a8c7a]/20 transition-colors"
             />
           </div>
         </div>

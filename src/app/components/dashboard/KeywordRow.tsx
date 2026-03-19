@@ -32,7 +32,7 @@ export const KeywordRow = React.memo(function KeywordRow({ item, expanded, onTog
         onClick={item.subtopicCount > 0 ? onToggle : undefined}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
           item.subtopicCount > 0 ? 'cursor-pointer hover:bg-gray-50' : ''
-        } ${expanded ? 'bg-gray-50' : ''}`}
+        } ${expanded ? 'bg-[#F0F2F5]' : ''}`}
       >
         {/* Expand icon */}
         <div className="w-4 shrink-0">

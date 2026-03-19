@@ -77,7 +77,7 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
             });
 
             return (
-              <div key={`${plan.id}-${index}`} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors">
+              <div key={`${plan.id}-${index}`} className="bg-[#F0F2F5] rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors">
                 {/* Plan header — wraps on mobile */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0">
