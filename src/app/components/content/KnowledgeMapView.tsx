@@ -147,6 +147,9 @@ export function KnowledgeMapView() {
     matchCount, nodeCount, edgeCount,
   } = useGraphSearch(graphData);
 
+  // Mastery filter state — declared before the useMemo that depends on it
+  const [masteryFilter, setMasteryFilter] = useState<import('@/app/lib/mastery-helpers').MasteryColor | null>(null);
+
   // Mastery filter: compute set of node IDs matching the selected mastery level
   const masteryFilterNodeIds = useMemo(() => {
     if (!masteryFilter || !graphData) return undefined;
@@ -225,7 +228,7 @@ export function KnowledgeMapView() {
   const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [masteryFilter, setMasteryFilter] = useState<import('@/app/lib/mastery-helpers').MasteryColor | null>(null);
+  // masteryFilter state is declared earlier (before useMemo that depends on it)
   // Minimap: visible on desktop by default, hidden on mobile
   const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
   const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
@@ -1079,7 +1082,7 @@ export function KnowledgeMapView() {
         )}
 
         {/* Toolbar */}
-        <div className="flex-shrink-0 mb-3 overflow-x-hidden">
+        <div className="flex-shrink-0 mb-3 overflow-x-auto scrollbar-hide">
           <GraphToolbar
             layout={layout}
             onLayoutChange={setLayout}
@@ -1414,16 +1417,25 @@ export function KnowledgeMapView() {
         </ErrorBoundary>
 
         {/* Delete confirmation dialog (replaces window.confirm for PWA compatibility) */}
-        {confirmDeleteNode && (
-          <ConfirmDialog
-            title="¿Eliminar concepto?"
-            description={`\u201c${confirmDeleteNode.label}\u201d será eliminado de tu mapa. Puedes deshacerlo con Ctrl+Z.`}
-            cancelLabel="Cancelar"
-            confirmLabel="Eliminar"
-            onCancel={() => setConfirmDeleteNode(null)}
-            onConfirm={executeDeleteNode}
-          />
-        )}
+        <ErrorBoundary fallback={(_err, reset) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl p-6 text-center max-w-xs shadow-lg">
+              <p className="text-sm text-gray-500 mb-3">Error al mostrar el diálogo de confirmación.</p>
+              <button onClick={() => { reset(); setConfirmDeleteNode(null); }} className="text-sm text-[#2a8c7a] hover:underline">Cerrar</button>
+            </div>
+          </div>
+        )}>
+          {confirmDeleteNode && (
+            <ConfirmDialog
+              title="¿Eliminar concepto?"
+              description={`\u201c${confirmDeleteNode.label}\u201d será eliminado de tu mapa. Puedes deshacerlo con Ctrl+Z.`}
+              cancelLabel="Cancelar"
+              confirmLabel="Eliminar"
+              onCancel={() => setConfirmDeleteNode(null)}
+              onConfirm={executeDeleteNode}
+            />
+          )}
+        </ErrorBoundary>
 
         {/* Presentation mode overlay */}
         <ErrorBoundary fallback={(_err, reset) => (

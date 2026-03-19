@@ -11,7 +11,6 @@
 // LANG: Spanish
 // ============================================================
 
-import { useEffect, useRef } from 'react';
 import { MousePointer2, Plus, Link2, Trash2, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -39,27 +38,8 @@ const TOOLS: { id: MapTool; icon: typeof MousePointer2; label: string; shortcut?
 // ── Component ───────────────────────────────────────────────
 
 export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapToolsPanelProps) {
-  // Wire up keyboard shortcuts (V/N/C/D/A) when visible
-  const onToolChangeRef = useRef(onToolChange);
-  onToolChangeRef.current = onToolChange;
-
-  useEffect(() => {
-    if (!visible) return;
-    const handler = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement;
-      const tag = el.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (el.isContentEditable) return;
-      if (el.closest?.('[role="dialog"], [role="alertdialog"]')) return;
-      const tool = TOOLS.find(t => t.shortcut?.toLowerCase() === e.key.toLowerCase());
-      if (tool) {
-        e.preventDefault();
-        onToolChangeRef.current(tool.id);
-      }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [visible]);
+  // Keyboard shortcuts (V/N/C/D/A) are handled by the parent (KnowledgeMapView)
+  // to avoid double-firing. This component only handles arrow-key navigation within the toolbar.
 
   return (
     <AnimatePresence>

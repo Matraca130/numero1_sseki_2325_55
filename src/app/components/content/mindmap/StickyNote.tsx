@@ -184,7 +184,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
       style={{
         left: dragOffset ? Math.max(0, dragStartRef.current.noteX + dragOffset.dx) : note.x,
         top: dragOffset ? Math.max(0, dragStartRef.current.noteY + dragOffset.dy) : note.y,
-        zIndex: isDragging ? 25 : 20,
+        zIndex: isDragging ? 18 : 15,
         width: 150,
         touchAction: 'none',
       }}
