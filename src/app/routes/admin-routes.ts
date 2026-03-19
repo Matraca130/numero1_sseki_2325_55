@@ -33,5 +33,12 @@ export const adminChildren: RouteObject[] = [
   { path: 'content',  ...lazyPlaceholder('Contenido',  'Gestion del contenido academico', FileText) },
   { path: 'scopes',   ...lazyPlaceholder('Scopes',     'Administracion de permisos', Shield) },
   { path: 'reports',  ...lazyPlaceholder('Reportes',   'Estadisticas e informes', BarChart3) },
-  { path: 'settings', ...lazyPlaceholder('Ajustes',    'Configuracion de la institucion', Settings) },
+  {
+    path: 'settings',
+    lazy: () => import('@/app/components/roles/pages/admin/AdminSettingsPage').then(m => ({ Component: m.AdminSettingsPage })),
+  },
+  {
+    path: 'ai-health',
+    lazy: () => import('@/app/components/roles/pages/admin/AdminAIHealthPage').then(m => ({ Component: m.AdminAIHealthPage })),
+  },
 ];
