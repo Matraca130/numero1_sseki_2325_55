@@ -143,6 +143,28 @@ export function StudyOrganizerWizard() {
   // Use weekly if available (deadline is set), otherwise show total as fallback
   const estimatedHours = estimatedWeeklyHours ?? estimatedTotalHours;
 
+  // Mastery stats for selected topics (used in StepReview)
+  // MUST be at top level — NOT inside StepReview() which is called conditionally
+  const selectedMasteryStats = useMemo(() => {
+    let withData = 0;
+    let totalMastery = 0;
+    let needsReview = 0;
+    for (const t of selectedTopics) {
+      const m = topicMastery.get(t.topicId);
+      if (m && m.totalAttempts > 0) {
+        withData++;
+        totalMastery += m.masteryPercent;
+        if (m.needsReview) needsReview++;
+      }
+    }
+    return {
+      withData,
+      withoutData: selectedTopics.length - withData,
+      avgMastery: withData > 0 ? Math.round(totalMastery / withData) : 0,
+      needsReview,
+    };
+  }, [selectedTopics, topicMastery]);
+
   // Existing plan hours
   const existingPlanHours = studyPlans.reduce((sum, p) => {
     return sum + p.weeklyHours.reduce((a, b) => a + b, 0);
@@ -869,27 +891,6 @@ export function StudyOrganizerWizard() {
 
   // Step 6: Review
   function StepReview() {
-    // Compute mastery stats for selected topics
-    const selectedMasteryStats = useMemo(() => {
-      let withData = 0;
-      let totalMastery = 0;
-      let needsReview = 0;
-      for (const t of selectedTopics) {
-        const m = topicMastery.get(t.topicId);
-        if (m && m.totalAttempts > 0) {
-          withData++;
-          totalMastery += m.masteryPercent;
-          if (m.needsReview) needsReview++;
-        }
-      }
-      return {
-        withData,
-        withoutData: selectedTopics.length - withData,
-        avgMastery: withData > 0 ? Math.round(totalMastery / withData) : 0,
-        needsReview,
-      };
-    }, [selectedTopics, topicMastery]);
-
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
