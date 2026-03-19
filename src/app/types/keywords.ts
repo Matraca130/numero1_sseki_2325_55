@@ -8,6 +8,7 @@
 
 // ── Types ────────────────────────────────────────────────────
 
+/** @deprecated Use DeltaColorLevel from mastery-helpers.ts instead */
 export type MasteryLevel = 'red' | 'yellow' | 'green';
 
 export interface AIQuestion {
@@ -29,6 +30,7 @@ export type KeywordCollection = Record<string, KeywordData>;
 
 // ── Mastery Config ───────────────────────────────────────────
 
+/** @deprecated Use getDeltaColorClasses + getDeltaColorLabel from mastery-helpers.ts instead */
 export const masteryConfig: Record<MasteryLevel, {
   label: string;
   color: string;

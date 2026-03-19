@@ -227,22 +227,15 @@ export function getReasonLabel(
   return base;
 }
 
-// ── Utility: Mastery color (BKT thresholds from Guidelines) ──
+// ── Utility: Mastery color (delegates to Delta Mastery Scale) ──
 
-export type MasteryLevel = 'high' | 'medium' | 'low';
+import { getKeywordDeltaColorSafe, getDeltaColorClasses, getDeltaColorLabel } from '@/app/lib/mastery-helpers';
 
-export function getMasteryLevel(pKnow: number): {
-  level: MasteryLevel;
-  color: string;
-  label: string;
-} {
-  if (pKnow >= 0.80) {
-    return { level: 'high', color: '#22c55e', label: 'Dominado' };
-  }
-  if (pKnow >= 0.50) {
-    return { level: 'medium', color: '#eab308', label: 'En progreso' };
-  }
-  return { level: 'low', color: '#ef4444', label: 'Necesita refuerzo' };
+/** @deprecated Use getKeywordDeltaColorSafe + getDeltaColorClasses directly */
+export function getMasteryLevel(pKnow: number): { level: string; color: string; label: string } {
+  const deltaLevel = getKeywordDeltaColorSafe(pKnow, 1); // default priority
+  const classes = getDeltaColorClasses(deltaLevel);
+  return { level: deltaLevel, color: classes.hex, label: getDeltaColorLabel(deltaLevel) };
 }
 
 // ── Fase D: AI Content Reports (re-exported from aiReportApi.ts) ──

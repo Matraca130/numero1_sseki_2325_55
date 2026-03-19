@@ -102,15 +102,15 @@ export function CompletionCard({
   );
 }
 
-/** MasteryBadge — pill de mastery coloreada para keywords */
+/** MasteryBadge — pill de mastery coloreada para keywords (Delta scale). */
 export function MasteryBadge({
   level,
   label,
 }: {
-  level: "new" | "learning" | "reviewing" | "known" | "mastered";
+  level: "gray" | "red" | "yellow" | "green" | "blue";
   label?: string;
 }) {
-  const m = tokens.mastery[level];
+  const m = tokens.mastery[level] ?? tokens.mastery.gray;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 text-[10px] rounded ${m.bg} ${m.text} border ${m.border}`} style={{ fontWeight: 600 }}>
       {label || m.label}
