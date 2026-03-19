@@ -33,9 +33,14 @@ import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { UserProfileDropdown } from '@/app/components/layout/UserProfileDropdown';
 import { MobileDrawer } from '@/app/components/layout/MobileDrawer';
 import { components, animation, layout } from '@/app/design-system';
-import { motion } from 'motion/react';
-import { Menu, PanelLeftClose } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Menu, PanelLeftClose, Sparkles, X } from 'lucide-react';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+
+// -- Lazy-loaded AI Assistant ----------------------------------
+const AxonAIAssistant = React.lazy(() =>
+  import('@/app/components/ai/AxonAIAssistant').then(m => ({ default: m.AxonAIAssistant }))
+);
 
 // -- Inner shell (needs AppContext available) ------------------
 
@@ -47,6 +52,9 @@ function StudentShell() {
   const isMobile = useIsMobile();
 
   const showTopicSidebar = isView('study-hub', 'study', 'flashcards') && !isStudySessionActive;
+
+  // AI Assistant state
+  const [isAIOpen, setAIOpen] = useState(false);
 
   // Separate mobile-only state for drawers
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -172,6 +180,38 @@ function StudentShell() {
           </main>
         </div>
       </div>
+
+      {/* ── AI Assistant Panel (lazy-loaded) ── */}
+      {isAIOpen && (
+        <React.Suspense fallback={null}>
+          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} />
+        </React.Suspense>
+      )}
+
+      {/* ── AI Assistant Floating Action Button ── */}
+      <AnimatePresence>
+        {!isStudySessionActive && (
+          <motion.button
+            key="ai-fab"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => setAIOpen(prev => !prev)}
+            aria-label="Asistente IA Axon"
+            className="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-teal-500 hover:bg-teal-600 shadow-lg hover:shadow-xl flex items-center justify-center text-white cursor-pointer"
+          >
+            <motion.div
+              animate={{ rotate: isAIOpen ? 90 : 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+            >
+              {isAIOpen ? <X size={24} /> : <Sparkles size={24} />}
+            </motion.div>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
