@@ -36,7 +36,12 @@ export function useFocusTrap<T extends HTMLElement = HTMLDivElement>(active: boo
       if (e.key !== 'Tab') return;
 
       const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        // No focusable elements — keep focus on container itself as fallback
+        e.preventDefault();
+        container.focus();
+        return;
+      }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -65,8 +70,10 @@ export function useFocusTrap<T extends HTMLElement = HTMLDivElement>(active: boo
     return () => {
       cancelAnimationFrame(rafId);
       container.removeEventListener('keydown', handleKeyDown);
-      // Restore focus to the element that was focused before the trap
-      previouslyFocused?.focus();
+      // Restore focus to the element that was focused before the trap (if still in DOM)
+      if (previouslyFocused && document.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      }
     };
   }, [active]);
 

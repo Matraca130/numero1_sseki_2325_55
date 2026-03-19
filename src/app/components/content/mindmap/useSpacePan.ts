@@ -35,6 +35,8 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A') return;
       if (el?.isContentEditable || el?.getAttribute('role') === 'button') return;
       if (el?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
+      // Only activate when focus is within or near the graph container
+      if (el && !container.contains(el) && el !== document.body && el !== document.documentElement) return;
 
       e.preventDefault();
       spaceHeldRef.current = true;
@@ -87,15 +89,16 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
     // Reset on tab switch (visibilitychange is more reliable than blur for tab switches)
     const handleVisibility = () => { if (document.hidden) handleBlur(); };
 
-    container.addEventListener('keydown', handleKeyDown);
-    container.addEventListener('keyup', handleKeyUp);
+    // Listen on document so Space works even when canvas (not container) has focus
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     container.addEventListener('focusout', handleFocusOut);
     window.addEventListener('blur', handleBlur);
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      container.removeEventListener('keydown', handleKeyDown);
-      container.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
       container.removeEventListener('focusout', handleFocusOut);
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('visibilitychange', handleVisibility);

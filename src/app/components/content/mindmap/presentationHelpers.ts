@@ -20,8 +20,9 @@ export function masteryLabel(color: MasteryColor): string {
   switch (color) {
     case 'green': return 'Dominado';
     case 'yellow': return 'Aprendiendo';
-    case 'red': return 'D\u00e9bil';
+    case 'red': return 'Débil';
     case 'gray': return 'Sin datos';
+    default: return color satisfies never;
   }
 }
 
@@ -54,9 +55,17 @@ export function topologicalSort(nodes: MapNode[], edges: MapEdge[]): MapNode[] {
     }
   }
 
-  const roots = nodes
+  let roots = nodes
     .filter(n => (inDegree.get(n.id) || 0) === 0)
     .sort((a, b) => a.label.localeCompare(b.label));
+
+  // If all nodes have incoming edges (cycle), pick the node(s) with the lowest in-degree as synthetic roots
+  if (roots.length === 0 && nodes.length > 0) {
+    const minDeg = Math.min(...nodes.map(n => inDegree.get(n.id) || 0));
+    roots = nodes
+      .filter(n => (inDegree.get(n.id) || 0) === minDeg)
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
 
   const visited = new Set<string>();
   const result: MapNode[] = [];
