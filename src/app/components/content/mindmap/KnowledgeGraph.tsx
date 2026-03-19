@@ -638,6 +638,7 @@ export function KnowledgeGraph({
           type: 'tooltip',
           key: 'node-tooltip',
           trigger: 'hover',
+          entryDelay: 400,  // 400ms delay to prevent flicker on dense graphs
           getContent: (_evt: unknown, items: Array<{ data?: Record<string, unknown> }>) => {
             if (!items?.length) return '';
             const item = items[0];

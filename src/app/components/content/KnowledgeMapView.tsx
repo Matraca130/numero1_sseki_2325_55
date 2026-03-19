@@ -187,6 +187,7 @@ export function KnowledgeMapView() {
       setShowComparison(false);
       setPresentationMode(false);
       setActiveTool('pointer');
+      setMasteryFilter(null);
     }
   }, [topicId, clearHistory]);
 
@@ -552,7 +553,7 @@ export function KnowledgeMapView() {
       // Find node labels for toast (use ref for stable callback)
       const srcNode = graphDataNodesRef.current?.find(n => n.id === newSource);
       const tgtNode = graphDataNodesRef.current?.find(n => n.id === newTarget);
-      toast.success(`Arista reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
+      toast.success(`Conexión reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
       haptic(50);
       refetch();
     } catch (e: unknown) {
@@ -592,6 +593,18 @@ export function KnowledgeMapView() {
       if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable) return;
       // Suppress tool shortcuts when any modal/dialog is open
       if (el?.closest('[role="dialog"], [role="alertdialog"]')) return;
+      // Escape cancels connect mode or returns to pointer tool
+      if (e.key === 'Escape') {
+        if (connectSourceRef.current) {
+          setConnectSource(null);
+          setConnectTarget(null);
+          setActiveTool('pointer');
+          toast.info('Conexión cancelada');
+        } else if (activeToolRef.current !== 'pointer') {
+          setActiveTool('pointer');
+        }
+        return;
+      }
       const map: Record<string, MapTool> = { v: 'pointer', n: 'add-node', c: 'connect', d: 'delete', a: 'annotate' };
       const tool = map[e.key.toLowerCase()];
       if (tool) handleToolChange(tool);
