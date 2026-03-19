@@ -55,7 +55,7 @@ export function GraphSkeleton({
   className = '',
   variant = 'default',
 }: GraphSkeletonProps) {
-  const uniqueId = useId();
+  const uniqueId = useId().replace(/:/g, '_');
   const gradientId = `skeleton-shimmer-${uniqueId}`;
   const isMini = variant === 'mini';
   const nodes = isMini ? MINI_NODES : NODES;

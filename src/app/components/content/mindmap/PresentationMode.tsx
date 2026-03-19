@@ -68,7 +68,9 @@ export function PresentationMode({
     if (total > 0) setIndex(i => Math.min(i, total - 1));
   }, [total]);
 
-  const current = sorted[index] as MapNode | undefined;
+  // Use safe index to avoid one-frame flicker when total shrinks between render and effect
+  const safeIndex = total > 0 ? Math.min(index, total - 1) : 0;
+  const current = sorted[safeIndex] as MapNode | undefined;
 
   // Focus is handled by useFocusTrap — no separate focus call needed
 

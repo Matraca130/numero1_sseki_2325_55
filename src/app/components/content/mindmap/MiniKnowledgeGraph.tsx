@@ -133,21 +133,27 @@ export function MiniKnowledgeGraph({
     const isMobile = container.clientWidth < 400;
     const miniPad = isMobile ? 8 : 16;
 
-    const graph = new Graph({
-      container,
-      autoFit: 'view',
-      padding: [miniPad, miniPad, miniPad, miniPad],
-      node: { type: 'circle' },
-      edge: { type: 'line' },
-      layout: {
-        type: 'radial' as const,
-        unitRadius: 60,
-        preventOverlap: true,
-        nodeSize: 30,
-      },
-      behaviors: ['zoom-canvas', 'drag-canvas'],
-      animation: false,
-    });
+    let graph: Graph;
+    try {
+      graph = new Graph({
+        container,
+        autoFit: 'view',
+        padding: [miniPad, miniPad, miniPad, miniPad],
+        node: { type: 'circle' },
+        edge: { type: 'line' },
+        layout: {
+          type: 'radial' as const,
+          unitRadius: 60,
+          preventOverlap: true,
+          nodeSize: 30,
+        },
+        behaviors: ['zoom-canvas', 'drag-canvas'],
+        animation: false,
+      });
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('MiniGraph: G6 init failed:', err);
+      return;
+    }
 
     graphRef.current = graph;
     justInitializedRef.current = true;
@@ -236,7 +242,7 @@ export function MiniKnowledgeGraph({
     };
 
     graph.on('node:click', handler);
-    return () => { graph.off('node:click', handler); };
+    return () => { try { graph.off('node:click', handler); } catch { /* graph may be destroyed */ } };
   }, [ready]);
 
   if (data.nodes.length === 0) return null;
