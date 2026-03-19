@@ -131,8 +131,9 @@ function buildGraphData(
       continue;
     }
 
-    // Determine direction: use source_keyword_id if set, default to keyword_a → keyword_b
-    const source = conn.source_keyword_id || conn.keyword_a_id;
+    // Determine direction: use source_keyword_id if valid, default to keyword_a → keyword_b
+    const srcId = conn.source_keyword_id;
+    const source = (srcId === conn.keyword_a_id || srcId === conn.keyword_b_id) ? srcId : conn.keyword_a_id;
     const target = source === conn.keyword_a_id ? conn.keyword_b_id : conn.keyword_a_id;
 
     edges.push({

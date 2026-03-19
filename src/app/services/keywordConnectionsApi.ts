@@ -56,7 +56,9 @@ export async function searchKeywords(
   query: string,
   excludeSummaryId?: string,
 ): Promise<SearchResultKeyword[]> {
-  const params = new URLSearchParams({ q: query.trim() });
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const params = new URLSearchParams({ q: trimmed });
   if (excludeSummaryId) params.set('exclude_summary_id', excludeSummaryId);
   const result = await apiCall<unknown>(
     `/keyword-search?${params.toString()}`,
