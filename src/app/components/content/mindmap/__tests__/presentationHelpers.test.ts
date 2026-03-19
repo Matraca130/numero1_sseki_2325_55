@@ -226,6 +226,17 @@ describe('topologicalSort', () => {
     expect(ids.size).toBe(3);
   });
 
+  it('uses lowest in-degree nodes as synthetic roots when all nodes have incoming edges', () => {
+    // A -> B -> A (2-node cycle, both have in-degree 1)
+    const nodes = [makeNode('a', 'A'), makeNode('b', 'B')];
+    const edges = [makeEdge('a', 'b'), makeEdge('b', 'a')];
+    const result = topologicalSort(nodes, edges);
+    expect(result).toHaveLength(2);
+    // Both have same in-degree, so alphabetical: A first
+    expect(result[0].id).toBe('a');
+    expect(result[1].id).toBe('b');
+  });
+
   it('handles large number of nodes efficiently', () => {
     const count = 500;
     const nodes = Array.from({ length: count }, (_, i) =>

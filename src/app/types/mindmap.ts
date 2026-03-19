@@ -105,6 +105,17 @@ export const CONNECTION_TYPE_MAP = new Map(
   CONNECTION_TYPES.map(ct => [ct.key, ct])
 );
 
+/**
+ * Known connection type keys.
+ * connectionType on MapEdge is `string` (API may return unknown types),
+ * but known values are: prerequisito, causa-efecto, mecanismo, dx-diferencial,
+ * tratamiento, manifestacion, regulacion, contraste, componente, asociacion.
+ */
+export type ConnectionTypeKey =
+  | 'prerequisito' | 'causa-efecto' | 'mecanismo' | 'dx-diferencial'
+  | 'tratamiento' | 'manifestacion' | 'regulacion' | 'contraste'
+  | 'componente' | 'asociacion';
+
 // ── Mastery Color → Hex mapping for G6 nodes ────────────────
 
 export const MASTERY_HEX: Record<MasteryColor, string> = {
