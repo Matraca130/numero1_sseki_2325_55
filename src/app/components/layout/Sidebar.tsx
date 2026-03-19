@@ -140,7 +140,7 @@ export function Sidebar() {
               >
                 <Icon size={20} className="text-[#8fbfb3]" />
                 <span>{item.label}</span>
-                <span className="ml-auto text-[9px] text-[#6db5a5] uppercase tracking-wider">Pronto</span>
+                <span className="ml-auto text-[9px] text-[#6db5a5]/50 uppercase tracking-wider">Pronto</span>
               </button>
             );
           })}

@@ -17,8 +17,8 @@
 // ============================================================
 
 import { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, AlertTriangle, RefreshCw, PanelLeft } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useContentTree } from '@/app/context/ContentTreeContext';
@@ -47,7 +47,6 @@ export function TopicSidebarRoot() {
 
   // Local UI state
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   // ── Mastery data from shared study-queue ──
   const courseId = tree?.courses?.[0]?.id || null;
@@ -89,9 +88,6 @@ export function TopicSidebarRoot() {
       if (currentView !== 'study' && currentView !== 'flashcards') {
         navigateTo('study');
       }
-
-      // Close mobile drawer
-      setMobileOpen(false);
     },
     [selectTopic, setCurrentTopic, navigateTo, currentView],
   );
@@ -168,55 +164,14 @@ export function TopicSidebarRoot() {
   );
 
   return (
-    <>
-      {/* ── Desktop: static sidebar ── */}
-      <motion.div
-        initial={{ width: 0, opacity: 0 }}
-        animate={{ width: 288, opacity: 1 }}
-        exit={{ width: 0, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className={`${SIDEBAR_CLASSES} hidden lg:flex`}
-      >
-        {sidebarContent}
-      </motion.div>
-
-      {/* ── Mobile: trigger button ── */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed bottom-4 left-4 z-30 lg:hidden p-3 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 transition-colors"
-        aria-label="Abrir menu de contenido"
-      >
-        <PanelLeft size={20} />
-      </button>
-
-      {/* ── Mobile: drawer overlay ── */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-              onClick={() => setMobileOpen(false)}
-              aria-hidden="true"
-            />
-
-            {/* Drawer */}
-            <motion.div
-              initial={{ x: -288 }}
-              animate={{ x: 0 }}
-              exit={{ x: -288 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-white shadow-xl lg:hidden"
-            >
-              {sidebarContent}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+    <motion.div
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 288, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className={`${SIDEBAR_CLASSES} hidden md:flex`}
+    >
+      {sidebarContent}
+    </motion.div>
   );
 }

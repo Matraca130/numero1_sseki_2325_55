@@ -125,7 +125,7 @@ function StudentShell() {
             {showTopicSidebar && (
               <button
                 onClick={() => setMobileTopicOpen(!mobileTopicOpen)}
-                className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all"
+                className="lg:hidden p-2 rounded-lg text-[#8fbfb3] hover:text-white hover:bg-white/[0.07] transition-all"
                 title="Temas"
               >
                 <PanelLeftClose size={18} />
