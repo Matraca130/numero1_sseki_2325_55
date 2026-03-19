@@ -36,7 +36,7 @@ export function StudentPlaceholder({
   const c = COLOR_MAP[accentColor] || COLOR_MAP.teal;
 
   return (
-    <div className="h-full flex items-center justify-center p-8 bg-gray-50/50">
+    <div className="h-full flex items-center justify-center p-8 bg-[#F0F2F5]/50">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,7 +54,7 @@ export function StudentPlaceholder({
           <p className="text-sm text-gray-400 mb-6">{description}</p>
 
           {/* Construction badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F0F2F5] border border-gray-100 mb-6">
             <Construction size={13} className="text-gray-400" />
             <span className="text-xs text-gray-500">En desarrollo</span>
           </div>

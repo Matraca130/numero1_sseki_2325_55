@@ -127,7 +127,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
                 <div className={clsx("absolute top-0 left-0 w-1 h-full", SUBJECT_ACCENT_COLORS[task.subject] || 'bg-gray-300')} />
                 <div className="flex justify-between items-start mb-2">
                   <span className={clsx("px-2 py-1 rounded-md text-xs uppercase tracking-wider", SUBJECT_BADGE_STYLES[task.subject] || 'bg-gray-100 text-gray-500')} style={{ fontWeight: 700 }}>{task.subject}</span>
-                  <span className="font-mono text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">{task.time}</span>
+                  <span className="font-mono text-xs text-gray-400 bg-[#F0F2F5] px-2 py-1 rounded">{task.time}</span>
                 </div>
                 <h3 className={clsx("text-gray-800 mb-1", !task.isPrimary && 'text-base')} style={{ fontWeight: 700 }}>{task.title}</h3>
                 {task.description && <p className="text-sm text-gray-400 mb-3">{task.description}</p>}
@@ -205,7 +205,7 @@ export function MasteryDashboardView() {
           </div>
           <div className="flex-1 px-2 lg:px-8 pb-4 lg:pb-8 overflow-y-auto custom-scrollbar-light">
             <div className="grid grid-cols-7 h-full min-h-[400px] lg:min-h-[600px] border-l border-t border-gray-200 rounded-bl-xl rounded-br-xl bg-white/30 backdrop-blur-sm">
-              {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-gray-50/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
+              {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-[#F0F2F5]/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                 const events = getEventsForDay(day);
                 const isCurrentDay = day === today;

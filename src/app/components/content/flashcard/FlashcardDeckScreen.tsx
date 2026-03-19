@@ -100,7 +100,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button onClick={onStudyTopic} className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl text-xs font-medium text-gray-600 transition-colors border border-gray-200">
+              <button onClick={onStudyTopic} className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-[#F0F2F5] hover:bg-gray-100 rounded-xl text-xs font-medium text-gray-600 transition-colors border border-gray-200">
                 <GraduationCap size={14} /> Ver T\u00F3pico
               </button>
               {cards.length > 0 && (
@@ -138,7 +138,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
         )}
         {keywordProgress && keywordProgress.keywordsTotal > 0 && (
           <div className="px-4 sm:px-6 md:px-8 pb-3 sm:pb-4">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 bg-gray-50/80 rounded-xl border border-gray-100">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 bg-[#F0F2F5]/80 rounded-xl border border-gray-100">
               <Brain size={14} className="text-[#2a8c7a] shrink-0" />
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <span className="text-xs text-gray-600" style={{ fontWeight: 500 }}>Keywords: <span style={{ fontWeight: 700 }} className="text-gray-800">{keywordProgress.keywordsMastered}/{keywordProgress.keywordsTotal}</span></span>
