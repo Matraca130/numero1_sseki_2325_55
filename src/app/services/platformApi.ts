@@ -16,7 +16,8 @@
 // ├── pa-content.ts       — courses + summaries + keywords
 // ├── pa-flashcards.ts    — flashcard CRUD + FlashcardCard type
 // ├── pa-student-data.ts  — reviews + daily activities + stats + BKT + FSRS
-// └── pa-study-plans.ts   — study plans + tasks + sessions + reorder
+// ├── pa-study-plans.ts   — study plans + tasks + sessions + reorder
+// └── pa-ai.ts            — AI schedule logs
 // ============================================================
 
 // Institutions & Members & Health
@@ -143,6 +144,14 @@ export type {
   WhatsAppSettingsResponse,
   TestConnectionResult,
 } from './platform-api/pa-messaging';
+
+// AI Schedule Logs
+export {
+  getAiScheduleLogs,
+} from './platform-api/pa-ai';
+export type {
+  AiScheduleLog,
+} from './platform-api/pa-ai';
 
 // Study Plans, Tasks, Sessions
 export {
