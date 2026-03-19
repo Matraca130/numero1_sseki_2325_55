@@ -225,7 +225,7 @@ export function DefaultScheduleView() {
 
         {/* Right Sidebar — Desktop: fixed width, Mobile: full-width below */}
         <div className="w-full lg:w-96 bg-[#1a2e2a] lg:border-l border-white/10 shadow-xl flex flex-col lg:sticky lg:top-0 lg:self-start lg:max-h-screen">
-          <div className="p-4 lg:p-6 border-b border-white/10 flex items-center justify-between bg-[#263545]">
+          <div className="p-4 lg:p-6 border-b border-white/10 flex items-center justify-between bg-[#244e47]">
             <h3 className="font-semibold text-white text-base lg:text-lg" style={headingStyle}>Detalles del Dia</h3>
             <span className="text-sm font-medium text-[#99d7c7] bg-axon-accent/20 px-3 py-1 rounded-full">
               {format(selectedDate, "d 'de' MMMM", { locale: es })}
@@ -358,7 +358,7 @@ export function DefaultScheduleView() {
           </div>
 
           {/* Quick Nav */}
-          <div className="p-4 border-t border-white/10 bg-[#263545]">
+          <div className="p-4 border-t border-white/10 bg-[#244e47]">
             <QuickNavLinks variant="dark" />
           </div>
         </div>
