@@ -760,7 +760,7 @@ export function KnowledgeGraph({
           updateMultiSelection(new Set());
         },
       });
-    }).catch((e) => { warnIfNotDestroyed(e); });
+    }).catch((e) => { warnIfNotDestroyed(e); if (mountedRef.current) setReady(true); });
 
     return () => {
       layoutInProgressRef.current = false;
