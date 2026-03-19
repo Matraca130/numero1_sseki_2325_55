@@ -9,9 +9,8 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import {
-  type MasteryColor,
   type DeltaColorLevel,
-  getSafeMasteryColor,
+  getKeywordDeltaColorSafe,
 } from '@/app/lib/mastery-helpers';
 
 interface ConnectionNode {
@@ -29,20 +28,20 @@ interface ConnectionsMapProps {
   className?: string;
 }
 
-// Color hex for SVG — supports both legacy MasteryColor and unified DeltaColorLevel
-const colorHex: Record<MasteryColor | DeltaColorLevel, string> = {
-  green: '#10b981',
-  yellow: '#f59e0b',
-  red: '#ef4444',
+// Color hex for SVG — Delta Mastery Scale
+const colorHex: Record<DeltaColorLevel, string> = {
   gray: '#a1a1aa',
+  red: '#ef4444',
+  yellow: '#f59e0b',
+  green: '#10b981',
   blue: '#3b82f6',
 };
 
-const colorHexLight: Record<MasteryColor | DeltaColorLevel, string> = {
-  green: '#10b98133',
-  yellow: '#f59e0b33',
-  red: '#ef444433',
+const colorHexLight: Record<DeltaColorLevel, string> = {
   gray: '#a1a1aa33',
+  red: '#ef444433',
+  yellow: '#f59e0b33',
+  green: '#10b98133',
   blue: '#3b82f633',
 };
 
@@ -76,7 +75,7 @@ export function ConnectionsMap({
     });
   }, [visibleNodes, count, cx, cy, radius]);
 
-  const centralColor: MasteryColor = getSafeMasteryColor(centralKeyword.mastery);
+  const centralColor = getKeywordDeltaColorSafe(centralKeyword.mastery);
 
   if (count === 0) {
     return (
@@ -98,7 +97,7 @@ export function ConnectionsMap({
 
         {/* Connection lines */}
         {nodePositions.map((node) => {
-          const nodeColor: MasteryColor = getSafeMasteryColor(node.mastery);
+          const nodeColor = getKeywordDeltaColorSafe(node.mastery);
           return (
             <g key={`line-${node.id}`}>
               <line
@@ -163,7 +162,7 @@ export function ConnectionsMap({
 
         {/* Connected nodes */}
         {nodePositions.map((node) => {
-          const nodeColor: MasteryColor = getSafeMasteryColor(node.mastery);
+          const nodeColor = getKeywordDeltaColorSafe(node.mastery);
           return (
             <g
               key={`node-${node.id}`}

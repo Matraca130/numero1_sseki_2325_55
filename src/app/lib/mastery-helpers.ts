@@ -2,23 +2,18 @@
 // Axon — Mastery Helper Functions
 //
 // Reads BKT data (written by Quiz and Flashcard agents) and
-// returns visual mastery colors/labels.
+// returns visual mastery colors/labels using the Delta Mastery Scale.
 //
 // Keyword mastery = AVG(subtopics BKT p_know)
-//   >= 0.80 (Dominado)
-//   >= 0.50 (Aprendiendo)
-//   <  0.50 (Debil)
-//   sin datos (gray)
+// Delta = mastery / threshold (threshold depends on clinical_priority)
 //
-// Delta Mastery Scale (unified):
-//   gray  — Por descubrir (no data or delta < 0.50)
-//   red   — Emergente (delta >= 0.50)
+// Delta Mastery Scale:
+//   gray   — Por descubrir (no data or delta < 0.50)
+//   red    — Emergente (delta >= 0.50)
 //   yellow — En progreso (delta >= 0.85)
-//   green — Consolidado (delta >= 1.00)
-//   blue  — Maestria (delta >= 1.10)
+//   green  — Consolidado (delta >= 1.00)
+//   blue   — Maestria (delta >= 1.10)
 // ============================================================
-
-export type MasteryColor = 'green' | 'yellow' | 'red' | 'gray';
 
 export interface BktState {
   id?: string;
@@ -34,33 +29,6 @@ export interface BktState {
   last_attempt_at?: string | null;
 }
 
-/** @deprecated Use getKeywordDeltaColorSafe + getDeltaColorClasses instead */
-export function getMasteryColor(pKnow: number): MasteryColor {
-  if (pKnow >= 0.80) return 'green';
-  if (pKnow >= 0.50) return 'yellow';
-  return 'red';
-}
-
-/**
- * M-6 FIX: Safe mastery color that handles the -1 (no data) sentinel.
- * Eliminates the duplicated `mastery < 0 ? 'gray' : getMasteryColor(mastery)`
- * pattern across 5+ files.
- * @deprecated Use getKeywordDeltaColorSafe + getDeltaColorClasses instead
- */
-export function getSafeMasteryColor(mastery: number): MasteryColor {
-  return mastery < 0 ? 'gray' : getMasteryColor(mastery);
-}
-
-/** @deprecated Use getDeltaColorLabel instead */
-export function getMasteryLabel(color: MasteryColor): string {
-  switch (color) {
-    case 'green':  return 'Dominado';
-    case 'yellow': return 'Aprendiendo';
-    case 'red':    return 'Debil';
-    case 'gray':   return 'Sin datos';
-  }
-}
-
 /**
  * Returns average p_know for a keyword's subtopics.
  * -1 = no data available.
@@ -71,9 +39,6 @@ export function getKeywordMastery(subtopicBkts: BktState[]): number {
   return sum / subtopicBkts.length;
 }
 
-/**
- * Tailwind classes for each mastery color.
- */
 // ============================================================
 // Spec v4.2 section 6.2 — Relative Delta Color Scale
 //
@@ -185,48 +150,4 @@ export function getKeywordDeltaColor(mastery: number, priority: number = 1): Del
 export function getKeywordDeltaColorSafe(mastery: number | null, priority: number = 1): DeltaColorLevel {
   if (mastery === null || mastery < 0) return 'gray';
   return getKeywordDeltaColor(mastery, priority);
-}
-
-/** @deprecated Use getDeltaColorClasses instead */
-export function getMasteryTailwind(color: MasteryColor): {
-  bg: string;
-  text: string;
-  ring: string;
-  bgLight: string;
-  textDark: string;
-} {
-  switch (color) {
-    case 'green':
-      return {
-        bg: 'bg-emerald-500',
-        text: 'text-emerald-500',
-        ring: 'ring-emerald-500',
-        bgLight: 'bg-emerald-500/20',
-        textDark: 'text-emerald-400',
-      };
-    case 'yellow':
-      return {
-        bg: 'bg-amber-500',
-        text: 'text-amber-500',
-        ring: 'ring-amber-500',
-        bgLight: 'bg-amber-500/20',
-        textDark: 'text-amber-400',
-      };
-    case 'red':
-      return {
-        bg: 'bg-red-500',
-        text: 'text-red-500',
-        ring: 'ring-red-500',
-        bgLight: 'bg-red-500/20',
-        textDark: 'text-red-400',
-      };
-    case 'gray':
-      return {
-        bg: 'bg-zinc-400',
-        text: 'text-zinc-400',
-        ring: 'ring-zinc-400',
-        bgLight: 'bg-zinc-500/20',
-        textDark: 'text-zinc-500',
-      };
-  }
 }

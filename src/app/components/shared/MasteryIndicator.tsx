@@ -3,22 +3,18 @@
 //
 // Variants:
 //   dot:   small colored circle (for subtopic lists)
-//   badge: chip with label "Dominado"/"Aprendiendo"/"Debil"
+//   badge: chip with label "Consolidado"/"Emergente"/etc.
 //   ring:  circular progress ring (for keyword popup header)
 //
-// Colors:
-//   emerald-500 (>=0.80), amber-500 (>=0.50),
-//   red-500 (<0.50), zinc-400 (no data / -1)
+// Uses the unified Delta Mastery Scale:
+//   gray (Por descubrir), red (Emergente), yellow (En progreso),
+//   green (Consolidado), blue (Maestria)
 // ============================================================
 import React from 'react';
 import clsx from 'clsx';
 import {
-  getSafeMasteryColor,
-  getMasteryLabel,
-  getMasteryTailwind,
   getDeltaColorClasses,
   getDeltaColorLabel,
-  type MasteryColor,
   type DeltaColorLevel,
 } from '@/app/lib/mastery-helpers';
 
@@ -29,8 +25,8 @@ interface MasteryIndicatorProps {
   variant?: 'dot' | 'badge' | 'ring';
   /** Show tooltip on hover */
   showTooltip?: boolean;
-  /** When provided, uses the unified Delta color scale instead of legacy MasteryColor */
-  deltaLevel?: DeltaColorLevel;
+  /** Delta color level (from getKeywordDeltaColorSafe) */
+  deltaLevel: DeltaColorLevel;
 }
 
 // ── Size configs ──────────────────────────────────────────
@@ -45,28 +41,11 @@ export function MasteryIndicator({
   showTooltip = true,
   deltaLevel,
 }: MasteryIndicatorProps) {
-  // --- Resolve colors: Delta path (new) vs Legacy path (backward compat) ---
-  const useDelta = deltaLevel !== undefined;
-
-  // Legacy path
-  const legacyColor: MasteryColor = getSafeMasteryColor(pMastery);
-  const legacyLabel = getMasteryLabel(legacyColor);
-  const legacyTw = getMasteryTailwind(legacyColor);
-
-  // Delta path
-  const deltaClasses = useDelta ? getDeltaColorClasses(deltaLevel) : null;
-  const deltaLabel = useDelta ? getDeltaColorLabel(deltaLevel) : null;
-
-  // Unified values
-  const label = useDelta ? deltaLabel! : legacyLabel;
-  const dotClass = useDelta ? deltaClasses!.dot : legacyTw.bg;
-  const bgLightClass = useDelta ? deltaClasses!.bgLight : legacyTw.bgLight;
-  const textClass = useDelta ? deltaClasses!.text : legacyTw.textDark;
-  const hexColor = useDelta ? deltaClasses!.hex : legacyColorHex[legacyColor];
-
+  const dc = getDeltaColorClasses(deltaLevel);
+  const label = getDeltaColorLabel(deltaLevel);
   const pct = pMastery < 0 ? 0 : Math.round(pMastery * 100);
 
-  const tooltipText = pMastery < 0 && !useDelta
+  const tooltipText = pMastery < 0
     ? 'Sin datos de estudio'
     : `${label} (${pct}%)`;
 
@@ -74,7 +53,7 @@ export function MasteryIndicator({
   if (variant === 'dot') {
     return (
       <span
-        className={clsx('inline-block rounded-full shrink-0', dotSizes[size], dotClass)}
+        className={clsx('inline-block rounded-full shrink-0', dotSizes[size], dc.dot)}
         title={showTooltip ? tooltipText : undefined}
       />
     );
@@ -86,14 +65,14 @@ export function MasteryIndicator({
       <span
         className={clsx(
           'inline-flex items-center gap-1 rounded-full',
-          bgLightClass, textClass,
+          dc.bgLight, dc.text,
           size === 'sm' ? 'text-[9px] px-1.5 py-0.5' :
           size === 'md' ? 'text-[10px] px-2 py-0.5' :
           'text-xs px-2.5 py-1',
         )}
         title={showTooltip ? tooltipText : undefined}
       >
-        <span className={clsx('inline-block rounded-full', dotSizes.sm, dotClass)} />
+        <span className={clsx('inline-block rounded-full', dotSizes.sm, dc.dot)} />
         {label}
         {pMastery >= 0 && (
           <span className="opacity-60">{pct}%</span>
@@ -131,7 +110,7 @@ export function MasteryIndicator({
           cy={ringSize / 2}
           r={radius}
           fill="none"
-          stroke={hexColor}
+          stroke={dc.hex}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -142,7 +121,7 @@ export function MasteryIndicator({
       {/* Center text */}
       <span className={clsx(
         'absolute inset-0 flex items-center justify-center',
-        textClass,
+        dc.text,
         size === 'sm' ? 'text-[7px]' : size === 'md' ? 'text-[8px]' : 'text-[9px]',
       )} style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
         {pMastery < 0
@@ -154,11 +133,3 @@ export function MasteryIndicator({
     </div>
   );
 }
-
-// ── Hex lookup for legacy MasteryColor (used by ring SVG) ──
-const legacyColorHex: Record<MasteryColor, string> = {
-  green: '#10b981',
-  yellow: '#f59e0b',
-  red: '#ef4444',
-  gray: '#a1a1aa',
-};
