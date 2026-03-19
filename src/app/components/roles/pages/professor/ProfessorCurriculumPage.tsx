@@ -124,7 +124,7 @@ export function ProfessorCurriculumPage() {
   // ══════════════════════════════════════════════════════════
   if (isEditorMode) {
     return (
-      <div className="h-full flex overflow-hidden bg-gray-50">
+      <div className="h-full flex overflow-hidden bg-[#F0F2F5]">
         <Toaster position="top-right" richColors />
 
         {/* Collapsible sidebar */}
@@ -159,7 +159,7 @@ export function ProfessorCurriculumPage() {
   // TREE MODE: ContentTree + TopicDetailPanel (original view)
   // ══════════════════════════════════════════════════════════
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-[#F0F2F5]">
       <Toaster position="top-right" richColors />
 
       {/* Page Header */}
