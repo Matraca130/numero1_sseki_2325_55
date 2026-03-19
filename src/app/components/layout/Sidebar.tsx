@@ -12,7 +12,8 @@
 // ============================================================
 import React from 'react';
 import { NavLink } from 'react-router';
-import { useApp } from '@/app/context/AppContext';
+import { useUI } from '@/app/context/UIContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { viewToPath, type ViewType } from '@/app/hooks/useStudentNav';
 import { components } from '@/app/design-system';
 import { motion } from 'motion/react';
@@ -39,7 +40,8 @@ interface NavItem {
 }
 
 export function Sidebar() {
-  const { isSidebarOpen, setSidebarOpen, currentCourse } = useApp();
+  const { isSidebarOpen, setSidebarOpen } = useUI();
+  const { currentCourse } = useNavigation();
 
   const navItems: NavItem[] = [
     { id: 'home', label: 'Inicio', icon: Home },

@@ -99,7 +99,8 @@ export type DeltaColorLevel = 'red' | 'orange' | 'yellow' | 'green' | 'blue';
  * delta = displayMastery / threshold.
  */
 export function getDeltaColor(displayMastery: number, threshold: number): DeltaColorLevel {
-  const delta = threshold > 0 ? displayMastery / threshold : 0;
+  const rawDelta = threshold > 0 ? displayMastery / threshold : 0;
+  const delta = Math.round(rawDelta * 100) / 100; // Round to 2 decimals to avoid floating-point boundary errors
   if (delta >= 1.10) return 'blue';     // Superado — con buffer
   if (delta >= 1.00) return 'green';    // Dominado — meta alcanzada
   if (delta >= 0.85) return 'yellow';   // Proximo — casi listo

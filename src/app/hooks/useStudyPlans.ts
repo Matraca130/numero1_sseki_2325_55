@@ -22,7 +22,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { useApp, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
+import { useStudySession, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import {
   getStudyPlans,
@@ -106,7 +106,7 @@ export interface UseStudyPlansOptions {
 
 export function useStudyPlans(opts?: UseStudyPlansOptions) {
   const { user, status: authStatus } = useAuth();
-  const { addStudyPlan: syncToAppContext } = useApp();
+  const { addStudyPlan: syncToAppContext } = useStudySession();
   const { tree } = useContentTree();
 
   const [plans, setPlans] = useState<StudyPlan[]>([]);

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useApp, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
+import { useStudySession, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 import { useStudyPlans } from '@/app/hooks/useStudyPlans';
@@ -48,7 +48,7 @@ const DAY_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado',
 
 // ──────────── Main Component ────────────
 export function StudyOrganizerWizard() {
-  const { addStudyPlan, studyPlans } = useApp();
+  const { addStudyPlan, studyPlans } = useStudySession();
   const { createPlanFromWizard } = useStudyPlans();
   const { navigateTo } = useStudentNav();
   const { courses } = useTreeCourses();

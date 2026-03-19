@@ -23,7 +23,8 @@ import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import { StudyPlansProvider } from '@/app/context/StudyPlansContext';
 import { TopicMasteryProvider } from '@/app/context/TopicMasteryContext';
 import { StudyTimeEstimatesProvider } from '@/app/context/StudyTimeEstimatesContext';
-import { useApp } from '@/app/context/AppContext';
+import { useUI } from '@/app/context/UIContext';
+import { useStudySession } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { Sidebar } from '@/app/components/layout/Sidebar';
 import { TopicSidebar } from '@/app/components/layout/TopicSidebar';
@@ -39,7 +40,8 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 // -- Inner shell (needs AppContext available) ------------------
 
 function StudentShell() {
-  const { isSidebarOpen, setSidebarOpen, isStudySessionActive } = useApp();
+  const { isSidebarOpen, setSidebarOpen } = useUI();
+  const { isStudySessionActive } = useStudySession();
   const { navigateTo, isView } = useStudentNav();
   const location = useLocation();
   const isMobile = useIsMobile();

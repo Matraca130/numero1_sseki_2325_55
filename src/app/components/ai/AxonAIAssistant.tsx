@@ -4,7 +4,8 @@
 // ============================================================
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion, AnimatePresence } from 'motion/react';
 
 import {
@@ -78,7 +79,7 @@ export function AxonAIAssistant({
   onClose,
   summaryId,
 }: AxonAIAssistantProps) {
-  const { currentCourse, currentTopic } = useApp();
+  const { currentCourse, currentTopic } = useNavigation();
 
   // State
   const [mode, setMode] = useState<AssistantMode>('chat');
@@ -108,13 +109,25 @@ export function AxonAIAssistant({
   const [explainConceptText, setExplainConceptText] = useState('');
   const [explanation, setExplanation] = useState('');
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll chat
+  // Items for the virtualizer: messages + optional loading indicator
+  const virtualItems = messages.length + (isLoading && !isStreaming ? 1 : 0);
+
+  const virtualizer = useVirtualizer({
+    count: virtualItems,
+    getScrollElement: () => chatScrollRef.current,
+    estimateSize: () => 80, // estimated px per message row
+    overscan: 5,
+  });
+
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (virtualItems > 0) {
+      virtualizer.scrollToIndex(virtualItems - 1, { align: 'end', behavior: 'smooth' });
+    }
+  }, [virtualItems, virtualizer]);
 
   // Focus input when opened
   useEffect(() => {
@@ -449,9 +462,9 @@ export function AxonAIAssistant({
     return (
       <>
         {/* Messages */}
-        <div role="log" aria-live="polite" className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
+        <div ref={chatScrollRef} role="log" aria-live="polite" className="flex-1 overflow-y-auto custom-scrollbar-light">
           {messages.length === 0 && (
-            <div className="text-center py-8 space-y-6">
+            <div className="text-center py-8 space-y-6 px-4">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center border border-violet-200/60">
                 <Sparkles size={28} className="text-violet-500" />
               </div>
@@ -481,122 +494,165 @@ export function AxonAIAssistant({
             </div>
           )}
 
-          {messages.map(msg => (
+          {messages.length > 0 && (
             <div
-              key={msg.id}
-              className={clsx(
-                "flex gap-3",
-                msg.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
             >
-              {msg.role !== 'user' && (
-                <div className={clsx(
-                  "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
-                  msg.isError ? "bg-red-100" : "bg-gradient-to-br from-violet-500 to-purple-600"
-                )}>
-                  {msg.isError
-                    ? <AlertCircle size={14} className="text-red-500" />
-                    : <Sparkles size={12} className="text-white" />}
-                </div>
-              )}
-              <div
-                className={clsx(
-                  "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group",
-                  msg.role === 'user'
-                    ? "bg-violet-600 text-white rounded-br-md"
-                    : msg.isError
-                      ? "bg-red-50 text-red-700 border border-red-100 rounded-bl-md"
-                      : "bg-white text-gray-700 shadow-sm border border-gray-100 rounded-bl-md"
-                )}
-              >
-                {renderMarkdown(msg.content)}
+              {virtualizer.getVirtualItems().map(virtualRow => {
+                const idx = virtualRow.index;
 
-                {/* Action buttons: copy + feedback */}
-                {msg.role === 'model' && (
-                  <div className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    {/* Feedback buttons (only when log_id exists) */}
-                    {messageLogIds.has(msg.id) && (
-                      <>
-                        <button
-                          aria-label="Respuesta util"
-                          onClick={() => handleRagFeedback(msg.id, 'positive')}
-                          disabled={feedbackGiven.has(msg.id)}
-                          className={clsx(
-                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
-                            feedbackGiven.get(msg.id) === 'positive'
-                              ? "text-emerald-500 border-emerald-300"
-                              : feedbackGiven.has(msg.id)
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-400 hover:text-emerald-500"
-                          )}
-                        >
-                          <ThumbsUp size={12} />
-                        </button>
-                        <button
-                          aria-label="Respuesta no util"
-                          onClick={() => handleRagFeedback(msg.id, 'negative')}
-                          disabled={feedbackGiven.has(msg.id)}
-                          className={clsx(
-                            "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
-                            feedbackGiven.get(msg.id) === 'negative'
-                              ? "text-red-500 border-red-300"
-                              : feedbackGiven.has(msg.id)
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-400 hover:text-red-500"
-                          )}
-                        >
-                          <ThumbsDown size={12} />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      aria-label="Copiar respuesta"
-                      onClick={() => copyText(msg.content, msg.id)}
-                      className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                // Loading indicator (last virtual item when loading)
+                if (idx >= messages.length) {
+                  return (
+                    <div
+                      key="loading"
+                      data-index={idx}
+                      ref={virtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      className="px-4 py-2"
                     >
-                      {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
+                      <div className="flex gap-3 justify-start">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
+                          <Sparkles size={12} className="text-white" />
+                        </div>
+                        <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-gray-100">
+                          <div className="flex gap-1.5">
+                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const msg = messages[idx];
+                return (
+                  <div
+                    key={msg.id}
+                    data-index={idx}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                    className="px-4 py-2"
+                  >
+                    <div
+                      className={clsx(
+                        "flex gap-3",
+                        msg.role === 'user' ? 'justify-end' : 'justify-start'
+                      )}
+                    >
+                      {msg.role !== 'user' && (
+                        <div className={clsx(
+                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+                          msg.isError ? "bg-red-100" : "bg-gradient-to-br from-violet-500 to-purple-600"
+                        )}>
+                          {msg.isError
+                            ? <AlertCircle size={14} className="text-red-500" />
+                            : <Sparkles size={12} className="text-white" />}
+                        </div>
+                      )}
+                      <div
+                        className={clsx(
+                          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group",
+                          msg.role === 'user'
+                            ? "bg-violet-600 text-white rounded-br-md"
+                            : msg.isError
+                              ? "bg-red-50 text-red-700 border border-red-100 rounded-bl-md"
+                              : "bg-white text-gray-700 shadow-sm border border-gray-100 rounded-bl-md"
+                        )}
+                      >
+                        {renderMarkdown(msg.content)}
+
+                        {/* Action buttons: copy + feedback */}
+                        {msg.role === 'model' && (
+                          <div className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            {/* Feedback buttons (only when log_id exists) */}
+                            {messageLogIds.has(msg.id) && (
+                              <>
+                                <button
+                                  aria-label="Respuesta util"
+                                  onClick={() => handleRagFeedback(msg.id, 'positive')}
+                                  disabled={feedbackGiven.has(msg.id)}
+                                  className={clsx(
+                                    "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                                    feedbackGiven.get(msg.id) === 'positive'
+                                      ? "text-emerald-500 border-emerald-300"
+                                      : feedbackGiven.has(msg.id)
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-gray-400 hover:text-emerald-500"
+                                  )}
+                                >
+                                  <ThumbsUp size={12} />
+                                </button>
+                                <button
+                                  aria-label="Respuesta no util"
+                                  onClick={() => handleRagFeedback(msg.id, 'negative')}
+                                  disabled={feedbackGiven.has(msg.id)}
+                                  className={clsx(
+                                    "bg-white shadow-md border border-gray-200 rounded-lg p-1.5 transition-colors",
+                                    feedbackGiven.get(msg.id) === 'negative'
+                                      ? "text-red-500 border-red-300"
+                                      : feedbackGiven.has(msg.id)
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-gray-400 hover:text-red-500"
+                                  )}
+                                >
+                                  <ThumbsDown size={12} />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              aria-label="Copiar respuesta"
+                              onClick={() => copyText(msg.content, msg.id)}
+                              className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                            >
+                              {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Citations (collapsible) */}
+                        {msg.role === 'model' && messageSources.has(msg.id) && (
+                          <details className="mt-3 border-t border-gray-100 pt-2">
+                            <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-violet-500 select-none">
+                              Fontes ({messageSources.get(msg.id)!.length})
+                            </summary>
+                            <ul className="mt-1.5 space-y-1">
+                              {messageSources.get(msg.id)!.map((src, si) => (
+                                <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
+                                  <span className="truncate mr-2">{src.summary_title}</span>
+                                  <span className="shrink-0 text-[10px] font-mono text-violet-500">
+                                    {(src.similarity * 100).toFixed(0)}%
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )}
-
-                {/* Citations (collapsible) */}
-                {msg.role === 'model' && messageSources.has(msg.id) && (
-                  <details className="mt-3 border-t border-gray-100 pt-2">
-                    <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-violet-500 select-none">
-                      Fontes ({messageSources.get(msg.id)!.length})
-                    </summary>
-                    <ul className="mt-1.5 space-y-1">
-                      {messageSources.get(msg.id)!.map((src, si) => (
-                        <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
-                          <span className="truncate mr-2">{src.summary_title}</span>
-                          <span className="shrink-0 text-[10px] font-mono text-violet-500">
-                            {(src.similarity * 100).toFixed(0)}%
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {isLoading && !isStreaming && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
-                <Sparkles size={12} className="text-white" />
-              </div>
-              <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-gray-100">
-                <div className="flex gap-1.5">
-                  <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
+                );
+              })}
             </div>
           )}
-
-          <div ref={chatEndRef} />
         </div>
 
         {/* Input */}

@@ -9,7 +9,7 @@
 // ============================================================
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -34,7 +34,7 @@ import { ActivityChart, MasteryDonut, type ActivityDataPoint, type MasteryDataPo
 import { DashboardStudyPlans } from '@/app/components/dashboard/DashboardStudyPlans';
 
 export function DashboardView() {
-  const { currentCourse } = useApp();
+  const { currentCourse } = useNavigation();
   const { stats, dailyActivity, bktStates, isConnected } = useStudentDataContext();
   const { tree } = useContentTree();
   const { navigateTo } = useStudentNav();

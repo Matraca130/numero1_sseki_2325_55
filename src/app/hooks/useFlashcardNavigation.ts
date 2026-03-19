@@ -25,7 +25,7 @@
 // ============================================================
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudyQueueData, invalidateStudyQueueCache } from '@/app/hooks/useStudyQueueData';
@@ -255,7 +255,7 @@ export interface KeywordProgress {
 // ══════════════════════════════════════════════════════════
 
 export function useFlashcardNavigation() {
-  const { setCurrentTopic } = useApp();
+  const { setCurrentTopic } = useNavigation();
   const { tree, loading: treeLoading } = useContentTree();
   const { navigateTo } = useStudentNav();
 

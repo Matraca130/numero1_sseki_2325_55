@@ -27,13 +27,13 @@ import {
   focusRing,
   useFadeUp,
 } from '@/app/components/design-kit';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useKeywordNavigation } from '@/app/hooks/useKeywordNavigation';
 import { axon, tint } from '@/app/lib/palette';
 
 export function StudentSummariesView() {
   const { selectedTopicId, tree, selectTopic } = useContentTree();
-  const { currentTopic } = useApp();
+  const { currentTopic } = useNavigation();
 
   const effectiveTopicId = selectedTopicId || currentTopic?.id || null;
 

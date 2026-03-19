@@ -85,8 +85,8 @@ describe('getDeltaColor', () => {
     expect(getDeltaColor(0.90, 0.90)).toBe('green');
   });
 
-  it('mastery 0.99, threshold 0.90 -> green (delta=1.10)', () => {
-    // 0.99 / 0.90 = 1.1 -> exactly 1.10 = blue
+  it('mastery 0.99, threshold 0.90 -> blue (delta rounds to 1.10)', () => {
+    // 0.99 / 0.90 = 1.1 -> rounds to 1.10 = blue (Superado)
     expect(getDeltaColor(0.99, 0.90)).toBe('blue');
   });
 
@@ -151,19 +151,23 @@ describe('getDeltaColor', () => {
   // -- Just below thresholds (floating point edge cases) --
 
   it('delta just below 0.50 -> red', () => {
-    expect(getDeltaColor(0.3499, 0.70)).toBe('red'); // 0.3499/0.70 = 0.4998
+    // delta must round to 0.49 (< 0.50). 0.34 / 0.70 = 0.4857 -> rounds to 0.49
+    expect(getDeltaColor(0.34, 0.70)).toBe('red');
   });
 
   it('delta just below 0.85 -> orange', () => {
-    expect(getDeltaColor(0.5949, 0.70)).toBe('orange'); // 0.5949/0.70 = 0.8498
+    // delta must round to 0.84 (< 0.85). 0.59 / 0.70 = 0.8428 -> rounds to 0.84
+    expect(getDeltaColor(0.59, 0.70)).toBe('orange');
   });
 
   it('delta just below 1.00 -> yellow', () => {
-    expect(getDeltaColor(0.6999, 0.70)).toBe('yellow'); // 0.6999/0.70 = 0.9998
+    // delta must round to 0.99 (< 1.00). 0.69 / 0.70 = 0.9857 -> rounds to 0.99
+    expect(getDeltaColor(0.69, 0.70)).toBe('yellow');
   });
 
   it('delta just below 1.10 -> green', () => {
-    expect(getDeltaColor(0.7699, 0.70)).toBe('green'); // 0.7699/0.70 = 1.0998
+    // delta must round to 1.09 (< 1.10). 0.76 / 0.70 = 1.0857 -> rounds to 1.09
+    expect(getDeltaColor(0.76, 0.70)).toBe('green');
   });
 });
 

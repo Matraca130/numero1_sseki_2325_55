@@ -19,7 +19,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, RefreshCw, PanelLeft } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { SidebarHeader } from './SidebarHeader';
@@ -40,7 +40,7 @@ const SIDEBAR_CLASSES =
 // ══════════════════════════════════════════════════════════
 
 export function TopicSidebarRoot() {
-  const { setCurrentTopic } = useApp();
+  const { setCurrentTopic } = useNavigation();
   const { navigateTo, currentView } = useStudentNav();
   const { tree, loading, error, selectedTopicId, selectTopic, refresh } =
     useContentTree();

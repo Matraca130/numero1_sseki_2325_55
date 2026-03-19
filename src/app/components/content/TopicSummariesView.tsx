@@ -19,7 +19,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { motion, useReducedMotion } from 'motion/react';
@@ -71,7 +71,7 @@ export function TopicSummariesView() {
   const [searchParams] = useSearchParams();
   const topicId = searchParams.get('topicId');
   const navigate = useNavigate();
-  const { setCurrentTopic } = useApp();
+  const { setCurrentTopic } = useNavigation();
   const { navigateTo } = useStudentNav();
   const { tree, loading: treeLoading, error: treeError, selectTopic } = useContentTree();
   const shouldReduce = useReducedMotion();
