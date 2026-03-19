@@ -11,7 +11,7 @@
 // TODO: Replace with full GamificationProvider (Sprint G5).
 // ============================================================
 
-import React, { createContext, useContext, useCallback, useState } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useState } from 'react';
 import type { StreakStatus, BadgeWithEarnedStatus } from '@/app/types/gamification';
 
 // ── LevelUpEvent (matches useQuizGamificationFeedback expectation) ──
@@ -89,7 +89,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     // TODO: Clear newBadges array
   }, []);
 
-  const value: GamificationContextValue = {
+  const value = useMemo<GamificationContextValue>(() => ({
     loading,
     totalXp: 0,
     level: 1,
@@ -101,7 +101,7 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     triggerBadgeCheck,
     dismissLevelUp,
     dismissNewBadges,
-  };
+  }), [loading, refresh, triggerBadgeCheck, dismissLevelUp, dismissNewBadges]);
 
   return (
     <GamificationContext.Provider value={value}>
