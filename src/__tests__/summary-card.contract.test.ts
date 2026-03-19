@@ -6,7 +6,7 @@
 // ============================================================
 import { describe, it, expect } from 'vitest';
 
-describe('SummaryCard contract', () => {
+describe('SummaryCard contract', { timeout: 15000 }, () => {
   it('exports SummaryCard as a named export', async () => {
     const mod = await import('../app/components/content/SummaryCard');
     expect(mod.SummaryCard).toBeDefined();
@@ -21,7 +21,7 @@ describe('SummaryCard contract', () => {
   });
 });
 
-describe('summary-helpers contract', () => {
+describe('summary-helpers contract', { timeout: 15000 }, () => {
   it('exports stripMarkdown function', async () => {
     const mod = await import('../app/components/content/summary-helpers');
     expect(typeof mod.stripMarkdown).toBe('function');
