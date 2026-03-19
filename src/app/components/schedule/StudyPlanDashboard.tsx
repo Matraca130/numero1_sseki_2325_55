@@ -18,7 +18,7 @@
 //   - Summary card: 4-col grid with donut progress
 //   - Motion animations: stagger, layout, AnimatePresence
 // ============================================================
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,6 +57,9 @@ import { PlanCalendarSidebar } from '@/app/components/schedule/PlanCalendarSideb
 import { PlanProgressSidebar } from '@/app/components/schedule/PlanProgressSidebar';
 import { WeekView, MonthView } from '@/app/components/schedule/WeekMonthViews';
 import type { TaskWithPlan } from '@/app/components/schedule/WeekMonthViews';
+import { DailyRecommendationCard } from '@/app/components/schedule/DailyRecommendationCard';
+import { WeeklyInsightCard } from '@/app/components/schedule/WeeklyInsightCard';
+import type { StudentProfilePayload } from '@/app/services/aiService';
 
 // ── Types ──
 type MobileTab = 'tasks' | 'calendar' | 'progress';
@@ -313,6 +316,41 @@ export function StudyPlanDashboard({
   const todayCompleted = tasksForDate.filter(t => t.completed).length;
   const todayProgress = tasksForDate.length > 0 ? Math.round((todayCompleted / tasksForDate.length) * 100) : 0;
 
+  // ── Derive a basic student profile from study plan data for AI cards ──
+  const studentProfile = useMemo<StudentProfilePayload | null>(() => {
+    if (studyPlans.length === 0) return null;
+    const topicMastery: StudentProfilePayload['topicMastery'] = {};
+    const methodsSet = new Set<string>();
+    for (const plan of studyPlans) {
+      for (const task of plan.tasks) {
+        if (task.method) methodsSet.add(task.method);
+        const key = task.subject || task.title;
+        if (!topicMastery[key]) {
+          topicMastery[key] = {
+            masteryPercent: task.completed ? 80 : 20,
+            pKnow: null,
+            needsReview: !task.completed,
+            totalAttempts: task.completed ? 1 : 0,
+            priorityScore: task.completed ? 0.3 : 0.8,
+          };
+        }
+      }
+    }
+    const totalMinutes = allTasks.reduce((s, t) => s + t.estimatedMinutes, 0);
+    return {
+      topicMastery,
+      sessionHistory: [],
+      dailyActivity: [],
+      stats: {
+        totalStudyMinutes: totalMinutes,
+        totalSessions: completedTasks,
+        currentStreak: 0,
+        avgMinutesPerSession: completedTasks > 0 ? Math.round(totalMinutes / completedTasks) : null,
+      },
+      studyMethods: Array.from(methodsSet),
+    };
+  }, [studyPlans, allTasks, completedTasks]);
+
   const toggleExpand = (taskId: string) => {
     setExpandedTasks(prev => {
       const next = new Set(prev);
@@ -489,6 +527,9 @@ export function StudyPlanDashboard({
         <div className="flex-1 overflow-y-auto px-5 lg:px-6 py-5 space-y-5">
           {tasksForDate.length > 0 ? (
             <>
+              {/* AI Daily Recommendations */}
+              <DailyRecommendationCard studentProfile={studentProfile} />
+
               {Object.entries(tasksBySubject).map(([subject, tasks]) => {
                 const subjectStartIndex = flatTasks.findIndex(t => t.subject === subject);
                 return (
@@ -651,6 +692,9 @@ export function StudyPlanDashboard({
                   todayProgress={todayProgress}
                 />
               </div>
+
+              {/* AI Weekly Insight */}
+              <WeeklyInsightCard studentProfile={studentProfile} />
             </>
           ) : (
             <motion.div
