@@ -590,7 +590,12 @@ export function KnowledgeGraph({
           minZoom: 0.15,
           maxZoom: 5,
         },
-        'drag-element',
+        {
+          type: 'drag-element',
+          // On mobile, require 150ms hold before node drag activates
+          // to prevent accidental drags when panning
+          ...(typeof window !== 'undefined' && 'ontouchstart' in window ? { delay: 150 } : {}),
+        },
         {
           type: 'hover-activate',
           degree: 1,
