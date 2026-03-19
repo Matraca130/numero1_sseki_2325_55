@@ -23,7 +23,7 @@ export const layout = {
     collapsedWidth: 0,
   },
   header: {
-    height: 48, // h-12 = 3rem = 48px
+    height: 56, // h-14 = 3.5rem = 56px
   },
   content: {
     paddingX:  'px-4 lg:px-6',

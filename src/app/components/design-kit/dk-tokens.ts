@@ -12,10 +12,10 @@ import { useReducedMotion } from "motion/react";
 export const tokens = {
   // Fondos
   bg: {
-    page: "bg-zinc-50",
+    page: "bg-[#F0F2F5]",
     card: "bg-white",
     hero: "bg-gradient-to-br from-teal-800 via-teal-900 to-teal-950",
-    cardDark: "bg-white/[0.07] backdrop-blur-md",
+    cardDark: "bg-[#1a2e2a]",
     sidebar: "bg-white",
   },
   // Bordes

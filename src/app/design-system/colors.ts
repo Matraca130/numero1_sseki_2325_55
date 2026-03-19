@@ -37,6 +37,8 @@ export const colors = {
     sidebarBase:  '#1B3B36',   // Sidebar outer shell (Axon Dark Teal)
     sidebarBody:  '#1a2e2a',   // Sidebar content area (Axon Dark Panel)
     cardDark:     '#1a2e2a',   // Performance card (Axon Dark Panel)
+    sidebarTextInactive: '#8fbfb3',  // Sidebar nav text inactive
+    sidebarSubtitle:     '#6db5a5',  // Sidebar logo subtitle / section labels
   },
 
   /** Backgrounds de pagina */
