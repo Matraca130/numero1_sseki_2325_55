@@ -32,7 +32,8 @@ export type ViewType =
   | 'knowledge-heatmap'
   | 'mastery-dashboard'
   | 'student-data'
-  | 'gamification';
+  | 'gamification'
+  | 'settings';
 
 // ── Mapping helpers ──────────────────────────────────────────
 

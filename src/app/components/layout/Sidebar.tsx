@@ -56,8 +56,9 @@ export function Sidebar() {
 
   const secondaryItems: NavItem[] = [
     { id: 'home' as ViewType, label: 'Comunidad', icon: Users },
-    { id: 'home' as ViewType, label: 'Configuración', icon: Settings },
   ];
+
+  const settingsItem: NavItem = { id: 'settings', label: 'Configuración', icon: Settings };
 
   return (
     <aside
@@ -123,6 +124,42 @@ export function Sidebar() {
         {/* Secondary Navigation */}
         <div className="space-y-1">
           <p className={components.sidebar.sectionLabel}>Otros</p>
+          {/* Settings — active NavLink */}
+          {(() => {
+            const SettingsIcon = settingsItem.icon;
+            const settingsTo = viewToPath(settingsItem.id);
+            return (
+              <NavLink
+                key="settings"
+                to={settingsTo}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  clsx(
+                    components.sidebar.navItem.base,
+                    'min-h-[44px]',
+                    isActive
+                      ? clsx(components.sidebar.navItem.active, currentCourse.accentColor || '')
+                      : components.sidebar.navItem.inactive
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <SettingsIcon size={20} className={isActive ? "text-current" : "text-gray-500 group-hover:text-white"} />
+                    <span>{settingsItem.label}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-nav-indicator"
+                        className={clsx("ml-auto w-1.5 h-1.5 rounded-full", currentCourse.color)}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })()}
+
+          {/* Disabled secondary items */}
           {secondaryItems.map((item, idx) => {
             const Icon = item.icon;
             return (

@@ -166,7 +166,7 @@ export function UserProfileDropdown() {
 
                 <div className="h-px bg-white/[0.06] mx-2.5 my-1" />
 
-                <DropdownItem icon={<Settings size={15} />} label="Configuración" />
+                <DropdownItem icon={<Settings size={15} />} label="Configuración" onClick={() => handleNavigate('settings')} />
                 <DropdownItem icon={<CreditCard size={15} />} label="Suscripción" />
                 <DropdownItem icon={<Moon size={15} />} label="Apariencia" />
                 <DropdownItem icon={<Shield size={15} />} label="Privacidad" />

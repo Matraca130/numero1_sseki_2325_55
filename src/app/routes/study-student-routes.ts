@@ -70,5 +70,9 @@ export const studyStudentRoutes: RouteObject[] = [
     path: 'xp-history',
     lazy: () => lazyRetry(() => import('@/app/components/gamification/pages/XpHistoryPage')).then(m => ({ Component: m.XpHistoryPage })),
   },
+  {
+    path: 'settings',
+    lazy: () => lazyRetry(() => import('@/app/components/student/StudentSettingsPage')).then(m => ({ Component: m.StudentSettingsPage })),
+  },
   // Agent 5: agrega nuevas rutas de study/dashboard aqui
 ];
