@@ -229,7 +229,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
