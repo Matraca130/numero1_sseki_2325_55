@@ -160,6 +160,7 @@ export function AxonAIAssistant({
 
     // Attempt streaming first, then fall back to non-streaming
     const streamingMsgId = `msg-${Date.now()}-${Math.random()}`;
+    let rafId: number | null = null;
     try {
       // Create placeholder message for progressive rendering
       setMessages(prev => [
@@ -170,7 +171,6 @@ export function AxonAIAssistant({
       setIsLoading(false); // Hide loading dots — streaming content is visible
 
       let accumulated = '';
-      let rafId: number | null = null;
 
       await chatStream(msg, {
         summaryId,
