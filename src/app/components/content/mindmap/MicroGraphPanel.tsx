@@ -116,8 +116,9 @@ export function MicroGraphPanel({
 
   // Don't render if no source IDs provided
   if (!topicId?.trim() && !summaryId?.trim()) return null;
-  // After fetching, if confirmed empty, hide panel
-  if (hasBeenExpanded && !loading && !error && !hasData) return null;
+  // After fetching, if confirmed empty and panel is collapsed, hide panel.
+  // If expanded, show an empty state message instead of vanishing.
+  if (hasBeenExpanded && !expanded && !loading && !error && !hasData) return null;
 
   const wrapperClass =
     variant === 'card'
@@ -204,7 +205,7 @@ export function MicroGraphPanel({
               <div className="px-3 pb-3">
                 {loading ? (
                   <GraphLoadingPlaceholder height={height} />
-                ) : displayGraph ? (
+                ) : displayGraph && displayGraph.nodes.length > 0 ? (
                   <>
                     <Suspense fallback={<GraphLoadingPlaceholder height={height} />}>
                       <MiniKnowledgeGraph
@@ -218,7 +219,11 @@ export function MicroGraphPanel({
                       Mapa cargado con {displayGraph.nodes.length} conceptos
                     </div>
                   </>
-                ) : null}
+                ) : (
+                  <div className="flex items-center justify-center text-xs text-gray-400 py-6" style={{ minHeight: height }}>
+                    No hay datos de mapa para este tema
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

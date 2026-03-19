@@ -87,15 +87,19 @@ export function GraphTemplatePanel({
   onCloseRef.current = onClose;
   const [loadTarget, setLoadTarget] = useState<GraphTemplate | null>(null);
 
-  // Close on Escape key
+  // Close on Escape key — only if no child dialog is open
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); onCloseRef.current(); }
+      if (e.key !== 'Escape') return;
+      // Don't close panel if a confirm dialog is showing (delete/load confirmation)
+      if (deleteTarget || loadTarget) return;
+      e.stopPropagation();
+      onCloseRef.current();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open]);
+  }, [open, deleteTarget, loadTarget]);
 
   // ── Fetch templates on open ───────────────────────────────
 

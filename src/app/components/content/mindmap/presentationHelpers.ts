@@ -70,9 +70,10 @@ export function topologicalSort(nodes: MapNode[], edges: MapEdge[]): MapNode[] {
   const visited = new Set<string>();
   const result: MapNode[] = [];
   const queue = [...roots];
+  let head = 0;
 
-  while (queue.length > 0) {
-    const node = queue.shift()!;
+  while (head < queue.length) {
+    const node = queue[head++];
     if (visited.has(node.id)) continue;
     visited.add(node.id);
     result.push(node);

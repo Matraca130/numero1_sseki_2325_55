@@ -60,6 +60,9 @@ export function useFullscreen(): UseFullscreenReturn {
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const restoreRef = useRef<(() => void) | null>(null);
+  // Ref tracks desired state to avoid stale closures in async callbacks
+  const isFullscreenRef = useRef(false);
+  const rafIdRef = useRef<number>(0);
 
   // Check if Fullscreen API is available
   const supportsFullscreen = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
@@ -70,6 +73,10 @@ export function useFullscreen(): UseFullscreenReturn {
   }, []);
 
   const enterFullscreen = useCallback(async () => {
+    // Clean up any pending restore from a previous rapid toggle
+    doRestore();
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+
     if (supportsFullscreen && fullscreenRef.current) {
       try {
         await fullscreenRef.current.requestFullscreen();
@@ -77,18 +84,22 @@ export function useFullscreen(): UseFullscreenReturn {
         // Fullscreen API failed — use CSS fallback
       }
     }
+    isFullscreenRef.current = true;
     setIsFullscreen(true);
     // Clear ancestor transforms so CSS `fixed` works correctly.
     // Schedule after React commit so the DOM reflects the new class.
-    requestAnimationFrame(() => {
-      if (fullscreenRef.current) {
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = 0;
+      // Guard: only apply if still in fullscreen (rapid toggle protection)
+      if (isFullscreenRef.current && fullscreenRef.current) {
         restoreRef.current = clearAncestorTransforms(fullscreenRef.current);
       }
     });
     try { sessionStorage.setItem('axon_map_fullscreen', '1'); } catch {}
-  }, [supportsFullscreen]);
+  }, [supportsFullscreen, doRestore]);
 
   const exitFullscreen = useCallback(async () => {
+    if (rafIdRef.current) { cancelAnimationFrame(rafIdRef.current); rafIdRef.current = 0; }
     doRestore();
     if (supportsFullscreen && document.fullscreenElement) {
       try {
@@ -97,17 +108,19 @@ export function useFullscreen(): UseFullscreenReturn {
         // Already exited or not in fullscreen
       }
     }
+    isFullscreenRef.current = false;
     setIsFullscreen(false);
     try { sessionStorage.removeItem('axon_map_fullscreen'); } catch {}
   }, [supportsFullscreen, doRestore]);
 
   const toggleFullscreen = useCallback(() => {
-    if (isFullscreen) {
+    // Read from ref to avoid stale state in rapid toggles
+    if (isFullscreenRef.current) {
       exitFullscreen();
     } else {
       enterFullscreen();
     }
-  }, [isFullscreen, enterFullscreen, exitFullscreen]);
+  }, [enterFullscreen, exitFullscreen]);
 
   // Sync with Fullscreen API events (e.g. user presses browser ESC)
   useEffect(() => {
