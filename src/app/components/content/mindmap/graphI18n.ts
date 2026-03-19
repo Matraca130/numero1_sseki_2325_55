@@ -30,7 +30,7 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     ariaLabel: 'Mapa de conhecimento interativo', ariaRoleDesc: 'grafo de conhecimento',
     srDesc: 'Use Tab para navegar entre nodos, setas para mover entre vizinhos, Enter para menu de contexto, + para adicionar nodo conectado. Esc para desmarcar. ? para atalhos.',
     nCollapsed: (n) => `${n} nodos recolhidos`, allExpanded: 'Todos os nodos expandidos',
-    mobileHint: 'Arraste para mover · Pinca para zoom · Segure para menu',
+    mobileHint: 'Arraste para mover · Pinça para zoom · Mantenha para menu',
     reviewAlert: 'IA recomenda revisar',
     fitView: 'Ajustar a vista', shortcuts: 'Atalhos', search: 'buscar',
     closeShortcuts: 'Fechar atalhos', shortcutDialog: 'Atalhos de teclado',

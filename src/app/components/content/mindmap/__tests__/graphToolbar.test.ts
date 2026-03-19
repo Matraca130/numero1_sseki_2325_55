@@ -516,8 +516,8 @@ describe('GraphToolbar: edge legend', () => {
     expect(source).toContain('aria-expanded={showEdgeLegend}');
   });
 
-  it('renders legend popup with role="tooltip"', () => {
-    expect(source).toContain('role="tooltip"');
+  it('renders legend popup with role="dialog"', () => {
+    expect(source).toContain('role="dialog"');
   });
 
   it('renders connection types title', () => {

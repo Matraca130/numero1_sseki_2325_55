@@ -551,7 +551,7 @@ export function GraphToolbar({
           <Info className="w-3.5 h-3.5" />
         </button>
         {showEdgeLegend && (
-          <div className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 w-56 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto" role="tooltip" aria-label="Leyenda de tipos de conexión">
+          <div className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 w-56 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto" role="dialog" aria-label="Leyenda de tipos de conexión">
             <p
               className="font-semibold text-gray-400 uppercase tracking-wider mb-2.5 font-sans"
               style={{ fontSize: fontSize.overline }}
