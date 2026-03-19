@@ -113,6 +113,8 @@ interface KnowledgeGraphProps {
   enableEdgeReconnect?: boolean;
   /** Called when a user-created edge is reconnected to a different node */
   onEdgeReconnect?: (result: EdgeReconnectResult) => void;
+  /** Called when zoom level changes (value is the zoom ratio, e.g. 1.0 = 100%) */
+  onZoomChange?: (zoom: number) => void;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -143,6 +145,7 @@ export function KnowledgeGraph({
   onDragConnect,
   enableEdgeReconnect = false,
   onEdgeReconnect,
+  onZoomChange,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -205,6 +208,8 @@ export function KnowledgeGraph({
   onNodeClickRef.current = onNodeClick;
   const onNodeRightClickRef = useRef(onNodeRightClick);
   onNodeRightClickRef.current = onNodeRightClick;
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
 
   // Track mount state to guard async callbacks
   useEffect(() => {
@@ -434,8 +439,8 @@ export function KnowledgeGraph({
     return `${e.length}:${hash}`;
   }, [data.edges]);
   const currentDataKey = useMemo(
-    () => `${layout}:${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}|dc:${enableDragConnect ? '1' : '0'}`,
-    [layout, nodeSetKey, edgeSetKey, showMinimap, gridEnabled, enableDragConnect],
+    () => `${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}|dc:${enableDragConnect ? '1' : '0'}`,
+    [nodeSetKey, edgeSetKey, showMinimap, gridEnabled, enableDragConnect],
   );
 
   // Stable refs so collapseAll/expandAll/toggleCollapse in onReady always use latest state
@@ -775,7 +780,29 @@ export function KnowledgeGraph({
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDataKey, layout, showMinimap, gridEnabled, enableDragConnect]);
+  }, [currentDataKey, showMinimap, gridEnabled, enableDragConnect]);
+
+  // Smooth layout switching: morph nodes to new positions instead of destroying the graph
+  const prevLayoutRef = useRef(layout);
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || !ready || layoutInProgressRef.current) return;
+    if (prevLayoutRef.current === layout) return;
+    prevLayoutRef.current = layout;
+
+    const layoutConfig = layout === 'dagre' ? LAYOUT_DAGRE
+      : layout === 'radial' ? LAYOUT_RADIAL
+      : LAYOUT_FORCE;
+
+    layoutInProgressRef.current = true;
+    graph.setLayout(layoutConfig);
+    graph.layout().then(() => {
+      if (!mountedRef.current || graphRef.current !== graph) return;
+      try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
+    }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
+      layoutInProgressRef.current = false;
+    });
+  }, [layout, ready]);
 
   // ResizeObserver: auto-resize graph when container dimensions change
   // Compare dimensions before calling resize() to avoid infinite loops
@@ -1150,6 +1177,17 @@ export function KnowledgeGraph({
     graph.on('node:pointerleave', clearActiveState);
     graph.on('node:pointermove', handleNodePointerMove);
 
+    // Track zoom level changes for the toolbar indicator
+    const handleViewportChange = () => {
+      try {
+        const zoom = graph.getZoom();
+        if (typeof zoom === 'number') onZoomChangeRef.current?.(zoom);
+      } catch { /* graph may be destroyed */ }
+    };
+    graph.on('afterviewportchange', handleViewportChange);
+    // Fire initial zoom level
+    handleViewportChange();
+
     return () => {
       graph.off('node:click', handleNodeClick);
       graph.off('node:contextmenu', handleNodeContextMenu);
@@ -1161,6 +1199,7 @@ export function KnowledgeGraph({
       graph.off('node:pointerup', clearActiveState);
       graph.off('node:pointerleave', clearActiveState);
       graph.off('node:pointermove', handleNodePointerMove);
+      graph.off('afterviewportchange', handleViewportChange);
       if (longPressTimer) clearTimeout(longPressTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps — callbacks stabilized via refs (onNodeClickRef, onNodeRightClickRef, onCollapseChangeRef)

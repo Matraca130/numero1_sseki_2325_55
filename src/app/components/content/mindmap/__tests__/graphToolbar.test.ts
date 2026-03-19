@@ -436,8 +436,8 @@ describe('GraphToolbar: mastery legend', () => {
     expect(source).toContain("const MASTERY_COLORS: MasteryColor[] = ['green', 'yellow', 'red', 'gray']");
   });
 
-  it('maps over MASTERY_COLORS to render legend items', () => {
-    expect(source).toContain('{MASTERY_COLORS.map((color) => (');
+  it('maps over MASTERY_COLORS to render legend/filter items', () => {
+    expect(source).toContain('{MASTERY_COLORS.map((color) => {');
   });
 
   it('renders a colored dot for each mastery level using MASTERY_HEX', () => {

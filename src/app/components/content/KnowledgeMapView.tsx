@@ -67,6 +67,7 @@ import type { MapTool } from './mindmap/MapToolsPanel';
 import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
+import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
 
 // ── Component ───────────────────────────────────────────────
 
@@ -146,6 +147,16 @@ export function KnowledgeMapView() {
     matchCount, nodeCount, edgeCount,
   } = useGraphSearch(graphData);
 
+  // Mastery filter: compute set of node IDs matching the selected mastery level
+  const masteryFilterNodeIds = useMemo(() => {
+    if (!masteryFilter || !graphData) return undefined;
+    const ids = new Set<string>();
+    for (const node of graphData.nodes) {
+      if (getSafeMasteryColor(node.mastery) === masteryFilter) ids.add(node.id);
+    }
+    return ids.size > 0 ? ids : undefined;
+  }, [masteryFilter, graphData]);
+
   const handleTopicSelect = useCallback((tid: string) => {
     setManualTopicId(tid);
     setSearchParams(tid ? { topicId: tid } : {});
@@ -212,6 +223,8 @@ export function KnowledgeMapView() {
   const [showComparison, setShowComparison] = useState(false);
   const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [masteryFilter, setMasteryFilter] = useState<import('@/app/lib/mastery-helpers').MasteryColor | null>(null);
   // Minimap: visible on desktop by default, hidden on mobile
   const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
   const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
@@ -1073,6 +1086,9 @@ export function KnowledgeMapView() {
             onExportJPEG={handleExportJPEG}
             showMinimap={showMinimap}
             onMinimapToggle={toggleMinimap}
+            zoomLevel={zoomLevel}
+            masteryFilter={masteryFilter}
+            onMasteryFilterChange={setMasteryFilter}
           />
         </div>
 
@@ -1133,7 +1149,7 @@ export function KnowledgeMapView() {
                 selectedNodeId={selectedNode?.id}
                 layout={layout}
                 onReady={handleGraphReady}
-                highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : aiHighlightNodes}
+                highlightNodeIds={matchingNodeIds.size > 0 ? matchingNodeIds : masteryFilterNodeIds ?? aiHighlightNodes}
                 onCollapseChange={handleCollapseChange}
                 reviewNodeIds={aiReviewNodes}
                 topicId={effectiveTopicId}
@@ -1142,6 +1158,7 @@ export function KnowledgeMapView() {
                 onQuickAdd={handleQuickAdd}
                 enableEdgeReconnect
                 onEdgeReconnect={handleEdgeReconnect}
+                onZoomChange={setZoomLevel}
               />
             ) : searchQuery.trim() ? (
               <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">

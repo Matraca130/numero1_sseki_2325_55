@@ -104,6 +104,12 @@ interface GraphToolbarProps {
   onGridToggle?: () => void;
   /** Trigger auto-layout reorganization */
   onAutoLayout?: () => void;
+  /** Current zoom level (0-1 scale, e.g. 0.75 = 75%) */
+  zoomLevel?: number;
+  /** Active mastery filter (null = show all) */
+  masteryFilter?: MasteryColor | null;
+  /** Callback when mastery filter changes */
+  onMasteryFilterChange?: (filter: MasteryColor | null) => void;
 }
 
 // ── Mastery Legend ───────────────────────────────────────────
@@ -155,6 +161,9 @@ export function GraphToolbar({
   showGrid,
   onGridToggle,
   onAutoLayout,
+  zoomLevel,
+  masteryFilter,
+  onMasteryFilterChange,
 }: GraphToolbarProps) {
   const t = I18N[locale];
   const [showEdgeLegend, setShowEdgeLegend] = useState(false);
@@ -258,6 +267,17 @@ export function GraphToolbar({
         >
           <ZoomOut className="w-4 h-4" />
         </button>
+        {typeof zoomLevel === 'number' && (
+          <button
+            onClick={onFitView}
+            className="hidden sm:flex items-center justify-center min-w-[36px] px-1 py-0.5 rounded-full text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150 font-sans tabular-nums"
+            style={{ fontSize: fontSize.overline }}
+            title={`${t.fitView} (0)`}
+            aria-label={`Zoom: ${Math.round(zoomLevel * 100)}%`}
+          >
+            {Math.round(zoomLevel * 100)}%
+          </button>
+        )}
         <button
           onClick={onFitView}
           className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
@@ -426,23 +446,43 @@ export function GraphToolbar({
         </div>
       )}
 
-      {/* Mastery legend — hidden on mobile (parent renders its own strip) */}
-      <div className="hidden sm:flex items-center gap-3" role="group" aria-label={t.masteryGroup}>
-        {MASTERY_COLORS.map((color) => (
-          <div key={color} className="flex items-center gap-1">
-            <span
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: MASTERY_HEX[color] }}
-              aria-hidden="true"
-            />
-            <span
-              className="sr-only md:not-sr-only text-gray-500 font-sans"
-              style={{ fontSize: fontSize.xs }}
+      {/* Mastery legend / filter — hidden on mobile (parent renders its own strip) */}
+      <div className="hidden sm:flex items-center gap-1.5" role="group" aria-label={t.masteryGroup}>
+        {MASTERY_COLORS.map((color) => {
+          const isActive = masteryFilter === color;
+          return (
+            <button
+              key={color}
+              onClick={() => onMasteryFilterChange?.(isActive ? null : color)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full font-sans transition-all duration-150 ${
+                isActive
+                  ? 'ring-1 ring-offset-1 bg-gray-50'
+                  : masteryFilter && !isActive
+                    ? 'opacity-40 hover:opacity-70'
+                    : 'hover:bg-gray-50'
+              }`}
+              style={{
+                fontSize: fontSize.xs,
+                ...(isActive ? { ringColor: MASTERY_HEX[color] } : {}),
+              }}
+              title={`Filtrar: ${getMasteryLabel(color, locale)}`}
+              aria-pressed={isActive}
+              aria-label={`Filtrar por ${getMasteryLabel(color, locale)}`}
             >
-              {getMasteryLabel(color, locale)}
-            </span>
-          </div>
-        ))}
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: MASTERY_HEX[color] }}
+                aria-hidden="true"
+              />
+              <span
+                className="sr-only md:not-sr-only text-gray-500 font-sans"
+                style={{ fontSize: fontSize.xs }}
+              >
+                {getMasteryLabel(color, locale)}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Grid toggle */}
