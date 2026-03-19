@@ -6,7 +6,7 @@
 // macOS-inspired: clean, minimal, premium feel.
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState, type ElementType } from 'react';
+import { useEffect, useMemo, useRef, useState, memo, type ElementType } from 'react';
 import { Layers, HelpCircle, FileText, Edit3, Info, X, ChevronRight, ChevronDown, Palette, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapNode, NodeAction } from '@/app/types/mindmap';
@@ -63,7 +63,7 @@ const captionFontSize = 'clamp(0.7rem, 1.3vw, 0.75rem)';
 
 // ── Component ───────────────────────────────────────────────
 
-export function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse, onColorChange, currentCustomColor, hideConnect }: NodeContextMenuProps) {
+export const NodeContextMenu = memo(function NodeContextMenu({ node, position, onAction, onClose, hasChildren, isCollapsed, onToggleCollapse, onColorChange, currentCustomColor, hideConnect }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -332,4 +332,4 @@ export function NodeContextMenu({ node, position, onAction, onClose, hasChildren
       )}
     </AnimatePresence>
   );
-}
+});

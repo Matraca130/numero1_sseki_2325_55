@@ -30,8 +30,8 @@ const source = readFileSync(COMPONENT_PATH, 'utf-8');
 // ── Module contract ─────────────────────────────────────────
 
 describe('GraphToolbar: module contract', () => {
-  it('exports a named function GraphToolbar', () => {
-    expect(source).toMatch(/export\s+function\s+GraphToolbar/);
+  it('exports a named function GraphToolbar (optionally wrapped in memo)', () => {
+    expect(source).toMatch(/export\s+(const\s+GraphToolbar\s*=\s*memo\s*\(\s*function\s+GraphToolbar|function\s+GraphToolbar)/);
   });
 
   it('has no default export (named export only)', () => {

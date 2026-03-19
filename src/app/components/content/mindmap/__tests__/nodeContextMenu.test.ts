@@ -32,8 +32,8 @@ const source = readFileSync(COMPONENT_PATH, 'utf-8');
 // ── Module contract ─────────────────────────────────────────
 
 describe('NodeContextMenu: module contract', () => {
-  it('exports a named function NodeContextMenu', () => {
-    expect(source).toMatch(/export\s+function\s+NodeContextMenu/);
+  it('exports a named function NodeContextMenu (optionally wrapped in memo)', () => {
+    expect(source).toMatch(/export\s+(const\s+NodeContextMenu\s*=\s*memo\s*\(\s*function\s+NodeContextMenu|function\s+NodeContextMenu)/);
   });
 
   it('has no default export (named export only)', () => {

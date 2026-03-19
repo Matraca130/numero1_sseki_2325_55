@@ -18,7 +18,7 @@
 //   - Mastery color legend (bottom-left)
 // ============================================================
 
-import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo, memo } from 'react';
 import { Graph } from '@antv/g6';
 import { Maximize2, X, Link, Trash2, Plus, Group, Focus, ChevronRight } from 'lucide-react';
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
@@ -119,7 +119,7 @@ interface KnowledgeGraphProps {
 
 // ── Component ───────────────────────────────────────────────
 
-export function KnowledgeGraph({
+export const KnowledgeGraph = memo(function KnowledgeGraph({
   data,
   onNodeClick,
   onNodeRightClick,
@@ -1644,4 +1644,4 @@ export function KnowledgeGraph({
       )}
     </div>
   );
-}
+});

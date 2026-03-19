@@ -1098,6 +1098,9 @@ export function KnowledgeMapView() {
         )}
 
         {/* Toolbar */}
+        <ErrorBoundary fallback={() => (
+          <div className="flex-shrink-0 mb-3 px-4 py-2 text-xs text-gray-400">Error en la barra de herramientas</div>
+        )}>
         <div className="flex-shrink-0 mb-3 overflow-x-auto scrollbar-hide">
           <GraphToolbar
             layout={layout}
@@ -1123,6 +1126,7 @@ export function KnowledgeMapView() {
             onMasteryFilterChange={setMasteryFilter}
           />
         </div>
+        </ErrorBoundary>
 
         {/* Mobile mastery legend (hidden on md+, where GraphToolbar legend shows) */}
         {masteryStats && (
@@ -1149,11 +1153,13 @@ export function KnowledgeMapView() {
         {/* Graph canvas */}
         <div className="flex-1 min-h-0 relative">
           {/* Floating tool palette — horizontal bottom bar on mobile, vertical left on desktop */}
-          <MapToolsPanel
-            activeTool={activeTool}
-            onToolChange={handleToolChange}
-            visible={!loading && !!filteredGraphData && filteredGraphData.nodes.length > 0}
-          />
+          <ErrorBoundary fallback={() => null}>
+            <MapToolsPanel
+              activeTool={activeTool}
+              onToolChange={handleToolChange}
+              visible={!loading && !!filteredGraphData && filteredGraphData.nodes.length > 0}
+            />
+          </ErrorBoundary>
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center gap-3 px-4">
               <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">

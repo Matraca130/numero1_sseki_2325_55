@@ -6,7 +6,7 @@
 // XMind-inspired: floating toolbar with clean icons.
 // ============================================================
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon, Grid3x3, Shuffle } from 'lucide-react';
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
@@ -138,7 +138,7 @@ function ToolSeparator() {
 
 // ── Component ───────────────────────────────────────────────
 
-export function GraphToolbar({
+export const GraphToolbar = memo(function GraphToolbar({
   layout,
   onLayoutChange,
   onZoomIn,
@@ -579,4 +579,4 @@ export function GraphToolbar({
       </div>
     </div>
   );
-}
+});
