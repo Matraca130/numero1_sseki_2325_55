@@ -114,7 +114,8 @@ export function KeywordPopup({
   } = useKeywordPopupQueries(keyword.id, allKeywordIds, keyword.summary_id);
 
   // M-4 FIX: Get keywordMasteryMap for local nodes in ConnectionsMap.
-  const { keywordMasteryMap } = useKeywordMasteryQuery(keyword.summary_id);
+  // Phase 2: Also get keywordDeltaColorMap for MasteryIndicator delta colors.
+  const { keywordMasteryMap, keywordDeltaColorMap } = useKeywordMasteryQuery(keyword.summary_id);
 
   // ── Compute keyword mastery from bktMap ─────────────────
   const kwMastery = useMemo(() => {
@@ -123,6 +124,9 @@ export function KeywordPopup({
       .filter((b): b is BktState => b != null);
     return getKeywordMastery(bkts);
   }, [subtopics, bktMap]);
+
+  // ── Delta color level for this keyword ───────────────────
+  const kwDeltaLevel = keywordDeltaColorMap.get(keyword.id) ?? 'gray';
 
   // ── Resolve keyword name ────────────────────────────────
   const kwName = useCallback((id: string) => {
@@ -199,7 +203,7 @@ export function KeywordPopup({
       {/* ── HEADER ─────────────────────────────────────────── */}
       <div className="px-5 pt-4 pb-3 flex items-start justify-between shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <MasteryIndicator pMastery={kwMastery} size="lg" variant="ring" />
+          <MasteryIndicator deltaLevel={kwDeltaLevel} pMastery={kwMastery} size="lg" variant="ring" />
           <div className="min-w-0">
             <h3 className="text-sm text-zinc-100 truncate">{keyword.name}</h3>
             <div className="flex items-center gap-1.5 mt-1">
@@ -210,7 +214,7 @@ export function KeywordPopup({
                 {prio.label}
               </span>
               {kwMastery >= 0 && (
-                <MasteryIndicator pMastery={kwMastery} size="sm" variant="badge" />
+                <MasteryIndicator deltaLevel={kwDeltaLevel} pMastery={kwMastery} size="sm" variant="badge" />
               )}
               {kwMastery < 0 && (
                 <span className="text-[9px] text-zinc-600 italic">Sin datos de estudio</span>

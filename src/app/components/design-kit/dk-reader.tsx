@@ -47,9 +47,9 @@ export function PageNavigation({ currentPage, totalPages, onPrev, onNext, onPage
   );
 }
 
-/** KeywordPill — pill interactiva de keyword con color de mastery. */
-export function KeywordPill({ name, definition, mastery = "new", delay = 0 }: { name: string; definition?: string; mastery?: "new" | "learning" | "reviewing" | "known" | "mastered"; delay?: number }) {
-  const m = tokens.mastery[mastery];
+/** KeywordPill — pill interactiva de keyword con color de mastery (Delta scale). */
+export function KeywordPill({ name, definition, mastery = "gray", delay = 0 }: { name: string; definition?: string; mastery?: "gray" | "red" | "yellow" | "green" | "blue"; delay?: number }) {
+  const m = tokens.mastery[mastery] ?? tokens.mastery.gray;
   return (
     <motion.button className={`px-3 py-1.5 rounded-lg text-xs border ${m.bg} ${m.text} ${m.border} cursor-pointer`} title={definition} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }} style={{ fontWeight: 600 }}>
       {name}

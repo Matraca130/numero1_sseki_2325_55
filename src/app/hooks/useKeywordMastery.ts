@@ -5,69 +5,65 @@
 //   Now consumes useStudyQueueData instead of fetching its own
 //   copy of the study-queue. Eliminates 1 of 3 duplicate fetches.
 //
+// MIGRATED v4.5 (Delta Mastery):
+//   Uses unified Delta Mastery color system (5-tier) from
+//   mastery-helpers.ts instead of hardcoded 3-tier thresholds.
+//
 // Accepts pre-fetched StudyQueueItem[] from useStudyQueueData,
 // groups by keyword_id, computes AVG(p_know).
 //
-// Color mapping: >= 0.80 → green | >= 0.50 → yellow | < 0.50 → red
+// Color mapping: Delta scale (gray/red/yellow/green/blue) via
+// getKeywordDeltaColorSafe with default priority=1 (threshold 0.70).
 // ============================================================
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
+import {
+  getKeywordDeltaColorSafe,
+  getDeltaColorClasses,
+  getDeltaColorLabel,
+  type DeltaColorLevel,
+} from '@/app/lib/mastery-helpers';
 
 // ── Types ─────────────────────────────────────────────────
 
-export type MasteryLevel = 'red' | 'yellow' | 'green';
+/** Backward-compat alias — prefer DeltaColorLevel directly */
+export type MasteryLevel = DeltaColorLevel;
 
 export interface KeywordMasteryEntry {
   keywordId: string;
-  mastery: MasteryLevel;
+  mastery: DeltaColorLevel;
   pKnow: number;       // AVG(p_know) across all cards for this keyword
   cardCount: number;    // number of cards contributing to the average
 }
 
 export interface KeywordMasteryStats {
+  gray: number;
   red: number;
   yellow: number;
   green: number;
+  blue: number;
   total: number;
 }
 
-export const masteryConfig: Record<MasteryLevel, {
-  label: string;
-  color: string;
-  bg: string;
-  border: string;
-  description: string;
-}> = {
-  red: {
-    label: 'No domino',
-    color: 'text-rose-600',
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-    description: 'Necesita repaso urgente',
-  },
-  yellow: {
-    label: 'En progreso',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    description: 'Conocimiento parcial',
-  },
-  green: {
-    label: 'Dominado',
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    description: 'Dominio consolidado',
-  },
-};
+export const masteryConfig = Object.fromEntries(
+  (['gray', 'red', 'yellow', 'green', 'blue'] as DeltaColorLevel[]).map(level => {
+    const dc = getDeltaColorClasses(level);
+    return [level, {
+      label: getDeltaColorLabel(level),
+      color: dc.text,
+      bg: dc.bg,
+      border: dc.border,
+      description: getDeltaColorLabel(level),
+    }];
+  })
+) as Record<DeltaColorLevel, { label: string; color: string; bg: string; border: string; description: string }>;
 
 // ── Helpers ───────────────────────────────────────────────
 
-function pKnowToLevel(pKnow: number): MasteryLevel {
-  if (pKnow >= 0.80) return 'green';
-  if (pKnow >= 0.50) return 'yellow';
-  return 'red';
+function pKnowToLevel(pKnow: number): DeltaColorLevel {
+  // Default priority 1 — study queue doesn't carry keyword priority
+  return getKeywordDeltaColorSafe(pKnow, 1);
 }
 
 function buildKeywordMastery(
@@ -114,7 +110,7 @@ export function useKeywordMastery(
 
   /** Get mastery level for a specific keyword */
   const getMastery = useCallback(
-    (keywordId: string): MasteryLevel | null => {
+    (keywordId: string): DeltaColorLevel | null => {
       return masteryMap.get(keywordId)?.mastery ?? null;
     },
     [masteryMap],
@@ -130,15 +126,17 @@ export function useKeywordMastery(
 
   /** Summary stats across all keywords — single pass */
   const getStats = useCallback((): KeywordMasteryStats => {
-    let red = 0, yellow = 0, green = 0;
+    let gray = 0, red = 0, yellow = 0, green = 0, blue = 0;
     for (const entry of masteryMap.values()) {
       switch (entry.mastery) {
+        case 'gray': gray++; break;
         case 'red': red++; break;
         case 'yellow': yellow++; break;
         case 'green': green++; break;
+        case 'blue': blue++; break;
       }
     }
-    return { red, yellow, green, total: masteryMap.size };
+    return { gray, red, yellow, green, blue, total: masteryMap.size };
   }, [masteryMap]);
 
   /** All entries sorted by mastery (weakest first) */

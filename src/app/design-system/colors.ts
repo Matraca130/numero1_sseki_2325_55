@@ -72,12 +72,13 @@ export const colors = {
     info:     '#06b6d4',       // cyan-500
   },
 
-  /** Mastery / spaced repetition levels */
+  /** Mastery / spaced repetition levels — Delta Mastery Scale */
   mastery: {
-    notStarted: '#d1d5db',     // gray-300
-    learning:   '#fbbf24',     // yellow-400
-    reviewing:  '#2a8c7a',     // Axon Teal Accent
-    mastered:   '#0d9488',     // Axon Progress End
+    descubrir:   '#a1a1aa',  // zinc-400 — Por descubrir
+    emergente:   '#ef4444',  // red-500 — Emergente
+    enProgreso:  '#f59e0b',  // amber-500 — En progreso
+    consolidado: '#10b981',  // emerald-500 — Consolidado
+    maestria:    '#3b82f6',  // blue-500 — Maestria
   },
 
   /** Rating scale (flashcard self-assessment) */

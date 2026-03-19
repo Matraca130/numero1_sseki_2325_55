@@ -50,13 +50,13 @@ export const tokens = {
     inProgress: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", accent: "bg-teal-500" },
     notStarted: { bg: "bg-zinc-100", text: "text-zinc-500", border: "border-zinc-200", accent: "bg-zinc-300" },
   },
-  // Colores de mastery (para keywords)
+  // Colores de mastery (Delta Mastery Scale — aligned with mastery-helpers.ts)
   mastery: {
-    new: { bg: "bg-zinc-100", text: "text-zinc-600", border: "border-zinc-300", label: "Nuevo" },
-    learning: { bg: "bg-red-100", text: "text-red-700", border: "border-red-300", label: "Aprendiendo" },
-    reviewing: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", label: "Repasando" },
-    known: { bg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", label: "Conocido" },
-    mastered: { bg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300", label: "Dominado" },
+    gray:   { bg: "bg-zinc-100",    text: "text-zinc-600",    border: "border-zinc-300",    label: "Por descubrir" },
+    red:    { bg: "bg-red-100",     text: "text-red-700",     border: "border-red-300",     label: "Emergente" },
+    yellow: { bg: "bg-amber-100",   text: "text-amber-700",   border: "border-amber-300",   label: "En progreso" },
+    green:  { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300", label: "Consolidado" },
+    blue:   { bg: "bg-blue-100",    text: "text-blue-700",    border: "border-blue-300",    label: "Maestría" },
   },
   // Colores semanticos de seccion
   section: {

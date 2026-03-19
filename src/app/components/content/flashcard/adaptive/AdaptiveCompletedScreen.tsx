@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Trophy, RotateCcw } from 'lucide-react';
-import { getMasteryColorFromPct } from '../mastery-colors';
+import { getKeywordDeltaColorSafe, getDeltaColorClasses } from '@/app/lib/mastery-helpers';
 import { MasteryRing } from '../MasteryRing';
 import { computeMasteryPct, computeDeltaStats, countCorrect } from '@/app/lib/session-stats';
 import { DeltaBadges } from './DeltaBadges';
@@ -25,7 +25,8 @@ export function AdaptiveCompletedScreen({ allStats, completedRounds, masteryDelt
   const correctReviews = countCorrect(allStats);
   const totalRounds = completedRounds.length;
   const masteryPct = useMemo(() => computeMasteryPct(topicSummary, allStats), [topicSummary, allStats]);
-  const masteryColor = getMasteryColorFromPct(masteryPct / 100);
+  const deltaLevel = getKeywordDeltaColorSafe(masteryPct / 100, 2);
+  const masteryColor = getDeltaColorClasses(deltaLevel);
   const deltaStats = useMemo(() => computeDeltaStats(masteryDeltas), [masteryDeltas]);
   const aiRounds = completedRounds.filter(r => r.source === 'ai').length;
   const profRounds = completedRounds.filter(r => r.source === 'professor').length;

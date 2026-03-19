@@ -32,6 +32,7 @@
 
 import { apiCall } from '@/app/lib/api';
 import { parallelWithLimit } from '@/app/lib/concurrency';
+import { getKeywordDeltaColorSafe, getDeltaColorClasses, getDeltaColorLabel, type DeltaColorLevel } from '@/app/lib/mastery-helpers';
 
 // ── Constants ───────────────────────────────────────────────
 
@@ -44,23 +45,22 @@ const MAX_KEYWORD_IDS_PER_BATCH = 50;
 /** Max subtopic IDs per bkt-states call (backend limit) */
 const MAX_SUBTOPIC_IDS_PER_BATCH = 200;
 
-// ── Mastery Color Helpers ─────────────────────────────────
+// ── Mastery Color Helpers (delegates to Delta Mastery Scale) ──
 
-/** Mastery color matching the dashboard convention in studentApi.ts */
-export type MasteryColor = 'green' | 'yellow' | 'red';
+/** @deprecated Use DeltaColorLevel from mastery-helpers.ts instead */
+export type MasteryColor = DeltaColorLevel;
 
 /**
- * Convert a numeric mastery [0-1] to a dashboard color.
- * Thresholds match studentApi.ts: green >= 0.80, yellow >= 0.50, red < 0.50.
+ * Convert a numeric mastery [0-1] to a Delta color level.
+ * Delegates to the unified Delta Mastery Scale in mastery-helpers.ts.
  *
- * NOTE: These thresholds differ from MASTERY_THRESHOLD (0.75) intentionally:
- * - Color is for DISPLAY (3-level visual feedback)
- * - MASTERY_THRESHOLD is for LOGIC (binary "mastered" decision for AI targeting)
+ * NOTE: MASTERY_THRESHOLD (0.75) is still used for LOGIC (binary "mastered"
+ * decision for AI targeting). Colors now use the Delta relative scale.
+ *
+ * @deprecated Use getKeywordDeltaColorSafe from mastery-helpers.ts directly
  */
-export function getMasteryColor(mastery: number): MasteryColor {
-  if (mastery >= 0.80) return 'green';
-  if (mastery >= 0.50) return 'yellow';
-  return 'red';
+export function getMasteryColor(mastery: number): DeltaColorLevel {
+  return getKeywordDeltaColorSafe(mastery, 1);
 }
 
 // ── Types ─────────────────────────────────────────────────

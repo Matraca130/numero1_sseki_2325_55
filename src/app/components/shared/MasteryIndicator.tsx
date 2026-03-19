@@ -16,7 +16,10 @@ import {
   getSafeMasteryColor,
   getMasteryLabel,
   getMasteryTailwind,
+  getDeltaColorClasses,
+  getDeltaColorLabel,
   type MasteryColor,
+  type DeltaColorLevel,
 } from '@/app/lib/mastery-helpers';
 
 interface MasteryIndicatorProps {
@@ -26,6 +29,8 @@ interface MasteryIndicatorProps {
   variant?: 'dot' | 'badge' | 'ring';
   /** Show tooltip on hover */
   showTooltip?: boolean;
+  /** When provided, uses the unified Delta color scale instead of legacy MasteryColor */
+  deltaLevel?: DeltaColorLevel;
 }
 
 // ── Size configs ──────────────────────────────────────────
@@ -38,14 +43,30 @@ export function MasteryIndicator({
   size = 'md',
   variant = 'dot',
   showTooltip = true,
+  deltaLevel,
 }: MasteryIndicatorProps) {
-  // M-6 FIX: Use getSafeMasteryColor to handle -1 sentinel
-  const color: MasteryColor = getSafeMasteryColor(pMastery);
-  const label = getMasteryLabel(color);
-  const tw = getMasteryTailwind(color);
+  // --- Resolve colors: Delta path (new) vs Legacy path (backward compat) ---
+  const useDelta = deltaLevel !== undefined;
+
+  // Legacy path
+  const legacyColor: MasteryColor = getSafeMasteryColor(pMastery);
+  const legacyLabel = getMasteryLabel(legacyColor);
+  const legacyTw = getMasteryTailwind(legacyColor);
+
+  // Delta path
+  const deltaClasses = useDelta ? getDeltaColorClasses(deltaLevel) : null;
+  const deltaLabel = useDelta ? getDeltaColorLabel(deltaLevel) : null;
+
+  // Unified values
+  const label = useDelta ? deltaLabel! : legacyLabel;
+  const dotClass = useDelta ? deltaClasses!.dot : legacyTw.bg;
+  const bgLightClass = useDelta ? deltaClasses!.bgLight : legacyTw.bgLight;
+  const textClass = useDelta ? deltaClasses!.text : legacyTw.textDark;
+  const hexColor = useDelta ? deltaClasses!.hex : legacyColorHex[legacyColor];
+
   const pct = pMastery < 0 ? 0 : Math.round(pMastery * 100);
 
-  const tooltipText = pMastery < 0
+  const tooltipText = pMastery < 0 && !useDelta
     ? 'Sin datos de estudio'
     : `${label} (${pct}%)`;
 
@@ -53,7 +74,7 @@ export function MasteryIndicator({
   if (variant === 'dot') {
     return (
       <span
-        className={clsx('inline-block rounded-full shrink-0', dotSizes[size], tw.bg)}
+        className={clsx('inline-block rounded-full shrink-0', dotSizes[size], dotClass)}
         title={showTooltip ? tooltipText : undefined}
       />
     );
@@ -65,14 +86,14 @@ export function MasteryIndicator({
       <span
         className={clsx(
           'inline-flex items-center gap-1 rounded-full',
-          tw.bgLight, tw.textDark,
+          bgLightClass, textClass,
           size === 'sm' ? 'text-[9px] px-1.5 py-0.5' :
           size === 'md' ? 'text-[10px] px-2 py-0.5' :
           'text-xs px-2.5 py-1',
         )}
         title={showTooltip ? tooltipText : undefined}
       >
-        <span className={clsx('inline-block rounded-full', dotSizes.sm, tw.bg)} />
+        <span className={clsx('inline-block rounded-full', dotSizes.sm, dotClass)} />
         {label}
         {pMastery >= 0 && (
           <span className="opacity-60">{pct}%</span>
@@ -87,14 +108,6 @@ export function MasteryIndicator({
   const radius = (ringSize - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - (pMastery < 0 ? 0 : pMastery));
-
-  // SVG color classes mapped to actual hex
-  const colorHex: Record<MasteryColor, string> = {
-    green: '#10b981',
-    yellow: '#f59e0b',
-    red: '#ef4444',
-    gray: '#a1a1aa',
-  };
 
   return (
     <div
@@ -118,7 +131,7 @@ export function MasteryIndicator({
           cy={ringSize / 2}
           r={radius}
           fill="none"
-          stroke={colorHex[color]}
+          stroke={hexColor}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -129,11 +142,11 @@ export function MasteryIndicator({
       {/* Center text */}
       <span className={clsx(
         'absolute inset-0 flex items-center justify-center',
-        tw.textDark,
+        textClass,
         size === 'sm' ? 'text-[7px]' : size === 'md' ? 'text-[8px]' : 'text-[9px]',
       )} style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
         {pMastery < 0
-          ? '—'
+          ? '\u2014'
           : size === 'lg'
             ? label.slice(0, 3)
             : `${pct}%`}
@@ -141,3 +154,11 @@ export function MasteryIndicator({
     </div>
   );
 }
+
+// ── Hex lookup for legacy MasteryColor (used by ring SVG) ──
+const legacyColorHex: Record<MasteryColor, string> = {
+  green: '#10b981',
+  yellow: '#f59e0b',
+  red: '#ef4444',
+  gray: '#a1a1aa',
+};

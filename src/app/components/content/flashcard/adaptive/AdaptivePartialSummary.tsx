@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import clsx from 'clsx';
 import { Sparkles, LogOut, Zap, AlertCircle } from 'lucide-react';
-import { getMasteryColorFromPct } from '../mastery-colors';
+import { getKeywordDeltaColorSafe, getDeltaColorClasses } from '@/app/lib/mastery-helpers';
 import { MasteryRing } from '../MasteryRing';
 import { AdaptiveKeywordPanel } from './AdaptiveKeywordPanel';
 import { AdaptiveCountSelector } from './AdaptiveCountSelector';
@@ -34,7 +34,8 @@ export function AdaptivePartialSummary({ allStats, completedRounds, keywordMaste
   const totalReviews = allStats.length;
   const correctReviews = countCorrect(allStats);
   const masteryPct = useMemo(() => computeMasteryPct(topicSummary, allStats), [topicSummary, allStats]);
-  const masteryColor = getMasteryColorFromPct(masteryPct / 100);
+  const deltaLevel = getKeywordDeltaColorSafe(masteryPct / 100, 2);
+  const masteryColor = getDeltaColorClasses(deltaLevel);
   const deltaStats = useMemo(() => computeDeltaStats(masteryDeltas), [masteryDeltas]);
   const latestRound = completedRounds[completedRounds.length - 1] ?? null;
   const totalRounds = completedRounds.length;

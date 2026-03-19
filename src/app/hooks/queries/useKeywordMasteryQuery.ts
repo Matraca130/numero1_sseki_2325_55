@@ -25,7 +25,9 @@ import * as summariesApi from '@/app/services/summariesApi';
 import type { SummaryKeyword, Subtopic } from '@/app/services/summariesApi';
 import {
   type BktState,
+  type DeltaColorLevel,
   getKeywordMastery,
+  getKeywordDeltaColorSafe,
 } from '@/app/lib/mastery-helpers';
 import { extractItems } from '@/app/lib/api-helpers';
 import { PROFESSOR_CONTENT_STALE, STUDENT_BKT_STALE } from './staleTimes';
@@ -42,6 +44,10 @@ interface UseKeywordMasteryResult {
   subtopicsMap: Map<string, Subtopic[]>;
   /** Map<keyword_id, mastery_number> — -1 = no data */
   keywordMasteryMap: Map<string, number>;
+  /** Map<keyword_id, DeltaColorLevel> — unified delta color per keyword */
+  keywordDeltaColorMap: Map<string, DeltaColorLevel>;
+  /** Map<keyword_id, priority_number> — professor-assigned priority (1-3) */
+  keywordPriorityMap: Map<string, number>;
   /** True when keywords + BKT + subtopics are all resolved */
   dataReady: boolean;
 }
@@ -221,6 +227,26 @@ export function useKeywordMasteryQuery(
     return map;
   }, [keywords, subtopicsMap, bktMap]);
 
+  // ── Derived: Delta color map (keyword_id -> DeltaColorLevel) ──
+  const keywordDeltaColorMap = useMemo(() => {
+    const map = new Map<string, DeltaColorLevel>();
+    for (const kw of keywords) {
+      const mastery = keywordMasteryMap.get(kw.id) ?? -1;
+      const priority = kw.priority ?? 1;
+      map.set(kw.id, getKeywordDeltaColorSafe(mastery, priority));
+    }
+    return map;
+  }, [keywords, keywordMasteryMap]);
+
+  // ── Derived: Priority map (keyword_id -> number) ──────
+  const keywordPriorityMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const kw of keywords) {
+      map.set(kw.id, kw.priority ?? 1);
+    }
+    return map;
+  }, [keywords]);
+
   // ── Data readiness ──────────────────────────────────────
   // Keywords loading OR (has keywords AND subtopics still loading)
   // OR (has subtopics AND BKT still loading)
@@ -235,6 +261,8 @@ export function useKeywordMasteryQuery(
     bktMap,
     subtopicsMap,
     keywordMasteryMap,
+    keywordDeltaColorMap,
+    keywordPriorityMap,
     dataReady,
   };
 }

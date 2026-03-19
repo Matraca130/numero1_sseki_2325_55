@@ -10,6 +10,7 @@ import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import {
   type MasteryColor,
+  type DeltaColorLevel,
   getSafeMasteryColor,
 } from '@/app/lib/mastery-helpers';
 
@@ -28,19 +29,21 @@ interface ConnectionsMapProps {
   className?: string;
 }
 
-// Color hex for SVG
-const colorHex: Record<MasteryColor, string> = {
+// Color hex for SVG — supports both legacy MasteryColor and unified DeltaColorLevel
+const colorHex: Record<MasteryColor | DeltaColorLevel, string> = {
   green: '#10b981',
   yellow: '#f59e0b',
   red: '#ef4444',
   gray: '#a1a1aa',
+  blue: '#3b82f6',
 };
 
-const colorHexLight: Record<MasteryColor, string> = {
+const colorHexLight: Record<MasteryColor | DeltaColorLevel, string> = {
   green: '#10b98133',
   yellow: '#f59e0b33',
   red: '#ef444433',
   gray: '#a1a1aa33',
+  blue: '#3b82f633',
 };
 
 export function ConnectionsMap({
