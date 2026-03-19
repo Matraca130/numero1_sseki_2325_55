@@ -130,7 +130,7 @@ export function SummaryHeader({
 
         {/* Markdown preview */}
         {summary.content_markdown && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="mt-4 p-4 bg-[#F0F2F5] rounded-lg border border-gray-100">
             <p className="text-xs text-gray-500 whitespace-pre-wrap">
               {summary.content_markdown}
             </p>

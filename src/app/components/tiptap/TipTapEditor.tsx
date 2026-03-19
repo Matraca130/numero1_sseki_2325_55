@@ -567,7 +567,7 @@ export function TipTapEditor({
           </div>
         </div>
         {/* Content skeleton */}
-        <div className="flex-1 bg-gray-50/80 overflow-y-auto">
+        <div className="flex-1 bg-[#F0F2F5]/80 overflow-y-auto">
           <div className="max-w-[780px] mx-auto p-10 space-y-4">
             <div className="h-8 w-2/3 bg-gray-100 rounded animate-pulse" />
             <div className="h-4 w-full bg-gray-100 rounded animate-pulse" />

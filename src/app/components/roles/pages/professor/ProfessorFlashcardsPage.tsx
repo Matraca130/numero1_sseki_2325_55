@@ -379,7 +379,7 @@ export function ProfessorFlashcardsPage() {
       </div>
 
       {/* ══════ RIGHT PANEL — Flashcard Management ══════ */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F0F2F5]">
 
         {/* ── Page Header ── */}
         <div className="bg-white border-b border-gray-100 px-6 py-4 shrink-0">

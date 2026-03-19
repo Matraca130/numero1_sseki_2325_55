@@ -152,7 +152,7 @@ export function DefaultScheduleView() {
 
           {/* Calendar Grid */}
           <div className="bg-white border border-gray-100 border-t-gray-200/60 rounded-b-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
+            <div className="grid grid-cols-7 border-b border-gray-100 bg-[#F0F2F5]/50">
               {(isMobile
                 ? ['D', 'L', 'M', 'M', 'J', 'V', 'S']
                 : ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']

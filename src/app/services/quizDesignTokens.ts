@@ -97,7 +97,7 @@ export const MODAL_HEADER =
 
 /** Modal footer */
 export const MODAL_FOOTER =
-  'flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/50';
+  'flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-[#F0F2F5]/50';
 
 // ── Button sizes ─────────────────────────────────────────
 
@@ -138,7 +138,7 @@ export const FEEDBACK = {
   },
   unanswered: {
     border: 'border-gray-200',
-    bg: 'bg-gray-50',
+    bg: 'bg-[#F0F2F5]',
     text: 'text-gray-400',
     textBold: 'text-gray-500',
   },

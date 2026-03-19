@@ -19,7 +19,7 @@ export function DeltaBadges({ deltaStats, correctReviews, totalReviews, variant 
           color === 'emerald' && 'bg-emerald-50 border-emerald-200',
           color === 'amber' && 'bg-amber-50 border-amber-200',
           color === 'rose' && 'bg-rose-50 border-rose-200',
-          color === 'gray' && 'bg-gray-50 border-gray-200')
+          color === 'gray' && 'bg-[#F0F2F5] border-gray-200')
       : 'flex items-center gap-1.5 text-xs';
   const iconSize = isPill ? 14 : 13;
 

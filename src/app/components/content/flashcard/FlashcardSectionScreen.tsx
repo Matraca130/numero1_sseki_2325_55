@@ -137,7 +137,7 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
                       <MasteryRing pct={tStats.pct} size={40} stroke={3} color={topicColor.hex} />
                     </>
                   ) : (
-                    <span className="text-[11px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg font-medium border border-gray-200">Vacío</span>
+                    <span className="text-[11px] text-gray-400 bg-[#F0F2F5] px-2.5 py-1 rounded-lg font-medium border border-gray-200">Vacío</span>
                   )}
                   <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
                 </div>

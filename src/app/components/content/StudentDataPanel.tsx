@@ -148,7 +148,7 @@ export function StudentDataPanel() {
                 <input
                   type="text"
                   placeholder="Pesquisar no acervo acadêmico..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
               </div>
             </div>

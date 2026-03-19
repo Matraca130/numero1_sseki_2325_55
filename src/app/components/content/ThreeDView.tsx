@@ -170,7 +170,7 @@ export function ThreeDView() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-full bg-gray-50">
+      <div className="flex flex-col min-h-full bg-[#F0F2F5]">
         <AxonPageHeader title="Atlas 3D" subtitle="Explore modelos anatomicos interativos" />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-gray-400">
@@ -222,7 +222,7 @@ export function ThreeDView() {
 // ── Error Fallback ──
 function ThreeDErrorFallback() {
   return (
-    <div className="flex flex-col min-h-full bg-gray-50">
+    <div className="flex flex-col min-h-full bg-[#F0F2F5]">
       <AxonPageHeader title="Atlas 3D" subtitle="Explore modelos anatomicos interativos" />
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-gray-400">
@@ -285,7 +285,7 @@ function SectionScreen({
   const { sectionName, semesterName, models } = sectionData;
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50">
+    <div className="flex flex-col min-h-full bg-[#F0F2F5]">
       <AxonPageHeader
         title={sectionName}
         subtitle={semesterName}

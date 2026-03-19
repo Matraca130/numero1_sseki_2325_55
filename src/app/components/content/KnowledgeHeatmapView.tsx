@@ -248,7 +248,7 @@ export function KnowledgeHeatmapView() {
                   );
                 })()}
               </AnimatePresence>
-              {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-gray-50/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
+              {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-[#F0F2F5]/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                 const heat = getHeatLevel(day);
                 const events = getEventsForDay(day);

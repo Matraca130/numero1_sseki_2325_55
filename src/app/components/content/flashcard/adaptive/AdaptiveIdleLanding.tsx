@@ -34,7 +34,7 @@ export function AdaptiveIdleLanding({ topicTitle, cardCount, onStart, onBack }: 
           <span>{'\u2192'}</span>
           <span className="px-2 py-1 rounded bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 500 }}>Revisar IA</span>
           <span>{'\u2192'}</span>
-          <span className="px-2 py-1 rounded bg-gray-50 text-gray-500 border border-gray-200" style={{ fontWeight: 500 }}>Repetir {'\u221E'}</span>
+          <span className="px-2 py-1 rounded bg-[#F0F2F5] text-gray-500 border border-gray-200" style={{ fontWeight: 500 }}>Repetir {'\u221E'}</span>
         </div>
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-white/80 transition-colors" style={{ fontWeight: 500 }}><ArrowLeft size={14} className="inline mr-1.5" />Volver</button>
