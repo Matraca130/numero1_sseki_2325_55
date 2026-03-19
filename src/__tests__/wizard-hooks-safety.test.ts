@@ -187,7 +187,18 @@ describe('StudyOrganizerWizard — hooks safety', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // SUITE 3: Top-level useMemo calls exist for critical computed values
+  // SUITE 3: Shared context imports (no duplicate hook instances)
+  // ════════════════════════════════════════════════════════════
+
+  it('imports from context providers, not raw hooks', () => {
+    expect(source).toContain('useStudyPlansContext');
+    expect(source).not.toMatch(/import.*useStudyPlans\s*\}?\s*from.*hooks\/useStudyPlans/);
+    expect(source).toContain('useTopicMasteryContext');
+    expect(source).toContain('useStudyTimeEstimatesContext');
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // SUITE 4: Top-level useMemo calls exist for critical computed values
   // ════════════════════════════════════════════════════════════
 
   it('selectedMasteryStats useMemo is at the component top level', () => {

@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useStudySession, type StudyPlan, type StudyPlanTask } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useTreeCourses } from '@/app/hooks/useTreeCourses';
-import { useStudyPlans } from '@/app/hooks/useStudyPlans';
-import { useTopicMastery } from '@/app/hooks/useTopicMastery';
-import { useStudyTimeEstimates } from '@/app/hooks/useStudyTimeEstimates';
+import { useStudyPlansContext } from '@/app/context/StudyPlansContext';
+import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
+import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
 import { getAxonToday } from '@/app/utils/constants';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -49,30 +49,13 @@ const DAY_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado',
 // ──────────── Main Component ────────────
 export function StudyOrganizerWizard() {
   const { addStudyPlan, studyPlans } = useStudySession();
-  const { createPlanFromWizard } = useStudyPlans();
+  const { createPlanFromWizard } = useStudyPlansContext();
   const { navigateTo } = useStudentNav();
   const { courses } = useTreeCourses();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
 
-  // ─────────── Build topic→course map for mastery aggregation ────────────
-  const { allTopicIds, topicToCourseMap } = useMemo(() => {
-    const ids: string[] = [];
-    const map = new Map<string, string>();
-    for (const course of courses) {
-      for (const sem of course.semesters) {
-        for (const sec of sem.sections) {
-          for (const topic of sec.topics) {
-            ids.push(topic.id);
-            map.set(topic.id, course.id);
-          }
-        }
-      }
-    }
-    return { allTopicIds: ids, topicToCourseMap: map };
-  }, [courses]);
-
-  const { topicMastery, courseMastery, loading: masteryLoading } = useTopicMastery(allTopicIds, topicToCourseMap);
+  const { topicMastery, courseMastery, loading: masteryLoading } = useTopicMasteryContext();
 
   // ──────────── Phase 4: Real time estimates from study history ────────────
   const {
@@ -82,7 +65,7 @@ export function StudyOrganizerWizard() {
     overallConfidence: timeConfidence,
     hasRealData: hasTimeData,
     summary: timeSummary,
-  } = useStudyTimeEstimates();
+  } = useStudyTimeEstimatesContext();
 
   // ──────────── Helpers: mastery per course (real data) ────────────
   const getCourseMasteryPercent = (courseId: string): number => {
