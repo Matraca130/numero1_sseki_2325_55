@@ -46,8 +46,10 @@ import {
 } from '@/app/utils/constants';
 import {
   rescheduleRemainingTasks,
+  applyAiReschedule,
   type RescheduleChange,
 } from '@/app/utils/rescheduleEngine';
+import { aiReschedule } from '@/app/services/aiService';
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
 
 // ── PERF-12: Module-level constant (no re-creation per call) ──
@@ -438,6 +440,109 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
 
     isRescheduling.current = true;
 
+    // ── Phase AI: Try Claude-powered reschedule first ──────
+    try {
+      const profile = {
+        topicMastery: Object.fromEntries(
+          Array.from(opts.topicMastery.entries()).map(([id, info]) => [id, {
+            masteryPercent: info.masteryPercent,
+            pKnow: info.pKnow,
+            needsReview: info.needsReview,
+            totalAttempts: info.totalAttempts,
+            priorityScore: info.priorityScore,
+          }])
+        ),
+        sessionHistory: [] as { sessionType: string; durationMinutes: number; createdAt: string; topicId?: string }[],
+        dailyActivity: [] as { date: string; studyMinutes: number; sessionsCount: number }[],
+        stats: { totalStudyMinutes: 0, totalSessions: 0, currentStreak: 0, avgMinutesPerSession: null as number | null },
+        studyMethods: planSnapshot.methods || [],
+      };
+
+      const planContext = {
+        tasks: planSnapshot.tasks.map(t => ({
+          topicId: t.topicId || '',
+          topicTitle: t.title,
+          method: t.method,
+          estimatedMinutes: t.estimatedMinutes,
+          completed: t.completed,
+          scheduledDate: t.date instanceof Date ? t.date.toISOString().slice(0, 10) : '',
+        })),
+        completionDate: planSnapshot.completionDate instanceof Date
+          ? planSnapshot.completionDate.toISOString().slice(0, 10) : '',
+        weeklyHours: planSnapshot.weeklyHours,
+      };
+
+      const aiResponse = await aiReschedule(profile, planContext, /* completedTaskId */ '');
+      if (aiResponse?.rescheduledTasks?.length && aiResponse._meta?.aiPowered) {
+        const aiResult = applyAiReschedule({ plan: planSnapshot, aiResult: aiResponse.rescheduledTasks });
+        if (aiResult.didReschedule && aiResult.changes.length > 0) {
+          if (import.meta.env.DEV) {
+            console.log(`[useStudyPlans] AI reschedule: ${aiResult.changes.length} task(s) will be updated`);
+          }
+
+          // Persist AI changes (same logic as algorithmic path)
+          const batchPayload = {
+            study_plan_id: planId,
+            updates: aiResult.changes.map((c: RescheduleChange) => ({
+              id: c.taskId,
+              scheduled_date: c.newDate.toISOString().slice(0, 10),
+              estimated_minutes: c.newEstimatedMinutes,
+              order_index: c.newOrderIndex,
+            })),
+          };
+
+          try {
+            const batchResult = await apiBatchUpdate(batchPayload);
+            if (import.meta.env.DEV) {
+              console.log(`[useStudyPlans] AI batch update: ${batchResult.succeeded}/${batchResult.total} succeeded`);
+            }
+          } catch (batchErr: any) {
+            if (import.meta.env.DEV) {
+              console.warn('[useStudyPlans] AI batch endpoint unavailable, falling back to individual updates:', batchErr.message);
+            }
+            await Promise.allSettled(
+              batchPayload.updates.map(u =>
+                apiUpdateTask(u.id, {
+                  scheduled_date: u.scheduled_date,
+                  estimated_minutes: u.estimated_minutes,
+                  order_index: u.order_index,
+                })
+              )
+            );
+          }
+
+          // Update local state optimistically with AI-rescheduled tasks
+          setBackendTasksMap(prev => {
+            const next = new Map(prev);
+            const planTasks = [...(next.get(planId) || [])];
+            for (const change of aiResult.changes) {
+              const idx = planTasks.findIndex(t => t.id === change.taskId);
+              if (idx >= 0) {
+                planTasks[idx] = {
+                  ...planTasks[idx],
+                  scheduled_date: change.newDate.toISOString().slice(0, 10),
+                  estimated_minutes: change.newEstimatedMinutes,
+                  order_index: change.newOrderIndex,
+                };
+              }
+            }
+            next.set(planId, planTasks);
+            return next;
+          });
+
+          // AI succeeded — skip algorithmic reschedule
+          isRescheduling.current = false;
+          return;
+        }
+      }
+    } catch (aiErr) {
+      if (import.meta.env.DEV) {
+        console.log('[useStudyPlans] AI reschedule failed, falling back to algorithmic:', aiErr);
+      }
+      // Fall through to algorithmic reschedule below
+    }
+
+    // ── Algorithmic fallback ───────────────────────────────
     try {
       const result = rescheduleRemainingTasks({
         plan: planSnapshot,

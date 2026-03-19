@@ -26,6 +26,7 @@
 
 import type { StudyPlanTask, StudyPlan } from '@/app/types/study-plan';
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
+import type { AiRescheduledTask } from '@/app/services/aiService';
 import { getAxonToday } from './constants';
 import { getTimeMultiplier, interleaveByPriority, distributeAcrossDays } from './planSchedulingUtils';
 
@@ -150,6 +151,57 @@ export function rescheduleRemainingTasks(input: RescheduleInput): RescheduleResu
 
   return {
     tasks: finalTasks,
+    changes,
+    didReschedule: changes.length > 0,
+  };
+}
+
+// ── AI-powered reschedule adapter ─────────────────────────
+
+export interface AiRescheduleInput {
+  plan: StudyPlan;
+  aiResult: AiRescheduledTask[];
+}
+
+/**
+ * Apply AI-suggested reschedule changes to a plan.
+ * Returns RescheduleResult compatible with the existing flow.
+ *
+ * The AI backend returns an array of { taskId, newDate, newEstimatedMinutes, reason }.
+ * This function maps them into RescheduleChange[] so the persistence logic in
+ * useStudyPlans can treat AI and algorithmic results identically.
+ */
+export function applyAiReschedule({ plan, aiResult }: AiRescheduleInput): RescheduleResult {
+  if (!aiResult.length) {
+    return { tasks: [...plan.tasks], changes: [], didReschedule: false };
+  }
+
+  const changes: RescheduleChange[] = aiResult
+    .map(ai => {
+      const task = plan.tasks.find(t => t.id === ai.taskId);
+      if (!task || task.completed) return null;
+      return {
+        taskId: ai.taskId,
+        newDate: new Date(ai.newDate),
+        newEstimatedMinutes: ai.newEstimatedMinutes,
+        newOrderIndex: plan.tasks.indexOf(task), // preserve existing order unless AI specifies
+      };
+    })
+    .filter((c): c is RescheduleChange => c !== null);
+
+  // Build the updated task list (completed preserved, pending updated)
+  const updatedTasks = plan.tasks.map(t => {
+    const change = changes.find(c => c.taskId === t.id);
+    if (!change) return t;
+    return {
+      ...t,
+      date: change.newDate,
+      estimatedMinutes: change.newEstimatedMinutes,
+    };
+  });
+
+  return {
+    tasks: updatedTasks,
     changes,
     didReschedule: changes.length > 0,
   };
