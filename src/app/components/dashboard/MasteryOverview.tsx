@@ -156,34 +156,34 @@ export function MasteryOverview() {
       {/* ── KPI Summary bar ── */}
       <div className="mb-4">
         <div className="flex items-center gap-3 text-xs text-gray-500 mb-2 flex-wrap">
-          {kpiCounts.critical > 0 && (
+          {kpiCounts.gray > 0 && (
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-zinc-400" />
+              {kpiCounts.gray} por descubrir
+            </span>
+          )}
+          {kpiCounts.red > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-red-500" />
-              {kpiCounts.critical} criticos
+              {kpiCounts.red} emergentes
             </span>
           )}
-          {kpiCounts.weak > 0 && (
+          {kpiCounts.yellow > 0 && (
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
-              {kpiCounts.weak} debiles
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              {kpiCounts.yellow} en progreso
             </span>
           )}
-          {kpiCounts.progress > 0 && (
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-yellow-500" />
-              {kpiCounts.progress} en progreso
-            </span>
-          )}
-          {kpiCounts.good > 0 && (
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              {kpiCounts.good} buenos
-            </span>
-          )}
-          {kpiCounts.mastered > 0 && (
+          {kpiCounts.green > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              {kpiCounts.mastered} dominados
+              {kpiCounts.green} consolidados
+            </span>
+          )}
+          {kpiCounts.blue > 0 && (
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              {kpiCounts.blue} maestria
             </span>
           )}
           <span className="text-gray-400">· {kpiCounts.total} total</span>
@@ -192,23 +192,20 @@ export function MasteryOverview() {
         {/* Distribution bar */}
         {kpiCounts.total > 0 && (
           <div className="flex h-2 rounded-full overflow-hidden bg-gray-100 gap-px">
-            {kpiCounts.critical > 0 && (
-              <div className="bg-red-500 rounded-sm" style={{ width: `${(kpiCounts.critical / kpiCounts.total) * 100}%` }} />
+            {kpiCounts.gray > 0 && (
+              <div className="bg-zinc-400 rounded-sm" style={{ width: `${(kpiCounts.gray / kpiCounts.total) * 100}%` }} />
             )}
-            {kpiCounts.weak > 0 && (
-              <div className="bg-orange-500 rounded-sm" style={{ width: `${(kpiCounts.weak / kpiCounts.total) * 100}%` }} />
+            {kpiCounts.red > 0 && (
+              <div className="bg-red-500 rounded-sm" style={{ width: `${(kpiCounts.red / kpiCounts.total) * 100}%` }} />
             )}
-            {kpiCounts.progress > 0 && (
-              <div className="bg-yellow-500 rounded-sm" style={{ width: `${(kpiCounts.progress / kpiCounts.total) * 100}%` }} />
+            {kpiCounts.yellow > 0 && (
+              <div className="bg-amber-500 rounded-sm" style={{ width: `${(kpiCounts.yellow / kpiCounts.total) * 100}%` }} />
             )}
-            {kpiCounts.good > 0 && (
-              <div className="bg-blue-500 rounded-sm" style={{ width: `${(kpiCounts.good / kpiCounts.total) * 100}%` }} />
+            {kpiCounts.green > 0 && (
+              <div className="bg-emerald-500 rounded-sm" style={{ width: `${(kpiCounts.green / kpiCounts.total) * 100}%` }} />
             )}
-            {kpiCounts.mastered > 0 && (
-              <div className="bg-emerald-500 rounded-sm" style={{ width: `${(kpiCounts.mastered / kpiCounts.total) * 100}%` }} />
-            )}
-            {kpiCounts.noData > 0 && (
-              <div className="bg-gray-300 rounded-sm" style={{ width: `${(kpiCounts.noData / kpiCounts.total) * 100}%` }} />
+            {kpiCounts.blue > 0 && (
+              <div className="bg-blue-500 rounded-sm" style={{ width: `${(kpiCounts.blue / kpiCounts.total) * 100}%` }} />
             )}
           </div>
         )}

@@ -21,7 +21,7 @@ interface KeywordRowProps {
 }
 
 export const KeywordRow = React.memo(function KeywordRow({ item, expanded, onToggle, subtopics }: KeywordRowProps) {
-  const mc = getMasteryColor(item.pKnow);
+  const mc = getMasteryColor(item.pKnow, item.keyword.priority);
   const pct = item.pKnow !== null ? Math.round(item.pKnow * 100) : null;
   const showRepeat = item.pKnow === null || item.pKnow < 0.7;
 
@@ -46,7 +46,7 @@ export const KeywordRow = React.memo(function KeywordRow({ item, expanded, onTog
         </div>
 
         {/* Color dot */}
-        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getMasteryDot(item.pKnow)}`} />
+        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getMasteryDot(item.pKnow, item.keyword.priority)}`} />
 
         {/* Name */}
         <span className="text-sm text-gray-700 flex-1 truncate">{item.keyword.name}</span>

@@ -23,6 +23,7 @@ import type {
   MasteryFilter,
 } from './masteryOverviewTypes';
 import { matchesFilter } from './masteryOverviewTypes';
+import { getKeywordDeltaColorSafe } from '@/app/lib/mastery-helpers';
 
 export function useMasteryOverviewData() {
   const { selectedInstitution } = useAuth();
@@ -205,7 +206,7 @@ export function useMasteryOverviewData() {
     let items = keywords;
 
     if (filter !== 'all') {
-      items = items.filter((k) => matchesFilter(k.pKnow, filter));
+      items = items.filter((k) => matchesFilter(k.pKnow, filter, k.keyword.priority));
     }
 
     if (debouncedSearch) {
@@ -257,14 +258,10 @@ export function useMasteryOverviewData() {
   // ── KPI summary ────────────────────────────────────────
 
   const kpiCounts = useMemo(() => {
-    const counts = { critical: 0, weak: 0, progress: 0, good: 0, mastered: 0, noData: 0, total: keywords.length };
+    const counts = { gray: 0, red: 0, yellow: 0, green: 0, blue: 0, total: keywords.length };
     for (const k of keywords) {
-      if (k.pKnow === null) { counts.noData++; continue; }
-      if (k.pKnow < 0.3) counts.critical++;
-      else if (k.pKnow < 0.5) counts.weak++;
-      else if (k.pKnow < 0.7) counts.progress++;
-      else if (k.pKnow < 0.85) counts.good++;
-      else counts.mastered++;
+      const level = getKeywordDeltaColorSafe(k.pKnow, k.keyword.priority);
+      counts[level]++;
     }
     return counts;
   }, [keywords]);
@@ -305,7 +302,10 @@ export function useMasteryOverviewData() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const allMastered = keywords.every((k) => k.pKnow !== null && k.pKnow >= 0.85);
+  const allMastered = keywords.length > 0 && keywords.every((k) => {
+    const level = getKeywordDeltaColorSafe(k.pKnow, k.keyword.priority);
+    return level === 'blue';
+  });
 
   return {
     // Data
