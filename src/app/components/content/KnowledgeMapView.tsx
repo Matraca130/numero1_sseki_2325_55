@@ -500,6 +500,7 @@ export function KnowledgeMapView() {
       // Guard: prevent self-loops
       if (newSource === newTarget) {
         toast.warning('No puedes conectar un nodo consigo mismo');
+        reconnectingRef.current = false;
         return;
       }
 
@@ -509,6 +510,7 @@ export function KnowledgeMapView() {
       );
       if (edgeExists) {
         toast.warning('Ya existe una conexión entre estos nodos');
+        reconnectingRef.current = false;
         return;
       }
 

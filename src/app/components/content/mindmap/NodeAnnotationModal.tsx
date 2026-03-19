@@ -53,6 +53,10 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
     }
     onCloseRef.current();
   }, [content]);
+  // Ref-stabilize safeClose so Escape handler always sees latest version
+  const safeCloseRef = useRef(safeClose);
+  safeCloseRef.current = safeClose;
+
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const focusTrapRef = useFocusTrap(!!node);
@@ -94,7 +98,7 @@ export function NodeAnnotationModal({ node, onClose, onSaved }: NodeAnnotationMo
   useEffect(() => {
     if (!node) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopImmediatePropagation(); safeClose(); }
+      if (e.key === 'Escape') { e.stopPropagation(); safeCloseRef.current(); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSaveRef.current?.(); }
     };
     document.addEventListener('keydown', handleKey);

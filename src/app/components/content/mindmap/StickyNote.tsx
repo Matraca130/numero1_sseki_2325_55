@@ -140,8 +140,12 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
     if (!isDragging) return;
     // Commit final position to parent on drag end
     const ds = dragStartRef.current;
-    const finalX = Math.max(0, ds.noteX + (dragOffset?.dx ?? 0));
-    const finalY = Math.max(0, ds.noteY + (dragOffset?.dy ?? 0));
+    // Clamp to keep note within parent container bounds
+    const parent = noteRef.current?.parentElement;
+    const maxX = parent ? Math.max(0, parent.clientWidth - 160) : Infinity;
+    const maxY = parent ? Math.max(0, parent.clientHeight - 100) : Infinity;
+    const finalX = Math.min(maxX, Math.max(0, ds.noteX + (dragOffset?.dx ?? 0)));
+    const finalY = Math.min(maxY, Math.max(0, ds.noteY + (dragOffset?.dy ?? 0)));
     onUpdateRef.current({ ...noteDataRef.current, x: finalX, y: finalY });
     setDragOffset(null);
     setIsDragging(false);
