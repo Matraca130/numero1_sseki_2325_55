@@ -17,6 +17,7 @@
 // ├── as-reports.ts          — reportContent, resolveReport, getReportStats, getReports
 // ├── as-analytics.ts        — submitRagFeedback, getRagAnalytics, getEmbeddingCoverage
 // ├── as-ingest.ts           — ingestPdf, ingestEmbeddings, reChunk
+// ├── as-schedule.ts          — aiDistributeTasks, aiRecommendToday, aiReschedule, aiWeeklyInsight
 // └── as-legacy.ts           — deprecated aliases (listModels, generateFlashcards, generateQuiz)
 // ============================================================
 
@@ -74,6 +75,24 @@ export type {
   AISpeakingState,
   RealtimeCallbacks,
 } from './ai-service/as-realtime';
+
+// Schedule Agent (AI study plan scheduling)
+export {
+  aiDistributeTasks,
+  aiRecommendToday,
+  aiReschedule,
+  aiWeeklyInsight,
+} from './ai-service/as-schedule';
+export type {
+  StudentProfilePayload,
+  PlanContextPayload,
+  AiDistribution,
+  AiRecommendation,
+  AiRescheduledTask,
+  AiInsight,
+  AiScheduleMeta,
+  AiScheduleResponse,
+} from './ai-service/as-schedule';
 
 // Legacy (deprecated)
 export { listModels, generateFlashcards, generateQuiz } from './ai-service/as-legacy';
