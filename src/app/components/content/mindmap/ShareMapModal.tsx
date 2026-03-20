@@ -57,7 +57,7 @@ export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicI
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKey);
     const prevHtml = document.documentElement.style.overflow;

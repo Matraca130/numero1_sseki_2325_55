@@ -100,7 +100,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
   useEffect(() => {
     if (!node) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); safeCloseRef.current(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); safeCloseRef.current(); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSaveRef.current?.(); }
     };
     document.addEventListener('keydown', handleKey);

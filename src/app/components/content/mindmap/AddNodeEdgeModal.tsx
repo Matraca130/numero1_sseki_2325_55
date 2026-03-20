@@ -123,7 +123,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !savingRef.current) { e.stopPropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape' && !savingRef.current) { e.preventDefault(); e.stopPropagation(); onCloseRef.current(); }
     };
     document.addEventListener('keydown', handleKey);
     const prevHtml = document.documentElement.style.overflow;
