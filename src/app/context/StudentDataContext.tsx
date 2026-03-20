@@ -280,7 +280,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return !!profile;
     } catch (err: any) {
-      console.error('[StudentDataContext] fetch error:', err);
+      if (import.meta.env.DEV) console.error('[StudentDataContext] fetch error:', err);
       setError(err.message || 'Error loading student data');
       // Still set profile from auth even if API fails
       setData((prev) => ({
@@ -316,7 +316,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
 
   // ── Legacy mutator stubs (backwards compat, no-op) ──
   const seedAndLoad = useCallback(async () => {
-    console.warn(
+    if (import.meta.env.DEV) console.warn(
       '[StudentDataContext] seedAndLoad() is deprecated in v2. /seed endpoint does not exist in real backend.'
     );
     await fetchAll();
@@ -324,7 +324,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
 
   const updateProfileFn = useCallback(
     async (_data: Partial<StudentProfile>) => {
-      console.warn(
+      if (import.meta.env.DEV) console.warn(
         '[StudentDataContext] updateProfile() is deprecated in v2. Profile is derived from AuthContext.'
       );
     },
@@ -332,14 +332,14 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
   );
 
   const updateStatsFn = useCallback(async (_data: Partial<StudentStats>) => {
-    console.warn(
+    if (import.meta.env.DEV) console.warn(
       '[StudentDataContext] updateStats() is deprecated in v2. Stats are managed by DB triggers.'
     );
   }, []);
 
   const logSessionFn = useCallback(
     async (_session: Omit<StudySession, 'studentId'>) => {
-      console.warn(
+      if (import.meta.env.DEV) console.warn(
         '[StudentDataContext] logSession() is deprecated in v2. Use recordSessionComplete() or platformApi.createStudySession().'
       );
     },
@@ -347,7 +347,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
   );
 
   const saveReviewsFn = useCallback(async (_reviews: FlashcardReview[]) => {
-    console.warn(
+    if (import.meta.env.DEV) console.warn(
       '[StudentDataContext] saveReviews() is deprecated in v2. Use platformApi.submitReview() directly.'
     );
   }, []);
@@ -385,7 +385,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
       try {
         await fetchAll();
       } catch (err: any) {
-        console.error('[StudentDataContext] init failed:', err);
+        if (import.meta.env.DEV) console.error('[StudentDataContext] init failed:', err);
         setLoading(false);
       }
     }

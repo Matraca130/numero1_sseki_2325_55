@@ -104,7 +104,7 @@ async function incrementStudentStats(input: SessionAnalyticsInput): Promise<void
       }),
     });
   } catch (err) {
-    console.error('[SessionAnalytics] student-stats POST failed:', err);
+    if (import.meta.env.DEV) console.error('[SessionAnalytics] student-stats POST failed:', err);
   }
 }
 
@@ -157,7 +157,7 @@ async function incrementDailyActivities(input: SessionAnalyticsInput): Promise<v
       }),
     });
   } catch (err) {
-    console.error('[SessionAnalytics] daily-activities POST failed:', err);
+    if (import.meta.env.DEV) console.error('[SessionAnalytics] daily-activities POST failed:', err);
   }
 }
 
@@ -192,7 +192,7 @@ export async function postSessionAnalytics(input: SessionAnalyticsInput): Promis
       }
     } catch (err) {
       // Should never reach here since individual functions catch internally
-      console.error('[SessionAnalytics] Unexpected error:', err);
+      if (import.meta.env.DEV) console.error('[SessionAnalytics] Unexpected error:', err);
     }
   });
   // Update the chain head (swallow rejections so chain doesn't break)

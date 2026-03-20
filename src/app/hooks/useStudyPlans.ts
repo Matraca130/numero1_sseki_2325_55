@@ -157,7 +157,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         console.log(`[useStudyPlans] Loaded ${rawPlans.length} plans`);
       }
     } catch (err: any) {
-      console.error('[useStudyPlans] fetch error:', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -330,7 +330,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         console.log(`[useStudyPlans] Created plan "${record.name}" with ${frontendPlan.tasks.length} tasks`);
       }
     } catch (err: any) {
-      console.error('[useStudyPlans] createPlan error:', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] createPlan error:', err);
       // Still add locally so UI works
       syncToAppContext(frontendPlan);
     }
@@ -614,7 +614,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         return next;
       });
     } catch (err: any) {
-      console.error('[useStudyPlans] Reschedule error (non-blocking):', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] Reschedule error (non-blocking):', err);
       // Non-blocking: task status was already saved, reschedule is best-effort
     } finally {
       isRescheduling.current = false;
@@ -667,7 +667,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         runReschedule(planId, updatedTasks);
       }
     } catch (err: any) {
-      console.error('[useStudyPlans] toggleTask error:', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] toggleTask error:', err);
     }
   }, [backendTasksMap, runReschedule]);
 
@@ -693,7 +693,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         return next;
       });
     } catch (err: any) {
-      console.error('[useStudyPlans] reorder error:', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] reorder error:', err);
     }
   }, []);
 
@@ -706,7 +706,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
       await apiUpdatePlan(planId, { status });
       await fetchAll();
     } catch (err: any) {
-      console.error('[useStudyPlans] updatePlanStatus error:', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] updatePlanStatus error:', err);
     }
   }, [fetchAll]);
 
@@ -717,7 +717,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
       await apiDeletePlan(planId);
       await fetchAll();
     } catch (err: any) {
-      console.error('[useStudyPlans] deletePlan error:', err);
+      if (import.meta.env.DEV) console.error('[useStudyPlans] deletePlan error:', err);
     }
   }, [fetchAll]);
 
