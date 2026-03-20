@@ -61,6 +61,10 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     if (!playbackCtxRef.current) {
       playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
     }
+    // Chrome suspends AudioContext created outside user gesture — resume it
+    if (playbackCtxRef.current.state === 'suspended') {
+      playbackCtxRef.current.resume();
+    }
     return playbackCtxRef.current;
   }, []);
 
@@ -187,6 +191,10 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     setAiTranscript('');
 
     try {
+      // 0. Pre-create playback AudioContext during user gesture (click)
+      // so Chrome doesn't suspend it when we try to play audio later
+      getPlaybackCtx();
+
       // 1. Get ephemeral token from backend
       const session = await createRealtimeSession(summaryId);
 
