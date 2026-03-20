@@ -120,7 +120,7 @@ export class RealtimeVoiceClient {
   connect(clientSecret: string): void {
     this.emitState('connecting');
 
-    const url = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+    const url = 'wss://api.openai.com/v1/realtime?model=gpt-realtime-1.5';
 
     this.ws = new WebSocket(url, [
       'realtime',
