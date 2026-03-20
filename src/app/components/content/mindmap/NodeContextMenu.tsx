@@ -15,6 +15,9 @@ import { getSafeMasteryColor, getMasteryLabel } from '@/app/lib/mastery-helpers'
 import { NODE_COLOR_PALETTE } from './useNodeColors';
 import { useSwipeDismiss } from './useSwipeDismiss';
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 // ── Icon map ────────────────────────────────────────────────
 
 const ICONS: Record<NodeAction, ElementType> = {
@@ -99,6 +102,20 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
         } else {
           const prev = idx > 0 ? idx - 1 : items.length - 1;
           items[prev].focus();
+        }
+      }
+      // Focus trap — prevent Tab from escaping the context menu
+      if (e.key === 'Tab' && menuRef.current) {
+        const focusable = menuRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusable.length === 0) { e.preventDefault(); return; }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
         }
       }
     };

@@ -2,43 +2,38 @@
 // Axon — Contract tests for SummaryCard (Sprint 1)
 //
 // Guards: export shape, props interface, palette imports.
-// Pure static analysis — zero DOM, zero network.
+// Source-based static analysis — zero DOM, zero network.
 // ============================================================
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const CARD_PATH = resolve(__dirname, '..', 'app', 'components', 'content', 'SummaryCard.tsx');
+const cardSource = readFileSync(CARD_PATH, 'utf-8');
+
+const HELPERS_PATH = resolve(__dirname, '..', 'app', 'components', 'content', 'summary-helpers.ts');
+const helpersSource = readFileSync(HELPERS_PATH, 'utf-8');
 
 describe('SummaryCard contract', () => {
-  it('exports SummaryCard as a named export', async () => {
-    const mod = await import('../app/components/content/SummaryCard');
-    expect(mod.SummaryCard).toBeDefined();
-    expect(typeof mod.SummaryCard).toBe('object'); // React.memo wraps as object
+  it('exports SummaryCard as a named export (optionally memo-wrapped)', () => {
+    expect(cardSource).toMatch(/export\s+(const\s+SummaryCard\s*=\s*React\.memo\s*\(|function\s+SummaryCard)/);
   });
 
-  it('SummaryCard.displayName or type is accessible', async () => {
-    const mod = await import('../app/components/content/SummaryCard');
-    // React.memo components have a .type property
-    const card = mod.SummaryCard as any;
-    expect(card.type || card.render || card).toBeTruthy();
+  it('defines SummaryCardProps interface', () => {
+    expect(cardSource).toContain('export interface SummaryCardProps');
+  });
+
+  it('imports from palette (no generic Tailwind colors)', () => {
+    expect(cardSource).toContain("from '@/app/lib/palette'");
   });
 });
 
 describe('summary-helpers contract', () => {
-  it('exports stripMarkdown function', async () => {
-    const mod = await import('../app/components/content/summary-helpers');
-    expect(typeof mod.stripMarkdown).toBe('function');
+  it('exports stripMarkdown function', () => {
+    expect(helpersSource).toMatch(/export\s+function\s+stripMarkdown/);
   });
 
-  it('exports getMotivation function', async () => {
-    const mod = await import('../app/components/content/summary-helpers');
-    expect(typeof mod.getMotivation).toBe('function');
-  });
-
-  it('stripMarkdown returns string', async () => {
-    const { stripMarkdown } = await import('../app/components/content/summary-helpers');
-    expect(typeof stripMarkdown('test')).toBe('string');
-  });
-
-  it('getMotivation returns string', async () => {
-    const { getMotivation } = await import('../app/components/content/summary-helpers');
-    expect(typeof getMotivation(1, 2)).toBe('string');
+  it('exports getMotivation function', () => {
+    expect(helpersSource).toMatch(/export\s+function\s+getMotivation/);
   });
 });

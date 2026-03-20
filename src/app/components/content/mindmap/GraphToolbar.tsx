@@ -418,12 +418,45 @@ export const GraphToolbar = memo(function GraphToolbar({
             </span>
           </button>
           {showExportMenu && (
-            <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 py-1.5 w-48 max-w-[calc(100vw-2rem)]" role="menu" aria-label="Opciones de exportación">
+            <div
+              className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 py-1.5 w-48 max-w-[calc(100vw-2rem)]"
+              role="menu"
+              aria-label="Opciones de exportación"
+              onKeyDown={(e) => {
+                const items = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+                if (!items.length) return;
+                const focused = Array.from(items).indexOf(document.activeElement as HTMLButtonElement);
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  items[(focused + 1) % items.length].focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  items[(focused - 1 + items.length) % items.length].focus();
+                } else if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setShowExportMenu(false);
+                } else if (e.key === 'Home') {
+                  e.preventDefault();
+                  items[0].focus();
+                } else if (e.key === 'End') {
+                  e.preventDefault();
+                  items[items.length - 1].focus();
+                }
+              }}
+              ref={(el) => {
+                // Auto-focus first menu item on open
+                if (el) {
+                  const first = el.querySelector<HTMLButtonElement>('[role="menuitem"]');
+                  first?.focus();
+                }
+              }}
+            >
               {onExportPNG && (
                 <button
                   role="menuitem"
+                  tabIndex={-1}
                   onClick={() => handleExport(onExportPNG)}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 transition-all duration-150 text-left font-sans"
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
                   style={{ fontSize: fontSize.xs }}
                 >
                   <Download className="w-3.5 h-3.5 flex-shrink-0" />
@@ -433,8 +466,9 @@ export const GraphToolbar = memo(function GraphToolbar({
               {onExportJPEG && (
                 <button
                   role="menuitem"
+                  tabIndex={-1}
                   onClick={() => handleExport(onExportJPEG)}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 transition-all duration-150 text-left font-sans"
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
                   style={{ fontSize: fontSize.xs }}
                 >
                   <Download className="w-3.5 h-3.5 flex-shrink-0" />
