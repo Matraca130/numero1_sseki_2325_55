@@ -120,8 +120,12 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
     aiTranscript,
     startCall,
     endCall,
+    onTalkStart,
+    onTalkEnd,
     error,
   } = useRealtimeVoice();
+
+  const [isTalking, setIsTalking] = React.useState(false);
 
   const isActive = state === 'active';
   const isConnecting = state === 'connecting';
@@ -203,8 +207,26 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
             </AnimatePresence>
           </div>
 
-          {/* Hang up button */}
-          <div className="flex-none pb-4">
+          {/* Action buttons */}
+          <div className="flex-none pb-4 flex items-center gap-4">
+            {/* Push-to-talk button */}
+            <button
+              onMouseDown={() => { setIsTalking(true); onTalkStart(); }}
+              onMouseUp={() => { setIsTalking(false); onTalkEnd(); }}
+              onMouseLeave={() => { if (isTalking) { setIsTalking(false); onTalkEnd(); } }}
+              onTouchStart={() => { setIsTalking(true); onTalkStart(); }}
+              onTouchEnd={() => { setIsTalking(false); onTalkEnd(); }}
+              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 select-none ${
+                isTalking
+                  ? 'bg-teal-600 shadow-teal-300 scale-110'
+                  : 'bg-teal-500 shadow-teal-200 hover:bg-teal-600'
+              } text-white`}
+              title="Mantener presionado para hablar"
+            >
+              <Mic size={24} />
+            </button>
+
+            {/* Hang up button */}
             <button
               onClick={endCall}
               className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-200 transition-all active:scale-95"

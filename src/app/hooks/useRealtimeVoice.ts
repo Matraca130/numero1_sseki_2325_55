@@ -26,6 +26,10 @@ interface UseRealtimeVoiceReturn {
   startCall: (summaryId?: string) => Promise<void>;
   /** End the call */
   endCall: () => void;
+  /** Push-to-talk: call on press (clears noise buffer) */
+  onTalkStart: () => void;
+  /** Push-to-talk: call on release (commits audio + triggers response) */
+  onTalkEnd: () => void;
   /** Last error message */
   error: string | null;
 }
@@ -232,6 +236,20 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     }
   }, [enqueueAudio, startMicrophone, cleanup]);
 
+  // ── Push-to-Talk ─────────────────────────────────────────
+
+  /** Call when user presses the talk button — clears noise buffer */
+  const onTalkStart = useCallback(() => {
+    clientRef.current?.clearAudioBuffer();
+    setAiState('listening');
+  }, []);
+
+  /** Call when user releases the talk button — commits audio + triggers response */
+  const onTalkEnd = useCallback(() => {
+    clientRef.current?.commitAudio();
+    clientRef.current?.createResponse();
+  }, []);
+
   // ── End Call ──────────────────────────────────────────────
 
   const endCall = useCallback(() => {
@@ -255,6 +273,8 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     aiTranscript,
     startCall,
     endCall,
+    onTalkStart,
+    onTalkEnd,
     error,
   };
 }
