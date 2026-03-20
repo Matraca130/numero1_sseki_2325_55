@@ -454,7 +454,24 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                         <label className="block text-xs font-medium text-gray-600 mb-1">
                           Tipo de flecha
                         </label>
-                        <div className="flex gap-1.5" role="radiogroup" aria-label="Tipo de flecha">
+                        <div
+                          className="flex gap-1.5"
+                          role="radiogroup"
+                          aria-label="Tipo de flecha"
+                          onKeyDown={(e) => {
+                            const types = ['triangle', 'diamond', 'circle', 'vee'] as const;
+                            const idx = types.indexOf(edgeArrowType);
+                            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              setEdgeArrowType(types[(idx + 1) % types.length]);
+                              (e.currentTarget.children[(idx + 1) % types.length] as HTMLElement)?.focus();
+                            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                              e.preventDefault();
+                              setEdgeArrowType(types[(idx - 1 + types.length) % types.length]);
+                              (e.currentTarget.children[(idx - 1 + types.length) % types.length] as HTMLElement)?.focus();
+                            }
+                          }}
+                        >
                           {([
                             { type: 'triangle' as const, label: 'Triángulo' },
                             { type: 'diamond' as const, label: 'Diamante' },
@@ -465,6 +482,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                               key={type}
                               type="button"
                               onClick={() => setEdgeArrowType(type)}
+                              tabIndex={edgeArrowType === type ? 0 : -1}
                               className={`flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-[10px] transition-colors ${
                                 edgeArrowType === type
                                   ? 'border-ax-primary-500 bg-ax-primary-50 text-ax-primary-500 font-medium'
@@ -502,12 +520,30 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                         <label htmlFor="custom-edge-line" className="block text-xs font-medium text-gray-600 mb-1">
                           Estilo de línea
                         </label>
-                        <div className="flex gap-1.5" role="radiogroup" aria-label="Estilo de línea">
+                        <div
+                          className="flex gap-1.5"
+                          role="radiogroup"
+                          aria-label="Estilo de línea"
+                          onKeyDown={(e) => {
+                            const styles = ['solid', 'dashed', 'dotted'] as const;
+                            const idx = styles.indexOf(edgeLineStyle);
+                            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              setEdgeLineStyle(styles[(idx + 1) % styles.length]);
+                              (e.currentTarget.children[(idx + 1) % styles.length] as HTMLElement)?.focus();
+                            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                              e.preventDefault();
+                              setEdgeLineStyle(styles[(idx - 1 + styles.length) % styles.length]);
+                              (e.currentTarget.children[(idx - 1 + styles.length) % styles.length] as HTMLElement)?.focus();
+                            }
+                          }}
+                        >
                           {(['solid', 'dashed', 'dotted'] as const).map((style) => (
                             <button
                               key={style}
                               type="button"
                               onClick={() => setEdgeLineStyle(style)}
+                              tabIndex={edgeLineStyle === style ? 0 : -1}
                               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border text-xs transition-colors ${
                                 edgeLineStyle === style
                                   ? 'border-ax-primary-500 bg-ax-primary-50 text-ax-primary-500 font-medium'
