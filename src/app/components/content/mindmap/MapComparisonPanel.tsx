@@ -172,7 +172,7 @@ function MasteryDonut({ stats }: { stats: CoverageStats }) {
           x={cx} y={cy + 12}
           textAnchor="middle"
           dominantBaseline="central"
-          fill="#9ca3af"
+          fill="#6b7280"
           style={{ fontSize: '8px' }}
         >
           dominio
@@ -326,7 +326,7 @@ export function MapComparisonPanel({
                       icon={<HelpCircle className="w-3.5 h-3.5" />}
                       label="Sin datos"
                       count={stats.noData}
-                      color="#9ca3af"
+                      color="#6b7280"
                       bg="#f3f4f6"
                     />
                   </div>

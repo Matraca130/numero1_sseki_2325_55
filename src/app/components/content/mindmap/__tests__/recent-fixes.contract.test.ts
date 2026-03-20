@@ -153,6 +153,42 @@ describe('MapComparisonPanel — WCAG contrast for mastery percentage', () => {
     // And should NOT use gray-400 for informational text
     expect(gapItemSection).not.toContain('text-gray-400');
   });
+
+  it('donut "dominio" label uses #6b7280 (gray-500) not #9ca3af (gray-400)', () => {
+    // The "dominio" text in the MasteryDonut SVG needs WCAG AA contrast on white
+    const donutSection = source.slice(
+      source.indexOf('function MasteryDonut'),
+      source.indexOf('// ── Component'),
+    );
+    expect(donutSection).toContain('fill="#6b7280"');
+    expect(donutSection).not.toContain('fill="#9ca3af"');
+  });
+
+  it('"Sin datos" StatBadge uses #6b7280 (gray-500) for count text', () => {
+    // #9ca3af on #f3f4f6 bg has only ~2.22:1 contrast — fails WCAG AA
+    // #6b7280 on #f3f4f6 bg has ~3.6:1 — passes for large/bold text
+    expect(source).not.toMatch(/label="Sin datos"[\s\S]*?color="#9ca3af"/);
+    expect(source).toMatch(/label="Sin datos"[\s\S]*?color="#6b7280"/);
+  });
+});
+
+describe('KnowledgeGraph — tooltip WCAG contrast', () => {
+  const source = readSource('KnowledgeGraph.tsx');
+
+  it('tooltip mastery text uses #6b7280 (gray-500) not #9ca3af (gray-400)', () => {
+    // Tooltip has white background — #9ca3af fails WCAG AA
+    expect(source).toContain('color:#6b7280');
+    expect(source).not.toMatch(/color:#9ca3af/);
+  });
+});
+
+describe('AddNodeEdgeModal — rAF cleanup', () => {
+  const source = readSource('AddNodeEdgeModal.tsx');
+
+  it('cleans up requestAnimationFrame on tab/open change', () => {
+    // Must cancel rAF to prevent focus attempts after unmount
+    expect(source).toContain('cancelAnimationFrame(rafId)');
+  });
 });
 
 // ── ChangeHistoryPanel: no aria-modal on side panel ─────────

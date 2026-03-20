@@ -93,10 +93,11 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
   // Focus first field when switching tabs
   useEffect(() => {
     if (!open) return;
-    requestAnimationFrame(() => {
+    const rafId = requestAnimationFrame(() => {
       if (tab === 'node') nodeLabelRef.current?.focus();
       else edgeSourceRef.current?.focus();
     });
+    return () => cancelAnimationFrame(rafId);
   }, [tab, open]);
 
   const sortedNodes = useMemo(

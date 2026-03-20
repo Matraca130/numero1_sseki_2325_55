@@ -666,7 +666,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             return `<div style="max-width:220px;font-family:Inter,sans-serif">
               <div style="font-weight:600;font-size:12px;color:#111827;margin-bottom:2px;font-family:Georgia,serif">${label}</div>
               ${def ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px">${def}</div>` : ''}
-              <div style="font-size:10px;color:#9ca3af">${escHtml(t.mastery)}: ${pct}</div>
+              <div style="font-size:10px;color:#6b7280">${escHtml(t.mastery)}: ${pct}</div>
               ${review ? `<div style="font-size:10px;color:#f97316;margin-top:2px;font-weight:500">\u26a0 ${escHtml(t.reviewAlert)}</div>` : ''}
               ${annotation ? `<div style="font-size:10px;color:#2a8c7a;font-style:italic;margin-top:2px">&ldquo;${annotation}&rdquo;</div>` : ''}
             </div>`;
