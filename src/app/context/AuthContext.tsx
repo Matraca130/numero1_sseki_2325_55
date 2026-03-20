@@ -304,9 +304,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut().catch(() => {});
         return { success: false, error: 'Failed to load profile' };
       }
-      if (result === 'institutions_failed') {
-        return { success: false, error: 'Could not load institutions. Please try again later.' };
-      }
+      // 'ok' or 'institutions_failed' — login succeeded, authError is set if needed
       return { success: true };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
