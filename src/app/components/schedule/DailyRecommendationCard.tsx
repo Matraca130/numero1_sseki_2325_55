@@ -52,6 +52,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
         setAiPowered(result._meta?.aiPowered ?? false);
       } else {
         setRecommendations([]);
+        setAiPowered(false);
       }
     } catch {
       setError(true);

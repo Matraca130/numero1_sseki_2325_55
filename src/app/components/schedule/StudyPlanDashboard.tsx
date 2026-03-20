@@ -60,6 +60,9 @@ import type { TaskWithPlan } from '@/app/components/schedule/WeekMonthViews';
 import { DailyRecommendationCard } from '@/app/components/schedule/DailyRecommendationCard';
 import { WeeklyInsightCard } from '@/app/components/schedule/WeeklyInsightCard';
 import type { StudentProfilePayload } from '@/app/services/aiService';
+import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
+import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
+import { useStudentDataContext } from '@/app/context/StudentDataContext';
 
 // ── Types ──
 type MobileTab = 'tasks' | 'calendar' | 'progress';
@@ -276,6 +279,11 @@ export function StudyPlanDashboard({
   const [mobileTab, setMobileTab] = useState<MobileTab>('tasks');
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
 
+  // Real data from contexts (replaces hardcoded mastery in studentProfile)
+  const { topicMastery } = useTopicMasteryContext();
+  const { summary: timeSummary } = useStudyTimeEstimatesContext();
+  const studentDataCtx = useStudentDataContext();
+
   // Drag & drop state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
@@ -316,40 +324,67 @@ export function StudyPlanDashboard({
   const todayCompleted = tasksForDate.filter(t => t.completed).length;
   const todayProgress = tasksForDate.length > 0 ? Math.round((todayCompleted / tasksForDate.length) * 100) : 0;
 
-  // ── Derive a basic student profile from study plan data for AI cards ──
+  // ── Build student profile from real context data for AI cards ──
   const studentProfile = useMemo<StudentProfilePayload | null>(() => {
     if (studyPlans.length === 0) return null;
-    const topicMastery: StudentProfilePayload['topicMastery'] = {};
+
+    // Use real mastery data from TopicMasteryContext
+    const masteryRecord: StudentProfilePayload['topicMastery'] = {};
+    topicMastery.forEach((info, topicId) => {
+      masteryRecord[topicId] = {
+        masteryPercent: info.masteryPercent,
+        pKnow: info.pKnow,
+        needsReview: info.needsReview,
+        totalAttempts: info.totalAttempts,
+        priorityScore: info.priorityScore,
+      };
+    });
+
+    // Fallback: if no mastery data yet, build from plan tasks
+    if (Object.keys(masteryRecord).length === 0) {
+      for (const plan of studyPlans) {
+        for (const task of plan.tasks) {
+          const key = task.subject || task.title;
+          if (!masteryRecord[key]) {
+            masteryRecord[key] = {
+              masteryPercent: task.completed ? 70 : 20,
+              pKnow: null,
+              needsReview: !task.completed,
+              totalAttempts: task.completed ? 1 : 0,
+              priorityScore: task.completed ? 0.3 : 0.8,
+            };
+          }
+        }
+      }
+    }
+
     const methodsSet = new Set<string>();
     for (const plan of studyPlans) {
       for (const task of plan.tasks) {
         if (task.method) methodsSet.add(task.method);
-        const key = task.subject || task.title;
-        if (!topicMastery[key]) {
-          topicMastery[key] = {
-            masteryPercent: task.completed ? 80 : 20,
-            pKnow: null,
-            needsReview: !task.completed,
-            totalAttempts: task.completed ? 1 : 0,
-            priorityScore: task.completed ? 0.3 : 0.8,
-          };
-        }
       }
     }
-    const totalMinutes = allTasks.reduce((s, t) => s + t.estimatedMinutes, 0);
+
+    const ctxDailyActivity = studentDataCtx?.dailyActivity ?? [];
+    const ctxStats = studentDataCtx?.stats ?? null;
+
     return {
-      topicMastery,
+      topicMastery: masteryRecord,
       sessionHistory: [],
-      dailyActivity: [],
+      dailyActivity: ctxDailyActivity.map(d => ({
+        date: d.date ?? '',
+        studyMinutes: d.studyMinutes ?? 0,
+        sessionsCount: d.sessionsCount ?? 0,
+      })),
       stats: {
-        totalStudyMinutes: totalMinutes,
-        totalSessions: completedTasks,
-        currentStreak: 0,
-        avgMinutesPerSession: completedTasks > 0 ? Math.round(totalMinutes / completedTasks) : null,
+        totalStudyMinutes: ctxStats?.totalStudyMinutes ?? 0,
+        totalSessions: ctxStats?.totalSessions ?? 0,
+        currentStreak: ctxStats?.currentStreak ?? 0,
+        avgMinutesPerSession: timeSummary.avgMinutesPerSession,
       },
       studyMethods: Array.from(methodsSet),
     };
-  }, [studyPlans, allTasks, completedTasks]);
+  }, [studyPlans, topicMastery, studentDataCtx?.dailyActivity, studentDataCtx?.stats, timeSummary]);
 
   const toggleExpand = (taskId: string) => {
     setExpandedTasks(prev => {
