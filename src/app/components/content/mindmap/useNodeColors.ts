@@ -9,6 +9,7 @@
 // ============================================================
 
 const STORAGE_PREFIX = 'axon_node_colors_';
+const MAX_COLORS = 200;
 
 export type NodeColorMap = Map<string, string>;
 
@@ -35,11 +36,16 @@ export function saveNodeColor(topicId: string, nodeId: string, color: string): v
   if (!/^#[0-9a-fA-F]{3,8}$/.test(color)) return; // reject non-hex colors
   try {
     const existing = loadNodeColors(topicId);
+    // Delete + re-set to move to end of insertion order (LRU)
+    existing.delete(nodeId);
     existing.set(nodeId, color);
-    localStorage.setItem(
-      STORAGE_PREFIX + topicId,
-      JSON.stringify(Object.fromEntries(existing)),
-    );
+    // Evict oldest entries if over limit
+    if (existing.size > MAX_COLORS) {
+      const entries = Array.from(existing.entries()).slice(-MAX_COLORS);
+      localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(Object.fromEntries(entries)));
+    } else {
+      localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(Object.fromEntries(existing)));
+    }
   } catch {
     // localStorage full or unavailable — silently ignore
   }
