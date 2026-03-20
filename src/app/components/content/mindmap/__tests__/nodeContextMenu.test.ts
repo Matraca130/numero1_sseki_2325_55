@@ -322,8 +322,8 @@ describe('NodeContextMenu: keyboard navigation', () => {
     expect(source).toContain('e.preventDefault()');
   });
 
-  it('queries menuitem elements for navigation', () => {
-    expect(source).toContain('querySelectorAll<HTMLButtonElement>(\'[role="menuitem"]\')');
+  it('queries menuitem and menuitemradio elements for navigation', () => {
+    expect(source).toContain('querySelectorAll<HTMLButtonElement>(\'[role="menuitem"], [role="menuitemradio"]\')');
   });
 
   it('ArrowDown wraps from last to first item', () => {

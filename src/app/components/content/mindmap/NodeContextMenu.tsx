@@ -92,7 +92,7 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
       // Arrow key navigation within menu
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
-        const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+        const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"], [role="menuitemradio"]');
         if (!items || items.length === 0) return;
         const current = document.activeElement as HTMLElement;
         const idx = Array.from(items).indexOf(current as HTMLButtonElement);

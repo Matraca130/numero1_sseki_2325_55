@@ -229,7 +229,26 @@ export const GraphToolbar = memo(function GraphToolbar({
       aria-label={t.toolbar}
     >
       {/* Layout switcher */}
-      <div className="flex items-center bg-gray-50/80 rounded-full p-0.5" role="radiogroup" aria-label={t.layoutGroup}>
+      <div
+        className="flex items-center bg-gray-50/80 rounded-full p-0.5"
+        role="radiogroup"
+        aria-label={t.layoutGroup}
+        onKeyDown={(e) => {
+          const layouts = ['force', 'radial', 'dagre'] as const;
+          const idx = layouts.indexOf(layout);
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = layouts[(idx + 1) % layouts.length];
+            onLayoutChange(next);
+            (e.currentTarget.children[(idx + 1) % layouts.length] as HTMLElement)?.focus();
+          } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = layouts[(idx - 1 + layouts.length) % layouts.length];
+            onLayoutChange(prev);
+            (e.currentTarget.children[(idx - 1 + layouts.length) % layouts.length] as HTMLElement)?.focus();
+          }
+        }}
+      >
         {(['force', 'radial', 'dagre'] as const).map((value) => {
           const Icon = LAYOUT_ICONS[value];
           const label = LAYOUT_LABELS[value];
@@ -247,6 +266,7 @@ export const GraphToolbar = memo(function GraphToolbar({
               role="radio"
               aria-checked={layout === value}
               aria-label={`Layout ${label}`}
+              tabIndex={layout === value ? 0 : -1}
             >
               <Icon className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{label}</span>

@@ -136,7 +136,8 @@ describe('GraphToolbar: layout options', () => {
   });
 
   it('uses role="radiogroup" for the layout group', () => {
-    expect(source).toContain('role="radiogroup" aria-label={t.layoutGroup}');
+    expect(source).toContain('role="radiogroup"');
+    expect(source).toContain('aria-label={t.layoutGroup}');
   });
 
   it('uses role="radio" with aria-checked on each layout button', () => {
@@ -786,7 +787,8 @@ describe('GraphToolbar: accessibility', () => {
   });
 
   it('layout group uses role="radiogroup"', () => {
-    expect(source).toContain('role="radiogroup" aria-label={t.layoutGroup}');
+    expect(source).toContain('role="radiogroup"');
+    expect(source).toContain('aria-label={t.layoutGroup}');
   });
 
   it('layout buttons use role="radio" with aria-checked', () => {

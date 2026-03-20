@@ -318,13 +318,16 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
   }, []);
 
   const suggestingRef = useRef(false);
+  const suggestTopicRef = useRef(topicId);
   const handleSuggestConnections = useCallback(async () => {
     if (suggestingRef.current || !existingNodeIds?.length) return;
     suggestingRef.current = true;
+    suggestTopicRef.current = topicId;
     setSuggestingConnections(true);
     try {
       const result = await suggestStudentConnections(topicId, existingNodeIds, existingEdgeIds || []);
-      if (!mountedRef.current) return;
+      // Discard results if topic changed or component unmounted while in-flight
+      if (!mountedRef.current || suggestTopicRef.current !== topicId) return;
       setSuggestions(result);
       setAcceptedSuggestions(new Set());
       if (result.length === 0) {
@@ -343,9 +346,13 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
   const acceptingKeyRef = useRef(acceptingKey);
   acceptingKeyRef.current = acceptingKey;
 
+  const topicIdRef = useRef(topicId);
+  topicIdRef.current = topicId;
+
   const handleAcceptSuggestion = useCallback(async (suggestion: SuggestedConnection) => {
     const key = `${suggestion.source}-${suggestion.target}`;
     if (acceptedRef.current.has(key) || acceptingKeyRef.current === key) return;
+    const capturedTopicId = topicIdRef.current;
     setAcceptingKey(key);
     try {
       await createCustomEdge({
@@ -353,9 +360,10 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
         target_node_id: suggestion.target,
         label: suggestion.reason,
         connection_type: suggestion.type,
-        topic_id: topicId,
+        topic_id: capturedTopicId,
       });
-      if (!mountedRef.current) return;
+      // Discard result if topic changed or unmounted while in-flight
+      if (!mountedRef.current || topicIdRef.current !== capturedTopicId) return;
       setAcceptedSuggestions(prev => new Set(prev).add(key));
       onEdgeCreatedRef.current?.();
       toast.success('Conexión añadida al mapa');
@@ -364,7 +372,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
     } finally {
       if (mountedRef.current) setAcceptingKey(null);
     }
-  }, [topicId]);
+  }, []);
 
   const handleDismissSuggestion = useCallback((suggestion: SuggestedConnection) => {
     setSuggestions(prev => prev.filter(s => !(s.source === suggestion.source && s.target === suggestion.target)));

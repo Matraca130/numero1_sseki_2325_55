@@ -370,3 +370,52 @@ describe('GraphSkeleton — reactive reduced-motion via matchMedia', () => {
     expect(source).toContain('setPrefersReducedMotion');
   });
 });
+
+// ── GraphToolbar: layout radio group arrow key navigation ────
+
+describe('GraphToolbar — layout radio group keyboard navigation', () => {
+  const source = readSource('GraphToolbar.tsx');
+
+  it('has onKeyDown handler on the layout radiogroup', () => {
+    expect(source).toContain('onKeyDown');
+    expect(source).toContain('role="radiogroup"');
+  });
+
+  it('handles ArrowRight and ArrowDown to cycle layouts forward', () => {
+    expect(source).toContain("e.key === 'ArrowRight' || e.key === 'ArrowDown'");
+  });
+
+  it('handles ArrowLeft and ArrowUp to cycle layouts backward', () => {
+    expect(source).toContain("e.key === 'ArrowLeft' || e.key === 'ArrowUp'");
+  });
+
+  it('uses roving tabIndex on radio buttons', () => {
+    expect(source).toContain('tabIndex={layout === value ? 0 : -1}');
+  });
+});
+
+// ── NodeContextMenu: arrow keys include menuitemradio ────────
+
+describe('NodeContextMenu — arrow keys navigate all interactive items', () => {
+  const source = readSource('NodeContextMenu.tsx');
+
+  it('queries both menuitem and menuitemradio for arrow key navigation', () => {
+    expect(source).toContain('[role="menuitem"], [role="menuitemradio"]');
+  });
+});
+
+// ── AiTutorPanel: stale-topic guards ────────────────────────
+
+describe('AiTutorPanel — stale-topic guards on async operations', () => {
+  const source = readSource('AiTutorPanel.tsx');
+
+  it('has suggestTopicRef for suggest connections stale-topic guard', () => {
+    expect(source).toContain('suggestTopicRef.current = topicId');
+    expect(source).toContain('suggestTopicRef.current !== topicId');
+  });
+
+  it('has topicIdRef for accept suggestion stale-topic guard', () => {
+    expect(source).toContain('topicIdRef.current = topicId');
+    expect(source).toContain('topicIdRef.current !== capturedTopicId');
+  });
+});
