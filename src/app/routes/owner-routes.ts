@@ -1,41 +1,43 @@
 // ============================================================
 // Axon — Owner Routes (children of OwnerLayout)
 // PERF-70: All pages lazy-loaded to reduce initial bundle size.
-// PERF: Named lucide imports for tree-shaking (no dynamic import).
+//
+// BUG-030: All routes wired to real page components (no more placeholders).
 // ============================================================
 import type { RouteObject } from 'react-router';
-import React from 'react';
-import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  CreditCard,
-  Receipt,
-  ShieldCheck,
-  BarChart3,
-  Settings,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-
-const lazyPlaceholder = (title: string, desc: string, Icon: LucideIcon) => ({
-  lazy: async () => {
-    const { PlaceholderPage } = await import('@/app/components/roles/PlaceholderPage');
-    const Component = () => PlaceholderPage({
-      title,
-      description: desc,
-      icon: React.createElement(Icon, { size: 20 }),
-    });
-    return { Component };
-  },
-});
+import { lazyRetry } from '@/app/utils/lazyRetry';
 
 export const ownerChildren: RouteObject[] = [
-  { index: true,           ...lazyPlaceholder('Dashboard',       'Panel del propietario', LayoutDashboard) },
-  { path: 'institution',   ...lazyPlaceholder('Institucion',     'Datos de la institucion', Building2) },
-  { path: 'members',       ...lazyPlaceholder('Miembros',        'Gestion de miembros', Users) },
-  { path: 'plans',         ...lazyPlaceholder('Planes',          'Planes de suscripcion', CreditCard) },
-  { path: 'subscriptions', ...lazyPlaceholder('Suscripciones',   'Estado de suscripcion', Receipt) },
-  { path: 'access-rules',  ...lazyPlaceholder('Reglas de Acceso','Configurar acceso por plan', ShieldCheck) },
-  { path: 'reports',       ...lazyPlaceholder('Reportes',        'Estadisticas de la institucion', BarChart3) },
-  { path: 'settings',      ...lazyPlaceholder('Ajustes',         'Configuracion general', Settings) },
+  {
+    index: true,
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerDashboardPage')).then(m => ({ Component: m.OwnerDashboardPage })),
+  },
+  {
+    path: 'institution',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerInstitutionPage')).then(m => ({ Component: m.OwnerInstitutionPage })),
+  },
+  {
+    path: 'members',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerMembersPage')).then(m => ({ Component: m.OwnerMembersPage })),
+  },
+  {
+    path: 'plans',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerPlansPage')).then(m => ({ Component: m.OwnerPlansPage })),
+  },
+  {
+    path: 'subscriptions',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerSubscriptionsPage')).then(m => ({ Component: m.OwnerSubscriptionsPage })),
+  },
+  {
+    path: 'access-rules',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerAccessRulesPage')).then(m => ({ Component: m.OwnerAccessRulesPage })),
+  },
+  {
+    path: 'reports',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerReportsPage')).then(m => ({ Component: m.OwnerReportsPage })),
+  },
+  {
+    path: 'settings',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/owner/OwnerSettingsPage')).then(m => ({ Component: m.OwnerSettingsPage })),
+  },
 ];
