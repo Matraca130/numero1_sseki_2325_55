@@ -18,9 +18,9 @@ import { useSwipeDismiss } from '../useSwipeDismiss';
 
 // ── Synthetic event helpers ─────────────────────────────────
 
-const touchStart = (clientY: number, touchCount = 1, scrollTop = 0) => ({
+const touchStart = (clientY: number, touchCount = 1, scrollTop = 0, clientX = 0) => ({
   touches: Array.from({ length: touchCount }, (_, i) =>
-    i === 0 ? { clientY } : { clientY: 0 },
+    i === 0 ? { clientY, clientX } : { clientY: 0, clientX: 0 },
   ) as unknown as React.TouchList,
   currentTarget: { scrollTop } as unknown as EventTarget & HTMLElement,
 } as unknown as React.TouchEvent);
@@ -31,8 +31,8 @@ const touchMove = (touchCount = 1) => ({
   ) as unknown as React.TouchList,
 } as unknown as React.TouchEvent);
 
-const touchEnd = (clientY: number) => ({
-  changedTouches: [{ clientY }] as unknown as React.TouchList,
+const touchEnd = (clientY: number, clientX = 0) => ({
+  changedTouches: [{ clientY, clientX }] as unknown as React.TouchList,
 } as unknown as React.TouchEvent);
 
 // ── Constants (must match source) ───────────────────────────
@@ -177,6 +177,21 @@ describe('useSwipeDismiss', () => {
     });
 
     // Source uses `dy > SWIPE_THRESHOLD` (strict), so exactly 60 should NOT trigger
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it('does NOT dismiss on diagonal swipe where dx >= dy', () => {
+    const { result } = renderHook(() => useSwipeDismiss(onDismiss));
+
+    // Start at (0, 100), end at (200, 170) — mostly horizontal
+    act(() => {
+      result.current.onTouchStart(touchStart(100, 1, 0, 0));
+    });
+    vi.advanceTimersByTime(200);
+    act(() => {
+      result.current.onTouchEnd(touchEnd(100 + SWIPE_THRESHOLD + 1, 200));
+    });
+
     expect(onDismiss).not.toHaveBeenCalled();
   });
 });

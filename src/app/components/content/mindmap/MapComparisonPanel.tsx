@@ -228,20 +228,20 @@ export function MapComparisonPanel({
 
   const handleHighlightGaps = useCallback(() => {
     if (gaps.length === 0) return;
-    onHighlightNodes?.(new Set(gaps.map(g => g.node.id)));
-  }, [gaps, onHighlightNodes]);
+    onHighlightNodesRef.current?.(new Set(gaps.map(g => g.node.id)));
+  }, [gaps]);
 
   const handleHighlightMastered = useCallback(() => {
     if (!graphData) return;
     const ids = new Set(
       graphData.nodes.filter(n => !n.isUserCreated && n.masteryColor === 'green').map(n => n.id)
     );
-    if (ids.size > 0) onHighlightNodes?.(ids);
-  }, [graphData, onHighlightNodes]);
+    if (ids.size > 0) onHighlightNodesRef.current?.(ids);
+  }, [graphData]);
 
   const handleClearHighlight = useCallback(() => {
-    onHighlightNodes?.(undefined);
-  }, [onHighlightNodes]);
+    onHighlightNodesRef.current?.(undefined);
+  }, []);
 
   const handleHighlightCustom = useCallback(() => {
     if (customNodes.length === 0) return;

@@ -15,7 +15,10 @@ const SWIPE_THRESHOLD = 60; // px
 const TIME_LIMIT = 400;     // ms
 
 export function useSwipeDismiss(onDismiss: () => void) {
-  const touchRef = useRef<{ startY: number; startTime: number; scrolledAtStart: boolean } | null>(null);
+  const touchRef = useRef<{ startY: number; startX: number; startTime: number; scrolledAtStart: boolean } | null>(null);
+  // Ref-stabilize onDismiss to avoid stale closure and unnecessary callback recreation
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     // Ignore multi-touch (e.g. pinch-to-zoom)
@@ -27,6 +30,7 @@ export function useSwipeDismiss(onDismiss: () => void) {
 
     touchRef.current = {
       startY: e.touches[0].clientY,
+      startX: e.touches[0].clientX,
       startTime: Date.now(),
       scrolledAtStart,
     };
@@ -39,16 +43,18 @@ export function useSwipeDismiss(onDismiss: () => void) {
 
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
     if (!touchRef.current) return;
-    const { startY, startTime, scrolledAtStart } = touchRef.current;
+    const { startY, startX, startTime, scrolledAtStart } = touchRef.current;
     touchRef.current = null;
 
     // Don't dismiss if the user was scrolled down — they're scrolling content, not swiping to dismiss
     if (scrolledAtStart) return;
 
     const dy = e.changedTouches[0].clientY - startY;
+    const dx = Math.abs(e.changedTouches[0].clientX - startX);
     const dt = Date.now() - startTime;
-    if (dy > SWIPE_THRESHOLD && dt < TIME_LIMIT) onDismiss();
-  }, [onDismiss]);
+    // Only dismiss on predominantly downward swipes (reject diagonal/horizontal gestures)
+    if (dy > SWIPE_THRESHOLD && dt < TIME_LIMIT && dx < dy) onDismissRef.current();
+  }, []);
 
   return { onTouchStart, onTouchMove, onTouchEnd };
 }
