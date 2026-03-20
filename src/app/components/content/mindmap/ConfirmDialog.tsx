@@ -42,11 +42,16 @@ export function ConfirmDialog({
   const onCancelRef = useRef(onCancel);
   onCancelRef.current = onCancel;
 
-  // Lock body scroll while dialog is open
+  // Lock body scroll while dialog is open (both body + html for iOS Safari)
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
   }, []);
 
   useEffect(() => {

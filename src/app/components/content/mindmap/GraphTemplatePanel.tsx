@@ -103,16 +103,18 @@ export function GraphTemplatePanel({
 
   // ── Fetch templates on open ───────────────────────────────
 
+  const fetchIdRef = useRef(0);
   const loadTemplates = useCallback(async () => {
     if (!institutionId) return;
+    const fetchId = ++fetchIdRef.current;
     setLoading(true);
     try {
       const result = await fetchGraphTemplates(institutionId);
-      if (mountedRef.current) setTemplates(result);
+      if (mountedRef.current && fetchId === fetchIdRef.current) setTemplates(result);
     } catch {
-      if (mountedRef.current) toast.error('Error al cargar plantillas');
+      if (mountedRef.current && fetchId === fetchIdRef.current) toast.error('Error al cargar plantillas');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && fetchId === fetchIdRef.current) setLoading(false);
     }
   }, [institutionId]);
 
@@ -400,7 +402,7 @@ export function GraphTemplatePanel({
                       key={template.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: index * 0.04, ease: [0.32, 0.72, 0, 1] }}
+                      transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.4), ease: [0.32, 0.72, 0, 1] }}
                       className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 group hover:border-gray-200 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">

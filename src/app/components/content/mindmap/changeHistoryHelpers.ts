@@ -138,6 +138,7 @@ export function createDeleteEdgeEntry(sourceLabel: string, targetLabel: string):
  */
 export function formatRelativeTime(isoTimestamp: string): string {
   const date = new Date(isoTimestamp);
+  if (isNaN(date.getTime())) return isoTimestamp;
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60_000);

@@ -145,7 +145,11 @@ export function useKeyboardNav({
   const nodeByIdRef = useRef(new Map<string, MapNode>());
   useEffect(() => {
     nodeByIdRef.current = new Map(nodes.map(n => [n.id, n]));
-  }, [nodes]);
+    // Clear focus if the focused node was removed from the graph
+    if (focusedNodeId && !nodeByIdRef.current.has(focusedNodeId)) {
+      setFocusedNodeId(null);
+    }
+  }, [nodes, focusedNodeId]);
 
   // Keep edges ref fresh
   const edgesRef = useRef(edges);

@@ -47,9 +47,11 @@ export function PresentationMode({
   const [direction, setDirection] = useState<SlideDir>('right');
   const overlayRef = useFocusTrap<HTMLDivElement>(total > 0);
 
-  // Stabilize onExit via ref to avoid stale closure in handleKeyDown
+  // Stabilize callbacks via refs to avoid stale closures and effect churn
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
+  const onNodeFocusRef = useRef(onNodeFocus);
+  onNodeFocusRef.current = onNodeFocus;
 
   // Lock body scroll while presentation is open
   useEffect(() => {
@@ -77,8 +79,8 @@ export function PresentationMode({
   // eslint-disable-next-line react-hooks/exhaustive-deps — depend on ID, not object reference
   const currentId = current?.id;
   useEffect(() => {
-    if (currentId && onNodeFocus) onNodeFocus(currentId);
-  }, [currentId, onNodeFocus]);
+    if (currentId && onNodeFocusRef.current) onNodeFocusRef.current(currentId);
+  }, [currentId]);
 
   const goNext = useCallback(() => {
     setDirection('right');
