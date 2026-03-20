@@ -381,17 +381,15 @@ export function KnowledgeMapView() {
 
   const handleAddStickyNote = useCallback(() => {
     if (!effectiveTopicId) return;
-    setStickyNotes(prev => {
-      if (prev.length >= 10) {
-        toast.error('Máximo 10 notas por tema');
-        return prev;
-      }
-      const note = createStickyNote();
-      const next = [...prev, note];
-      saveStickyNotes(effectiveTopicId, next);
-      return next;
-    });
-  }, [effectiveTopicId]);
+    if (stickyNotes.length >= 10) {
+      toast.error('Máximo 10 notas por tema');
+      return;
+    }
+    const note = createStickyNote();
+    const next = [...stickyNotes, note];
+    setStickyNotes(next);
+    saveStickyNotes(effectiveTopicId, next);
+  }, [effectiveTopicId, stickyNotes]);
 
   // ── Custom node colors ────────────────────────────────────
   const [customNodeColors, setCustomNodeColors] = useState<NodeColorMap>(new Map());

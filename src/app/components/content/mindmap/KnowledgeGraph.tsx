@@ -787,7 +787,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       layoutInProgressRef.current = false;
       // Clear any pending long-press timer to prevent firing on a destroyed graph
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
-      graph.destroy();
+      try { graph.destroy(); } catch { /* G6 may throw if mid-render */ }
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1203,17 +1203,19 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     handleViewportChange();
 
     return () => {
-      graph.off('node:click', handleNodeClick);
-      graph.off('node:contextmenu', handleNodeContextMenu);
-      graph.off('node:dblclick', handleNodeDblClick);
-      graph.off('node:dragend', handleNodeDragEnd);
-      graph.off('canvas:click', handleCanvasClick);
-      graph.off('afterbrushselect', handleBrushSelect);
-      graph.off('node:pointerdown', handleNodePointerDown);
-      graph.off('node:pointerup', clearActiveState);
-      graph.off('node:pointerleave', clearActiveState);
-      graph.off('node:pointermove', handleNodePointerMove);
-      graph.off('afterviewportchange', handleViewportChange);
+      try {
+        graph.off('node:click', handleNodeClick);
+        graph.off('node:contextmenu', handleNodeContextMenu);
+        graph.off('node:dblclick', handleNodeDblClick);
+        graph.off('node:dragend', handleNodeDragEnd);
+        graph.off('canvas:click', handleCanvasClick);
+        graph.off('afterbrushselect', handleBrushSelect);
+        graph.off('node:pointerdown', handleNodePointerDown);
+        graph.off('node:pointerup', clearActiveState);
+        graph.off('node:pointerleave', clearActiveState);
+        graph.off('node:pointermove', handleNodePointerMove);
+        graph.off('afterviewportchange', handleViewportChange);
+      } catch { /* graph may already be destroyed */ }
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps — callbacks stabilized via refs (onNodeClickRef, onNodeRightClickRef, onCollapseChangeRef)
