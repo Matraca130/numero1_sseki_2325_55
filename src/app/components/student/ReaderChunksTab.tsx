@@ -7,8 +7,12 @@
 // Renders either:
 //   - SummaryViewer (if blocks exist — enriched view)
 //   - Chunk list with KeywordHighlighterInline (fallback)
+//
+// P1 FIX: Images in chunk HTML now open ImageLightbox on click.
+// Uses useChunkImageLightbox hook (event delegation + MutationObserver).
+// P-05 FIX: React.memo to prevent unnecessary re-renders.
 // ============================================================
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'motion/react';
 import { Layers } from 'lucide-react';
 import type { Chunk } from '@/app/services/summariesApi';
@@ -18,6 +22,8 @@ import { enrichHtmlWithImages, renderPlainLine } from '@/app/lib/summary-content
 import { sanitizeHtml } from '@/app/lib/sanitize';
 import { proseClasses } from '@/app/components/design-kit';
 import { ListSkeleton } from '@/app/components/student/reader-atoms';
+import { ImageLightbox } from '@/app/components/student/ImageLightbox';
+import { useChunkImageLightbox } from '@/app/hooks/useChunkImageLightbox';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -30,9 +36,9 @@ export interface ReaderChunksTabProps {
   onNavigateKeyword: (keywordId: string, summaryId: string) => void;
 }
 
-// ── Component ─────────────────────────────────────────────
+// ── Component (P-05 FIX: React.memo) ─────────────────────
 
-export function ReaderChunksTab({
+export const ReaderChunksTab = React.memo(function ReaderChunksTab({
   summaryId,
   chunks,
   chunksLoading,
@@ -40,6 +46,15 @@ export function ReaderChunksTab({
   blocksLoading,
   onNavigateKeyword,
 }: ReaderChunksTabProps) {
+  // ── Lightbox for chunk images (P1 fix) ──────────────────
+  const chunksContainerRef = useRef<HTMLDivElement>(null);
+  const {
+    images: chunkImages,
+    lightboxOpen,
+    lightboxIndex,
+    closeLightbox,
+  } = useChunkImageLightbox(chunks, chunksContainerRef);
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
@@ -61,7 +76,7 @@ export function ReaderChunksTab({
             <p className="text-xs text-zinc-400">Este resumen aun no tiene contenido</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div ref={chunksContainerRef} className="space-y-4">
             {chunks.map((chunk, idx) => (
               <motion.div
                 key={chunk.id}
@@ -86,6 +101,14 @@ export function ReaderChunksTab({
           </div>
         )}
       </div>
+
+      {/* ── Image Lightbox for chunk content (P1 fix) ────── */}
+      <ImageLightbox
+        images={chunkImages}
+        initialIndex={lightboxIndex}
+        open={lightboxOpen}
+        onClose={closeLightbox}
+      />
     </div>
   );
-}
+});

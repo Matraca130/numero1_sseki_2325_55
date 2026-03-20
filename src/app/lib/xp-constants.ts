@@ -95,3 +95,12 @@ export function estimateReviewXP(grade: number): number {
   }
   return xp;
 }
+
+/** Average reading speed (words per minute) for time-based progress estimation */
+export const AVG_READING_WPM = 200;
+
+/** Max progress that time-based reading can reach (90%) — completion requires explicit action */
+export const MAX_TIME_BASED_PROGRESS = 0.9;
+
+/** localStorage key prefix for persisting reader page position */
+export const READER_PAGE_KEY_PREFIX = 'axon-reader-page-';

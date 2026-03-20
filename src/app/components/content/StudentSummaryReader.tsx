@@ -24,7 +24,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/ta
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
 import { VideoPlayer } from '@/app/components/student/VideoPlayer';
-import { SummaryViewer } from '@/app/components/student/SummaryViewer';
 import { useSummaryReaderQueries } from '@/app/hooks/queries/useSummaryReaderQueries';
 import { useKeywordDetailQueries } from '@/app/hooks/queries/useKeywordDetailQueries';
 import { useSummaryReaderMutations } from '@/app/hooks/queries/useSummaryReaderMutations';
@@ -55,6 +54,7 @@ import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
 // ── Extracted tab components (Phase B.4-B.5) ──────────────
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
+import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
 
 // ── Props ─────────────────────────────────────────────────
 interface StudentSummaryReaderProps {
@@ -65,6 +65,8 @@ interface StudentSummaryReaderProps {
   onReadingStateChanged: (rs: ReadingState) => void;
   /** Navigate to a keyword in another (or same) summary */
   onNavigateKeyword?: (keywordId: string, summaryId: string) => void;
+  /** Tab to open when entering the reader (e.g. 'videos' from TopicSessionGrid) */
+  initialTab?: string;
 }
 
 export function StudentSummaryReader({
@@ -74,8 +76,9 @@ export function StudentSummaryReader({
   onBack,
   onReadingStateChanged,
   onNavigateKeyword,
+  initialTab,
 }: StudentSummaryReaderProps) {
-  const [activeTab, setActiveTab] = useState('chunks');
+  const [activeTab, setActiveTab] = useState(initialTab || 'chunks');
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -386,54 +389,16 @@ export function StudentSummaryReader({
             </TabsTrigger>
           </TabsList>
 
-          {/* ── CHUNKS TAB (inline — Phase B+ candidate) ── */}
+          {/* ── CHUNKS TAB (delegated to ReaderChunksTab) ── */}
           <TabsContent value="chunks">
-            <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
-              <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
-                <h3 className="text-sm text-zinc-700" style={{ fontWeight: 600 }}>Contenido del resumen</h3>
-                {!blocksLoading && hasBlocks && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 600 }}>
-                    Vista enriquecida
-                  </span>
-                )}
-              </div>
-              <div className="p-6">
-                {!blocksLoading && hasBlocks ? (
-                  <SummaryViewer summaryId={summary.id} />
-                ) : chunksLoading ? (
-                  <ListSkeleton />
-                ) : chunks.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Layers className="w-6 h-6 text-zinc-300 mx-auto mb-2" />
-                    <p className="text-xs text-zinc-400">Este resumen aun no tiene contenido</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {chunks.map((chunk, idx) => (
-                      <motion.div
-                        key={chunk.id}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.02 }}
-                      >
-                        {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
-                          <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
-                            <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content)) }} />
-                          </KeywordHighlighterInline>
-                        ) : (
-                          <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
-                            <div className="axon-prose max-w-none">
-                              {chunk.content.split('\n').map((line, i) => renderPlainLine(line, i))}
-                            </div>
-                          </KeywordHighlighterInline>
-                        )}
-                        {idx < chunks.length - 1 && <div className="border-b border-zinc-100 mt-4" />}
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <ReaderChunksTab
+              summaryId={summary.id}
+              chunks={chunks}
+              chunksLoading={chunksLoading}
+              hasBlocks={hasBlocks}
+              blocksLoading={blocksLoading}
+              onNavigateKeyword={handleNavigateKeywordWrapped}
+            />
           </TabsContent>
 
           {/* ── KEYWORDS TAB (Phase B.5 — delegated) ── */}
