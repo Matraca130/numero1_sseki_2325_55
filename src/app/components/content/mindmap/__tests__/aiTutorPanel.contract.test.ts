@@ -18,7 +18,7 @@ const source = readFileSync(COMPONENT_PATH, 'utf-8');
 
 describe('AiTutorPanel: module contract', () => {
   it('exports a function named AiTutorPanel', () => {
-    expect(source).toMatch(/export\s+function\s+AiTutorPanel/);
+    expect(source).toMatch(/export\s+(const\s+AiTutorPanel\s*=\s*memo\s*\(\s*function\s+AiTutorPanel|function\s+AiTutorPanel)/);
   });
 
   it('has no default export (named export only)', () => {

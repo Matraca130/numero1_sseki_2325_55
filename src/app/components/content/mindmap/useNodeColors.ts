@@ -65,7 +65,7 @@ export function removeNodeColor(topicId: string, nodeId: string): void {
 
 /** Node color palette — 6 swatches for user-created nodes */
 export const NODE_COLOR_PALETTE = [
-  { hex: '#2a8c7a', label: 'Teal' },
+  { hex: '#2a8c7a', label: 'Turquesa' },
   { hex: '#ef4444', label: 'Rojo' },
   { hex: '#3b82f6', label: 'Azul' },
   { hex: '#8b5cf6', label: 'Morado' },

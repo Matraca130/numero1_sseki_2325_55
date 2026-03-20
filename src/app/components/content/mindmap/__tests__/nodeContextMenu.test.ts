@@ -429,7 +429,7 @@ describe('NodeContextMenu: color picker', () => {
 
 describe('NodeContextMenu: NODE_COLOR_PALETTE values', () => {
   const EXPECTED_PALETTE = [
-    { hex: '#2a8c7a', label: 'Teal' },
+    { hex: '#2a8c7a', label: 'Turquesa' },
     { hex: '#ef4444', label: 'Rojo' },
     { hex: '#3b82f6', label: 'Azul' },
     { hex: '#8b5cf6', label: 'Morado' },

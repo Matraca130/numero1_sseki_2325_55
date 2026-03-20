@@ -11,6 +11,7 @@
 // LANG: Spanish
 // ============================================================
 
+import { memo } from 'react';
 import { MousePointer2, Plus, Link2, Trash2, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -37,7 +38,7 @@ const TOOLS: { id: MapTool; icon: typeof MousePointer2; label: string; shortcut?
 
 // ── Component ───────────────────────────────────────────────
 
-export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapToolsPanelProps) {
+export const MapToolsPanel = memo(function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapToolsPanelProps) {
   // Keyboard shortcuts (V/N/C/D/A) are handled by the parent (KnowledgeMapView)
   // to avoid double-firing. This component only handles arrow-key navigation within the toolbar.
 
@@ -79,6 +80,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
                 }`}
                 aria-label={tool.label}
                 aria-pressed={isActive}
+                tabIndex={isActive ? 0 : -1}
                 title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
               >
                 <Icon className="w-4 h-4" />
@@ -92,4 +94,4 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
       )}
     </AnimatePresence>
   );
-}
+});

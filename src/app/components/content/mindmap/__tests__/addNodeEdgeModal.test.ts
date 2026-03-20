@@ -65,7 +65,7 @@ interface CreateCustomEdgePayload {
 
 describe('AddNodeEdgeModal: module contract', () => {
   it('exports a named function AddNodeEdgeModal', () => {
-    expect(source).toMatch(/export\s+function\s+AddNodeEdgeModal/);
+    expect(source).toMatch(/export\s+(const\s+AddNodeEdgeModal\s*=\s*memo\s*\(\s*function\s+AddNodeEdgeModal|function\s+AddNodeEdgeModal)/);
   });
 
   it('has no default export (named export only)', () => {

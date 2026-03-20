@@ -17,7 +17,7 @@ const source = readFileSync(COMPONENT_PATH, 'utf-8');
 
 describe('MapToolsPanel: module contract', () => {
   it('exports MapToolsPanel as a function', () => {
-    expect(source).toMatch(/export\s+function\s+MapToolsPanel/);
+    expect(source).toMatch(/export\s+(const\s+MapToolsPanel\s*=\s*memo\s*\(\s*function\s+MapToolsPanel|function\s+MapToolsPanel)/);
   });
 
   it('exports MapTool type', () => {

@@ -9,7 +9,7 @@
 // LANG: Spanish (student UI)
 // ============================================================
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { X, Plus, Link2, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -46,7 +46,7 @@ interface AddNodeEdgeModalProps {
 
 // ── Component ───────────────────────────────────────────────
 
-export function AddNodeEdgeModal({
+export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
   open,
   onClose,
   topicId,
@@ -614,4 +614,4 @@ export function AddNodeEdgeModal({
       )}
     </AnimatePresence>
   );
-}
+});

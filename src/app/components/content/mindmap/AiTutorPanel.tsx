@@ -12,7 +12,7 @@
 // LANG: Spanish
 // ============================================================
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { Sparkles, AlertTriangle, CheckCircle2, Route, X, Layers, HelpCircle, FileText, Link2, Check, XCircle, Brain, ArrowDown, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -192,7 +192,7 @@ interface AiTutorPanelProps {
 
 // ── Component ───────────────────────────────────────────────
 
-export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, open, onClose, existingNodeIds, existingEdgeIds, onEdgeCreated, nodeLabels, onReviewNodes }: AiTutorPanelProps) {
+export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, open, onClose, existingNodeIds, existingEdgeIds, onEdgeCreated, nodeLabels, onReviewNodes }: AiTutorPanelProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalyzeKnowledgeGraphResponse | null>(null);
   const [weakPoints, setWeakPoints] = useState<WeakPoint[]>([]);
@@ -851,4 +851,4 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
       )}
     </AnimatePresence>
   );
-}
+});
