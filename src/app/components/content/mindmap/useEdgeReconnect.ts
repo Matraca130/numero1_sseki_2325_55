@@ -29,6 +29,8 @@ const ENDPOINT_HIT_RADIUS = 14;
 const NODE_SNAP_RADIUS = 24;
 /** Minimum drag distance before the reconnect drag actually activates (avoids hijacking clicks) */
 const DRAG_THRESHOLD = 6;
+/** Throttle interval (ms) for hover cursor checks to reduce O(E) G6 calls per pointermove */
+const HOVER_CHECK_THROTTLE_MS = 50;
 
 export interface EdgeReconnectResult {
   /** The original edge that was reconnected */
@@ -397,9 +399,16 @@ export function useEdgeReconnect({
       }
     };
 
+    let lastHoverCheckTime = 0;
+
     const handlePointerMove = (e: PointerEvent) => {
       const ds = dragStateRef.current;
       if (!ds) {
+        // Throttle hover cursor checks — O(E) G6 calls per invocation
+        const now = performance.now();
+        if (now - lastHoverCheckTime < HOVER_CHECK_THROTTLE_MS) return;
+        lastHoverCheckTime = now;
+
         // Check for hover-near-endpoint to show cursor hint
         const userEdges = getUserEdges();
         if (userEdges.length === 0) return;
