@@ -463,7 +463,7 @@ export function KnowledgeMapView() {
   }, []);
 
   const executeDeleteNode = useCallback(async () => {
-    if (!confirmDeleteNode || deletingNodeRef.current) return;
+    if (!confirmDeleteNode || deletingNodeRef.current || !effectiveTopicId) return;
     deletingNodeRef.current = true;
     try {
       await deleteCustomNode(confirmDeleteNode.id);
@@ -497,7 +497,7 @@ export function KnowledgeMapView() {
 
   // Handle edge reconnect: delete old edge, create new edge, record undo action
   const handleEdgeReconnect = useCallback(async (result: EdgeReconnectResult) => {
-    if (reconnectingRef.current) return;
+    if (reconnectingRef.current || !effectiveTopicId) return;
     reconnectingRef.current = true;
     const { oldEdge, movedEndpoint, newNodeId } = result;
     try {
@@ -994,7 +994,7 @@ export function KnowledgeMapView() {
                   <span className="hidden sm:inline">Actualizar</span>
                 </button>
                 <button
-                  onClick={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } return !v; }); }}
+                  onClick={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } else { setAiHighlightNodes(undefined); setAiReviewNodes(undefined); } return !v; }); }}
                   className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
                     showAiPanel
                       ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
