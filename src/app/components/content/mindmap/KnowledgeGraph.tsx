@@ -259,7 +259,16 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       const prev = prevMultiRef.current;
       // Only update nodes that changed state (O(delta) instead of O(N))
       for (const id of ids) {
-        if (!prev.has(id)) graph.setElementState(id, ['multiSelected']);
+        if (!prev.has(id)) {
+          // Merge 'multiSelected' with existing states (preserve hover, selected, active)
+          try {
+            const existing = graph.getElementState(id);
+            const states = Array.isArray(existing)
+              ? [...existing.filter((s: string) => s !== 'multiSelected'), 'multiSelected']
+              : ['multiSelected'];
+            graph.setElementState(id, states);
+          } catch { graph.setElementState(id, ['multiSelected']); }
+        }
       }
       for (const id of prev) {
         if (!ids.has(id)) {
@@ -1153,7 +1162,14 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       longPressStartPos = { x: evt.canvas.x, y: evt.canvas.y };
       const nodeId = evt.target?.id ?? evt.itemId;
       if (nodeId) {
-        try { graph.setElementState(nodeId, ['active']); } catch (e: unknown) { warnIfNotDestroyed(e); }
+        try {
+          // Merge 'active' with existing states (preserve hover, selected, multiSelected)
+          const existing = graph.getElementState(nodeId);
+          const states = Array.isArray(existing)
+            ? [...existing.filter((s: string) => s !== 'active'), 'active']
+            : ['active'];
+          graph.setElementState(nodeId, states);
+        } catch (e: unknown) { warnIfNotDestroyed(e); }
       }
       longPressTimerRef.current = setTimeout(() => {
         if (!mountedRef.current || graphRef.current !== graph) return;

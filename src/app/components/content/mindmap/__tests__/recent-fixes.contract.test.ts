@@ -173,3 +173,38 @@ describe('ChangeHistoryPanel — side panel does not use aria-modal', () => {
     expect(source).toContain('aria-label="Panel de historial de cambios"');
   });
 });
+
+// ── KnowledgeGraph: setElementState merges existing states ──
+
+describe('KnowledgeGraph — setElementState merges with existing states', () => {
+  const source = readSource('KnowledgeGraph.tsx');
+
+  it('handleNodePointerDown merges active with existing states', () => {
+    // Must read existing states before adding 'active', not overwrite
+    const pointerDownSection = source.slice(
+      source.indexOf('handleNodePointerDown'),
+      source.indexOf('cancelLongPress'),
+    );
+    expect(pointerDownSection).toContain('getElementState');
+    expect(pointerDownSection).toMatch(/filter.*!==\s*'active'/);
+  });
+
+  it('applyMultiSelectionState merges multiSelected with existing states', () => {
+    // Must read existing states before adding 'multiSelected', not overwrite
+    const multiSelectSection = source.slice(
+      source.indexOf('applyMultiSelectionState'),
+      source.indexOf('updateMultiSelection'),
+    );
+    expect(multiSelectSection).toContain('getElementState');
+    expect(multiSelectSection).toMatch(/filter.*!==\s*'multiSelected'/);
+  });
+
+  it('clearActiveState preserves other states when removing active', () => {
+    // clearActiveState should filter out 'active' but keep other states
+    const clearActiveSection = source.slice(
+      source.indexOf('clearActiveState'),
+      source.indexOf('handleNodePointerMove'),
+    );
+    expect(clearActiveSection).toMatch(/filter.*!==\s*'active'/);
+  });
+});
