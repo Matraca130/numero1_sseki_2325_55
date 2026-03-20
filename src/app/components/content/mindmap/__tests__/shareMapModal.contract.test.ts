@@ -21,8 +21,8 @@ const source = readFileSync(COMPONENT_PATH, 'utf-8');
 // ── Module contract ─────────────────────────────────────────
 
 describe('ShareMapModal: module contract', () => {
-  it('exports a function named ShareMapModal', () => {
-    expect(source).toMatch(/export\s+function\s+ShareMapModal/);
+  it('exports a named function ShareMapModal (optionally wrapped in memo)', () => {
+    expect(source).toMatch(/export\s+(const\s+ShareMapModal\s*=\s*memo\s*\(\s*function\s+ShareMapModal|function\s+ShareMapModal)/);
   });
 
   it('has no default export (named export only)', () => {
@@ -33,14 +33,14 @@ describe('ShareMapModal: module contract', () => {
 // ── Props interface ─────────────────────────────────────────
 
 describe('ShareMapModal: props interface', () => {
-  it('requires open, onClose, topicId', () => {
-    expect(source).toContain('open');
-    expect(source).toContain('onClose');
-    expect(source).toContain('topicId');
+  it('requires open, onClose, topicId with correct types', () => {
+    expect(source).toContain('open: boolean');
+    expect(source).toContain('onClose: () => void');
+    expect(source).toContain('topicId: string');
   });
 
   it('has optional topicName prop', () => {
-    expect(source).toContain('topicName');
+    expect(source).toContain('topicName?: string');
   });
 });
 
@@ -154,9 +154,11 @@ describe('ShareMapModal: accessibility', () => {
     expect(source).toContain('aria-modal="true"');
   });
 
-  it('has aria-labelledby for the title', () => {
-    expect(source).toContain('aria-labelledby="share-modal-title"');
-    expect(source).toContain('id="share-modal-title"');
+  it('has aria-labelledby and aria-describedby using dynamic IDs', () => {
+    expect(source).toContain('aria-labelledby={titleId}');
+    expect(source).toContain('aria-describedby={descId}');
+    expect(source).toContain('id={titleId}');
+    expect(source).toContain('id={descId}');
   });
 
   it('close button has aria-label', () => {

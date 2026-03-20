@@ -10,7 +10,7 @@
 // LANG: Spanish
 // ============================================================
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useId, memo } from 'react';
 import { X, Copy, Check, Share2, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -28,13 +28,16 @@ interface ShareMapModalProps {
 
 // ── Component ───────────────────────────────────────────────
 
-export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapModalProps) {
+export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapModalProps) {
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const focusTrapRef = useFocusTrap(open);
   const inputRef = useRef<HTMLInputElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const uid = useId();
+  const titleId = `share-title-${uid}`;
+  const descId = `share-desc-${uid}`;
 
   // Build the share URL from the current origin (SSR-safe)
   const shareUrl = typeof window !== 'undefined'
@@ -113,7 +116,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
           {/* Modal wrapper — click outside closes */}
           <div
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
-            onClick={onClose}
+            onClick={() => onCloseRef.current()}
           >
             <motion.div
               ref={focusTrapRef}
@@ -125,7 +128,8 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
-              aria-labelledby="share-modal-title"
+              aria-labelledby={titleId}
+              aria-describedby={descId}
             >
               {/* Mobile drag handle */}
               <div className="flex sm:hidden justify-center pt-2 pb-0">
@@ -139,7 +143,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
                     <Share2 className="w-4 h-4 text-ax-primary-500" aria-hidden="true" />
                   </div>
                   <h2
-                    id="share-modal-title"
+                    id={titleId}
                     className="font-semibold text-gray-900"
                     style={{ ...headingStyle, fontSize: 'clamp(1rem, 2vw, 1.125rem)' }}
                   >
@@ -158,6 +162,7 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
               {/* Body */}
               <div className="px-5 pb-5 space-y-4">
                 <p
+                  id={descId}
                   className="text-gray-500 leading-relaxed"
                   style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                 >
@@ -232,4 +237,4 @@ export function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapMod
       )}
     </AnimatePresence>
   );
-}
+});

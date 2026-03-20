@@ -158,6 +158,12 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
   // ── Keyboard move (a11y — Arrow keys move note by 10px) ──
 
   const MOVE_STEP = 10;
+  const kbMoveRafRef = useRef<number>(0);
+  const kbPendingRef = useRef<{ dx: number; dy: number } | null>(null);
+
+  // Cleanup rAF on unmount
+  useEffect(() => () => { if (kbMoveRafRef.current) cancelAnimationFrame(kbMoveRafRef.current); }, []);
+
   const handleKeyboardMove = useCallback((e: React.KeyboardEvent) => {
     let dx = 0, dy = 0;
     if (e.key === 'ArrowLeft') dx = -MOVE_STEP;
@@ -167,12 +173,23 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
     else return;
     e.preventDefault();
     e.stopPropagation();
-    const parent = noteRef.current?.parentElement;
-    const maxX = parent ? Math.max(0, parent.clientWidth - 160) : Infinity;
-    const maxY = parent ? Math.max(0, parent.clientHeight - 100) : Infinity;
-    const newX = Math.min(maxX, Math.max(0, noteDataRef.current.x + dx));
-    const newY = Math.min(maxY, Math.max(0, noteDataRef.current.y + dy));
-    onUpdateRef.current({ ...noteDataRef.current, x: newX, y: newY });
+    // Accumulate delta and batch via rAF to avoid excessive re-renders
+    const prev = kbPendingRef.current;
+    kbPendingRef.current = { dx: (prev?.dx ?? 0) + dx, dy: (prev?.dy ?? 0) + dy };
+    if (!kbMoveRafRef.current) {
+      kbMoveRafRef.current = requestAnimationFrame(() => {
+        kbMoveRafRef.current = 0;
+        const delta = kbPendingRef.current;
+        kbPendingRef.current = null;
+        if (!delta) return;
+        const parent = noteRef.current?.parentElement;
+        const maxX = parent ? Math.max(0, parent.clientWidth - 160) : Infinity;
+        const maxY = parent ? Math.max(0, parent.clientHeight - 100) : Infinity;
+        const newX = Math.min(maxX, Math.max(0, noteDataRef.current.x + delta.dx));
+        const newY = Math.min(maxY, Math.max(0, noteDataRef.current.y + delta.dy));
+        onUpdateRef.current({ ...noteDataRef.current, x: newX, y: newY });
+      });
+    }
   }, []);
 
   // ── Text change ─────────────────────────────────────────
@@ -239,9 +256,8 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
             borderBottom: `1px solid ${borderColor}40`,
           }}
           tabIndex={0}
-          role="slider"
+          aria-roledescription="elemento arrastrable"
           aria-label="Mover nota (usa las flechas del teclado)"
-          aria-valuetext={`Posición: ${Math.round(note.x)}, ${Math.round(note.y)}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
