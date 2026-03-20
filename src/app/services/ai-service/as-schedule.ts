@@ -95,6 +95,90 @@ export interface AiScheduleResponse {
   _meta: AiScheduleMeta;
 }
 
+// ── Normalizer ────────────────────────────────────────────
+// The backend wraps Claude's JSON in { result, _meta }.
+// Claude's field names vary between runs, so we normalize
+// them into our typed AiScheduleResponse interface.
+
+function normalizeClaudeResponse(
+  action: string,
+  claude: Record<string, unknown>,
+  meta: AiScheduleMeta,
+): AiScheduleResponse {
+  const base: AiScheduleResponse = { _meta: meta };
+
+  if (action === 'recommend-today') {
+    const recs = (claude.recommendations ?? claude.todayRecommendations ?? []) as any[];
+    base.todayRecommendations = recs.map((r: any) => ({
+      topicId: r.topicId ?? '',
+      topicTitle: r.topicTitle ?? r.topicName ?? '',
+      method: r.method ?? r.taskType ?? '',
+      reason: r.reason ?? '',
+      priority: r.priority ?? 3,
+    }));
+  } else if (action === 'distribute') {
+    const sched = (claude.schedule ?? claude.distribution ?? []) as any[];
+    const flat: AiDistribution[] = [];
+    for (const item of sched) {
+      if (item.blocks) {
+        for (const block of item.blocks as any[]) {
+          flat.push({
+            topicId: block.topicId ?? '',
+            method: block.method ?? block.taskType ?? '',
+            scheduledDate: item.day ?? '',
+            estimatedMinutes: block.duration_min ?? block.estimatedMinutes ?? 30,
+            reason: block.reason ?? '',
+          });
+        }
+      } else {
+        flat.push({
+          topicId: item.topicId ?? '',
+          method: item.method ?? item.taskType ?? '',
+          scheduledDate: item.scheduledDate ?? item.day ?? '',
+          estimatedMinutes: item.estimatedMinutes ?? item.duration_min ?? 30,
+          reason: item.reason ?? '',
+        });
+      }
+    }
+    base.distribution = flat;
+  } else if (action === 'reschedule') {
+    const sched = (claude.updatedSchedule ?? claude.rescheduledTasks ?? []) as any[];
+    const flat: AiRescheduledTask[] = [];
+    for (const item of sched) {
+      if (item.blocks) {
+        for (const block of item.blocks as any[]) {
+          flat.push({
+            taskId: block.taskId ?? block.topicId ?? '',
+            newDate: item.day ?? '',
+            newEstimatedMinutes: block.duration_min ?? block.newEstimatedMinutes ?? 30,
+            reason: block.reason ?? '',
+          });
+        }
+      } else {
+        flat.push({
+          taskId: item.taskId ?? item.topicId ?? '',
+          newDate: item.newDate ?? item.day ?? '',
+          newEstimatedMinutes: item.newEstimatedMinutes ?? item.duration_min ?? 30,
+          reason: item.reason ?? '',
+        });
+      }
+    }
+    base.rescheduledTasks = flat;
+  } else if (action === 'weekly-insight') {
+    const insight = claude as any;
+    base.insight = {
+      summary: insight.weekSummary ?? insight.summary ?? '',
+      strengths: insight.strengths ?? [],
+      weaknesses: insight.weaknesses ?? [],
+      recommendations: insight.recommendedFocus?.map?.((f: any) =>
+        typeof f === 'string' ? f : `${f.topicName}: ${f.reason}`
+      ) ?? insight.recommendations ?? [],
+    };
+  }
+
+  return base;
+}
+
 // ── API Functions ─────────────────────────────────────────
 
 async function callScheduleAgent(
@@ -107,12 +191,17 @@ async function callScheduleAgent(
   if (planContext) body.planContext = planContext;
   if (completedTaskId) body.completedTaskId = completedTaskId;
 
-  const res = await apiCall<AiScheduleResponse>('/ai/schedule-agent', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  const raw = await apiCall<{ result: Record<string, unknown> | null; _meta: AiScheduleMeta }>(
+    '/ai/schedule-agent',
+    { method: 'POST', body: JSON.stringify(body) },
+  );
 
-  return res;
+  // Backend wraps Claude's JSON in { result, _meta }
+  // We normalize Claude's varied field names into our typed interface
+  const claude = raw.result ?? {};
+  const meta = raw._meta ?? { model: '', tokensUsed: 0, confidence: '', aiPowered: false };
+
+  return normalizeClaudeResponse(action, claude, meta);
 }
 
 /** Generate intelligent task distribution for a study plan */
