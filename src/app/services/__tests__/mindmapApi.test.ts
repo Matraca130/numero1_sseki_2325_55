@@ -23,6 +23,7 @@ function unwrapItems<T>(result: unknown): T[] {
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [arr];
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) {
     chunks.push(arr.slice(i, i + size));
@@ -178,6 +179,20 @@ describe('chunk', () => {
 
   it('handles exact multiples correctly', () => {
     expect(chunk([1, 2, 3, 4, 5, 6], 3)).toEqual([[1, 2, 3], [4, 5, 6]]);
+  });
+
+  it('returns entire array wrapped in one chunk when size is 0 (guard clause)', () => {
+    expect(chunk([1, 2, 3], 0)).toEqual([[1, 2, 3]]);
+  });
+
+  it('returns entire array wrapped in one chunk when size is negative (guard clause)', () => {
+    expect(chunk([1, 2, 3], -5)).toEqual([[1, 2, 3]]);
+  });
+
+  it('guard clause does not cause infinite loop', () => {
+    // This test would hang if the guard is missing
+    const result = chunk([1, 2], 0);
+    expect(result).toHaveLength(1);
   });
 });
 

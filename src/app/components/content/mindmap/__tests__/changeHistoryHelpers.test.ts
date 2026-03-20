@@ -163,4 +163,15 @@ describe('formatRelativeTime', () => {
     // Day/month may be 1 or 2 digits depending on locale formatting
     expect(result).toMatch(/\d{1,2}\/\d{1,2} \d{2}:\d{2}/);
   });
+
+  it('returns the raw string for invalid date inputs', () => {
+    expect(formatRelativeTime('not-a-date')).toBe('not-a-date');
+    expect(formatRelativeTime('')).toBe('');
+    expect(formatRelativeTime('2026-99-99')).toBe('2026-99-99');
+  });
+
+  it('does not throw for garbage input', () => {
+    expect(() => formatRelativeTime('garbage')).not.toThrow();
+    expect(() => formatRelativeTime('undefined')).not.toThrow();
+  });
 });

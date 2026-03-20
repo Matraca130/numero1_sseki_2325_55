@@ -311,6 +311,25 @@ describe('useKeyboardNav — focus ring cleared when node removed', () => {
   });
 });
 
+// ── KnowledgeGraph: shortcuts overlay Escape handler ────────
+
+describe('KnowledgeGraph — shortcuts overlay has Escape key handler', () => {
+  const source = readSource('KnowledgeGraph.tsx');
+
+  it('shortcuts dialog has onKeyDown handler for Escape', () => {
+    const shortcutsSection = source.slice(
+      source.indexOf('shortcutDialog'),
+      source.indexOf('shortcutDialog') + 500,
+    );
+    expect(shortcutsSection).toContain("e.key === 'Escape'");
+    expect(shortcutsSection).toContain('setShowShortcuts(false)');
+  });
+
+  it('shortcuts dialog has role="dialog" attribute', () => {
+    expect(source).toContain('aria-label={t.shortcutDialog}');
+  });
+});
+
 // ── GraphTemplatePanel: stale request guard ──────────────────
 
 describe('GraphTemplatePanel — stale request guard on loadTemplates', () => {

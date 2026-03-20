@@ -246,6 +246,44 @@ describe('KnowledgeMapView: handleEdgeReconnect has compensating rollback', () =
   it('uses mountedRef guard after async operations', () => {
     expect(reconnectBody).toContain('mountedRef.current');
   });
+
+  it('shows toast warning on self-loop rejection', () => {
+    // Extract the self-loop guard block
+    const selfLoopSection = reconnectBody.slice(
+      reconnectBody.indexOf('newSource === newTarget'),
+      reconnectBody.indexOf('edgeExists'),
+    );
+    expect(selfLoopSection).toContain('toast.warning');
+    expect(selfLoopSection).toContain('consigo mismo');
+  });
+
+  it('shows toast warning on duplicate edge rejection', () => {
+    const dupeSection = reconnectBody.slice(
+      reconnectBody.indexOf('edgeExists'),
+      reconnectBody.indexOf('deleteCustomEdge'),
+    );
+    expect(dupeSection).toContain('toast.warning');
+    expect(dupeSection).toContain('Ya existe');
+  });
+
+  it('guard clause returns without calling deleteCustomEdge', () => {
+    // Guards are inside try block but return before any API calls
+    const selfLoopToDelete = reconnectBody.slice(
+      reconnectBody.indexOf('newSource === newTarget'),
+      reconnectBody.indexOf('deleteCustomEdge'),
+    );
+    // There should be a 'return' between the self-loop guard and deleteCustomEdge
+    expect(selfLoopToDelete).toContain('return');
+  });
+
+  it('finally block always resets reconnectingRef (no inline reset needed)', () => {
+    // Guard clauses should NOT have redundant reconnectingRef.current = false
+    const selfLoopBlock = reconnectBody.slice(
+      reconnectBody.indexOf('newSource === newTarget'),
+      reconnectBody.indexOf('edgeExists'),
+    );
+    expect(selfLoopBlock).not.toContain('reconnectingRef.current = false');
+  });
 });
 
 // ── Topic change: comprehensive state cleanup ───────────────

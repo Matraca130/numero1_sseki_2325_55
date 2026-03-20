@@ -908,3 +908,41 @@ describe('AddNodeEdgeModal: edge form defaults', () => {
     expect(source).toContain("useState<EdgeArrowType>('triangle')");
   });
 });
+
+// ── Radio group WAI-ARIA arrow key navigation ─────────────────
+
+describe('AddNodeEdgeModal: radiogroup arrow key navigation', () => {
+  it('arrow type radiogroup has onKeyDown handler for ArrowRight/ArrowLeft', () => {
+    const arrowTypeSection = source.slice(
+      source.indexOf('aria-label="Tipo de flecha"'),
+      source.indexOf('aria-label="Estilo de línea"'),
+    );
+    expect(arrowTypeSection).toContain("e.key === 'ArrowRight'");
+    expect(arrowTypeSection).toContain("e.key === 'ArrowLeft'");
+    expect(arrowTypeSection).toContain("e.key === 'ArrowDown'");
+    expect(arrowTypeSection).toContain("e.key === 'ArrowUp'");
+  });
+
+  it('line style radiogroup has onKeyDown handler for ArrowRight/ArrowLeft', () => {
+    const startIdx = source.indexOf('aria-label="Estilo de línea"');
+    const endIdx = source.indexOf('edgeLineStyle === style', startIdx + 100);
+    const lineStyleSection = source.slice(startIdx, endIdx > startIdx ? endIdx : startIdx + 800);
+    expect(lineStyleSection).toContain("e.key === 'ArrowRight'");
+    expect(lineStyleSection).toContain("e.key === 'ArrowLeft'");
+  });
+
+  it('selected radio has tabIndex=0, others have tabIndex=-1', () => {
+    // Both radiogroups should use roving tabindex pattern
+    expect(source).toMatch(/tabIndex=\{edgeArrowType === type \? 0 : -1\}/);
+    expect(source).toMatch(/tabIndex=\{edgeLineStyle === style \? 0 : -1\}/);
+  });
+
+  it('arrow key handler calls e.preventDefault() to avoid page scroll', () => {
+    expect(source).toContain('e.preventDefault()');
+  });
+
+  it('arrow key handler moves focus to the new radio button', () => {
+    // Expects the handler to call .focus() on the target element
+    expect(source).toContain('.focus()');
+  });
+});
