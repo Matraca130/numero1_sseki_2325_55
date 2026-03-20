@@ -16,7 +16,7 @@
 // ============================================================
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { Outlet, useLocation, useParams } from 'react-router';
 import { AppProvider } from '@/app/context/AppContext';
 import { StudentDataProvider } from '@/app/context/StudentDataContext';
 import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
@@ -49,6 +49,7 @@ function StudentShell() {
   const { isStudySessionActive } = useStudySession();
   const { navigateTo, isView } = useStudentNav();
   const location = useLocation();
+  const { summaryId } = useParams<{ summaryId?: string }>();
   const isMobile = useIsMobile();
 
   const showTopicSidebar = isView('study-hub', 'study', 'flashcards') && !isStudySessionActive;
@@ -184,7 +185,7 @@ function StudentShell() {
       {/* ── AI Assistant Panel (lazy-loaded) ── */}
       {isAIOpen && (
         <React.Suspense fallback={null}>
-          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} />
+          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} summaryId={summaryId} />
         </React.Suspense>
       )}
 
