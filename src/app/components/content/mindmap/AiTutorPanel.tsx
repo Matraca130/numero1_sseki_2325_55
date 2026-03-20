@@ -294,7 +294,6 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
         weak_areas: weakAreas,
         strong_areas: Array.isArray(result.strong_areas) ? result.strong_areas : [],
         study_path: Array.isArray(result.study_path) ? result.study_path : [],
-        suggested_connections: Array.isArray(result.suggested_connections) ? result.suggested_connections : [],
       });
       setWeakPoints(weak);
       // Highlight weak nodes on the graph

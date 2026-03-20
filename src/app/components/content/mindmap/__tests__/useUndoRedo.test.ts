@@ -181,8 +181,8 @@ describe('UndoRedo stack logic', () => {
     }
     expect(stack.past.length).toBe(MAX_HISTORY);
     // The oldest actions should have been evicted
-    expect(stack.past[0].nodeId).toBe('n10');
-    expect(stack.past[stack.past.length - 1].nodeId).toBe('n39');
+    expect((stack.past[0] as { nodeId: string }).nodeId).toBe('n10');
+    expect((stack.past[stack.past.length - 1] as { nodeId: string }).nodeId).toBe('n39');
   });
 
   it('clear resets both stacks', () => {
@@ -314,7 +314,7 @@ describe('Graceful failure on undo/redo', () => {
 
     // Must still have 4 actions, NOT zero
     expect(stack.past.length).toBe(4);
-    expect(stack.past.map(a => a.nodeId)).toEqual(['n0', 'n1', 'n2', 'n3']);
+    expect(stack.past.map(a => (a as { nodeId: string }).nodeId)).toEqual(['n0', 'n1', 'n2', 'n3']);
   });
 });
 

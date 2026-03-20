@@ -237,7 +237,7 @@ export function MiniKnowledgeGraph({
       if (!nodeId) return;
       const nodeData = graph.getNodeData(nodeId);
       if (nodeData && onNodeClickRef.current) {
-        onNodeClickRef.current(nodeData.data._raw as MapNode);
+        onNodeClickRef.current(nodeData.data!._raw as MapNode);
       }
     };
 

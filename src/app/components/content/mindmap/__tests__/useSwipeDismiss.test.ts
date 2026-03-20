@@ -23,17 +23,17 @@ const touchStart = (clientY: number, touchCount = 1, scrollTop = 0) => ({
     i === 0 ? { clientY } : { clientY: 0 },
   ) as unknown as React.TouchList,
   currentTarget: { scrollTop } as unknown as EventTarget & HTMLElement,
-} as React.TouchEvent);
+} as unknown as React.TouchEvent);
 
 const touchMove = (touchCount = 1) => ({
   touches: Array.from({ length: touchCount }, () =>
     ({ clientY: 0 }),
   ) as unknown as React.TouchList,
-} as React.TouchEvent);
+} as unknown as React.TouchEvent);
 
 const touchEnd = (clientY: number) => ({
   changedTouches: [{ clientY }] as unknown as React.TouchList,
-} as React.TouchEvent);
+} as unknown as React.TouchEvent);
 
 // ── Constants (must match source) ───────────────────────────
 

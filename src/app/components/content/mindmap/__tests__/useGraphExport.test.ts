@@ -66,7 +66,7 @@ describe('buildFilename', () => {
 describe('Export format handling', () => {
   it('PNG uses image/png MIME type', () => {
     const format: ExportFormat = 'png';
-    const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+    const mimeType = (format as string) === 'jpeg' ? 'image/jpeg' : 'image/png';
     expect(mimeType).toBe('image/png');
   });
 
