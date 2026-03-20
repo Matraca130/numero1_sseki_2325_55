@@ -26,7 +26,8 @@ export function lazyRetry<T>(importFn: () => Promise<T>): Promise<T> {
       error instanceof TypeError &&
       (error.message.includes('dynamically imported module') ||
        error.message.includes('Failed to fetch') ||
-       error.message.includes('Loading chunk'));
+       error.message.includes('Loading chunk') ||
+       error.message.includes('is not a valid JavaScript MIME type'));
 
     if (!isChunkError) {
       throw error;
