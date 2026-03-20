@@ -22,6 +22,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
 } from 'recharts';
 import { KPICard, TrendBadge } from '@/app/components/shared/KPICard';
+import { ChartErrorBoundary } from '@/app/components/shared/ChartErrorBoundary';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
@@ -316,26 +317,28 @@ function RoleDistributionChart({ membersByRole, totalMembers }: {
       <div className="flex items-center gap-6">
         {/* Chart */}
         <div className="w-40 h-40 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={42}
-                outerRadius={68}
-                paddingAngle={3}
-                dataKey="value"
-                stroke="none"
-                isAnimationActive={false}
-              >
-                {chartData.map((entry, idx) => (
-                  <Cell key={entry.name} fill={entry.fill} />
-                ))}
-              </Pie>
-              <RechartsTooltip content={<PieTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <ChartErrorBoundary height="100%">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={42}
+                  outerRadius={68}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                  isAnimationActive={false}
+                >
+                  {chartData.map((entry, idx) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <RechartsTooltip content={<PieTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartErrorBoundary>
         </div>
 
         {/* Legend */}

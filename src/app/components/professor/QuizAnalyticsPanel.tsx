@@ -22,6 +22,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { MODAL_OVERLAY, MODAL_CARD, MODAL_HEADER, BTN_CLOSE, BANNER_ERROR } from '@/app/services/quizDesignTokens';
+import { ChartErrorBoundary } from '@/app/components/shared/ChartErrorBoundary';
 import { useQuizAnalytics } from '@/app/components/professor/useQuizAnalytics';
 
 // ── Props ────────────────────────────────────────────────
@@ -103,18 +104,20 @@ export function QuizAnalyticsPanel({
                   <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3" style={{ fontWeight: 700 }}>
                     Por dificultad
                   </p>
-                  <ResponsiveContainer width="100%" height={120}>
-                    <BarChart data={diffData}>
-                      <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis hide allowDecimals={false} />
-                      <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                        {diffData.map((d, i) => (
-                          <Cell key={i} fill={d.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <ChartErrorBoundary height={120}>
+                    <ResponsiveContainer width="100%" height={120}>
+                      <BarChart data={diffData}>
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis hide allowDecimals={false} />
+                        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                        <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                          {diffData.map((d, i) => (
+                            <Cell key={i} fill={d.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartErrorBoundary>
                 </div>
 
                 {/* Type chart */}
@@ -122,18 +125,20 @@ export function QuizAnalyticsPanel({
                   <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3" style={{ fontWeight: 700 }}>
                     Por tipo
                   </p>
-                  <ResponsiveContainer width="100%" height={120}>
-                    <BarChart data={typeData}>
-                      <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis hide allowDecimals={false} />
-                      <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                        {typeData.map((d, i) => (
-                          <Cell key={i} fill={d.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <ChartErrorBoundary height={120}>
+                    <ResponsiveContainer width="100%" height={120}>
+                      <BarChart data={typeData}>
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis hide allowDecimals={false} />
+                        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                        <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                          {typeData.map((d, i) => (
+                            <Cell key={i} fill={d.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartErrorBoundary>
                 </div>
               </div>
 

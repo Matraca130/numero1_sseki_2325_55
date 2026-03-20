@@ -24,6 +24,7 @@ import {
   Cell,
 } from 'recharts';
 import { headingStyle, components, colors } from '@/app/design-system';
+import { ChartErrorBoundary } from '@/app/components/shared/ChartErrorBoundary';
 
 // ── Types ──
 export interface ActivityDataPoint {
@@ -69,33 +70,35 @@ export const ActivityChart = React.memo(function ActivityChart({ data }: Activit
       </div>
 
       <div className="h-[220px] sm:h-[300px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
-          <BarChart data={data} barSize={24} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-              dy={10}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-            />
-            <Tooltip
-              cursor={{ fill: '#f9fafb' }}
-              contentStyle={{
-                borderRadius: '12px',
-                border: 'none',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              }}
-            />
-            <Bar dataKey="cards" stackId="a" fill={colors.chart.flashcards} radius={[0, 0, 4, 4]} isAnimationActive={false} />
-            <Bar dataKey="videos" stackId="a" fill={colors.chart.videos} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
+        <ChartErrorBoundary height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
+            <BarChart data={data} barSize={24} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+              />
+              <Tooltip
+                cursor={{ fill: '#f9fafb' }}
+                contentStyle={{
+                  borderRadius: '12px',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              />
+              <Bar dataKey="cards" stackId="a" fill={colors.chart.flashcards} radius={[0, 0, 4, 4]} isAnimationActive={false} />
+              <Bar dataKey="videos" stackId="a" fill={colors.chart.videos} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartErrorBoundary>
       </div>
     </motion.div>
   );
@@ -119,26 +122,28 @@ export const MasteryDonut = React.memo(function MasteryDonut({ data, totalCards 
       <p className="text-sm text-gray-500 mb-4 sm:mb-6">Basado en la metodologia SM2</p>
 
       <div className="h-[180px] sm:h-[220px] relative min-w-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius="55%"
-              outerRadius="75%"
-              paddingAngle={5}
-              dataKey="value"
-              stroke="none"
-              isAnimationActive={false}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-          </PieChart>
-        </ResponsiveContainer>
+        <ChartErrorBoundary height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius="55%"
+                outerRadius="75%"
+                paddingAngle={5}
+                dataKey="value"
+                stroke="none"
+                isAnimationActive={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartErrorBoundary>
 
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
