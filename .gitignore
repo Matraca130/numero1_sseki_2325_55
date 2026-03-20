@@ -4,4 +4,4 @@ dist/
 .env.local
 *.log
 package-lock.json
-.claude/
+.vercel
