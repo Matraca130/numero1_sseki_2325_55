@@ -99,7 +99,7 @@ export async function chatStream(
   if (opts.strategy) body.strategy = opts.strategy;
 
   try {
-    const stream = apiCallStream<StreamChunk>('/ai/rag-chat', {
+    const stream = apiCallStream<StreamChunk>('/ai/rag-chat?stream=1', {
       method: 'POST',
       body: JSON.stringify(body),
     });
