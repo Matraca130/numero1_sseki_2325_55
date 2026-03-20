@@ -22,7 +22,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, X, Trash2, ChevronLeft, ChevronDown, Minimize2, Link2 } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, X, Trash2, ChevronDown, Link2 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MoreActionsDropdown } from './mindmap/MoreActionsDropdown';
@@ -232,7 +232,6 @@ export function KnowledgeMapView() {
   const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   // masteryFilter state is declared earlier (before useMemo that depends on it)
   // Minimap: visible on desktop by default, hidden on mobile
   const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
@@ -884,67 +883,16 @@ export function KnowledgeMapView() {
         {/* Graph canvas — fills entire container, controls float on top */}
         <div className="flex-1 min-h-0 relative">
 
-          {/* ── Floating breadcrumb (top-left) ── */}
-          {!isFullscreen && (
-            <div className="absolute top-3 left-3 sm:left-14 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-gray-200/60 max-w-[calc(100%-6rem)]">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center justify-center w-7 h-7 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors flex-shrink-0"
-                aria-label="Volver"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {allTopics.length > 1 && scope === 'topic' ? (
-                <select
-                  value={topicId || ''}
-                  onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
-                  className="appearance-none bg-transparent font-medium text-gray-900 min-w-0 max-w-[120px] sm:max-w-[200px] truncate cursor-pointer hover:text-[#2a8c7a] transition-colors"
-                  style={{ fontSize: 'clamp(0.75rem, 1.1vw, 0.85rem)', ...headingStyle }}
-                  aria-label="Seleccionar tema"
-                >
-                  {allTopics.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <span
-                  className="font-medium text-gray-900 truncate max-w-[120px] sm:max-w-[200px]"
-                  style={{ fontSize: 'clamp(0.75rem, 1.1vw, 0.85rem)', ...headingStyle }}
-                >
-                  {scope === 'course' ? (currentCourse?.name || 'Todos') : (currentTopic?.title || 'Mapa')}
-                </span>
-              )}
-              {masteryStats && (
-                <span
-                  className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] font-medium whitespace-nowrap flex-shrink-0"
-                  style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.6875rem)' }}
-                >
-                  {displayPct}%
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* ── Fullscreen exit button (top-right) ── */}
-          {isFullscreen && (
-            <div className="absolute top-3 right-3 z-20">
-              <button
-                onClick={toggleFullscreen}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white/90 backdrop-blur-sm rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                aria-label="Salir de pantalla completa"
-              >
-                <Minimize2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Salir</span>
-              </button>
-            </div>
-          )}
-
-          {/* ── Collapsible sidebar (right side) ── */}
-          <div className="absolute right-3 z-20" style={{ top: isFullscreen ? '3rem' : '0.75rem' }}>
+          {/* ── Unified toolbar (top, full width) ── */}
+          <div className={`absolute top-3 right-3 z-20 ${isFullscreen ? 'left-3' : 'left-3 sm:left-14'}`}>
             <ErrorBoundary fallback={() => null}>
               <GraphSidebar
-                collapsed={sidebarCollapsed}
-                onToggleCollapse={() => setSidebarCollapsed(v => !v)}
+                onBack={() => navigate(-1)}
+                topicName={scope === 'course' ? (currentCourse?.name || 'Todos') : (currentTopic?.title || 'Mapa')}
+                topicOptions={allTopics.length > 1 && scope === 'topic' ? allTopics : undefined}
+                selectedTopicId={topicId || ''}
+                onTopicChange={handleTopicSelect}
+                masteryPct={masteryStats ? displayPct : undefined}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 matchCount={searchQuery.trim() ? matchCount : undefined}
@@ -980,6 +928,8 @@ export function KnowledgeMapView() {
                 masteryFilter={masteryFilter}
                 onMasteryFilterChange={setMasteryFilter}
                 edgeCount={edgeCount}
+                isFullscreen={isFullscreen}
+                onExitFullscreen={toggleFullscreen}
                 moreActionsSlot={
                   <MoreActionsDropdown
                     onToggleHistory={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
@@ -1000,7 +950,6 @@ export function KnowledgeMapView() {
                 }
               />
             </ErrorBoundary>
-
           </div>
 
           {/* Floating tool palette — horizontal bottom bar on mobile, vertical left on desktop */}

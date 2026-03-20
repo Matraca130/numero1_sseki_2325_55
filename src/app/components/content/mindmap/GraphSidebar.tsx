@@ -1,14 +1,14 @@
 // ============================================================
-// Axon — GraphSidebar (Collapsible Vertical Control Panel)
+// Axon — GraphSidebar (Unified Horizontal Toolbar)
 //
-// Replaces the two horizontal bars (compact header + GraphToolbar)
-// with a single vertical sidebar that floats over the graph canvas.
-// Maximizes graph visibility by eliminating top chrome.
+// Single floating bar that combines navigation (back, topic,
+// mastery %) with all graph controls. Replaces both the
+// breadcrumb pill and the vertical sidebar.
 //
-// - Collapsed: ~44px wide, icon-only buttons
-// - Expanded: ~200px wide, icons + labels
-// - Responsive: adapts to screen size
-// - All controls grouped by function
+// Responsive:
+//   Mobile  (<640px):  nav + search + add + undo/redo + AI + more
+//   Tablet  (640–1024): + layout, scope, export, mastery dots
+//   Desktop (1024+):    + zoom, collapse/expand, minimap, legend
 //
 // LANG: Spanish
 // ============================================================
@@ -18,21 +18,26 @@ import {
   Search, X, ZoomIn, ZoomOut, Maximize2, Minimize2, Expand,
   GitBranch, Circle as CircleIcon, LayoutGrid,
   Download, Info, Plus, Sparkles, Globe, BookOpen, Map as MapIcon,
-  Undo2, Redo2, PanelRightClose, PanelRightOpen,
+  Undo2, Redo2, ChevronLeft,
 } from 'lucide-react';
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { toast } from 'sonner';
+import { headingStyle } from '@/app/design-system';
 
 // ── Types ───────────────────────────────────────────────────
 
 type LayoutType = 'force' | 'radial' | 'dagre';
 
 interface GraphSidebarProps {
-  /** Sidebar collapsed (icon-only) */
-  collapsed: boolean;
-  onToggleCollapse: () => void;
+  // ── Navigation ──
+  onBack: () => void;
+  topicName: string;
+  topicOptions?: { id: string; name: string }[];
+  selectedTopicId?: string;
+  onTopicChange?: (id: string) => void;
+  masteryPct?: number;
 
   // ── Search ──
   searchQuery: string;
@@ -62,6 +67,8 @@ interface GraphSidebarProps {
   onUndo: () => void;
   onRedo: () => void;
   undoBusy: boolean;
+  deletingNode: boolean;
+  reconnecting: boolean;
 
   // ── Scope ──
   scope: 'topic' | 'course';
@@ -88,15 +95,15 @@ interface GraphSidebarProps {
   masteryFilter?: MasteryColor | null;
   onMasteryFilterChange?: (filter: MasteryColor | null) => void;
 
-  // ── More actions (rendered as children) ──
+  // ── More actions (rendered as slot) ──
   moreActionsSlot?: React.ReactNode;
 
-  // ── Edge stats ──
+  // ── Stats ──
   edgeCount: number;
 
-  // ── Disabled states for undo/redo ──
-  deletingNode: boolean;
-  reconnecting: boolean;
+  // ── Fullscreen ──
+  isFullscreen?: boolean;
+  onExitFullscreen?: () => void;
 }
 
 // ── Constants ───────────────────────────────────────────────
@@ -109,75 +116,59 @@ const fontSize = {
 const LAYOUT_OPTIONS: { value: LayoutType; icon: React.ElementType; label: string }[] = [
   { value: 'force', icon: GitBranch, label: 'Fuerza' },
   { value: 'radial', icon: CircleIcon, label: 'Radial' },
-  { value: 'dagre', icon: LayoutGrid, label: 'Arbol' },
+  { value: 'dagre', icon: LayoutGrid, label: 'Árbol' },
 ];
 
 const MASTERY_COLORS: MasteryColor[] = ['green', 'yellow', 'red', 'gray'];
 
-// ── Shared button style ────────────────────────────────────
+// ── Shared button ───────────────────────────────────────────
 
-function SidebarBtn({
+function BarBtn({
   icon: Icon,
-  label,
   onClick,
   active,
   disabled,
-  collapsed,
-  badge,
-  ariaLabel,
+  label,
   title,
+  className = '',
 }: {
   icon: React.ElementType;
-  label: string;
   onClick?: () => void;
   active?: boolean;
   disabled?: boolean;
-  collapsed: boolean;
-  badge?: string;
-  ariaLabel?: string;
+  label: string;
   title?: string;
+  className?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-2 w-full rounded-xl transition-all duration-150 font-sans ${
-        collapsed ? 'justify-center p-2' : 'px-3 py-2'
-      } ${
+      className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-150 flex-shrink-0 ${
         active
           ? 'bg-[#e8f5f1] text-[#2a8c7a]'
           : disabled
             ? 'text-gray-300 cursor-not-allowed'
-            : 'text-gray-500 hover:text-[#2a8c7a] hover:bg-gray-50'
-      }`}
-      style={{ fontSize: fontSize.xs, minHeight: '36px' }}
-      aria-label={ariaLabel || label}
+            : 'text-gray-500 hover:text-[#2a8c7a] hover:bg-gray-100'
+      } ${className}`}
+      aria-label={label}
       title={title || label}
     >
-      <Icon className="w-4 h-4 flex-shrink-0" />
-      {!collapsed && <span className="truncate flex-1 text-left">{label}</span>}
-      {!collapsed && badge && (
-        <span
-          className="px-1.5 py-0.5 rounded-full font-medium bg-[#e8f5f1] text-[#2a8c7a]"
-          style={{ fontSize: fontSize.overline }}
-        >
-          {badge}
-        </span>
-      )}
+      <Icon className="w-4 h-4" />
     </button>
   );
 }
 
-function SidebarSep() {
-  return <div className="mx-2 my-1 border-t border-gray-100" aria-hidden="true" />;
+function Sep() {
+  return <div className="w-px h-5 bg-gray-200 mx-0.5 flex-shrink-0" aria-hidden="true" />;
 }
 
 // ── Component ───────────────────────────────────────────────
 
 export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps) {
   const {
-    collapsed, onToggleCollapse,
-    searchQuery, onSearchChange, matchCount, nodeCount, searchInputRef,
+    onBack, topicName, topicOptions, selectedTopicId, onTopicChange, masteryPct,
+    searchQuery, onSearchChange, matchCount, searchInputRef,
     layout, onLayoutChange,
     onZoomIn, onZoomOut, onFitView, zoomLevel,
     onCollapseAll, onExpandAll, collapsedCount = 0,
@@ -188,7 +179,8 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
     onExportPNG, onExportJPEG,
     masteryFilter, onMasteryFilterChange,
     moreActionsSlot,
-    edgeCount,
+    nodeCount, edgeCount,
+    isFullscreen, onExitFullscreen,
   } = props;
 
   const [showSearch, setShowSearch] = useState(false);
@@ -206,7 +198,7 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
 
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
-  // Close popups on outside click
+  // Close popups on outside click / Escape
   useEffect(() => {
     if (!showLayoutMenu && !showExportMenu && !showLegend && !showSearch) return;
     const handleClick = (e: MouseEvent) => {
@@ -235,9 +227,7 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
 
   // Focus search input when opened
   useEffect(() => {
-    if (showSearch && searchInputRef?.current) {
-      searchInputRef.current.focus();
-    }
+    if (showSearch && searchInputRef?.current) searchInputRef.current.focus();
   }, [showSearch, searchInputRef]);
 
   const handleExport = async (exportFn: (() => Promise<void>) | undefined) => {
@@ -245,11 +235,9 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
     exportingRef.current = true;
     setExporting(true);
     setShowExportMenu(false);
-    try {
-      await exportFn();
-    } catch {
-      toast.error('No se pudo exportar el mapa');
-    } finally {
+    try { await exportFn(); }
+    catch { toast.error('No se pudo exportar el mapa'); }
+    finally {
       exportingRef.current = false;
       if (mountedRef.current) setExporting(false);
     }
@@ -258,33 +246,141 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
   const hasExport = !!(onExportPNG || onExportJPEG);
   const undoDisabled = !canUndo || undoBusy || deletingNode || reconnecting;
   const redoDisabled = !canRedo || undoBusy || deletingNode || reconnecting;
-
   const ActiveLayoutIcon = LAYOUT_OPTIONS.find(l => l.value === layout)?.icon || GitBranch;
-
-  // Popup menu positioned to the left of the sidebar
-  const popupClass = 'absolute right-full mr-2 top-0 z-30 bg-white rounded-2xl shadow-lg border border-gray-200 py-1.5 w-48 max-w-[calc(100vw-6rem)]';
+  const dropdownClass = 'absolute top-full left-0 mt-1 z-30 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 w-44';
 
   return (
     <div
-      className={`flex flex-col bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/80 transition-all duration-200 max-h-[calc(100dvh-6rem)] ${
-        collapsed ? 'w-[44px]' : 'w-[180px]'
-      }`}
+      className="flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-full px-1.5 py-1 shadow-sm border border-gray-200/60"
       role="toolbar"
       aria-label="Controles del mapa"
-      aria-orientation="vertical"
     >
+      {/* ── Nav group ── */}
+      <BarBtn icon={ChevronLeft} onClick={onBack} label="Volver" />
+
+      {topicOptions && topicOptions.length > 1 && scope === 'topic' ? (
+        <select
+          value={selectedTopicId || ''}
+          onChange={(e) => e.target.value && onTopicChange?.(e.target.value)}
+          className="appearance-none bg-transparent font-medium text-gray-900 min-w-0 max-w-[100px] sm:max-w-[160px] truncate cursor-pointer hover:text-[#2a8c7a] transition-colors outline-none"
+          style={{ fontSize: fontSize.xs, ...headingStyle }}
+          aria-label="Seleccionar tema"
+        >
+          {topicOptions.map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      ) : (
+        <span
+          className="font-medium text-gray-900 truncate max-w-[100px] sm:max-w-[160px] flex-shrink-0"
+          style={{ fontSize: fontSize.xs, ...headingStyle }}
+        >
+          {topicName}
+        </span>
+      )}
+
+      {masteryPct !== undefined && (
+        <span
+          className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] font-medium whitespace-nowrap flex-shrink-0"
+          style={{ fontSize: fontSize.overline }}
+        >
+          {masteryPct}%
+        </span>
+      )}
+
+      <Sep />
+
+      {/* ── Layout + Scope (hidden on mobile) ── */}
+      <div className="hidden sm:flex items-center gap-0.5">
+        <div className="relative" ref={layoutMenuRef}>
+          <BarBtn
+            icon={ActiveLayoutIcon}
+            onClick={() => setShowLayoutMenu(v => !v)}
+            active={showLayoutMenu}
+            label={LAYOUT_OPTIONS.find(l => l.value === layout)?.label || 'Layout'}
+          />
+          {showLayoutMenu && (
+            <div className={dropdownClass} role="menu" aria-label="Tipo de layout">
+              {LAYOUT_OPTIONS.map(opt => {
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    role="menuitem"
+                    onClick={() => { onLayoutChange(opt.value); setShowLayoutMenu(false); }}
+                    className={`flex items-center gap-2.5 w-full px-3.5 py-2.5 transition-all duration-150 text-left font-sans ${
+                      layout === opt.value
+                        ? 'bg-[#e8f5f1] text-[#2a8c7a]'
+                        : 'text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a]'
+                    }`}
+                    style={{ fontSize: fontSize.xs }}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span>{opt.label}</span>
+                    {layout === opt.value && <span className="w-2 h-2 rounded-full bg-[#2a8c7a] ml-auto flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {hasCourseTopics && (
+          <BarBtn
+            icon={scope === 'topic' ? BookOpen : Globe}
+            onClick={() => onScopeChange(scope === 'topic' ? 'course' : 'topic')}
+            label={scope === 'topic' ? 'Ver todos los temas' : 'Ver solo el tema actual'}
+          />
+        )}
+
+        <Sep />
+      </div>
+
+      {/* ── Zoom + Collapse/Expand (hidden on mobile + tablet) ── */}
+      <div className="hidden lg:flex items-center gap-0.5">
+        <BarBtn icon={ZoomOut} onClick={onZoomOut} label="Alejar" title="Alejar (-)" />
+        {typeof zoomLevel === 'number' && (
+          <button
+            onClick={onFitView}
+            className="flex items-center justify-center h-8 px-1 rounded-full text-gray-500 hover:text-[#2a8c7a] hover:bg-gray-100 transition-all duration-150 font-sans tabular-nums flex-shrink-0"
+            style={{ fontSize: fontSize.overline }}
+            title="Ajustar a la vista (0)"
+            aria-label={`Zoom: ${Math.round(zoomLevel * 100)}%`}
+          >
+            {Math.round(zoomLevel * 100)}%
+          </button>
+        )}
+        <BarBtn icon={ZoomIn} onClick={onZoomIn} label="Acercar" title="Acercar (+)" />
+        <BarBtn icon={Maximize2} onClick={onFitView} label="Ajustar" title="Ajustar a la vista (0)" />
+
+        {(onCollapseAll || onExpandAll) && (
+          <>
+            <Sep />
+            <BarBtn icon={Minimize2} onClick={onCollapseAll ?? undefined} label="Colapsar" />
+            <BarBtn
+              icon={Expand}
+              onClick={onExpandAll}
+              active={collapsedCount > 0}
+              label={collapsedCount > 0 ? `Expandir (${collapsedCount})` : 'Expandir'}
+            />
+          </>
+        )}
+
+        <Sep />
+      </div>
+
       {/* ── Search ── */}
       <div className="relative" ref={searchBoxRef}>
         {showSearch ? (
-          <div className={`flex items-center gap-1 ${collapsed ? 'p-1' : 'px-2 py-1.5'}`}>
-            <Search className="w-3.5 h-3.5 text-[#2a8c7a] flex-shrink-0 ml-1" />
+          <div className="flex items-center gap-1 bg-gray-50/80 rounded-full px-2 py-0.5 min-w-[120px] sm:min-w-[160px]">
+            <Search className="w-3.5 h-3.5 text-[#2a8c7a] flex-shrink-0" />
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Buscar..."
-              className="flex-1 min-w-0 bg-transparent text-gray-700 placeholder-gray-400 outline-none font-sans"
+              className="min-w-0 flex-1 bg-transparent text-gray-700 placeholder-gray-400 outline-none font-sans"
               style={{ fontSize: fontSize.xs, caretColor: '#2a8c7a' }}
               aria-label="Buscar concepto"
             />
@@ -298,170 +394,52 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
             )}
             <button
               onClick={() => { onSearchChange(''); setShowSearch(false); }}
-              className="p-1 rounded-full hover:bg-gray-100 text-gray-400 flex-shrink-0"
-              aria-label="Cerrar busqueda"
+              className="p-0.5 rounded-full hover:bg-gray-200 text-gray-400 flex-shrink-0"
+              aria-label="Cerrar búsqueda"
             >
               <X className="w-3 h-3" />
             </button>
           </div>
         ) : (
-          <SidebarBtn
+          <BarBtn
             icon={Search}
-            label="Buscar"
             onClick={() => setShowSearch(true)}
-            collapsed={collapsed}
             active={!!searchQuery}
-            badge={searchQuery && matchCount !== undefined ? String(matchCount) : undefined}
+            label="Buscar"
           />
         )}
-      </div>
-
-      <SidebarSep />
-
-      {/* ── Layout switcher ── */}
-      <div className="relative" ref={layoutMenuRef}>
-        <SidebarBtn
-          icon={ActiveLayoutIcon}
-          label={LAYOUT_OPTIONS.find(l => l.value === layout)?.label || 'Layout'}
-          onClick={() => setShowLayoutMenu(v => !v)}
-          collapsed={collapsed}
-          active={showLayoutMenu}
-        />
-        {showLayoutMenu && (
-          <div className={popupClass} role="menu" aria-label="Tipo de layout">
-            {LAYOUT_OPTIONS.map(opt => {
-              const Icon = opt.icon;
-              return (
-                <button
-                  key={opt.value}
-                  role="menuitem"
-                  onClick={() => { onLayoutChange(opt.value); setShowLayoutMenu(false); }}
-                  className={`flex items-center gap-2.5 w-full px-3.5 py-2.5 transition-all duration-150 text-left font-sans ${
-                    layout === opt.value
-                      ? 'bg-[#e8f5f1] text-[#2a8c7a]'
-                      : 'text-gray-700 hover:bg-[#e8f5f1] hover:text-[#2a8c7a]'
-                  }`}
-                  style={{ fontSize: fontSize.xs }}
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span>{opt.label}</span>
-                  {layout === opt.value && <span className="w-2 h-2 rounded-full bg-[#2a8c7a] ml-auto flex-shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Scope toggle ── */}
-      {hasCourseTopics && (
-        <SidebarBtn
-          icon={scope === 'topic' ? BookOpen : Globe}
-          label={scope === 'topic' ? 'Tema' : 'Todos'}
-          onClick={() => onScopeChange(scope === 'topic' ? 'course' : 'topic')}
-          collapsed={collapsed}
-          title={scope === 'topic' ? 'Ver todos los temas' : 'Ver solo el tema actual'}
-        />
-      )}
-
-      <SidebarSep />
-
-      {/* ── Zoom controls ── */}
-      <div className={`flex ${collapsed ? 'flex-col' : 'flex-col'} gap-0.5`}>
-        <SidebarBtn icon={ZoomOut} label="Alejar" onClick={onZoomOut} collapsed={collapsed} title="Alejar (-)" />
-        {typeof zoomLevel === 'number' && (
-          <button
-            onClick={onFitView}
-            className={`flex items-center justify-center rounded-xl text-gray-500 hover:text-[#2a8c7a] hover:bg-gray-50 transition-all duration-150 font-sans tabular-nums ${
-              collapsed ? 'p-2' : 'px-3 py-1.5'
-            }`}
-            style={{ fontSize: fontSize.overline, minHeight: '28px' }}
-            title="Ajustar a la vista (0)"
-            aria-label={`Zoom: ${Math.round(zoomLevel * 100)}%`}
-          >
-            {Math.round(zoomLevel * 100)}%
-          </button>
-        )}
-        <SidebarBtn icon={ZoomIn} label="Acercar" onClick={onZoomIn} collapsed={collapsed} title="Acercar (+)" />
-        <SidebarBtn icon={Maximize2} label="Ajustar" onClick={onFitView} collapsed={collapsed} title="Ajustar a la vista (0)" />
-      </div>
-
-      {/* ── Collapse/Expand ── */}
-      {(onCollapseAll || onExpandAll) && (
-        <>
-          <SidebarSep />
-          <SidebarBtn
-            icon={Minimize2}
-            label="Colapsar"
-            onClick={onCollapseAll ?? undefined}
-            collapsed={collapsed}
-          />
-          <SidebarBtn
-            icon={Expand}
-            label={collapsedCount > 0 ? `Expandir (${collapsedCount})` : 'Expandir'}
-            onClick={onExpandAll}
-            collapsed={collapsed}
-            active={collapsedCount > 0}
-          />
-        </>
-      )}
-
-      <SidebarSep />
-
-      {/* ── Undo / Redo ── */}
-      <div className={`flex ${collapsed ? 'flex-col' : 'flex-row'} gap-0.5 ${collapsed ? '' : 'px-1'}`}>
-        <SidebarBtn
-          icon={Undo2}
-          label="Deshacer"
-          onClick={onUndo}
-          disabled={undoDisabled}
-          collapsed={collapsed}
-          title="Deshacer (Ctrl+Z)"
-        />
-        <SidebarBtn
-          icon={Redo2}
-          label="Rehacer"
-          onClick={onRedo}
-          disabled={redoDisabled}
-          collapsed={collapsed}
-          title="Rehacer (Ctrl+Y)"
-        />
       </div>
 
       {/* ── Add concept ── */}
       {canAdd && (
-        <SidebarBtn
-          icon={Plus}
-          label="Anadir"
-          onClick={onAddConcept}
-          collapsed={collapsed}
-        />
+        <BarBtn icon={Plus} onClick={onAddConcept} label="Añadir concepto" />
       )}
 
+      {/* ── Undo/Redo ── */}
+      <BarBtn icon={Undo2} onClick={onUndo} disabled={undoDisabled} label="Deshacer" title="Deshacer (Ctrl+Z)" />
+      <BarBtn icon={Redo2} onClick={onRedo} disabled={redoDisabled} label="Rehacer" title="Rehacer (Ctrl+Y)" />
+
+      <Sep />
+
       {/* ── AI Tutor ── */}
-      <SidebarBtn
-        icon={Sparkles}
-        label="IA Tutor"
-        onClick={onToggleAi}
-        active={showAiPanel}
-        collapsed={collapsed}
-      />
+      <BarBtn icon={Sparkles} onClick={onToggleAi} active={showAiPanel} label="IA Tutor" />
 
-      <SidebarSep />
-
-      {/* ── Export ── */}
+      {/* ── Export (hidden on mobile) ── */}
       {hasExport && (
-        <div className="relative" ref={exportMenuRef}>
-          <SidebarBtn
+        <div className="hidden sm:block relative" ref={exportMenuRef}>
+          <BarBtn
             icon={Download}
-            label={exporting ? 'Exportando...' : 'Exportar'}
             onClick={() => setShowExportMenu(v => !v)}
-            collapsed={collapsed}
             active={showExportMenu}
             disabled={exporting}
+            label={exporting ? 'Exportando...' : 'Exportar'}
           />
           {showExportMenu && (
-            <div className={popupClass} role="menu" aria-label="Opciones de exportacion">
+            <div
+              className="absolute top-full right-0 mt-1 z-30 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 w-48"
+              role="menu"
+              aria-label="Opciones de exportación"
+            >
               {onExportPNG && (
                 <button
                   role="menuitem"
@@ -489,68 +467,68 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
         </div>
       )}
 
-      {/* ── Minimap toggle ── */}
+      {/* ── Minimap (hidden on mobile + tablet) ── */}
       {props.onMinimapToggle && (
-        <SidebarBtn
-          icon={MapIcon}
-          label="Minimapa"
-          onClick={props.onMinimapToggle}
-          active={!!props.showMinimap}
-          collapsed={collapsed}
-        />
+        <div className="hidden lg:block">
+          <BarBtn
+            icon={MapIcon}
+            onClick={props.onMinimapToggle}
+            active={!!props.showMinimap}
+            label="Minimapa"
+          />
+        </div>
       )}
 
-      {/* ── Mastery filter ── */}
-      <div className={`flex ${collapsed ? 'flex-col items-center gap-1 py-1' : 'flex-row items-center gap-1.5 px-3 py-1.5'}`}>
+      {/* ── Mastery filter dots (hidden on mobile) ── */}
+      <div className="hidden sm:flex items-center gap-0.5 px-0.5">
         {MASTERY_COLORS.map(color => {
           const isActive = masteryFilter === color;
           return (
             <button
               key={color}
               onClick={() => onMasteryFilterChange?.(isActive ? null : color)}
-              className={`flex-shrink-0 rounded-full transition-all duration-150 ${
+              className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-150 flex-shrink-0 ${
                 isActive
                   ? 'ring-2 ring-offset-1'
                   : masteryFilter && !isActive
                     ? 'opacity-40 hover:opacity-70'
-                    : 'hover:scale-125'
+                    : 'hover:scale-110'
               }`}
               style={{
-                width: 10, height: 10,
-                backgroundColor: MASTERY_HEX[color],
                 ...(isActive ? { boxShadow: `0 0 0 2px ${MASTERY_HEX[color]}` } : {}),
               }}
               title={`Filtrar: ${getMasteryLabel(color, 'es')}`}
               aria-pressed={isActive}
               aria-label={`Filtrar por ${getMasteryLabel(color, 'es')}`}
-            />
+            >
+              <span
+                className="rounded-full"
+                style={{ width: 8, height: 8, backgroundColor: MASTERY_HEX[color] }}
+              />
+            </button>
           );
         })}
       </div>
 
-      {/* ── More Actions (rendered via slot) ── */}
-      {moreActionsSlot}
-
-      {/* ── Edge legend ── */}
-      <div className="relative" ref={legendRef}>
-        <SidebarBtn
+      {/* ── Legend (hidden on mobile + tablet) ── */}
+      <div className="hidden md:block relative" ref={legendRef}>
+        <BarBtn
           icon={Info}
-          label="Leyenda"
           onClick={() => setShowLegend(v => !v)}
           active={showLegend}
-          collapsed={collapsed}
+          label="Leyenda"
         />
         {showLegend && (
           <div
-            className="absolute right-full mr-2 bottom-0 z-30 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 w-56 max-w-[calc(100vw-6rem)]"
+            className="absolute top-full right-0 mt-1 z-30 bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-56"
             role="dialog"
-            aria-label="Leyenda de tipos de conexion"
+            aria-label="Leyenda de tipos de conexión"
           >
             <p
               className="font-semibold text-gray-500 uppercase tracking-wider mb-2.5 font-sans"
               style={{ fontSize: fontSize.overline }}
             >
-              Tipos de conexion
+              Tipos de conexión
             </p>
             <div className="space-y-2">
               {CONNECTION_TYPES.map(ct => (
@@ -564,15 +542,16 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
         )}
       </div>
 
-      <SidebarSep />
+      {/* ── Fullscreen exit (only visible in fullscreen) ── */}
+      {isFullscreen && onExitFullscreen && (
+        <>
+          <Sep />
+          <BarBtn icon={Minimize2} onClick={onExitFullscreen} label="Salir de pantalla completa" />
+        </>
+      )}
 
-      {/* ── Collapse toggle ── */}
-      <SidebarBtn
-        icon={collapsed ? PanelRightClose : PanelRightOpen}
-        label={collapsed ? 'Expandir panel' : 'Colapsar panel'}
-        onClick={onToggleCollapse}
-        collapsed={collapsed}
-      />
+      {/* ── More actions (rendered via slot) ── */}
+      {moreActionsSlot}
 
       {/* ── SR-only stats ── */}
       <span className="sr-only">{nodeCount} nodos, {edgeCount} conexiones</span>
