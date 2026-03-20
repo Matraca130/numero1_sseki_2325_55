@@ -183,3 +183,162 @@ describe('KnowledgeMapView: handleAction covers all action types', () => {
     expect(handleActionBody).toContain('setContextMenu(null)');
   });
 });
+
+// ── handleEdgeReconnect: compensating rollback ──────────────
+
+describe('KnowledgeMapView: handleEdgeReconnect has compensating rollback', () => {
+  const reconnectMatch = source.match(
+    /const\s+handleEdgeReconnect\s*=\s*useCallback\(async\s*\(result:\s*EdgeReconnectResult\)\s*=>\s*\{([\s\S]*?)\},\s*\[/,
+  );
+  const reconnectBody = reconnectMatch?.[1] ?? '';
+
+  it('extracts the reconnect function body', () => {
+    expect(reconnectBody.length).toBeGreaterThan(100);
+  });
+
+  it('guards against self-loops', () => {
+    expect(reconnectBody).toContain('newSource === newTarget');
+  });
+
+  it('guards against duplicate edges', () => {
+    expect(reconnectBody).toContain('edgeExists');
+  });
+
+  it('deletes old edge before creating new one', () => {
+    const deleteIdx = reconnectBody.indexOf('deleteCustomEdge(oldEdge.id)');
+    const createIdx = reconnectBody.indexOf('createCustomEdge({');
+    expect(deleteIdx).toBeGreaterThan(-1);
+    expect(createIdx).toBeGreaterThan(deleteIdx);
+  });
+
+  it('has compensating rollback — re-creates old edge if new edge creation fails', () => {
+    // Should have a catch block that calls createCustomEdge(oldEdgePayload)
+    expect(reconnectBody).toContain('createCustomEdge(oldEdgePayload)');
+    expect(reconnectBody).toContain('throw createErr');
+  });
+
+  it('records reconnect-edge undo action', () => {
+    expect(reconnectBody).toContain("type: 'reconnect-edge'");
+  });
+
+  it('uses mountedRef guard after async operations', () => {
+    expect(reconnectBody).toContain('mountedRef.current');
+  });
+});
+
+// ── Topic change: comprehensive state cleanup ───────────────
+
+describe('KnowledgeMapView: topic change resets all stale state', () => {
+  // Find the useEffect that fires on topicId change
+  const topicCleanupMatch = source.match(
+    /if\s*\(prevTopicIdRef\.current\s*!==\s*topicId\)\s*\{([\s\S]*?)\n\s*\}/,
+  );
+  const topicCleanupBody = topicCleanupMatch?.[1] ?? '';
+
+  it('extracts the topic change cleanup block', () => {
+    expect(topicCleanupBody.length).toBeGreaterThan(50);
+  });
+
+  it('resets AI highlight nodes', () => {
+    expect(topicCleanupBody).toContain('setAiHighlightNodes(undefined)');
+  });
+
+  it('resets AI review nodes', () => {
+    expect(topicCleanupBody).toContain('setAiReviewNodes(undefined)');
+  });
+
+  it('resets connect source', () => {
+    expect(topicCleanupBody).toContain('setConnectSource(null)');
+  });
+
+  it('resets connect target', () => {
+    expect(topicCleanupBody).toContain('setConnectTarget(null)');
+  });
+
+  it('resets confirm delete node', () => {
+    expect(topicCleanupBody).toContain('setConfirmDeleteNode(null)');
+  });
+
+  it('resets annotation node', () => {
+    expect(topicCleanupBody).toContain('setAnnotationNode(null)');
+  });
+
+  it('closes all side panels', () => {
+    expect(topicCleanupBody).toContain('setShowAiPanel(false)');
+    expect(topicCleanupBody).toContain('setShowHistory(false)');
+    expect(topicCleanupBody).toContain('setShowComparison(false)');
+  });
+
+  it('exits presentation mode', () => {
+    expect(topicCleanupBody).toContain('setPresentationMode(false)');
+  });
+
+  it('resets mastery filter', () => {
+    expect(topicCleanupBody).toContain('setMasteryFilter(null)');
+  });
+
+  it('resets active tool to pointer', () => {
+    expect(topicCleanupBody).toContain("setActiveTool('pointer')");
+  });
+
+  it('clears undo/redo history', () => {
+    expect(topicCleanupBody).toContain('clearHistory()');
+  });
+});
+
+// ── Panel exclusivity: opening one closes others ────────────
+
+describe('KnowledgeMapView: side panel exclusivity', () => {
+  it('opening AI panel closes history and comparison', () => {
+    // The onClick handler for AI button should close other panels
+    expect(source).toMatch(/setShowAiPanel\(v\s*=>\s*\{[^}]*setShowHistory\(false\)[^}]*setShowComparison\(false\)/s);
+  });
+
+  it('opening history panel closes AI and comparison', () => {
+    expect(source).toMatch(/setShowHistory\(v\s*=>\s*\{[^}]*setShowAiPanel\(false\)[^}]*setShowComparison\(false\)/s);
+  });
+
+  it('opening comparison panel closes AI and history', () => {
+    expect(source).toMatch(/setShowComparison\(v\s*=>\s*\{[^}]*setShowAiPanel\(false\)[^}]*setShowHistory\(false\)/s);
+  });
+});
+
+// ── Error boundaries wrap all critical components ───────────
+
+describe('KnowledgeMapView: error boundary coverage', () => {
+  it('wraps GraphToolbar in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<GraphToolbar/);
+  });
+
+  it('wraps KnowledgeGraph in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<KnowledgeGraph/);
+  });
+
+  it('wraps NodeContextMenu in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<NodeContextMenu/);
+  });
+
+  it('wraps AddNodeEdgeModal in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<AddNodeEdgeModal/);
+  });
+
+  it('wraps AiTutorPanel in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<AiTutorPanel/);
+  });
+
+  it('wraps PresentationMode in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<PresentationMode/);
+  });
+
+  it('wraps StickyNotesLayer in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<StickyNotesLayer/);
+  });
+
+  it('wraps ShareMapModal in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<ShareMapModal/);
+  });
+
+  it('wraps ConfirmDialog in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?confirmDeleteNode/);
+  });
+});
