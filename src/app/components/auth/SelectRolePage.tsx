@@ -75,7 +75,7 @@ export function SelectRolePage() {
 
   // Auto-redirect if 0 or 1 membership
   if (memberships.length === 0) {
-    return <Navigate to="/student" replace />;
+    return <Navigate to="/login" replace />;
   }
   if (memberships.length === 1) {
     return <Navigate to="/" replace />;
