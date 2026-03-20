@@ -12,7 +12,7 @@
 // Respects prefers-reduced-motion by disabling animation.
 // ============================================================
 
-import { useId } from 'react';
+import { useId, useState, useEffect } from 'react';
 
 const NODES = [
   { cx: 88, cy: 84, r: 22 },
@@ -62,8 +62,15 @@ export function GraphSkeleton({
   const edges = isMini ? MINI_EDGES : EDGES;
   const viewBox = isMini ? '0 0 280 110' : '0 0 400 260';
   const labelIndices = isMini ? [0, 1, 3] : [0, 1, 3, 4, 6];
-  const prefersReducedMotion = typeof window !== 'undefined'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => setPrefersReducedMotion(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   const wrapperClass = isMini
     ? `w-full bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center justify-center overflow-hidden ${className}`

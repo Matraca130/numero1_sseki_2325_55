@@ -257,6 +257,8 @@ export function useUndoRedo(onGraphChanged: () => void) {
   // Keyboard shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Ignore held-key repeats — prevents rapid undo/redo stack drain
+      if (e.repeat) return;
       const el = e.target as HTMLElement | null;
       const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
