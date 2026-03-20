@@ -207,9 +207,11 @@ export function AxonAIAssistant({
       );
 
       setIsStreaming(false);
-    } catch {
-      // Streaming failed — remove placeholder and fall back to non-streaming
-      if (rafId) cancelAnimationFrame(rafId);
+    } catch (streamErr) {
+      // Streaming failed — cancel any pending RAF and fall back to non-streaming
+      if (rafId != null) cancelAnimationFrame(rafId);
+      rafId = null;
+      console.warn('[AxonAI] Stream failed, falling back:', streamErr);
       setMessages(prev => prev.filter(m => m.id !== streamingMsgId));
       setIsStreaming(false);
       setIsLoading(true);
