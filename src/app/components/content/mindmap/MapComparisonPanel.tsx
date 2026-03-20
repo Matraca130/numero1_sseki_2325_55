@@ -265,7 +265,6 @@ export function MapComparisonPanel({
           ref={focusTrapRef}
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
           role="dialog"
-          aria-modal="true"
           aria-label="Panel de comparación de mapa"
         >
           {/* Header */}

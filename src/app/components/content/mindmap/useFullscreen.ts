@@ -130,6 +130,7 @@ export function useFullscreen(): UseFullscreenReturn {
       // Read truth from the DOM, not from React state — avoids stale closure
       if (!document.fullscreenElement) {
         doRestore();
+        isFullscreenRef.current = false;
         setIsFullscreen(false);
         try { sessionStorage.removeItem('axon_map_fullscreen'); } catch {}
       }
