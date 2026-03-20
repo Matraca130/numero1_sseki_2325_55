@@ -800,7 +800,7 @@ export function KnowledgeMapView() {
             </div>
           ) : (
             <p
-              className="text-gray-400 leading-relaxed"
+              className="text-gray-500 leading-relaxed"
               style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
             >
               Ningún tema disponible. Ingresa a un curso primero.
@@ -1099,7 +1099,7 @@ export function KnowledgeMapView() {
 
         {/* Toolbar */}
         <ErrorBoundary fallback={() => (
-          <div className="flex-shrink-0 mb-3 px-4 py-2 text-xs text-gray-400">Error en la barra de herramientas</div>
+          <div className="flex-shrink-0 mb-3 px-4 py-2 text-xs text-gray-500">Error en la barra de herramientas</div>
         )}>
         <div className="flex-shrink-0 mb-3 overflow-x-auto scrollbar-hide">
           <GraphToolbar
@@ -1211,7 +1211,7 @@ export function KnowledgeMapView() {
                     Ningún concepto encontrado
                   </p>
                   <p
-                    className="text-gray-400"
+                    className="text-gray-500"
                     style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                   >
                     Intenta buscar otro término

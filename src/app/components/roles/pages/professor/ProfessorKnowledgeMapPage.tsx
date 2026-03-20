@@ -550,7 +550,7 @@ export function ProfessorKnowledgeMapPage() {
                           Ningún concepto encontrado
                         </p>
                         <p
-                          className="text-gray-400"
+                          className="text-gray-500"
                           style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                         >
                           Intenta buscar otro término
@@ -608,7 +608,7 @@ export function ProfessorKnowledgeMapPage() {
                     )}
                   </div>
                   {selectedNode.definition && (
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                       {selectedNode.definition}
                     </p>
                   )}
@@ -817,7 +817,7 @@ export function ProfessorKnowledgeMapPage() {
                         Selecciona un nodo
                       </p>
                       <p
-                        className="text-gray-400 max-w-[12rem]"
+                        className="text-gray-500 max-w-[12rem]"
                         style={{ fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)' }}
                       >
                         Haz clic en un nodo del grafo para ver sus detalles
