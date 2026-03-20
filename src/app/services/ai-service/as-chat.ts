@@ -65,7 +65,7 @@ export async function explainConcept(
 
 // ── Streaming chat ──────────────────────────────────────
 
-/** SSE chunk shape from POST /ai/rag-chat-stream */
+/** SSE chunk shape from POST /ai/rag-chat (stream: true in body) */
 interface StreamChunk {
   type: 'chunk' | 'sources' | 'done' | 'error';
   text?: string;
@@ -77,7 +77,7 @@ interface StreamChunk {
 
 /**
  * Chat with AI using RAG context via SSE streaming.
- * Backend: POST /ai/rag-chat-stream
+ * Backend: POST /ai/rag-chat (with stream: true in body)
  *
  * Calls back progressively as chunks arrive, then delivers
  * sources and metadata on the `done` event.
