@@ -4,12 +4,12 @@
 // based on their institution memberships and roles.
 //
 // Flow:
-//   0 institutions  → /student (default)
+//   0 institutions  → /login (or logout if authError)
 //   1 institution   → auto-select, route by role
 //   N institutions  → /select-org (picker)
 // ============================================================
-import React from 'react';
-import { Navigate } from 'react-router';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router';
 import { useAuth } from '@/app/context/AuthContext';
 
 const ROLE_ROUTES: Record<string, string> = {
@@ -20,25 +20,46 @@ const ROLE_ROUTES: Record<string, string> = {
 };
 
 export function PostLoginRouter() {
-  const { status, institutions, selectedInstitution, role, memberships, activeMembership } = useAuth();
+  const { status, institutions, selectedInstitution, role, memberships, activeMembership, logout, authError } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // Authenticated but institutions failed → logout properly via useEffect (not in render)
+  useEffect(() => {
+    if (status === 'authenticated' && institutions.length === 0 && memberships.length === 0 && authError && !loggingOut) {
+      setLoggingOut(true);
+      logout().then(() => navigate('/login', { replace: true }));
+    }
+  }, [status, institutions.length, memberships.length, authError, loggingOut, logout, navigate]);
 
   if (status === 'unauthenticated') {
     return <Navigate to="/login" replace />;
   }
 
-  // No institutions and no memberships → session is incomplete, send to login
+  // Waiting for logout to complete
+  if (loggingOut) {
+    return null;
+  }
+
+  // Authenticated but no data and no error → genuinely no memberships, show login
   if (institutions.length === 0 && memberships.length === 0) {
     return <Navigate to="/login" replace />;
   }
 
-  // Multiple institutions and none selected → picker
-  if (institutions.length > 1 && !selectedInstitution && !activeMembership) {
-    return <Navigate to="/select-org" replace />;
+  // Already have a selected institution → route directly by role
+  if (selectedInstitution || activeMembership) {
+    const activeRole = role || activeMembership?.role || selectedInstitution?.role || 'student';
+    const route = ROLE_ROUTES[activeRole] || '/student';
+    return <Navigate to={route} replace />;
   }
 
-  // Route by role (from selectedInstitution or fallback to first)
-  const activeRole = role || activeMembership?.role || institutions[0]?.role || memberships[0]?.role || 'student';
-  const route = ROLE_ROUTES[activeRole] || '/student';
+  // Single institution → auto-select by routing to role
+  if (institutions.length === 1) {
+    const activeRole = institutions[0]?.role || memberships[0]?.role || 'student';
+    const route = ROLE_ROUTES[activeRole] || '/student';
+    return <Navigate to={route} replace />;
+  }
 
-  return <Navigate to={route} replace />;
+  // Multiple institutions and none selected → picker
+  return <Navigate to="/select-org" replace />;
 }

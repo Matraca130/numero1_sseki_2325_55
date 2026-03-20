@@ -13,7 +13,7 @@ import { Eye, EyeOff, LogIn, UserPlus, Loader2, AlertCircle, CheckCircle2 } from
 type AuthMode = 'signin' | 'signup';
 
 export function LoginPage() {
-  const { login, signup, status } = useAuth();
+  const { login, signup, status, institutions, memberships } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -25,8 +25,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // If already authenticated, skip to post-login router
-  if (status === 'authenticated') {
+  // If authenticated AND has institution data, redirect to post-login router.
+  // If authenticated but no institutions (fetch failed or no memberships), stay on login
+  // to avoid infinite loop: PostLoginRouter → /login → / → PostLoginRouter
+  if (status === 'authenticated' && (institutions.length > 0 || memberships.length > 0)) {
     return <Navigate to="/" replace />;
   }
 
