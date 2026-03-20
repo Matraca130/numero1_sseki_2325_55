@@ -194,18 +194,33 @@ export async function deleteVideoNote(id: string): Promise<any> {
 // ── Bulk Reading States ─────────────────────────────────────
 
 /**
- * Fetch ALL reading states for the authenticated student.
- * Used by useStudyHubProgress for course-level mastery derivation.
+ * Fetch reading states for a list of known summary IDs.
  *
- * Returns empty array on failure (non-blocking — graceful degradation).
+ * The backend requires `summary_id` (valid UUID) on GET /reading-states —
+ * there is no "list all" mode.  So we fan-out one request per summary and
+ * run them concurrently with Promise.allSettled (non-blocking on individual
+ * failures).
+ *
+ * Used by useStudyHubProgress for course-level mastery derivation.
+ * Returns empty array when summaryIds is empty or on total failure.
  */
-export async function getAllReadingStates(): Promise<ReadingState[]> {
+export async function getAllReadingStates(
+  summaryIds: string[],
+): Promise<ReadingState[]> {
+  if (summaryIds.length === 0) return [];
+
   try {
-    const result = await apiCall<any>('/reading-states?limit=1000');
-    // Handle both paginated { items: [...] } and direct array shapes
-    if (Array.isArray(result)) return result;
-    if (result && Array.isArray(result.items)) return result.items;
-    return [];
+    const results = await Promise.allSettled(
+      summaryIds.map(id => getReadingState(id)),
+    );
+
+    const states: ReadingState[] = [];
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) {
+        states.push(r.value);
+      }
+    }
+    return states;
   } catch {
     return [];
   }

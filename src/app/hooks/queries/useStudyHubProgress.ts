@@ -21,13 +21,13 @@
 //     Falls back to N getTopicsOverview() calls if 404
 //
 // Data flow:
-//   getAllReadingStates()     → Map<summary_id, ReadingState>
-//   getAllBktStates()         → Map<subtopic_id, BktState>
 //   getCourseProgress(...)    → summaries_by_topic + bkt_mastery_by_topic
+//   getAllReadingStates(ids)  → Map<summary_id, ReadingState>  (needs summary IDs from above)
+//   getAllBktStates()         → Map<subtopic_id, BktState>
 //   Cross-reference           → per-topic mastery + per-section progress
 //
 // Performance:
-//   2-3 HTTP calls total (reading states + bkt states + course progress)
+//   course progress (1 call) → reading states (N parallel calls) + bkt states (1 call)
 //   All cached by React Query with appropriate stale times.
 //   Cache warming in StudentShell ensures instant load on StudyHub.
 // ============================================================
@@ -99,15 +99,43 @@ export function useStudyHubProgress(
     [sections],
   );
 
-  // ── Step 1: Fetch ALL reading states (1 HTTP call) ──────
-  const readingStatesQuery = useQuery({
-    queryKey: queryKeys.allReadingStates(),
-    queryFn: getAllReadingStates,
-    staleTime: 5 * 60 * 1000, // 5 min
-    enabled: !!course,
+  // ── Step 1: Fetch course progress (1 call → fallback: N calls) ──
+  // Uses getCourseProgress with withFallback pattern:
+  //   - Tries GET /course-progress?course_id=xxx (1 call)
+  //   - Falls back to N getTopicsOverview() calls if 404
+  // Moved before reading states because we need summary IDs from this response.
+  const courseProgressQuery = useQuery({
+    queryKey: queryKeys.courseProgress(courseId),
+    queryFn: () => getCourseProgress(courseId, allTopicIds, sections),
+    staleTime: 10 * 60 * 1000, // 10 min — content structure rarely changes
+    enabled: !!courseId && sections.length > 0,
   });
 
-  // ── Step 2: Fetch ALL BKT states (1 HTTP call) ──────────
+  // ── Derive all summary IDs from course progress (needed for reading states) ──
+  const allSummaryIds = useMemo(() => {
+    const cpData = courseProgressQuery.data;
+    if (!cpData) return [];
+    const ids: string[] = [];
+    for (const summaries of Object.values(cpData.summaries_by_topic)) {
+      for (const s of summaries) {
+        if (s.status === 'published') ids.push(s.id);
+      }
+    }
+    return ids;
+  }, [courseProgressQuery.data]);
+
+  // ── Step 2: Fetch reading states for known summaries ──────
+  // The backend requires summary_id (valid UUID) per request — there is
+  // no "list all" mode. So this depends on courseProgressQuery finishing
+  // first to provide the summary IDs. (BUG-034 fix)
+  const readingStatesQuery = useQuery({
+    queryKey: [...queryKeys.allReadingStates(), allSummaryIds],
+    queryFn: () => getAllReadingStates(allSummaryIds),
+    staleTime: 5 * 60 * 1000, // 5 min
+    enabled: !!course && allSummaryIds.length > 0,
+  });
+
+  // ── Step 3: Fetch ALL BKT states (1 HTTP call) ──────────
   // Phase 2: BKT data provides quiz/flashcard-based mastery.
   // Graceful: returns [] if endpoint fails or no BKT data yet.
   const bktQuery = useQuery({
@@ -115,17 +143,6 @@ export function useStudyHubProgress(
     queryFn: getAllBktStates,
     staleTime: 5 * 60 * 1000,
     enabled: !!course,
-  });
-
-  // ── Step 3: Fetch course progress (1 call → fallback: N calls) ──
-  // Uses getCourseProgress with withFallback pattern:
-  //   - Tries GET /course-progress?course_id=xxx (1 call)
-  //   - Falls back to N getTopicsOverview() calls if 404
-  const courseProgressQuery = useQuery({
-    queryKey: queryKeys.courseProgress(courseId),
-    queryFn: () => getCourseProgress(courseId, allTopicIds, sections),
-    staleTime: 10 * 60 * 1000, // 10 min — content structure rarely changes
-    enabled: !!courseId && sections.length > 0,
   });
 
   // ── Step 4: Cross-reference and derive progress ─────────
