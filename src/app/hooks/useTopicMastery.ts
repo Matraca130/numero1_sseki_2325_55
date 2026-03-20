@@ -6,7 +6,7 @@
 // course.
 //
 // Phase 1: BKT p_know as primary mastery signal.
-// Phase 2: Maps FSRS states → flashcard_id → subtopic_id for
+// Phase 2: Maps FSRS states -> flashcard_id -> subtopic_id for
 //          per-topic due/overdue card counts.
 //
 // Returns:
@@ -20,11 +20,11 @@ import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { getAxonToday } from '@/app/utils/constants';
 import {
   getFsrsStates,
-  getFlashcards,
   type BktStateRecord,
   type FsrsStateRecord,
   type FlashcardCard,
 } from '@/app/services/platformApi';
+import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -151,23 +151,43 @@ export function useTopicMastery(
   const [fsrsLoading, setFsrsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // BUG-033 fix: GET /flashcards requires summary_id (backend crud-factory
+  // returns 400 without it). Use GET /flashcards-by-topic per topic instead,
+  // which doesn't require summary_id and returns all active flashcards for
+  // each topic in a single call. Skip when topicIds not provided.
   const fetchFsrsAndFlashcards = useCallback(async () => {
     setFsrsLoading(true);
     setError(null);
     try {
-      const [fsrsRes, fcRes] = await Promise.allSettled([
-        getFsrsStates({ limit: 500 }),
-        getFlashcards({ status: 'published', limit: 500 }),
-      ]);
-      setFsrsStates(fsrsRes.status === 'fulfilled' ? fsrsRes.value : []);
-      setFlashcards(fcRes.status === 'fulfilled' ? fcRes.value : []);
-      if (fsrsRes.status === 'rejected') console.warn('[useTopicMastery] FSRS fetch failed:', fsrsRes.reason?.message);
-      if (fcRes.status === 'rejected') console.warn('[useTopicMastery] Flashcards fetch failed:', fcRes.reason?.message);
+      // FSRS states don't require summary_id
+      const fsrsRes = await getFsrsStates({ limit: 500 }).catch((err: any) => {
+        console.warn('[useTopicMastery] FSRS fetch failed:', err.message);
+        return [] as FsrsStateRecord[];
+      });
+      setFsrsStates(fsrsRes);
+
+      // Fetch flashcards per-topic (only when topicIds available)
+      if (topicIds && topicIds.length > 0) {
+        const perTopicResults = await Promise.allSettled(
+          topicIds.map(tid => getFlashcardsByTopic(tid, { limit: 500 }))
+        );
+        const allCards: FlashcardCard[] = [];
+        for (const res of perTopicResults) {
+          if (res.status === 'fulfilled' && res.value?.items) {
+            for (const item of res.value.items) {
+              allCards.push(item as unknown as FlashcardCard);
+            }
+          }
+        }
+        setFlashcards(allCards);
+      } else {
+        setFlashcards([]);
+      }
     } catch (err: any) {
       console.warn('[useTopicMastery] fetch failed:', err.message);
       setFsrsStates([]); setFlashcards([]);
     } finally { setFsrsLoading(false); }
-  }, []);
+  }, [topicIds]);
 
   useEffect(() => { fetchFsrsAndFlashcards(); }, [fetchFsrsAndFlashcards]);
   const refresh = fetchFsrsAndFlashcards;
