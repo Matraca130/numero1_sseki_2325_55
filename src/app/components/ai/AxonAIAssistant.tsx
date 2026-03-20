@@ -448,7 +448,7 @@ export function AxonAIAssistant({
               {mode === 'flashcards' && renderFlashcards()}
               {mode === 'quiz' && renderQuiz()}
               {mode === 'explain' && renderExplain()}
-              {mode === 'voice' && <VoiceCallPanel />}
+              {mode === 'voice' && <VoiceCallPanel summaryId={summaryId} />}
             </div>
           </motion.div>
         </>
