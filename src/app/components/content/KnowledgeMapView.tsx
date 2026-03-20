@@ -385,15 +385,17 @@ export function KnowledgeMapView() {
 
   const handleAddStickyNote = useCallback(() => {
     if (!effectiveTopicId) return;
-    if (stickyNotes.length >= 10) {
-      toast.error('Máximo 10 notas por tema');
-      return;
-    }
-    const note = createStickyNote();
-    const next = [...stickyNotes, note];
-    setStickyNotes(next);
-    saveStickyNotes(effectiveTopicId, next);
-  }, [effectiveTopicId, stickyNotes]);
+    setStickyNotes(prev => {
+      if (prev.length >= 10) {
+        toast.error('Máximo 10 notas por tema');
+        return prev;
+      }
+      const note = createStickyNote();
+      const next = [...prev, note];
+      saveStickyNotes(effectiveTopicId, next);
+      return next;
+    });
+  }, [effectiveTopicId]);
 
   // ── Custom node colors ────────────────────────────────────
   const [customNodeColors, setCustomNodeColors] = useState<NodeColorMap>(new Map());
@@ -702,19 +704,19 @@ export function KnowledgeMapView() {
     setConnectTarget(null);
   }, []);
 
-  const handleNodeCreated = useCallback((nodeId: string, payload: { label: string }) => {
-    pushAction({ type: 'create-node', nodeId, payload: payload as Parameters<typeof pushAction>[0]['payload'] });
+  const handleNodeCreated = useCallback((nodeId: string, payload: { label: string; definition?: string }) => {
+    pushAction({ type: 'create-node', nodeId, payload: { ...payload, topic_id: effectiveTopicId } });
     setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]);
     haptic(50);
-  }, [pushAction]);
+  }, [pushAction, effectiveTopicId]);
 
-  const handleEdgeCreated = useCallback((edgeId: string, payload: { source_node_id: string; target_node_id: string }) => {
-    pushAction({ type: 'create-edge', edgeId, payload: payload as Parameters<typeof pushAction>[0]['payload'] });
+  const handleEdgeCreated = useCallback((edgeId: string, payload: { source_node_id: string; target_node_id: string; label?: string; connection_type?: string }) => {
+    pushAction({ type: 'create-edge', edgeId, payload: { ...payload, topic_id: effectiveTopicId } });
     const srcNode = graphDataNodesRef.current?.find(n => n.id === payload.source_node_id);
     const tgtNode = graphDataNodesRef.current?.find(n => n.id === payload.target_node_id);
     setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]);
     haptic(50);
-  }, [pushAction]);
+  }, [pushAction, effectiveTopicId]);
 
   // ── Derived data ────────────────────────────────────────
 

@@ -5,7 +5,7 @@
 // for recent fixes:
 //   - executeDeleteNode clears stale references
 //   - setScope resets tool/connection state
-//   - handleAddStickyNote uses direct state read (no updater)
+//   - handleAddStickyNote uses functional updater (avoids stale closure)
 //   - Module export shape
 //   - Key callbacks exist
 //   - handleAction switch completeness
@@ -123,27 +123,49 @@ describe('KnowledgeMapView: setScope resets state', () => {
   });
 });
 
-// ── handleAddStickyNote: direct state read ──────────────────
+// ── handleAddStickyNote: functional updater pattern ──────────
 
-describe('KnowledgeMapView: handleAddStickyNote uses direct state read', () => {
+describe('KnowledgeMapView: handleAddStickyNote uses functional updater', () => {
   const addStickyMatch = source.match(
     /const\s+handleAddStickyNote\s*=\s*useCallback\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[([^\]]*)\]\)/,
   );
   const addStickyBody = addStickyMatch?.[1] ?? '';
   const addStickyDeps = addStickyMatch?.[2] ?? '';
 
-  it('reads stickyNotes directly (not via functional updater)', () => {
-    // It should use spread of stickyNotes, not setStickyNotes(prev => ...)
-    expect(addStickyBody).toContain('[...stickyNotes, note]');
-    expect(addStickyBody).not.toMatch(/setStickyNotes\(\s*prev\s*=>/);
+  it('uses functional updater to avoid stale closure on stickyNotes', () => {
+    // Uses setStickyNotes(prev => ...) to read latest state
+    expect(addStickyBody).toMatch(/setStickyNotes\(\s*prev\s*=>/);
   });
 
-  it('includes stickyNotes in dependency array', () => {
-    expect(addStickyDeps).toContain('stickyNotes');
+  it('does NOT include stickyNotes in dependency array (uses updater instead)', () => {
+    expect(addStickyDeps).not.toContain('stickyNotes');
   });
 
-  it('calls setStickyNotes with the new array (not updater)', () => {
-    expect(addStickyBody).toMatch(/setStickyNotes\(next\)/);
+  it('spreads prev (not stickyNotes) when building the new array', () => {
+    expect(addStickyBody).toContain('[...prev, note]');
+  });
+});
+
+// ── handleNodeCreated/handleEdgeCreated: include topic_id for undo ──
+
+describe('KnowledgeMapView: undo payloads include topic_id', () => {
+  it('handleNodeCreated spreads topic_id into pushAction payload', () => {
+    const match = source.match(
+      /const\s+handleNodeCreated\s*=\s*useCallback\(([\s\S]*?)\},\s*\[/,
+    );
+    const body = match?.[1] ?? '';
+    expect(body).toContain('topic_id: effectiveTopicId');
+    // Should NOT use unsafe 'as' cast
+    expect(body).not.toContain('as Parameters<typeof pushAction>');
+  });
+
+  it('handleEdgeCreated spreads topic_id into pushAction payload', () => {
+    const match = source.match(
+      /const\s+handleEdgeCreated\s*=\s*useCallback\(([\s\S]*?)\},\s*\[/,
+    );
+    const body = match?.[1] ?? '';
+    expect(body).toContain('topic_id: effectiveTopicId');
+    expect(body).not.toContain('as Parameters<typeof pushAction>');
   });
 });
 
