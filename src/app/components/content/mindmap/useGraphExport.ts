@@ -72,13 +72,17 @@ export function useGraphExport() {
     graphRef.current = graph;
   }, []);
 
+  const exportingRef = useRef(false);
+
   const doExport = useCallback(async (format: ExportFormat) => {
+    if (exportingRef.current) return; // Prevent concurrent exports
     const graph = graphRef.current;
-    if (!graph) {
+    if (!graph || (graph as Graph & { destroyed?: boolean }).destroyed) {
       toast.error('El mapa aún no está listo para exportar');
       return;
     }
 
+    exportingRef.current = true;
     try {
       const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
       const dataURL = await graph.toDataURL({
@@ -91,6 +95,8 @@ export function useGraphExport() {
       // Graph may be destroyed or in transition
       if (import.meta.env.DEV) console.error('Export failed:', err);
       toast.error('No se pudo exportar la imagen del mapa');
+    } finally {
+      exportingRef.current = false;
     }
   }, []);
 

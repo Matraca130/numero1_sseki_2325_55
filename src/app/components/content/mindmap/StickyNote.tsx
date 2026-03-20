@@ -165,11 +165,12 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
   useEffect(() => () => { if (kbMoveRafRef.current) cancelAnimationFrame(kbMoveRafRef.current); }, []);
 
   const handleKeyboardMove = useCallback((e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 50 : MOVE_STEP; // Shift = larger jumps
     let dx = 0, dy = 0;
-    if (e.key === 'ArrowLeft') dx = -MOVE_STEP;
-    else if (e.key === 'ArrowRight') dx = MOVE_STEP;
-    else if (e.key === 'ArrowUp') dy = -MOVE_STEP;
-    else if (e.key === 'ArrowDown') dy = MOVE_STEP;
+    if (e.key === 'ArrowLeft') dx = -step;
+    else if (e.key === 'ArrowRight') dx = step;
+    else if (e.key === 'ArrowUp') dy = -step;
+    else if (e.key === 'ArrowDown') dy = step;
     else return;
     e.preventDefault();
     e.stopPropagation();
@@ -335,17 +336,20 @@ export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesL
 
   const notesRef = useRef(notes);
   notesRef.current = notes;
+  // Ref-stabilize onNotesChange to avoid stale closure in toast undo handler
+  const onNotesChangeRef = useRef(onNotesChange);
+  onNotesChangeRef.current = onNotesChange;
 
   const handleUpdate = useCallback((updated: StickyNoteData) => {
     const next = notesRef.current.map(n => n.id === updated.id ? updated : n);
-    onNotesChange(next);
+    onNotesChangeRef.current(next);
     if (topicId) debouncedSave(topicId, next);
-  }, [onNotesChange, topicId, debouncedSave]);
+  }, [topicId, debouncedSave]);
 
   const handleDelete = useCallback((id: string) => {
     const deleted = notesRef.current.find(n => n.id === id);
     const next = notesRef.current.filter(n => n.id !== id);
-    onNotesChange(next);
+    onNotesChangeRef.current(next);
     if (topicId) saveStickyNotes(topicId, next);
     // Toast with undo — restore the note if user clicks "Deshacer"
     if (deleted) {
@@ -354,14 +358,14 @@ export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesL
           label: 'Deshacer',
           onClick: () => {
             const restored = [...notesRef.current, deleted];
-            onNotesChange(restored);
+            onNotesChangeRef.current(restored);
             if (topicId) saveStickyNotes(topicId, restored);
           },
         },
         duration: 5000,
       });
     }
-  }, [onNotesChange, topicId]);
+  }, [topicId]);
 
   if (notes.length === 0) return null;
 

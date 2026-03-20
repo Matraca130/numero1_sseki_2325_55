@@ -93,7 +93,11 @@ export function MiniKnowledgeGraph({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || data.nodes.length === 0) return;
+    if (!container || data.nodes.length === 0) {
+      // Destroy stale graph instance when data empties to prevent memory leak
+      if (graphRef.current) { graphRef.current.destroy(); graphRef.current = null; }
+      return;
+    }
 
     // Skip if same structure
     if (graphRef.current && currentDataKey === prevDataKeyRef.current) return;

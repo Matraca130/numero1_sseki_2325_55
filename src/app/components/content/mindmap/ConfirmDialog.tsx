@@ -85,6 +85,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
+        aria-busy={confirmDisabled || undefined}
       >
         <h3
           id={titleId}

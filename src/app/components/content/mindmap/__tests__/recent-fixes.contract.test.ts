@@ -419,3 +419,63 @@ describe('AiTutorPanel — stale-topic guards on async operations', () => {
     expect(source).toContain('topicIdRef.current !== capturedTopicId');
   });
 });
+
+// ── useGraphExport: busy guard against concurrent exports ───
+
+describe('useGraphExport — busy guard prevents concurrent exports', () => {
+  const source = readSource('useGraphExport.ts');
+
+  it('has exportingRef guard to prevent concurrent exports', () => {
+    expect(source).toContain('exportingRef.current');
+    expect(source).toContain('if (exportingRef.current) return');
+  });
+
+  it('resets exportingRef in finally block', () => {
+    expect(source).toContain('exportingRef.current = false');
+  });
+});
+
+// ── MiniKnowledgeGraph: graph destroyed when data empties ───
+
+describe('MiniKnowledgeGraph — graph cleanup on empty data', () => {
+  const source = readSource('MiniKnowledgeGraph.tsx');
+
+  it('destroys graph instance when data.nodes.length === 0', () => {
+    expect(source).toContain('graphRef.current.destroy()');
+    expect(source).toContain('graphRef.current = null');
+  });
+});
+
+// ── StickyNote: Shift+Arrow larger keyboard drag steps ──────
+
+describe('StickyNote — keyboard drag supports Shift for larger steps', () => {
+  const source = readSource('StickyNote.tsx');
+
+  it('checks e.shiftKey for larger step size', () => {
+    expect(source).toContain('e.shiftKey ? 50 : MOVE_STEP');
+  });
+});
+
+// ── StickyNotesLayer: onNotesChange ref-stabilized ──────────
+
+describe('StickyNotesLayer — onNotesChange stabilized via ref', () => {
+  const source = readSource('StickyNote.tsx');
+
+  it('stores onNotesChange in a ref', () => {
+    expect(source).toContain('onNotesChangeRef.current = onNotesChange');
+  });
+
+  it('undo handler calls onNotesChangeRef.current (not stale closure)', () => {
+    expect(source).toContain('onNotesChangeRef.current(restored)');
+  });
+});
+
+// ── ConfirmDialog: aria-busy during async operations ────────
+
+describe('ConfirmDialog — aria-busy communicates processing state', () => {
+  const source = readSource('ConfirmDialog.tsx');
+
+  it('has aria-busy attribute tied to confirmDisabled', () => {
+    expect(source).toContain('aria-busy={confirmDisabled || undefined}');
+  });
+});
