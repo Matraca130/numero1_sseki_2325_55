@@ -108,7 +108,7 @@ export function QuizAnalyticsPanel({
                       <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis hide allowDecimals={false} />
                       <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                         {diffData.map((d, i) => (
                           <Cell key={i} fill={d.fill} />
                         ))}
@@ -127,7 +127,7 @@ export function QuizAnalyticsPanel({
                       <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis hide allowDecimals={false} />
                       <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                         {typeData.map((d, i) => (
                           <Cell key={i} fill={d.fill} />
                         ))}
