@@ -10,7 +10,7 @@
 //   6. Route by role.
 //
 // State:
-//   { user, accessToken, institutions, selectedInstitution, role, loading }
+//   { user, accessToken, institutions, selectedInstitution, role, loading, authError }
 //
 // The role is NOT in the JWT. It comes from GET /institutions.
 // A user can be professor in one institution and student in another.
@@ -87,6 +87,7 @@ interface AuthContextType {
   selectedInstitution: UserInstitution | null;
   role: string | null;
   loading: boolean;
+  authError: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -140,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [institutions, setInstitutions] = useState<UserInstitution[]>([]);
   const [selectedInstitution, setSelectedInstitution] = useState<UserInstitution | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Keep module-level token in sync
   useEffect(() => {
@@ -192,12 +194,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return mapped;
     } catch (err) {
       if (import.meta.env.DEV) console.error('[Auth] GET /institutions failed:', err);
-      return [];
+      throw err;
     }
   }, []);
 
   // ── Load full session (profile + institutions) ────────────
-  const loadSession = useCallback(async (token: string): Promise<boolean> => {
+  const loadSession = useCallback(async (token: string): Promise<'ok' | 'profile_failed' | 'institutions_failed'> => {
     // Set token first so apiCall can use it
     setAccessTokenState(token);
     setApiToken(token);
@@ -206,11 +208,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!profile) {
       setAccessTokenState(null);
       setApiToken(null);
-      return false;
+      return 'profile_failed';
     }
 
-    const insts = await fetchInstitutions();
+    let insts: UserInstitution[];
+    try {
+      insts = await fetchInstitutions();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setAuthError(`Could not load institutions: ${msg}`);
+      setUser(profile);
+      setInstitutions([]);
+      return 'institutions_failed';
+    }
 
+    setAuthError(null);
     setUser(profile);
     setInstitutions(insts);
 
@@ -234,7 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
 
-    return true;
+    return 'ok';
   }, [fetchProfile, fetchInstitutions]);
 
   // ── Restore session on mount ─────────────────────────────
@@ -246,13 +258,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
           return;
         }
-        const ok = await loadSession(session.access_token);
-        if (!ok) {
-          // Session exists but profile load failed
-          setLoading(false);
-        } else {
-          setLoading(false);
-        }
+        await loadSession(session.access_token);
+        setLoading(false);
       } catch (err) {
         if (import.meta.env.DEV) console.error('[Auth] Session restore failed:', err);
         setLoading(false);
@@ -273,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setApiToken(null);
         setInstitutions([]);
         setSelectedInstitution(null);
+        setAuthError(null);
         if (import.meta.env.DEV) console.log('[Auth] Signed out via auth state change');
       }
     });
@@ -291,10 +299,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!token) {
         return { success: false, error: 'No access token received' };
       }
-      const ok = await loadSession(token);
-      if (!ok) {
+      const result = await loadSession(token);
+      if (result === 'profile_failed') {
         await supabase.auth.signOut().catch(() => {});
         return { success: false, error: 'Failed to load profile' };
+      }
+      if (result === 'institutions_failed') {
+        return { success: false, error: 'Could not load institutions. Please try again later.' };
       }
       return { success: true };
     } catch (err: unknown) {
@@ -340,11 +351,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Signup succeeded but auto-login failed — user can login manually
         return { success: true };
       }
-      const ok = await loadSession(loginData.session.access_token);
-      if (!ok) {
-        // Session loaded but profile failed — still a successful signup
-        return { success: true };
-      }
+      await loadSession(loginData.session.access_token);
+      // Signup succeeded regardless of loadSession result
       return { success: true };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -363,6 +371,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setApiToken(null);
       setInstitutions([]);
       setSelectedInstitution(null);
+      setAuthError(null);
       localStorage.removeItem('axon_active_membership');
       localStorage.removeItem('axon_access_token');
       localStorage.removeItem('axon_user');
@@ -430,6 +439,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     selectedInstitution,
     role,
     loading,
+    authError,
     login,
     signup,
     logout,
@@ -444,7 +454,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp: signUpCompat,
     signOut: logout,
   }), [
-    user, accessToken, institutions, selectedInstitution, role, loading,
+    user, accessToken, institutions, selectedInstitution, role, loading, authError,
     login, signup, logout, selectInstitution,
     status, memberships, activeMembership, setActiveMembership, signUpCompat,
   ]);
