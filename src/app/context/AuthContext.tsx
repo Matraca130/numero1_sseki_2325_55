@@ -251,20 +251,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Restore session on mount ─────────────────────────────
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        if (cancelled) return;
         if (error || !session?.access_token) {
+          // Clean up any stale auth data that might cause redirect loops
+          setUser(null);
+          setAccessTokenState(null);
+          setApiToken(null);
+          setInstitutions([]);
+          setSelectedInstitution(null);
+          localStorage.removeItem('axon_active_membership');
+          localStorage.removeItem('axon_access_token');
+          localStorage.removeItem('axon_user');
+          localStorage.removeItem('axon_memberships');
           setLoading(false);
           return;
         }
         await loadSession(session.access_token);
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       } catch (err) {
         if (import.meta.env.DEV) console.error('[Auth] Session restore failed:', err);
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, [loadSession]);
 
   // ── Listen for auth state changes ─────────────────────────
