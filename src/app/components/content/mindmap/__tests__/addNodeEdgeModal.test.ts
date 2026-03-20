@@ -655,9 +655,9 @@ describe('AddNodeEdgeModal: close behavior', () => {
     expect(source).toContain("document.body.style.overflow = 'hidden'");
   });
 
-  it('restores body scroll on cleanup', () => {
-    expect(source).toContain("document.documentElement.style.overflow = ''");
-    expect(source).toContain("document.body.style.overflow = ''");
+  it('restores body scroll on cleanup (saves/restores original values)', () => {
+    expect(source).toContain('document.documentElement.style.overflow = prevHtml');
+    expect(source).toContain('document.body.style.overflow = prevBody');
   });
 });
 

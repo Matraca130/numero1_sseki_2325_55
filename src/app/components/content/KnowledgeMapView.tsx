@@ -505,10 +505,9 @@ export function KnowledgeMapView() {
       const newSource = movedEndpoint === 'source' ? newNodeId : oldEdge.source;
       const newTarget = movedEndpoint === 'target' ? newNodeId : oldEdge.target;
 
-      // Guard: prevent self-loops
+      // Guard: prevent self-loops (finally resets reconnectingRef)
       if (newSource === newTarget) {
         toast.warning('No puedes conectar un nodo consigo mismo');
-        reconnectingRef.current = false;
         return;
       }
 
@@ -518,7 +517,6 @@ export function KnowledgeMapView() {
       );
       if (edgeExists) {
         toast.warning('Ya existe una conexión entre estos nodos');
-        reconnectingRef.current = false;
         return;
       }
 

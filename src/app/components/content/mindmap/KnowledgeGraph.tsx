@@ -1630,10 +1630,12 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             onClick={() => setShowShortcuts(false)}
             aria-hidden="true"
           />
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="absolute top-3 right-3 hidden sm:block bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-10 text-xs max-h-[60vh] overflow-y-auto"
             role="dialog"
             aria-label={t.shortcutDialog}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setShowShortcuts(false); } }}
           >
           <div className="flex items-center justify-between mb-2">
             <span className="font-semibold text-gray-700" style={{ fontFamily: 'Georgia, serif' }}>
