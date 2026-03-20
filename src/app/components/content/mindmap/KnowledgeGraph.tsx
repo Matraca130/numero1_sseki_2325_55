@@ -1468,7 +1468,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       {/* Mobile hint overlay — auto-dismisses after 4s */}
       {ready && showMobileHint && data.nodes.length > 5 && (
         <div className="absolute left-1/2 -translate-x-1/2 sm:hidden pointer-events-none transition-opacity duration-500" style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-          <p className="text-[10px] text-gray-400 bg-white/90 px-2 py-1 rounded-full shadow-sm border border-gray-100">
+          <p className="text-[10px] text-gray-500 bg-white/90 px-2 py-1 rounded-full shadow-sm border border-gray-100">
             {t.mobileHint}
           </p>
         </div>
@@ -1584,10 +1584,10 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       {/* Desktop: press ? for shortcut hint */}
       {ready && !showShortcuts && !showMasteryLegend && (
         <div className="absolute bottom-2 left-2 hidden sm:flex items-center gap-2 pointer-events-none">
-          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+          <p className="text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded">
             ? {t.shortcuts}
           </p>
-          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+          <p className="text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded">
             / {t.search}
           </p>
         </div>
@@ -1595,10 +1595,10 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       {/* Desktop: shortcut hint — repositioned when legend is visible */}
       {ready && !showShortcuts && showMasteryLegend && (
         <div className="absolute bottom-2 left-28 hidden sm:flex items-center gap-2 pointer-events-none">
-          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+          <p className="text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded">
             ? {t.shortcuts}
           </p>
-          <p className="text-[10px] text-gray-400 bg-white/80 px-1.5 py-0.5 rounded">
+          <p className="text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded">
             / {t.search}
           </p>
         </div>

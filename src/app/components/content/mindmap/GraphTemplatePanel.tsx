@@ -343,7 +343,7 @@ export function GraphTemplatePanel({
                       Cancelar
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 font-sans">
+                  <p className="text-xs text-gray-500 font-sans">
                     {currentNodes.length} nodos y {currentEdges.length} conexiones se guardarán.
                   </p>
                 </motion.div>
@@ -354,7 +354,7 @@ export function GraphTemplatePanel({
                 <div aria-live="polite" aria-atomic="true">
                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                   <Loader2 className="w-5 h-5 animate-spin" style={{ color: BRAND.primary }} aria-hidden="true" />
-                  <p className="text-sm text-gray-400 font-sans">Cargando plantillas...</p>
+                  <p className="text-sm text-gray-500 font-sans">Cargando plantillas...</p>
                 </div>
                 </div>
               )}
@@ -392,7 +392,7 @@ export function GraphTemplatePanel({
               {!loading && templates.length > 0 && (
                 <div className="space-y-2">
                   <p
-                    className="text-xs font-medium text-gray-400 uppercase tracking-wider px-1 font-sans"
+                    className="text-xs font-medium text-gray-500 uppercase tracking-wider px-1 font-sans"
                   >
                     {templates.length} plantilla{templates.length !== 1 ? 's' : ''} guardada{templates.length !== 1 ? 's' : ''}
                   </p>
@@ -415,7 +415,7 @@ export function GraphTemplatePanel({
                       </div>
                       {template.description && (
                         <p
-                          className="text-gray-400 font-sans line-clamp-2 mb-2"
+                          className="text-gray-500 font-sans line-clamp-2 mb-2"
                           style={{ fontSize: 'clamp(0.6875rem, 1.1vw, 0.75rem)' }}
                         >
                           {template.description}
@@ -466,7 +466,7 @@ export function GraphTemplatePanel({
                       </div>
                       {/* Date */}
                       <p
-                        className="text-gray-300 font-sans mt-2"
+                        className="text-gray-500 font-sans mt-2"
                         style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
                       >
                         {new Date(template.created_at).toLocaleDateString('es', {

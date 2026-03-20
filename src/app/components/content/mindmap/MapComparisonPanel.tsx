@@ -334,7 +334,7 @@ export function MapComparisonPanel({
                   {/* Clear highlight button */}
                   <button
                     onClick={handleClearHighlight}
-                    className="mt-3 w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+                    className="mt-3 w-full text-center text-xs text-gray-500 hover:text-gray-600 transition-colors py-1"
                   >
                     Limpiar resaltado
                   </button>

@@ -253,7 +253,7 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
               </div>
             )}
             {node.definition && (
-              <p className="text-gray-400 mt-1 line-clamp-2" style={{ fontSize: captionFontSize }}>
+              <p className="text-gray-500 mt-1 line-clamp-2" style={{ fontSize: captionFontSize }}>
                 {node.definition}
               </p>
             )}

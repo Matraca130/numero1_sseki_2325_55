@@ -133,8 +133,8 @@ export function MicroGraphPanel({
           onClick={() => refetch()}
           className={`w-full flex items-center gap-2 text-xs font-medium transition-colors min-h-[44px] ${
             variant === 'card'
-              ? 'px-4 py-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
-              : 'px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80'
+              ? 'px-4 py-2.5 text-gray-500 hover:text-gray-600 hover:bg-gray-50/80'
+              : 'px-4 py-2 text-gray-500 hover:text-gray-600 hover:bg-gray-50/80'
           }`}
           aria-label="Mapa no disponible. Toca para reintentar."
         >
@@ -149,7 +149,7 @@ export function MicroGraphPanel({
   return (
     <ErrorBoundary fallback={(_err, reset) => (
       <div className={wrapperClass}>
-        <button onClick={reset} className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50/80 min-h-[44px]">
+        <button onClick={reset} className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-500 hover:text-gray-600 hover:bg-gray-50/80 min-h-[44px]">
           <Brain size={13} className="text-gray-400" />
           <span>Grafo no disponible</span>
           <RefreshCw size={12} className="ml-auto" />
@@ -172,7 +172,7 @@ export function MicroGraphPanel({
           <Brain size={variant === 'card' ? 14 : 13} className="text-ax-primary-500" />
           <span>{variant === 'card' ? 'Mapa de conocimiento' : 'Mapa'}</span>
           {displayGraph && !loading && (
-            <span className="text-[10px] text-gray-400 ml-1 truncate max-w-[60px] sm:max-w-[80px]">
+            <span className="text-[10px] text-gray-500 ml-1 truncate max-w-[60px] sm:max-w-[80px]">
               ({displayGraph.nodes.length} nodos{focalNodeId && localGraph && localGraph.nodes.length > 0 && graphData && localGraph.nodes.length < graphData.nodes.length ? ' · local' : ''})
             </span>
           )}
@@ -220,7 +220,7 @@ export function MicroGraphPanel({
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center text-xs text-gray-400 py-6" style={{ minHeight: height }}>
+                  <div className="flex items-center justify-center text-xs text-gray-500 py-6" style={{ minHeight: height }}>
                     No hay datos de mapa para este tema
                   </div>
                 )}

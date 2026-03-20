@@ -270,7 +270,7 @@ export const GraphToolbar = memo(function GraphToolbar({
         {typeof zoomLevel === 'number' && (
           <button
             onClick={onFitView}
-            className="hidden sm:flex items-center justify-center min-w-[36px] px-1 py-0.5 rounded-full text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150 font-sans tabular-nums"
+            className="hidden sm:flex items-center justify-center min-w-[36px] px-1 py-0.5 rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150 font-sans tabular-nums"
             style={{ fontSize: fontSize.overline }}
             title={`${t.fitView} (0)`}
             aria-label={`Zoom: ${Math.round(zoomLevel * 100)}%`}
@@ -381,7 +381,7 @@ export const GraphToolbar = memo(function GraphToolbar({
 
       {/* Stats */}
       <div
-        className="hidden sm:flex items-center gap-2 text-gray-400 ml-1 font-sans"
+        className="hidden sm:flex items-center gap-2 text-gray-500 ml-1 font-sans"
         style={{ fontSize: fontSize.xs }}
         aria-label={`${nodeCount} ${t.nodes}, ${edgeCount} ${t.connections}`}
       >
@@ -526,7 +526,7 @@ export const GraphToolbar = memo(function GraphToolbar({
           className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
             showGrid
               ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
-              : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
+              : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
           }`}
           style={{ fontSize: fontSize.xs }}
           title={t.grid}
@@ -542,7 +542,7 @@ export const GraphToolbar = memo(function GraphToolbar({
       {onAutoLayout && (
         <button
           onClick={onAutoLayout}
-          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
+          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
           style={{ fontSize: fontSize.xs }}
           title={t.autoLayout}
           aria-label={t.autoLayoutLabel}
@@ -559,7 +559,7 @@ export const GraphToolbar = memo(function GraphToolbar({
           className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
             showMinimap
               ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
-              : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
+              : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
           }`}
           style={{ fontSize: fontSize.xs }}
           title={t.minimap}
@@ -576,7 +576,7 @@ export const GraphToolbar = memo(function GraphToolbar({
         <button
           onClick={() => { setShowEdgeLegend(v => !v); setShowExportMenu(false); }}
           className={`flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full transition-all duration-150 ${
-            showEdgeLegend ? 'text-ax-primary-500 bg-ax-primary-50' : 'text-gray-400 hover:text-ax-primary-700 hover:bg-gray-50'
+            showEdgeLegend ? 'text-ax-primary-500 bg-ax-primary-50' : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
           }`}
           title={t.edgeLegendTitle}
           aria-label={t.edgeLegendToggle}
@@ -587,7 +587,7 @@ export const GraphToolbar = memo(function GraphToolbar({
         {showEdgeLegend && (
           <div className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 w-56 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto" role="dialog" aria-label="Leyenda de tipos de conexión">
             <p
-              className="font-semibold text-gray-400 uppercase tracking-wider mb-2.5 font-sans"
+              className="font-semibold text-gray-500 uppercase tracking-wider mb-2.5 font-sans"
               style={{ fontSize: fontSize.overline }}
             >
               {t.edgeLegendTitle}

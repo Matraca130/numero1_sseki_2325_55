@@ -423,7 +423,7 @@ export function AddNodeEdgeModal({
                           Flecha direccional
                         </label>
                         {edgeDirected && edgeSource && edgeTarget && (
-                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                          <p className="text-[10px] text-gray-500 mt-0.5 truncate">
                             De {sortedNodes.find(n => n.id === edgeSource)?.label ?? 'origen'} → {sortedNodes.find(n => n.id === edgeTarget)?.label ?? 'destino'}
                           </p>
                         )}
@@ -545,7 +545,7 @@ export function AddNodeEdgeModal({
 
                     {/* Quick color swatches */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-400 mr-1">Rápido:</span>
+                      <span className="text-[10px] text-gray-500 mr-1">Rápido:</span>
                       {[colors.primary[500], colors.semantic.error, '#f97316', '#8b5cf6', '#06b6d4', '#64748b'].map((c) => (
                         <button
                           key={c}

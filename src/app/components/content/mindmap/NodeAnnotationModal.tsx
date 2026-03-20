@@ -253,7 +253,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
                     maxLength={1000}
                   />
                   <div className="flex items-center justify-between mt-1">
-                    <span className={`text-xs ${content.length >= 950 ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+                    <span className={`text-xs ${content.length >= 950 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
                       {content.length}/1000
                     </span>
                   </div>

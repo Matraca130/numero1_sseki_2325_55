@@ -75,7 +75,7 @@ export function MapToolsPanel({ activeTool, onToolChange, visible = true }: MapT
                 className={`relative p-3 sm:p-2.5 rounded-xl transition-colors group ${
                   isActive
                     ? 'bg-ax-primary-50 text-ax-primary-500'
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                    : 'text-gray-500 hover:text-gray-600 hover:bg-gray-50'
                 }`}
                 aria-label={tool.label}
                 aria-pressed={isActive}

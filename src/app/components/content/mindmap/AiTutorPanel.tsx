@@ -684,7 +684,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                               {step.keyword_name || step.keyword_id}
                             </p>
                             <p
-                              className="text-gray-400 mt-0.5"
+                              className="text-gray-500 mt-0.5"
                               style={{ fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)' }}
                             >
                               {step.reason}
@@ -764,14 +764,14 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                             <span className="font-medium text-gray-700 truncate">{targetName}</span>
                           </div>
                           <p
-                            className="text-gray-400 mb-2 line-clamp-2"
+                            className="text-gray-500 mb-2 line-clamp-2"
                             style={{ fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)' }}
                           >
                             {s.reason}
                           </p>
                           <div className="flex items-center justify-between">
                             <span
-                              className="text-gray-400"
+                              className="text-gray-500"
                               style={{ fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)' }}
                             >
                               {Math.round(s.confidence * 100)}% confianza · {s.type}
@@ -835,7 +835,7 @@ export function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, op
                         <Icon className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 flex-shrink-0 transition-colors" />
                         <span className="truncate flex-1 text-gray-600 group-hover:text-gray-800">{wp.name}</span>
                         <span
-                          className="text-gray-400 flex-shrink-0 bg-gray-50 px-2 py-0.5 rounded-full"
+                          className="text-gray-500 flex-shrink-0 bg-gray-50 px-2 py-0.5 rounded-full"
                           style={{ fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)' }}
                         >
                           {ACTION_LABELS[wp.recommended_action]}

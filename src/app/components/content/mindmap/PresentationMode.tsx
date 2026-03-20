@@ -200,7 +200,7 @@ export function PresentationMode({
               <span className="font-sans font-medium" style={{ fontSize: fs.mastery, color: MASTERY_HEX[mc] }}>
                 {masteryLabel(mc)}
               </span>
-              <span className="font-sans text-gray-400 ml-auto" style={{ fontSize: fs.mastery }}>
+              <span className="font-sans text-gray-500 ml-auto" style={{ fontSize: fs.mastery }}>
                 {masteryPercent(current.mastery)}
               </span>
             </div>
@@ -234,7 +234,7 @@ export function PresentationMode({
                 {current.definition}
               </p>
             ) : (
-              <p className="text-gray-400 italic font-sans" style={{ fontSize: fs.definition }}>
+              <p className="text-gray-500 italic font-sans" style={{ fontSize: fs.definition }}>
                 Sin definici{'\u00f3'}n disponible
               </p>
             )}
@@ -248,7 +248,7 @@ export function PresentationMode({
 
             {/* Study resource counts */}
             {(current.flashcardCount || current.quizCount) ? (
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100 font-sans text-gray-400" style={{ fontSize: fs.mastery }}>
+              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100 font-sans text-gray-500" style={{ fontSize: fs.mastery }}>
                 {current.flashcardCount ? <span>{current.flashcardCount} tarjetas</span> : null}
                 {current.quizCount ? <span>{current.quizCount} preguntas</span> : null}
               </div>

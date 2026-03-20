@@ -145,7 +145,7 @@ export function GraphSkeleton({
         })}
       </svg>
       {label && !isMini && (
-        <p className="text-xs text-gray-400 mt-3 animate-pulse motion-reduce:animate-none">{label}</p>
+        <p className="text-xs text-gray-500 mt-3 animate-pulse motion-reduce:animate-none">{label}</p>
       )}
     </div>
   );

@@ -274,7 +274,7 @@ function TimelineEntry({ entry, index }: { entry: HistoryEntry; index: number })
 
               {/* Timestamp */}
               <span
-                className="text-gray-400"
+                className="text-gray-500"
                 style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
               >
                 {formatRelativeTime(entry.timestamp)}
