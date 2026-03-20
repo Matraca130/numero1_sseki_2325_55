@@ -53,13 +53,12 @@ export function useSummaryPersistence({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Resolve studentId: convert null to undefined for the API
-  const FALLBACK_ID = 'demo-student-001';
-  const sid = studentId || FALLBACK_ID;
+  // Resolve studentId: skip persistence entirely if no authenticated user
+  const sid = studentId ?? undefined;
 
   // Load saved summary on mount
   useEffect(() => {
-    if (!courseId || !topicId) return;
+    if (!sid || !courseId || !topicId) return;
     let cancelled = false;
 
     getStudySummary(sid, courseId, topicId).then((saved) => {
@@ -129,7 +128,7 @@ export function useSummaryPersistence({
 
   // Auto-save with debounce whenever annotations, mastery, or notes change
   useEffect(() => {
-    if (!summaryLoaded || !courseId || !topicId) return;
+    if (!sid || !summaryLoaded || !courseId || !topicId) return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -157,7 +156,7 @@ export function useSummaryPersistence({
   // Save on unmount (fire-and-forget)
   useEffect(() => {
     return () => {
-      if (!courseId || !topicId) return;
+      if (!sid || !courseId || !topicId) return;
       // We can't use buildPayload here because of stale closures in cleanup,
       // but the debounced save above should have captured the latest state.
       // This is a best-effort unmount save.
