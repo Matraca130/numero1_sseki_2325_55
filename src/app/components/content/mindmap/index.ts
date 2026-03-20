@@ -6,6 +6,7 @@ export { NodeContextMenu } from './NodeContextMenu';
 export { NodeAnnotationModal } from './NodeAnnotationModal';
 export { AddNodeEdgeModal } from './AddNodeEdgeModal';
 export { GraphToolbar } from './GraphToolbar';
+export { GraphSidebar } from './GraphSidebar';
 export { useGraphData, invalidateGraphCache } from './useGraphData';
 export { useLocalGraph } from './useLocalGraph';
 export { useGraphSearch } from './useGraphSearch';

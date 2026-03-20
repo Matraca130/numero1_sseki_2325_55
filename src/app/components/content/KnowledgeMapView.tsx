@@ -22,10 +22,11 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, ChevronDown, Minimize2, Sparkles, Link2, Undo2, Redo2 } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, X, Trash2, ChevronLeft, ChevronDown, Minimize2, Link2 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MoreActionsDropdown } from './mindmap/MoreActionsDropdown';
+import { GraphSidebar } from './mindmap/GraphSidebar';
 import { useCountUp } from '@/app/hooks/useCountUp';
 import { EmptyState, ErrorState } from '@/app/components/shared/PageStates';
 import { FadeIn } from '@/app/components/shared/FadeIn';
@@ -35,7 +36,6 @@ import { useContentTree } from '@/app/context/ContentTreeContext';
 import { KnowledgeGraph } from './mindmap/KnowledgeGraph';
 import { NodeContextMenu } from './mindmap/NodeContextMenu';
 import { NodeAnnotationModal } from './mindmap/NodeAnnotationModal';
-import { GraphToolbar } from './mindmap/GraphToolbar';
 import { useGraphData } from './mindmap/useGraphData';
 import { useGraphSearch } from './mindmap/useGraphSearch';
 import { AddNodeEdgeModal } from './mindmap/AddNodeEdgeModal';
@@ -232,6 +232,7 @@ export function KnowledgeMapView() {
   const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   // masteryFilter state is declared earlier (before useMemo that depends on it)
   // Minimap: visible on desktop by default, hidden on mobile
   const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
@@ -871,167 +872,7 @@ export function KnowledgeMapView() {
         }`}
         style={{ opacity: exiting ? 0 : 1 }}
       >
-        {/* Compact header — hidden in fullscreen mode */}
-        <div
-          className={`flex-shrink-0 mb-2 ${isFullscreen ? 'hidden' : ''}`}
-        >
-          <div className="flex items-center gap-2 sm:gap-3 bg-white/80 backdrop-blur-sm border-b border-gray-200/60 rounded-2xl px-3 sm:px-4 py-2 shadow-sm">
-            {/* Back */}
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:w-8 sm:h-8 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              aria-label="Volver"
-            >
-              <ChevronDown className="w-4 h-4 rotate-90" />
-            </button>
-
-            {/* Topic name / selector */}
-            <div className="flex items-center gap-1.5 min-w-0 flex-shrink">
-              {allTopics.length > 1 && scope === 'topic' ? (
-                <div className="relative min-w-0">
-                  <select
-                    value={topicId || ''}
-                    onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
-                    className="appearance-none bg-transparent font-medium text-gray-900 pr-5 min-w-0 max-w-[140px] sm:max-w-[220px] truncate cursor-pointer hover:text-[#2a8c7a] transition-colors"
-                    style={{ fontSize: 'clamp(0.8rem, 1.2vw, 0.9rem)', ...headingStyle }}
-                    aria-label="Seleccionar tema"
-                  >
-                    {allTopics.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-                </div>
-              ) : (
-                <span
-                  className="font-medium text-gray-900 truncate max-w-[140px] sm:max-w-[260px]"
-                  style={{ fontSize: 'clamp(0.8rem, 1.2vw, 0.9rem)', ...headingStyle }}
-                >
-                  {scope === 'course' ? (currentCourse?.name || 'Todos los temas') : (currentTopic?.title || 'Mapa')}
-                </span>
-              )}
-              <span className="hidden sm:inline text-gray-300 mx-0.5" aria-hidden="true">·</span>
-              <span
-                className="hidden sm:inline text-gray-400 whitespace-nowrap"
-                style={{ fontSize: 'clamp(0.7rem, 1vw, 0.8rem)' }}
-              >
-                Mapa de Conocimiento
-              </span>
-            </div>
-
-            {/* Mastery badge */}
-            {masteryStats && (
-              <span
-                className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] font-medium whitespace-nowrap"
-                style={{ fontSize: 'clamp(0.625rem, 1vw, 0.75rem)' }}
-              >
-                {displayPct}%
-              </span>
-            )}
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Scope toggle */}
-            {hasCourseTopics && (
-              <div className="flex items-center bg-gray-50 rounded-full p-0.5" role="radiogroup" aria-label="Alcance del mapa">
-                <button
-                  onClick={() => setScope('topic')}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                    scope === 'topic' ? 'bg-white text-[#2a8c7a] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  role="radio"
-                  aria-checked={scope === 'topic'}
-                  aria-label="Ver tema actual"
-                >
-                  <BookOpen className="w-3 h-3" />
-                  <span className="hidden sm:inline">Tema</span>
-                </button>
-                <button
-                  onClick={() => setScope('course')}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                    scope === 'course' ? 'bg-white text-[#2a8c7a] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  role="radio"
-                  aria-checked={scope === 'course'}
-                  aria-label="Ver todos los temas del curso"
-                >
-                  <Globe className="w-3 h-3" />
-                  <span className="hidden sm:inline">Todos</span>
-                </button>
-              </div>
-            )}
-
-            {/* Add concept — only in topic scope */}
-            {effectiveTopicId && scope === 'topic' && (
-              <button
-                onClick={() => setAddModalOpen(true)}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#2a8c7a] rounded-full border border-[#2a8c7a]/30 hover:bg-[#e8f5f1] transition-colors"
-                aria-label="Añadir concepto al mapa"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Añadir</span>
-              </button>
-            )}
-
-            {/* Undo / Redo */}
-            <div className="flex items-center bg-gray-50 rounded-full p-0.5">
-              <button
-                onClick={() => { undo(); haptic(30); }}
-                disabled={!canUndo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
-                className="flex items-center justify-center w-8 h-8 rounded-full text-xs transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
-                aria-label="Deshacer (Ctrl+Z)"
-                title="Deshacer (Ctrl+Z)"
-              >
-                <Undo2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => { redo(); haptic(30); }}
-                disabled={!canRedo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
-                className="flex items-center justify-center w-8 h-8 rounded-full text-xs transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
-                aria-label="Rehacer (Ctrl+Y)"
-                title="Rehacer (Ctrl+Y)"
-              >
-                <Redo2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* IA Tutor */}
-            <button
-              onClick={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } else { setAiHighlightNodes(undefined); setAiReviewNodes(undefined); } return !v; }); }}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                showAiPanel
-                  ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
-                  : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
-              }`}
-              aria-label="IA Tutor"
-              title="IA Tutor"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">IA</span>
-            </button>
-
-            {/* More actions dropdown */}
-            <MoreActionsDropdown
-              onToggleHistory={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
-              onTogglePresentation={() => setPresentationMode(true)}
-              onToggleShare={() => setShowShareModal(true)}
-              onToggleComparison={() => { setShowComparison(v => { if (!v) { setShowAiPanel(false); setShowHistory(false); } return !v; }); }}
-              onToggleFullscreen={toggleFullscreen}
-              onRefresh={refetch}
-              onAddStickyNote={handleAddStickyNote}
-              historyActive={showHistory}
-              comparisonActive={showComparison}
-              canPresent={!!(filteredGraphData && filteredGraphData.nodes.length > 0)}
-              canShare={!!effectiveTopicId}
-              canAddNote={!!effectiveTopicId}
-              isFullscreen={isFullscreen}
-              stickyNoteCount={stickyNotes.length}
-            />
-          </div>
-        </div>
-
-        {/* Screen reader search results announcement (persistent DOM node for reliable aria-live) */}
+        {/* Screen reader search results announcement */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {searchQuery.trim()
             ? matchCount === 0
@@ -1040,78 +881,128 @@ export function KnowledgeMapView() {
             : ''}
         </div>
 
-        {/* Fullscreen floating title + exit button */}
-        {isFullscreen && (
-          <div className="flex-shrink-0 flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-gray-700" style={headingStyle}>
-              Mapa de Conocimiento
-            </h2>
-            <button
-              onClick={toggleFullscreen}
-              className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-              aria-label="Salir de pantalla completa"
-            >
-              <Minimize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
-          </div>
-        )}
-
-        {/* Toolbar */}
-        <ErrorBoundary fallback={() => (
-          <div className="flex-shrink-0 mb-3 px-4 py-2 text-xs text-gray-500">Error en la barra de herramientas</div>
-        )}>
-        <div className="flex-shrink-0 mb-3 overflow-x-auto scrollbar-hide">
-          <GraphToolbar
-            layout={layout}
-            onLayoutChange={setLayout}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onFitView={handleFitView}
-            nodeCount={nodeCount}
-            edgeCount={edgeCount}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            matchCount={searchQuery.trim() ? matchCount : undefined}
-            onCollapseAll={handleCollapseAll}
-            onExpandAll={handleExpandAll}
-            collapsedCount={collapsedCount}
-            searchInputRef={searchInputRef}
-            onExportPNG={handleExportPNG}
-            onExportJPEG={handleExportJPEG}
-            showMinimap={showMinimap}
-            onMinimapToggle={toggleMinimap}
-            zoomLevel={zoomLevel}
-            masteryFilter={masteryFilter}
-            onMasteryFilterChange={setMasteryFilter}
-          />
-        </div>
-        </ErrorBoundary>
-
-        {/* Mobile mastery legend (hidden on md+, where GraphToolbar legend shows) */}
-        {masteryStats && (
-          <div className="flex md:hidden items-center gap-3 mb-2 px-2 py-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {(['green', 'yellow', 'red', 'gray'] as const).map(color => {
-              const key = color === 'green' ? 'mastered' : color === 'yellow' ? 'learning' : color === 'red' ? 'weak' : 'noData';
-              const label = color === 'green' ? 'Dominados' : color === 'yellow' ? 'Aprendiendo' : color === 'red' ? 'Débiles' : 'Sin datos';
-              return (
-                <div key={color} className="flex items-center gap-1 shrink-0" title={label}>
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: MASTERY_HEX[color] }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-[10px] text-gray-500" aria-label={`${masteryStats[key]} ${label}`}>
-                    {masteryStats[key]}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Graph canvas */}
+        {/* Graph canvas — fills entire container, controls float on top */}
         <div className="flex-1 min-h-0 relative">
+
+          {/* ── Floating breadcrumb (top-left) ── */}
+          {!isFullscreen && (
+            <div className="absolute top-3 left-3 sm:left-14 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-gray-200/60 max-w-[calc(100%-6rem)]">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center w-7 h-7 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors flex-shrink-0"
+                aria-label="Volver"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {allTopics.length > 1 && scope === 'topic' ? (
+                <select
+                  value={topicId || ''}
+                  onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
+                  className="appearance-none bg-transparent font-medium text-gray-900 min-w-0 max-w-[120px] sm:max-w-[200px] truncate cursor-pointer hover:text-[#2a8c7a] transition-colors"
+                  style={{ fontSize: 'clamp(0.75rem, 1.1vw, 0.85rem)', ...headingStyle }}
+                  aria-label="Seleccionar tema"
+                >
+                  {allTopics.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <span
+                  className="font-medium text-gray-900 truncate max-w-[120px] sm:max-w-[200px]"
+                  style={{ fontSize: 'clamp(0.75rem, 1.1vw, 0.85rem)', ...headingStyle }}
+                >
+                  {scope === 'course' ? (currentCourse?.name || 'Todos') : (currentTopic?.title || 'Mapa')}
+                </span>
+              )}
+              {masteryStats && (
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] font-medium whitespace-nowrap flex-shrink-0"
+                  style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.6875rem)' }}
+                >
+                  {displayPct}%
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* ── Fullscreen exit button (top-right) ── */}
+          {isFullscreen && (
+            <div className="absolute top-3 right-3 z-20">
+              <button
+                onClick={toggleFullscreen}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white/90 backdrop-blur-sm rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
+                aria-label="Salir de pantalla completa"
+              >
+                <Minimize2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Salir</span>
+              </button>
+            </div>
+          )}
+
+          {/* ── Collapsible sidebar (right side) ── */}
+          <div className="absolute right-3 z-20" style={{ top: isFullscreen ? '3rem' : '0.75rem' }}>
+            <ErrorBoundary fallback={() => null}>
+              <GraphSidebar
+                collapsed={sidebarCollapsed}
+                onToggleCollapse={() => setSidebarCollapsed(v => !v)}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                matchCount={searchQuery.trim() ? matchCount : undefined}
+                nodeCount={nodeCount}
+                searchInputRef={searchInputRef}
+                layout={layout}
+                onLayoutChange={setLayout}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onFitView={handleFitView}
+                zoomLevel={zoomLevel}
+                onCollapseAll={handleCollapseAll}
+                onExpandAll={handleExpandAll}
+                collapsedCount={collapsedCount}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={() => { undo(); haptic(30); }}
+                onRedo={() => { redo(); haptic(30); }}
+                undoBusy={undoBusy}
+                deletingNode={deletingNodeRef.current}
+                reconnecting={reconnectingRef.current}
+                scope={scope}
+                onScopeChange={setScope}
+                hasCourseTopics={hasCourseTopics}
+                onAddConcept={() => setAddModalOpen(true)}
+                canAdd={!!(effectiveTopicId && scope === 'topic')}
+                showAiPanel={showAiPanel}
+                onToggleAi={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } else { setAiHighlightNodes(undefined); setAiReviewNodes(undefined); } return !v; }); }}
+                onExportPNG={handleExportPNG}
+                onExportJPEG={handleExportJPEG}
+                showMinimap={showMinimap}
+                onMinimapToggle={toggleMinimap}
+                masteryFilter={masteryFilter}
+                onMasteryFilterChange={setMasteryFilter}
+                edgeCount={edgeCount}
+                moreActionsSlot={
+                  <MoreActionsDropdown
+                    onToggleHistory={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
+                    onTogglePresentation={() => setPresentationMode(true)}
+                    onToggleShare={() => setShowShareModal(true)}
+                    onToggleComparison={() => { setShowComparison(v => { if (!v) { setShowAiPanel(false); setShowHistory(false); } return !v; }); }}
+                    onToggleFullscreen={toggleFullscreen}
+                    onRefresh={refetch}
+                    onAddStickyNote={handleAddStickyNote}
+                    historyActive={showHistory}
+                    comparisonActive={showComparison}
+                    canPresent={!!(filteredGraphData && filteredGraphData.nodes.length > 0)}
+                    canShare={!!effectiveTopicId}
+                    canAddNote={!!effectiveTopicId}
+                    isFullscreen={isFullscreen}
+                    stickyNoteCount={stickyNotes.length}
+                  />
+                }
+              />
+            </ErrorBoundary>
+
+          </div>
+
           {/* Floating tool palette — horizontal bottom bar on mobile, vertical left on desktop */}
           <ErrorBoundary fallback={() => null}>
             <MapToolsPanel

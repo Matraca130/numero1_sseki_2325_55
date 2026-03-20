@@ -366,8 +366,8 @@ describe('KnowledgeMapView: side panel exclusivity', () => {
 // ── Error boundaries wrap all critical components ───────────
 
 describe('KnowledgeMapView: error boundary coverage', () => {
-  it('wraps GraphToolbar in ErrorBoundary', () => {
-    expect(source).toMatch(/ErrorBoundary[\s\S]*?<GraphToolbar/);
+  it('wraps GraphSidebar in ErrorBoundary', () => {
+    expect(source).toMatch(/ErrorBoundary[\s\S]*?<GraphSidebar/);
   });
 
   it('wraps KnowledgeGraph in ErrorBoundary', () => {

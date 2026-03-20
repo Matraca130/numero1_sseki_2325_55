@@ -173,6 +173,13 @@ describe('mindmap module: GraphToolbar', () => {
   });
 });
 
+describe('mindmap module: GraphSidebar', () => {
+  it('exports GraphSidebar component', () => {
+    const names = getExportedNames('GraphSidebar.tsx');
+    expect(names).toContain('GraphSidebar');
+  });
+});
+
 describe('mindmap module: MicroGraphPanel', () => {
   it('exports MicroGraphPanel component', () => {
     const names = getExportedNames('MicroGraphPanel.tsx');
@@ -280,6 +287,7 @@ describe('mindmap module: index barrel', () => {
       'NodeAnnotationModal',
       'AddNodeEdgeModal',
       'GraphToolbar',
+      'GraphSidebar',
       'useGraphData',
       'invalidateGraphCache',
       'useLocalGraph',
@@ -433,6 +441,7 @@ describe('mindmap directory completeness', () => {
       'useSwipeDismiss.ts',
       'useSearchFocus.ts',
       'MoreActionsDropdown.tsx',
+      'GraphSidebar.tsx',
     ]);
 
     const untested = files.filter(f => !tested.has(f));
