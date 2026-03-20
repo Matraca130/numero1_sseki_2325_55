@@ -42,12 +42,22 @@ export function ConfirmDialog({
   const onCancelRef = useRef(onCancel);
   onCancelRef.current = onCancel;
 
+  // Lock body scroll while dialog is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancelRef.current();
+      if (e.key === 'Escape') {
+        e.stopPropagation(); // prevent parent panels from also handling Escape
+        onCancelRef.current();
+      }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.addEventListener('keydown', handler, { capture: true });
+    return () => document.removeEventListener('keydown', handler, { capture: true });
   }, []);
 
   return (
@@ -84,14 +94,14 @@ export function ConfirmDialog({
         <div className="flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-full transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:outline-none"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className="px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:outline-none"
           >
             {confirmLabel}
           </button>

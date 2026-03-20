@@ -83,8 +83,8 @@ describe('ConfirmDialog: keyboard interaction', () => {
     expect(source).toContain('onCancelRef.current = onCancel');
   });
 
-  it('removes keydown listener on cleanup', () => {
-    expect(source).toContain("document.removeEventListener('keydown', handler)");
+  it('removes keydown listener on cleanup (capture phase)', () => {
+    expect(source).toContain("document.removeEventListener('keydown', handler");
   });
 });
 

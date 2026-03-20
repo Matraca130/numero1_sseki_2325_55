@@ -106,8 +106,9 @@ describe('GraphTemplatePanel contract', () => {
     expect(source).toContain('role="dialog"');
   });
 
-  it('has aria-modal="true"', () => {
-    expect(source).toContain('aria-modal="true"');
+  it('side panel omits aria-modal (not a true modal)', () => {
+    // aria-modal removed: side panel does not block interaction with main content
+    expect(source).not.toContain('aria-modal="true"');
   });
 
   // ── Escape key handler ────────────────────────────────────

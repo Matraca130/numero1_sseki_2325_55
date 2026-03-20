@@ -222,7 +222,6 @@ export function GraphTemplatePanel({
             ref={focusTrapRef}
             className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
             role="dialog"
-            aria-modal="true"
             aria-label="Panel de plantillas de grafo"
           >
             {/* Header */}
@@ -469,11 +468,13 @@ export function GraphTemplatePanel({
                         className="text-gray-500 font-sans mt-2"
                         style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
                       >
-                        {new Date(template.created_at).toLocaleDateString('es', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                        {template.created_at
+                          ? new Date(template.created_at).toLocaleDateString('es', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : ''}
                       </p>
                     </motion.div>
                   ))}
