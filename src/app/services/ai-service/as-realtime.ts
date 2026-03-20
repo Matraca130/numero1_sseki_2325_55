@@ -173,6 +173,21 @@ export class RealtimeVoiceClient {
     });
   }
 
+  /** Commit the current audio buffer (signals end of user speech) */
+  commitAudio(): void {
+    this.send({ type: 'input_audio_buffer.commit' });
+  }
+
+  /** Trigger the AI to generate a response */
+  createResponse(): void {
+    this.send({ type: 'response.create' });
+  }
+
+  /** Clear the audio buffer (discard accumulated noise) */
+  clearAudioBuffer(): void {
+    this.send({ type: 'input_audio_buffer.clear' });
+  }
+
   /** Check if connected */
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
