@@ -128,15 +128,13 @@ export class RealtimeVoiceClient {
     ]);
 
     this.ws.onopen = () => {
-      // The REST endpoint /v1/realtime/client_secrets doesn't accept modalities,
-      // so we must set it via session.update after WebSocket connects.
-      // Without this, the AI defaults to text-only responses (no audio output).
-      // NOTE: The GA Realtime API requires session.type = 'realtime'.
+      // Configure session for audio+text output after WebSocket connects.
+      // GA Realtime API uses 'output_modalities' (not 'modalities').
       this.send({
         type: 'session.update',
         session: {
           type: 'realtime',
-          modalities: ['text', 'audio'],
+          output_modalities: ['text', 'audio'],
         },
       });
       this.emitState('active');
