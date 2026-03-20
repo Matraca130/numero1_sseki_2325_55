@@ -201,6 +201,9 @@ export function KnowledgeMapView() {
     setContextMenu(null);
     setCollapsedCount(0);
     setCollapsedNodeIds(new Set());
+    setConnectSource(null);
+    setAnnotationNode(null);
+    setActiveTool('pointer');
   }, [setSearchQuery]);
 
   // UI state
@@ -473,7 +476,11 @@ export function KnowledgeMapView() {
         },
       });
       setHistoryEntries(prev => [...prev, createDeleteNodeEntry(confirmDeleteNode.label)]);
-      setSelectedNode(prev => prev?.id === confirmDeleteNode.id ? null : prev);
+      const deletedId = confirmDeleteNode.id;
+      setSelectedNode(prev => prev?.id === deletedId ? null : prev);
+      setContextMenu(prev => prev?.node.id === deletedId ? null : prev);
+      setConnectSource(prev => prev?.id === deletedId ? null : prev);
+      setAnnotationNode(prev => prev?.id === deletedId ? null : prev);
       setConfirmDeleteNode(null);
       refetch();
     } catch (e: unknown) {
