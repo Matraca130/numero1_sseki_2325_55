@@ -831,6 +831,42 @@ describe('NodeContextMenu: animation', () => {
   });
 });
 
+// ── Focus trap (Tab/Shift+Tab cycling) ──────────────────────
+
+describe('NodeContextMenu: focus trap', () => {
+  it('defines FOCUSABLE_SELECTOR for querying focusable elements', () => {
+    expect(source).toContain('FOCUSABLE_SELECTOR');
+  });
+
+  it('handles Tab key to trap focus within the menu', () => {
+    expect(source).toContain("e.key === 'Tab'");
+  });
+
+  it('wraps focus from last to first on Tab', () => {
+    expect(source).toContain('first.focus()');
+  });
+
+  it('wraps focus from first to last on Shift+Tab', () => {
+    expect(source).toContain('last.focus()');
+  });
+
+  it('checks e.shiftKey for reverse Tab direction', () => {
+    expect(source).toContain('e.shiftKey');
+  });
+
+  it('prevents default Tab behavior at boundaries', () => {
+    expect(source).toContain('e.preventDefault()');
+  });
+});
+
+// ── memo wrapping ───────────────────────────────────────────
+
+describe('NodeContextMenu: memo optimization', () => {
+  it('is wrapped in React.memo', () => {
+    expect(source).toMatch(/export\s+const\s+NodeContextMenu\s*=\s*memo\s*\(/);
+  });
+});
+
 // ── Safe-area inset for bottom sheet ────────────────────────
 
 describe('NodeContextMenu: safe area insets', () => {

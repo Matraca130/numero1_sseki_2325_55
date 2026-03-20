@@ -880,6 +880,56 @@ describe('GraphToolbar: font size constants', () => {
   });
 });
 
+// ── Export dropdown keyboard navigation (a11y) ──────────────
+
+describe('GraphToolbar: export dropdown keyboard navigation', () => {
+  it('has onKeyDown handler on the export menu', () => {
+    expect(source).toContain('onKeyDown=');
+  });
+
+  it('handles ArrowDown to focus next menuitem', () => {
+    expect(source).toContain("e.key === 'ArrowDown'");
+  });
+
+  it('handles ArrowUp to focus previous menuitem', () => {
+    expect(source).toContain("e.key === 'ArrowUp'");
+  });
+
+  it('handles Home key to focus first menuitem', () => {
+    expect(source).toContain("e.key === 'Home'");
+  });
+
+  it('handles End key to focus last menuitem', () => {
+    expect(source).toContain("e.key === 'End'");
+  });
+
+  it('handles Escape to close the export menu', () => {
+    expect(source).toContain("e.key === 'Escape'");
+    expect(source).toContain('setShowExportMenu(false)');
+  });
+
+  it('export menu items use tabIndex={-1} for roving tabindex', () => {
+    expect(source).toContain('tabIndex={-1}');
+  });
+
+  it('export menu items have focus styles', () => {
+    expect(source).toContain('focus:bg-ax-primary-50');
+    expect(source).toContain('focus:text-ax-primary-500');
+  });
+
+  it('auto-focuses first menuitem via ref callback', () => {
+    expect(source).toContain("first?.focus()");
+  });
+});
+
+// ── memo wrapping ───────────────────────────────────────────
+
+describe('GraphToolbar: memo optimization', () => {
+  it('is wrapped in React.memo', () => {
+    expect(source).toMatch(/export\s+const\s+GraphToolbar\s*=\s*memo\s*\(/);
+  });
+});
+
 // ── Layout labels use useMemo ───────────────────────────────
 
 describe('GraphToolbar: performance optimization', () => {

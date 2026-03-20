@@ -6,6 +6,8 @@
 // ============================================================
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 // Mock localStorage before importing the module
 const store: Record<string, string> = {};
@@ -238,6 +240,59 @@ describe('Color cycling', () => {
     const lastIdx = STICKY_COLORS.length - 1;
     const nextIdx = (lastIdx + 1) % STICKY_COLORS.length;
     expect(nextIdx).toBe(0);
+  });
+});
+
+// ── StickyNote keyboard move (a11y) ─────────────────────────
+
+describe('StickyNote: keyboard move', () => {
+  const stickySource = readFileSync(resolve(__dirname, '..', 'StickyNote.tsx'), 'utf-8');
+
+  it('defines MOVE_STEP constant of 10px', () => {
+    expect(stickySource).toContain('MOVE_STEP = 10');
+  });
+
+  it('handles ArrowLeft/Right/Up/Down keys', () => {
+    expect(stickySource).toContain("e.key === 'ArrowLeft'");
+    expect(stickySource).toContain("e.key === 'ArrowRight'");
+    expect(stickySource).toContain("e.key === 'ArrowUp'");
+    expect(stickySource).toContain("e.key === 'ArrowDown'");
+  });
+
+  it('batches keyboard moves via requestAnimationFrame', () => {
+    expect(stickySource).toContain('requestAnimationFrame');
+    expect(stickySource).toContain('kbMoveRafRef');
+    expect(stickySource).toContain('kbPendingRef');
+  });
+
+  it('clamps position to parent bounds during keyboard move', () => {
+    expect(stickySource).toContain('Math.min(maxX');
+    expect(stickySource).toContain('Math.max(0,');
+  });
+
+  it('cleans up rAF on unmount', () => {
+    expect(stickySource).toContain('cancelAnimationFrame');
+  });
+
+  it('uses aria-roledescription for 2D drag semantics', () => {
+    expect(stickySource).toContain('aria-roledescription="elemento arrastrable"');
+  });
+
+  it('has keyboard move aria-label on drag handle', () => {
+    expect(stickySource).toContain('aria-label="Mover nota (usa las flechas del teclado)"');
+  });
+
+  it('drag handle is focusable', () => {
+    expect(stickySource).toContain('tabIndex={0}');
+  });
+
+  it('drag handle has focus ring styling', () => {
+    expect(stickySource).toContain('focus:ring-2');
+    expect(stickySource).toContain('focus:ring-ax-primary-500/40');
+  });
+
+  it('is wrapped in React.memo', () => {
+    expect(stickySource).toMatch(/export\s+const\s+StickyNote\s*=\s*memo\s*\(/);
   });
 });
 
