@@ -45,8 +45,9 @@ function unwrapItems<T>(result: unknown): T[] {
   return [];
 }
 
-/** Chunk array into batches */
+/** Chunk array into batches (size must be > 0 to prevent infinite loop) */
 function chunk<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [arr];
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) {
     chunks.push(arr.slice(i, i + size));
