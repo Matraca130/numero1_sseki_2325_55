@@ -155,6 +155,26 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
     }
   }, [isDragging, dragOffset]);
 
+  // ── Keyboard move (a11y — Arrow keys move note by 10px) ──
+
+  const MOVE_STEP = 10;
+  const handleKeyboardMove = useCallback((e: React.KeyboardEvent) => {
+    let dx = 0, dy = 0;
+    if (e.key === 'ArrowLeft') dx = -MOVE_STEP;
+    else if (e.key === 'ArrowRight') dx = MOVE_STEP;
+    else if (e.key === 'ArrowUp') dy = -MOVE_STEP;
+    else if (e.key === 'ArrowDown') dy = MOVE_STEP;
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+    const parent = noteRef.current?.parentElement;
+    const maxX = parent ? Math.max(0, parent.clientWidth - 160) : Infinity;
+    const maxY = parent ? Math.max(0, parent.clientHeight - 100) : Infinity;
+    const newX = Math.min(maxX, Math.max(0, noteDataRef.current.x + dx));
+    const newY = Math.min(maxY, Math.max(0, noteDataRef.current.y + dy));
+    onUpdateRef.current({ ...noteDataRef.current, x: newX, y: newY });
+  }, []);
+
   // ── Text change ─────────────────────────────────────────
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -213,15 +233,20 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
       >
         {/* Header — drag handle + delete */}
         <div
-          className="flex items-center justify-between px-2 py-1"
+          className="flex items-center justify-between px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ax-primary-500/40 rounded-t-lg"
           style={{
             cursor: isDragging ? 'grabbing' : 'grab',
             borderBottom: `1px solid ${borderColor}40`,
           }}
+          tabIndex={0}
+          role="slider"
+          aria-label="Mover nota (usa las flechas del teclado)"
+          aria-valuetext={`Posición: ${Math.round(note.x)}, ${Math.round(note.y)}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onDoubleClick={handleHeaderDoubleClick}
+          onKeyDown={handleKeyboardMove}
         >
           <div
             className="flex gap-0.5"
