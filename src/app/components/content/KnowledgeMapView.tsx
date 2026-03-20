@@ -22,10 +22,10 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows, StickyNote as StickyNoteIcon } from 'lucide-react';
+import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, ChevronDown, Minimize2, Sparkles, Link2, Undo2, Redo2 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
+import { MoreActionsDropdown } from './mindmap/MoreActionsDropdown';
 import { useCountUp } from '@/app/hooks/useCountUp';
 import { EmptyState, ErrorState } from '@/app/components/shared/PageStates';
 import { FadeIn } from '@/app/components/shared/FadeIn';
@@ -871,210 +871,164 @@ export function KnowledgeMapView() {
         }`}
         style={{ opacity: exiting ? 0 : 1 }}
       >
-        {/* Header — hidden in fullscreen mode */}
-        <div className={`flex-shrink-0 mb-4 ${isFullscreen ? 'hidden' : ''}`}>
-          <AxonPageHeader
-            title="Mapa de Conocimiento"
-            subtitle={scope === 'course' ? (currentCourse?.name || 'Todos los temas') : (currentTopic?.title || 'Visualiza tu dominio')}
-            onBack={() => navigate(-1)}
-            actionButton={
-              <div
-                className="flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap justify-end overflow-x-auto sm:overflow-x-visible max-w-full [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-                style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-              >
-                {/* Topic switcher */}
-                {allTopics.length > 1 && scope === 'topic' && (
-                  <div className="relative">
-                    <select
-                      value={topicId || ''}
-                      onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
-                      className="appearance-none bg-white border border-gray-200 rounded-full pl-3 pr-7 py-1.5 text-xs text-gray-600 shadow-sm hover:border-gray-300 transition-colors max-w-[160px] sm:max-w-[220px] truncate"
-                      style={{ outlineColor: '#2a8c7a' }}
-                      aria-label="Seleccionar tema"
-                    >
-                      {allTopics.map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-                  </div>
-                )}
-                {/* Scope selector: Topic vs Course */}
-                {hasCourseTopics && (
-                  <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5" role="radiogroup" aria-label="Alcance del mapa">
-                    <button
-                      onClick={() => setScope('topic')}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        scope === 'topic'
-                          ? 'bg-[#e8f5f1] text-[#2a8c7a]'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                      role="radio"
-                      aria-checked={scope === 'topic'}
-                      aria-label="Ver tema actual"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Tema</span>
-                    </button>
-                    <button
-                      onClick={() => setScope('course')}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        scope === 'course'
-                          ? 'bg-[#e8f5f1] text-[#2a8c7a]'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                      role="radio"
-                      aria-checked={scope === 'course'}
-                      aria-label="Ver todos los temas del curso"
-                    >
-                      <Globe className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Todos</span>
-                    </button>
-                  </div>
-                )}
-                {effectiveTopicId && scope === 'topic' && (
-                  <button
-                    onClick={() => setAddModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-white rounded-full shadow-sm transition-colors hover:bg-[#244e47]"
-                    style={{ backgroundColor: '#2a8c7a' }}
-                    aria-label="Añadir concepto al mapa"
+        {/* Compact header — hidden in fullscreen mode */}
+        <div
+          className={`flex-shrink-0 mb-2 ${isFullscreen ? 'hidden' : ''}`}
+        >
+          <div className="flex items-center gap-2 sm:gap-3 bg-white/80 backdrop-blur-sm border-b border-gray-200/60 rounded-2xl px-3 sm:px-4 py-2 shadow-sm">
+            {/* Back */}
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:w-8 sm:h-8 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              aria-label="Volver"
+            >
+              <ChevronDown className="w-4 h-4 rotate-90" />
+            </button>
+
+            {/* Topic name / selector */}
+            <div className="flex items-center gap-1.5 min-w-0 flex-shrink">
+              {allTopics.length > 1 && scope === 'topic' ? (
+                <div className="relative min-w-0">
+                  <select
+                    value={topicId || ''}
+                    onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
+                    className="appearance-none bg-transparent font-medium text-gray-900 pr-5 min-w-0 max-w-[140px] sm:max-w-[220px] truncate cursor-pointer hover:text-[#2a8c7a] transition-colors"
+                    style={{ fontSize: 'clamp(0.8rem, 1.2vw, 0.9rem)', ...headingStyle }}
+                    aria-label="Seleccionar tema"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Añadir</span>
-                  </button>
-                )}
-                {effectiveTopicId && (
-                  <button
-                    onClick={handleAddStickyNote}
-                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                    aria-label="Agregar nota adhesiva"
-                    title="Agregar nota adhesiva"
-                  >
-                    <StickyNoteIcon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Nota</span>
-                    {stickyNotes.length > 0 && (
-                      <span
-                        className="px-1.5 py-0.5 rounded-full font-medium"
-                        style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)', backgroundColor: '#e8f5f1', color: '#2a8c7a' }}
-                      >
-                        {stickyNotes.length}
-                      </span>
-                    )}
-                  </button>
-                )}
-                {/* Undo / Redo */}
-                <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-0.5">
-                  <button
-                    onClick={() => { undo(); haptic(30); }}
-                    disabled={!canUndo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
-                    className="flex items-center gap-1 px-2 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
-                    aria-label="Deshacer (Ctrl+Z)"
-                    title="Deshacer (Ctrl+Z)"
-                  >
-                    <Undo2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => { redo(); haptic(30); }}
-                    disabled={!canRedo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
-                    className="flex items-center gap-1 px-2 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
-                    aria-label="Rehacer (Ctrl+Y)"
-                    title="Rehacer (Ctrl+Y)"
-                  >
-                    <Redo2 className="w-3.5 h-3.5" />
-                  </button>
+                    {allTopics.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
                 </div>
-                <button
-                  onClick={refetch}
-                  className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                  aria-label="Actualizar mapa"
+              ) : (
+                <span
+                  className="font-medium text-gray-900 truncate max-w-[140px] sm:max-w-[260px]"
+                  style={{ fontSize: 'clamp(0.8rem, 1.2vw, 0.9rem)', ...headingStyle }}
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Actualizar</span>
-                </button>
+                  {scope === 'course' ? (currentCourse?.name || 'Todos los temas') : (currentTopic?.title || 'Mapa')}
+                </span>
+              )}
+              <span className="hidden sm:inline text-gray-300 mx-0.5" aria-hidden="true">·</span>
+              <span
+                className="hidden sm:inline text-gray-400 whitespace-nowrap"
+                style={{ fontSize: 'clamp(0.7rem, 1vw, 0.8rem)' }}
+              >
+                Mapa de Conocimiento
+              </span>
+            </div>
+
+            {/* Mastery badge */}
+            {masteryStats && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] font-medium whitespace-nowrap"
+                style={{ fontSize: 'clamp(0.625rem, 1vw, 0.75rem)' }}
+              >
+                {displayPct}%
+              </span>
+            )}
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Scope toggle */}
+            {hasCourseTopics && (
+              <div className="flex items-center bg-gray-50 rounded-full p-0.5" role="radiogroup" aria-label="Alcance del mapa">
                 <button
-                  onClick={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } else { setAiHighlightNodes(undefined); setAiReviewNodes(undefined); } return !v; }); }}
-                  className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
-                    showAiPanel
-                      ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
-                      : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
+                  onClick={() => setScope('topic')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    scope === 'topic' ? 'bg-white text-[#2a8c7a] shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  aria-label="IA Tutor"
-                  title="IA Tutor"
+                  role="radio"
+                  aria-checked={scope === 'topic'}
+                  aria-label="Ver tema actual"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">IA</span>
+                  <BookOpen className="w-3 h-3" />
+                  <span className="hidden sm:inline">Tema</span>
                 </button>
                 <button
-                  onClick={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
-                  className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-full border shadow-sm transition-colors ${
-                    showHistory ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30' : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
+                  onClick={() => setScope('course')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    scope === 'course' ? 'bg-white text-[#2a8c7a] shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  style={{ fontSize: 'clamp(0.7rem, 1.1vw, 0.75rem)' }}
-                  aria-label="Historial de cambios"
+                  role="radio"
+                  aria-checked={scope === 'course'}
+                  aria-label="Ver todos los temas del curso"
                 >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Historial</span>
-                </button>
-                {filteredGraphData && filteredGraphData.nodes.length > 0 && (
-                  <button
-                    onClick={() => setPresentationMode(true)}
-                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                    aria-label={`Modo presentaci\u00f3n`}
-                    title={`Modo presentaci\u00f3n`}
-                  >
-                    <Presentation className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Presentar</span>
-                  </button>
-                )}
-                {effectiveTopicId && (
-                  <button
-                    onClick={() => setShowShareModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                    aria-label="Compartir mapa"
-                    title="Compartir mapa"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Compartir</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => { setShowComparison(v => { if (!v) { setShowAiPanel(false); setShowHistory(false); } return !v; }); }}
-                  className={`flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium rounded-full border shadow-sm transition-colors ${
-                    showComparison
-                      ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
-                      : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
-                  }`}
-                  aria-label="Comparar mapa"
-                  title="Comparar tu mapa con el mapa base"
-                >
-                  <GitCompareArrows className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Comparar</span>
-                </button>
-                <button
-                  onClick={toggleFullscreen}
-                  className="flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 text-xs font-medium text-gray-500 hover:text-[#2a8c7a] bg-white rounded-full border border-gray-200 shadow-sm hover:border-[#2a8c7a]/30 transition-colors"
-                  aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-                  title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-                >
-                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  <Globe className="w-3 h-3" />
+                  <span className="hidden sm:inline">Todos</span>
                 </button>
               </div>
-            }
-            statsLeft={
-              masteryStats && (
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">
-                    {displayPct}% dominio
-                  </span>
-                  <span className="hidden sm:inline">{masteryStats.mastered} dominados</span>
-                  <span className="hidden sm:inline">{masteryStats.learning} aprendiendo</span>
-                  <span className="hidden md:inline">{masteryStats.weak} débiles</span>
-                </div>
-              )
-            }
-          />
+            )}
+
+            {/* Add concept — only in topic scope */}
+            {effectiveTopicId && scope === 'topic' && (
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#2a8c7a] rounded-full border border-[#2a8c7a]/30 hover:bg-[#e8f5f1] transition-colors"
+                aria-label="Añadir concepto al mapa"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Añadir</span>
+              </button>
+            )}
+
+            {/* Undo / Redo */}
+            <div className="flex items-center bg-gray-50 rounded-full p-0.5">
+              <button
+                onClick={() => { undo(); haptic(30); }}
+                disabled={!canUndo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
+                className="flex items-center justify-center w-8 h-8 rounded-full text-xs transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
+                aria-label="Deshacer (Ctrl+Z)"
+                title="Deshacer (Ctrl+Z)"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => { redo(); haptic(30); }}
+                disabled={!canRedo || undoBusy || deletingNodeRef.current || reconnectingRef.current}
+                className="flex items-center justify-center w-8 h-8 rounded-full text-xs transition-colors disabled:opacity-30 text-gray-500 hover:text-[#2a8c7a]"
+                aria-label="Rehacer (Ctrl+Y)"
+                title="Rehacer (Ctrl+Y)"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* IA Tutor */}
+            <button
+              onClick={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } else { setAiHighlightNodes(undefined); setAiReviewNodes(undefined); } return !v; }); }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                showAiPanel
+                  ? 'text-[#2a8c7a] bg-[#e8f5f1] border-[#2a8c7a]/30'
+                  : 'text-gray-500 hover:text-[#2a8c7a] bg-white border-gray-200 hover:border-[#2a8c7a]/30'
+              }`}
+              aria-label="IA Tutor"
+              title="IA Tutor"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">IA</span>
+            </button>
+
+            {/* More actions dropdown */}
+            <MoreActionsDropdown
+              onToggleHistory={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
+              onTogglePresentation={() => setPresentationMode(true)}
+              onToggleShare={() => setShowShareModal(true)}
+              onToggleComparison={() => { setShowComparison(v => { if (!v) { setShowAiPanel(false); setShowHistory(false); } return !v; }); }}
+              onToggleFullscreen={toggleFullscreen}
+              onRefresh={refetch}
+              onAddStickyNote={handleAddStickyNote}
+              historyActive={showHistory}
+              comparisonActive={showComparison}
+              canPresent={!!(filteredGraphData && filteredGraphData.nodes.length > 0)}
+              canShare={!!effectiveTopicId}
+              canAddNote={!!effectiveTopicId}
+              isFullscreen={isFullscreen}
+              stickyNoteCount={stickyNotes.length}
+            />
+          </div>
         </div>
 
         {/* Screen reader search results announcement (persistent DOM node for reliable aria-live) */}

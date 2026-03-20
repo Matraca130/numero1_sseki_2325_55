@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon, Grid3x3, Shuffle } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon, Grid3x3, Shuffle, SlidersHorizontal } from 'lucide-react';
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
@@ -31,6 +31,7 @@ const I18N: Record<Locale, {
   minimap: string; minimapToggle: string;
   grid: string; gridToggle: string;
   autoLayout: string; autoLayoutLabel: string;
+  viewOptions: string; viewOptionsLabel: string;
 }> = {
   pt: {
     force: 'Força', radial: 'Radial', tree: 'Árvore',
@@ -45,6 +46,7 @@ const I18N: Record<Locale, {
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
     grid: 'Quadrícula', gridToggle: 'Mostrar/ocultar quadrícula',
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
+    viewOptions: 'Vista', viewOptionsLabel: 'Opções de visualização',
   },
   es: {
     force: 'Fuerza', radial: 'Radial', tree: 'Árbol',
@@ -59,6 +61,7 @@ const I18N: Record<Locale, {
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
     grid: 'Cuadrícula', gridToggle: 'Mostrar/ocultar cuadrícula',
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automáticamente',
+    viewOptions: 'Vista', viewOptionsLabel: 'Opciones de vista',
   },
 };
 
@@ -168,11 +171,13 @@ export const GraphToolbar = memo(function GraphToolbar({
   const t = I18N[locale];
   const [showEdgeLegend, setShowEdgeLegend] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showViewOptions, setShowViewOptions] = useState(false);
   const [exporting, setExporting] = useState(false);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const edgeLegendRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const viewOptionsRef = useRef<HTMLDivElement>(null);
 
   const LAYOUT_LABELS = useMemo<Record<LayoutType, string>>(() => ({
     force: t.force, radial: t.radial, dagre: t.tree,
@@ -182,7 +187,7 @@ export const GraphToolbar = memo(function GraphToolbar({
 
   // Close popups on outside click or Escape
   useEffect(() => {
-    if (!showEdgeLegend && !showExportMenu) return;
+    if (!showEdgeLegend && !showExportMenu && !showViewOptions) return;
     const handleClick = (e: MouseEvent) => {
       if (showEdgeLegend && edgeLegendRef.current && !edgeLegendRef.current.contains(e.target as Node)) {
         setShowEdgeLegend(false);
@@ -190,11 +195,15 @@ export const GraphToolbar = memo(function GraphToolbar({
       if (showExportMenu && exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
         setShowExportMenu(false);
       }
+      if (showViewOptions && viewOptionsRef.current && !viewOptionsRef.current.contains(e.target as Node)) {
+        setShowViewOptions(false);
+      }
     };
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowEdgeLegend(false);
         setShowExportMenu(false);
+        setShowViewOptions(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -203,7 +212,7 @@ export const GraphToolbar = memo(function GraphToolbar({
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKey);
     };
-  }, [showEdgeLegend, showExportMenu]);
+  }, [showEdgeLegend, showExportMenu, showViewOptions]);
 
   // Handle export action
   const exportingRef = useRef(false);
@@ -399,16 +408,8 @@ export const GraphToolbar = memo(function GraphToolbar({
         </div>
       </div>
 
-      {/* Stats */}
-      <div
-        className="hidden sm:flex items-center gap-2 text-gray-500 ml-1 font-sans"
-        style={{ fontSize: fontSize.xs }}
-        aria-label={`${nodeCount} ${t.nodes}, ${edgeCount} ${t.connections}`}
-      >
-        <span>{nodeCount} {t.nodes}</span>
-        <span className="text-gray-300" aria-hidden="true">·</span>
-        <span>{edgeCount} {t.connections}</span>
-      </div>
+      {/* Stats — visually hidden, kept for screen readers */}
+      <span className="sr-only">{nodeCount} {t.nodes}, {edgeCount} {t.connections}</span>
 
       {/* Spacer */}
       <div className="flex-1" />
@@ -539,56 +540,74 @@ export const GraphToolbar = memo(function GraphToolbar({
         })}
       </div>
 
-      {/* Grid toggle */}
-      {onGridToggle && (
-        <button
-          onClick={onGridToggle}
-          className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
-            showGrid
-              ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
-              : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
-          }`}
-          style={{ fontSize: fontSize.xs }}
-          title={t.grid}
-          aria-label={t.gridToggle}
-          aria-pressed={!!showGrid}
-        >
-          <Grid3x3 className="w-3.5 h-3.5" />
-          <span>{t.grid}</span>
-        </button>
-      )}
-
-      {/* Auto-layout */}
-      {onAutoLayout && (
-        <button
-          onClick={onAutoLayout}
-          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150"
-          style={{ fontSize: fontSize.xs }}
-          title={t.autoLayout}
-          aria-label={t.autoLayoutLabel}
-        >
-          <Shuffle className="w-3.5 h-3.5" />
-          <span>{t.autoLayout}</span>
-        </button>
-      )}
-
-      {/* Minimap toggle — hidden on mobile (minimap not useful on small screens) */}
-      {onMinimapToggle && (
-        <button
-          onClick={onMinimapToggle}
-          className={`hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
-            showMinimap
-              ? 'text-ax-primary-500 bg-ax-primary-50 hover:bg-ax-primary-100'
-              : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
-          }`}
-          style={{ fontSize: fontSize.xs }}
-          title={t.minimap}
-          aria-label={t.minimapToggle}
-          aria-pressed={!!showMinimap}
-        >
-          <MapIcon className="w-3.5 h-3.5" />
-          <span>{t.minimap}</span>
-        </button>
+      {/* View Options dropdown — groups Grid, Minimap, Auto-layout */}
+      {(onGridToggle || onMinimapToggle || onAutoLayout) && (
+        <div className="hidden sm:block relative" ref={viewOptionsRef}>
+          <button
+            onClick={() => { setShowViewOptions(v => !v); setShowExportMenu(false); setShowEdgeLegend(false); }}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
+              showViewOptions
+                ? 'text-ax-primary-500 bg-ax-primary-50'
+                : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
+            }`}
+            style={{ fontSize: fontSize.xs }}
+            title={t.viewOptions}
+            aria-label={t.viewOptionsLabel}
+            aria-expanded={showViewOptions}
+            aria-haspopup="true"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>{t.viewOptions}</span>
+          </button>
+          {showViewOptions && (
+            <div
+              className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 py-1.5 w-48 max-w-[calc(100vw-2rem)]"
+              role="menu"
+              aria-label={t.viewOptionsLabel}
+            >
+              {onGridToggle && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { onGridToggle(); }}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
+                  style={{ fontSize: fontSize.xs }}
+                  aria-pressed={!!showGrid}
+                >
+                  <Grid3x3 className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="flex-1">{t.grid}</span>
+                  {showGrid && <span className="w-2 h-2 rounded-full bg-ax-primary-500 flex-shrink-0" />}
+                </button>
+              )}
+              {onMinimapToggle && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { onMinimapToggle(); }}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
+                  style={{ fontSize: fontSize.xs }}
+                  aria-pressed={!!showMinimap}
+                >
+                  <MapIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="flex-1">{t.minimap}</span>
+                  {showMinimap && <span className="w-2 h-2 rounded-full bg-ax-primary-500 flex-shrink-0" />}
+                </button>
+              )}
+              {onAutoLayout && (
+                <button
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={() => { onAutoLayout(); setShowViewOptions(false); }}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
+                  style={{ fontSize: fontSize.xs }}
+                >
+                  <Shuffle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{t.autoLayout}</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Edge type legend toggle — available on all screen sizes */}

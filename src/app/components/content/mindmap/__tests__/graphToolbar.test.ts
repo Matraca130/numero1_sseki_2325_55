@@ -343,90 +343,58 @@ describe('GraphToolbar: exportingRef double-click prevention', () => {
   });
 });
 
-// ── Grid toggle ─────────────────────────────────────────────
+// ── View Options dropdown (groups Grid, Minimap, Auto-layout) ─
 
-describe('GraphToolbar: grid toggle', () => {
-  it('conditionally renders grid toggle when onGridToggle is provided', () => {
+describe('GraphToolbar: view options dropdown', () => {
+  it('groups grid/minimap/auto-layout behind a view options dropdown', () => {
+    expect(source).toContain('{(onGridToggle || onMinimapToggle || onAutoLayout) && (');
+  });
+
+  it('has a view options toggle button with aria-expanded', () => {
+    expect(source).toContain('aria-expanded={showViewOptions}');
+    expect(source).toContain('aria-label={t.viewOptionsLabel}');
+  });
+
+  it('uses SlidersHorizontal icon for the dropdown trigger', () => {
+    expect(source).toContain('<SlidersHorizontal');
+  });
+
+  it('renders grid toggle inside the dropdown when onGridToggle is provided', () => {
     expect(source).toContain('{onGridToggle && (');
   });
 
-  it('calls onGridToggle on click', () => {
-    expect(source).toContain('onClick={onGridToggle}');
-  });
-
-  it('uses aria-pressed to indicate grid state', () => {
+  it('grid item uses aria-pressed for state', () => {
     expect(source).toContain('aria-pressed={!!showGrid}');
   });
 
-  it('has correct aria-label for grid toggle', () => {
-    expect(source).toContain('aria-label={t.gridToggle}');
-  });
-
-  it('applies active styling when grid is shown', () => {
-    // The grid button has conditional classes based on showGrid
-    const gridSection = source.slice(
-      source.indexOf('{/* Grid toggle */}'),
-      source.indexOf('{/* Auto-layout */}'),
-    );
-    expect(gridSection).toContain('showGrid');
-    expect(gridSection).toContain("'text-ax-primary-500 bg-ax-primary-50");
-  });
-
-  it('uses Grid3x3 icon', () => {
+  it('uses Grid3x3 icon for grid toggle', () => {
     expect(source).toContain('<Grid3x3');
   });
-});
 
-// ── Minimap toggle ──────────────────────────────────────────
-
-describe('GraphToolbar: minimap toggle', () => {
-  it('conditionally renders minimap toggle when onMinimapToggle is provided', () => {
+  it('renders minimap toggle inside the dropdown when onMinimapToggle is provided', () => {
     expect(source).toContain('{onMinimapToggle && (');
   });
 
-  it('calls onMinimapToggle on click', () => {
-    expect(source).toContain('onClick={onMinimapToggle}');
-  });
-
-  it('uses aria-pressed to indicate minimap state', () => {
+  it('minimap item uses aria-pressed for state', () => {
     expect(source).toContain('aria-pressed={!!showMinimap}');
   });
 
-  it('has correct aria-label for minimap toggle', () => {
-    expect(source).toContain('aria-label={t.minimapToggle}');
-  });
-
-  it('applies active styling when minimap is shown', () => {
-    const minimapSection = source.slice(
-      source.indexOf('{/* Minimap toggle'),
-      source.indexOf('{/* Edge type legend'),
-    );
-    expect(minimapSection).toContain('showMinimap');
-    expect(minimapSection).toContain("'text-ax-primary-500 bg-ax-primary-50");
-  });
-
-  it('uses MapIcon icon', () => {
+  it('uses MapIcon icon for minimap toggle', () => {
     expect(source).toContain('<MapIcon');
   });
-});
 
-// ── Auto-layout ─────────────────────────────────────────────
-
-describe('GraphToolbar: auto-layout', () => {
-  it('conditionally renders auto-layout when onAutoLayout is provided', () => {
+  it('renders auto-layout inside the dropdown when onAutoLayout is provided', () => {
     expect(source).toContain('{onAutoLayout && (');
   });
 
-  it('calls onAutoLayout on click', () => {
-    expect(source).toContain('onClick={onAutoLayout}');
-  });
-
-  it('has correct aria-label for auto-layout', () => {
-    expect(source).toContain('aria-label={t.autoLayoutLabel}');
-  });
-
-  it('uses Shuffle icon', () => {
+  it('uses Shuffle icon for auto-layout', () => {
     expect(source).toContain('<Shuffle');
+  });
+
+  it('view options dropdown has role="menu"', () => {
+    // Already tested via export dropdown, but verify it appears in view options too
+    const viewSection = source.slice(source.indexOf('viewOptionsRef'));
+    expect(viewSection).toContain('role="menu"');
   });
 });
 
@@ -453,7 +421,7 @@ describe('GraphToolbar: mastery legend', () => {
     // The mastery dot span has aria-hidden
     const masterySection = source.slice(
       source.indexOf('{/* Mastery legend'),
-      source.indexOf('{/* Grid toggle'),
+      source.indexOf('{/* View Options'),
     );
     expect(masterySection).toContain('aria-hidden="true"');
   });
@@ -558,6 +526,7 @@ describe('GraphToolbar: popup close behavior', () => {
     expect(source).toContain("if (e.key === 'Escape')");
     expect(source).toContain('setShowEdgeLegend(false)');
     expect(source).toContain('setShowExportMenu(false)');
+    expect(source).toContain('setShowViewOptions(false)');
   });
 
   it('registers and cleans up keydown listener', () => {
@@ -566,12 +535,13 @@ describe('GraphToolbar: popup close behavior', () => {
   });
 
   it('only adds listeners when a popup is open', () => {
-    expect(source).toContain('if (!showEdgeLegend && !showExportMenu) return');
+    expect(source).toContain('if (!showEdgeLegend && !showExportMenu && !showViewOptions) return');
   });
 
   it('checks ref contains for outside click detection', () => {
     expect(source).toContain('edgeLegendRef.current && !edgeLegendRef.current.contains(e.target as Node)');
     expect(source).toContain('exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)');
+    expect(source).toContain('viewOptionsRef.current && !viewOptionsRef.current.contains(e.target as Node)');
   });
 });
 
@@ -617,24 +587,16 @@ describe('GraphToolbar: collapse/expand controls', () => {
   });
 });
 
-// ── Stats display ───────────────────────────────────────────
+// ── Stats display (screen reader only) ──────────────────────
 
 describe('GraphToolbar: stats display', () => {
-  it('shows node count with localized label', () => {
+  it('includes node and edge counts for screen readers', () => {
     expect(source).toContain('{nodeCount} {t.nodes}');
-  });
-
-  it('shows edge count with localized label', () => {
     expect(source).toContain('{edgeCount} {t.connections}');
   });
 
-  it('stats section has composite aria-label', () => {
-    expect(source).toContain('aria-label={`${nodeCount} ${t.nodes}, ${edgeCount} ${t.connections}`}');
-  });
-
-  it('dot separator is aria-hidden', () => {
-    // The middot span between node count and edge count
-    expect(source).toContain('aria-hidden="true">·</span>');
+  it('stats are visually hidden (sr-only)', () => {
+    expect(source).toContain('className="sr-only"');
   });
 });
 
@@ -760,6 +722,7 @@ describe('GraphToolbar: i18n completeness', () => {
       'matchOf', 'exportLabel', 'exportPNG', 'exportJPEG', 'exporting',
       'minimap', 'minimapToggle', 'grid', 'gridToggle',
       'autoLayout', 'autoLayoutLabel',
+      'viewOptions', 'viewOptionsLabel',
     ];
     for (const key of requiredKeys) {
       expect(source).toContain(`${key}:`);

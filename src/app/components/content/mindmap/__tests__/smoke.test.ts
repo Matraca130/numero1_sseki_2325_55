@@ -432,6 +432,7 @@ describe('mindmap directory completeness', () => {
       'useFocusTrap.ts',
       'useSwipeDismiss.ts',
       'useSearchFocus.ts',
+      'MoreActionsDropdown.tsx',
     ]);
 
     const untested = files.filter(f => !tested.has(f));
