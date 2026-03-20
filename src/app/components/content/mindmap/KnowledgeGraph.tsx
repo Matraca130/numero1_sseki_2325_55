@@ -147,7 +147,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   onEdgeReconnect,
   onZoomChange,
 }: KnowledgeGraphProps) {
-  const t = I18N_GRAPH[locale];
+  const t = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const mountedRef = useRef(true);
