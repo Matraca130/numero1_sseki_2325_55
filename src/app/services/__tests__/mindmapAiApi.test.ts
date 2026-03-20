@@ -59,6 +59,11 @@ describe('analyzeKnowledgeGraph', () => {
       'No se pudo analizar el grafo de conocimiento: Not found',
     );
   });
+
+  it('throws early if topicId is empty', async () => {
+    await expect(analyzeKnowledgeGraph('')).rejects.toThrow('topicId es requerido');
+    expect(mockApiCall).not.toHaveBeenCalled();
+  });
 });
 
 // ── suggestStudentConnections ───────────────────────────────
@@ -93,6 +98,17 @@ describe('suggestStudentConnections', () => {
       'No se pudieron obtener sugerencias de conexiones: Network error',
     );
   });
+
+  it('throws early if topicId is empty', async () => {
+    await expect(suggestStudentConnections('', ['n1'], ['e1'])).rejects.toThrow('topicId es requerido');
+    expect(mockApiCall).not.toHaveBeenCalled();
+  });
+
+  it('short-circuits when nodeIds is empty (no API call)', async () => {
+    const result = await suggestStudentConnections('topic-1', [], ['e1']);
+    expect(result).toEqual([]);
+    expect(mockApiCall).not.toHaveBeenCalled();
+  });
 });
 
 // ── getStudentWeakPoints ────────────────────────────────────
@@ -118,5 +134,10 @@ describe('getStudentWeakPoints', () => {
     await expect(getStudentWeakPoints('topic-fail')).rejects.toThrow(
       'No se pudieron obtener los puntos débiles del estudiante: Server error',
     );
+  });
+
+  it('throws early if topicId is empty', async () => {
+    await expect(getStudentWeakPoints('')).rejects.toThrow('topicId es requerido');
+    expect(mockApiCall).not.toHaveBeenCalled();
   });
 });
