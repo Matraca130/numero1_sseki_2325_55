@@ -244,3 +244,84 @@ describe('KnowledgeGraph — setElementState merges with existing states', () =>
     expect(clearActiveSection).toMatch(/filter.*!==\s*'active'/);
   });
 });
+
+// ── ShareMapModal: scroll lock saves/restores original values ──
+
+describe('ShareMapModal — scroll lock restores original overflow', () => {
+  const source = readSource('ShareMapModal.tsx');
+
+  it('saves original documentElement.style.overflow before overriding', () => {
+    expect(source).toContain('const prevHtml = document.documentElement.style.overflow');
+  });
+
+  it('saves original body.style.overflow before overriding', () => {
+    expect(source).toContain('const prevBody = document.body.style.overflow');
+  });
+
+  it('restores prevHtml on cleanup, not empty string', () => {
+    expect(source).toContain('document.documentElement.style.overflow = prevHtml');
+  });
+});
+
+// ── ConfirmDialog: iOS-safe scroll lock ────────────────────────
+
+describe('ConfirmDialog — locks both body and documentElement', () => {
+  const source = readSource('ConfirmDialog.tsx');
+
+  it('locks documentElement overflow for iOS Safari scroll prevention', () => {
+    expect(source).toContain("document.documentElement.style.overflow = 'hidden'");
+  });
+
+  it('restores original documentElement overflow on unmount', () => {
+    expect(source).toContain('document.documentElement.style.overflow = prevHtml');
+  });
+});
+
+// ── changeHistoryHelpers: invalid date guard ─────────────────
+
+describe('changeHistoryHelpers — formatRelativeTime guards against invalid dates', () => {
+  const source = readSource('changeHistoryHelpers.ts');
+
+  it('checks isNaN(date.getTime()) before computing relative time', () => {
+    expect(source).toContain('isNaN(date.getTime())');
+  });
+});
+
+// ── PresentationMode: onNodeFocus ref-stabilized ──────────────
+
+describe('PresentationMode — onNodeFocus stabilized via ref', () => {
+  const source = readSource('PresentationMode.tsx');
+
+  it('stores onNodeFocus in a ref to prevent effect churn', () => {
+    expect(source).toContain('onNodeFocusRef');
+  });
+
+  it('calls onNodeFocusRef.current instead of onNodeFocus directly', () => {
+    expect(source).toContain('onNodeFocusRef.current(currentId)');
+  });
+});
+
+// ── useKeyboardNav: focus cleared when node is deleted ────────
+
+describe('useKeyboardNav — focus ring cleared when node removed', () => {
+  const source = readSource('useKeyboardNav.ts');
+
+  it('clears focusedNodeId when focused node disappears from nodes array', () => {
+    expect(source).toContain('!nodeByIdRef.current.has(focusedNodeId)');
+  });
+});
+
+// ── GraphTemplatePanel: stale request guard ──────────────────
+
+describe('GraphTemplatePanel — stale request guard on loadTemplates', () => {
+  const source = readSource('GraphTemplatePanel.tsx');
+
+  it('uses a fetchId counter to prevent stale template data', () => {
+    expect(source).toContain('fetchIdRef');
+    expect(source).toContain('fetchId === fetchIdRef.current');
+  });
+
+  it('caps animation stagger delay to prevent long delays with many templates', () => {
+    expect(source).toMatch(/Math\.min\(index\s*\*\s*0\.04/);
+  });
+});
