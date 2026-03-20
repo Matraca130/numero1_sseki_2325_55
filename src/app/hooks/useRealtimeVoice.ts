@@ -61,24 +61,29 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     if (!playbackCtxRef.current) {
       playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
     }
-    // Chrome/Safari suspends AudioContext created outside user gesture — resume it
-    if (playbackCtxRef.current.state === 'suspended') {
-      playbackCtxRef.current.resume();
-    }
     return playbackCtxRef.current;
   }, []);
 
-  /** Play a silent buffer to "unlock" audio on mobile browsers (iOS/Android) */
-  const unlockAudio = useCallback(() => {
+  /** Ensure playback context is running (must await on mobile) */
+  const ensurePlaybackResumed = useCallback(async () => {
     const ctx = getPlaybackCtx();
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+  }, [getPlaybackCtx]);
+
+  /** Play a silent buffer to "unlock" audio on mobile browsers (iOS/Android) */
+  const unlockAudio = useCallback(async () => {
+    const ctx = getPlaybackCtx();
+    await ensurePlaybackResumed();
     const silentBuffer = ctx.createBuffer(1, 1, SAMPLE_RATE);
     const source = ctx.createBufferSource();
     source.buffer = silentBuffer;
     source.connect(ctx.destination);
     source.start();
-  }, [getPlaybackCtx]);
+  }, [getPlaybackCtx, ensurePlaybackResumed]);
 
-  const playNextChunk = useCallback(() => {
+  const playNextChunk = useCallback(async () => {
     const queue = playbackQueueRef.current;
     if (queue.length === 0) {
       isPlayingRef.current = false;
@@ -88,20 +93,23 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     isPlayingRef.current = true;
     const samples = queue.shift()!;
     const ctx = getPlaybackCtx();
+
+    // Mobile browsers may re-suspend the context after inactivity — resume it
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+
     const buffer = ctx.createBuffer(1, samples.length, SAMPLE_RATE);
     buffer.getChannelData(0).set(samples);
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    source.onended = playNextChunk;
+    source.onended = () => playNextChunk();
     source.start();
   }, [getPlaybackCtx]);
 
   const enqueueAudio = useCallback((base64Audio: string) => {
-    if (import.meta.env.DEV) {
-      console.log(`[Voice] Audio chunk received: ${base64Audio.length} chars`);
-    }
     // Decode base64 → PCM16 Int16Array → Float32Array
     const binaryStr = atob(base64Audio);
     const bytes = new Uint8Array(binaryStr.length);
@@ -206,7 +214,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     try {
       // 0. Pre-create playback AudioContext during user gesture (click)
       // and play silent buffer to unlock audio on mobile browsers
-      unlockAudio();
+      await unlockAudio();
 
       // 1. Get ephemeral token from backend
       const session = await createRealtimeSession(summaryId);
@@ -255,7 +263,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       setState('error');
       cleanup();
     }
-  }, [enqueueAudio, startMicrophone, cleanup]);
+  }, [unlockAudio, enqueueAudio, startMicrophone, cleanup]);
 
   // ── Push-to-Talk ─────────────────────────────────────────
 
