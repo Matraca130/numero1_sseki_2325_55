@@ -61,12 +61,22 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     if (!playbackCtxRef.current) {
       playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
     }
-    // Chrome suspends AudioContext created outside user gesture — resume it
+    // Chrome/Safari suspends AudioContext created outside user gesture — resume it
     if (playbackCtxRef.current.state === 'suspended') {
       playbackCtxRef.current.resume();
     }
     return playbackCtxRef.current;
   }, []);
+
+  /** Play a silent buffer to "unlock" audio on mobile browsers (iOS/Android) */
+  const unlockAudio = useCallback(() => {
+    const ctx = getPlaybackCtx();
+    const silentBuffer = ctx.createBuffer(1, 1, SAMPLE_RATE);
+    const source = ctx.createBufferSource();
+    source.buffer = silentBuffer;
+    source.connect(ctx.destination);
+    source.start();
+  }, [getPlaybackCtx]);
 
   const playNextChunk = useCallback(() => {
     const queue = playbackQueueRef.current;
@@ -89,6 +99,9 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   }, [getPlaybackCtx]);
 
   const enqueueAudio = useCallback((base64Audio: string) => {
+    if (import.meta.env.DEV) {
+      console.log(`[Voice] Audio chunk received: ${base64Audio.length} chars`);
+    }
     // Decode base64 → PCM16 Int16Array → Float32Array
     const binaryStr = atob(base64Audio);
     const bytes = new Uint8Array(binaryStr.length);
@@ -192,8 +205,8 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
 
     try {
       // 0. Pre-create playback AudioContext during user gesture (click)
-      // so Chrome doesn't suspend it when we try to play audio later
-      getPlaybackCtx();
+      // and play silent buffer to unlock audio on mobile browsers
+      unlockAudio();
 
       // 1. Get ephemeral token from backend
       const session = await createRealtimeSession(summaryId);
