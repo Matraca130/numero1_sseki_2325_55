@@ -55,7 +55,8 @@ export function buildChildrenMap(edges: GraphData['edges']): Map<string, string[
  * candidate that is directly reachable from a non-collapsed node without
  * going through a collapsed node (i.e., it has an alternative visible path).
  *
- * Works correctly on DAGs, trees, and cyclic/undirected graphs.
+ * Works correctly on DAGs, trees, and cyclic graphs.
+ * Note: traversal follows directed edges (source→target) only.
  */
 export function computeHiddenNodes(
   nodes: GraphData['nodes'],
