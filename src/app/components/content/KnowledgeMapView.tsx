@@ -21,10 +21,6 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
-/** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
-const haptic = (ms = 50) => navigator?.vibrate?.(ms);
-/** Stable empty array to avoid creating new reference on every render. */
-const EMPTY_NODES: import('./mindmap').MapNode[] = [];
 import { useNavigate, useSearchParams } from 'react-router';
 import { Brain, Map as MapIcon, RefreshCw, Globe, BookOpen, X, Plus, Trash2, ChevronDown, Maximize2, Minimize2, Sparkles, Link2, Undo2, Redo2, Presentation, Clock, Share2, GitCompareArrows, StickyNote as StickyNoteIcon } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
@@ -68,6 +64,11 @@ import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
 import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
+
+/** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
+const haptic = (ms = 50) => navigator?.vibrate?.(ms);
+/** Stable empty array to avoid creating new reference on every render. */
+const EMPTY_NODES: MapNode[] = [];
 
 // ── Component ───────────────────────────────────────────────
 

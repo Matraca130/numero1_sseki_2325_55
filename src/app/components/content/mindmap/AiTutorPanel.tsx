@@ -97,7 +97,7 @@ function usePullToRefresh(onRefresh: () => void, enabled: boolean) {
   const [releasing, setReleasing] = useState(false);
   const isPulling = useRef(false);
   const pullDistanceRef = useRef(0);
-  const releaseTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const releaseTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
 
@@ -206,7 +206,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
   // node improves between analyses (student studied and came back).
   const prevWeakMapRef = useRef<Map<string, string>>(new Map());
   const [improvedNodes, setImprovedNodes] = useState<Array<{ id: string; name: string }>>([]);
-  const improvedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const improvedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Mounted guard — prevents state updates after unmount
   const mountedRef = useRef(true);

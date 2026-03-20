@@ -94,7 +94,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
   }, [node]);
 
   // Stable ref for handleSave so the keyboard shortcut doesn't need it as dependency
-  const handleSaveRef = useRef<() => void>();
+  const handleSaveRef = useRef<() => void>(undefined);
 
   // Close on Escape key + prevent body scroll
   useEffect(() => {

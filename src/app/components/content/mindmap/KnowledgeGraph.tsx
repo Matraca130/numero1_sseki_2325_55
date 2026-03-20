@@ -869,8 +869,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const prevEpochRef = useRef(0);
 
   // Apply highlight/review styling incrementally via updateNodeData (avoids full setData rebuild)
-  const prevHighlightRef = useRef<Set<string> | undefined>();
-  const prevReviewRef = useRef<Set<string> | undefined>();
+  const prevHighlightRef = useRef<Set<string> | undefined>(undefined);
+  const prevReviewRef = useRef<Set<string> | undefined>(undefined);
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph || !ready || layoutInProgressRef.current) return;

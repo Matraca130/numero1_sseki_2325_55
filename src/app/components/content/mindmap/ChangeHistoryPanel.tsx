@@ -77,7 +77,7 @@ export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHi
 
   // Re-render every 30s to keep relative timestamps fresh
   const [, setTick] = useState(0);
-  const tickRef = useRef<ReturnType<typeof setInterval>>();
+  const tickRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   useEffect(() => {
     if (open) {

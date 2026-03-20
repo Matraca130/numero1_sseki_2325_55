@@ -30,7 +30,7 @@ interface ShareMapModalProps {
 
 export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapModalProps) {
   const [copied, setCopied] = useState(false);
-  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusTrapRef = useFocusTrap(open);
   const inputRef = useRef<HTMLInputElement>(null);
   const onCloseRef = useRef(onClose);
