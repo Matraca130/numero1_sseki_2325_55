@@ -24,7 +24,9 @@ export interface StrongArea {
 }
 
 export interface MissingConnection {
+  /** Keyword name or ID — backend validates against both sets */
   from_keyword: string;
+  /** Keyword name or ID — backend validates against both sets */
   to_keyword: string;
   suggested_type: string;
   reason: string;
