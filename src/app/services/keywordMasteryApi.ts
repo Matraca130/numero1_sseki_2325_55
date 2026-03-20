@@ -32,8 +32,6 @@
 
 import { apiCall } from '@/app/lib/api';
 import { parallelWithLimit } from '@/app/lib/concurrency';
-import { getKeywordDeltaColorSafe, getDeltaColorClasses, getDeltaColorLabel, type DeltaColorLevel } from '@/app/lib/mastery-helpers';
-
 // ── Constants ───────────────────────────────────────────────
 
 /** Threshold for a subtopic/keyword to be considered "mastered" */
@@ -44,24 +42,6 @@ const MAX_KEYWORD_IDS_PER_BATCH = 50;
 
 /** Max subtopic IDs per bkt-states call (backend limit) */
 const MAX_SUBTOPIC_IDS_PER_BATCH = 200;
-
-// ── Mastery Color Helpers (delegates to Delta Mastery Scale) ──
-
-/** @deprecated Use DeltaColorLevel from mastery-helpers.ts instead */
-export type MasteryColor = DeltaColorLevel;
-
-/**
- * Convert a numeric mastery [0-1] to a Delta color level.
- * Delegates to the unified Delta Mastery Scale in mastery-helpers.ts.
- *
- * NOTE: MASTERY_THRESHOLD (0.75) is still used for LOGIC (binary "mastered"
- * decision for AI targeting). Colors now use the Delta relative scale.
- *
- * @deprecated Use getKeywordDeltaColorSafe from mastery-helpers.ts directly
- */
-export function getMasteryColor(mastery: number): DeltaColorLevel {
-  return getKeywordDeltaColorSafe(mastery, 1);
-}
 
 // ── Types ─────────────────────────────────────────────────
 

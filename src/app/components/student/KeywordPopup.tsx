@@ -26,6 +26,7 @@ import type { SummaryKeyword } from '@/app/services/summariesApi';
 import {
   type BktState,
   getKeywordMastery,
+  getKeywordDeltaColorSafe,
 } from '@/app/lib/mastery-helpers';
 import {
   useKeywordPopupQueries,
@@ -283,7 +284,7 @@ export function KeywordPopup({
                 const pKnow = bkt ? bkt.p_know : -1;
                 return (
                   <div key={sub.id} className="flex items-center gap-2 py-1 group">
-                    <MasteryIndicator pMastery={pKnow} size="md" variant="dot" />
+                    <MasteryIndicator deltaLevel={getKeywordDeltaColorSafe(pKnow, keyword.priority)} pMastery={pKnow} size="md" variant="dot" />
                     <span className="text-xs text-zinc-300 truncate flex-1">{sub.name}</span>
                     {bkt && bkt.total_attempts > 0 && (
                       <span className="text-[9px] text-zinc-600">
