@@ -372,7 +372,7 @@ export const GraphToolbar = memo(function GraphToolbar({
                 title={t.clear}
                 aria-label={t.clear}
               >
-                <X className="w-3.5 h-3.5 text-gray-400" />
+                <X className="w-3.5 h-3.5 text-gray-500" />
               </button>
             </>
           )}
@@ -492,7 +492,7 @@ export const GraphToolbar = memo(function GraphToolbar({
                 isActive
                   ? 'ring-1 ring-offset-1 bg-gray-50'
                   : masteryFilter && !isActive
-                    ? 'opacity-40 hover:opacity-70'
+                    ? 'opacity-60 hover:opacity-80'
                     : 'hover:bg-gray-50'
               }`}
               style={{

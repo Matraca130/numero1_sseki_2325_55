@@ -244,7 +244,7 @@ export function GraphTemplatePanel({
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="w-8 h-8 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                 aria-label="Cerrar panel de plantillas"
               >
                 <X className="w-4 h-4" />
@@ -458,7 +458,7 @@ export function GraphTemplatePanel({
                         </button>
                         <button
                           onClick={() => setDeleteTarget(template)}
-                          className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                          className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
                           aria-label={`Eliminar plantilla ${template.name}`}
                           title="Eliminar"
                         >

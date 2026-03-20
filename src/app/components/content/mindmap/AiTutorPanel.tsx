@@ -427,7 +427,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               aria-label="Cerrar panel IA"
             >
               <X className="w-4 h-4" />
@@ -759,7 +759,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
                             style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                           >
                             <span className="font-medium text-gray-700 truncate">{sourceName}</span>
-                            <span className="text-gray-300">→</span>
+                            <span className="text-gray-500">→</span>
                             <span className="font-medium text-gray-700 truncate">{targetName}</span>
                           </div>
                           <p
@@ -795,7 +795,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
                                 </button>
                                 <button
                                   onClick={() => handleDismissSuggestion(s)}
-                                  className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+                                  className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
                                   aria-label="Rechazar conexión"
                                   title="Rechazar"
                                 >
@@ -831,7 +831,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left hover:bg-gray-50 transition-colors group"
                         style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                       >
-                        <Icon className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 flex-shrink-0 transition-colors" />
+                        <Icon className="w-4 h-4 text-gray-500 group-hover:text-ax-primary-500 flex-shrink-0 transition-colors" />
                         <span className="truncate flex-1 text-gray-600 group-hover:text-gray-800">{wp.name}</span>
                         <span
                           className="text-gray-500 flex-shrink-0 bg-gray-50 px-2 py-0.5 rounded-full"

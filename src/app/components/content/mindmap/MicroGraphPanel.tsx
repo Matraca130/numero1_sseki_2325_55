@@ -138,7 +138,7 @@ export function MicroGraphPanel({
           }`}
           aria-label="Mapa no disponible. Toca para reintentar."
         >
-          <Brain size={variant === 'card' ? 14 : 13} className="text-gray-400" />
+          <Brain size={variant === 'card' ? 14 : 13} className="text-gray-500" />
           <span>Mapa no disponible</span>
           <RefreshCw size={12} className="ml-auto" />
         </button>
@@ -150,7 +150,7 @@ export function MicroGraphPanel({
     <ErrorBoundary fallback={(_err, reset) => (
       <div className={wrapperClass}>
         <button onClick={reset} className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-500 hover:text-gray-600 hover:bg-gray-50/80 min-h-[44px]">
-          <Brain size={13} className="text-gray-400" />
+          <Brain size={13} className="text-gray-500" />
           <span>Grafo no disponible</span>
           <RefreshCw size={12} className="ml-auto" />
         </button>

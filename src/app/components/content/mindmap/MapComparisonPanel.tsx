@@ -282,7 +282,7 @@ export function MapComparisonPanel({
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               aria-label="Cerrar panel de comparaci\u00f3n"
             >
               <X className="w-4 h-4" />

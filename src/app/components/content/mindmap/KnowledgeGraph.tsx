@@ -1440,7 +1440,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           </button>
           {breadcrumbs.map((crumb, i) => (
             <span key={crumb.id} className="flex items-center gap-0.5">
-              <ChevronRight className="w-3 h-3 text-gray-300 flex-shrink-0" />
+              <ChevronRight className="w-3 h-3 text-gray-500 flex-shrink-0" />
               {i < breadcrumbs.length - 1 ? (
                 <button
                   onClick={() => handleBreadcrumbClick(crumb.id)}
@@ -1641,7 +1641,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             </span>
             <button
               onClick={() => setShowShortcuts(false)}
-              className="text-gray-400 hover:text-gray-600 p-3 -mr-1"
+              className="text-gray-500 hover:text-gray-700 p-3 -mr-1"
               aria-label={t.closeShortcuts}
             >
               &times;

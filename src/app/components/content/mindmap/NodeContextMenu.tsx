@@ -237,7 +237,7 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
                 className="p-2.5 -mr-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                 aria-label="Cerrar"
               >
-                <X className="w-3.5 h-3.5 text-gray-400" />
+                <X className="w-3.5 h-3.5 text-gray-500" />
               </button>
             </div>
             {masteryPct !== null && (
@@ -276,7 +276,7 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
                   style={{ fontSize: isSmallScreen ? 'clamp(0.85rem, 1.6vw, 0.9375rem)' : menuItemFontSize }}
                   role="menuitem"
                 >
-                  <Icon className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
+                  <Icon className="w-4 h-4 text-gray-500 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
                   {LABELS[action]}
                 </button>
               );
@@ -288,7 +288,7 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
               className="border-t border-gray-100 py-1.5"
             >
               <div className={`flex items-center gap-2 ${isSmallScreen ? 'px-4' : 'px-3'}`}>
-                <Palette className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" aria-hidden="true" />
+                <Palette className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" aria-hidden="true" />
                 <span
                   className="text-gray-500 font-sans"
                   style={{ fontSize: captionFontSize }}
@@ -337,8 +337,8 @@ export const NodeContextMenu = memo(function NodeContextMenu({ node, position, o
                 role="menuitem"
               >
                 {isCollapsed
-                  ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
-                  : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
+                  ? <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
+                  : <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-ax-primary-500 group-focus:text-ax-primary-500 flex-shrink-0" />
                 }
                 {isCollapsed ? 'Expandir rama' : 'Colapsar rama'}
               </button>

@@ -221,7 +221,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
                 className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                 aria-label="Cerrar"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
 
