@@ -27,6 +27,7 @@ import type {
 export async function analyzeKnowledgeGraph(
   topicId: string,
 ): Promise<AnalyzeKnowledgeGraphResponse> {
+  if (!topicId) throw new Error('topicId es requerido para analizar el grafo');
   try {
     return await apiCall<AnalyzeKnowledgeGraphResponse>(
       '/ai/analyze-knowledge-graph',
@@ -53,6 +54,7 @@ export async function suggestStudentConnections(
   nodeIds: string[],
   edgeIds: string[],
 ): Promise<SuggestConnectionsResponse> {
+  if (!topicId) throw new Error('topicId es requerido para sugerir conexiones');
   // Short-circuit: AI cannot suggest connections without existing nodes
   if (nodeIds.length === 0) return [] as SuggestConnectionsResponse;
 
@@ -84,6 +86,7 @@ export async function suggestStudentConnections(
 export async function getStudentWeakPoints(
   topicId: string,
 ): Promise<WeakPointsResponse> {
+  if (!topicId) throw new Error('topicId es requerido para obtener puntos débiles');
   try {
     return await apiCall<WeakPointsResponse>(
       `/ai/student-weak-points?topic_id=${encodeURIComponent(topicId)}`,

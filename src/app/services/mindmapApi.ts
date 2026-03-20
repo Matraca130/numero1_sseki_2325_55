@@ -128,8 +128,8 @@ function buildGraphData(
       masteryColor: getSafeMasteryColor(info.mastery),
       summaryId: info.summary_id,
       topicId: topicMap?.get(kwId),
-      flashcardCount: 0,
-      quizCount: 0,
+      // flashcardCount / quizCount omitted — no data source yet.
+      // Leaving undefined avoids misleading the UI into showing "0".
     });
   }
 
@@ -358,7 +358,10 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
     return { nodes, edges };
   } catch (e: unknown) {
     // Swallow 404s (endpoint not deployed yet). Re-throw all other errors.
-    if (isNotFoundError(e)) return { nodes: [], edges: [] };
+    if (isNotFoundError(e)) {
+      if (import.meta.env.DEV) console.info('[MindmapApi] custom graph endpoint not deployed, returning empty');
+      return { nodes: [], edges: [] };
+    }
     throw e;
   }
 }
@@ -394,7 +397,7 @@ export async function deleteCustomEdge(edgeId: string): Promise<void> {
 export async function fetchGraphTemplates(
   institutionId: string,
 ): Promise<GraphTemplate[]> {
-  const result = await apiCall<unknown>(
+  const result = await apiCall<GraphTemplate[] | { items: GraphTemplate[] }>(
     `/professor/graph-templates?institution_id=${encodeURIComponent(institutionId)}`,
   );
   return unwrapItems<GraphTemplate>(result);
