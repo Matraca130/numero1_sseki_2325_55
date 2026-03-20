@@ -69,11 +69,6 @@
       "types": "./dist/rules.d.ts",
       "import": "./dist/rules.js",
       "default": "./dist/rules.js"
-    },
-    "./architecture": {
-      "types": "./dist/architecture.d.ts",
-      "import": "./dist/architecture.js",
-      "default": "./dist/architecture.js"
     }
   },
 
@@ -89,8 +84,7 @@
       "navigation":     ["./dist/navigation.d.ts"],
       "layout":         ["./dist/layout.d.ts"],
       "animation":      ["./dist/animation.d.ts"],
-      "rules":          ["./dist/rules.d.ts"],
-      "architecture":   ["./dist/architecture.d.ts"]
+      "rules":          ["./dist/rules.d.ts"]
     }
   },
 
