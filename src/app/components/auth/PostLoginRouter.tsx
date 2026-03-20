@@ -26,9 +26,9 @@ export function PostLoginRouter() {
     return <Navigate to="/login" replace />;
   }
 
-  // No institutions → send to student as default
+  // No institutions and no memberships → session is incomplete, send to login
   if (institutions.length === 0 && memberships.length === 0) {
-    return <Navigate to="/student" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Multiple institutions and none selected → picker

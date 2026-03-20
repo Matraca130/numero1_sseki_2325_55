@@ -14,7 +14,7 @@ export function RequireRole({ roles }: RequireRoleProps) {
   const { activeMembership, selectedInstitution } = useAuth();
 
   if (!activeMembership && !selectedInstitution) {
-    return <Navigate to="/select-org" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const activeRole = selectedInstitution?.role || activeMembership?.role;
