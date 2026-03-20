@@ -78,7 +78,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
   const [edgeType, setEdgeType] = useState('asociacion');
   const [edgeDirected, setEdgeDirected] = useState(!!initialEdgeSource);
   const [edgeLineStyle, setEdgeLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
-  const [edgeColor, setEdgeColor] = useState(colors.primary[500]);
+  const [edgeColor, setEdgeColor] = useState<string>(colors.primary[500]);
   const [edgeArrowType, setEdgeArrowType] = useState<EdgeArrowType>('triangle');
 
   // Clear target if it matches source (prevents self-loop edge)

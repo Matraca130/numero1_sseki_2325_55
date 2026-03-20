@@ -277,7 +277,7 @@ export function KnowledgeMapView() {
   }, []);
 
   // Navigate with a brief fade-out transition
-  const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => { clearTimeout(fadeTimerRef.current); }, []);
   const navigateWithFade = useCallback((to: string) => {
     clearTimeout(fadeTimerRef.current);
