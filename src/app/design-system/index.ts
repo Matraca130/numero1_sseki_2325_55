@@ -33,8 +33,7 @@
  *   ├── navigation.ts        ← Vistas, sidebar items, shortcuts
  *   ├── layout.ts            ← Dimensiones, spacing, grids
  *   ├── animation.ts         ← Presets de Motion
- *   ├── rules.ts             ← Reglas obligatorias y prohibidas
- *   └── architecture.ts      ← Documentacion tecnica (no re-exportado)
+ *   └── rules.ts             ← Reglas obligatorias y prohibidas
  */
 
 // ─────────────────────────────────────────────
