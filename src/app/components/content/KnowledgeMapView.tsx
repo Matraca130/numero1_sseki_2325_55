@@ -29,6 +29,7 @@ import { MoreActionsDropdown } from './mindmap/MoreActionsDropdown';
 import { GraphSidebar } from './mindmap/GraphSidebar';
 import { useCountUp } from '@/app/hooks/useCountUp';
 import { EmptyState, ErrorState } from '@/app/components/shared/PageStates';
+import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { FadeIn } from '@/app/components/shared/FadeIn';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { useApp } from '@/app/context/AppContext';
