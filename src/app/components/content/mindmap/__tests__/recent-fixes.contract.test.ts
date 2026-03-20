@@ -1,0 +1,175 @@
+// ============================================================
+// Tests — Recent Fixes Contract Tests
+//
+// Verifies recent bug fixes via source-level contract checks:
+//   1. useFullscreen: isFullscreenRef synced in handleChange
+//   2. useKeyboardNav: applyFocusRing merges states
+//   3. useSpacePan: focusout checks relatedTarget
+//   4. MapComparisonPanel: no aria-modal, text-gray-500 for %
+//   5. ChangeHistoryPanel: no aria-modal on side panel
+// ============================================================
+
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const BASE = resolve(__dirname, '..');
+
+function readSource(name: string): string {
+  return readFileSync(resolve(BASE, name), 'utf-8');
+}
+
+// ── useFullscreen: isFullscreenRef synced in handleChange ────
+
+describe('useFullscreen — handleChange syncs isFullscreenRef', () => {
+  const source = readSource('useFullscreen.ts');
+
+  it('sets isFullscreenRef.current = false in fullscreenchange handler', () => {
+    // The handleChange function must sync the ref when exiting
+    // via browser ESC, so toggleFullscreen reads correct state
+    expect(source).toContain('isFullscreenRef.current = false');
+  });
+
+  it('handleChange also calls setIsFullscreen(false)', () => {
+    // Both ref and state must be updated together
+    expect(source).toContain('setIsFullscreen(false)');
+  });
+
+  it('isFullscreenRef is set to true in enterFullscreen', () => {
+    expect(source).toContain('isFullscreenRef.current = true');
+  });
+
+  it('toggleFullscreen reads from isFullscreenRef (not state)', () => {
+    expect(source).toContain('isFullscreenRef.current');
+    // Should read ref in the toggle function
+    expect(source).toMatch(/if\s*\(\s*isFullscreenRef\.current\s*\)/);
+  });
+});
+
+// ── useKeyboardNav: applyFocusRing merges states ────────────
+
+describe('useKeyboardNav — applyFocusRing merges with existing states', () => {
+  const source = readSource('useKeyboardNav.ts');
+
+  it('reads existing states via getElementState before setting selected', () => {
+    // Must read existing states to merge, not replace
+    expect(source).toContain('getElementState(nodeId)');
+  });
+
+  it('filters out selected from existing states to avoid duplicates', () => {
+    // Should filter existing states to remove 'selected' before adding it back
+    expect(source).toMatch(/filter\(.*!==\s*'selected'/);
+  });
+
+  it('spreads existing states and appends selected', () => {
+    // Should create array with existing filtered states + 'selected'
+    expect(source).toMatch(/\[\.\.\.existing.*'selected'\]/s);
+  });
+
+  it('has fallback if getElementState fails', () => {
+    // Fallback: just set ['selected'] if reading states throws
+    const applyFocusRingSection = source.slice(
+      source.indexOf('const applyFocusRing'),
+      source.indexOf('const clearFocus'),
+    );
+    // Should have a catch block with fallback
+    expect(applyFocusRingSection).toContain("['selected']");
+    expect(applyFocusRingSection.match(/catch/g)?.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('clearFocus also preserves other states when removing selected', () => {
+    // clearFocus should filter out 'selected' but keep other states
+    const clearFocusSection = source.slice(
+      source.indexOf('const clearFocus'),
+      source.indexOf('// Sync:'),
+    );
+    expect(clearFocusSection).toMatch(/filter.*!==\s*'selected'/);
+  });
+});
+
+// ── useSpacePan: focusout checks relatedTarget ──────────────
+
+describe('useSpacePan — focusout checks relatedTarget', () => {
+  const source = readSource('useSpacePan.ts');
+
+  it('focusout handler receives FocusEvent (typed parameter)', () => {
+    expect(source).toMatch(/const\s+handleFocusOut\s*=\s*\(e:\s*FocusEvent\)/);
+  });
+
+  it('checks relatedTarget to avoid intra-container false resets', () => {
+    expect(source).toContain('e.relatedTarget');
+  });
+
+  it('calls container.contains(relatedTarget) to check if focus stays inside', () => {
+    expect(source).toContain('container.contains(e.relatedTarget');
+  });
+
+  it('returns early if focus stays within container', () => {
+    // Should return before calling handleBlur when focus is internal
+    expect(source).toMatch(/container\.contains\(e\.relatedTarget.*\)\s*return/s);
+  });
+
+  it('still calls handleBlur when focus actually leaves container', () => {
+    // After the relatedTarget check, handleBlur should still be called
+    const focusoutSection = source.slice(
+      source.indexOf('handleFocusOut'),
+      source.indexOf('handleVisibility'),
+    );
+    expect(focusoutSection).toContain('handleBlur()');
+  });
+});
+
+// ── MapComparisonPanel: no aria-modal + WCAG text contrast ──
+
+describe('MapComparisonPanel — side panel a11y', () => {
+  const source = readSource('MapComparisonPanel.tsx');
+
+  it('has role="dialog" on the panel', () => {
+    expect(source).toContain('role="dialog"');
+  });
+
+  it('does NOT have aria-modal="true" (side panel, not a true modal)', () => {
+    // Side panels don't block interaction with underlying content
+    expect(source).not.toContain('aria-modal="true"');
+  });
+
+  it('has descriptive aria-label on the panel', () => {
+    expect(source).toContain('aria-label="Panel de comparación de mapa"');
+  });
+});
+
+describe('MapComparisonPanel — WCAG contrast for mastery percentage', () => {
+  const source = readSource('MapComparisonPanel.tsx');
+
+  it('uses text-gray-500 (not text-gray-400) for mastery percentage in GapItem', () => {
+    // gray-500 (#6b7280) has ~4.5:1 contrast on bg-gray-50
+    // gray-400 (#9ca3af) only has ~2.85:1 — fails WCAG AA
+    const gapItemSection = source.slice(
+      source.indexOf('function GapItem'),
+      source.indexOf('function CustomEdgeItem'),
+    );
+    // The pct% span should use gray-500
+    expect(gapItemSection).toContain('text-gray-500');
+    // And should NOT use gray-400 for informational text
+    expect(gapItemSection).not.toContain('text-gray-400');
+  });
+});
+
+// ── ChangeHistoryPanel: no aria-modal on side panel ─────────
+
+describe('ChangeHistoryPanel — side panel does not use aria-modal', () => {
+  const source = readSource('ChangeHistoryPanel.tsx');
+
+  it('has role="dialog" on the panel', () => {
+    expect(source).toContain('role="dialog"');
+  });
+
+  it('does NOT have aria-modal="true" (side panel, not a true modal)', () => {
+    // Side panels coexist with the graph — no aria-modal
+    expect(source).not.toContain('aria-modal="true"');
+  });
+
+  it('has descriptive aria-label on the panel', () => {
+    expect(source).toContain('aria-label="Panel de historial de cambios"');
+  });
+});
