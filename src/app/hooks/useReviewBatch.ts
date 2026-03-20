@@ -208,7 +208,7 @@ export function useReviewBatch() {
           (response.results ? ` (${response.results.length} computed results)` : ''),
         );
         if (response.errors?.length) {
-          console.warn(`[ReviewBatch] Batch had ${response.errors.length} partial errors:`, response.errors);
+          if (import.meta.env.DEV) console.warn(`[ReviewBatch] Batch had ${response.errors.length} partial errors:`, response.errors);
         }
       }
 
@@ -231,7 +231,7 @@ export function useReviewBatch() {
         await sessionApi.fallbackToIndividualPosts(sessionId, batchItems);
         clearPendingBatch();
       } catch (fallbackErr) {
-        console.error(
+        if (import.meta.env.DEV) console.error(
           '[ReviewBatch] Both batch and fallback failed. ' +
           `${batchItems.length} reviews saved to localStorage for retry.`,
           fallbackErr,
