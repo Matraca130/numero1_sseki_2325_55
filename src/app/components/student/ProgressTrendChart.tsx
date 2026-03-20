@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import clsx from 'clsx';
+import { ChartErrorBoundary } from '@/app/components/shared/ChartErrorBoundary';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -63,7 +64,9 @@ export const ProgressTrendChart = React.memo(function ProgressTrendChart({
   }, [chartData]);
 
   // Guard: need at least 2 data points
-  if (chartData.length < 2) return null;
+  if (chartData.length < 2) {
+    return <div className="mb-4" />;
+  }
 
   const avg = Math.round(chartData.reduce((s, d) => s + d.pct, 0) / chartData.length);
 
@@ -89,57 +92,59 @@ export const ProgressTrendChart = React.memo(function ProgressTrendChart({
 
       {/* Chart */}
       <div className="bg-white rounded-xl border border-zinc-200 p-3">
-        <ResponsiveContainer width="100%" height={140}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-            <defs>
-              <linearGradient id="progressFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#0d9488" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 9, fill: '#a1a1aa' }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fontSize: 9, fill: '#a1a1aa' }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={v => `${v}%`}
-            />
-            <Tooltip
-              contentStyle={{
-                fontSize: 11,
-                borderRadius: 10,
-                border: '1px solid #e4e4e7',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              }}
-              formatter={(value: number) => [`${value}%`, 'Puntaje']}
-            />
-            {/* BKT mastery threshold line */}
-            <ReferenceLine
-              y={80}
-              stroke="#0d9488"
-              strokeDasharray="4 4"
-              strokeOpacity={0.4}
-              label={{ value: 'BKT \u226580%', fontSize: 8, fill: '#0d9488', position: 'left' }}
-            />
-            <Area
-              type="monotone"
-              dataKey="pct"
-              stroke="#0d9488"
-              strokeWidth={2}
-              fill="url(#progressFill)"
-              dot={{ r: 3, fill: '#0d9488', stroke: '#fff', strokeWidth: 2 }}
-              activeDot={{ r: 5, stroke: '#0d9488', strokeWidth: 2 }}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <ChartErrorBoundary height={140}>
+          <ResponsiveContainer width="100%" height={140}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+              <defs>
+                <linearGradient id="progressFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 9, fill: '#a1a1aa' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 9, fill: '#a1a1aa' }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={v => `${v}%`}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  borderRadius: 10,
+                  border: '1px solid #e4e4e7',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                }}
+                formatter={(value: number) => [`${value}%`, 'Puntaje']}
+              />
+              {/* BKT mastery threshold line */}
+              <ReferenceLine
+                y={80}
+                stroke="#0d9488"
+                strokeDasharray="4 4"
+                strokeOpacity={0.4}
+                label={{ value: 'BKT \u226580%', fontSize: 8, fill: '#0d9488', position: 'left' }}
+              />
+              <Area
+                type="monotone"
+                dataKey="pct"
+                stroke="#0d9488"
+                strokeWidth={2}
+                fill="url(#progressFill)"
+                dot={{ r: 3, fill: '#0d9488', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 5, stroke: '#0d9488', strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartErrorBoundary>
       </div>
     </div>
   );
