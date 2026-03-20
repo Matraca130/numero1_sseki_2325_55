@@ -344,3 +344,29 @@ describe('GraphTemplatePanel — stale request guard on loadTemplates', () => {
     expect(source).toMatch(/Math\.min\(index\s*\*\s*0\.04/);
   });
 });
+
+// ── useUndoRedo: e.repeat guard on keyboard handler ──────────
+
+describe('useUndoRedo — blocks held-key repeats', () => {
+  const source = readSource('useUndoRedo.ts');
+
+  it('checks e.repeat before processing undo/redo keyboard shortcuts', () => {
+    expect(source).toContain('if (e.repeat) return');
+  });
+});
+
+// ── GraphSkeleton: reactive prefers-reduced-motion ──────────
+
+describe('GraphSkeleton — reactive reduced-motion via matchMedia', () => {
+  const source = readSource('GraphSkeleton.tsx');
+
+  it('uses matchMedia addEventListener for reactive updates', () => {
+    expect(source).toContain("addEventListener('change'");
+    expect(source).toContain("removeEventListener('change'");
+  });
+
+  it('uses useState for prefersReducedMotion (not render-time only)', () => {
+    expect(source).toContain('useState(');
+    expect(source).toContain('setPrefersReducedMotion');
+  });
+});
