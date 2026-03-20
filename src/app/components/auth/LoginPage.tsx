@@ -25,8 +25,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // If already authenticated, skip to post-login router
-  if (status === 'authenticated') {
+  // If already authenticated with institutions loaded, skip to post-login router
+  // Don't redirect if we were sent here (avoids loop when institutions failed)
+  const sentHere = location.state?.from?.pathname === '/';
+  if (status === 'authenticated' && !sentHere) {
     return <Navigate to="/" replace />;
   }
 

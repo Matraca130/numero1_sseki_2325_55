@@ -73,12 +73,15 @@ export function SelectRolePage() {
     navigate('/login', { replace: true });
   };
 
-  // Auto-redirect if 0 or 1 membership
+  // Auto-redirect if 0 memberships
   if (memberships.length === 0) {
     return <Navigate to="/login" replace />;
   }
+  // Auto-select if exactly 1 membership (route directly to role, not back to /)
   if (memberships.length === 1) {
-    return <Navigate to="/" replace />;
+    const m = memberships[0];
+    const route = ROLE_ROUTES[m.role] || '/student';
+    return <Navigate to={route} replace />;
   }
 
   return (
