@@ -110,7 +110,7 @@ export function ContentTreeProvider({ children }: { children: ReactNode }) {
       }
       setTree(data);
     } catch (err: any) {
-      console.error('[ContentTree] Fetch error:', err);
+      if (import.meta.env.DEV) console.error('[ContentTree] Fetch error:', err);
       setError(err.message || 'Error al cargar el arbol de contenido');
       // Set empty tree so UI can show empty state
       setTree({ courses: [] });
