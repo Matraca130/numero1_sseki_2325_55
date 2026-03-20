@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
 import { Toaster } from 'sonner';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 // PERF-71: Preconnect to Supabase domain for faster first API call.
 // This saves 200-400ms of DNS + TCP + TLS handshake on cold start.
@@ -42,9 +43,9 @@ export default function App() {
   usePreconnect(SUPABASE_ORIGIN);
 
   return (
-    <>
+    <ErrorBoundary>
       <RouterProvider router={router} />
       <Toaster position="top-right" richColors closeButton />
-    </>
+    </ErrorBoundary>
   );
 }

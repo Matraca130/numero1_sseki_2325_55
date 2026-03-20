@@ -53,33 +53,62 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       <div
         role="alert"
         style={{
-          padding: '2rem',
-          margin: '1rem',
-          borderRadius: '0.5rem',
-          border: '1px solid #fca5a5',
-          backgroundColor: '#fef2f2',
-          textAlign: 'center',
+          minHeight: '100vh',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#09090b',
+          gap: '1.5rem',
+          padding: '1rem',
         }}
       >
-        <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>
-          Algo salió mal
-        </h3>
-        <p style={{ color: '#7f1d1d', fontSize: '0.875rem', marginBottom: '1rem' }}>
-          {this.state.error.message}
-        </p>
-        <button
-          onClick={this.handleReset}
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '0.375rem',
-            border: '1px solid #d1d5db',
-            backgroundColor: '#ffffff',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-          }}
-        >
-          Intentar de nuevo
-        </button>
+        <div style={{ textAlign: 'center' }}>
+          <h3 style={{ color: '#ffffff', marginBottom: '0.5rem', fontFamily: 'Georgia, serif', fontSize: '1.25rem' }}>
+            Algo salio mal
+          </h3>
+          <p style={{ color: '#a1a1aa', fontSize: '0.875rem', maxWidth: '28rem' }}>
+            Ocurrio un error inesperado. Puedes reintentar o volver al inicio.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={this.handleReset}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: '#27272a',
+              color: '#ffffff',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+            }}
+          >
+            Reintentar
+          </button>
+          <button
+            onClick={() => {
+              localStorage.removeItem('axon_active_membership');
+              localStorage.removeItem('axon_access_token');
+              localStorage.removeItem('axon_user');
+              localStorage.removeItem('axon_memberships');
+              this.setState({ hasError: false, error: null });
+              window.location.href = '/login';
+            }}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: '#14b8a6',
+              color: '#ffffff',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+            }}
+          >
+            Volver al inicio
+          </button>
+        </div>
       </div>
     );
   }
