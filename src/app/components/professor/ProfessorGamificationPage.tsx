@@ -82,7 +82,7 @@ export function ProfessorGamificationPage() {
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className="flex items-center gap-2 mb-4"><BarChart3 size={16} className="text-blue-500" /><h3 className="text-[13px] text-gray-800" style={{ fontWeight: 700 }}>Por nivel</h3></div>
-              {lvlDist.length === 0 ? <p className="text-[12px] text-gray-400 text-center py-6">Sin datos</p> : <ResponsiveContainer width="100%" height={180}><BarChart data={lvlDist}><XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis hide allowDecimals={false} /><Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} /><Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#8b5cf6" /></BarChart></ResponsiveContainer>}
+              {lvlDist.length === 0 ? <p className="text-[12px] text-gray-400 text-center py-6">Sin datos</p> : <ResponsiveContainer width="100%" height={180}><BarChart data={lvlDist}><XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis hide allowDecimals={false} /><Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} /><Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#8b5cf6" isAnimationActive={false} /></BarChart></ResponsiveContainer>}
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-8">

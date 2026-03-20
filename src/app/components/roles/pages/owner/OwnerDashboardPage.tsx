@@ -327,6 +327,7 @@ function RoleDistributionChart({ membersByRole, totalMembers }: {
                 paddingAngle={3}
                 dataKey="value"
                 stroke="none"
+                isAnimationActive={false}
               >
                 {chartData.map((entry, idx) => (
                   <Cell key={entry.name} fill={entry.fill} />

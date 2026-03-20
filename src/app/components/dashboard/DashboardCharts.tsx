@@ -91,8 +91,8 @@ export function ActivityChart({ data }: ActivityChartProps) {
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               }}
             />
-            <Bar dataKey="cards" stackId="a" fill={colors.chart.flashcards} radius={[0, 0, 4, 4]} />
-            <Bar dataKey="videos" stackId="a" fill={colors.chart.videos} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="cards" stackId="a" fill={colors.chart.flashcards} radius={[0, 0, 4, 4]} isAnimationActive={false} />
+            <Bar dataKey="videos" stackId="a" fill={colors.chart.videos} radius={[4, 4, 0, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -129,6 +129,7 @@ export function MasteryDonut({ data, totalCards }: MasteryDonutProps) {
               paddingAngle={5}
               dataKey="value"
               stroke="none"
+              isAnimationActive={false}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />

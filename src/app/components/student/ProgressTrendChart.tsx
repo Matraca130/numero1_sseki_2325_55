@@ -136,6 +136,7 @@ export const ProgressTrendChart = React.memo(function ProgressTrendChart({
               fill="url(#progressFill)"
               dot={{ r: 3, fill: '#0d9488', stroke: '#fff', strokeWidth: 2 }}
               activeDot={{ r: 5, stroke: '#0d9488', strokeWidth: 2 }}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>
