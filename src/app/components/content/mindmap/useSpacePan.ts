@@ -85,7 +85,11 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
     };
 
     // Reset when focus leaves the container (e.g. user clicks sidebar while holding Space)
-    const handleFocusOut = () => handleBlur();
+    // Check relatedTarget to avoid false resets when focus moves within the container
+    const handleFocusOut = (e: FocusEvent) => {
+      if (container.contains(e.relatedTarget as Node)) return;
+      handleBlur();
+    };
     // Reset on tab switch (visibilitychange is more reliable than blur for tab switches)
     const handleVisibility = () => { if (document.hidden) handleBlur(); };
 

@@ -184,7 +184,16 @@ export function useKeyboardNav({
         }
       }
       if (nodeId) {
-        graph.setElementState(nodeId, ['selected']);
+        // Merge 'selected' with existing states (preserve highlight, hover, etc.)
+        try {
+          const existing = graph.getElementState(nodeId);
+          const states = Array.isArray(existing)
+            ? [...existing.filter((s: string) => s !== 'selected'), 'selected']
+            : ['selected'];
+          graph.setElementState(nodeId, states);
+        } catch {
+          graph.setElementState(nodeId, ['selected']);
+        }
         // Pan to make focused node visible
         graph.focusElements([nodeId], { animation: { duration: 200, easing: 'ease-out' } });
       }
