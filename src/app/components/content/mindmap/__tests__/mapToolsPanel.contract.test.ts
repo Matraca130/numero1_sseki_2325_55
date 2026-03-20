@@ -125,6 +125,34 @@ describe('MapToolsPanel: prop contract', () => {
   });
 });
 
+// ── Accessibility ──────────────────────────────────────────
+
+describe('MapToolsPanel: accessibility', () => {
+  it('uses role="toolbar" with aria-label', () => {
+    expect(source).toContain('role="toolbar"');
+    expect(source).toContain('aria-label="Herramientas del mapa"');
+  });
+
+  it('uses aria-pressed on tool buttons', () => {
+    expect(source).toContain('aria-pressed={isActive}');
+  });
+
+  it('uses roving tabindex (active tool focusable, others skipped)', () => {
+    expect(source).toContain('tabIndex={isActive ? 0 : -1}');
+  });
+
+  it('handles arrow key navigation within toolbar', () => {
+    expect(source).toContain("'ArrowDown'");
+    expect(source).toContain("'ArrowUp'");
+    expect(source).toContain("'ArrowLeft'");
+    expect(source).toContain("'ArrowRight'");
+  });
+
+  it('wraps component in React.memo', () => {
+    expect(source).toMatch(/export\s+const\s+MapToolsPanel\s*=\s*memo\s*\(/);
+  });
+});
+
 // ── isActive logic ──────────────────────────────────────────
 
 describe('MapToolsPanel: active tool styling logic', () => {
