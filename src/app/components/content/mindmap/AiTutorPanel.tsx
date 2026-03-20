@@ -124,6 +124,8 @@ function usePullToRefresh(onRefresh: () => void, enabled: boolean) {
         return;
       }
       const delta = Math.max(0, e.touches[0].clientY - touchStartY.current);
+      // Prevent native overscroll/pull-to-refresh when custom pull is active
+      if (delta > 0) e.preventDefault();
       // Apply rubber-band resistance (diminishing returns past threshold)
       const capped = delta < PULL_THRESHOLD ? delta : PULL_THRESHOLD + (delta - PULL_THRESHOLD) * 0.3;
       const value = reducedMotion ? Math.min(capped, PULL_THRESHOLD) : capped;
@@ -151,7 +153,7 @@ function usePullToRefresh(onRefresh: () => void, enabled: boolean) {
     };
 
     el.addEventListener('touchstart', handleTouchStart, { passive: true });
-    el.addEventListener('touchmove', handleTouchMove, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
     el.addEventListener('touchend', handleTouchEnd, { passive: true });
     return () => {
       el.removeEventListener('touchstart', handleTouchStart);
