@@ -540,7 +540,7 @@ function GapItem({
       </button>
       {pct !== null && (
         <span
-          className="text-gray-400 flex-shrink-0"
+          className="text-gray-500 flex-shrink-0"
           style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
         >
           {pct}%
