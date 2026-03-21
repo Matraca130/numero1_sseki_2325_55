@@ -49,14 +49,14 @@ interface MembershipLite {
 
 // ── Return type ──────────────────────────────────────────
 
-export interface UseContentTreeReturn {
+export interface UseContentTreeReadonlyReturn {
   contentTree: ContentTreeCourse[];
   treeLoading: boolean;
 }
 
 // ── Hook ─────────────────────────────────────────────────
 
-export function useContentTree(): UseContentTreeReturn {
+export function useContentTreeReadonly(): UseContentTreeReadonlyReturn {
   const { selectedInstitution } = useAuth();
   const institutionId = selectedInstitution?.id || null;
 
