@@ -23,6 +23,7 @@ import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import { StudyPlansProvider } from '@/app/context/StudyPlansContext';
 import { TopicMasteryProvider } from '@/app/context/TopicMasteryContext';
 import { StudyTimeEstimatesProvider } from '@/app/context/StudyTimeEstimatesContext';
+import { GamificationProvider } from '@/app/context/GamificationContext';
 import { useUI } from '@/app/context/UIContext';
 import { useStudySession } from '@/app/context/AppContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -222,17 +223,19 @@ function StudentShell() {
 export function StudentLayout() {
   return (
     <AppProvider>
-      <StudentDataProvider>
-        <ContentTreeProvider>
-          <TopicMasteryProvider>
-            <StudyTimeEstimatesProvider>
-              <StudyPlansProvider>
-                <StudentShell />
-              </StudyPlansProvider>
-            </StudyTimeEstimatesProvider>
-          </TopicMasteryProvider>
-        </ContentTreeProvider>
-      </StudentDataProvider>
+      <GamificationProvider>
+        <StudentDataProvider>
+          <ContentTreeProvider>
+            <TopicMasteryProvider>
+              <StudyTimeEstimatesProvider>
+                <StudyPlansProvider>
+                  <StudentShell />
+                </StudyPlansProvider>
+              </StudyTimeEstimatesProvider>
+            </TopicMasteryProvider>
+          </ContentTreeProvider>
+        </StudentDataProvider>
+      </GamificationProvider>
     </AppProvider>
   );
 }
