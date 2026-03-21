@@ -12,7 +12,7 @@ import {
   BookOpen, FileText, ClipboardList, GraduationCap, Layers,
 } from 'lucide-react';
 import { logger } from '@/app/lib/logger';
-import { useContentTree } from '@/app/hooks/useContentTree';
+import { useContentTreeReadonly } from '@/app/hooks/useContentTree';
 
 // ── Stable icon constants (fix H-1) ──
 
@@ -41,7 +41,7 @@ export interface UseQuizCascadeReturn {
 
 export function useQuizCascade(): UseQuizCascadeReturn {
   // R16: content tree loaded by shared hook
-  const { contentTree, treeLoading } = useContentTree();
+  const { contentTree, treeLoading } = useContentTreeReadonly();
 
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [summariesLoading, setSummariesLoading] = useState(false);
