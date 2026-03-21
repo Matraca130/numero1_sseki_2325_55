@@ -43,7 +43,7 @@ class QuizErrorBoundary extends Component<EBProps, EBState> {
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#2a8c7a] text-white text-sm hover:bg-[#244e47] font-semibold transition-colors"
             style={{ fontWeight: 600 }}
           >
             <RotateCw size={14} /> Reintentar

@@ -151,7 +151,7 @@ export function FlashcardHero({
         <motion.button
           onClick={onStartReview}
           disabled={totalDue === 0}
-          className={`w-full flex items-center justify-between bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 transition-colors group cursor-pointer ${focusRing}`}
+          className={`w-full flex items-center justify-between bg-[#2a8c7a] hover:bg-[#244e47] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full px-4 py-3.5 sm:px-5 sm:py-4 transition-colors group cursor-pointer ${focusRing}`}
           {...fadeUp(0.3)}
           whileHover={shouldReduce ? undefined : { y: -2 }}
           whileTap={shouldReduce ? undefined : { scale: 0.98 }}

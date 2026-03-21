@@ -86,7 +86,7 @@ export function AdaptiveKeywordPanel({ keywordMastery, topicSummary, loading = f
   }, [keywordMastery, topicSummary]);
 
   if (!loading && keywordMastery.size === 0) return <div className="flex items-center gap-2 text-sm text-gray-400 py-4 justify-center"><BookOpen size={16} /><span>No hay datos de mastery para este tema</span></div>;
-  if (loading) return <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-4"><div className="flex items-center gap-2 mb-3"><div className="h-4 w-32 bg-gray-200 rounded animate-pulse" /></div><KeywordSkeleton count={4} /></div>;
+  if (loading) return <div className="bg-white rounded-2xl border border-gray-200/60 p-4"><div className="flex items-center gap-2 mb-3"><div className="h-4 w-32 bg-gray-200 rounded animate-pulse" /></div><KeywordSkeleton count={4} /></div>;
 
   const visibleWeak = showAll ? weakKeywords : weakKeywords.slice(0, INITIAL_VISIBLE);
   const hasMore = weakKeywords.length > INITIAL_VISIBLE && !showAll;
@@ -94,7 +94,7 @@ export function AdaptiveKeywordPanel({ keywordMastery, topicSummary, loading = f
   const masteredCount = masteredKeywords.length;
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-4">
+    <div className="bg-white rounded-2xl border border-gray-200/60 p-4">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm text-gray-700" style={{ fontWeight: 600 }}>Dominio por Keyword</h4>
         <span className="text-xs text-gray-500"><span style={{ fontWeight: 600 }} className="text-gray-700">{masteredCount}</span>/{totalKw} dominados</span>

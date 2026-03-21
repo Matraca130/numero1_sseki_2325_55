@@ -109,23 +109,23 @@ export function AiPracticeModal({
         className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-teal-100 bg-teal-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
-              <Sparkles size={14} className="text-white" />
+            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+              <Sparkles size={14} className="text-teal-500" />
             </div>
             <div>
-              <h3 className="text-[13px] text-violet-900" style={{ fontWeight: 700 }}>
+              <h3 className="text-[13px] text-teal-900" style={{ fontWeight: 700 }}>
                 Practica con IA
               </h3>
-              <p className="text-[10px] text-violet-400">
+              <p className="text-[10px] text-teal-400">
                 Pregunta generada para reforzar: {keywordName}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-violet-400 hover:text-violet-600 hover:bg-violet-100 transition-colors"
+            className="p-1.5 rounded-lg text-teal-400 hover:text-teal-600 hover:bg-teal-100 transition-colors"
           >
             <X size={14} />
           </button>
@@ -149,8 +149,8 @@ export function AiPracticeModal({
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <Loader2 size={24} className="animate-spin text-violet-500" />
-              <p className="text-[12px] text-violet-500">
+              <Loader2 size={24} className="animate-spin text-teal-500" />
+              <p className="text-[12px] text-teal-500">
                 Gemini esta generando una pregunta de practica...
               </p>
             </div>
@@ -173,8 +173,8 @@ export function AiPracticeModal({
               {/* Question */}
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <BookOpen size={12} className="text-violet-500" />
-                  <p className="text-[10px] text-violet-500 uppercase tracking-wider" style={{ fontWeight: 700 }}>
+                  <BookOpen size={12} className="text-teal-500" />
+                  <p className="text-[10px] text-teal-500 uppercase tracking-wider" style={{ fontWeight: 700 }}>
                     Pregunta de practica
                   </p>
                 </div>
@@ -205,7 +205,7 @@ export function AiPracticeModal({
               {/* Reveal button */}
               <button
                 onClick={() => setShowAnswer(!showAnswer)}
-                className="flex items-center gap-2 text-[12px] text-violet-600 hover:text-violet-800 transition-colors mx-auto px-4 py-2 rounded-xl hover:bg-violet-50"
+                className="flex items-center gap-2 text-[12px] text-teal-600 hover:text-teal-800 transition-colors mx-auto px-4 py-2 rounded-full hover:bg-teal-50"
                 style={{ fontWeight: 600 }}
               >
                 {showAnswer ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -246,7 +246,7 @@ export function AiPracticeModal({
           {error && !loading && (
             <button
               onClick={generate}
-              className="flex items-center gap-2 text-[12px] text-violet-600 hover:text-violet-800 transition-colors mx-auto px-4 py-2 rounded-xl hover:bg-violet-50"
+              className="flex items-center gap-2 text-[12px] text-teal-600 hover:text-teal-800 transition-colors mx-auto px-4 py-2 rounded-full hover:bg-teal-50"
               style={{ fontWeight: 600 }}
             >
               <Sparkles size={14} />

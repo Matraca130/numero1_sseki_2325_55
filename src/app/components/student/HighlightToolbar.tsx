@@ -35,7 +35,7 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
       exit={{ opacity: 0, y: 6, scale: 0.9 }}
       transition={{ duration: 0.12 }}
       style={{ top, left, position: 'absolute', zIndex: 60 }}
-      className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 shadow-xl"
+      className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-700 rounded-full px-2.5 py-1.5 shadow-xl"
     >
       {HIGHLIGHT_COLORS.map(c => (
         <button

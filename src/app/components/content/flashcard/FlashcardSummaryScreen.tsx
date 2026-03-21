@@ -112,8 +112,8 @@ export function SummaryScreen({
       />
 
       <div className="relative z-10 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-6 shadow-xl shadow-amber-500/25">
-          <Trophy size={40} className="text-white" />
+        <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center mb-6 shadow-xl shadow-teal-500/25">
+          <Trophy size={40} className="text-teal-500" />
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Sesi\u00F3n Completada!</h2>
@@ -151,7 +151,7 @@ export function SummaryScreen({
             className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-6 sm:mb-8"
           >
             {deltaStats.improved > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
                 <TrendingUp size={14} className="text-emerald-500" />
                 <span className="text-xs text-emerald-700" style={{ fontWeight: 600 }}>
                   {deltaStats.improved} mejoraron
@@ -159,7 +159,7 @@ export function SummaryScreen({
               </div>
             )}
             {deltaStats.newlyMastered > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
                 <Star size={14} className="text-amber-500" />
                 <span className="text-xs text-amber-700" style={{ fontWeight: 600 }}>
                   {deltaStats.newlyMastered} {deltaStats.newlyMastered === 1 ? 'nueva dominada' : 'nuevas dominadas'}
@@ -167,7 +167,7 @@ export function SummaryScreen({
               </div>
             )}
             {deltaStats.declined > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200">
                 <TrendingDown size={14} className="text-rose-500" />
                 <span className="text-xs text-rose-700" style={{ fontWeight: 600 }}>
                   {deltaStats.declined} bajaron
@@ -196,10 +196,10 @@ export function SummaryScreen({
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
-            className="mb-6 sm:mb-8 w-full max-w-[90vw] sm:max-w-sm bg-gradient-to-br from-violet-50/80 to-[#e6f5f1]/80 backdrop-blur-sm border border-violet-200/40 rounded-2xl p-4 sm:p-5 text-center"
+            className="mb-6 sm:mb-8 w-full max-w-[90vw] sm:max-w-sm bg-teal-50/80 border border-teal-200/40 rounded-2xl p-4 sm:p-5 text-center"
           >
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles size={16} className="text-violet-500" />
+              <Sparkles size={16} className="text-teal-500" />
               <span className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
                 Refuerza tus puntos d\u00E9biles
               </span>
@@ -209,7 +209,7 @@ export function SummaryScreen({
             </p>
             <button
               onClick={onStartAdaptive}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-[#2a8c7a] text-white text-sm shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 hover:-translate-y-0.5 transition-all flex items-center gap-2 mx-auto"
+              className="px-5 py-2.5 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 hover:-translate-y-0.5 transition-all flex items-center gap-2 mx-auto"
               style={{ fontWeight: 600 }}
             >
               <Sparkles size={14} />
