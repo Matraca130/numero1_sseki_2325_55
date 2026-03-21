@@ -449,3 +449,436 @@ export function runSchedulingPipeline(
   // Step 5: Interleave within days
   return interleaveWithinDays(balanced);
 }
+
+// ─── Study Momentum Score ─────────────────────────────────────
+
+/**
+ * Compute a rolling study momentum score (0.5-1.5).
+ *
+ * Based on the ratio of completed sessions to scheduled sessions
+ * over a rolling 7-day window, combined with time adherence.
+ *
+ * - 1.0 = baseline (student is on track)
+ * - > 1.0 = student is ahead, can push harder (max 1.5)
+ * - < 1.0 = student is behind, ease back (min 0.5)
+ *
+ * Used as a multiplier on daily task count.
+ *
+ * Research basis:
+ * - Duckworth et al. (2007): Grit and sustained effort predict academic outcomes
+ * - Zimmerman (2002): Self-regulated learners adjust pace based on recent performance
+ * - Kornell & Bjork (2008): Spacing adjustments based on metacognitive monitoring
+ *
+ * @param recentSessions - Array of recent study sessions (ideally last 7-14 days)
+ * @returns Object with momentum score, trend direction, and current streak count
+ */
+export function computeStudyMomentum(
+  recentSessions: Array<{
+    date: string;        // ISO date (YYYY-MM-DD)
+    completed: boolean;
+    scheduledMinutes: number;
+    actualMinutes: number;
+  }>,
+): { score: number; trend: 'rising' | 'stable' | 'falling'; streak: number } {
+  // Edge case: no sessions at all
+  if (recentSessions.length === 0) {
+    return { score: 1.0, trend: 'stable', streak: 0 };
+  }
+
+  // Step 1: Take only the last 7 days of sessions
+  const sorted = [...recentSessions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+  const last7 = sorted.slice(-14).filter((_, i, arr) => {
+    // Keep only the most recent 7 unique dates
+    return true;
+  });
+
+  // Deduplicate by date, aggregating within each day
+  const byDate = new Map<string, { completed: number; total: number; actualMin: number; scheduledMin: number }>();
+  for (const s of last7) {
+    const dateKey = s.date.slice(0, 10); // normalize to YYYY-MM-DD
+    const existing = byDate.get(dateKey) ?? { completed: 0, total: 0, actualMin: 0, scheduledMin: 0 };
+    existing.total += 1;
+    if (s.completed) existing.completed += 1;
+    existing.actualMin += s.actualMinutes;
+    existing.scheduledMin += s.scheduledMinutes;
+    byDate.set(dateKey, existing);
+  }
+
+  // Keep only last 7 unique dates
+  const dateEntries = [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-7);
+
+  if (dateEntries.length === 0) {
+    return { score: 1.0, trend: 'stable', streak: 0 };
+  }
+
+  // Step 2: Compute completion rate
+  let totalSessions = 0;
+  let completedSessions = 0;
+  for (const [, day] of dateEntries) {
+    totalSessions += day.total;
+    completedSessions += day.completed;
+  }
+  const completionRate = totalSessions > 0 ? completedSessions / totalSessions : 0;
+
+  // Step 3: Compute time adherence (actual / scheduled)
+  let totalScheduled = 0;
+  let totalActual = 0;
+  for (const [, day] of dateEntries) {
+    totalScheduled += day.scheduledMin;
+    totalActual += day.actualMin;
+  }
+  // Clamp time adherence to [0, 1.5] — studying 50% more than planned is the max bonus
+  const rawTimeAdherence = totalScheduled > 0 ? totalActual / totalScheduled : 1.0;
+  const timeAdherence = Math.min(rawTimeAdherence, 1.5);
+
+  // Step 4: Combined score = 0.6 * completionRate + 0.4 * timeAdherence
+  const rawScore = 0.6 * completionRate + 0.4 * timeAdherence;
+
+  // Step 5: Clamp to [0.5, 1.5]
+  const score = Math.round(Math.max(0.5, Math.min(1.5, rawScore)) * 100) / 100;
+
+  // Step 6: Detect trend (first half vs second half of the window)
+  const midpoint = Math.floor(dateEntries.length / 2);
+  const firstHalf = dateEntries.slice(0, midpoint);
+  const secondHalf = dateEntries.slice(midpoint);
+
+  function halfCompletionRate(entries: Array<[string, { completed: number; total: number }]>): number {
+    let t = 0, c = 0;
+    for (const [, d] of entries) { t += d.total; c += d.completed; }
+    return t > 0 ? c / t : 0;
+  }
+
+  const firstRate = halfCompletionRate(firstHalf);
+  const secondRate = halfCompletionRate(secondHalf);
+  const rateDelta = secondRate - firstRate;
+
+  const TREND_THRESHOLD = 0.1; // 10% difference to register a trend
+  const trend: 'rising' | 'stable' | 'falling' =
+    rateDelta > TREND_THRESHOLD ? 'rising'
+    : rateDelta < -TREND_THRESHOLD ? 'falling'
+    : 'stable';
+
+  // Step 7: Count current streak (consecutive days with at least 1 completed session, from most recent)
+  let streak = 0;
+  const reversedDates = [...dateEntries].reverse();
+  for (const [, day] of reversedDates) {
+    if (day.completed > 0) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return { score, trend, streak };
+}
+
+// ─── Exam Countdown Mode ──────────────────────────────────────
+
+/**
+ * Review plan for a single topic in exam preparation mode.
+ */
+export interface ExamReviewPlan {
+  topicId: string;
+  topicName: string;
+  difficulty: number;
+  currentStability: number;    // FSRS stability (days until ~90% retrievability threshold)
+  reviewDates: Date[];         // Optimal review dates before exam
+  peakRetrievability: number;  // Expected retrievability on exam day (0-1)
+  priority: 'critical' | 'moderate' | 'ready';  // Based on current state
+}
+
+/**
+ * Compute optimal review timing for exam preparation.
+ *
+ * Given an exam date, distributes reviews so that each topic's
+ * FSRS retrievability peaks on the exam day, not today.
+ *
+ * Based on the spacing effect: reviews should be timed so the
+ * last review happens 1-2 days before the exam for optimal recall.
+ *
+ * FSRS retrievability model (Anki/FSRS):
+ *   R(t) = (1 + t / (9 * S))^(-1)
+ * where t = days since last review, S = stability.
+ *
+ * Each successful review multiplies stability by ~2.5 (FSRS average gain factor).
+ * Hard topics (difficulty > 0.65) receive a reduced gain factor (~1.8).
+ *
+ * Research basis:
+ * - Ebbinghaus (1885): Forgetting curve and spacing effect
+ * - Pimsleur (1967): Graduated interval recall
+ * - Ye et al. (2024): FSRS — A Modern Spaced Repetition Algorithm
+ * - Cepeda et al. (2006): Optimal inter-study gap is ~10-20% of retention interval
+ *
+ * @param examDate - The date of the exam
+ * @param topics - Topics with their current FSRS stability values
+ * @param today - Current date (for calculating intervals)
+ * @returns Array of recommended review dates per topic, sorted by priority
+ */
+export function planExamCountdown(
+  examDate: Date,
+  topics: Array<{
+    topicId: string;
+    topicName: string;
+    difficulty: number;
+    stability: number;         // Current FSRS stability in days
+    lastReviewDate: Date | null;
+    retrievability: number;    // Current retrievability (0-1)
+  }>,
+  today: Date = new Date(),
+): ExamReviewPlan[] {
+  const daysUntilExam = Math.max(
+    0,
+    Math.floor((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+  );
+
+  // If exam is today or already passed, return empty plans
+  if (daysUntilExam <= 0) {
+    return topics.map(t => ({
+      topicId: t.topicId,
+      topicName: t.topicName,
+      difficulty: t.difficulty,
+      currentStability: t.stability,
+      reviewDates: [],
+      peakRetrievability: t.retrievability,
+      priority: t.retrievability < 0.5 ? 'critical' : t.retrievability < 0.8 ? 'moderate' : 'ready',
+    }));
+  }
+
+  const plans: ExamReviewPlan[] = topics.map(topic => {
+    const {
+      topicId, topicName, difficulty, stability,
+      lastReviewDate, retrievability,
+    } = topic;
+
+    // Compute days since last review
+    const daysSinceReview = lastReviewDate
+      ? Math.max(0, Math.floor((today.getTime() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24)))
+      : Infinity;
+
+    // FSRS retrievability at exam day if no further reviews
+    // R(t) = (1 + t / (9 * S))^(-1)
+    const totalDaysAtExam = daysSinceReview === Infinity
+      ? daysUntilExam + 30 // assume long time if never reviewed
+      : daysSinceReview + daysUntilExam;
+    const examDayRetrievabilityNoReview = computeFsrsRetrievability(totalDaysAtExam, stability);
+
+    // If stability is high enough that retrievability at exam day is >= 0.85,
+    // the topic is "ready" and needs at most a light refresh
+    if (examDayRetrievabilityNoReview >= 0.85 && stability > daysUntilExam) {
+      return {
+        topicId,
+        topicName,
+        difficulty,
+        currentStability: stability,
+        reviewDates: [],
+        peakRetrievability: examDayRetrievabilityNoReview,
+        priority: 'ready' as const,
+      };
+    }
+
+    // Backsolve the review schedule
+    // Gain factor per successful review (FSRS average)
+    const isHard = difficulty > 0.65;
+    const gainFactor = isHard ? 1.8 : 2.5;
+    const extraReviewForHard = isHard ? 1 : 0;
+
+    // Determine how many reviews are needed to build stability to cover exam
+    // Target: after last review, stability should be >= daysUntilExam so R stays high
+    let currentStab = stability > 0 ? stability : 0.5; // min stability
+    let reviewsNeeded = 0;
+    const MAX_REVIEWS = 10; // safety cap
+
+    // We want: finalStability >= daysUntilExam (so R >= ~0.9 at exam)
+    // Actually we want the last review's stability to cover the gap
+    // from last review to exam day. We plan last review 1-2 days before exam.
+    const lastReviewGap = isHard ? 1 : 2; // hard topics: review 1 day before; others: 2 days
+    const targetStability = lastReviewGap + 1; // stability needed after last review
+
+    // But first, how many reviews to get stability high enough overall?
+    // Each review: newStability = currentStability * gainFactor
+    // The real need: we need enough reviews that the student re-encodes the material
+    // and the final stability covers the gap to exam day.
+
+    // Simpler approach: figure out how many reviews needed so that
+    // stability after last review >= lastReviewGap
+    // (This is almost always 1-3 reviews since lastReviewGap is small)
+    // But also consider the student needs to rebuild from current retrievability.
+
+    // Number of reviews = ceil(log(targetStability / currentStab) / log(gainFactor))
+    // But at minimum 1 review if retrievability < 0.85
+    if (currentStab < targetStability) {
+      reviewsNeeded = Math.ceil(
+        Math.log(targetStability / currentStab) / Math.log(gainFactor),
+      );
+    }
+
+    // If retrievability is already low, we need at least 1 review regardless
+    if (retrievability < 0.85 && reviewsNeeded === 0) {
+      reviewsNeeded = 1;
+    }
+
+    // Add extra review for hard topics
+    reviewsNeeded += extraReviewForHard;
+
+    // Cap reviews
+    reviewsNeeded = Math.min(reviewsNeeded, MAX_REVIEWS);
+
+    // Distribute reviews optimally across the available days
+    const reviewDates = distributeReviewDates(
+      today,
+      daysUntilExam,
+      reviewsNeeded,
+      lastReviewGap,
+      currentStab,
+      gainFactor,
+    );
+
+    // Estimate retrievability on exam day after the planned reviews
+    let simStability = currentStab;
+    let simLastReviewDay = 0; // day 0 = today
+    for (const rd of reviewDates) {
+      const dayOffset = Math.floor((rd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      // Each review resets and increases stability
+      simStability = simStability * gainFactor;
+      simLastReviewDay = dayOffset;
+    }
+    const daysFromLastReviewToExam = daysUntilExam - simLastReviewDay;
+    const peakRetrievability = reviewDates.length > 0
+      ? computeFsrsRetrievability(Math.max(0, daysFromLastReviewToExam), simStability)
+      : examDayRetrievabilityNoReview;
+
+    // Priority classification
+    const priority: 'critical' | 'moderate' | 'ready' =
+      peakRetrievability < 0.6 ? 'critical'
+      : peakRetrievability < 0.85 ? 'moderate'
+      : 'ready';
+
+    return {
+      topicId,
+      topicName,
+      difficulty,
+      currentStability: stability,
+      reviewDates,
+      peakRetrievability: Math.round(peakRetrievability * 1000) / 1000,
+      priority,
+    };
+  });
+
+  // Sort by priority: critical first, then moderate, then ready
+  const priorityOrder = { critical: 0, moderate: 1, ready: 2 };
+  plans.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  return plans;
+}
+
+/**
+ * FSRS retrievability function.
+ * R(t) = (1 + t / (9 * S))^(-1)
+ * where t = elapsed days, S = stability.
+ */
+function computeFsrsRetrievability(elapsedDays: number, stability: number): number {
+  if (stability <= 0) return 0;
+  if (elapsedDays <= 0) return 1;
+  return Math.pow(1 + elapsedDays / (9 * stability), -1);
+}
+
+/**
+ * Distribute review dates across the available days before an exam.
+ *
+ * Strategy:
+ * - Last review = lastReviewGap days before exam (1-2 days)
+ * - Earlier reviews spaced at ~60% of stability interval (expanding spacing)
+ * - Minimum 1 day between reviews
+ */
+function distributeReviewDates(
+  today: Date,
+  daysUntilExam: number,
+  reviewCount: number,
+  lastReviewGap: number,
+  initialStability: number,
+  gainFactor: number,
+): Date[] {
+  if (reviewCount <= 0 || daysUntilExam <= 0) return [];
+
+  // Work backwards from exam
+  const reviewDayOffsets: number[] = [];
+
+  // Last review is `lastReviewGap` days before exam
+  let currentOffset = daysUntilExam - lastReviewGap;
+  if (currentOffset < 1) currentOffset = Math.max(1, daysUntilExam - 1);
+
+  reviewDayOffsets.push(currentOffset);
+
+  // Place earlier reviews working backwards
+  let stab = initialStability;
+  for (let i = 1; i < reviewCount; i++) {
+    // Gap = ~60% of current stability, but at least 1 day
+    const gap = Math.max(1, Math.round(stab * 0.6));
+    currentOffset -= gap;
+
+    // Don't go before today
+    if (currentOffset < 1) {
+      currentOffset = 1;
+    }
+
+    reviewDayOffsets.push(currentOffset);
+
+    // Stability increases with each review (forward simulation)
+    stab *= gainFactor;
+  }
+
+  // Sort chronologically and deduplicate
+  const uniqueOffsets = [...new Set(reviewDayOffsets)].sort((a, b) => a - b);
+
+  // Ensure minimum 1-day gap between reviews by shifting forward if needed
+  for (let i = 1; i < uniqueOffsets.length; i++) {
+    if (uniqueOffsets[i] <= uniqueOffsets[i - 1]) {
+      uniqueOffsets[i] = uniqueOffsets[i - 1] + 1;
+    }
+  }
+
+  // Filter out any offsets that exceed days until exam
+  const validOffsets = uniqueOffsets.filter(o => o > 0 && o <= daysUntilExam);
+
+  // Convert offsets to Date objects
+  return validOffsets.map(offset => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+}
+
+// ─── Difficulty Badge Helper ──────────────────────────────────
+
+/**
+ * Get a difficulty badge configuration for UI display.
+ * Used by the study organizer wizard and schedule views.
+ *
+ * Classification thresholds match DIFFICULTY_THRESHOLDS used
+ * throughout this module (hard >= 0.65, medium >= 0.35, easy < 0.35).
+ *
+ * @param difficulty - Difficulty value (0.0-1.0) or null if unknown
+ * @returns Object with localized label, Tailwind-compatible color, and emoji
+ */
+export function getDifficultyBadge(
+  difficulty: number | null,
+): { label: string; color: string; emoji: string } {
+  if (difficulty === null || difficulty === undefined) {
+    return { label: '?', color: '#9ca3af', emoji: '\u2753' }; // gray, question mark
+  }
+
+  if (difficulty >= DIFFICULTY_THRESHOLDS.hard) {
+    return { label: 'Dif\u00edcil', color: '#ef4444', emoji: '\uD83D\uDD34' }; // red circle
+  }
+
+  if (difficulty >= DIFFICULTY_THRESHOLDS.medium) {
+    return { label: 'Moderado', color: '#f59e0b', emoji: '\uD83D\uDFE1' }; // yellow circle
+  }
+
+  return { label: 'F\u00e1cil', color: '#22c55e', emoji: '\uD83D\uDFE2' }; // green circle
+}
