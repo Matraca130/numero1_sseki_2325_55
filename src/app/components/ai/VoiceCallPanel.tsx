@@ -1,19 +1,20 @@
 // ============================================================
 // VoiceCallPanel — Real-time voice call UI for AxonAIAssistant
 //
-// States: idle → connecting → active (listening/thinking/speaking) → idle
+// States: idle -> connecting -> active (listening/thinking/speaking) -> idle
 // Uses OpenAI Realtime API via useRealtimeVoice hook
+// VAD-only mode — no push-to-talk, user just speaks naturally
 // ============================================================
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Phone,
   PhoneOff,
-  Mic,
-  Volume2,
   Loader2,
   AlertCircle,
+  Mic,
+  Volume2,
   Brain,
 } from 'lucide-react';
 import { useRealtimeVoice } from '@/app/hooks/useRealtimeVoice';
@@ -22,95 +23,111 @@ interface VoiceCallPanelProps {
   summaryId?: string;
 }
 
-// ── Audio Wave Animation (CSS-only) ──────────────────────────
+interface ChatMessage {
+  role: 'user' | 'ai';
+  text: string;
+}
 
-function AudioWaves({ active, color = 'bg-teal-400' }: { active: boolean; color?: string }) {
+// -- Audio Wave Visualization (reactive to audio level) -------
+
+function AudioWaves({ level = 0 }: { level?: number }) {
+  const bars = [0.4, 0.7, 1.0, 0.7, 0.4];
   return (
-    <div className="flex items-center justify-center gap-1 h-8">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <motion.div
+    <div className="flex items-end justify-center gap-1 h-8">
+      {bars.map((barScale, i) => (
+        <div
           key={i}
-          className={`w-1 rounded-full ${color}`}
-          animate={active ? {
-            height: [8, 24, 12, 28, 8],
-          } : {
-            height: 8,
-          }}
-          transition={active ? {
-            duration: 1.2,
-            repeat: Infinity,
-            delay: i * 0.15,
-            ease: 'easeInOut',
-          } : {
-            duration: 0.3,
-          }}
+          className="w-1 rounded-full bg-teal-400 transition-all duration-75"
+          style={{ height: `${Math.max(4, level * barScale * 32)}px` }}
         />
       ))}
     </div>
   );
 }
 
-// ── Status Indicator ─────────────────────────────────────────
+// -- Status Indicator -----------------------------------------
 
-function StatusIndicator({ aiState }: { aiState: 'listening' | 'thinking' | 'speaking' }) {
+function StatusIndicator({
+  aiState,
+  level,
+}: {
+  aiState: 'listening' | 'thinking' | 'speaking';
+  level: number;
+}) {
   const config = {
     listening: {
       icon: Mic,
       label: 'Escuchando...',
       color: 'text-teal-500',
       bgColor: 'bg-teal-50',
-      waveColor: 'bg-teal-400',
     },
     thinking: {
       icon: Brain,
       label: 'Pensando...',
       color: 'text-amber-500',
       bgColor: 'bg-amber-50',
-      waveColor: 'bg-amber-400',
     },
     speaking: {
       icon: Volume2,
       label: 'Hablando...',
       color: 'text-teal-600',
       bgColor: 'bg-teal-50',
-      waveColor: 'bg-teal-500',
     },
   }[aiState];
 
   const Icon = config.icon;
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-3">
       {/* Pulsing circle with icon */}
       <motion.div
-        className={`w-24 h-24 rounded-full ${config.bgColor} flex items-center justify-center`}
-        animate={aiState === 'listening' ? {
-          scale: [1, 1.08, 1],
-          opacity: [0.8, 1, 0.8],
-        } : aiState === 'speaking' ? {
-          scale: [1, 1.05, 1],
-        } : {}}
+        className={`w-20 h-20 rounded-full ${config.bgColor} flex items-center justify-center`}
+        animate={
+          aiState === 'listening'
+            ? { scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }
+            : aiState === 'speaking'
+              ? { scale: [1, 1.05, 1] }
+              : {}
+        }
         transition={{
           duration: aiState === 'listening' ? 2 : 1.5,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
       >
-        <Icon size={36} className={config.color} />
+        <Icon size={32} className={config.color} />
       </motion.div>
 
-      {/* Audio waves */}
-      <AudioWaves active={aiState !== 'thinking'} color={config.waveColor} />
+      {/* Audio level visualization */}
+      <AudioWaves level={aiState === 'thinking' ? 0 : level} />
 
       {/* Status label */}
-      <span className={`text-sm font-medium ${config.color}`}>
+      <span
+        className={`font-medium font-sans ${config.color}`}
+        style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)' }}
+      >
         {config.label}
       </span>
     </div>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────
+// -- Call Duration Timer --------------------------------------
+
+function CallTimer({ seconds }: { seconds: number }) {
+  const m = Math.floor(seconds / 60);
+  const s = String(seconds % 60).padStart(2, '0');
+  return (
+    <span
+      className="font-sans text-gray-400 tabular-nums"
+      style={{ fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)' }}
+    >
+      {m}:{s}
+    </span>
+  );
+}
+
+// -- Main Component -------------------------------------------
 
 export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
   const {
@@ -120,38 +137,110 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
     aiTranscript,
     startCall,
     endCall,
-    onTalkStart,
-    onTalkEnd,
     error,
+    ...rest
   } = useRealtimeVoice();
 
-  const [isTalking, setIsTalking] = React.useState(false);
+  // Defensive: audioLevel may not exist yet (Agent 2 adds it)
+  const level = ((rest as Record<string, unknown>).audioLevel as number | undefined) ?? 0;
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // -- Call duration timer --
+  const [duration, setDuration] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    if (state === 'active') {
+      setDuration(0);
+      timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [state]);
+
+  // -- Accumulate user transcript --
+  useEffect(() => {
+    if (userTranscript && userTranscript.trim()) {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'user') {
+          return [...prev.slice(0, -1), { role: 'user', text: userTranscript }];
+        }
+        return [...prev, { role: 'user', text: userTranscript }];
+      });
+    }
+  }, [userTranscript]);
+
+  // -- Accumulate AI transcript --
+  useEffect(() => {
+    if (aiTranscript && aiTranscript.trim()) {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'ai') {
+          return [...prev.slice(0, -1), { role: 'ai', text: aiTranscript }];
+        }
+        return [...prev, { role: 'ai', text: aiTranscript }];
+      });
+    }
+  }, [aiTranscript]);
+
+  // -- Auto-scroll chat --
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const isActive = state === 'active';
   const isConnecting = state === 'connecting';
   const isError = state === 'error';
+  const isReconnecting = isConnecting && messages.length > 0;
+
+  // Check if error is mic-permission related
+  const isMicError =
+    error &&
+    (error.toLowerCase().includes('microfono') ||
+      error.toLowerCase().includes('microphone') ||
+      error.toLowerCase().includes('permission'));
 
   return (
     <div className="flex-1 flex flex-col items-center justify-between p-6 min-h-0">
-      {/* ── Idle State ── */}
-      {state === 'idle' && (
+      {/* -- Idle State -- */}
+      {state === 'idle' && !isError && (
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
           <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center">
             <Phone size={32} className="text-teal-500" />
           </div>
 
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-800" style={{ fontFamily: 'Georgia, serif' }}>
+            <h3
+              className="font-semibold text-gray-800"
+              style={{
+                fontFamily: 'Georgia, serif',
+                fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+              }}
+            >
               Llamada de voz
             </h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-[280px]">
-              Habla con tu tutor de IA en tiempo real. Te conoce, sabe tus dificultades y te ayuda a estudiar.
+            <p
+              className="text-gray-500 mt-1 max-w-[280px] font-sans"
+              style={{ fontSize: 'clamp(0.8rem, 2vw, 0.875rem)' }}
+            >
+              Habla con tu tutor de IA en tiempo real. Te conoce, sabe tus
+              dificultades y te ayuda a estudiar.
             </p>
           </div>
 
           <button
-            onClick={() => startCall(summaryId)}
+            onClick={(e) => {
+              e.preventDefault();
+              startCall(summaryId);
+            }}
             className="flex items-center gap-2 px-8 py-3 rounded-full bg-teal-500 text-white font-medium shadow-lg shadow-teal-200 hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-300 transition-all active:scale-95"
+            style={{ touchAction: 'none' }}
           >
             <Phone size={18} />
             Iniciar llamada
@@ -159,7 +248,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
         </div>
       )}
 
-      {/* ── Connecting State ── */}
+      {/* -- Connecting / Reconnecting State -- */}
       {isConnecting && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <motion.div
@@ -168,68 +257,73 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
           >
             <Loader2 size={40} className="text-teal-500" />
           </motion.div>
-          <p className="text-sm text-gray-500">Conectando con tu tutor...</p>
+          <p
+            className="text-gray-500 font-sans"
+            style={{ fontSize: 'clamp(0.8rem, 2vw, 0.875rem)' }}
+          >
+            {isReconnecting
+              ? 'Reconectando con tu tutor...'
+              : 'Conectando con tu tutor...'}
+          </p>
         </div>
       )}
 
-      {/* ── Active Call ── */}
+      {/* -- Active Call -- */}
       {isActive && (
         <>
-          {/* Status */}
-          <div className="flex-none pt-6">
-            <StatusIndicator aiState={aiState} />
+          {/* Status + Timer */}
+          <div className="flex-none pt-4 flex flex-col items-center gap-1">
+            <StatusIndicator aiState={aiState} level={level} />
+            <CallTimer seconds={duration} />
           </div>
 
-          {/* Transcripts */}
-          <div className="flex-1 flex flex-col gap-3 w-full mt-6 mb-4 min-h-0 overflow-y-auto">
-            <AnimatePresence mode="popLayout">
-              {userTranscript && (
-                <motion.div
-                  key="user"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-teal-500 text-white text-sm"
-                >
-                  {userTranscript}
-                </motion.div>
-              )}
-
-              {aiTranscript && (
-                <motion.div
-                  key="ai"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="self-start max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md bg-white text-gray-700 text-sm shadow-sm border border-gray-100"
-                >
-                  {aiTranscript}
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Transcript chat history */}
+          <div className="flex-1 w-full mt-4 mb-4 min-h-0 overflow-y-auto px-2">
+            <div className="space-y-3">
+              <AnimatePresence mode="popLayout">
+                {messages.map((msg, i) => (
+                  <motion.div
+                    key={`${msg.role}-${i}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                        msg.role === 'user'
+                          ? 'bg-teal-500 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <p
+                        className="font-sans"
+                        style={{
+                          fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
+                        }}
+                      >
+                        {msg.text}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={chatEndRef} />
+            </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex-none pb-4 flex items-center gap-4">
-            {/* Push-to-talk button */}
+          {/* Hang up button (only action — no PTT) */}
+          <div className="flex-none pb-4 flex items-center justify-center">
             <button
-              onMouseDown={() => { setIsTalking(true); onTalkStart(); }}
-              onMouseUp={() => { setIsTalking(false); onTalkEnd(); }}
-              onMouseLeave={() => { if (isTalking) { setIsTalking(false); onTalkEnd(); } }}
-              onTouchStart={() => { setIsTalking(true); onTalkStart(); }}
-              onTouchEnd={() => { setIsTalking(false); onTalkEnd(); }}
-              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 select-none ${
-                isTalking
-                  ? 'bg-teal-600 shadow-teal-300 scale-110'
-                  : 'bg-teal-500 shadow-teal-200 hover:bg-teal-600'
-              } text-white`}
-              title="Mantener presionado para hablar"
-            >
-              <Mic size={24} />
-            </button>
-
-            {/* Hang up button */}
-            <button
-              onClick={endCall}
+              onClick={(e) => {
+                e.preventDefault();
+                endCall();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                endCall();
+              }}
               className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-200 transition-all active:scale-95"
+              style={{ touchAction: 'none' }}
             >
               <PhoneOff size={24} />
             </button>
@@ -237,26 +331,46 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
         </>
       )}
 
-      {/* ── Error State ── */}
+      {/* -- Error State -- */}
       {isError && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
-            <AlertCircle size={28} className="text-red-500" />
-          </div>
+          <div className="bg-red-50 rounded-2xl p-6 text-center max-w-[320px]">
+            <AlertCircle size={32} className="text-red-400 mx-auto mb-3" />
 
-          <div className="text-center">
-            <p className="text-sm font-medium text-gray-800">Error en la llamada</p>
-            <p className="text-xs text-gray-500 mt-1 max-w-[280px]">
+            <p
+              className="font-medium text-gray-800 font-sans"
+              style={{ fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}
+            >
+              {isMicError ? 'Permiso de microfono' : 'Error en la llamada'}
+            </p>
+            <p
+              className="text-red-600 mt-2 font-sans"
+              style={{ fontSize: 'clamp(0.75rem, 1.8vw, 0.85rem)' }}
+            >
               {error || 'No se pudo conectar con el tutor.'}
             </p>
-          </div>
 
-          <button
-            onClick={() => startCall(summaryId)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 transition-colors"
-          >
-            Reintentar
-          </button>
+            {isMicError && (
+              <p
+                className="text-gray-500 mt-2 font-sans"
+                style={{ fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)' }}
+              >
+                Verifica que tu navegador tenga permiso para usar el microfono e
+                intentalo de nuevo.
+              </p>
+            )}
+
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                startCall(summaryId);
+              }}
+              className="mt-4 px-6 py-2 rounded-full bg-teal-500 text-white font-medium hover:bg-teal-600 transition-colors"
+              style={{ touchAction: 'none' }}
+            >
+              Intentar de nuevo
+            </button>
+          </div>
         </div>
       )}
     </div>
