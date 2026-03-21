@@ -80,7 +80,7 @@ export const KeywordRow = React.memo(function KeywordRow({ item, expanded, onTog
               e.stopPropagation();
               devLog('[MasteryOverview] Repetir:', item.keyword.id, item.keyword.name);
             }}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded-md text-[#2a8c7a] hover:bg-[#e6f5f1] transition-colors shrink-0"
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full text-[#2a8c7a] hover:bg-[#e6f5f1] transition-colors shrink-0"
           >
             <RotateCcw className="w-3 h-3" />
             <span className="hidden sm:inline">Repetir</span>

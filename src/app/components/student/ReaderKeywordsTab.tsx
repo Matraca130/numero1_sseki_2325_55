@@ -395,10 +395,10 @@ export const ReaderKeywordsTab = React.memo(function ReaderKeywordsTab({
                           {/* Open full keyword hub */}
                           <button
                             onClick={(e) => handleOpenPopup(kw.id, e.currentTarget)}
-                            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs transition-all
+                            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-xs transition-all
                               active:scale-[0.98] cursor-pointer"
                             style={{
-                              background: 'linear-gradient(to right, rgba(42,140,122,0.1), rgba(139,92,246,0.1))',
+                              background: 'rgba(42,140,122,0.1)',
                               color: '#2a8c7a',
                               border: '1px solid rgba(42,140,122,0.25)',
                               fontWeight: 500,

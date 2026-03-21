@@ -187,8 +187,8 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center">
-              <FileText size={20} className="text-purple-600" />
+            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+              <FileText size={20} className="text-teal-600" />
             </div>
             <div>
               <h2 className="text-gray-900">{topicName}</h2>
@@ -210,7 +210,7 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
             <Button
               size="sm"
               onClick={() => setShowCreateDialog(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full"
             >
               <Plus size={14} />
               Nuevo Resumen
@@ -249,8 +249,8 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
         {/* Empty state */}
         {!loading && !error && summaries.length === 0 && (
           <div className="bg-white border border-dashed border-gray-200 rounded-xl p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
-              <FileText size={24} className="text-purple-300" />
+            <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
+              <FileText size={24} className="text-teal-300" />
             </div>
             <p className="text-sm text-gray-500 mb-1">
               No hay resumenes en este topico
@@ -261,7 +261,7 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
             <Button
               size="sm"
               onClick={() => setShowCreateDialog(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full"
             >
               <Plus size={14} />
               Crear primer resumen
@@ -284,7 +284,7 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
                   className={`group bg-white rounded-xl border transition-all cursor-pointer ${
                     !s.is_active
                       ? 'border-red-200 bg-red-50/30 opacity-60'
-                      : 'border-gray-200 hover:border-purple-200 hover:shadow-sm'
+                      : 'border-gray-200 hover:border-teal-200 hover:shadow-sm'
                   }`}
                   onClick={() => {
                     if (!s.is_active) return;
@@ -298,8 +298,8 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
                   <div className="p-5">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <FileText size={14} className="text-purple-500" />
+                        <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <FileText size={14} className="text-teal-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -336,7 +336,7 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
                               </span>
                               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded ${
                                 subCounts[s.id].keywords > 0
-                                  ? 'text-purple-500 bg-purple-50'
+                                  ? 'text-teal-500 bg-teal-50'
                                   : 'text-gray-400 bg-gray-50'
                               }`}>
                                 <Tag size={9} />
@@ -346,7 +346,7 @@ export function TopicDetailPanel({ topicId, topicName, onEditSummary }: TopicDet
                                 <VideoIcon size={9} />
                                 {subCounts[s.id].videos} video{subCounts[s.id].videos !== 1 ? 's' : ''}
                               </span>
-                              <span className="text-[10px] text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                              <span className="text-[10px] text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
                                 Click para editar contenido
                               </span>
                             </div>

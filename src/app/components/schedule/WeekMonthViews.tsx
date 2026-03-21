@@ -446,7 +446,7 @@ export function WeekView({
           <p className="text-[13px] font-semibold text-[#4a5565]">Sin tareas esta semana</p>
           <button
             onClick={onNavigateNewPlan}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-4 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors"
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-4 py-2 rounded-full hover:bg-[#ccebe3] transition-colors"
           >
             <Plus size={13} /> Crear plan
           </button>
@@ -675,7 +675,7 @@ export function MonthView({
             <p className="text-[12px] text-[#9ba3b2]">Sin tareas para este día</p>
             <button
               onClick={onNavigateNewPlan}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-1.5 rounded-lg hover:bg-[#ccebe3] transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-1.5 rounded-full hover:bg-[#ccebe3] transition-colors"
             >
               <Plus size={12} /> Crear plan
             </button>

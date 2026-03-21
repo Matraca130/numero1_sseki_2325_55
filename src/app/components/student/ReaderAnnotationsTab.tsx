@@ -74,7 +74,7 @@ export const ReaderAnnotationsTab = React.memo(function ReaderAnnotationsTab({
         </div>
         <motion.button
           onClick={() => setShowForm(true)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 border border-zinc-200 rounded-lg text-xs text-zinc-600 hover:bg-zinc-50 ${focusRing}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 border border-zinc-200 rounded-full text-xs text-zinc-600 hover:bg-zinc-50 ${focusRing}`}
           style={{ fontWeight: 600 }}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
@@ -125,7 +125,7 @@ export const ReaderAnnotationsTab = React.memo(function ReaderAnnotationsTab({
                     <button
                       onClick={handleCancel}
                       disabled={savingAnnotation}
-                      className={`px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 rounded-lg ${focusRing}`}
+                      className={`px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 rounded-full ${focusRing}`}
                       style={{ fontWeight: 500 }}
                     >
                       Cancelar
@@ -133,7 +133,7 @@ export const ReaderAnnotationsTab = React.memo(function ReaderAnnotationsTab({
                     <motion.button
                       onClick={handleCreate}
                       disabled={savingAnnotation || !noteText.trim()}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 text-white rounded-lg text-xs disabled:opacity-50 ${focusRing}`}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-white rounded-full text-xs disabled:opacity-50 ${focusRing}`}
                       style={{ backgroundColor: '#2a8c7a', fontWeight: 600 }}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
@@ -154,7 +154,7 @@ export const ReaderAnnotationsTab = React.memo(function ReaderAnnotationsTab({
                 <p className="text-[10px] text-zinc-400 mb-3">Agrega notas para recordar puntos importantes</p>
                 <motion.button
                   onClick={() => setShowForm(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-zinc-200 rounded-lg text-xs text-zinc-600 hover:bg-zinc-50 ${focusRing}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-zinc-200 rounded-full text-xs text-zinc-600 hover:bg-zinc-50 ${focusRing}`}
                   style={{ fontWeight: 600 }}
                   whileHover={{ scale: 1.03 }}
                 >

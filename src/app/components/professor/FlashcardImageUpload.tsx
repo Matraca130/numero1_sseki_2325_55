@@ -180,7 +180,7 @@ const result = await apiCall<{ path: string }>('/storage/upload', {
             />
             {uploading && (
               <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                <Loader2 size={20} className="animate-spin text-violet-500" />
+                <Loader2 size={20} className="animate-spin text-teal-500" />
               </div>
             )}
           </div>
@@ -190,7 +190,7 @@ const result = await apiCall<{ path: string }>('/storage/upload', {
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-violet-500 rounded-full transition-all duration-300"
+                  className="h-full bg-teal-500 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -219,14 +219,14 @@ const result = await apiCall<{ path: string }>('/storage/upload', {
           onDrop={handleDrop}
           className={`flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
             dragOver
-              ? 'border-violet-400 bg-violet-50/30'
-              : 'border-gray-300 hover:border-violet-400 hover:bg-violet-50/10'
+              ? 'border-teal-400 bg-teal-50/30'
+              : 'border-gray-300 hover:border-teal-400 hover:bg-teal-50/10'
           }`}
         >
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            dragOver ? 'bg-violet-100' : 'bg-gray-100'
+            dragOver ? 'bg-teal-100' : 'bg-gray-100'
           }`}>
-            <ImagePlus size={20} className={dragOver ? 'text-violet-500' : 'text-gray-400'} />
+            <ImagePlus size={20} className={dragOver ? 'text-teal-500' : 'text-gray-400'} />
           </div>
           <div className="text-center">
             <p className="text-xs font-medium text-gray-600">

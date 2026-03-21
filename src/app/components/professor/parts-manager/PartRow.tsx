@@ -72,7 +72,7 @@ export function PartRow({ part, isEditing, layers, onStartEdit, onSave, onCancel
               layer_group: editLayer,
               opacity_default: editOpacity / 100,
             })}
-            className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-violet-600 hover:bg-violet-500 rounded transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-full transition-colors"
           >
             <Save size={8} /> Guardar
           </button>

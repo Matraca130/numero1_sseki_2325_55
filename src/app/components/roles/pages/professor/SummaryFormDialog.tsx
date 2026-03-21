@@ -94,9 +94,9 @@ export function SummaryFormDialog({
           </div>
 
           {!defaultValues && (
-            <div className="flex items-start gap-3 p-3 bg-violet-50/50 border border-violet-100 rounded-lg">
-              <FileText size={16} className="text-violet-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-violet-600">
+            <div className="flex items-start gap-3 p-3 bg-teal-50/50 border border-teal-100 rounded-lg">
+              <FileText size={16} className="text-teal-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-teal-600">
                 Una vez creado, podras editar el contenido con el editor visual (con formato, imagenes y mas) en la pestaña <strong>Editor</strong>.
               </p>
             </div>
@@ -141,7 +141,7 @@ export function SummaryFormDialog({
             <Button
               type="submit"
               disabled={saving}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full"
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
               {defaultValues ? 'Guardar cambios' : 'Crear resumen'}

@@ -223,7 +223,7 @@ export function ModelPartsManager({ modelId, modelName }: ModelPartsManagerProps
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowAddLayer(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-lg hover:bg-violet-500/20 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-full hover:bg-teal-500/20 transition-colors"
           >
             <Plus size={10} /> Capa
           </button>

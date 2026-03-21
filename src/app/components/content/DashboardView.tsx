@@ -108,13 +108,13 @@ export function DashboardView() {
           <div className="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200/60 shrink-0">
             <button
               onClick={() => setTimeRange('week')}
-              className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap", timeRange === 'week' ? components.filterButton.active : components.filterButton.inactive)}
+              className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-full transition-all whitespace-nowrap", timeRange === 'week' ? components.filterButton.active : components.filterButton.inactive)}
             >
               Esta Semana
             </button>
             <button
               onClick={() => setTimeRange('month')}
-              className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap", timeRange === 'month' ? components.filterButton.active : components.filterButton.inactive)}
+              className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-full transition-all whitespace-nowrap", timeRange === 'month' ? components.filterButton.active : components.filterButton.inactive)}
             >
               Este Mes
             </button>

@@ -69,7 +69,7 @@ function KeywordResultItem({
     <button
       type="button"
       onClick={onSelect}
-      className="w-full flex items-start gap-2 px-3 py-1.5 text-left hover:bg-violet-50 transition-colors"
+      className="w-full flex items-start gap-2 px-3 py-1.5 text-left hover:bg-teal-50 transition-colors"
     >
       <ExternalLink size={10} className="text-indigo-400 shrink-0 mt-0.5" />
       <div className="min-w-0 flex-1">
@@ -338,9 +338,9 @@ export function ConnectionForm({
             <div className="space-y-1.5">
               {/* Selected keyword chip OR search input */}
               {targetKeywordId ? (
-                <div className="flex items-center gap-2 h-7 bg-violet-50 border border-violet-200 rounded px-2">
-                  <ExternalLink size={10} className="text-violet-500 shrink-0" />
-                  <span className="text-xs text-violet-700 truncate flex-1" style={{ fontWeight: 500 }}>
+                <div className="flex items-center gap-2 h-7 bg-teal-50 border border-teal-200 rounded px-2">
+                  <ExternalLink size={10} className="text-teal-500 shrink-0" />
+                  <span className="text-xs text-teal-700 truncate flex-1" style={{ fontWeight: 500 }}>
                     {targetKeywordName}
                   </span>
                   <button

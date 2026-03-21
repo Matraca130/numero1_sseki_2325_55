@@ -439,8 +439,8 @@ export function FlashcardBulkImport({
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
-                <Upload size={16} className="text-purple-600" />
+              <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <Upload size={16} className="text-teal-600" />
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">Importar en lote</h3>
@@ -465,7 +465,7 @@ export function FlashcardBulkImport({
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                      ? 'bg-teal-100 text-teal-700 border border-teal-200'
                       : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -484,7 +484,7 @@ export function FlashcardBulkImport({
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setShowPreview(false)}
-                    className="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                    className="text-xs text-teal-600 hover:text-purple-700 font-medium transition-colors"
                   >
                     ← Volver a importar
                   </button>
@@ -536,7 +536,7 @@ export function FlashcardBulkImport({
                           Pega tus flashcards
                         </label>
                         {pasteLineCount > 0 && (
-                          <span className="text-xs text-purple-600 font-medium">
+                          <span className="text-xs text-teal-600 font-medium">
                             {pasteLineCount} card{pasteLineCount !== 1 ? 's' : ''} detectada{pasteLineCount !== 1 ? 's' : ''}
                           </span>
                         )}
@@ -566,7 +566,7 @@ export function FlashcardBulkImport({
                             onClick={() => { setSeparator(s.v); setAutoDetected(true); }}
                             className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                               separator === s.v
-                                ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                                ? 'bg-teal-100 text-teal-700 border border-teal-200'
                                 : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                             }`}
                           >
@@ -582,7 +582,7 @@ export function FlashcardBulkImport({
                     <button
                       onClick={handlePreviewPaste}
                       disabled={pasteLineCount === 0}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all self-end"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2a8c7a] text-white text-sm font-semibold hover:bg-[#244e47] disabled:opacity-50 transition-all self-end"
                     >
                       Previsualizar
                       <ChevronRight size={14} />
@@ -596,11 +596,11 @@ export function FlashcardBulkImport({
                     <div
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={handleDrop}
-                      className="border-2 border-dashed border-gray-200 rounded-xl p-12 flex flex-col items-center justify-center text-center hover:border-purple-300 hover:bg-purple-50/30 transition-all cursor-pointer"
+                      className="border-2 border-dashed border-gray-200 rounded-xl p-12 flex flex-col items-center justify-center text-center hover:border-teal-300 hover:bg-teal-50/30 transition-all cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center mb-4">
-                        <FileText size={24} className="text-purple-400" />
+                      <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
+                        <FileText size={24} className="text-teal-400" />
                       </div>
                       <p className="text-sm text-gray-700 font-medium mb-1">
                         Arrastra un archivo aqui o haz click para seleccionar
@@ -619,8 +619,8 @@ export function FlashcardBulkImport({
 
                     <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1.5">
                       <p className="font-medium text-gray-700">Formato esperado:</p>
-                      <p><span className="font-mono text-purple-600">CSV:</span> Headers: front, back, keyword_name (opcional)</p>
-                      <p><span className="font-mono text-purple-600">JSON:</span> Array de objetos con front, back, keyword_name (opcional)</p>
+                      <p><span className="font-mono text-teal-600">CSV:</span> Headers: front, back, keyword_name (opcional)</p>
+                      <p><span className="font-mono text-teal-600">JSON:</span> Array de objetos con front, back, keyword_name (opcional)</p>
                     </div>
                   </div>
                 )}
@@ -636,40 +636,40 @@ export function FlashcardBulkImport({
                       {/* CSV template */}
                       <button
                         onClick={downloadCsvTemplate}
-                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-purple-200 hover:bg-purple-50/30 transition-all text-left group"
+                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-teal-200 hover:bg-teal-50/30 transition-all text-left group"
                       >
                         <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
                           <FileText size={18} className="text-emerald-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800 group-hover:text-purple-700 transition-colors">Template CSV</p>
+                          <p className="text-sm font-medium text-gray-800 group-hover:text-teal-700 transition-colors">Template CSV</p>
                           <p className="text-xs text-gray-400">Excel, Google Sheets compatible</p>
                         </div>
-                        <Download size={14} className="text-gray-300 group-hover:text-purple-400 ml-auto transition-colors" />
+                        <Download size={14} className="text-gray-300 group-hover:text-teal-400 ml-auto transition-colors" />
                       </button>
 
                       {/* JSON template */}
                       <button
                         onClick={downloadJsonTemplate}
-                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-purple-200 hover:bg-purple-50/30 transition-all text-left group"
+                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-teal-200 hover:bg-teal-50/30 transition-all text-left group"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                          <FileText size={18} className="text-blue-600" />
+                        <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
+                          <FileText size={18} className="text-teal-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800 group-hover:text-purple-700 transition-colors">Template JSON</p>
+                          <p className="text-sm font-medium text-gray-800 group-hover:text-teal-700 transition-colors">Template JSON</p>
                           <p className="text-xs text-gray-400">Para desarrolladores y scripts</p>
                         </div>
-                        <Download size={14} className="text-gray-300 group-hover:text-purple-400 ml-auto transition-colors" />
+                        <Download size={14} className="text-gray-300 group-hover:text-teal-400 ml-auto transition-colors" />
                       </button>
                     </div>
 
                     <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-2">
                       <p className="font-medium text-gray-700">Columnas:</p>
                       <ul className="space-y-1 list-disc list-inside">
-                        <li><span className="font-mono text-purple-600">front</span> — La pregunta o concepto (requerido)</li>
-                        <li><span className="font-mono text-purple-600">back</span> — La respuesta o explicacion (requerido)</li>
-                        <li><span className="font-mono text-purple-600">keyword_name</span> — Nombre del keyword para asociar (opcional, se matchea automaticamente)</li>
+                        <li><span className="font-mono text-teal-600">front</span> — La pregunta o concepto (requerido)</li>
+                        <li><span className="font-mono text-teal-600">back</span> — La respuesta o explicacion (requerido)</li>
+                        <li><span className="font-mono text-teal-600">keyword_name</span> — Nombre del keyword para asociar (opcional, se matchea automaticamente)</li>
                       </ul>
                     </div>
                   </div>
@@ -694,7 +694,7 @@ export function FlashcardBulkImport({
                 <div className="flex items-center gap-3">
                   <div className="w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                      className="h-full bg-teal-500 rounded-full transition-all duration-300"
                       style={{ width: `${(importProgress / importTotal) * 100}%` }}
                     />
                   </div>
@@ -707,7 +707,7 @@ export function FlashcardBulkImport({
                 <button
                   onClick={handleImport}
                   disabled={!canImport}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-sm shadow-purple-200"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2a8c7a] text-white text-sm font-semibold hover:bg-[#244e47] disabled:opacity-50 transition-all shadow-sm shadow-teal-200"
                 >
                   <Check size={14} />
                   Importar {importableRows.length} flashcard{importableRows.length !== 1 ? 's' : ''}

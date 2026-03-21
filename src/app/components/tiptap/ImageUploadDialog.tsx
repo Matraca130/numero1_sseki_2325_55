@@ -167,7 +167,7 @@ export function ImageUploadDialog({
                 className={clsx(
                   'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
                   dragOver
-                    ? 'border-violet-400 bg-violet-50'
+                    ? 'border-teal-400 bg-teal-50'
                     : 'border-gray-200 hover:border-gray-300 bg-[#F0F2F5]/50'
                 )}
               >
@@ -175,7 +175,7 @@ export function ImageUploadDialog({
                   size={28}
                   className={clsx(
                     'mx-auto mb-3',
-                    dragOver ? 'text-violet-500' : 'text-gray-300'
+                    dragOver ? 'text-teal-500' : 'text-gray-300'
                   )}
                 />
                 <p className="text-xs text-gray-500 mb-1">
@@ -234,7 +234,7 @@ export function ImageUploadDialog({
                     className={clsx(
                       'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs border transition-colors',
                       position === opt.value
-                        ? 'bg-violet-50 border-violet-300 text-violet-700'
+                        ? 'bg-teal-50 border-teal-300 text-teal-700'
                         : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                     )}
                   >
@@ -267,7 +267,7 @@ export function ImageUploadDialog({
               className={clsx(
                 'flex items-center gap-1.5 px-4 py-1.5 text-xs rounded-lg transition-colors',
                 file && !uploading
-                  ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                  ? 'bg-[#2a8c7a] hover:bg-[#244e47] text-white'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               )}
             >

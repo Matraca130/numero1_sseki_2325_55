@@ -60,7 +60,7 @@ export function QuizAnalyticsPanel({
         {/* Header */}
         <div className={MODAL_HEADER}>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-[#2a8c7a] flex items-center justify-center shadow-sm">
               <BarChart3 size={17} className="text-white" />
             </div>
             <div>
@@ -79,7 +79,7 @@ export function QuizAnalyticsPanel({
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
           {loading ? (
             <div className="flex items-center justify-center py-16 gap-2">
-              <Loader2 size={20} className="animate-spin text-purple-500" />
+              <Loader2 size={20} className="animate-spin text-teal-500" />
               <span className="text-[12px] text-zinc-400">Cargando analytics...</span>
             </div>
           ) : error ? (
@@ -91,8 +91,8 @@ export function QuizAnalyticsPanel({
             <>
               {/* Global stats cards */}
               <div className="grid grid-cols-4 gap-3">
-                <StatCard icon={<HelpCircle size={14} />} label="Preguntas" value={String(globalStats.totalQuestions)} color="text-purple-600 bg-purple-50" />
-                <StatCard icon={<Target size={14} />} label="Intentos" value={String(globalStats.totalAttempts)} color="text-blue-600 bg-blue-50" />
+                <StatCard icon={<HelpCircle size={14} />} label="Preguntas" value={String(globalStats.totalQuestions)} color="text-teal-600 bg-teal-50" />
+                <StatCard icon={<Target size={14} />} label="Intentos" value={String(globalStats.totalAttempts)} color="text-teal-600 bg-teal-50" />
                 <StatCard icon={<TrendingUp size={14} />} label="Acierto" value={`${globalStats.globalSuccessRate}%`} color={globalStats.globalSuccessRate >= 70 ? 'text-emerald-600 bg-emerald-50' : globalStats.globalSuccessRate >= 40 ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50'} />
                 <StatCard icon={<Clock size={14} />} label="Tiempo prom." value={`${globalStats.avgTimeSec}s`} color="text-zinc-600 bg-zinc-100" />
               </div>

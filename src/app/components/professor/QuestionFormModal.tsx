@@ -99,8 +99,8 @@ export function QuestionFormModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-              {form.isEdit ? <Pencil size={16} className="text-purple-600" /> : <Plus size={16} className="text-purple-600" />}
+            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+              {form.isEdit ? <Pencil size={16} className="text-teal-600" /> : <Plus size={16} className="text-teal-600" />}
             </div>
             <div>
               <h3 className="text-sm text-gray-900" style={{ fontWeight: 700 }}>
@@ -295,10 +295,10 @@ export function QuestionFormModal({
             onClick={form.handleSubmit}
             disabled={form.saving}
             className={clsx(
-              'flex items-center gap-2 px-5 py-2 rounded-lg text-[12px] text-white transition-all shadow-sm',
+              'flex items-center gap-2 px-5 py-2 rounded-full text-[12px] text-white transition-all shadow-sm',
               form.saving
-                ? 'bg-purple-400 cursor-wait'
-                : 'bg-purple-600 hover:bg-purple-700 active:scale-[0.97]',
+                ? 'bg-[#2a8c7a]/60 cursor-wait'
+                : 'bg-[#2a8c7a] hover:bg-[#244e47] active:scale-[0.97]',
             )}
             style={{ fontWeight: 600 }}
           >

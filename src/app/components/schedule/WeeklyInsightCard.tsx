@@ -80,7 +80,7 @@ export function WeeklyInsightCard({ studentProfile }: Props) {
         </p>
         <button
           onClick={fetchInsight}
-          className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-xl bg-[#1B3B36] hover:bg-[#244e47] text-white text-[13px] font-semibold transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-full bg-[#1B3B36] hover:bg-[#244e47] text-white text-[13px] font-semibold transition-colors"
         >
           <Sparkles size={14} />
           Generar analisis
@@ -125,7 +125,7 @@ export function WeeklyInsightCard({ studentProfile }: Props) {
           <p className="text-[12px] text-[#9ba3b2] mb-3">No se pudo generar el analisis</p>
           <button
             onClick={fetchInsight}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors min-h-[36px]"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-full hover:bg-[#ccebe3] transition-colors min-h-[36px]"
           >
             Reintentar
           </button>
@@ -160,7 +160,7 @@ export function WeeklyInsightCard({ studentProfile }: Props) {
         <button
           onClick={fetchInsight}
           disabled={loading}
-          className="text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-1.5 rounded-lg hover:bg-[#ccebe3] transition-colors min-h-[36px]"
+          className="text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-1.5 rounded-full hover:bg-[#ccebe3] transition-colors min-h-[36px]"
         >
           Regenerar
         </button>

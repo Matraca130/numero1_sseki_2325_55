@@ -50,7 +50,7 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
         </div>
         <button
           onClick={() => navigateTo('organize-study')}
-          className="flex items-center gap-2 px-4 py-2 bg-axon-dark hover:bg-axon-hover rounded-lg text-white text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-axon-dark hover:bg-axon-hover rounded-full text-white text-sm font-medium transition-colors"
         >
           <Plus size={14} />
           Crear Plan
@@ -150,7 +150,7 @@ export const DashboardStudyPlans = React.memo(function DashboardStudyPlans({
           <p className="text-sm mt-1">Crea un plan para organizar tu estudio</p>
           <button
             onClick={() => navigateTo('organize-study')}
-            className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-axon-dark hover:bg-axon-hover rounded-lg text-white text-sm font-medium transition-colors"
+            className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-axon-dark hover:bg-axon-hover rounded-full text-white text-sm font-medium transition-colors"
           >
             <Plus size={14} />
             Crear Plan de Estudio

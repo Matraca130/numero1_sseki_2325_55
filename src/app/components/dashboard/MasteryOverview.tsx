@@ -71,7 +71,7 @@ export function MasteryOverview() {
         <p className="text-sm text-gray-500 text-center">{error}</p>
         <button
           onClick={loadData}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Reintentar
@@ -107,7 +107,7 @@ export function MasteryOverview() {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-colors ${
                 filter !== 'all'
                   ? 'border-[#2a8c7a]/50 bg-[#e6f5f1] text-[#1B3B36]'
                   : 'border-gray-200 bg-[#F0F2F5] text-gray-500 hover:text-gray-700'

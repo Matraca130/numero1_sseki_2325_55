@@ -82,7 +82,7 @@ export function ConnectForm({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 mt-2 rounded-lg text-[10px] text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 py-2 mt-2 rounded-full text-[10px] text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
       >
         <Plus size={11} />
         Crear conexion con otra keyword

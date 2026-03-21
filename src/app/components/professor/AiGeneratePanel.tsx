@@ -49,19 +49,19 @@ export function AiGeneratePanel({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="mx-5 mt-3 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white shadow-lg shadow-violet-900/5 overflow-hidden"
+      className="mx-5 mt-3 rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white shadow-lg shadow-teal-900/5 overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-violet-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-teal-100">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-[#2a8c7a] flex items-center justify-center">
             <Sparkles size={14} className="text-white" />
           </div>
           <div>
-            <h3 className="text-[13px] text-violet-900" style={{ fontWeight: 700 }}>
+            <h3 className="text-[13px] text-teal-900" style={{ fontWeight: 700 }}>
               Generar con IA
             </h3>
-            <p className="text-[10px] text-violet-400">
+            <p className="text-[10px] text-teal-400">
               Gemini genera preguntas basadas en el contenido del resumen
             </p>
           </div>
@@ -69,7 +69,7 @@ export function AiGeneratePanel({
         <button
           onClick={onClose}
           disabled={gen.isProcessing}
-          className="p-1.5 rounded-lg text-violet-400 hover:text-violet-600 hover:bg-violet-100 transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-lg text-teal-400 hover:text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-50"
         >
           <X size={14} />
         </button>
@@ -84,8 +84,8 @@ export function AiGeneratePanel({
             disabled={gen.isProcessing}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] border transition-all ${
               gen.mode === 'manual'
-                ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/20'
-                : 'bg-white text-violet-600 border-violet-200 hover:border-violet-300'
+                ? 'bg-[#2a8c7a] text-white border-[#2a8c7a] shadow-md shadow-[#2a8c7a]/20'
+                : 'bg-white text-teal-600 border-teal-200 hover:border-teal-300'
             }`}
             style={{ fontWeight: 600 }}
           >
@@ -97,8 +97,8 @@ export function AiGeneratePanel({
             disabled={gen.isProcessing}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] border transition-all ${
               gen.mode === 'bulk'
-                ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/20'
-                : 'bg-white text-violet-600 border-violet-200 hover:border-violet-300'
+                ? 'bg-[#2a8c7a] text-white border-[#2a8c7a] shadow-md shadow-[#2a8c7a]/20'
+                : 'bg-white text-teal-600 border-teal-200 hover:border-teal-300'
             }`}
             style={{ fontWeight: 600 }}
           >
@@ -111,7 +111,7 @@ export function AiGeneratePanel({
         {gen.mode === 'manual' ? (
           <div>
             <label
-              className="text-[10px] text-violet-500 uppercase tracking-wider mb-1 block"
+              className="text-[10px] text-teal-500 uppercase tracking-wider mb-1 block"
               style={{ fontWeight: 700 }}
             >
               Keyword objetivo
@@ -120,7 +120,7 @@ export function AiGeneratePanel({
               value={gen.selectedKeywordId}
               onChange={e => gen.setSelectedKeywordId(e.target.value)}
               disabled={gen.isProcessing}
-              className="w-full text-[12px] border border-violet-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:opacity-50"
+              className="w-full text-[12px] border border-teal-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/30 disabled:opacity-50"
             >
               {keywords.length === 0 && (
                 <option value="">Sin keywords disponibles</option>
@@ -131,7 +131,7 @@ export function AiGeneratePanel({
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-violet-400 mt-1">
+            <p className="text-[10px] text-teal-400 mt-1">
               Gemini usara el contenido del resumen + BKT + notas del profesor
               para generar la pregunta
             </p>
@@ -139,13 +139,13 @@ export function AiGeneratePanel({
         ) : (
           <div>
             <label
-              className="text-[10px] text-violet-500 uppercase tracking-wider mb-1 block"
+              className="text-[10px] text-teal-500 uppercase tracking-wider mb-1 block"
               style={{ fontWeight: 700 }}
             >
               Cantidad de preguntas
             </label>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-white border border-violet-200 rounded-xl overflow-hidden">
+              <div className="flex items-center gap-1 bg-white border border-teal-200 rounded-xl overflow-hidden">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
                     key={n}
@@ -153,8 +153,8 @@ export function AiGeneratePanel({
                     disabled={gen.isProcessing}
                     className={`w-9 h-9 flex items-center justify-center text-[12px] transition-all ${
                       gen.count === n
-                        ? 'bg-violet-600 text-white'
-                        : 'text-violet-600 hover:bg-violet-50'
+                        ? 'bg-[#2a8c7a] text-white'
+                        : 'text-teal-600 hover:bg-teal-50'
                     }`}
                     style={{ fontWeight: 600 }}
                   >
@@ -162,12 +162,12 @@ export function AiGeneratePanel({
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-violet-400">
+              <div className="flex items-center gap-1 text-[10px] text-teal-400">
                 <Hash size={10} />
                 <span>Prioriza keywords con menos cobertura AI</span>
               </div>
             </div>
-            <p className="text-[10px] text-violet-400 mt-1">
+            <p className="text-[10px] text-teal-400 mt-1">
               El backend selecciona los keywords con MENOS preguntas AI
               existentes y genera secuencialmente
             </p>
@@ -182,7 +182,7 @@ export function AiGeneratePanel({
                 ? 'bg-red-50 border-red-200 text-red-700'
                 : gen.genState.status === 'done'
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : 'bg-violet-50 border-violet-200 text-violet-700'
+                  : 'bg-teal-50 border-teal-200 text-teal-700'
             }`}
           >
             {gen.isProcessing && (
@@ -221,7 +221,7 @@ export function AiGeneratePanel({
             (gen.mode === 'manual' && !gen.selectedKeywordId) ||
             keywords.length === 0
           }
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[12px] text-white bg-violet-600 hover:bg-violet-700 active:scale-[0.98] transition-all shadow-lg shadow-violet-600/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[12px] text-white bg-[#2a8c7a] hover:bg-[#244e47] active:scale-[0.98] transition-all shadow-lg shadow-[#2a8c7a]/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
           style={{ fontWeight: 600 }}
         >
           {gen.isProcessing ? (

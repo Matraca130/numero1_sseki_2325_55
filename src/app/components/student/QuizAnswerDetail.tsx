@@ -149,7 +149,7 @@ export const QuizAnswerDetail = React.memo(function QuizAnswerDetail({
                       wrongAnswer: userAnswer,
                       originalQuestion: q.question,
                     })}
-                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 transition-colors"
+                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] text-teal-600 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
                     style={{ fontWeight: 600 }}
                   >
                     <Sparkles size={10} /> Practicar este error con IA

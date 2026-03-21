@@ -133,7 +133,7 @@ export function ClozeInteraction({ text, onAllRevealed, resetKey }: ClozeInterac
               e.stopPropagation();
               handleRevealAll();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2a8c7a]/10 text-[#2a8c7a] text-xs font-medium hover:bg-[#2a8c7a]/20 transition-all border border-[#2a8c7a]/20"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2a8c7a]/10 text-[#2a8c7a] text-xs font-medium hover:bg-[#2a8c7a]/20 transition-all border border-[#2a8c7a]/20"
           >
             <Eye size={12} />
             Revelar todos

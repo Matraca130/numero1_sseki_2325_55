@@ -79,7 +79,7 @@ export function PlanProgressSidebar({
         <motion.button
           onClick={onNavigateNewPlan}
           whileTap={{ scale: 0.98 }}
-          className="w-full flex items-center gap-2 px-4 py-3 min-h-[44px] bg-[#1B3B36] text-white rounded-xl font-semibold text-[13px] hover:bg-[#244e47] transition-colors shadow-sm"
+          className="w-full flex items-center gap-2 px-4 py-3 min-h-[44px] bg-[#1B3B36] text-white rounded-full font-semibold text-[13px] hover:bg-[#244e47] transition-colors shadow-sm"
         >
           <Plus size={15} />
           Agregar nuevo plan de estudio
@@ -91,7 +91,7 @@ export function PlanProgressSidebar({
           disabled={studyPlans.length === 0}
           whileTap={{ scale: 0.98 }}
           className={clsx(
-            'w-full flex items-center gap-2 px-4 py-3 min-h-[44px] border border-[#e8eaed] text-[#4a5565] rounded-xl font-semibold text-[13px] transition-colors bg-white',
+            'w-full flex items-center gap-2 px-4 py-3 min-h-[44px] border border-[#e8eaed] text-[#4a5565] rounded-full font-semibold text-[13px] transition-colors bg-white',
             studyPlans.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50',
           )}
         >

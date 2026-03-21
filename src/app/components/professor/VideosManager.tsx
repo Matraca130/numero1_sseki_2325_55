@@ -143,7 +143,7 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
         <Button
           size="sm"
           onClick={() => setShowMuxUpload(prev => !prev)}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-7 text-xs px-3"
+          className="bg-[#2a8c7a] hover:bg-[#244e47] text-white h-7 text-xs px-3 rounded-full"
         >
           <Upload size={12} className="mr-1" />
           Subir Video
@@ -348,7 +348,7 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
                   size="sm"
                   onClick={handleSave}
                   disabled={updateVideo.isPending || !formTitle.trim()}
-                  className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                  className="h-8 text-xs bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full"
                 >
                   {updateVideo.isPending ? (
                     <Loader2 size={12} className="animate-spin mr-1" />
