@@ -150,7 +150,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
             </div>
             <button
               onClick={onCreateClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-all shadow-sm shadow-purple-200"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all shadow-sm shadow-teal-200"
             >
               <Plus size={16} />
               Nueva Flashcard
