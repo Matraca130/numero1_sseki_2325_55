@@ -18,6 +18,8 @@ import clsx from 'clsx';
 import { headingStyle, components } from '@/app/design-system';
 import { aiDistributeTasks } from '@/app/services/aiService';
 import type { StudentProfilePayload, PlanContextPayload } from '@/app/services/aiService';
+import { useStudyIntelligence } from '@/app/hooks/useStudyIntelligence';
+import { adjustTimeByDifficulty, classifyDifficulty } from '@/app/lib/scheduling-intelligence';
 
 // ──────────── Constants ────────────
 const TOTAL_STEPS = 6;
@@ -58,6 +60,25 @@ export function StudyOrganizerWizard() {
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
 
   const { topicMastery, courseMastery, loading: masteryLoading } = useTopicMasteryContext();
+
+  // ──────────── Phase 5: Study Intelligence (difficulty metadata) ────────────
+  // Fetches AI-analyzed difficulty data for topics in selected courses.
+  // Used to: adjust time estimates, enrich AI payloads, show difficulty badges.
+  const selectedCourseId = selectedSubjects.length === 1 ? selectedSubjects[0] : null;
+  const { data: studyIntelligence } = useStudyIntelligence(selectedCourseId);
+
+  // Build a difficulty lookup map for quick access
+  const difficultyMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (studyIntelligence?.topics) {
+      for (const t of studyIntelligence.topics) {
+        if (t.difficulty_estimate !== null) {
+          map.set(t.id, t.difficulty_estimate);
+        }
+      }
+    }
+    return map;
+  }, [studyIntelligence]);
 
   // ──────────── Phase 4: Real time estimates from study history ────────────
   const {
@@ -214,12 +235,18 @@ export function StudyOrganizerWizard() {
       topicMastery: Object.fromEntries(
         selectedTopics.map(t => {
           const m = topicMastery.get(t.topicId);
+          const difficulty = difficultyMap.get(t.topicId);
           return [t.topicId, {
             masteryPercent: m?.masteryPercent ?? 0,
             pKnow: m?.pKnow ?? null,
             needsReview: m?.needsReview ?? false,
             totalAttempts: m?.totalAttempts ?? 0,
             priorityScore: m?.priorityScore ?? 50,
+            // Phase 5: enriched with AI difficulty data
+            ...(difficulty !== undefined && { difficultyEstimate: difficulty }),
+            ...(classifyDifficulty(difficulty ?? null) !== 'medium' && {
+              difficultyTier: classifyDifficulty(difficulty ?? null),
+            }),
           }];
         })
       ),
@@ -275,23 +302,34 @@ export function StudyOrganizerWizard() {
         return prioB - prioA; // highest priority first
       });
 
-      // Phase 3: Compute per-topic time multipliers based on mastery
-      // Weak topics (low mastery) get 1.5x time, strong topics get 0.7x
-      const getTimeMultiplier = (topicId: string): number => {
+      // Phase 5: Compute per-topic time using difficulty + mastery
+      // Uses scheduling-intelligence adjustTimeByDifficulty when difficulty data is available,
+      // falls back to mastery-only multiplier otherwise.
+      const getAdjustedMinutes = (topicId: string, baseMinutes: number): number => {
+        const difficulty = difficultyMap.get(topicId) ?? null;
         const m = topicMastery.get(topicId);
-        if (!m || m.totalAttempts === 0) return 1.0; // no data = standard
-        if (m.masteryPercent < 30) return 1.5;       // very weak
-        if (m.masteryPercent < 50) return 1.3;       // weak
-        if (m.masteryPercent >= 80) return 0.7;      // strong
-        if (m.masteryPercent >= 65) return 0.85;     // decent
-        return 1.0;
+        const masteryPercent = m?.masteryPercent ?? 0;
+
+        if (difficulty !== null) {
+          // Phase 5: Use AI-computed difficulty for precise time adjustment
+          return adjustTimeByDifficulty(baseMinutes, difficulty, masteryPercent);
+        }
+
+        // Fallback: mastery-only multiplier (Phase 3 original logic)
+        let multiplier = 1.0;
+        if (m && m.totalAttempts > 0) {
+          if (m.masteryPercent < 30) multiplier = 1.5;
+          else if (m.masteryPercent < 50) multiplier = 1.3;
+          else if (m.masteryPercent >= 80) multiplier = 0.7;
+          else if (m.masteryPercent >= 65) multiplier = 0.85;
+        }
+        return Math.round(baseMinutes * multiplier);
       };
 
       // Create all task items: topic x method (sorted by priority)
       // Phase 4: Use real time estimates from study history instead of static defaults
       const allItems: { topicTitle: string; sectionTitle: string; courseName: string; courseId: string; topicId: string; method: string; minutes: number }[] = [];
       for (const topic of sortedTopics) {
-        const multiplier = getTimeMultiplier(topic.topicId);
         for (const methodId of selectedMethods) {
           const timeEst = getTimeEstimate(methodId);
           const baseMinutes = timeEst.estimatedMinutes;
@@ -302,7 +340,7 @@ export function StudyOrganizerWizard() {
             courseId: topic.courseId,
             topicId: topic.topicId,
             method: methodId,
-            minutes: Math.round(baseMinutes * multiplier),
+            minutes: getAdjustedMinutes(topic.topicId, baseMinutes),
           });
         }
       }
