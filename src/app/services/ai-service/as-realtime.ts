@@ -27,11 +27,17 @@ export interface RealtimeSession {
   voice: string;
 }
 
-/** Discriminated union for known OpenAI Realtime API server events */
+/** Discriminated union for known OpenAI Realtime API server events.
+ *  Includes both beta names (response.audio.*) and GA names (response.output_audio.*). */
 export type RealtimeServerEvent =
   | { type: 'response.audio.delta'; delta: string }
+  | { type: 'response.output_audio.delta'; delta: string }
   | { type: 'response.audio_transcript.delta'; delta: string }
+  | { type: 'response.output_audio_transcript.delta'; delta: string }
   | { type: 'response.audio_transcript.done'; transcript: string }
+  | { type: 'response.output_audio_transcript.done'; transcript: string }
+  | { type: 'response.audio.done' }
+  | { type: 'response.output_audio.done' }
   | { type: 'response.created' }
   | { type: 'response.done'; response: Record<string, unknown> }
   | { type: 'response.function_call_arguments.done'; name: string; arguments: string; call_id: string }
@@ -215,19 +221,28 @@ export class RealtimeVoiceClient {
         this.callbacks.onAISpeakingChange?.('thinking');
         break;
 
-      // AI audio chunk (for playback)
+      // AI audio chunk (for playback) — beta + GA event names
+      case 'response.output_audio.delta':
       case 'response.audio.delta':
         this.callbacks.onAudioData?.(event.delta);
         this.callbacks.onAISpeakingChange?.('speaking');
         break;
 
-      // AI transcript chunk (for subtitles)
+      // AI audio stream finished — beta + GA event names
+      case 'response.output_audio.done':
+      case 'response.audio.done':
+        // No action needed; response.done handles state transition
+        break;
+
+      // AI transcript chunk (for subtitles) — beta + GA event names
+      case 'response.output_audio_transcript.delta':
       case 'response.audio_transcript.delta':
         this.aiTranscriptBuffer += event.delta || '';
         this.callbacks.onAITranscript?.(this.aiTranscriptBuffer, false);
         break;
 
-      // AI transcript complete
+      // AI transcript complete — beta + GA event names
+      case 'response.output_audio_transcript.done':
       case 'response.audio_transcript.done':
         this.aiTranscriptBuffer = event.transcript || this.aiTranscriptBuffer;
         this.callbacks.onAITranscript?.(this.aiTranscriptBuffer, true);
