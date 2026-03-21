@@ -118,19 +118,14 @@ export function orderByPrerequisites(
   }
 
   // Kahn's algorithm for topological sort
+  // In-degree = number of prerequisites a topic has (not how many depend on it)
   const inDegree = new Map<string, number>();
-  for (const id of allIds) inDegree.set(id, 0);
-
-  for (const [, prereqs] of graph) {
-    for (const p of prereqs) {
-      // This topic depends on p, so p has an edge to this topic
-      // But we track in-degree of the dependent, not the prerequisite
-    }
-  }
-
-  // Recalculate: for each topic, count how many topics list it as a prerequisite
   for (const [topicId, prereqs] of graph) {
     inDegree.set(topicId, prereqs.length);
+  }
+  // Ensure all topics have an entry (including those with 0 prerequisites)
+  for (const id of allIds) {
+    if (!inDegree.has(id)) inDegree.set(id, 0);
   }
 
   const queue: string[] = [];
