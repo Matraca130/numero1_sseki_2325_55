@@ -300,14 +300,21 @@ export function StudyPlanDashboard({
   const nextDay = () => setSelectedDate(prev => addDays(prev, 1));
   const prevDay = () => setSelectedDate(prev => subDays(prev, 1));
 
-  const allTasks = studyPlans.flatMap(plan =>
-    plan.tasks.map(task => ({ ...task, planId: plan.id }))
+  const allTasks = useMemo(
+    () => studyPlans.flatMap(plan =>
+      plan.tasks.map(task => ({ ...task, planId: plan.id }))
+    ),
+    [studyPlans],
   );
 
-  const tasksForDate = allTasks.filter(t => isSameDay(t.date, selectedDate));
+  const tasksForDate = useMemo(
+    () => allTasks.filter(t => isSameDay(t.date, selectedDate)),
+    [allTasks, selectedDate],
+  );
 
-  const daysWithTasks = new Set(
-    allTasks.map(t => format(t.date, 'yyyy-MM-dd'))
+  const daysWithTasks = useMemo(
+    () => new Set(allTasks.map(t => format(t.date, 'yyyy-MM-dd'))),
+    [allTasks],
   );
 
   const tasksBySubject: Record<string, typeof tasksForDate> = {};
@@ -317,11 +324,11 @@ export function StudyPlanDashboard({
   }
 
   const totalTasks = allTasks.length;
-  const completedTasks = allTasks.filter(t => t.completed).length;
+  const completedTasks = useMemo(() => allTasks.filter(t => t.completed).length, [allTasks]);
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const todayTotalMinutes = tasksForDate.reduce((sum, t) => sum + t.estimatedMinutes, 0);
-  const todayCompleted = tasksForDate.filter(t => t.completed).length;
+  const todayTotalMinutes = useMemo(() => tasksForDate.reduce((sum, t) => sum + t.estimatedMinutes, 0), [tasksForDate]);
+  const todayCompleted = useMemo(() => tasksForDate.filter(t => t.completed).length, [tasksForDate]);
   const todayProgress = tasksForDate.length > 0 ? Math.round((todayCompleted / tasksForDate.length) * 100) : 0;
 
   // ── Build student profile from real context data for AI cards ──

@@ -7,7 +7,7 @@
 //   3. Subject progress header wraps on mobile
 //   4. EmptyState action button full-width on mobile
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
@@ -43,21 +43,27 @@ export function DashboardView() {
   // ── Build chart data from real daily activity ──
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
   const sliceDays = timeRange === 'week' ? 7 : 30;
-  const activityData: ActivityDataPoint[] = isConnected && dailyActivity.length > 0
-    ? dailyActivity.slice(-sliceDays).map(d => ({
-        date: dayNames[new Date(d.date + 'T12:00:00').getDay()],
-        videos: Math.round(d.studyMinutes * 0.3),
-        cards: d.cardsReviewed,
-        amt: d.studyMinutes,
-      }))
-    : dayNames.slice(1).concat(dayNames[0]).map(d => ({ date: d, videos: 0, cards: 0, amt: 0 }));
+  const activityData: ActivityDataPoint[] = useMemo(() =>
+    isConnected && dailyActivity.length > 0
+      ? dailyActivity.slice(-sliceDays).map(d => ({
+          date: dayNames[new Date(d.date + 'T12:00:00').getDay()],
+          videos: Math.round(d.studyMinutes * 0.3),
+          cards: d.cardsReviewed,
+          amt: d.studyMinutes,
+        }))
+      : dayNames.slice(1).concat(dayNames[0]).map(d => ({ date: d, videos: 0, cards: 0, amt: 0 })),
+    [isConnected, dailyActivity, sliceDays],
+  );
 
   // ── Build mastery data from BKT states ──
-  const totalBkt = bktStates.length || 1;
-  const masteredBkt = bktStates.filter(b => b.p_know >= 0.9).length;
-  const learningBkt = bktStates.filter(b => b.p_know >= 0.5 && b.p_know < 0.9).length;
-  const reviewingBkt = bktStates.filter(b => b.p_know >= 0.3 && b.p_know < 0.5).length;
-  const notStartedBkt = Math.max(0, totalBkt - masteredBkt - learningBkt - reviewingBkt);
+  const { totalBkt, masteredBkt, learningBkt, reviewingBkt, notStartedBkt } = useMemo(() => {
+    const total = bktStates.length || 1;
+    const mastered = bktStates.filter(b => b.p_know >= 0.9).length;
+    const learning = bktStates.filter(b => b.p_know >= 0.5 && b.p_know < 0.9).length;
+    const reviewing = bktStates.filter(b => b.p_know >= 0.3 && b.p_know < 0.5).length;
+    const notStarted = Math.max(0, total - mastered - learning - reviewing);
+    return { totalBkt: total, masteredBkt: mastered, learningBkt: learning, reviewingBkt: reviewing, notStartedBkt: notStarted };
+  }, [bktStates]);
 
   const totalCards = isConnected && bktStates.length > 0 ? bktStates.length : 0;
 
@@ -69,7 +75,7 @@ export function DashboardView() {
   ];
 
   // ── Subject progress from BKT + content tree ──
-  const subjectProgress = (() => {
+  const subjectProgress = useMemo(() => {
     if (!tree?.courses?.length) return [];
     const COLORS = ['#0d9488', '#14b8a6', '#0891b2', '#7c3aed', '#f59e0b', '#ef4444'];
     return tree.courses.map((course, i) => {
@@ -83,19 +89,19 @@ export function DashboardView() {
         color: COLORS[i % COLORS.length],
       };
     });
-  })();
+  }, [tree, bktStates]);
 
   // ── KPI values from real stats ──
   const kpiCards = isConnected && stats ? stats.totalCardsReviewed.toLocaleString('es-MX') : '0';
   const kpiTime = isConnected && stats ? `${Math.floor(stats.totalStudyMinutes / 60)}h ${stats.totalStudyMinutes % 60}m` : '0h 0m';
   const kpiStreak = isConnected && stats ? `${stats.currentStreak} Dias` : '0 Dias';
-  const kpiAccuracy = (() => {
+  const kpiAccuracy = useMemo(() => {
     if (!isConnected || !dailyActivity.length) return '0%';
     const withRet = dailyActivity.filter(d => d.retentionPercent !== undefined);
     if (withRet.length === 0) return '\u2014';
     const avgRet = Math.round(withRet.reduce((s, d) => s + (d.retentionPercent || 0), 0) / withRet.length);
     return `${avgRet}%`;
-  })();
+  }, [isConnected, dailyActivity]);
 
   return (
     <div className="h-full overflow-y-auto bg-surface-dashboard">

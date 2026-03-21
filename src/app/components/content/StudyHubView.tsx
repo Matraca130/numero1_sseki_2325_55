@@ -90,10 +90,16 @@ export function StudyHubView() {
   }, [semesters]);
 
   // ── Totals ─────────────────────────────────────────────────
-  const totalSections = semesters.reduce((acc, s) => acc + (s.sections?.length ?? 0), 0);
-  const totalTopics = semesters.reduce(
-    (acc, s) => acc + (s.sections ?? []).reduce((a, sec) => a + (sec.topics?.length ?? 0), 0),
-    0,
+  const totalSections = useMemo(
+    () => semesters.reduce((acc, s) => acc + (s.sections?.length ?? 0), 0),
+    [semesters],
+  );
+  const totalTopics = useMemo(
+    () => semesters.reduce(
+      (acc, s) => acc + (s.sections ?? []).reduce((a, sec) => a + (sec.topics?.length ?? 0), 0),
+      0,
+    ),
+    [semesters],
   );
 
   const studyMinutesToday = stats?.totalStudyMinutes ? Math.round(stats.totalStudyMinutes / 60) : 0;
@@ -151,9 +157,12 @@ export function StudyHubView() {
   const heroProgress = topicMastery ? topicMastery.masteryPercent / 100 : 0;
   const heroProgressPct = Math.round(heroProgress * 100);
   const heroLastActivity = formatRelativeTime(lastTopicSession?.startedAt);
-  const heroReadingSessions = sessions.filter(
-    s => s.topicId === effectiveTopic?.id && s.type === 'reading',
-  ).length;
+  const heroReadingSessions = useMemo(
+    () => sessions.filter(
+      s => s.topicId === effectiveTopic?.id && s.type === 'reading',
+    ).length,
+    [sessions, effectiveTopic?.id],
+  );
 
   const avgSessionMin = useMemo(() => {
     const readingSessions = sessions.filter(s => s.type === 'reading' && s.durationMinutes > 0);

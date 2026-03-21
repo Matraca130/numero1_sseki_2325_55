@@ -8,7 +8,7 @@
 //   4. Slightly larger touch targets for tree expand/collapse
 // ============================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useUI } from '@/app/context/UIContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
@@ -28,11 +28,14 @@ export function TopicSidebar() {
   const { tree, loading, selectedTopicId, selectTopic } = useContentTree();
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const hasAutoExpanded = useRef(false);
 
-  // Auto-expand everything when tree loads
+  // Auto-expand everything on first tree load only (not on every CRUD refresh)
   useEffect(() => {
+    if (hasAutoExpanded.current) return;
     const courses = tree?.courses || [];
     if (!tree || courses.length === 0) return;
+    hasAutoExpanded.current = true;
     const allIds = new Set<string>();
     for (const course of courses) {
       allIds.add(course.id);

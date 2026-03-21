@@ -6,7 +6,7 @@
 // MonthView: Full-width calendar grid + tasks for selected day +
 //   month-level stats card.
 // ============================================================
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, isSameDay, addDays, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -401,15 +401,29 @@ export function WeekView({
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const weekTasks = allTasks.filter(t => {
-    const taskDate = format(t.date, 'yyyy-MM-dd');
+  // Pre-compute a Map<dateStr, Task[]> for O(1) day lookups
+  const tasksByDate = useMemo(() => {
+    const map = new Map<string, TaskWithPlan[]>();
+    for (const t of allTasks) {
+      const key = format(t.date, 'yyyy-MM-dd');
+      const arr = map.get(key);
+      if (arr) arr.push(t);
+      else map.set(key, [t]);
+    }
+    return map;
+  }, [allTasks]);
+
+  const weekTasks = useMemo(() => {
     const start = format(weekStart, 'yyyy-MM-dd');
     const end = format(addDays(weekStart, 6), 'yyyy-MM-dd');
-    return taskDate >= start && taskDate <= end;
-  });
+    return allTasks.filter(t => {
+      const taskDate = format(t.date, 'yyyy-MM-dd');
+      return taskDate >= start && taskDate <= end;
+    });
+  }, [allTasks, weekStart]);
 
-  const weekCompleted = weekTasks.filter(t => t.completed).length;
-  const weekMinutes = weekTasks.reduce((sum, t) => sum + t.estimatedMinutes, 0);
+  const weekCompleted = useMemo(() => weekTasks.filter(t => t.completed).length, [weekTasks]);
+  const weekMinutes = useMemo(() => weekTasks.reduce((sum, t) => sum + t.estimatedMinutes, 0), [weekTasks]);
 
   return (
     <div className="flex-1 overflow-y-auto px-5 lg:px-6 py-5 space-y-3">
@@ -420,7 +434,7 @@ export function WeekView({
       />
 
       {weekDays.map((day, i) => {
-        const dayTasks = allTasks.filter(t => isSameDay(t.date, day));
+        const dayTasks = tasksByDate.get(format(day, 'yyyy-MM-dd')) ?? [];
         return (
           <WeekDayRow
             key={day.toString()}
@@ -520,14 +534,26 @@ export function MonthView({
   onSelectDay,
   onNavigateNewPlan,
 }: MonthViewProps) {
-  const monthStart = format(currentDate, 'yyyy-MM');
+  const monthStartStr = format(currentDate, 'yyyy-MM');
 
-  const monthTasks = allTasks.filter(t => format(t.date, 'yyyy-MM') === monthStart);
-  const monthCompleted = monthTasks.filter(t => t.completed).length;
-  const monthMinutes = monthTasks.reduce((sum, t) => sum + t.estimatedMinutes, 0);
+  // Pre-compute a Map<dateStr, Task[]> for O(1) day lookups in the calendar grid
+  const tasksByDate = useMemo(() => {
+    const map = new Map<string, TaskWithPlan[]>();
+    for (const t of allTasks) {
+      const key = format(t.date, 'yyyy-MM-dd');
+      const arr = map.get(key);
+      if (arr) arr.push(t);
+      else map.set(key, [t]);
+    }
+    return map;
+  }, [allTasks]);
 
-  const tasksForSelected = allTasks.filter(t => isSameDay(t.date, selectedDate));
-  const selectedCompleted = tasksForSelected.filter(t => t.completed).length;
+  const monthTasks = useMemo(() => allTasks.filter(t => format(t.date, 'yyyy-MM') === monthStartStr), [allTasks, monthStartStr]);
+  const monthCompleted = useMemo(() => monthTasks.filter(t => t.completed).length, [monthTasks]);
+  const monthMinutes = useMemo(() => monthTasks.reduce((sum, t) => sum + t.estimatedMinutes, 0), [monthTasks]);
+
+  const tasksForSelected = useMemo(() => allTasks.filter(t => isSameDay(t.date, selectedDate)), [allTasks, selectedDate]);
+  const selectedCompleted = useMemo(() => tasksForSelected.filter(t => t.completed).length, [tasksForSelected]);
 
   return (
     <div className="flex-1 overflow-y-auto px-5 lg:px-6 py-5 space-y-4">
@@ -557,7 +583,7 @@ export function MonthView({
           {emptyDays.map((_, i) => <div key={`e-${i}`} />)}
           {daysInMonth.map((day, i) => {
             const dayStr = format(day, 'yyyy-MM-dd');
-            const dayTasks = allTasks.filter(t => format(t.date, 'yyyy-MM-dd') === dayStr);
+            const dayTasks = tasksByDate.get(dayStr) ?? [];
             const dayCompleted = dayTasks.filter(t => t.completed).length;
             const isSelected = isSameDay(day, selectedDate);
             const isTodayDay = isToday(day);
