@@ -3,6 +3,9 @@
 //
 // Manages: microphone capture, audio playback, WebSocket lifecycle
 // Audio format: PCM16, 24kHz, mono (OpenAI Realtime spec)
+//
+// Uses AudioWorkletNode (replaces deprecated ScriptProcessorNode)
+// Worklet source: /audio-processor.js
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -26,16 +29,17 @@ interface UseRealtimeVoiceReturn {
   startCall: (summaryId?: string) => Promise<void>;
   /** End the call */
   endCall: () => void;
-  /** Push-to-talk: call on press (clears noise buffer) */
+  /** Push-to-talk: no-op (kept for backward compatibility, VAD handles detection) */
   onTalkStart: () => void;
-  /** Push-to-talk: call on release (commits audio + triggers response) */
+  /** Push-to-talk: no-op (kept for backward compatibility, VAD handles detection) */
   onTalkEnd: () => void;
   /** Last error message */
   error: string | null;
+  /** Audio input level 0-1 (RMS from microphone, for visualization) */
+  audioLevel: number;
 }
 
 const SAMPLE_RATE = 24000; // OpenAI Realtime requires 24kHz
-const BUFFER_SIZE = 4096;  // Samples per audio processing frame
 
 export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const [state, setState] = useState<VoiceCallState>('idle');
@@ -43,17 +47,23 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const [userTranscript, setUserTranscript] = useState('');
   const [aiTranscript, setAiTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const clientRef = useRef<RealtimeVoiceClient | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const playbackCtxRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   // Audio playback queue
   const playbackQueueRef = useRef<Float32Array[]>([]);
   const isPlayingRef = useRef(false);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  // RMS ref for high-frequency updates (avoid re-renders per audio frame)
+  const audioLevelRef = useRef(0);
+  const rmsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Audio Playback ────────────────────────────────────────
 
@@ -83,10 +93,26 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     source.start();
   }, [getPlaybackCtx, ensurePlaybackResumed]);
 
+  /** Flush playback queue and stop current source (used on user interruption) */
+  const flushPlayback = useCallback(() => {
+    playbackQueueRef.current = [];
+    if (currentSourceRef.current) {
+      try {
+        currentSourceRef.current.onended = null;
+        currentSourceRef.current.stop();
+      } catch {
+        // Already stopped — ignore
+      }
+      currentSourceRef.current = null;
+    }
+    isPlayingRef.current = false;
+  }, []);
+
   const playNextChunk = useCallback(async () => {
     const queue = playbackQueueRef.current;
     if (queue.length === 0) {
       isPlayingRef.current = false;
+      currentSourceRef.current = null;
       return;
     }
 
@@ -106,11 +132,12 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     source.buffer = buffer;
     source.connect(ctx.destination);
     source.onended = () => playNextChunk();
+    currentSourceRef.current = source;
     source.start();
   }, [getPlaybackCtx]);
 
   const enqueueAudio = useCallback((base64Audio: string) => {
-    // Decode base64 → PCM16 Int16Array → Float32Array
+    // Decode base64 -> PCM16 Int16Array -> Float32Array
     const binaryStr = atob(base64Audio);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
@@ -129,7 +156,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     }
   }, [playNextChunk]);
 
-  // ── Microphone Capture ────────────────────────────────────
+  // ── Microphone Capture (AudioWorklet) ───────────────────
 
   const startMicrophone = useCallback(async (client: RealtimeVoiceClient) => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -148,60 +175,74 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     const source = audioCtx.createMediaStreamSource(stream);
     sourceRef.current = source;
 
-    // Use ScriptProcessorNode for PCM16 capture
-    // (AudioWorklet would be cleaner but requires a separate file)
-    const processor = audioCtx.createScriptProcessor(BUFFER_SIZE, 1, 1);
-    processorRef.current = processor;
+    // Load AudioWorklet module and create processor node
+    await audioCtx.audioWorklet.addModule('/audio-processor.js');
+    const workletNode = new AudioWorkletNode(audioCtx, 'realtime-audio-processor');
+    workletNodeRef.current = workletNode;
 
-    processor.onaudioprocess = (e) => {
+    workletNode.port.onmessage = (e: MessageEvent<{ pcm16: ArrayBuffer; rms: number }>) => {
+      const { pcm16, rms } = e.data;
+
       if (!client.isConnected) return;
 
-      const input = e.inputBuffer.getChannelData(0);
-      // Float32 → Int16 (PCM16)
-      const int16 = new Int16Array(input.length);
-      for (let i = 0; i < input.length; i++) {
-        const s = Math.max(-1, Math.min(1, input[i]));
-        int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-      }
-
-      // Int16 → base64
-      const bytes = new Uint8Array(int16.buffer);
+      // Convert ArrayBuffer to base64 and send to OpenAI
+      const bytes = new Uint8Array(pcm16);
       let binary = '';
       for (let i = 0; i < bytes.length; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
-      const base64 = btoa(binary);
-      client.sendAudio(base64);
+      client.sendAudio(btoa(binary));
+
+      // Update RMS ref for visualization (synced to React state via interval)
+      audioLevelRef.current = rms;
     };
 
-    source.connect(processor);
-    processor.connect(audioCtx.destination);
+    source.connect(workletNode);
+
+    // Connect to a silent sink to keep the audio graph alive
+    // without routing microphone audio to speakers (prevents echo)
+    const silentGain = audioCtx.createGain();
+    silentGain.gain.value = 0;
+    workletNode.connect(silentGain);
+    silentGain.connect(audioCtx.destination);
+
+    // Sync RMS to React state at a display-friendly rate (~15fps)
+    rmsIntervalRef.current = setInterval(() => {
+      setAudioLevel(audioLevelRef.current);
+    }, 66);
   }, []);
 
   // ── Cleanup ───────────────────────────────────────────────
 
   const cleanup = useCallback(() => {
+    // Stop RMS sync
+    if (rmsIntervalRef.current) {
+      clearInterval(rmsIntervalRef.current);
+      rmsIntervalRef.current = null;
+    }
+    audioLevelRef.current = 0;
+    setAudioLevel(0);
+
     // Stop microphone
-    processorRef.current?.disconnect();
+    workletNodeRef.current?.disconnect();
     sourceRef.current?.disconnect();
     audioCtxRef.current?.close().catch(() => {});
     streamRef.current?.getTracks().forEach((t) => t.stop());
 
-    processorRef.current = null;
+    workletNodeRef.current = null;
     sourceRef.current = null;
     audioCtxRef.current = null;
     streamRef.current = null;
 
     // Stop playback
+    flushPlayback();
     playbackCtxRef.current?.close().catch(() => {});
     playbackCtxRef.current = null;
-    playbackQueueRef.current = [];
-    isPlayingRef.current = false;
 
     // Disconnect WebSocket
     clientRef.current?.disconnect();
     clientRef.current = null;
-  }, []);
+  }, [flushPlayback]);
 
   // ── Start Call ────────────────────────────────────────────
 
@@ -222,7 +263,14 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       // 2. Create voice client with callbacks
       const client = new RealtimeVoiceClient({
         onStateChange: setState,
-        onAISpeakingChange: setAiState,
+        onAISpeakingChange: (newAiState) => {
+          setAiState(newAiState);
+          // When user interrupts (VAD detects speech_started -> listening),
+          // flush any queued/playing AI audio immediately
+          if (newAiState === 'listening') {
+            flushPlayback();
+          }
+        },
         onUserTranscript: (text) => setUserTranscript(text),
         onAITranscript: (text) => setAiTranscript(text),
         onAudioData: enqueueAudio,
@@ -236,47 +284,59 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
       // 3. Connect WebSocket
       client.connect(session.client_secret);
 
-      // 4. Wait for WebSocket to open (poll with timeout)
-      await new Promise<void>((resolve) => {
+      // 4. Wait for WebSocket to open (poll with timeout + error detection)
+      await new Promise<void>((resolve, reject) => {
         let settled = false;
-        const settle = () => {
+        const settle = (err?: Error) => {
           if (settled) return;
           settled = true;
           clearInterval(intervalId);
           clearTimeout(timeoutId);
-          resolve();
+          if (err) reject(err);
+          else resolve();
         };
+
         const intervalId = setInterval(() => {
-          if (client.isConnected) settle();
+          if (client.isConnected) {
+            settle();
+          }
         }, 100);
-        const timeoutId = setTimeout(settle, 10000);
+
+        const timeoutId = setTimeout(() => {
+          settle(new Error('Tiempo de espera agotado al conectar'));
+        }, 10000);
       });
 
-      if (client.isConnected) {
-        await startMicrophone(client);
-      } else {
-        throw new Error('Tiempo de espera agotado al conectar');
-      }
+      // 5. Start microphone capture
+      await startMicrophone(client);
     } catch (e) {
-      const msg = (e as Error).message || 'Error al iniciar la llamada';
-      setError(msg);
+      const err = e as Error;
+      if (err.name === 'NotAllowedError') {
+        setError(
+          'Permiso de microfono denegado. Permite el acceso al microfono en la configuracion del navegador.'
+        );
+      } else if (err.name === 'NotFoundError') {
+        setError(
+          'No se encontro un microfono. Conecta un microfono e intenta de nuevo.'
+        );
+      } else {
+        setError(err.message || 'Error al iniciar la llamada');
+      }
       setState('error');
       cleanup();
     }
-  }, [unlockAudio, enqueueAudio, startMicrophone, cleanup]);
+  }, [unlockAudio, enqueueAudio, startMicrophone, cleanup, flushPlayback]);
 
-  // ── Push-to-Talk ─────────────────────────────────────────
+  // ── Push-to-Talk (no-ops — VAD handles voice detection) ──
 
-  /** Call when user presses the talk button — clears noise buffer */
+  /** No-op: kept for backward compatibility with VoiceCallPanel */
   const onTalkStart = useCallback(() => {
-    clientRef.current?.clearAudioBuffer();
-    setAiState('listening');
+    // VAD mode — no push-to-talk gating needed
   }, []);
 
-  /** Call when user releases the talk button — commits audio + triggers response */
+  /** No-op: kept for backward compatibility with VoiceCallPanel */
   const onTalkEnd = useCallback(() => {
-    clientRef.current?.commitAudio();
-    clientRef.current?.createResponse();
+    // VAD mode — no push-to-talk gating needed
   }, []);
 
   // ── End Call ──────────────────────────────────────────────
@@ -305,5 +365,6 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
     onTalkStart,
     onTalkEnd,
     error,
+    audioLevel,
   };
 }
