@@ -11,7 +11,15 @@ const TopicMasteryCtx = createContext<UseTopicMasteryResult | null>(null);
 export function TopicMasteryProvider({ children }: { children: React.ReactNode }) {
   const hook = useTopicMastery();
 
-  const value = useMemo<UseTopicMasteryResult>(() => hook, [
+  const value = useMemo<UseTopicMasteryResult>(() => ({
+    topicMastery: hook.topicMastery,
+    courseMastery: hook.courseMastery,
+    fsrsStates: hook.fsrsStates,
+    flashcardToTopicMap: hook.flashcardToTopicMap,
+    loading: hook.loading,
+    error: hook.error,
+    refresh: hook.refresh,
+  }), [
     hook.topicMastery,
     hook.courseMastery,
     hook.fsrsStates,

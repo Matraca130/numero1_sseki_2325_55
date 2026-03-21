@@ -62,9 +62,6 @@ function StudentShell() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTopicOpen, setMobileTopicOpen] = useState(false);
 
-  // Derive a stable key from the URL for page transitions
-  const routeKey = location.pathname;
-
   // Close ONLY mobile drawers on route change (desktop sidebar unaffected)
   useEffect(() => {
     setMobileSidebarOpen(false);
@@ -171,7 +168,6 @@ function StudentShell() {
           {/* Main content -- Outlet renders the matched child route */}
           <main className="flex-1 overflow-y-auto relative min-w-0">
             <motion.div
-              key={routeKey}
               initial={animation.pageTransition.initial}
               animate={animation.pageTransition.animate}
               transition={{ duration: animation.pageTransition.duration }}

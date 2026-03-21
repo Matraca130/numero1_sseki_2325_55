@@ -27,16 +27,18 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
           // Core framework (shared by all routes)
-          'vendor-react': ['react', 'react-dom', 'react-router'],
+          if (/node_modules\/(react|react-dom|react-router)\//.test(id)) return 'vendor-react';
           // Heavy libraries split into their own chunks for better HTTP caching.
-          // Each only loads when its consuming route is visited.
-          'vendor-three': ['three'],
-          'vendor-motion': ['motion'],
-          'vendor-recharts': ['recharts'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-dates': ['date-fns'],
+          if (id.includes('node_modules/three/')) return 'vendor-three';
+          if (id.includes('node_modules/motion/')) return 'vendor-motion';
+          if (id.includes('node_modules/recharts/')) return 'vendor-recharts';
+          if (id.includes('node_modules/@supabase/')) return 'vendor-supabase';
+          if (id.includes('node_modules/date-fns/')) return 'vendor-dates';
+          // Mux video player and TipTap editor in separate cacheable chunks
+          if (id.includes('node_modules/@mux/')) return 'vendor-mux';
+          if (id.includes('node_modules/@tiptap/')) return 'vendor-tiptap';
         },
       },
     },

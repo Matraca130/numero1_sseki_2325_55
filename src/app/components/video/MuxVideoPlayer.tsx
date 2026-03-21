@@ -11,20 +11,7 @@ import { Loader2, AlertCircle, RefreshCw, Video } from 'lucide-react';
 import * as muxApi from '@/app/lib/muxApi';
 import { supabase } from '@/app/lib/supabase';
 
-// ── Suppress non-fatal "Unknown runtime error" from esm.sh mux polyfill ──
-// This error comes from esm.sh/node/events.mjs used internally by
-// @mux/mux-player-react. The video works fine; the error is cosmetic.
-if (typeof window !== 'undefined' && !(window as any).__muxErrorSuppressed) {
-  (window as any).__muxErrorSuppressed = true;
-  window.addEventListener('error', (e: ErrorEvent) => {
-    if (
-      e.message === 'Unknown runtime error' &&
-      e.filename?.includes('esm.sh')
-    ) {
-      e.preventDefault();
-    }
-  });
-}
+// Mux esm.sh error suppression moved into component useEffect (see useMuxErrorSuppression below)
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -61,6 +48,17 @@ export function MuxVideoPlayer({
 
   // Stable session UUID for track-view (generated once per mount)
   const [sessionId] = useState(() => crypto.randomUUID());
+
+  // Suppress non-fatal "Unknown runtime error" from esm.sh mux polyfill (scoped to component lifecycle)
+  useEffect(() => {
+    const handler = (e: ErrorEvent) => {
+      if (e.message === 'Unknown runtime error' && e.filename?.includes('esm.sh')) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('error', handler);
+    return () => window.removeEventListener('error', handler);
+  }, []);
 
   // Tracking state
   const sessionStartRef = useRef(Date.now());
