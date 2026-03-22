@@ -141,7 +141,7 @@ export function VoiceCallPanel({ summaryId }: VoiceCallPanelProps) {
           </div>
 
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-800" style={{ fontFamily: 'Georgia, serif' }}>
+            <h3 className="text-lg font-semibold text-gray-800" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
               Llamada de voz
             </h3>
             <p className="text-sm text-gray-500 mt-1 max-w-[280px]">

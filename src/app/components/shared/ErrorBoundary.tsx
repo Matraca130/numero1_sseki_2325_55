@@ -65,7 +65,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <h3 style={{ color: '#ffffff', marginBottom: '0.5rem', fontFamily: 'Georgia, serif', fontSize: '1.25rem' }}>
+          <h3 style={{ color: '#ffffff', marginBottom: '0.5rem', fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.25rem' }}>
             Algo salio mal
           </h3>
           <p style={{ color: '#a1a1aa', fontSize: '0.875rem', maxWidth: '28rem' }}>
