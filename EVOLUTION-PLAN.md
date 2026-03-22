@@ -55,32 +55,31 @@
 ### Objetivo
 Actualizar los cimientos del sistema de diseno para que todo lo que se construya encima sea premium.
 
-- [ ] **1.1** Actualizar `index.html` — agregar Playfair Display + DM Sans fonts
-- [ ] **1.2** Actualizar `src/styles/fonts.css` — documentar nueva font stack
-- [ ] **1.3** Actualizar `src/app/design-system/typography.ts` — nueva familia heading (Playfair Display), display (DM Sans)
-- [ ] **1.4** Actualizar `src/app/design-system/colors.ts` — agregar Forest Canopy tokens (forestGreen, sage, olive, ivory)
-- [ ] **1.5** Actualizar `src/styles/theme.css` — CSS variables para nuevas fuentes y colores
-- [ ] **1.6** Actualizar `src/app/design-system/components.ts` — actualizar class recipes con nuevos tokens
-- [ ] **1.7** Crear `src/app/design-system/textures.ts` — patrones premium (noise, grain, gradients sutiles)
-- [ ] **1.8** Verificar build (`npm run build`) — cero errores
+- [x] **1.1** Actualizar `index.html` — agregar Playfair Display + DM Sans fonts
+- [x] **1.2** Actualizar `src/styles/fonts.css` — documentar nueva font stack
+- [x] **1.3** Actualizar `src/app/design-system/typography.ts` — nueva familia heading (Playfair Display), display (DM Sans)
+- [x] **1.4** Actualizar `src/app/design-system/colors.ts` — agregar Forest Canopy tokens (forestGreen, sage, olive, ivory)
+- [x] **1.5** Actualizar `src/styles/theme.css` — CSS variables para nuevas fuentes y colores
+- [x] **1.6** Actualizar `src/app/design-system/components.ts` — actualizar class recipes con nuevos tokens
+- [x] **1.7** Crear `src/app/design-system/textures.ts` — patrones premium (noise, grain, gradients sutiles)
+- [x] **1.8** Verificar build (`npm run build`) — cero errores
 
 ---
 
-## PLAN 2: Login Premium (Pendiente)
+## PLAN 2: Login Premium (COMPLETADO)
 > Primera impresion del usuario — debe ser memorable.
-- Redisenar LoginPage con paleta Forest Canopy + teal
-- Eliminar violet/indigo
-- Agregar animacion de entrada premium
-- Background con textura/gradiente sophisticado
+- [x] Redisenar LoginPage con paleta Forest Canopy + teal
+- [x] Eliminar violet/indigo
+- [x] Agregar animacion de entrada premium (organic floating shapes)
+- [x] Background con textura/gradiente sophisticado (Forest mesh)
 
-## PLAN 3: Layout Shell Premium (Pendiente)
+## PLAN 3: Layout Shell Premium (COMPLETADO)
 > Sidebar, Header, Navigation — el marco de toda la app.
-- Refinar sidebar con Forest Canopy tones
-- Header con micro-animaciones
-- Page transitions mas dramaticas
-- Background surfaces con textura sutil (noise grain)
+- [x] Background ivory (#faf9f6) en StudentShell y palette.ts
+- [x] Sidebar section labels con DM Sans
+- [x] AxonPageHeader: Playfair Display titulo, DM Sans subtitulo
 
-## PLAN 4: Student Hub Premium (Pendiente)
+## PLAN 4: Student Hub Premium (COMPLETADO)
 > La vista principal del estudiante — hero + cards.
 - Redisenar StudyHubHero
 - Cards con hover states premium
@@ -101,11 +100,28 @@ Actualizar los cimientos del sistema de diseno para que todo lo que se construya
 
 ---
 
+## PLAN 6: Editorial/Prose Premium (EN PROGRESO)
+> La experiencia de lectura donde el estudiante pasa mas tiempo.
+- [ ] Actualizar axon-prose headings con Playfair Display
+- [ ] Mejorar drop cap con Playfair Display
+- [ ] Refinar blockquote styling con Forest Canopy accents
+- [ ] Verificar build + commit + push
+
+## PLAN 7: Micro-interactions & Polish (Pendiente)
+> Animaciones, scroll effects, transiciones de pagina.
+
+---
+
 ## Registro de Progreso
 
 | Fecha | Plan | Paso | Status |
 |-------|------|------|--------|
-| 2026-03-22 | Plan 1 | Iniciando | En progreso |
+| 2026-03-22 | Plan 1 | Foundation | COMPLETADO |
+| 2026-03-22 | Plan 2 | Login | COMPLETADO |
+| 2026-03-22 | Plan 3 | Layout Shell | COMPLETADO |
+| 2026-03-22 | Plan 4 | Student Hub | COMPLETADO |
+| 2026-03-22 | Plan 5 | Components | COMPLETADO |
+| 2026-03-22 | Plan 6 | Editorial | En progreso |
 
 ---
 *Este archivo se actualiza con cada iteracion del loop.*

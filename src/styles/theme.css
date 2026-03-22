@@ -131,12 +131,12 @@
   -webkit-hyphens: auto;
 }
 
-/* ── Headings: sans-serif accent ── */
+/* ── Headings: Playfair Display serif (Evolution Premium) ── */
 .axon-prose h1,
 .axon-prose h2,
 .axon-prose h3,
 .axon-prose h4 {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Playfair Display", Georgia, serif;
   text-align: left;
   color: #111827;
   letter-spacing: -0.01em;
@@ -182,16 +182,16 @@
   margin-bottom: 1.15em;
 }
 
-/* Drop cap on the first paragraph's first letter */
+/* Drop cap on the first paragraph's first letter (Evolution Premium) */
 .axon-prose > p:first-of-type::first-letter {
-  font-family: "Lora", Georgia, serif;
-  font-size: 3.2em;
-  font-weight: 700;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 3.6em;
+  font-weight: 800;
   float: left;
-  line-height: 0.8;
-  margin-right: 0.08em;
+  line-height: 0.75;
+  margin-right: 0.1em;
   margin-top: 0.05em;
-  color: #2a8c7a;
+  color: #2d4a2b;
 }
 
 /* ── Strong / emphasis ── */
@@ -266,13 +266,13 @@
   text-align: right;
 }
 
-/* ── Blockquotes ── */
+/* ── Blockquotes — Forest Canopy accent (Evolution Premium) ── */
 .axon-prose blockquote {
   position: relative;
   margin: 1.5em 0;
   padding: 1rem 1.25rem 1rem 1.5rem;
-  border-left: 3px solid #2a8c7a;
-  background: linear-gradient(135deg, #e8f5f1, #d1f0e750);
+  border-left: 3px solid #2d4a2b;
+  background: linear-gradient(135deg, #f5f4ef, #edecd850);
   border-radius: 0 0.5rem 0.5rem 0;
   font-style: italic;
   color: #4b5563;
@@ -338,7 +338,7 @@
   width: 100%;
   border-collapse: collapse;
   margin: 1.5em 0;
-  font-family: "Inter", sans-serif;
+  font-family: "DM Sans", "Inter", sans-serif;
   font-size: 0.9em;
 }
 .axon-prose thead th {
