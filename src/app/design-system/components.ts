@@ -46,8 +46,8 @@ export const components = {
 
   /** Card generico */
   card: {
-    base:     'bg-white rounded-2xl border border-gray-200 shadow-sm',
-    hover:    'hover:shadow-md transition-shadow',
+    base:     'bg-white rounded-2xl border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)]',
+    hover:    'hover:shadow-[0_4px_12px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200',
     padding:  'p-5',
     paddingLg: 'p-6',
     paddingXl: 'p-7',
@@ -103,7 +103,7 @@ export const components = {
 
   /** KPI Card */
   kpiCard: {
-    base:     'bg-white p-5 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-md transition-all',
+    base:     'bg-white p-5 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04),0_0_1px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200',
     iconBg:   'p-2.5 rounded-xl',
     trend: {
       up:     'text-green-700 bg-green-50',
@@ -153,7 +153,7 @@ export const components = {
 
   /** Quick access shortcut cards (WelcomeView) */
   shortcutCard: {
-    base:     'bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer',
+    base:     'bg-white rounded-2xl border border-gray-200 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] hover:-translate-y-px transition-all duration-200 cursor-pointer',
     iconSize: 'w-10 h-10 rounded-xl',
     iconBg:   'bg-teal-50',
     iconColor: 'text-teal-500',
@@ -161,7 +161,7 @@ export const components = {
 
   /** Course card (WelcomeView) */
   courseCard: {
-    base:     'bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow',
+    base:     'bg-white rounded-2xl border border-gray-200 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] hover:-translate-y-px transition-all duration-200',
     iconSize: 'w-12 h-12 rounded-xl',
     ctaButton: 'w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold text-center transition-colors cursor-pointer',
   },
@@ -174,7 +174,7 @@ export const components = {
 
   /** Chart containers */
   chartCard: {
-    base:    'bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100',
+    base:    'bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_0_1px_rgba(0,0,0,0.04)] border border-gray-100',
     tooltip: { borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
   },
 } as const;
