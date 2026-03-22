@@ -11,15 +11,26 @@ import { tokens, focusRing, useFadeUp } from "./dk-tokens";
    5. LAYOUTS — Componentes de estructura
    ═══════════════════════════════════════════════════════════════════════ */
 
-/** HeroSection — gradiente teal con orbs animados. */
+/** HeroSection — Forest Canopy gradient with organic animated orbs (Evolution Premium). */
 export function HeroSection({ children }: { children: ReactNode }) {
   const shouldReduce = useReducedMotion();
 
   return (
     <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-teal-800 via-teal-900 to-teal-950" />
+      {/* Premium gradient: Dark Teal → Forest Green blend */}
       <div
-        className="absolute inset-0 opacity-[0.06]"
+        className="absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse at 20% 80%, rgba(45, 74, 43, 0.2) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(42, 140, 122, 0.15) 0%, transparent 50%),
+            linear-gradient(135deg, #1B3B36 0%, #0f2b26 50%, #1a2e2a 100%)
+          `,
+        }}
+      />
+      {/* Subtle dot pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage: `radial-gradient(circle at 1px 1px, rgba(153,246,228,0.8) 1px, transparent 0)`,
           backgroundSize: "32px 32px",
@@ -28,14 +39,19 @@ export function HeroSection({ children }: { children: ReactNode }) {
       {!shouldReduce && (
         <>
           <motion.div
-            className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-emerald-400/20 blur-3xl"
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#2d4a2b]/20 blur-3xl"
             animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
-            className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-teal-400/15 blur-3xl"
+            className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-teal-400/10 blur-3xl"
             animate={{ x: [0, -20, 0], y: [0, 15, 0], scale: [1, 1.15, 1] }}
             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute top-1/3 right-1/4 w-48 h-48 rounded-full bg-[#a4ac86]/8 blur-3xl"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.08, 0.12, 0.08] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           />
         </>
       )}

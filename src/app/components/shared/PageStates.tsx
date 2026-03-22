@@ -102,9 +102,9 @@ export function EmptyState({
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${EMPTY_ACCENT[accent]}`}>
           {icon || <Inbox size={24} />}
         </div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">{title}</h3>
+        <h3 className="text-base font-semibold text-gray-900 mb-1" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{title}</h3>
         {description && (
-          <p className="text-sm text-gray-500 max-w-sm mb-5">{description}</p>
+          <p className="text-sm text-gray-500 max-w-sm mb-5" style={{ fontFamily: '"DM Sans", sans-serif' }}>{description}</p>
         )}
         {actionLabel && onAction && (
           <Button onClick={onAction} size="sm">
