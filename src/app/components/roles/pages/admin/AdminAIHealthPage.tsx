@@ -228,7 +228,7 @@ export function AdminAIHealthPage() {
         icon={<Activity size={22} />}
         title="AI Health"
         subtitle="Monitoreo del rendimiento de inteligencia artificial"
-        accent="blue"
+        accent="teal"
         actions={
           <Button variant="outline" onClick={fetchLogs} className="gap-2">
             <RefreshCw size={14} />

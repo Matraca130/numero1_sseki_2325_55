@@ -125,7 +125,7 @@ function AdminAISettingsSection({ onBack }: { onBack: () => void }) {
         icon={<Brain size={22} />}
         title="Inteligencia Artificial"
         subtitle="Configura el modelo de IA para tu institucion"
-        accent="blue"
+        accent="teal"
         actions={
           <Button variant="outline" onClick={onBack} className="gap-2">
             <ArrowLeft size={14} />
@@ -217,7 +217,7 @@ export function AdminSettingsPage() {
         icon={<Settings size={22} />}
         title="Configuracion"
         subtitle="Ajustes de la institucion"
-        accent="blue"
+        accent="teal"
       />
 
       <motion.div

@@ -168,7 +168,7 @@ export function ProfessorCurriculumPage() {
           icon={<ListTree size={20} />}
           title="Curriculum"
           subtitle="Administra la estructura de cursos, semestres, secciones y topicos"
-          accent="purple"
+          accent="teal"
           actions={
             <button
               onClick={handleRefresh}

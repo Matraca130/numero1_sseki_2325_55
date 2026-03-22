@@ -78,14 +78,14 @@ interface EmptyStateProps {
   /** CTA button callback */
   onAction?: () => void;
   /** Accent color for icon bg */
-  accent?: 'amber' | 'blue' | 'purple' | 'teal';
+  accent?: 'amber' | 'teal' | 'forest' | 'sage';
 }
 
 const EMPTY_ACCENT: Record<string, string> = {
   amber:  'bg-amber-50 text-amber-400',
-  blue:   'bg-blue-50 text-blue-400',
-  purple: 'bg-purple-50 text-purple-400',
   teal:   'bg-teal-50 text-teal-400',
+  forest: 'bg-emerald-50 text-emerald-500',
+  sage:   'bg-[#f5f4ef] text-[#7d8471]',
 };
 
 export function EmptyState({
@@ -94,7 +94,7 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
-  accent = 'blue',
+  accent = 'teal',
 }: EmptyStateProps) {
   return (
     <FadeIn>

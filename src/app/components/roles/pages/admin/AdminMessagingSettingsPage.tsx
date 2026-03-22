@@ -471,7 +471,7 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
         icon={<MessageCircle size={22} />}
         title="Integraciones de Mensajería"
         subtitle="Configura los bots de Telegram y WhatsApp para tu institución"
-        accent="blue"
+        accent="teal"
         actions={
           onBack ? (
             <Button variant="outline" onClick={onBack} className="gap-2">
