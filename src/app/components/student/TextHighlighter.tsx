@@ -37,7 +37,7 @@ import {
 const colorMap: Record<string, { bg: string; bgHover: string; border: string }> = {
   yellow: { bg: 'bg-yellow-200/50', bgHover: 'bg-yellow-200/70', border: 'border-yellow-300' },
   green:  { bg: 'bg-emerald-200/50', bgHover: 'bg-emerald-200/70', border: 'border-emerald-300' },
-  blue:   { bg: 'bg-blue-200/50',   bgHover: 'bg-blue-200/70',   border: 'border-blue-300' },
+  blue:   { bg: 'bg-cyan-200/50',   bgHover: 'bg-cyan-200/70',   border: 'border-cyan-300' },
   pink:   { bg: 'bg-pink-200/50',   bgHover: 'bg-pink-200/70',   border: 'border-pink-300' },
 };
 
@@ -405,7 +405,7 @@ export function TextHighlighter({
                   </Button>
                   <Button
                     size="sm"
-                    className="h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                    className="h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white"
                     onClick={handleSaveNote}
                     disabled={updateMutation.isPending}
                   >

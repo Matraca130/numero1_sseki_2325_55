@@ -30,9 +30,9 @@ export function AdaptiveIdleLanding({ topicTitle, cardCount, onStart, onBack }: 
         <div className="flex items-center gap-3 mb-10 text-xs text-gray-400">
           <span className="px-2 py-1 rounded bg-[#e6f5f1] text-[#2a8c7a] border border-[#2a8c7a]/20" style={{ fontWeight: 500 }}>Profesor</span>
           <span>{'\u2192'}</span>
-          <span className="px-2 py-1 rounded bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 500 }}>IA genera</span>
+          <span className="px-2 py-1 rounded bg-teal-50 text-teal-600 border border-teal-200" style={{ fontWeight: 500 }}>IA genera</span>
           <span>{'\u2192'}</span>
-          <span className="px-2 py-1 rounded bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 500 }}>Revisar IA</span>
+          <span className="px-2 py-1 rounded bg-teal-50 text-teal-600 border border-teal-200" style={{ fontWeight: 500 }}>Revisar IA</span>
           <span>{'\u2192'}</span>
           <span className="px-2 py-1 rounded bg-[#faf9f6] text-gray-500 border border-gray-200" style={{ fontWeight: 500 }}>Repetir {'\u221E'}</span>
         </div>

@@ -37,7 +37,7 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: 'Frente solo texto, reverso solo texto',
     icon: (
       <div className="flex items-center gap-1">
-        <span className="text-[10px] font-bold text-purple-500">Aa</span>
+        <span className="text-[10px] font-bold text-teal-500">Aa</span>
         <span className="text-gray-300">&rarr;</span>
         <span className="text-[10px] font-bold text-emerald-500">Aa</span>
       </div>
@@ -51,7 +51,7 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: 'Frente solo texto, reverso texto e imagen',
     icon: (
       <div className="flex items-center gap-1">
-        <span className="text-[10px] font-bold text-purple-500">Aa</span>
+        <span className="text-[10px] font-bold text-teal-500">Aa</span>
         <span className="text-gray-300">&rarr;</span>
         <Image size={12} className="text-emerald-500" />
       </div>
@@ -65,7 +65,7 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: 'Frente texto e imagen, reverso solo texto',
     icon: (
       <div className="flex items-center gap-1">
-        <Image size={12} className="text-purple-500" />
+        <Image size={12} className="text-teal-500" />
         <span className="text-gray-300">&rarr;</span>
         <span className="text-[10px] font-bold text-emerald-500">Aa</span>
       </div>
@@ -79,7 +79,7 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: 'Antes/despues, comparaciones',
     icon: (
       <div className="flex items-center gap-1">
-        <Image size={12} className="text-purple-500" />
+        <Image size={12} className="text-teal-500" />
         <span className="text-gray-300">&rarr;</span>
         <Image size={12} className="text-emerald-500" />
       </div>
@@ -93,7 +93,7 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: 'Frente y reverso con texto e imagen',
     icon: (
       <div className="flex items-center gap-1">
-        <LayoutGrid size={12} className="text-purple-500" />
+        <LayoutGrid size={12} className="text-teal-500" />
         <span className="text-gray-300">&rarr;</span>
         <LayoutGrid size={12} className="text-emerald-500" />
       </div>
@@ -107,9 +107,9 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: 'Texto con {{blancos}} a rellenar',
     icon: (
       <div className="flex items-center gap-1">
-        <span className="text-[10px] font-bold text-purple-500">Aa</span>
-        <span className="text-[9px] text-blue-400 font-mono">___</span>
-        <span className="text-[10px] font-bold text-purple-500">Aa</span>
+        <span className="text-[10px] font-bold text-teal-500">Aa</span>
+        <span className="text-[9px] text-teal-400 font-mono">___</span>
+        <span className="text-[10px] font-bold text-teal-500">Aa</span>
       </div>
     ),
     frontLabel: 'Con blancos',
@@ -173,13 +173,13 @@ function SideToggle({
   ];
 
   const activeClasses = color === 'purple'
-    ? 'bg-purple-100 text-purple-700 border-purple-200 shadow-sm'
+    ? 'bg-teal-100 text-teal-700 border-teal-200 shadow-sm'
     : 'bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm';
 
   return (
     <div className="flex flex-col gap-1">
       <span className={`text-[10px] font-semibold tracking-wide uppercase ${
-        color === 'purple' ? 'text-purple-500' : 'text-emerald-500'
+        color === 'purple' ? 'text-teal-500' : 'text-emerald-500'
       }`}>
         {label}
       </span>

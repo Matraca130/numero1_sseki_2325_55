@@ -16,11 +16,11 @@ import { useContentTreeReadonly } from '@/app/hooks/useContentTree';
 
 // ── Stable icon constants (fix H-1) ──
 
-const ICON_COURSE = <BookOpen size={12} className="text-purple-500 shrink-0" />;
+const ICON_COURSE = <BookOpen size={12} className="text-teal-500 shrink-0" />;
 const ICON_SEMESTER = <GraduationCap size={12} className="text-gray-400 shrink-0" />;
 const ICON_SECTION = <Layers size={12} className="text-gray-400 shrink-0" />;
 const ICON_TOPIC = <FileText size={12} className="text-gray-400 shrink-0" />;
-const ICON_SUMMARY = <ClipboardList size={12} className="text-purple-500 shrink-0" />;
+const ICON_SUMMARY = <ClipboardList size={12} className="text-teal-500 shrink-0" />;
 
 function extractItems<T>(res: { items: T[] } | T[]): T[] {
   return Array.isArray(res) ? res : res.items;

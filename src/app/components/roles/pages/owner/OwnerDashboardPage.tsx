@@ -538,7 +538,7 @@ export function OwnerDashboardPage() {
         <FadeIn delay={STAGGER_DELAY * 1}>
           <KPICard
             icon={<Users size={20} />}
-            iconColorClass="bg-blue-50 text-blue-500"
+            iconColorClass="bg-teal-50 text-teal-500"
             label="Total miembros"
             value={stats?.totalMembers ?? 0}
             trendSlot={

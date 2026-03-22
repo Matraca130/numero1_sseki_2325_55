@@ -403,7 +403,7 @@ function ChangeRoleDialog({ member, open, onOpenChange, onChangeRole }: ChangeRo
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ArrowUpDown size={16} className="text-blue-500" />
+            <ArrowUpDown size={16} className="text-teal-500" />
             Cambiar rol
           </DialogTitle>
           <DialogDescription>
@@ -422,7 +422,7 @@ function ChangeRoleDialog({ member, open, onOpenChange, onChangeRole }: ChangeRo
                 disabled={loading}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                   selected
-                    ? 'border-blue-400 bg-blue-50/50'
+                    ? 'border-teal-400 bg-teal-50/50'
                     : 'border-gray-100 hover:border-gray-200 bg-white'
                 }`}
               >
@@ -432,7 +432,7 @@ function ChangeRoleDialog({ member, open, onOpenChange, onChangeRole }: ChangeRo
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-900">{cfg.label}</p>
                 </div>
-                {selected && <CheckCircle2 size={16} className="text-blue-500" />}
+                {selected && <CheckCircle2 size={16} className="text-teal-500" />}
               </button>
             );
           })}
@@ -817,7 +817,7 @@ function AdminScopesDialog({ member, open, onOpenChange }: AdminScopesDialogProp
       <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-blue-500" />
+            <ShieldCheck size={18} className="text-teal-500" />
             Admin Scopes
           </DialogTitle>
           <DialogDescription>
@@ -854,7 +854,7 @@ function AdminScopesDialog({ member, open, onOpenChange }: AdminScopesDialogProp
                   key={scope.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 group hover:border-gray-200 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-500 flex items-center justify-center shrink-0">
                     <ShieldCheck size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -906,7 +906,7 @@ function AdminScopesDialog({ member, open, onOpenChange }: AdminScopesDialogProp
                   {Object.entries(SCOPE_TYPE_CONFIG).map(([key, cfg]) => (
                     <SelectItem key={key} value={key}>
                       <span className="flex items-center gap-2">
-                        <ShieldCheck size={12} className="text-blue-400" />
+                        <ShieldCheck size={12} className="text-teal-400" />
                         {cfg.label}
                       </span>
                     </SelectItem>
@@ -943,7 +943,7 @@ function AdminScopesDialog({ member, open, onOpenChange }: AdminScopesDialogProp
             <Button
               onClick={handleAddScope}
               disabled={adding || (scopeNeedsId && !newScopeId)}
-              className="w-full gap-2 bg-blue-500 hover:bg-blue-600"
+              className="w-full gap-2 bg-teal-500 hover:bg-teal-600"
               size="sm"
             >
               {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}

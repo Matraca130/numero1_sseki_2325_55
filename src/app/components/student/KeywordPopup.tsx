@@ -303,7 +303,7 @@ export function KeywordPopup({
 
         {/* ─── 3. CONEXIONES ────────────────────────────────── */}
         <CollapsibleSection
-          icon={<Link2 size={12} className="text-violet-400" />}
+          icon={<Link2 size={12} className="text-teal-400" />}
           title="Conexiones"
           badge={
             !connectionsLoading ? (

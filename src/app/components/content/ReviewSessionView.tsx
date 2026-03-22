@@ -71,7 +71,7 @@ const MOCK_DECKS: Deck[] = [
     nextReviewSub: 'Atrasado 2h',
     nextReviewColor: 'text-red-600',
     icon: <Calculator size={18} />,
-    iconBg: 'bg-gradient-to-br from-blue-400 to-blue-600',
+    iconBg: 'bg-gradient-to-br from-teal-400 to-teal-600',
   },
   {
     id: '2',
@@ -129,31 +129,31 @@ const MOCK_DECKS: Deck[] = [
     cardsDue: 0,
     dueUrgency: 'none',
     easeFactor: 300,
-    easeColor: 'text-blue-600',
+    easeColor: 'text-teal-600',
     easeBarPct: 100,
     nextReview: '19 Fev',
     nextReviewSub: 'Revisão',
     nextReviewColor: 'text-gray-800',
     icon: <Scale size={18} />,
-    iconBg: 'bg-indigo-500',
+    iconBg: 'bg-teal-500',
   },
 ];
 
 // ── Icon pool for dynamically-built decks ──
 const DECK_ICONS = [
-  { icon: <Calculator size={18} />, bg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+  { icon: <Calculator size={18} />, bg: 'bg-gradient-to-br from-teal-400 to-teal-600' },
   { icon: <Palette size={18} />, bg: 'bg-gradient-to-br from-pink-400 to-pink-600' },
   { icon: <FlaskConical size={18} />, bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
   { icon: <Languages size={18} />, bg: 'bg-gray-500' },
-  { icon: <Scale size={18} />, bg: 'bg-indigo-500' },
-  { icon: <Brain size={18} />, bg: 'bg-gradient-to-br from-purple-400 to-purple-600' },
+  { icon: <Scale size={18} />, bg: 'bg-teal-500' },
+  { icon: <Brain size={18} />, bg: 'bg-gradient-to-br from-teal-400 to-teal-600' },
   { icon: <GraduationCap size={18} />, bg: 'bg-gradient-to-br from-amber-400 to-amber-600' },
 ];
 
 const DUE_BADGE_STYLES = {
   critical: 'bg-red-100 text-red-800',
   warning: 'bg-orange-100 text-orange-800',
-  info: 'bg-blue-100 text-blue-800',
+  info: 'bg-teal-100 text-teal-800',
   none: 'bg-gray-100 text-gray-500',
 };
 

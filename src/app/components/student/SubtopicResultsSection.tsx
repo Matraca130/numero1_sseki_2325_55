@@ -95,7 +95,7 @@ export const SubtopicResultsSection = React.memo(function SubtopicResultsSection
           Resultado por subtopico
         </h3>
         {bktStates.length > 0 && (
-          <span className="flex items-center gap-1 text-[9px] text-violet-500 bg-violet-50 px-1.5 py-0.5 rounded-full border border-violet-200" style={{ fontWeight: 600 }}>
+          <span className="flex items-center gap-1 text-[9px] text-teal-500 bg-teal-50 px-1.5 py-0.5 rounded-full border border-teal-200" style={{ fontWeight: 600 }}>
             <Brain size={9} /> BKT
           </span>
         )}

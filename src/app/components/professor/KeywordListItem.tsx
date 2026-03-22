@@ -60,7 +60,7 @@ export function KeywordListItem({
     >
       {/* Row */}
       <div className="flex items-center gap-3 px-4 py-2.5 group hover:bg-gray-50/50 transition-colors">
-        <Tag size={13} className="text-violet-400 shrink-0" />
+        <Tag size={13} className="text-teal-400 shrink-0" />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
@@ -86,7 +86,7 @@ export function KeywordListItem({
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isSubExpanded
-              ? "bg-violet-100 text-violet-700"
+              ? "bg-teal-100 text-teal-700"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           )}
           title="Subtemas"
@@ -102,7 +102,7 @@ export function KeywordListItem({
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isConnExpanded
-              ? "bg-violet-100 text-violet-700"
+              ? "bg-teal-100 text-teal-700"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           )}
           title="Conexiones"
@@ -116,7 +116,7 @@ export function KeywordListItem({
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isNotesExpanded
-              ? "bg-violet-100 text-violet-700"
+              ? "bg-teal-100 text-teal-700"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           )}
           title="Notas"
@@ -132,7 +132,7 @@ export function KeywordListItem({
           className="opacity-0 group-hover:opacity-100 transition-opacity"
           title="Editar"
         >
-          <Edit3 size={13} className="text-gray-400 hover:text-violet-600" />
+          <Edit3 size={13} className="text-gray-400 hover:text-teal-600" />
         </button>
 
         {/* Delete */}

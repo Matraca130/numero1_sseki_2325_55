@@ -61,7 +61,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         <select
           value={filterType}
           onChange={e => onFilterTypeChange(e.target.value as QuestionType | '')}
-          className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[130px]"
+          className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 min-w-[130px]"
         >
           <option value="">Todos los tipos</option>
           {(Object.entries(QUESTION_TYPE_LABELS) as [QuestionType, string][]).map(([k, v]) => (
@@ -74,7 +74,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
           <select
             value={filterDifficulty ?? ''}
             onChange={e => onFilterDifficultyChange(e.target.value as Difficulty | '')}
-            className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[110px]"
+            className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 min-w-[110px]"
           >
             <option value="">Toda dificultad</option>
             {(Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][]).map(([k, v]) => (
@@ -86,7 +86,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         <select
           value={filterKeywordId}
           onChange={e => onFilterKeywordChange(e.target.value)}
-          className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 min-w-[140px] max-w-[200px]"
+          className="text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 min-w-[140px] max-w-[200px]"
         >
           <option value="">Todas las keywords</option>
           {keywords.map(kw => (
@@ -102,7 +102,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
             placeholder="Buscar en preguntas..."
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
-            className="w-full text-[11px] border border-gray-200 rounded-lg pl-8 pr-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 placeholder:text-gray-300"
+            className="w-full text-[11px] border border-gray-200 rounded-lg pl-8 pr-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 placeholder:text-gray-300"
           />
         </div>
 
@@ -112,7 +112,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         {onCreate && (
           <button
             onClick={onCreate}
-            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-xl text-[11px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-lg shadow-purple-600/25"
+            className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-xl text-[11px] hover:bg-teal-700 active:scale-[0.97] transition-all shadow-lg shadow-teal-600/25"
             style={{ fontWeight: 600 }}
           >
             <Plus size={14} />

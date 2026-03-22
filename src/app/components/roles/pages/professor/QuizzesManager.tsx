@@ -165,7 +165,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
         <div className="px-5 py-4 border-b border-zinc-200 bg-white/80 backdrop-blur-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center shadow-sm">
                 <ClipboardList size={17} className="text-white" />
               </div>
               <div>
@@ -184,7 +184,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
                 'flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] transition-all',
                 backendError
                   ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                  : 'bg-purple-600 text-white hover:bg-purple-700 active:scale-[0.97] shadow-lg shadow-purple-600/25'
+                  : 'bg-teal-600 text-white hover:bg-teal-700 active:scale-[0.97] shadow-lg shadow-teal-600/25'
               )}
               style={{ fontWeight: 600 }}
             >
@@ -198,7 +198,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
         <div className="flex-1 overflow-y-auto custom-scrollbar-light p-5 bg-zinc-50">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="animate-spin text-purple-500" size={24} />
+              <Loader2 className="animate-spin text-teal-500" size={24} />
             </div>
           ) : quizzes.length === 0 && !backendError ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
@@ -206,7 +206,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
               <p className="text-sm">No hay quizzes en este resumen</p>
               <button
                 onClick={handleCreate}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[12px] hover:bg-purple-200 transition-colors"
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg text-[12px] hover:bg-teal-200 transition-colors"
                 style={{ fontWeight: 600 }}
               >
                 <Plus size={14} />

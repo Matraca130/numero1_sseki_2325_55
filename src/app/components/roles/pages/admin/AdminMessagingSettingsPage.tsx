@@ -183,7 +183,7 @@ function ChannelCard({ channel, icon, title, description, data, loading, onSave,
       {/* Header */}
       <div className="p-5 flex items-center justify-between border-b border-gray-50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-500 flex items-center justify-center shrink-0">
             {icon}
           </div>
           <div>
@@ -483,13 +483,13 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
       />
 
       {/* Info banner */}
-      <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 flex items-start gap-3">
-        <AlertCircle size={18} className="text-blue-500 mt-0.5 shrink-0" />
-        <div className="text-sm text-blue-700">
+      <div className="rounded-xl bg-teal-50 border border-teal-100 p-4 flex items-start gap-3">
+        <AlertCircle size={18} className="text-teal-500 mt-0.5 shrink-0" />
+        <div className="text-sm text-teal-700">
           <p className="font-medium mb-1">Cómo obtener los tokens</p>
-          <ul className="space-y-1 text-blue-600">
-            <li><strong>Telegram:</strong> Habla con <code className="bg-blue-100 px-1 rounded">@BotFather</code> en Telegram y usa <code className="bg-blue-100 px-1 rounded">/newbot</code> para crear tu bot y obtener el token.</li>
-            <li><strong>WhatsApp:</strong> Ve a <code className="bg-blue-100 px-1 rounded">developers.facebook.com</code>, crea una app de tipo Business y configura la API de WhatsApp Cloud.</li>
+          <ul className="space-y-1 text-teal-600">
+            <li><strong>Telegram:</strong> Habla con <code className="bg-teal-100 px-1 rounded">@BotFather</code> en Telegram y usa <code className="bg-teal-100 px-1 rounded">/newbot</code> para crear tu bot y obtener el token.</li>
+            <li><strong>WhatsApp:</strong> Ve a <code className="bg-teal-100 px-1 rounded">developers.facebook.com</code>, crea una app de tipo Business y configura la API de WhatsApp Cloud.</li>
           </ul>
         </div>
       </div>

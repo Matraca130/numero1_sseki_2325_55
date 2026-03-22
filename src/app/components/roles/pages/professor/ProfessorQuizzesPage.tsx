@@ -127,7 +127,7 @@ export function ProfessorQuizzesPage() {
             className="px-4 py-3 border-b border-gray-100 w-full text-left hover:bg-gray-50/50 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2 mb-1">
-              <ClipboardList size={16} className="text-purple-600" />
+              <ClipboardList size={16} className="text-teal-600" />
               <h2 className="text-sm text-gray-900" style={{ fontWeight: 700 }}>Quizzes</h2>
               <div className="flex-1" />
               <span className="text-gray-400 transition-transform">
@@ -151,12 +151,12 @@ export function ProfessorQuizzesPage() {
 
                   {/* ── Selection indicator ── */}
                   {selectedSummaryId && (
-                    <div className="mt-2 px-3 py-2.5 rounded-lg bg-purple-50 border border-purple-100">
-                      <div className="flex items-center gap-1.5 text-[10px] text-purple-600 mb-1" style={{ fontWeight: 700 }}>
+                    <div className="mt-2 px-3 py-2.5 rounded-lg bg-teal-50 border border-teal-100">
+                      <div className="flex items-center gap-1.5 text-[10px] text-teal-600 mb-1" style={{ fontWeight: 700 }}>
                         <Check size={12} />
                         Resumen seleccionado
                       </div>
-                      <p className="text-[11px] text-purple-800 truncate" style={{ fontWeight: 500 }}>
+                      <p className="text-[11px] text-teal-800 truncate" style={{ fontWeight: 500 }}>
                         {selectedSummary?.title || selectedSummaryId.substring(0, 12)}
                       </p>
                     </div>
@@ -178,8 +178,8 @@ export function ProfessorQuizzesPage() {
         <div className="flex-1 flex flex-col min-w-0 bg-zinc-50">
           {!selectedSummaryId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center">
-                <ClipboardList size={28} className="text-purple-300" />
+              <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center">
+                <ClipboardList size={28} className="text-teal-300" />
               </div>
               <p className="text-sm">Selecciona un resumen desde el panel izquierdo</p>
               <p className="text-xs text-zinc-300">Curso \u2192 Semestre \u2192 Seccion \u2192 Topico \u2192 Resumen</p>
@@ -194,7 +194,7 @@ export function ProfessorQuizzesPage() {
                   className="mb-1.5 text-[10px]"
                 />
                 <div className="flex items-center gap-2">
-                  <FileText size={14} className="text-purple-500" />
+                  <FileText size={14} className="text-teal-500" />
                   <span className="text-[13px] text-gray-800" style={{ fontWeight: 600 }}>
                     {selectedSummary?.title || 'Resumen seleccionado'}
                   </span>
@@ -225,7 +225,7 @@ export function ProfessorQuizzesPage() {
               <div className="flex-1 overflow-y-auto custom-scrollbar-light p-5">
                 {questionsLoading ? (
                   <div className="flex items-center justify-center py-16">
-                    <Loader2 className="animate-spin text-purple-500" size={24} />
+                    <Loader2 className="animate-spin text-teal-500" size={24} />
                   </div>
                 ) : filters.filteredQuestions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
@@ -236,7 +236,7 @@ export function ProfessorQuizzesPage() {
                     {questions.length === 0 && (
                       <button
                         onClick={crud.handleCreate}
-                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[12px] hover:bg-purple-200 transition-colors"
+                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg text-[12px] hover:bg-teal-200 transition-colors"
                         style={{ fontWeight: 600 }}
                       >
                         <Plus size={14} />

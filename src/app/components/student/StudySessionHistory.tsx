@@ -108,7 +108,7 @@ export function StudySessionHistory({
   const sessionTypeIcon: Record<string, React.ReactNode> = {
     flashcard: <Brain size={12} className="text-[#2a8c7a]" />,
     quiz: <CheckCircle2 size={12} className="text-[#2a8c7a]" />,
-    reading: <BarChart3 size={12} className="text-blue-500" />,
+    reading: <BarChart3 size={12} className="text-teal-500" />,
     mixed: <TrendingUp size={12} className="text-amber-500" />,
   };
 

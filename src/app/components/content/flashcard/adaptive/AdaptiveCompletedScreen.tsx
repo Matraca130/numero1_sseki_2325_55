@@ -41,7 +41,7 @@ export function AdaptiveCompletedScreen({ allStats, completedRounds, masteryDelt
         <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>{'\u00A1'}Sesi{'\u00F3'}n Completada!</h2>
         <p className="text-sm text-gray-500 mb-6">
           {totalReviews} flashcards en {totalRounds} {totalRounds === 1 ? 'ronda' : 'rondas'}
-          {aiRounds > 0 && <span className="text-violet-500"> ({profRounds} profesor + {aiRounds} IA)</span>}
+          {aiRounds > 0 && <span className="text-teal-500"> ({profRounds} profesor + {aiRounds} IA)</span>}
         </p>
         <div className="mb-8">
           <MasteryRing value={masteryPct / 100} size={120} stroke={8} color={masteryColor.hex} />

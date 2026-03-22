@@ -125,7 +125,7 @@ export function KeywordFormDialog({
                         className={clsx(
                           "flex-1 text-xs py-1.5 rounded-lg border transition-all",
                           formPriority === p
-                            ? "border-violet-400 bg-violet-50 text-violet-700"
+                            ? "border-teal-400 bg-teal-50 text-teal-700"
                             : "border-gray-200 text-gray-500 hover:border-gray-300"
                         )}
                       >
@@ -150,7 +150,7 @@ export function KeywordFormDialog({
                 size="sm"
                 onClick={handleSubmit}
                 disabled={saving || !formName.trim()}
-                className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white"
               >
                 {saving ? (
                   <Loader2 size={12} className="animate-spin mr-1" />

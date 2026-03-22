@@ -175,7 +175,7 @@ export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
               <>
                 <span
                   className={clsx(
-                    "text-xs flex-1 cursor-pointer hover:text-violet-600 transition-colors truncate",
+                    "text-xs flex-1 cursor-pointer hover:text-teal-600 transition-colors truncate",
                     sub.is_active ? "text-gray-700" : "text-gray-400 line-through"
                   )}
                   onClick={() => { setEditingId(sub.id); setEditName(sub.name); }}
@@ -230,7 +230,7 @@ export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-xs text-violet-600 hover:text-violet-700"
+          className="h-7 px-2 text-xs text-teal-600 hover:text-teal-700"
           onClick={handleAdd}
           disabled={createMutation.isPending || !newName.trim() || atLimit}
         >

@@ -58,7 +58,7 @@ function ImageUrlInput({
           value={value}
           onChange={(e) => { onChange(e.target.value); setImgError(false); }}
           placeholder="https://ejemplo.com/imagen.jpg"
-          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all"
         />
         {value && (
           <button
@@ -303,8 +303,8 @@ export function FlashcardFormModal({
           {/* Modal header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
-                {isEditing ? <Pencil size={16} className="text-purple-600" /> : <Plus size={16} className="text-purple-600" />}
+              <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                {isEditing ? <Pencil size={16} className="text-teal-600" /> : <Plus size={16} className="text-teal-600" />}
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">{isEditing ? 'Editar Flashcard' : 'Nueva Flashcard'}</h3>
@@ -339,7 +339,7 @@ export function FlashcardFormModal({
                       value={keywordId}
                       onChange={(e) => handleKeywordChange(e.target.value)}
                       disabled={isEditing}
-                      className={`w-full px-3 py-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all ${
+                      className={`w-full px-3 py-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all ${
                         isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'
                       }`}
                     >
@@ -369,7 +369,7 @@ export function FlashcardFormModal({
                       <select
                         value={subtopicId}
                         onChange={(e) => setSubtopicId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all"
                       >
                         <option value="">Ninguno</option>
                         {currentSubtopics.map(st => (
@@ -382,7 +382,7 @@ export function FlashcardFormModal({
 
                 {/* FRONT content */}
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-purple-500">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-teal-500">
                     Frente {cardType === 'cloze' ? '(con {{blancos}})' : ''}
                   </label>
 
@@ -397,10 +397,10 @@ export function FlashcardFormModal({
                             : 'Escribe la pregunta o concepto...'
                         }
                         rows={cardType === 'cloze' ? 4 : 3}
-                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all resize-none"
+                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all resize-none"
                       />
                       {cardType === 'cloze' && frontText && (
-                        <div className="mt-1 text-[10px] text-blue-500">
+                        <div className="mt-1 text-[10px] text-teal-500">
                           {(frontText.match(/\{\{[^}]+\}\}/g) || []).length} blanco(s) detectado(s)
                         </div>
                       )}
@@ -432,7 +432,7 @@ export function FlashcardFormModal({
                           : 'Escribe la respuesta o explicacion...'
                       }
                       rows={3}
-                      className={`w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all resize-none ${
+                      className={`w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all resize-none ${
                         cardType === 'cloze' ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200'
                       }`}
                     />
@@ -456,7 +456,7 @@ export function FlashcardFormModal({
                       onClick={() => setSource('manual')}
                       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                         source === 'manual'
-                          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                          ? 'bg-teal-50 text-teal-600 border border-teal-200'
                           : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                       }`}
                     >
@@ -510,7 +510,7 @@ export function FlashcardFormModal({
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-all"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {isEditing ? 'Guardar cambios' : 'Crear flashcard'}

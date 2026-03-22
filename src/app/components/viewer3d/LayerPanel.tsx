@@ -107,7 +107,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
         <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-          <Layers size={13} className="text-violet-400" />
+          <Layers size={13} className="text-teal-400" />
           Capas
         </h4>
         <div className="flex items-center gap-1">
@@ -166,7 +166,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
                   className={clsx(
                     'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0',
                     layerVisible
-                      ? 'bg-violet-500 border-violet-400'
+                      ? 'bg-teal-500 border-teal-400'
                       : 'bg-transparent border-gray-600 hover:border-gray-400',
                   )}
                 >
@@ -186,7 +186,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
 
                 {/* Loading indicator */}
                 {loadingCount > 0 && (
-                  <span className="text-[8px] text-violet-400 animate-pulse">cargando...</span>
+                  <span className="text-[8px] text-teal-400 animate-pulse">cargando...</span>
                 )}
 
                 {/* Part count */}
@@ -203,7 +203,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
                     max={100}
                     value={layerOpacity}
                     onChange={(e) => handleLayerOpacity(layer.name, Number(e.target.value))}
-                    className="flex-1 h-1 accent-violet-500 cursor-pointer"
+                    className="flex-1 h-1 accent-teal-500 cursor-pointer"
                     style={{ accentColor: layer.color_hex }}
                   />
                   <span className="text-[9px] text-gray-500 w-7 text-right">{layerOpacity}%</span>
@@ -224,7 +224,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
                         className={clsx(
                           'w-3 h-3 rounded-sm border flex items-center justify-center transition-all shrink-0',
                           part.visible
-                            ? 'bg-violet-500/70 border-violet-400/70'
+                            ? 'bg-teal-500/70 border-teal-400/70'
                             : 'bg-transparent border-gray-700 hover:border-gray-500',
                         )}
                       >
@@ -244,7 +244,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
 
                       {/* State indicators */}
                       {part.loading && (
-                        <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
                       )}
                       {!part.loaded && !part.loading && (
                         <span className="text-[7px] text-gray-700">idle</span>

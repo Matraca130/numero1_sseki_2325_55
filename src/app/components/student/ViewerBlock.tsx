@@ -27,14 +27,14 @@ interface ViewerBlockProps {
 // ── Callout icon map ──────────────────────────────────────
 
 const calloutIcons: Record<string, React.ReactNode> = {
-  info: <Info size={16} className="text-blue-500 shrink-0" />,
+  info: <Info size={16} className="text-cyan-500 shrink-0" />,
   warning: <AlertTriangle size={16} className="text-amber-500 shrink-0" />,
   success: <CheckCircle size={16} className="text-emerald-500 shrink-0" />,
   tip: <Lightbulb size={16} className="text-teal-500 shrink-0" />,
 };
 
 const calloutBg: Record<string, string> = {
-  info: 'bg-blue-50 border-blue-200',
+  info: 'bg-cyan-50 border-cyan-200',
   warning: 'bg-amber-50 border-amber-200',
   success: 'bg-emerald-50 border-emerald-200',
   tip: 'bg-teal-50 border-teal-200',

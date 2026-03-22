@@ -36,14 +36,14 @@ import { ActivityItem } from '@/app/components/shared/ActivityItem';
 
 // ── Mapping helpers for StudentDataPanel data → shared component props ──
 const COURSE_VISUALS = [
-  { icon: '🦠', bg: 'bg-purple-100', progress: 'bg-purple-500', percent: 'text-purple-600' },
+  { icon: '🦠', bg: 'bg-teal-100', progress: 'bg-teal-500', percent: 'text-teal-600' },
   { icon: '🌿', bg: 'bg-teal-100', progress: 'bg-teal-600', percent: 'text-teal-600' },
-  { icon: '🔬', bg: 'bg-blue-100', progress: 'bg-blue-500', percent: 'text-blue-600' },
+  { icon: '🔬', bg: 'bg-teal-100', progress: 'bg-teal-500', percent: 'text-teal-600' },
   { icon: '❤️', bg: 'bg-pink-100', progress: 'bg-pink-500', percent: 'text-pink-600' },
 ];
 
 const ACTIVITY_VISUALS = [
-  { icon: <Play size={16} />, bg: 'bg-blue-100', color: 'text-blue-600', label: 'Vídeo de Anatomia', sub: 'Sistema Cardiovascular' },
+  { icon: <Play size={16} />, bg: 'bg-teal-100', color: 'text-teal-600', label: 'Vídeo de Anatomia', sub: 'Sistema Cardiovascular' },
   { icon: <CheckCircle size={16} />, bg: 'bg-teal-100', color: 'text-teal-600', label: 'Quiz de Histologia', sub: 'Nota: 9.5/10' },
   { icon: <FileText size={16} />, bg: 'bg-amber-100', color: 'text-amber-600', label: 'Novo resumo', sub: 'Ciclo de Krebs' },
 ];

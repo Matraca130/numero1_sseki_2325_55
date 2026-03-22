@@ -97,8 +97,8 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
       <div className="bg-white border-b border-gray-100 px-6 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
-              <CreditCard size={16} className="text-purple-600" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+              <CreditCard size={16} className="text-teal-600" />
             </div>
             <div>
               <h2 className="font-bold text-gray-900 text-sm">Flashcards</h2>
@@ -114,7 +114,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
           <div className="flex items-center gap-2">
             <button
               onClick={onBulkImportClick}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 transition-all"
             >
               <Upload size={14} />
               Importar en lote
@@ -138,10 +138,10 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                 {selectedFlashcards.length > 0 && (
                   <>
                     <div className="border-t border-gray-100 my-1" />
-                    <button onClick={() => onExport('csv', true)} className="w-full px-4 py-2 text-xs text-left text-purple-600 hover:bg-purple-50">
+                    <button onClick={() => onExport('csv', true)} className="w-full px-4 py-2 text-xs text-left text-teal-600 hover:bg-teal-50">
                       CSV seleccionadas ({selectedFlashcards.length})
                     </button>
-                    <button onClick={() => onExport('json', true)} className="w-full px-4 py-2 text-xs text-left text-purple-600 hover:bg-purple-50">
+                    <button onClick={() => onExport('json', true)} className="w-full px-4 py-2 text-xs text-left text-teal-600 hover:bg-teal-50">
                       JSON seleccionadas ({selectedFlashcards.length})
                     </button>
                   </>
@@ -150,7 +150,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
             </div>
             <button
               onClick={onCreateClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-all shadow-sm shadow-purple-200"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all shadow-sm shadow-teal-200"
             >
               <Plus size={16} />
               Nueva Flashcard
@@ -172,7 +172,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar flashcards..."
-                  className="pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-xs w-52 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+                  className="pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-xs w-52 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all"
                 />
               </div>
 
@@ -189,7 +189,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                     onClick={() => setFilterType(ft.val)}
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
                       filterType === ft.val
-                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                        ? 'bg-teal-100 text-teal-700 border border-teal-200'
                         : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
@@ -205,7 +205,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                   onClick={() => setFilterKeywordId(null)}
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
                     !filterKeywordId
-                      ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                      ? 'bg-teal-100 text-teal-700 border border-teal-200'
                       : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -218,7 +218,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                     onClick={() => setFilterKeywordId(filterKeywordId === kw.id ? null : kw.id)}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
                       filterKeywordId === kw.id
-                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                        ? 'bg-teal-100 text-teal-700 border border-teal-200'
                         : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
@@ -266,24 +266,24 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
 
       {/* ── Bulk Action Bar ── */}
       {selectedFlashcards.length > 0 && (
-        <div className="bg-purple-50 border-b border-purple-200 px-6 py-2.5 shrink-0">
+        <div className="bg-teal-50 border-b border-teal-200 px-6 py-2.5 shrink-0">
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handleSelectAll}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-purple-700"
+              className="flex items-center gap-1.5 text-[11px] font-medium text-teal-700"
             >
               {selectedFlashcards.length === filteredCards.length
                 ? <CheckSquare size={14} />
                 : <Square size={14} />}
               {selectedFlashcards.length === filteredCards.length ? 'Deseleccionar' : 'Seleccionar'} todas
             </button>
-            <span className="text-[11px] text-purple-500 font-medium">
+            <span className="text-[11px] text-teal-500 font-medium">
               {selectedFlashcards.length} seleccionada{selectedFlashcards.length !== 1 ? 's' : ''}
             </span>
             <div className="flex-1" />
             <select
               onChange={(e) => { if (e.target.value) onBulkAssignKeyword(e.target.value); e.target.value = ''; }}
-              className="px-2.5 py-1.5 rounded-lg border border-purple-200 bg-white text-[11px] text-purple-700 font-medium focus:outline-none"
+              className="px-2.5 py-1.5 rounded-lg border border-teal-200 bg-white text-[11px] text-teal-700 font-medium focus:outline-none"
               defaultValue=""
             >
               <option value="" disabled>Asignar keyword...</option>
@@ -311,7 +311,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
             </button>
             <button
               onClick={() => setSelectedFlashcards([])}
-              className="p-1.5 rounded-lg text-purple-400 hover:bg-purple-100 transition-all"
+              className="p-1.5 rounded-lg text-teal-400 hover:bg-teal-100 transition-all"
             >
               <X size={14} />
             </button>

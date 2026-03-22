@@ -196,10 +196,10 @@ export function SummaryScreen({
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
-            className="mb-6 sm:mb-8 w-full max-w-[90vw] sm:max-w-sm bg-gradient-to-br from-violet-50/80 to-[#e6f5f1]/80 backdrop-blur-sm border border-violet-200/40 rounded-2xl p-4 sm:p-5 text-center"
+            className="mb-6 sm:mb-8 w-full max-w-[90vw] sm:max-w-sm bg-gradient-to-br from-teal-50/80 to-[#e6f5f1]/80 backdrop-blur-sm border border-teal-200/40 rounded-2xl p-4 sm:p-5 text-center"
           >
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles size={16} className="text-violet-500" />
+              <Sparkles size={16} className="text-teal-500" />
               <span className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
                 Refuerza tus puntos d\u00E9biles
               </span>
@@ -209,7 +209,7 @@ export function SummaryScreen({
             </p>
             <button
               onClick={onStartAdaptive}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-[#2a8c7a] text-white text-sm shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 hover:-translate-y-0.5 transition-all flex items-center gap-2 mx-auto"
+              className="px-5 py-2.5 rounded-xl bg-[#2a8c7a] text-white text-sm shadow-lg shadow-[#2a8c7a]/20 hover:shadow-[#2a8c7a]/30 hover:-translate-y-0.5 transition-all flex items-center gap-2 mx-auto"
               style={{ fontWeight: 600 }}
             >
               <Sparkles size={14} />

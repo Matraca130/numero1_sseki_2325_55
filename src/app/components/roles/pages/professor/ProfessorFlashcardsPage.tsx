@@ -147,14 +147,14 @@ function CascadeNavigator({
     setSelectedSectionId('');
   };
 
-  const selectClass = "w-full px-3 py-2 rounded-lg border border-gray-200 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all disabled:bg-gray-50 disabled:text-gray-400";
+  const selectClass = "w-full px-3 py-2 rounded-lg border border-gray-200 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all disabled:bg-gray-50 disabled:text-gray-400";
   const labelClass = "block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1";
 
   // ── Loading state ──
   if (treeLoading || (!membershipsLoaded && !!institutionId)) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 size={20} className="animate-spin text-purple-400" />
+        <Loader2 size={20} className="animate-spin text-teal-400" />
       </div>
     );
   }
@@ -251,8 +251,8 @@ function CascadeNavigator({
                   onClick={() => onSelectTopic(topic.id, topic.name || `Topico ${topic.id.substring(0, 8)}`)}
                   className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-lg transition-all text-[12px] ${
                     selectedTopicId === topic.id
-                      ? 'bg-purple-100 text-purple-700 font-semibold border border-purple-200'
-                      : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600 border border-transparent'
+                      ? 'bg-teal-100 text-teal-700 font-semibold border border-teal-200'
+                      : 'text-gray-600 hover:bg-teal-50 hover:text-teal-600 border border-transparent'
                   }`}
                 >
                   <FileText size={12} className="shrink-0" />
@@ -339,10 +339,10 @@ export function ProfessorFlashcardsPage() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsTreeCollapsed(!isTreeCollapsed)}
-              className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center hover:bg-purple-100 transition-colors cursor-pointer shrink-0"
+              className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center hover:bg-teal-100 transition-colors cursor-pointer shrink-0"
               title={isTreeCollapsed ? 'Expandir panel' : 'Colapsar panel'}
             >
-              {isTreeCollapsed ? <ChevronRight size={14} className="text-purple-500" /> : <Layers size={14} className="text-purple-500" />}
+              {isTreeCollapsed ? <ChevronRight size={14} className="text-teal-500" /> : <Layers size={14} className="text-teal-500" />}
             </button>
             {!isTreeCollapsed && (
               <div className="flex-1 flex items-center justify-between min-w-0">
@@ -384,8 +384,8 @@ export function ProfessorFlashcardsPage() {
         {/* ── Page Header ── */}
         <div className="bg-white border-b border-gray-100 px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-              <CreditCard size={18} className="text-purple-600" />
+            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+              <CreditCard size={18} className="text-teal-600" />
             </div>
             <div>
               <h1 className="font-bold text-gray-900">Flashcards</h1>
@@ -406,8 +406,8 @@ export function ProfessorFlashcardsPage() {
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
             {!selectedTopicId ? (
               <>
-                <div className="w-20 h-20 rounded-2xl bg-purple-50 flex items-center justify-center mb-4">
-                  <CreditCard size={32} className="text-purple-300" />
+                <div className="w-20 h-20 rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
+                  <CreditCard size={32} className="text-teal-300" />
                 </div>
                 <h3 className="font-bold text-gray-700 mb-1">Gestion de Flashcards</h3>
                 <p className="text-sm text-gray-400 max-w-md">

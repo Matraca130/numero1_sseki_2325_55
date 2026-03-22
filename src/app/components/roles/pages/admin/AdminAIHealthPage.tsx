@@ -262,8 +262,8 @@ export function AdminAIHealthPage() {
           icon={<Clock size={20} />}
           label="Latencia promedio"
           value={`${stats.avgLatency} ms`}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-500"
+          iconBg="bg-teal-50"
+          iconColor="text-teal-500"
         />
         <StatCard
           icon={<ArrowDownCircle size={20} />}

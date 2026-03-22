@@ -268,7 +268,7 @@ export function DiagnosticsPage() {
       case 'warn':
         return <span className="text-amber-500 text-lg font-bold">WARN</span>;
       case 'running':
-        return <span className="text-blue-500 animate-pulse">Running...</span>;
+        return <span className="text-teal-500 animate-pulse">Running...</span>;
       default:
         return <span className="text-gray-400">Pending</span>;
     }
@@ -283,7 +283,7 @@ export function DiagnosticsPage() {
       case 'warn':
         return 'border-l-amber-500 bg-amber-50';
       case 'running':
-        return 'border-l-blue-500 bg-blue-50';
+        return 'border-l-teal-500 bg-teal-50';
       default:
         return 'border-l-gray-300 bg-[#faf9f6]';
     }
@@ -427,14 +427,14 @@ export function DiagnosticsPage() {
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <div className="text-gray-400 mb-1">Real Backend (Edge Function)</div>
-              <code className="text-purple-300 bg-gray-900 px-2 py-1 rounded block">
+              <code className="text-teal-300 bg-gray-900 px-2 py-1 rounded block">
                 /server
               </code>
               <div className="text-gray-500 mt-1">SQL + Hono, JWT auth, RBAC</div>
             </div>
             <div>
               <div className="text-gray-400 mb-1">API Base URL</div>
-              <code className="text-blue-300 bg-gray-900 px-2 py-1 rounded block text-[10px] break-all">
+              <code className="text-teal-300 bg-gray-900 px-2 py-1 rounded block text-[10px] break-all">
                 {API_BASE}
               </code>
             </div>

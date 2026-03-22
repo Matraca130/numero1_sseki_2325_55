@@ -46,8 +46,8 @@ function FadeIn({ children, delay = 0, className = '' }: {
 }
 
 const GEN_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  flashcard:  { label: 'Flashcards',  color: 'text-blue-500 bg-blue-50' },
-  quiz:       { label: 'Quiz',        color: 'text-purple-500 bg-purple-50' },
+  flashcard:  { label: 'Flashcards',  color: 'text-teal-500 bg-teal-50' },
+  quiz:       { label: 'Quiz',        color: 'text-teal-500 bg-teal-50' },
   summary:    { label: 'Resumen',     color: 'text-emerald-500 bg-emerald-50' },
   diagnostic: { label: 'Diagnostico', color: 'text-amber-500 bg-amber-50' },
   keyword:    { label: 'Keywords',    color: 'text-teal-500 bg-teal-50' },
@@ -99,7 +99,7 @@ export function OwnerReportsPage() {
   const statCards = useMemo(() => {
     if (!stats) return [];
     return [
-      { label: 'Miembros', value: stats.totalMembers, icon: <Users size={16} />, color: 'text-blue-500 bg-blue-50' },
+      { label: 'Miembros', value: stats.totalMembers, icon: <Users size={16} />, color: 'text-teal-500 bg-teal-50' },
       { label: 'Estudiantes activos', value: stats.activeStudents, icon: <BookOpen size={16} />, color: 'text-emerald-500 bg-emerald-50' },
       { label: 'Planes', value: stats.totalPlans, icon: <CreditCard size={16} />, color: 'text-amber-500 bg-amber-50' },
       { label: 'Inactivos', value: stats.inactiveMembers, icon: <AlertCircle size={16} />, color: 'text-gray-400 bg-gray-50' },

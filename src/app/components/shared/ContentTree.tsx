@@ -88,7 +88,7 @@ function InlineEditor({
         onKeyDown={handleKeyDown}
         onBlur={() => { if (value.trim()) onSave(value.trim()); else onCancel(); }}
         placeholder={placeholder}
-        className="flex-1 min-w-0 px-2 py-1 bg-zinc-800 border border-violet-500/40 rounded text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50"
+        className="flex-1 min-w-0 px-2 py-1 bg-zinc-800 border border-teal-500/40 rounded text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
       />
       <button onClick={() => value.trim() && onSave(value.trim())} className="p-1 text-emerald-400 hover:text-emerald-300">
         <Check size={14} />
@@ -121,7 +121,7 @@ function NodeActions({
         <button
           onClick={e => { e.stopPropagation(); onAddChild(); }}
           title={addLabel}
-          className="p-1 rounded text-violet-400 hover:text-violet-300 hover:bg-violet-500/10"
+          className="p-1 rounded text-teal-400 hover:text-teal-300 hover:bg-teal-500/10"
         >
           <Plus size={13} />
         </button>
@@ -242,7 +242,7 @@ export function ContentTree({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="w-6 h-6 text-violet-400 animate-spin" />
+        <Loader2 className="w-6 h-6 text-teal-400 animate-spin" />
         <p className="text-sm text-zinc-500">Cargando contenido...</p>
       </div>
     );
@@ -255,7 +255,7 @@ export function ContentTree({
         <AlertCircle className="w-6 h-6 text-red-400" />
         <p className="text-sm text-red-300 text-center">{error}</p>
         {onRefresh && (
-          <button onClick={onRefresh} className="text-xs text-violet-400 hover:text-violet-300 underline">
+          <button onClick={onRefresh} className="text-xs text-teal-400 hover:text-teal-300 underline">
             Reintentar
           </button>
         )}
@@ -267,8 +267,8 @@ export function ContentTree({
   if (!tree || tree.courses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4 px-4">
-        <div className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-          <BookMarked className="w-7 h-7 text-violet-400" />
+        <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+          <BookMarked className="w-7 h-7 text-teal-400" />
         </div>
         <div className="text-center">
           <p className="text-sm text-zinc-300">No hay cursos aun</p>
@@ -279,7 +279,7 @@ export function ContentTree({
         {editable && onAddCourse && (
           <button
             onClick={() => setEditing({ type: 'add', level: 'course', id: 'new' })}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm rounded-lg transition-colors"
           >
             <Plus size={16} />
             Crear primer curso
@@ -344,8 +344,8 @@ export function ContentTree({
   };
 
   const LEVEL_COLORS: Record<NodeLevel, string> = {
-    course: 'text-violet-400',
-    semester: 'text-blue-400',
+    course: 'text-teal-400',
+    semester: 'text-teal-400',
     section: 'text-emerald-400',
     topic: 'text-zinc-400',
   };
@@ -385,7 +385,7 @@ export function ContentTree({
             "group/node flex items-center gap-1.5 cursor-pointer transition-colors",
             compact ? "py-1.5 pr-2" : "py-1.5 pr-3",
             isSelected
-              ? "bg-violet-500/15 text-violet-300"
+              ? "bg-teal-500/15 text-teal-300"
               : "text-zinc-300 hover:bg-white/[0.04] hover:text-white",
           )}
           style={{ paddingLeft: depthPadding(depth) }}
@@ -488,7 +488,7 @@ export function ContentTree({
           <span className="text-xs text-zinc-500 uppercase tracking-wider">Contenido</span>
           <button
             onClick={() => setEditing({ type: 'add', level: 'course', id: 'new' })}
-            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/15 rounded-md transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-teal-400 hover:text-teal-300 bg-teal-500/10 hover:bg-teal-500/15 rounded-md transition-colors"
           >
             <Plus size={12} />
             Curso

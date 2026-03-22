@@ -50,7 +50,7 @@ export const AnswerEditor = React.memo(function AnswerEditor({
           {options.length < 6 && (
             <button
               onClick={onAddOption}
-              className="text-[10px] text-purple-600 hover:text-purple-800 flex items-center gap-0.5 transition-colors"
+              className="text-[10px] text-teal-600 hover:text-teal-800 flex items-center gap-0.5 transition-colors"
               style={{ fontWeight: 600 }}
             >
               <Plus size={11} /> Agregar opcion
@@ -66,7 +66,7 @@ export const AnswerEditor = React.memo(function AnswerEditor({
                   'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0',
                   opt && correctAnswer === opt
                     ? 'border-emerald-500 bg-emerald-500'
-                    : 'border-gray-300 hover:border-purple-400',
+                    : 'border-gray-300 hover:border-teal-400',
                 )}
                 title="Marcar como correcta"
                 disabled={!opt.trim()}
@@ -78,7 +78,7 @@ export const AnswerEditor = React.memo(function AnswerEditor({
                 value={opt}
                 onChange={e => onOptionChange(i, e.target.value)}
                 placeholder={`Opcion ${String.fromCharCode(65 + i)}`}
-                className="flex-1 text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 placeholder:text-gray-300"
+                className="flex-1 text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 placeholder:text-gray-300"
               />
               {options.length > 2 && (
                 <button
@@ -146,7 +146,7 @@ export const AnswerEditor = React.memo(function AnswerEditor({
           onChange={e => onCorrectAnswerChange(e.target.value)}
           placeholder={questionType === 'fill_blank' ? 'Palabra o frase que completa el espacio...' : 'Respuesta esperada...'}
           rows={2}
-          className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 resize-none placeholder:text-gray-300"
+          className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 resize-none placeholder:text-gray-300"
         />
       </div>
     );

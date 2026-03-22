@@ -19,8 +19,8 @@ import type { KwStudentNote } from '@/app/services/studentSummariesApi';
 
 // ── Comment tag config (professor notes) ──────────────────
 const commentTagConfig: Record<string, { label: string; bg: string; text: string }> = {
-  tip:        { label: 'Tip',         bg: 'bg-blue-900/30',   text: 'text-blue-400' },
-  mnemonic:   { label: 'Mnemotecnia', bg: 'bg-purple-900/30', text: 'text-purple-400' },
+  tip:        { label: 'Tip',         bg: 'bg-teal-900/30',   text: 'text-teal-400' },
+  mnemonic:   { label: 'Mnemotecnia', bg: 'bg-teal-900/30', text: 'text-teal-400' },
   clinical:   { label: 'Clinica',     bg: 'bg-rose-900/30',   text: 'text-rose-400' },
   correction: { label: 'Correccion',  bg: 'bg-orange-900/30', text: 'text-orange-400' },
 };
@@ -163,7 +163,7 @@ export function KeywordDefinitionSection({
                 {notes.map(n => (
                   <div
                     key={n.id}
-                    className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 group"
+                    className="bg-teal-500/10 border border-teal-500/20 rounded-lg px-3 py-2 group"
                   >
                     {editingNoteId === n.id ? (
                       <div className="space-y-1.5">
@@ -171,7 +171,7 @@ export function KeywordDefinitionSection({
                           value={editNoteText}
                           onChange={e => setEditNoteText(e.target.value)}
                           maxLength={500}
-                          className="w-full text-xs text-zinc-200 bg-zinc-800 border border-zinc-600 rounded px-2 py-1.5 resize-none min-h-[48px] focus:outline-none focus:border-blue-500"
+                          className="w-full text-xs text-zinc-200 bg-zinc-800 border border-zinc-600 rounded px-2 py-1.5 resize-none min-h-[48px] focus:outline-none focus:border-teal-500"
                           autoFocus
                           onKeyDown={e => {
                             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleUpdateNote(); }
@@ -190,7 +190,7 @@ export function KeywordDefinitionSection({
                             <button
                               onClick={handleUpdateNote}
                               disabled={isNoteMutating || !editNoteText.trim()}
-                              className="text-[10px] text-blue-400 hover:text-blue-300 px-1.5 py-0.5 disabled:opacity-50"
+                              className="text-[10px] text-teal-400 hover:text-teal-300 px-1.5 py-0.5 disabled:opacity-50"
                             >
                               {isNoteMutating ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
                             </button>
@@ -209,7 +209,7 @@ export function KeywordDefinitionSection({
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => { setEditingNoteId(n.id); setEditNoteText(n.note); }}
-                              className="text-zinc-500 hover:text-blue-400 transition-colors p-0.5"
+                              className="text-zinc-500 hover:text-teal-400 transition-colors p-0.5"
                               title="Editar nota"
                             >
                               <Edit3 size={10} />
@@ -238,7 +238,7 @@ export function KeywordDefinitionSection({
                 maxLength={500}
                 placeholder="Anade tus notas personales..."
                 rows={1}
-                className="flex-1 text-xs text-zinc-200 bg-zinc-800/50 border border-zinc-700 rounded-lg px-3 py-2 resize-none placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 min-h-[32px]"
+                className="flex-1 text-xs text-zinc-200 bg-zinc-800/50 border border-zinc-700 rounded-lg px-3 py-2 resize-none placeholder:text-zinc-600 focus:outline-none focus:border-teal-500/50 min-h-[32px]"
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddNote(); }
                 }}
@@ -248,7 +248,7 @@ export function KeywordDefinitionSection({
               <button
                 onClick={handleAddNote}
                 disabled={isNoteMutating || !newNoteText.trim()}
-                className="mt-1 text-blue-400 hover:text-blue-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors p-1"
+                className="mt-1 text-teal-400 hover:text-teal-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors p-1"
                 title="Agregar nota"
               >
                 {isNoteMutating ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}

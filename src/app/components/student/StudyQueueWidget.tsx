@@ -108,7 +108,7 @@ export function StudyQueueWidget({
       <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
         <div className="px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-violet-500" />
+            <BookOpen size={16} className="text-teal-500" />
             <span className="text-sm font-semibold text-gray-700">Cola de Estudio</span>
           </div>
         </div>
@@ -140,7 +140,7 @@ export function StudyQueueWidget({
       <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
         <div className="px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-violet-500" />
+            <BookOpen size={16} className="text-teal-500" />
             <span className="text-sm font-semibold text-gray-700">Cola de Estudio</span>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function StudyQueueWidget({
       <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
         <div className="px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-violet-500" />
+            <BookOpen size={16} className="text-teal-500" />
             <span className="text-sm font-semibold text-gray-700">Cola de Estudio</span>
           </div>
         </div>
@@ -187,7 +187,7 @@ export function StudyQueueWidget({
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-violet-500" />
+            <BookOpen size={16} className="text-teal-500" />
             <span className="text-sm font-semibold text-gray-700">Cola de Estudio</span>
           </div>
           <button
@@ -208,7 +208,7 @@ export function StudyQueueWidget({
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Vencidas</p>
           </div>
           <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-blue-500">{totalNew}</p>
+            <p className="text-2xl font-bold text-teal-500">{totalNew}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Nuevas</p>
           </div>
           <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
@@ -246,7 +246,7 @@ export function StudyQueueWidget({
                 </p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {nextCard.is_new && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 font-medium">
                       Nueva
                     </span>
                   )}
@@ -276,7 +276,7 @@ export function StudyQueueWidget({
         {/* Start session button */}
         <button
           onClick={() => onStartSession(queue)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all shadow-sm"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all shadow-sm"
         >
           <Play size={16} />
           Comenzar sesion ({totalInQueue})

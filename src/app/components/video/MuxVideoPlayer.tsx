@@ -171,7 +171,7 @@ export function MuxVideoPlayer({
   if (loading) {
     return (
       <div className="w-full aspect-video rounded-xl bg-black flex flex-col items-center justify-center gap-3">
-        <Loader2 size={28} className="text-violet-400 animate-spin" />
+        <Loader2 size={28} className="text-teal-400 animate-spin" />
         <span className="text-xs text-zinc-500">Preparando video...</span>
       </div>
     );
@@ -210,7 +210,7 @@ export function MuxVideoPlayer({
           streamType="on-demand"
           defaultHiddenCaptions
           thumbnailTime={0}
-          accentColor="#8b5cf6"
+          accentColor="#14b8a6"
           title={title || undefined}
           onTimeUpdate={handleTimeUpdate}
           onPlay={handlePlay}
@@ -222,7 +222,7 @@ export function MuxVideoPlayer({
       {/* Progress info bar */}
       <div className="flex items-center gap-3 mt-2 px-1">
         <div className="flex items-center gap-1.5 text-[10px] text-zinc-500">
-          <Video size={10} className="text-violet-400" />
+          <Video size={10} className="text-teal-400" />
           <span>{title || 'Video Mux'}</span>
         </div>
         {completedRef.current && (

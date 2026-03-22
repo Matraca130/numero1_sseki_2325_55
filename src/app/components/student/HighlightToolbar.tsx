@@ -13,7 +13,7 @@ import clsx from 'clsx';
 const HIGHLIGHT_COLORS = [
   { key: 'yellow', bg: 'bg-yellow-400', ring: 'ring-yellow-500' },
   { key: 'green',  bg: 'bg-emerald-400', ring: 'ring-emerald-500' },
-  { key: 'blue',   bg: 'bg-blue-400',   ring: 'ring-blue-500' },
+  { key: 'blue',   bg: 'bg-cyan-400',   ring: 'ring-cyan-500' },
   { key: 'pink',   bg: 'bg-pink-400',   ring: 'ring-pink-500' },
 ] as const;
 

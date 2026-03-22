@@ -119,7 +119,7 @@ export function QuizQuestionsEditor({
           </div>
           <button
             onClick={crud.handleCreate}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 text-white rounded-lg text-[12px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 text-white rounded-lg text-[12px] hover:bg-teal-700 active:scale-[0.97] transition-all shadow-sm"
             style={{ fontWeight: 600 }}
           >
             <Plus size={14} />
@@ -129,8 +129,8 @@ export function QuizQuestionsEditor({
             onClick={() => setShowAiPanel(prev => !prev)}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] active:scale-[0.97] transition-all shadow-sm ${
               showAiPanel
-                ? 'bg-violet-700 text-white shadow-violet-700/25'
-                : 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-600/25'
+                ? 'bg-teal-700 text-white shadow-teal-700/25'
+                : 'bg-teal-600 text-white hover:bg-teal-700 shadow-teal-600/25'
             }`}
             style={{ fontWeight: 600 }}
           >
@@ -205,7 +205,7 @@ export function QuizQuestionsEditor({
       <div className="flex-1 overflow-y-auto p-5">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="animate-spin text-purple-500" size={24} />
+            <Loader2 className="animate-spin text-teal-500" size={24} />
           </div>
         ) : filters.filteredQuestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
@@ -216,7 +216,7 @@ export function QuizQuestionsEditor({
             {questions.length === 0 && (
               <button
                 onClick={crud.handleCreate}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[12px] hover:bg-purple-200 transition-colors"
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg text-[12px] hover:bg-teal-200 transition-colors"
                 style={{ fontWeight: 600 }}
               >
                 <Plus size={14} />
@@ -232,7 +232,7 @@ export function QuizQuestionsEditor({
                 onClick={() => bulk.handleToggleSelect(q.id)}
                 className={clsx(
                   'cursor-pointer rounded-2xl transition-all',
-                  bulk.selectedIds.has(q.id) && 'ring-2 ring-purple-400 ring-offset-1',
+                  bulk.selectedIds.has(q.id) && 'ring-2 ring-teal-400 ring-offset-1',
                 )}
               >
                 <QuestionCard

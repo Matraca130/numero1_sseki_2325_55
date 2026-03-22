@@ -119,8 +119,8 @@ export function QuizFormModal({
         {/* Header */}
         <div className={MODAL_HEADER}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-              {isEdit ? <Pencil size={16} className="text-purple-600" /> : <Plus size={16} className="text-purple-600" />}
+            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+              {isEdit ? <Pencil size={16} className="text-teal-600" /> : <Plus size={16} className="text-teal-600" />}
             </div>
             <div>
               <h3 className="text-sm text-gray-900" style={{ fontWeight: 700 }}>
@@ -179,7 +179,7 @@ export function QuizFormModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className={LABEL} style={{ fontWeight: 600 }}>
-                <Clock size={12} className="inline mr-1 text-purple-500" />
+                <Clock size={12} className="inline mr-1 text-teal-500" />
                 Tiempo por pregunta
               </label>
               <button
@@ -187,7 +187,7 @@ export function QuizFormModal({
                 onClick={() => setTimeLimitEnabled(!timeLimitEnabled)}
                 className={clsx(
                   'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-                  timeLimitEnabled ? 'bg-purple-600' : 'bg-gray-300'
+                  timeLimitEnabled ? 'bg-teal-600' : 'bg-gray-300'
                 )}
                 aria-label={timeLimitEnabled ? 'Desactivar limite de tiempo' : 'Activar limite de tiempo'}
               >
@@ -228,7 +228,7 @@ export function QuizFormModal({
                   <span className="text-[11px] text-gray-500">seg</span>
                 </div>
                 {(timeLimitMinutes > 0 || timeLimitSeconds > 0) && (
-                  <span className="text-[10px] text-purple-500 ml-1" style={{ fontWeight: 500 }}>
+                  <span className="text-[10px] text-teal-500 ml-1" style={{ fontWeight: 500 }}>
                     = {timeLimitMinutes * 60 + timeLimitSeconds}s por pregunta
                   </span>
                 )}

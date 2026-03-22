@@ -87,9 +87,9 @@ export function ConnectionList({
             >
               {/* Icon: local vs cross-summary */}
               {isLocal ? (
-                <Link2 size={12} className="text-violet-400 shrink-0" />
+                <Link2 size={12} className="text-teal-400 shrink-0" />
               ) : (
-                <ExternalLink size={12} className="text-indigo-400 shrink-0" />
+                <ExternalLink size={12} className="text-teal-400 shrink-0" />
               )}
 
               {/* Direction arrow for directional connections */}

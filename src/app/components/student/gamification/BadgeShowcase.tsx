@@ -186,7 +186,7 @@ export function BadgeShowcase({ badges, isLoading, maxVisible = 12, className = 
               Proximo logro: {nextBadge.name}
             </p>
             <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-1.5 rounded-full bg-purple-100 overflow-hidden">
+              <div className="flex-1 h-1.5 rounded-full bg-teal-100 overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{

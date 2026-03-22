@@ -158,7 +158,7 @@ export function ClippingPlaneControls({
         className={clsx(
           'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
           enabled
-            ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+            ? 'bg-teal-500/20 text-teal-300 border-teal-500/30'
             : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
         )}
       >

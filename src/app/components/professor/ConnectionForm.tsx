@@ -69,9 +69,9 @@ function KeywordResultItem({
     <button
       type="button"
       onClick={onSelect}
-      className="w-full flex items-start gap-2 px-3 py-1.5 text-left hover:bg-violet-50 transition-colors"
+      className="w-full flex items-start gap-2 px-3 py-1.5 text-left hover:bg-teal-50 transition-colors"
     >
-      <ExternalLink size={10} className="text-indigo-400 shrink-0 mt-0.5" />
+      <ExternalLink size={10} className="text-teal-400 shrink-0 mt-0.5" />
       <div className="min-w-0 flex-1">
         <span className="text-xs text-gray-700 block truncate" style={{ fontWeight: 500 }}>
           {name}
@@ -82,7 +82,7 @@ function KeywordResultItem({
           </span>
         )}
         {summaryTitle && (
-          <span className="text-[9px] text-indigo-400 block truncate">
+          <span className="text-[9px] text-teal-400 block truncate">
             {summaryTitle}
           </span>
         )}
@@ -224,7 +224,7 @@ export function ConnectionForm({
         <button
           type="button"
           onClick={() => setDirectionFlipped(f => !f)}
-          className="ml-1 p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-violet-600 transition-colors"
+          className="ml-1 p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-teal-600 transition-colors"
           title="Invertir direccion"
         >
           <RotateCcw size={10} />
@@ -276,7 +276,7 @@ export function ConnectionForm({
                   setTargetKeywordName('');
                   setSearchQuery('');
                 }}
-                className="text-[10px] text-violet-500 hover:text-violet-700 flex items-center gap-1 transition-colors"
+                className="text-[10px] text-teal-500 hover:text-teal-700 flex items-center gap-1 transition-colors"
               >
                 {searchMode ? (
                   <>
@@ -323,7 +323,7 @@ export function ConnectionForm({
                         setSearchMode(true);
                         setTimeout(() => searchInputRef.current?.focus(), 50);
                       }}
-                      className="ml-1 text-violet-500 hover:text-violet-700 underline"
+                      className="ml-1 text-teal-500 hover:text-teal-700 underline"
                     >
                       Buscar en otro resumen
                     </button>
@@ -338,9 +338,9 @@ export function ConnectionForm({
             <div className="space-y-1.5">
               {/* Selected keyword chip OR search input */}
               {targetKeywordId ? (
-                <div className="flex items-center gap-2 h-7 bg-violet-50 border border-violet-200 rounded px-2">
-                  <ExternalLink size={10} className="text-violet-500 shrink-0" />
-                  <span className="text-xs text-violet-700 truncate flex-1" style={{ fontWeight: 500 }}>
+                <div className="flex items-center gap-2 h-7 bg-teal-50 border border-teal-200 rounded px-2">
+                  <ExternalLink size={10} className="text-teal-500 shrink-0" />
+                  <span className="text-xs text-teal-700 truncate flex-1" style={{ fontWeight: 500 }}>
                     {targetKeywordName}
                   </span>
                   <button
@@ -350,7 +350,7 @@ export function ConnectionForm({
                       setTargetKeywordName('');
                       setTimeout(() => searchInputRef.current?.focus(), 50);
                     }}
-                    className="text-violet-400 hover:text-violet-600 p-0.5"
+                    className="text-teal-400 hover:text-teal-600 p-0.5"
                   >
                     <X size={10} />
                   </button>
@@ -364,7 +364,7 @@ export function ConnectionForm({
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Buscar keyword en el curso..."
-                    className="h-7 text-xs bg-white border border-gray-200 rounded pl-7 pr-2 py-1 w-full outline-none focus:border-violet-400 transition-colors"
+                    className="h-7 text-xs bg-white border border-gray-200 rounded pl-7 pr-2 py-1 w-full outline-none focus:border-teal-400 transition-colors"
                     autoFocus
                   />
                   {searchLoading && (
@@ -456,7 +456,7 @@ export function ConnectionForm({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-3 text-xs text-violet-600 flex-1"
+            className="h-7 px-3 text-xs text-teal-600 flex-1"
             onClick={handleAdd}
             disabled={createMutation.isPending || !targetKeywordId || !connectionType}
           >

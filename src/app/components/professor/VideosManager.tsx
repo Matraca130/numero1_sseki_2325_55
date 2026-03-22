@@ -128,7 +128,7 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <div>
           <h3 className="text-sm text-gray-700 flex items-center gap-1.5">
-            <Video size={14} className="text-violet-500" />
+            <Video size={14} className="text-teal-500" />
             Videos
             {!loading && (
               <span className="ml-1 text-[10px] bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
@@ -143,7 +143,7 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
         <Button
           size="sm"
           onClick={() => setShowMuxUpload(prev => !prev)}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-7 text-xs px-3"
+          className="bg-teal-600 hover:bg-teal-700 text-white h-7 text-xs px-3"
         >
           <Upload size={12} className="mr-1" />
           Subir Video
@@ -239,7 +239,7 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-800 truncate">{v.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-600">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600">
                         Mux
                       </span>
                       {v.duration_seconds && (
@@ -276,14 +276,14 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button
                       onClick={() => toggleActive(v)}
-                      className="text-gray-400 hover:text-violet-600 transition-colors p-1"
+                      className="text-gray-400 hover:text-teal-600 transition-colors p-1"
                       title={v.is_active ? 'Desactivar' : 'Activar'}
                     >
                       {v.is_active ? <EyeOff size={13} /> : <Eye size={13} />}
                     </button>
                     <button
                       onClick={() => openEdit(v)}
-                      className="text-gray-400 hover:text-violet-600 transition-colors p-1"
+                      className="text-gray-400 hover:text-teal-600 transition-colors p-1"
                       title="Editar titulo"
                     >
                       <Edit3 size={13} />
@@ -348,7 +348,7 @@ export function VideosManager({ summaryId, onVideosChanged }: VideosManagerProps
                   size="sm"
                   onClick={handleSave}
                   disabled={updateVideo.isPending || !formTitle.trim()}
-                  className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                  className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   {updateVideo.isPending ? (
                     <Loader2 size={12} className="animate-spin mr-1" />

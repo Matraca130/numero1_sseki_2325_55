@@ -76,7 +76,7 @@ export const KeywordMasterySection = React.memo(function KeywordMasterySection({
         <Target size={14} className="text-teal-500" />
         <h3 className="text-sm text-zinc-700" style={{ fontWeight: 700 }}>Resultado por keyword</h3>
         {bktStates.length > 0 && (
-          <span className="flex items-center gap-1 text-[9px] text-violet-500 bg-violet-50 px-1.5 py-0.5 rounded-full border border-violet-200" style={{ fontWeight: 600 }}>
+          <span className="flex items-center gap-1 text-[9px] text-teal-500 bg-teal-50 px-1.5 py-0.5 rounded-full border border-teal-200" style={{ fontWeight: 600 }}>
             <Brain size={9} /> BKT
           </span>
         )}

@@ -134,7 +134,7 @@ export const QuizAnswerDetail = React.memo(function QuizAnswerDetail({
 
                 {/* Explanation */}
                 {q.explanation && answered && !correct && (
-                  <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] text-blue-700" style={{ lineHeight: '1.5' }}>
+                  <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-teal-50 border border-teal-100 text-[11px] text-teal-700" style={{ lineHeight: '1.5' }}>
                     {q.explanation}
                   </div>
                 )}
@@ -149,7 +149,7 @@ export const QuizAnswerDetail = React.memo(function QuizAnswerDetail({
                       wrongAnswer: userAnswer,
                       originalQuestion: q.question,
                     })}
-                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 transition-colors"
+                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] text-teal-600 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
                     style={{ fontWeight: 600 }}
                   >
                     <Sparkles size={10} /> Practicar este error con IA

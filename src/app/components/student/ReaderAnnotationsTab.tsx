@@ -23,7 +23,7 @@ import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 
 const ANNOTATION_COLOR_MAP: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   yellow: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' },
-  blue:   { bg: 'bg-blue-50',  border: 'border-blue-200',  text: 'text-blue-700',  dot: 'bg-blue-400' },
+  blue:   { bg: 'bg-cyan-50',  border: 'border-cyan-200',  text: 'text-cyan-700',  dot: 'bg-cyan-400' },
   green:  { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-400' },
   pink:   { bg: 'bg-pink-50',  border: 'border-pink-200',  text: 'text-pink-700',  dot: 'bg-pink-400' },
 };

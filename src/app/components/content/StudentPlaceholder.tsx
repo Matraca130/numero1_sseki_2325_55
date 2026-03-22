@@ -20,8 +20,8 @@ interface StudentPlaceholderProps {
 
 const COLOR_MAP: Record<string, { iconBg: string; iconText: string; border: string; featureDot: string }> = {
   amber:  { iconBg: 'bg-amber-50',  iconText: 'text-amber-500',  border: 'border-amber-100',  featureDot: 'bg-amber-400'  },
-  blue:   { iconBg: 'bg-blue-50',   iconText: 'text-blue-500',   border: 'border-blue-100',   featureDot: 'bg-blue-400'   },
-  purple: { iconBg: 'bg-purple-50', iconText: 'text-purple-500', border: 'border-purple-100', featureDot: 'bg-purple-400' },
+  blue:   { iconBg: 'bg-teal-50',   iconText: 'text-teal-500',   border: 'border-teal-100',   featureDot: 'bg-teal-400'   },
+  purple: { iconBg: 'bg-teal-50', iconText: 'text-teal-500', border: 'border-teal-100', featureDot: 'bg-teal-400' },
   teal:   { iconBg: 'bg-teal-50',   iconText: 'text-teal-500',   border: 'border-teal-100',   featureDot: 'bg-teal-400'   },
 };
 

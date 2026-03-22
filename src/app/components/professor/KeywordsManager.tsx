@@ -126,7 +126,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <div>
           <h3 className="text-sm text-gray-700 flex items-center gap-1.5">
-            <Tag size={14} className="text-violet-500" />
+            <Tag size={14} className="text-teal-500" />
             Keywords
             {!loading && (
               <span className="ml-1 text-[10px] bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
@@ -141,7 +141,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
         <Button
           size="sm"
           onClick={openCreate}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-7 text-xs px-3"
+          className="bg-teal-600 hover:bg-teal-700 text-white h-7 text-xs px-3"
         >
           <Plus size={12} className="mr-1" />
           Nuevo Keyword

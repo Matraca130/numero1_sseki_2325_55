@@ -22,7 +22,7 @@ export function LayerEditInline({ layer, onSave, onCancel }: LayerEditInlineProp
         type="text"
         value={name}
         onChange={e => setName(e.target.value)}
-        className="flex-1 px-2 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+        className="flex-1 px-2 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-1 focus:ring-teal-500/30"
         autoFocus
       />
       <input

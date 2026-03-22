@@ -30,7 +30,7 @@ export function PartRow({ part, isEditing, layers, onStartEdit, onSave, onCancel
           value={editName}
           onChange={e => setEditName(e.target.value)}
           placeholder="Nombre de la parte"
-          className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+          className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
           autoFocus
         />
         <input
@@ -38,7 +38,7 @@ export function PartRow({ part, isEditing, layers, onStartEdit, onSave, onCancel
           value={editUrl}
           onChange={e => setEditUrl(e.target.value)}
           placeholder="URL del .glb"
-          className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30 font-mono"
+          className="w-full px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 font-mono"
         />
         <div className="flex items-center gap-2">
           <select
@@ -72,7 +72,7 @@ export function PartRow({ part, isEditing, layers, onStartEdit, onSave, onCancel
               layer_group: editLayer,
               opacity_default: editOpacity / 100,
             })}
-            className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-violet-600 hover:bg-violet-500 rounded transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[9px] font-medium text-white bg-teal-600 hover:bg-teal-500 rounded transition-colors"
           >
             <Save size={8} /> Guardar
           </button>

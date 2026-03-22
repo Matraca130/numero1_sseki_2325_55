@@ -278,7 +278,7 @@ export function MultiPointPlacer({
         <>
           <button
             onClick={() => setMode('line-a')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border bg-white/5 text-gray-400 border-white/10 hover:bg-violet-500/20 hover:text-violet-300 hover:border-violet-500/30"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border bg-white/5 text-gray-400 border-white/10 hover:bg-teal-500/20 hover:text-teal-300 hover:border-teal-500/30"
           >
             <Ruler size={12} />
             Medicion
@@ -299,7 +299,7 @@ export function MultiPointPlacer({
           {/* Status text */}
           <span className={clsx(
             'text-[10px] font-semibold animate-pulse',
-            mode.startsWith('line') ? 'text-violet-300' : 'text-emerald-300'
+            mode.startsWith('line') ? 'text-teal-300' : 'text-emerald-300'
           )}>
             {mode === 'line-a' && 'Click punto A...'}
             {mode === 'line-b' && 'Click punto B...'}

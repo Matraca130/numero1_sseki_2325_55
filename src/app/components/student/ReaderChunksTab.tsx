@@ -60,7 +60,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
       <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
         <h3 className="text-sm text-zinc-700" style={{ fontWeight: 600 }}>Contenido del resumen</h3>
         {!blocksLoading && hasBlocks && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 600 }}>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-teal-50 text-teal-600 border border-teal-200" style={{ fontWeight: 600 }}>
             Vista enriquecida
           </span>
         )}

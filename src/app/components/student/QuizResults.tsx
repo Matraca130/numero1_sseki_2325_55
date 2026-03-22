@@ -365,12 +365,12 @@ export function QuizResults({
             >
               <button
                 onClick={() => adaptive.setPhase('config')}
-                className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 hover:border-violet-300 transition-all"
+                className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm text-teal-600 bg-teal-50 border border-teal-200 hover:bg-teal-100 hover:border-teal-300 transition-all"
                 style={{ fontWeight: 600 }}
               >
                 <Brain size={16} />
                 Crear quiz adaptativo con IA
-                <Sparkles size={14} className="text-violet-400" />
+                <Sparkles size={14} className="text-teal-400" />
               </button>
             </motion.div>
           )}

@@ -114,7 +114,7 @@ export function SelectRolePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
                 onClick={() => handleSelect(m)}
-                className="w-full bg-zinc-900 rounded-xl border border-white/[0.06] p-4 hover:border-violet-500/30 hover:bg-zinc-800/80 transition-all group text-left"
+                className="w-full bg-zinc-900 rounded-xl border border-white/[0.06] p-4 hover:border-teal-500/30 hover:bg-zinc-800/80 transition-all group text-left"
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${config.bg} ${config.border} ${config.color} shrink-0`}>
@@ -133,7 +133,7 @@ export function SelectRolePage() {
                       {m.institution?.slug ? `@${m.institution.slug}` : m.institution_id}
                     </p>
                   </div>
-                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-violet-400 transition-colors shrink-0" />
+                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-teal-400 transition-colors shrink-0" />
                 </div>
               </motion.button>
             );

@@ -99,8 +99,8 @@ export function QuestionFormModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-              {form.isEdit ? <Pencil size={16} className="text-purple-600" /> : <Plus size={16} className="text-purple-600" />}
+            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+              {form.isEdit ? <Pencil size={16} className="text-teal-600" /> : <Plus size={16} className="text-teal-600" />}
             </div>
             <div>
               <h3 className="text-sm text-gray-900" style={{ fontWeight: 700 }}>
@@ -135,7 +135,7 @@ export function QuestionFormModal({
                 value={form.questionType}
                 onChange={e => form.setQuestionType(e.target.value as QuestionType)}
                 disabled={form.isEdit}
-                className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {(Object.entries(QUESTION_TYPE_LABELS) as [QuestionType, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -177,7 +177,7 @@ export function QuestionFormModal({
                   value={form.keywordId}
                   onChange={e => form.setKeywordId(e.target.value)}
                   disabled={form.isEdit}
-                  className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">{keywordPlaceholder}</option>
                   {keywords.map(kw => (
@@ -200,7 +200,7 @@ export function QuestionFormModal({
                     value={form.subtopicId}
                     onChange={e => form.setSubtopicId(e.target.value)}
                     disabled={!form.keywordId || form.isEdit || form.subtopics.length === 0}
-                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">
                       {!form.keywordId
@@ -226,7 +226,7 @@ export function QuestionFormModal({
                 value={form.keywordId}
                 onChange={e => form.setKeywordId(e.target.value)}
                 disabled={form.isEdit}
-                className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">{keywordPlaceholder}</option>
                 {keywords.map(kw => (
@@ -252,7 +252,7 @@ export function QuestionFormModal({
               onChange={e => form.setQuestionText(e.target.value)}
               placeholder="Escribe la pregunta aqui..."
               rows={3}
-              className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 resize-none placeholder:text-gray-300"
+              className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 resize-none placeholder:text-gray-300"
             />
           </div>
 
@@ -277,7 +277,7 @@ export function QuestionFormModal({
               onChange={e => form.setExplanation(e.target.value)}
               placeholder="Por que esta es la respuesta correcta..."
               rows={2}
-              className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 resize-none placeholder:text-gray-300"
+              className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 resize-none placeholder:text-gray-300"
             />
           </div>
         </div>
@@ -297,8 +297,8 @@ export function QuestionFormModal({
             className={clsx(
               'flex items-center gap-2 px-5 py-2 rounded-lg text-[12px] text-white transition-all shadow-sm',
               form.saving
-                ? 'bg-purple-400 cursor-wait'
-                : 'bg-purple-600 hover:bg-purple-700 active:scale-[0.97]',
+                ? 'bg-teal-400 cursor-wait'
+                : 'bg-teal-600 hover:bg-teal-700 active:scale-[0.97]',
             )}
             style={{ fontWeight: 600 }}
           >

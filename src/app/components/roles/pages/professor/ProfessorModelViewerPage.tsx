@@ -132,7 +132,7 @@ export function ProfessorModelViewerPage() {
             onClick={() => setShowPartsPanel(!showPartsPanel)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg transition-all border ${
               showPartsPanel
-                ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                ? 'bg-teal-500/20 text-teal-300 border-teal-500/30'
                 : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
             }`}
           >

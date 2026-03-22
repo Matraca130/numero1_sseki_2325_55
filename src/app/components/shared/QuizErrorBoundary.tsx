@@ -59,10 +59,10 @@ export class QuizErrorBoundary extends Component<
     }
 
     const isPurple = this.props.accentColor === 'purple';
-    const iconBg = isPurple ? 'bg-purple-50' : 'bg-rose-50';
-    const iconColor = isPurple ? 'text-purple-400' : 'text-rose-400';
+    const iconBg = isPurple ? 'bg-teal-50' : 'bg-rose-50';
+    const iconColor = isPurple ? 'text-teal-400' : 'text-rose-400';
     const btnBg = isPurple
-      ? 'bg-purple-600 hover:bg-purple-700'
+      ? 'bg-teal-600 hover:bg-teal-700'
       : 'bg-axon-accent hover:bg-axon-hover';
 
     return (

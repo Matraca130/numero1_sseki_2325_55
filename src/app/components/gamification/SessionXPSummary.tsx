@@ -72,7 +72,7 @@ export function SessionXPSummary({ state, actualXP }: SessionXPSummaryProps) {
         </div>
       </motion.div>
       {showLevelUp && (
-        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }} className="mt-4 bg-gradient-to-r from-violet-500/20 to-amber-500/20 border border-violet-500/30 rounded-xl p-4 text-center">
+        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }} className="mt-4 bg-gradient-to-r from-teal-500/20 to-amber-500/20 border border-teal-500/30 rounded-xl p-4 text-center">
           <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ duration: 0.5, delay: 0.2 }} className="text-2xl mb-1">\ud83c\udf89</motion.div>
           <p className="text-sm text-zinc-200" style={{ fontWeight: 700 }}>Subiste a Nivel {state.currentLevel}!</p>
           <p className="text-[10px] text-zinc-400 mt-0.5">Sigue asi para desbloquear nuevos logros</p>

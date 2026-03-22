@@ -266,9 +266,9 @@ export function SummaryDetailView({
     <div className="h-full flex flex-col overflow-hidden">
       {/* Blocks badge (visual editor indicator) */}
       {hasBlocks && (
-        <div className="shrink-0 px-4 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
+        <div className="shrink-0 px-4 py-2 bg-gradient-to-r from-teal-50 to-teal-50 border-b border-teal-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-100 text-violet-700 border border-violet-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-teal-100 text-teal-700 border border-teal-200">
               Vista enriquecida
             </span>
             <span className="text-[10px] text-gray-400">Este resumen tiene bloques visuales</span>
@@ -320,11 +320,11 @@ export function SummaryDetailView({
       <Sheet open={showKeywords} onOpenChange={setShowKeywords}>
         <SheetContent className="w-[460px] sm:max-w-[460px] p-0 flex flex-col h-full overflow-hidden">
           {/* ── Fixed header ─────────────────────────────── */}
-          <div className="shrink-0 bg-gradient-to-b from-violet-50/80 to-white px-5 pt-5 pb-3 border-b border-gray-100">
+          <div className="shrink-0 bg-gradient-to-b from-teal-50/80 to-white px-5 pt-5 pb-3 border-b border-gray-100">
             <SheetHeader className="mb-0">
               <SheetTitle className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center">
-                  <Tag size={15} className="text-violet-600" />
+                <div className="w-8 h-8 rounded-xl bg-teal-100 flex items-center justify-center">
+                  <Tag size={15} className="text-teal-600" />
                 </div>
                 <div>
                   <span className="block text-sm text-gray-900" style={{ fontWeight: 600 }}>Palabras clave</span>
@@ -339,11 +339,11 @@ export function SummaryDetailView({
             </SheetHeader>
 
             {/* Tip banner */}
-            <div className="mt-3 flex items-start gap-2 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
-              <Tag size={12} className="text-violet-400 mt-0.5 shrink-0" />
-              <p className="text-[11px] text-violet-600/80 leading-relaxed">
+            <div className="mt-3 flex items-start gap-2 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+              <Tag size={12} className="text-teal-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-teal-600/80 leading-relaxed">
                 <span style={{ fontWeight: 600 }}>Tip:</span> Selecciona texto en el editor y presiona el boton{' '}
-                <span className="inline-flex items-center gap-0.5 bg-violet-600 text-white px-1.5 py-0 rounded text-[9px]" style={{ fontWeight: 600 }}>
+                <span className="inline-flex items-center gap-0.5 bg-teal-600 text-white px-1.5 py-0 rounded text-[9px]" style={{ fontWeight: 600 }}>
                   <Tag size={8} /> Keyword
                 </span>{' '}
                 que aparece para crear rapidamente.
@@ -354,7 +354,7 @@ export function SummaryDetailView({
             {!keywordsLoading && (
               <button
                 onClick={() => { setShowNewKeyword(true); setEditingKeywordId(null); }}
-                className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border-2 border-dashed border-violet-200 text-violet-600 text-xs hover:bg-violet-50 hover:border-violet-300 transition-all active:scale-[0.98]"
+                className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border-2 border-dashed border-teal-200 text-teal-600 text-xs hover:bg-teal-50 hover:border-teal-300 transition-all active:scale-[0.98]"
                 style={{ fontWeight: 600 }}
               >
                 <Plus size={13} /> Nueva keyword
@@ -400,12 +400,12 @@ export function SummaryDetailView({
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="rounded-xl border-2 border-violet-200 bg-gradient-to-b from-violet-50/50 to-white p-4 space-y-3 mb-2">
+                      <div className="rounded-xl border-2 border-teal-200 bg-gradient-to-b from-teal-50/50 to-white p-4 space-y-3 mb-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-violet-700" style={{ fontWeight: 600 }}>Nueva keyword</span>
+                          <span className="text-xs text-teal-700" style={{ fontWeight: 600 }}>Nueva keyword</span>
                           <button
                             onClick={() => { setShowNewKeyword(false); setNewKeywordName(''); setNewKeywordDef(''); setNewKeywordPriority(2); }}
-                            className="p-1 rounded-md hover:bg-violet-100 text-violet-400 hover:text-violet-600 transition-colors"
+                            className="p-1 rounded-md hover:bg-teal-100 text-teal-400 hover:text-teal-600 transition-colors"
                           >
                             <X size={14} />
                           </button>
@@ -453,7 +453,7 @@ export function SummaryDetailView({
                             size="sm"
                             onClick={handleCreateKeyword}
                             disabled={createMutation.isPending || !newKeywordName.trim()}
-                            className="bg-violet-600 hover:bg-violet-700 text-white px-5"
+                            className="bg-teal-600 hover:bg-teal-700 text-white px-5"
                           >
                             {createMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                             Crear keyword
@@ -478,7 +478,7 @@ export function SummaryDetailView({
                         !kw.is_active
                           ? 'border-red-200 bg-red-50/20 opacity-50'
                           : editingKeywordId === kw.id
-                            ? 'border-violet-300 bg-violet-50/30 shadow-sm'
+                            ? 'border-teal-300 bg-teal-50/30 shadow-sm'
                             : 'border-gray-100 hover:border-gray-200 hover:shadow-sm bg-white'
                       } border-l-[3px] ${kw.is_active ? pc.border : 'border-l-red-300'}`}
                     >
@@ -486,7 +486,7 @@ export function SummaryDetailView({
                         /* ── Edit form ───────────────────────────── */
                         <div className="p-3.5 space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-violet-700" style={{ fontWeight: 600 }}>Editando</span>
+                            <span className="text-xs text-teal-700" style={{ fontWeight: 600 }}>Editando</span>
                             <button
                               onClick={() => setEditingKeywordId(null)}
                               className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
@@ -540,7 +540,7 @@ export function SummaryDetailView({
                               size="sm"
                               onClick={() => handleUpdateKeyword(kw.id)}
                               disabled={updateMutation.isPending || !editKwName.trim()}
-                              className="bg-violet-600 hover:bg-violet-700 text-white px-4"
+                              className="bg-teal-600 hover:bg-teal-700 text-white px-4"
                             >
                               {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                               Guardar
@@ -597,7 +597,7 @@ export function SummaryDetailView({
                                       setEditKwPriority(kw.priority);
                                       setShowNewKeyword(false);
                                     }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-violet-600 transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-teal-600 transition-colors"
                                     title="Editar"
                                   >
                                     <Edit3 size={13} />
@@ -725,7 +725,7 @@ export function SummaryDetailView({
         <SheetContent className="w-[420px] sm:max-w-[420px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
-              <VideoIcon size={16} className="text-blue-500" />
+              <VideoIcon size={16} className="text-teal-500" />
               Videos
             </SheetTitle>
           </SheetHeader>

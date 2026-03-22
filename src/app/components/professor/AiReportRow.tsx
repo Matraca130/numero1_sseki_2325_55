@@ -87,7 +87,7 @@ export const ReportRow = React.memo(function ReportRow({
             {report.status === 'pending' && (
               <button
                 onClick={(e) => { e.stopPropagation(); onResolve(report.id, 'reviewed'); }}
-                className="p-1 rounded text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                className="p-1 rounded text-zinc-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
                 title="Marcar como revisado"
               >
                 <Eye size={12} />
@@ -122,7 +122,7 @@ export const ReportRow = React.memo(function ReportRow({
         )}
 
         {resolving && (
-          <Loader2 size={12} className="animate-spin text-purple-400 shrink-0" />
+          <Loader2 size={12} className="animate-spin text-teal-400 shrink-0" />
         )}
       </div>
 

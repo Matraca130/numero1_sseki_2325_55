@@ -16,7 +16,7 @@ import { ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 
 const DEFAULT_SELECT_CLS =
   'w-full text-[12px] border border-gray-200 rounded-lg px-2.5 py-2 bg-white ' +
-  'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all';
+  'focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ export const CascadeSelector = React.memo(function CascadeSelector({
               </span>
               {level.selectedDisplayName && isCollapsed && (
                 <span
-                  className="text-[10px] text-purple-600 truncate ml-1 max-w-[130px]"
+                  className="text-[10px] text-teal-600 truncate ml-1 max-w-[130px]"
                   style={{ fontWeight: 500 }}
                 >
                   — {level.selectedDisplayName}

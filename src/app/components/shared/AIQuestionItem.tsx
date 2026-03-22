@@ -14,14 +14,14 @@ export function AIQuestionItem({ question }: { question: AIQuestion }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border rounded-lg border-gray-100 bg-[#faf9f6]/50 overflow-hidden transition-all hover:bg-gray-50 hover:border-blue-100 group">
+    <div className="border rounded-lg border-gray-100 bg-[#faf9f6]/50 overflow-hidden transition-all hover:bg-gray-50 hover:border-teal-100 group">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full text-left p-3 flex items-start gap-3"
       >
         <div className={clsx(
           "mt-0.5 p-0.5 rounded transition-colors duration-200 shrink-0",
-          isOpen ? "bg-blue-100 text-blue-600" : "bg-gray-200 text-gray-500 group-hover:bg-blue-50 group-hover:text-blue-500"
+          isOpen ? "bg-teal-100 text-teal-600" : "bg-gray-200 text-gray-500 group-hover:bg-teal-50 group-hover:text-teal-500"
         )}>
           <ChevronRight
             size={14}
@@ -33,7 +33,7 @@ export function AIQuestionItem({ question }: { question: AIQuestion }) {
         </div>
         <span className={clsx(
           "text-sm font-medium transition-colors duration-200",
-          isOpen ? "text-blue-700" : "text-gray-700 group-hover:text-gray-900"
+          isOpen ? "text-teal-700" : "text-gray-700 group-hover:text-gray-900"
         )}>
           {question.question}
         </span>

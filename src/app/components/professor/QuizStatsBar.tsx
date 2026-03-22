@@ -31,10 +31,10 @@ export const QuizStatsBar = React.memo(function QuizStatsBar({ stats }: QuizStat
         <StatBadge label="Total" value={stats.total} color="bg-gray-100 text-gray-700" />
         <StatBadge label="Activas" value={stats.active} color="bg-emerald-50 text-emerald-700" />
         <div className="w-px h-5 bg-gray-200" />
-        <StatBadge label="Opcion mult." value={stats.byType.mcq} color="bg-blue-50 text-blue-700" />
-        <StatBadge label="V/F" value={stats.byType.true_false} color="bg-indigo-50 text-indigo-700" />
+        <StatBadge label="Opcion mult." value={stats.byType.mcq} color="bg-teal-50 text-teal-700" />
+        <StatBadge label="V/F" value={stats.byType.true_false} color="bg-teal-50 text-teal-700" />
         <StatBadge label="Completar" value={stats.byType.fill_blank} color="bg-cyan-50 text-cyan-700" />
-        <StatBadge label="Abierta" value={stats.byType.open} color="bg-violet-50 text-violet-700" />
+        <StatBadge label="Abierta" value={stats.byType.open} color="bg-teal-50 text-teal-700" />
         <div className="w-px h-5 bg-gray-200" />
         <StatBadge label="Facil" value={stats.byDiff.easy} color="bg-emerald-50 text-emerald-700" />
         <StatBadge label="Media" value={stats.byDiff.medium} color="bg-amber-50 text-amber-700" />

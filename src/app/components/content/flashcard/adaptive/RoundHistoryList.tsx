@@ -21,10 +21,10 @@ export function RoundHistoryList({ rounds, title = 'Resumen por ronda', bare = f
           return (
             <div key={round.roundNumber} className="flex items-center justify-between text-xs text-gray-500 px-2 py-1">
               <div className="flex items-center gap-1.5">
-                <Zap size={10} className={round.source === 'ai' ? 'text-violet-400' : 'text-teal-400'} />
+                <Zap size={10} className={round.source === 'ai' ? 'text-teal-400' : 'text-teal-400'} />
                 <span>
                   Ronda {round.roundNumber}
-                  {round.source === 'ai' && <span className="text-violet-400"> (IA)</span>}
+                  {round.source === 'ai' && <span className="text-teal-400"> (IA)</span>}
                 </span>
               </div>
               <span className="tabular-nums">{roundCorrect}/{round.cardCount} correctas</span>

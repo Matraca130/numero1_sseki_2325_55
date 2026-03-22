@@ -26,9 +26,9 @@ export const FlashcardStatsBar = React.memo(function FlashcardStatsBar({
 
   return (
     <div className="mb-4 flex items-center gap-3 flex-wrap">
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200">
-        <Type size={12} className="text-violet-500" />
-        <span className="text-[11px] font-medium text-violet-700">Texto: {typeStats.text}</span>
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200">
+        <Type size={12} className="text-teal-500" />
+        <span className="text-[11px] font-medium text-teal-700">Texto: {typeStats.text}</span>
       </div>
       {typeStats.image > 0 && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200">

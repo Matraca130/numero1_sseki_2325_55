@@ -41,7 +41,7 @@ const SUBJECT_ICONS: Record<string, React.ReactNode> = {
 const STUDY_METHODS = [
   { id: 'video', label: 'Vídeos', icon: <Video size={28} />, color: 'bg-teal-100 text-teal-600 border-teal-200', avgMinutes: 35 },
   { id: 'flashcard', label: 'Flashcards', icon: <Zap size={28} />, color: 'bg-amber-100 text-amber-600 border-amber-200', avgMinutes: 20 },
-  { id: 'quiz', label: 'Quiz', icon: <GraduationCap size={28} />, color: 'bg-purple-100 text-purple-600 border-purple-200', avgMinutes: 15 },
+  { id: 'quiz', label: 'Quiz', icon: <GraduationCap size={28} />, color: 'bg-teal-100 text-teal-600 border-teal-200', avgMinutes: 15 },
   { id: 'resumo', label: 'Resumo', icon: <FileText size={28} />, color: 'bg-emerald-100 text-emerald-600 border-emerald-200', avgMinutes: 40 },
   { id: '3d', label: 'Atlas 3D', icon: <Box size={28} />, color: 'bg-orange-100 text-orange-600 border-orange-200', avgMinutes: 15 },
 ];

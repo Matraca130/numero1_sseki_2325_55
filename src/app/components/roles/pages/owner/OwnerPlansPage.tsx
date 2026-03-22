@@ -426,7 +426,7 @@ function EditPlanDialog({ plan, open, onOpenChange, onRefresh }: EditDialogProps
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Pencil size={16} className="text-blue-500" />
+            <Pencil size={16} className="text-teal-500" />
             Editar plan
           </DialogTitle>
           <DialogDescription>
@@ -559,7 +559,7 @@ function PlanCard({ plan, index, onEdit, onDelete, onSetDefault, onToggleActive 
               plan.is_default
                 ? 'bg-amber-50 text-amber-500'
                 : plan.is_active
-                  ? 'bg-blue-50 text-blue-500'
+                  ? 'bg-teal-50 text-teal-500'
                   : 'bg-gray-50 text-gray-400'
             }`}>
               <CreditCard size={18} />
@@ -668,7 +668,7 @@ function PlansStats({ plans }: { plans: InstitutionPlan[] }) {
   const items = [
     { label: 'Total', value: stats.total, icon: <Package size={14} />, color: 'text-gray-600' },
     { label: 'Activos', value: stats.active, icon: <CheckCircle2 size={14} />, color: 'text-emerald-600' },
-    { label: 'Miembros', value: stats.totalMembers, icon: <Users size={14} />, color: 'text-blue-600' },
+    { label: 'Miembros', value: stats.totalMembers, icon: <Users size={14} />, color: 'text-teal-600' },
     { label: 'Precio prom.', value: formatPrice(Math.round(stats.avgPrice)), icon: <DollarSign size={14} />, color: 'text-amber-600' },
   ];
 

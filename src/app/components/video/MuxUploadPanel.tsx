@@ -224,7 +224,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
       {/* Header */}
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Film size={14} className="text-violet-500" />
+          <Film size={14} className="text-teal-500" />
           <span className="text-sm text-gray-700">Subir Video a Mux</span>
         </div>
         {onClose && (
@@ -259,8 +259,8 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                     <img src={muxThumbnail} alt={readyVideo.title} className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-40 h-24 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                    <FileVideo size={24} className="text-violet-300" />
+                  <div className="w-40 h-24 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
+                    <FileVideo size={24} className="text-teal-300" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0 text-sm space-y-1">
@@ -279,7 +279,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                   Subir otro
                 </Button>
                 {onClose && (
-                  <Button size="sm" onClick={onClose} className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white">
+                  <Button size="sm" onClick={onClose} className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white">
                     Cerrar
                   </Button>
                 )}
@@ -315,11 +315,11 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                   className={clsx(
                     "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
                     isDragOver
-                      ? "border-violet-400 bg-violet-50"
-                      : "border-gray-300 hover:border-violet-400 bg-[#faf9f6] hover:bg-violet-50/30"
+                      ? "border-teal-400 bg-teal-50"
+                      : "border-gray-300 hover:border-teal-400 bg-[#faf9f6] hover:bg-teal-50/30"
                   )}
                 >
-                  <Upload size={28} className={clsx("mx-auto mb-3", isDragOver ? "text-violet-500" : "text-gray-400")} />
+                  <Upload size={28} className={clsx("mx-auto mb-3", isDragOver ? "text-teal-500" : "text-gray-400")} />
                   <p className="text-sm text-gray-600">
                     Arrastra un video aqui
                   </p>
@@ -341,8 +341,8 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                 <div className="bg-[#faf9f6] border border-gray-200 rounded-xl p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                        <FileVideo size={14} className="text-violet-600" />
+                      <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
+                        <FileVideo size={14} className="text-teal-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs text-gray-800 truncate">{file.name}</p>
@@ -367,7 +367,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                         <motion.div
                           className={clsx(
                             "h-full rounded-full",
-                            stage === 'processing' ? "bg-amber-500" : "bg-violet-500"
+                            stage === 'processing' ? "bg-amber-500" : "bg-teal-500"
                           )}
                           initial={{ width: 0 }}
                           animate={{
@@ -380,7 +380,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                       <div className="flex items-center gap-2">
                         <Loader2 size={10} className={clsx(
                           "animate-spin",
-                          stage === 'processing' ? "text-amber-500" : "text-violet-500"
+                          stage === 'processing' ? "text-amber-500" : "text-teal-500"
                         )} />
                         <span className="text-[10px] text-gray-500">
                           {stage === 'uploading'
@@ -429,7 +429,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                       size="sm"
                       onClick={startUpload}
                       disabled={!file || !title.trim() || stage !== 'idle'}
-                      className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                      className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white"
                     >
                       <Upload size={12} className="mr-1" />
                       Subir Video

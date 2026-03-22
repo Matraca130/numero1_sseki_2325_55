@@ -17,7 +17,7 @@ export function RequireAuth() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-zinc-950 gap-4">
         <AxonLogo size="lg" theme="light" />
         <div className="flex items-center gap-2 text-zinc-500 text-sm">
-          <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+          <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
           <span>Restaurando sesion...</span>
         </div>
       </div>

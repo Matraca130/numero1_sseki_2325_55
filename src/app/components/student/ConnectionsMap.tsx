@@ -207,7 +207,7 @@ export function ConnectionsMap({
                   cx={node.x + 11}
                   cy={node.y - 11}
                   r={4}
-                  fill="#8b5cf6"
+                  fill="#14b8a6"
                   stroke="#27272a"
                   strokeWidth={1}
                 />
@@ -244,7 +244,7 @@ export function ConnectionsMap({
           <span className="w-3 h-px bg-zinc-500 inline-block border-b border-dashed" style={{ borderBottom: '1px dashed #a1a1aa' }} /> otro resumen
         </span>
         <span className="flex items-center gap-1 text-[8px] text-zinc-600">
-          <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" /> cross-ref
+          <span className="w-2 h-2 rounded-full bg-teal-500 inline-block" /> cross-ref
         </span>
       </div>
     </div>

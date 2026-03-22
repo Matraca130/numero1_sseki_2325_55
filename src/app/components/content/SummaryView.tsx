@@ -283,7 +283,7 @@ export function SummaryView() {
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-gray-800 flex items-center gap-2">
-            <BookOpen size={18} className="text-violet-500" />
+            <BookOpen size={18} className="text-teal-500" />
             Resúmenes
           </h2>
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -300,12 +300,12 @@ export function SummaryView() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => setSelectedSummaryId(summary.id)}
-              className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-violet-300 hover:shadow-sm transition-all"
+              className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-teal-300 hover:shadow-sm transition-all"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 p-2 rounded-lg bg-violet-50">
-                    <FileText size={16} className="text-violet-500" />
+                  <div className="mt-0.5 p-2 rounded-lg bg-teal-50">
+                    <FileText size={16} className="text-teal-500" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-800">{summary.title || 'Sin título'}</p>

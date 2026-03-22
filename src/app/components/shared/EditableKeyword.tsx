@@ -220,7 +220,7 @@ export function EditableKeyword({
                           setIsOpen(false);
                           onView3D?.();
                         }}
-                        className="flex items-center gap-1 px-2 py-1 text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-xs text-teal-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors"
                         title="Visualizar em 3D"
                       >
                         <Box size={13} />
@@ -254,7 +254,7 @@ export function EditableKeyword({
                       className={clsx(
                         "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all",
                         !showNotes
-                          ? "bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm"
+                          ? "bg-teal-50 text-teal-700 border border-teal-200 shadow-sm"
                           : "text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 border border-transparent"
                       )}
                     >
@@ -348,14 +348,14 @@ export function EditableKeyword({
                     </div>
 
                     {/* ── 2. Perguntas Mais Feitas ── */}
-                    <div className="border rounded-lg border-blue-100/60 bg-blue-50/20 overflow-hidden transition-all hover:border-blue-200/80 group/sec">
+                    <div className="border rounded-lg border-teal-100/60 bg-teal-50/20 overflow-hidden transition-all hover:border-teal-200/80 group/sec">
                       <button
                         onClick={() => toggleSection('faq')}
                         className="w-full text-left px-3.5 py-3 flex items-center gap-3"
                       >
                         <div className={clsx(
                           "p-0.5 rounded transition-colors duration-200 shrink-0",
-                          openSections.faq ? "bg-blue-100 text-blue-600" : "bg-gray-200 text-gray-400 group-hover/sec:bg-blue-50 group-hover/sec:text-blue-500"
+                          openSections.faq ? "bg-teal-100 text-teal-600" : "bg-gray-200 text-gray-400 group-hover/sec:bg-teal-50 group-hover/sec:text-teal-500"
                         )}>
                           <ChevronRight
                             size={14}
@@ -367,15 +367,15 @@ export function EditableKeyword({
                         </div>
                         <MessageSquare size={13} className={clsx(
                           "shrink-0 transition-colors duration-200",
-                          openSections.faq ? "text-blue-600" : "text-gray-400 group-hover/sec:text-blue-500"
+                          openSections.faq ? "text-teal-600" : "text-gray-400 group-hover/sec:text-teal-500"
                         )} />
                         <span className={clsx(
                           "text-[11px] font-bold uppercase tracking-widest transition-colors duration-200 flex-1",
-                          openSections.faq ? "text-blue-700" : "text-gray-500 group-hover/sec:text-blue-600"
+                          openSections.faq ? "text-teal-700" : "text-gray-500 group-hover/sec:text-teal-600"
                         )}>
                           Perguntas Mais Feitas
                         </span>
-                        <span className="text-[9px] text-blue-400 bg-blue-100/60 px-1.5 py-0.5 rounded-full font-medium">
+                        <span className="text-[9px] text-teal-400 bg-teal-100/60 px-1.5 py-0.5 rounded-full font-medium">
                           {keywordData.aiQuestions?.length ?? 0}
                         </span>
                       </button>
@@ -389,7 +389,7 @@ export function EditableKeyword({
                             className="overflow-hidden"
                           >
                             <div className="px-3.5 pb-3.5 pl-[42px]">
-                              <div className="pt-2 border-t border-blue-100/30 space-y-2">
+                              <div className="pt-2 border-t border-teal-100/30 space-y-2">
                                 {(keywordData.aiQuestions ?? []).map((q, i) => (
                                   <AIQuestionItem key={i} question={q} />
                                 ))}
@@ -401,14 +401,14 @@ export function EditableKeyword({
                     </div>
 
                     {/* ── 3. Fazer Pergunta ── */}
-                    <div className="border rounded-lg border-violet-100/60 bg-violet-50/20 overflow-hidden transition-all hover:border-violet-200/80 group/sec">
+                    <div className="border rounded-lg border-teal-100/60 bg-teal-50/20 overflow-hidden transition-all hover:border-teal-200/80 group/sec">
                       <button
                         onClick={() => toggleSection('ask')}
                         className="w-full text-left px-3.5 py-3 flex items-center gap-3"
                       >
                         <div className={clsx(
                           "p-0.5 rounded transition-colors duration-200 shrink-0",
-                          openSections.ask ? "bg-violet-100 text-violet-600" : "bg-gray-200 text-gray-400 group-hover/sec:bg-violet-50 group-hover/sec:text-violet-500"
+                          openSections.ask ? "bg-teal-100 text-teal-600" : "bg-gray-200 text-gray-400 group-hover/sec:bg-teal-50 group-hover/sec:text-teal-500"
                         )}>
                           <ChevronRight
                             size={14}
@@ -420,11 +420,11 @@ export function EditableKeyword({
                         </div>
                         <Sparkles size={13} className={clsx(
                           "shrink-0 transition-colors duration-200",
-                          openSections.ask ? "text-violet-600" : "text-gray-400 group-hover/sec:text-violet-500"
+                          openSections.ask ? "text-teal-600" : "text-gray-400 group-hover/sec:text-teal-500"
                         )} />
                         <span className={clsx(
                           "text-[11px] font-bold uppercase tracking-widest transition-colors duration-200",
-                          openSections.ask ? "text-violet-700" : "text-gray-500 group-hover/sec:text-violet-600"
+                          openSections.ask ? "text-teal-700" : "text-gray-500 group-hover/sec:text-teal-600"
                         )}>
                           Fazer Pergunta
                         </span>
@@ -439,7 +439,7 @@ export function EditableKeyword({
                             className="overflow-hidden"
                           >
                             <div className="px-3.5 pb-3.5 pl-[42px]">
-                              <div className="pt-2 border-t border-violet-100/30 space-y-2.5">
+                              <div className="pt-2 border-t border-teal-100/30 space-y-2.5">
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
@@ -450,7 +450,7 @@ export function EditableKeyword({
                                     }}
                                     placeholder={`Pergunte sobre ${keywordData.term}...`}
                                     disabled={askingAI}
-                                    className="flex-1 pl-3 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400 disabled:opacity-50"
+                                    className="flex-1 pl-3 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all placeholder:text-gray-400 disabled:opacity-50"
                                   />
                                   <button
                                     onClick={handleAskQuestion}
@@ -459,7 +459,7 @@ export function EditableKeyword({
                                       "flex items-center justify-center px-3 py-2 rounded-lg transition-all",
                                       !userQuestion.trim() || askingAI
                                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                        : "bg-violet-500 text-white hover:bg-violet-600 active:scale-95 shadow-sm"
+                                        : "bg-teal-500 text-white hover:bg-teal-600 active:scale-95 shadow-sm"
                                     )}
                                   >
                                     {askingAI ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
@@ -476,22 +476,22 @@ export function EditableKeyword({
                                       transition={{ duration: 0.25 }}
                                       className="overflow-hidden"
                                     >
-                                      <div className="p-3 bg-violet-50 border border-violet-100 rounded-lg">
+                                      <div className="p-3 bg-teal-50 border border-teal-100 rounded-lg">
                                         {askingAI ? (
-                                          <div className="flex items-center gap-2 text-sm text-violet-600">
+                                          <div className="flex items-center gap-2 text-sm text-teal-600">
                                             <Loader2 size={14} className="animate-spin" />
                                             <span>MedBot esta pensando...</span>
                                           </div>
                                         ) : aiAnswer ? (
                                           <div>
                                             <div className="flex items-center gap-1.5 mb-1.5">
-                                              <Sparkles size={11} className="text-violet-500" />
-                                              <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">MedBot</span>
+                                              <Sparkles size={11} className="text-teal-500" />
+                                              <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider">MedBot</span>
                                             </div>
                                             <p className="text-sm text-gray-700 leading-relaxed">{aiAnswer}</p>
                                             <button
                                               onClick={() => { setAiAnswer(null); setUserQuestion(''); }}
-                                              className="mt-2 text-[10px] text-violet-500 hover:text-violet-700 transition-colors"
+                                              className="mt-2 text-[10px] text-teal-500 hover:text-teal-700 transition-colors"
                                             >
                                               Limpar resposta
                                             </button>

@@ -218,8 +218,8 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, weekTimeSe
         delay={0.05}
       />
       <StatCard
-        icon={<Target className="w-5 h-5 text-indigo-600" />}
-        iconBg="bg-indigo-50"
+        icon={<Target className="w-5 h-5 text-teal-600" />}
+        iconBg="bg-teal-50"
         label="Precisi\u00f3n"
         value={todayAccuracy !== null ? `${todayAccuracy}%` : '\u2014'}
         sub={accuracyDiff !== null ? `${parseFloat(accuracyDiff) >= 0 ? '+' : ''}${accuracyDiff}% vs ayer` : 'sin datos ayer'}

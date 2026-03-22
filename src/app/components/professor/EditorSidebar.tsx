@@ -435,13 +435,13 @@ function TopicNode({
                   className={clsx(
                     'w-full flex items-center gap-1.5 pl-10 pr-2.5 py-1.5 text-left transition-colors group/summary',
                     s.id === activeSummaryId
-                      ? 'bg-violet-500/15 text-violet-300'
+                      ? 'bg-teal-500/15 text-teal-300'
                       : 'hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-300'
                   )}
                 >
                   <FileText size={10} className={clsx(
                     'shrink-0',
-                    s.id === activeSummaryId ? 'text-violet-400' : 'text-zinc-500'
+                    s.id === activeSummaryId ? 'text-teal-400' : 'text-zinc-500'
                   )} />
                   <span className="text-[10px] truncate">
                     {s.title || 'Sin titulo'}

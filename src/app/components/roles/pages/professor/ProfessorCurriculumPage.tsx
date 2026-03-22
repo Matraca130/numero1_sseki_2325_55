@@ -186,8 +186,8 @@ export function ProfessorCurriculumPage() {
       {!loading && tree && (tree?.courses || []).length > 0 && (
         <div className="px-6 py-3 border-b border-gray-100 bg-white flex items-center gap-6">
           {[
-            { label: 'Cursos', value: stats.courses, color: 'text-violet-600' },
-            { label: 'Semestres', value: stats.semesters, color: 'text-blue-600' },
+            { label: 'Cursos', value: stats.courses, color: 'text-teal-600' },
+            { label: 'Semestres', value: stats.semesters, color: 'text-teal-600' },
             { label: 'Secciones', value: stats.sections, color: 'text-emerald-600' },
             { label: 'Topicos', value: stats.topics, color: 'text-gray-600' },
           ].map(s => (
@@ -252,7 +252,7 @@ export function ProfessorCurriculumPage() {
                     onClick={() => setActiveTab('content')}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                       activeTab === 'content'
-                        ? 'border-violet-600 text-violet-700 bg-violet-50'
+                        ? 'border-teal-600 text-teal-700 bg-teal-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -263,7 +263,7 @@ export function ProfessorCurriculumPage() {
                     onClick={() => setActiveTab('3d')}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                       activeTab === '3d'
-                        ? 'border-violet-600 text-violet-700 bg-violet-50'
+                        ? 'border-teal-600 text-teal-700 bg-teal-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >

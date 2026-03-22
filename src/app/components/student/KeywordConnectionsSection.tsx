@@ -73,14 +73,14 @@ export function KeywordConnectionsSection({
       <button
         key={conn.id}
         onClick={() => onCloseAndNavigate(otherId, targetSummaryId)}
-        className="w-full flex items-center gap-2 py-1.5 px-2 -mx-1 text-left group rounded transition-colors hover:bg-violet-500/10 border border-transparent hover:border-violet-500/20"
+        className="w-full flex items-center gap-2 py-1.5 px-2 -mx-1 text-left group rounded transition-colors hover:bg-teal-500/10 border border-transparent hover:border-teal-500/20"
       >
         {isCross ? (
-          <ExternalLink size={10} className="text-violet-400 shrink-0" />
+          <ExternalLink size={10} className="text-teal-400 shrink-0" />
         ) : (
-          <BookOpen size={10} className="text-violet-400 shrink-0" />
+          <BookOpen size={10} className="text-teal-400 shrink-0" />
         )}
-        <span className="text-xs text-zinc-300 truncate group-hover:text-violet-300 group-hover:transition-colors">
+        <span className="text-xs text-zinc-300 truncate group-hover:text-teal-300 group-hover:transition-colors">
           {kwName(otherId)}
         </span>
         {/* F5: Connection type badge (dark variant for student popup) */}
@@ -144,13 +144,13 @@ export function KeywordConnectionsSection({
               <button
                 key={conn.id}
                 onClick={() => onCloseAndNavigate(ext.id, ext.summary_id)}
-                className="flex items-center gap-2 py-1.5 w-full text-left group hover:bg-violet-500/10 rounded px-2 -mx-1 transition-colors border border-transparent hover:border-violet-500/20"
+                className="flex items-center gap-2 py-1.5 w-full text-left group hover:bg-teal-500/10 rounded px-2 -mx-1 transition-colors border border-transparent hover:border-teal-500/20"
               >
-                <div className="w-5 h-5 rounded bg-violet-500/20 flex items-center justify-center shrink-0">
-                  <FileText size={10} className="text-violet-400" />
+                <div className="w-5 h-5 rounded bg-teal-500/20 flex items-center justify-center shrink-0">
+                  <FileText size={10} className="text-teal-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs text-zinc-300 truncate block group-hover:text-violet-300 transition-colors">
+                  <span className="text-xs text-zinc-300 truncate block group-hover:text-teal-300 transition-colors">
                     {ext.name}
                   </span>
                   {ext.definition && (

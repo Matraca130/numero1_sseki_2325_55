@@ -174,7 +174,7 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
         className="w-full px-5 py-3 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Video size={14} className="text-violet-400" />
+          <Video size={14} className="text-teal-400" />
           <span className="text-xs text-zinc-300">
             Videos
           </span>
@@ -430,7 +430,7 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
                         className={clsx(
                           "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all",
                           isActive
-                            ? "bg-violet-500/15 border border-violet-500/30"
+                            ? "bg-teal-500/15 border border-teal-500/30"
                             : "hover:bg-zinc-800/50 border border-transparent"
                         )}
                       >
@@ -463,12 +463,12 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
                         <div className="flex-1 min-w-0">
                           <p className={clsx(
                             "text-xs truncate",
-                            isActive ? "text-violet-300" : "text-zinc-300"
+                            isActive ? "text-teal-300" : "text-zinc-300"
                           )}>
                             {v.title}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] text-violet-500">Mux</span>
+                            <span className="text-[9px] text-teal-500">Mux</span>
                             {v.duration_seconds && v.duration_seconds > 0 && (
                               <span className="flex items-center gap-0.5 text-[9px] text-zinc-600">
                                 <Clock size={7} />
@@ -485,7 +485,7 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
                         </div>
 
                         {isActive && (
-                          <span className="text-[9px] text-violet-400 shrink-0">Reproduciendo</span>
+                          <span className="text-[9px] text-teal-400 shrink-0">Reproduciendo</span>
                         )}
                       </button>
                     );

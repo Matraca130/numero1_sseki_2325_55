@@ -143,15 +143,15 @@ export function KeywordAutocomplete({ topicId, value, onChange, compact }: Keywo
 
   if (compact && selected) {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-violet-500/10 border border-violet-500/20">
-        <Link2 size={9} className="text-violet-400 shrink-0" />
-        <span className="text-[9px] text-violet-300 truncate flex-1">
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/20">
+        <Link2 size={9} className="text-teal-400 shrink-0" />
+        <span className="text-[9px] text-teal-300 truncate flex-1">
           {keywordName(selected)}
         </span>
         <button
           type="button"
           onClick={handleClear}
-          className="text-violet-500 hover:text-violet-300 transition-colors shrink-0"
+          className="text-teal-500 hover:text-teal-300 transition-colors shrink-0"
         >
           <X size={9} />
         </button>
@@ -171,7 +171,7 @@ export function KeywordAutocomplete({ topicId, value, onChange, compact }: Keywo
           onChange={(e) => handleQueryChange(e.target.value)}
           onFocus={handleFocus}
           placeholder="Vincular keyword (opcional)..."
-          className="w-full pl-6 pr-8 py-1.5 text-[10px] bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30 focus:border-violet-500/30"
+          className="w-full pl-6 pr-8 py-1.5 text-[10px] bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30 focus:border-teal-500/30"
         />
         {(selected || query) && (
           <button
@@ -203,7 +203,7 @@ export function KeywordAutocomplete({ topicId, value, onChange, compact }: Keywo
               className="w-full text-left px-3 py-2 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
             >
               <div className="flex items-center gap-1.5">
-                <Link2 size={9} className="text-violet-400 shrink-0" />
+                <Link2 size={9} className="text-teal-400 shrink-0" />
                 <span className="text-[10px] text-white truncate">
                   {keywordName(kw)}
                 </span>
@@ -220,9 +220,9 @@ export function KeywordAutocomplete({ topicId, value, onChange, compact }: Keywo
 
       {/* Selected badge */}
       {selected && (
-        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-md bg-violet-500/10 border border-violet-500/20">
-          <Link2 size={9} className="text-violet-400 shrink-0" />
-          <span className="text-[9px] text-violet-300 truncate flex-1">
+        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/20">
+          <Link2 size={9} className="text-teal-400 shrink-0" />
+          <span className="text-[9px] text-teal-300 truncate flex-1">
             {keywordName(selected)}
           </span>
           {selected.definition && (

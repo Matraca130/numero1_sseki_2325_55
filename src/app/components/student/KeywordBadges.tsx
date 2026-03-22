@@ -62,7 +62,7 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Tag size={14} className="text-violet-500" />
+          <Tag size={14} className="text-teal-500" />
           <span className="text-sm text-gray-700">Palabras clave</span>
         </div>
         <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Tag size={14} className="text-violet-500" />
+          <Tag size={14} className="text-teal-500" />
           <span className="text-sm text-gray-700">Palabras clave</span>
         </div>
         <div className="text-center py-4">
@@ -91,7 +91,7 @@ export function KeywordBadges({ summaryId, onNavigateKeyword }: KeywordBadgesPro
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex items-center gap-2 mb-3">
-        <Tag size={14} className="text-violet-500" />
+        <Tag size={14} className="text-teal-500" />
         <span className="text-sm text-gray-700">Palabras clave</span>
         <span className="text-[10px] bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
           {keywords.length}

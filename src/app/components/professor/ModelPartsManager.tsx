@@ -217,13 +217,13 @@ export function ModelPartsManager({ modelId, modelName }: ModelPartsManagerProps
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Layers size={16} className="text-violet-400" />
+          <Layers size={16} className="text-teal-400" />
           Capas y Partes
         </h3>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowAddLayer(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-lg hover:bg-violet-500/20 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-lg hover:bg-teal-500/20 transition-colors"
           >
             <Plus size={10} /> Capa
           </button>
@@ -251,7 +251,7 @@ export function ModelPartsManager({ modelId, modelName }: ModelPartsManagerProps
       {/* Loading indicator */}
       {loading && (
         <div className="flex items-center justify-center py-6 gap-2">
-          <Loader2 size={14} className="animate-spin text-violet-400" />
+          <Loader2 size={14} className="animate-spin text-teal-400" />
           <span className="text-[10px] text-gray-500">Cargando capas y partes...</span>
         </div>
       )}

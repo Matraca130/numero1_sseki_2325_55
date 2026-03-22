@@ -72,9 +72,9 @@ export function TextAnnotationsPanel({ annotations, onDelete, botLoading }: Text
         className="w-full flex items-center justify-between px-4 py-2.5 bg-white rounded-t-xl border border-gray-200 shadow-lg hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <StickyNote size={16} className="text-blue-500" />
+          <StickyNote size={16} className="text-teal-500" />
           <span className="font-bold text-sm text-gray-800">Minhas Anotacoes</span>
-          <span className="text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full">{annotations.length}</span>
+          <span className="text-[10px] font-bold text-white bg-teal-500 px-1.5 py-0.5 rounded-full">{annotations.length}</span>
         </div>
         <ChevronRight size={14} className={clsx("text-gray-400 transition-transform", isExpanded && "rotate-90")} />
       </button>
@@ -128,17 +128,17 @@ export function TextAnnotationsPanel({ annotations, onDelete, botLoading }: Text
                           <p className="text-xs text-gray-700 font-medium">{ann.note}</p>
                         </div>
                         {ann.botReply ? (
-                          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg px-2.5 py-2 border border-blue-100">
+                          <div className="bg-gradient-to-br from-teal-50 to-teal-50 rounded-lg px-2.5 py-2 border border-teal-100">
                             <div className="flex items-center gap-1.5 mb-1">
-                              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
                                 <Bot size={8} className="text-white" />
                               </div>
-                              <span className="text-[10px] font-bold text-blue-600">MedBot</span>
+                              <span className="text-[10px] font-bold text-teal-600">MedBot</span>
                             </div>
                             <p className="text-xs text-gray-700 leading-relaxed">{ann.botReply}</p>
                           </div>
                         ) : botLoading ? (
-                          <div className="flex items-center gap-2 text-xs text-blue-500 py-2">
+                          <div className="flex items-center gap-2 text-xs text-teal-500 py-2">
                             <Loader2 size={12} className="animate-spin" />
                             <span>MedBot esta pensando...</span>
                           </div>
