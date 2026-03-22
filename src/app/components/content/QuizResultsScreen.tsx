@@ -113,7 +113,7 @@ export const QuizResultsScreen = React.memo(function QuizResultsScreen({
             >
               <Trophy size={44} className="text-white" />
             </motion.div>
-            <h2 className="text-2xl text-zinc-900 mb-2" style={{ fontWeight: 700 }}>
+            <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-zinc-900 mb-2" style={{ fontWeight: 700 }}>
               {pct >= 80 ? 'Excelente!' : pct >= 60 ? 'Buen trabajo!' : 'Quiz completado'}
             </h2>
             <p className="text-sm text-zinc-500 mb-1">Quiz completado</p>
@@ -144,7 +144,7 @@ export const QuizResultsScreen = React.memo(function QuizResultsScreen({
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <motion.span
-                  className="text-4xl text-zinc-900"
+                  className="text-[clamp(1.75rem,3.5vw,2.25rem)] text-zinc-900"
                   style={{ fontWeight: 700 }}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}

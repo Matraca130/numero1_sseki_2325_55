@@ -64,7 +64,7 @@ export const QuizScoreCircle = memo(function QuizScoreCircle({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span
-          className="text-4xl text-zinc-900"
+          className="text-[clamp(1.75rem,3.5vw,2.25rem)] text-zinc-900"
           style={{ fontWeight: 700 }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

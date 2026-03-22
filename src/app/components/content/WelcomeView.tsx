@@ -337,8 +337,8 @@ function PerformanceSidebar({
                 style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }} />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl text-white" style={{ fontWeight: 800 }}>
-                {perfPercent}<span className="text-2xl opacity-60">%</span>
+              <span className="text-[clamp(1.75rem,3.5vw,2.25rem)] text-white" style={{ fontWeight: 800 }}>
+                {perfPercent}<span className="text-[clamp(1.25rem,2.5vw,1.5rem)] opacity-60">%</span>
               </span>
               <span className="text-[9px] text-white/50 uppercase tracking-[0.2em] mt-1" style={{ fontWeight: 600 }}>completado</span>
             </div>
@@ -556,7 +556,7 @@ export function WelcomeView() {
         <div className="relative z-10 max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <motion.div initial={shouldReduce ? {} : { opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-              <h1 className="text-xl sm:text-2xl text-white tracking-tight" style={{ ...headingStyle, fontWeight: 700 }}>{greeting.line1}</h1>
+              <h1 className="text-xl sm:text-[clamp(1.25rem,2.5vw,1.5rem)] text-white tracking-tight" style={{ ...headingStyle, fontWeight: 700 }}>{greeting.line1}</h1>
               <p className="text-xs text-white/40 mt-1">{greeting.line2}</p>
             </motion.div>
             <TimeFilters active={timeFilter} onChange={setTimeFilter} />

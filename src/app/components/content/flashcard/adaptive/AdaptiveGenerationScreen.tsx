@@ -26,7 +26,7 @@ export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerat
         <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }} className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2dd4a8] to-[#2a8c7a] flex items-center justify-center mb-6 shadow-xl shadow-[#2a8c7a]/25">
           <Sparkles size={32} className="text-white" />
         </motion.div>
-        <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>Generando Flashcards</h2>
+        <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mb-2" style={{ fontWeight: 700 }}>Generando Flashcards</h2>
         <p className="text-gray-500 mb-8 text-sm">La IA est{'\u00E1'} creando flashcards adaptadas a tus {'\u00E1'}reas d{'\u00E9'}biles</p>
         <div className="relative mb-8" style={{ width: ringSize, height: ringSize }}>
           <svg width={ringSize} height={ringSize} className="-rotate-90">
@@ -34,7 +34,7 @@ export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerat
             <motion.circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="#2dd4a8" strokeWidth={ringStroke} strokeLinecap="round" strokeDasharray={ringCirc} animate={{ strokeDashoffset: ringCirc * (1 - pct / 100) }} transition={{ duration: 0.4, ease: 'easeOut' }} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl text-gray-900 tabular-nums" style={{ fontWeight: 700 }}>{generated}</span>
+            <span className="text-[clamp(1.5rem,3vw,1.875rem)] text-gray-900 tabular-nums" style={{ fontWeight: 700 }}>{generated}</span>
             <span className="text-xs text-gray-500" style={{ fontWeight: 500 }}>de {total}</span>
           </div>
         </div>

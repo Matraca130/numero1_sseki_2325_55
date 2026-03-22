@@ -99,5 +99,5 @@ export function ProfessorGamificationPage() {
 
 function StatC({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
   const cm: Record<string, string> = { purple: 'text-teal-600 bg-teal-50 border-teal-200', blue: 'text-teal-600 bg-teal-50 border-teal-200', amber: 'text-amber-600 bg-amber-50 border-amber-200', emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
-  return <div className={`rounded-2xl px-4 py-4 border ${cm[color] ?? cm.purple}`}><div className="flex items-center gap-1.5 mb-2">{icon}</div><p className="text-2xl tabular-nums" style={{ fontWeight: 800 }}>{value}</p><p className="text-[10px] opacity-70 mt-0.5" style={{ fontWeight: 500 }}>{label}</p></div>;
+  return <div className={`rounded-2xl px-4 py-4 border ${cm[color] ?? cm.purple}`}><div className="flex items-center gap-1.5 mb-2">{icon}</div><p className="text-[clamp(1.25rem,2.5vw,1.5rem)] tabular-nums" style={{ fontWeight: 800 }}>{value}</p><p className="text-[10px] opacity-70 mt-0.5" style={{ fontWeight: 500 }}>{label}</p></div>;
 }

@@ -155,19 +155,19 @@ export function SmartFlashcardGenerator({
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white rounded-lg p-3 text-center border border-red-200">
-                    <div className="text-2xl font-bold text-red-600">
+                    <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-red-600">
                       {estimate.byUrgency.critical}
                     </div>
                     <div className="text-xs text-gray-600">Críticos</div>
                   </div>
                   <div className="bg-white rounded-lg p-3 text-center border border-yellow-200">
-                    <div className="text-2xl font-bold text-yellow-600">
+                    <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-yellow-600">
                       {estimate.byUrgency.high}
                     </div>
                     <div className="text-xs text-gray-600">Alta Prioridade</div>
                   </div>
                   <div className="bg-white rounded-lg p-3 text-center border border-teal-200">
-                    <div className="text-2xl font-bold text-teal-600">
+                    <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-teal-600">
                       {estimate.byUrgency.medium}
                     </div>
                     <div className="text-xs text-gray-600">Média Prioridade</div>
@@ -308,19 +308,19 @@ export function SmartFlashcardGenerator({
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-gray-900">
                       {stats.cardsGenerated}
                     </div>
                     <div className="text-xs text-gray-600">Flashcards</div>
                   </div>
                   <div className="bg-white rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-gray-900">
                       {stats.keywordsProcessed}
                     </div>
                     <div className="text-xs text-gray-600">Keywords</div>
                   </div>
                   <div className="bg-white rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-green-600">
                       -{stats.gapReduction}
                     </div>
                     <div className="text-xs text-gray-600">Gap Reduzido</div>

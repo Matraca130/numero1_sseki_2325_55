@@ -75,7 +75,7 @@ export function BadgesPage() {
             <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center"><Trophy size={22} className="text-amber-600" /></div>
             <div><h1 className="text-xl text-gray-900" style={{ fontWeight: 800 }}>Insignias</h1><p className="text-[12px] text-gray-500">Desbloquea logros mientras estudias</p></div>
           </div>
-          <div className="text-right"><p className="text-2xl text-amber-600 tabular-nums" style={{ fontWeight: 800 }}>{earnedCount}/{totalCount}</p><p className="text-[10px] text-gray-400" style={{ fontWeight: 500 }}>Desbloqueadas</p></div>
+          <div className="text-right"><p className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-amber-600 tabular-nums" style={{ fontWeight: 800 }}>{earnedCount}/{totalCount}</p><p className="text-[10px] text-gray-400" style={{ fontWeight: 500 }}>Desbloqueadas</p></div>
         </div>
         <div className="mb-6"><div className="h-2.5 bg-gray-100 rounded-full overflow-hidden"><motion.div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1, ease: 'easeOut' }} /></div><p className="text-[10px] text-gray-400 mt-1 text-right">{Math.round(progress)}% completado</p></div>
         <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -89,7 +89,7 @@ export function BadgesPage() {
         : <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{filtered.map((badge, i) => (
           <motion.div key={badge.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
             <div className={`rounded-2xl border p-4 transition-all ${badge.earned ? RARITY_COLORS[badge.rarity ?? 'common'] ?? RARITY_COLORS.common : 'border-gray-200 bg-[#faf9f6] opacity-50'}`}>
-              <div className="flex items-center justify-between mb-2"><span className="text-2xl">{badge.icon_url ?? '🏆'}</span>{badge.earned && <span className="text-[9px] text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full" style={{ fontWeight: 600 }}>✓</span>}</div>
+              <div className="flex items-center justify-between mb-2"><span className="text-[clamp(1.25rem,2.5vw,1.5rem)]">{badge.icon_url ?? '🏆'}</span>{badge.earned && <span className="text-[9px] text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full" style={{ fontWeight: 600 }}>✓</span>}</div>
               <p className="text-[12px] text-gray-800 mb-0.5" style={{ fontWeight: 700 }}>{badge.name}</p>
               <p className="text-[10px] text-gray-500 mb-2">{badge.description}</p>
               <div className="flex items-center justify-between"><span className="text-[9px] text-gray-400 capitalize">{badge.rarity ?? 'common'}</span><span className="text-[9px] text-amber-600" style={{ fontWeight: 600 }}>+{badge.xp_reward ?? 0} XP</span></div>

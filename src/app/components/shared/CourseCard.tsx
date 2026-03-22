@@ -38,7 +38,7 @@ export const CourseCard = React.memo(function CourseCard({
       {/* Top row: icon + progress circle */}
       <div className="flex items-start justify-between mb-4">
         <div
-          className={`${components.courseCard.iconSize} ${iconBg} flex items-center justify-center flex-shrink-0 text-2xl`}
+          className={`${components.courseCard.iconSize} ${iconBg} flex items-center justify-center flex-shrink-0 text-[clamp(1.25rem,2.5vw,1.5rem)]`}
         >
           {icon}
         </div>

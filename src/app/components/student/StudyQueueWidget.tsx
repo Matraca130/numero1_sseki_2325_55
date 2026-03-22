@@ -204,15 +204,15 @@ export function StudyQueueWidget({
         {/* Count breakdown cards */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-red-500">{totalDue}</p>
+            <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-red-500">{totalDue}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Vencidas</p>
           </div>
           <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-teal-500">{totalNew}</p>
+            <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-teal-500">{totalNew}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Nuevas</p>
           </div>
           <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-500">{totalReview}</p>
+            <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-emerald-500">{totalReview}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Revision</p>
           </div>
         </div>

@@ -84,7 +84,7 @@ export function StreakPanel({
           </motion.div>
           <div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl" style={{ color: '#111827', fontWeight: 800 }}>
+              <span className="text-[clamp(1.25rem,2.5vw,1.5rem)]" style={{ color: '#111827', fontWeight: 800 }}>
                 {current}
               </span>
               <span className="text-xs" style={{ color: '#6b7280' }}>

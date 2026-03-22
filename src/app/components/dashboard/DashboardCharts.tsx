@@ -146,7 +146,7 @@ export function MasteryDonut({ data, totalCards }: MasteryDonutProps) {
 
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl sm:text-3xl font-bold text-gray-900">{totalCards || '\u2014'}</span>
+          <span className="text-[clamp(1.25rem,2.5vw,1.5rem)] sm:text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-gray-900">{totalCards || '\u2014'}</span>
           <span className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wide">Total Temas</span>
         </div>
       </div>

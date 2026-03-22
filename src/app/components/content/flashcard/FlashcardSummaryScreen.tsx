@@ -116,7 +116,7 @@ export function SummaryScreen({
           <Trophy size={40} className="text-white" />
         </div>
 
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Sesi\u00F3n Completada!</h2>
+        <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] sm:text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-gray-900 mb-2">Sesi\u00F3n Completada!</h2>
         <p className="text-gray-500 mb-6 sm:mb-8 max-w-md text-sm sm:text-base">
           Completaste {stats.length} flashcards con un dominio estimado de:
         </p>
@@ -137,7 +137,7 @@ export function SummaryScreen({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl sm:text-4xl font-bold text-gray-900">{mastery.toFixed(0)}%</span>
+            <span className="text-[clamp(1.5rem,3vw,1.875rem)] sm:text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold text-gray-900">{mastery.toFixed(0)}%</span>
             <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Dominio</span>
           </div>
         </div>

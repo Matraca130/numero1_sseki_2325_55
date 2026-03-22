@@ -47,7 +47,7 @@ export function SessionXPSummary({ state, actualXP }: SessionXPSummaryProps) {
           <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.6 }}>
             <Zap size={24} className="text-amber-400" />
           </motion.div>
-          <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }} className="text-3xl text-amber-400 tabular-nums" style={{ fontWeight: 800 }}>+{displayXP}</motion.span>
+          <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }} className="text-[clamp(1.5rem,3vw,1.875rem)] text-amber-400 tabular-nums" style={{ fontWeight: 800 }}>+{displayXP}</motion.span>
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-lg text-amber-400/60" style={{ fontWeight: 600 }}>XP</motion.span>
         </div>
         <div className="space-y-1.5 mb-4">
@@ -73,7 +73,7 @@ export function SessionXPSummary({ state, actualXP }: SessionXPSummaryProps) {
       </motion.div>
       {showLevelUp && (
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }} className="mt-4 bg-gradient-to-r from-teal-500/20 to-amber-500/20 border border-teal-500/30 rounded-xl p-4 text-center">
-          <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ duration: 0.5, delay: 0.2 }} className="text-2xl mb-1">\ud83c\udf89</motion.div>
+          <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ duration: 0.5, delay: 0.2 }} className="text-[clamp(1.25rem,2.5vw,1.5rem)] mb-1">\ud83c\udf89</motion.div>
           <p className="text-sm text-zinc-200" style={{ fontWeight: 700 }}>Subiste a Nivel {state.currentLevel}!</p>
           <p className="text-[10px] text-zinc-400 mt-0.5">Sigue asi para desbloquear nuevos logros</p>
         </motion.div>

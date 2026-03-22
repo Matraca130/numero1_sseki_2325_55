@@ -234,7 +234,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                     "leading-tight transition-all duration-300",
                     isRevealed
                       ? "text-base text-left text-gray-500"
-                      : "text-xl md:text-2xl lg:text-3xl text-gray-900"
+                      : "text-xl md:text-[clamp(1.25rem,2.5vw,1.5rem)] lg:text-[clamp(1.5rem,3vw,1.875rem)] text-gray-900"
                   )}
                   style={{ fontWeight: isRevealed ? 500 : 700 }}
                 >
@@ -254,7 +254,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                     <div className="flex items-center gap-2 text-emerald-500 text-xs uppercase tracking-[0.15em] mb-3" style={{ fontWeight: 600 }}>
                       <CheckCircle size={14} /> Respuesta
                     </div>
-                    <h3 className="text-lg md:text-xl lg:text-2xl text-gray-900 leading-relaxed text-balance" style={{ fontWeight: 700 }}>
+                    <h3 className="text-lg md:text-xl lg:text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 leading-relaxed text-balance" style={{ fontWeight: 700 }}>
                       {currentCard.answer}
                     </h3>
                   </motion.div>

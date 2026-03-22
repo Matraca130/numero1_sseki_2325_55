@@ -95,7 +95,7 @@ export function SelectRolePage() {
         {/* Header */}
         <div className="text-center mb-8">
           <AxonLogo size="md" theme="light" />
-          <h1 className="text-2xl text-white mt-6">
+          <h1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-white mt-6">
             Hola, {user?.name?.split(' ')[0] || 'Usuario'}
           </h1>
           <p className="text-sm text-zinc-400 mt-1">

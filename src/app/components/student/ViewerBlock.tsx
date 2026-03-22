@@ -71,7 +71,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       const text = c.text || '';
       const Tag = (`h${Math.min(Math.max(level, 1), 4)}`) as keyof JSX.IntrinsicElements;
       const headingStyles: Record<number, string> = {
-        1: 'text-2xl font-bold text-teal-900 border-b-2 border-teal-600 pb-2 mb-4',
+        1: 'text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-teal-900 border-b-2 border-teal-600 pb-2 mb-4',
         2: 'text-xl font-semibold text-teal-800 border-l-3 border-teal-500 pl-3 mb-3',
         3: 'text-lg font-semibold text-teal-700 mb-2',
         4: 'text-base font-semibold italic text-gray-600 mb-2',

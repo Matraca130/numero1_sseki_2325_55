@@ -56,7 +56,7 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
                 <BookOpen size={22} className="text-white hidden sm:block" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-2xl text-gray-900 truncate" style={{ ...headingStyle, fontWeight: 700 }}>{section.title}</h2>
+                <h2 className="text-lg sm:text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 truncate" style={{ ...headingStyle, fontWeight: 700 }}>{section.title}</h2>
                 <p className="text-xs sm:text-sm text-gray-500">{section.topics.length} decks &middot; {sectionCards.length} flashcards</p>
               </div>
             </div>

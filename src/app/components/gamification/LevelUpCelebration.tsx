@@ -53,7 +53,7 @@ export function LevelUpCelebration({ newLevel, previousLevel, show, onClose }: L
               <Sparkles size={40} className="text-white" />
             </div>
 
-            <h2 className="text-2xl text-teal-900 mb-2" style={{ fontWeight: 800 }}>
+            <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-teal-900 mb-2" style={{ fontWeight: 800 }}>
               Nivel {newLevel}!
             </h2>
             <p className="text-sm text-teal-600 mb-6">

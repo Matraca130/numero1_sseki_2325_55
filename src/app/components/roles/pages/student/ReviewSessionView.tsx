@@ -249,13 +249,13 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 bg-[#faf9f6] min-h-full overflow-y-auto">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }} className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-500/10 border border-amber-400/20 flex items-center justify-center mb-6"><Trophy size={36} className="text-amber-400" /></motion.div>
-        <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-2xl font-bold text-gray-900 mb-2">Repaso completado!</motion.h2>
+        <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-gray-900 mb-2">Repaso completado!</motion.h2>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-sm text-gray-500 mb-8">{grades.length} tarjeta{grades.length !== 1 ? 's' : ''} revisada{grades.length !== 1 ? 's' : ''} en {minutes > 0 ? `${minutes}m ` : ''}{seconds}s</motion.p>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="grid grid-cols-3 gap-4 mb-8 w-full max-w-sm">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center"><p className="text-2xl font-bold text-[#2a8c7a]">{grades.length}</p><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Revisadas</p></div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center"><p className="text-2xl font-bold text-emerald-500">{correctPercentage}%</p><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Correctas</p></div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center"><p className="text-2xl font-bold text-amber-500">{minutes > 0 ? `${minutes}m` : `${seconds}s`}</p><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Tiempo</p></div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center"><p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-[#2a8c7a]">{grades.length}</p><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Revisadas</p></div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center"><p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-emerald-500">{correctPercentage}%</p><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Correctas</p></div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center"><p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-amber-500">{minutes > 0 ? `${minutes}m` : `${seconds}s`}</p><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Tiempo</p></div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="w-full max-w-sm bg-white border border-gray-200 rounded-xl p-5 mb-6">

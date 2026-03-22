@@ -196,7 +196,7 @@ export function QuizResults({
             >
               <Trophy size={44} className="text-white" />
             </motion.div>
-            <h2 className="text-2xl text-zinc-900 mb-2" style={{ fontWeight: 700 }}>
+            <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-zinc-900 mb-2" style={{ fontWeight: 700 }}>
               {pct >= 80 ? 'Excelente!' : pct >= 60 ? 'Buen trabajo!' : 'Quiz completado'}
             </h2>
             <p className="text-sm text-zinc-500 mb-1">{quizTitle}</p>

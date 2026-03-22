@@ -133,7 +133,7 @@ const StatCard = React.memo(function StatCard({ icon, iconBg, label, value, sub,
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 truncate">{label}</p>
-          <p className="text-2xl text-gray-900 mt-0.5 tabular-nums">{value}</p>
+          <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mt-0.5 tabular-nums">{value}</p>
           <p className="text-xs text-gray-500 mt-1 truncate">{sub}</p>
         </div>
       </div>

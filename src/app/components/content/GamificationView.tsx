@@ -154,7 +154,7 @@ function DailyGoalRing({ used, goal, className = '' }: { used: number; goal: num
                 <PartyPopper className="w-7 h-7" style={{ color: '#f59e0b' }} />
               </motion.div>
             ) : (
-              <span className="text-2xl" style={{ color: '#111827', fontWeight: 800 }}>
+              <span className="text-[clamp(1.25rem,2.5vw,1.5rem)]" style={{ color: '#111827', fontWeight: 800 }}>
                 {used}
               </span>
             )}
@@ -433,7 +433,7 @@ export default function GamificationView() {
                 animate={!shouldReduce ? { scale: [1, 1.03, 1] } : {}}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <span className="text-3xl text-white" style={{ fontWeight: 900 }}>
+                <span className="text-[clamp(1.5rem,3vw,1.875rem)] text-white" style={{ fontWeight: 900 }}>
                   {levelInfo.level}
                 </span>
                 <span className="text-[9px] text-white/80">NIVEL</span>
@@ -441,7 +441,7 @@ export default function GamificationView() {
             </div>
 
             <div className="flex-1">
-              <h1 className="text-xl md:text-2xl text-white mb-1" style={{ fontWeight: 800 }}>
+              <h1 className="text-xl md:text-[clamp(1.25rem,2.5vw,1.5rem)] text-white mb-1" style={{ fontWeight: 800 }}>
                 {levelInfo.title}
               </h1>
               <p className="text-sm text-white/60 mb-3">

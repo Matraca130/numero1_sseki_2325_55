@@ -50,7 +50,7 @@ export function AdaptivePartialSummary({ allStats, completedRounds, keywordMaste
               <Zap size={12} className={latestRound?.source === 'ai' ? 'text-teal-500' : 'text-[#2a8c7a]'} />
               Ronda {totalRounds} completada{latestRound?.source === 'ai' && <span className="text-teal-500" style={{ fontWeight: 600 }}> (IA)</span>}
             </motion.div>
-            <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>{'\u00A1'}Buen trabajo!</h2>
+            <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mb-2" style={{ fontWeight: 700 }}>{'\u00A1'}Buen trabajo!</h2>
             <p className="text-sm text-gray-500">Revisaste {totalReviews} flashcards en {totalRounds} {totalRounds === 1 ? 'ronda' : 'rondas'}</p>
           </div>
           <div className="flex items-center justify-center gap-8 mb-8">

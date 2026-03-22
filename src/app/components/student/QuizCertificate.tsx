@@ -149,7 +149,7 @@ export const QuizCertificate = React.memo(function QuizCertificate({
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-white/70 rounded-xl px-3 py-2.5 text-center border border-white shadow-sm">
               <motion.span
-                className={clsx('text-2xl block', achievement.accentColor)}
+                className={clsx('text-[clamp(1.25rem,2.5vw,1.5rem)] block', achievement.accentColor)}
                 style={{ fontWeight: 800 }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -162,7 +162,7 @@ export const QuizCertificate = React.memo(function QuizCertificate({
               </span>
             </div>
             <div className="bg-white/70 rounded-xl px-3 py-2.5 text-center border border-white shadow-sm">
-              <span className="text-2xl text-zinc-700 block" style={{ fontWeight: 800 }}>
+              <span className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-zinc-700 block" style={{ fontWeight: 800 }}>
                 {correctCount}/{totalQuestions}
               </span>
               <span className="text-[9px] text-zinc-400 uppercase tracking-wider" style={{ fontWeight: 700 }}>
@@ -170,7 +170,7 @@ export const QuizCertificate = React.memo(function QuizCertificate({
               </span>
             </div>
             <div className="bg-white/70 rounded-xl px-3 py-2.5 text-center border border-white shadow-sm">
-              <span className="text-2xl text-zinc-700 block" style={{ fontWeight: 800 }}>
+              <span className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-zinc-700 block" style={{ fontWeight: 800 }}>
                 {mins}:{String(secs).padStart(2, '0')}
               </span>
               <span className="text-[9px] text-zinc-400 uppercase tracking-wider" style={{ fontWeight: 700 }}>

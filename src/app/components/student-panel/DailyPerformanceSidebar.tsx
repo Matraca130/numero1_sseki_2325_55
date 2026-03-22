@@ -40,7 +40,7 @@ export function DailyPerformanceSidebar({
         <h3 className="text-xl font-bold mb-6">Rendimiento Diario</h3>
 
         <CircularProgress percent={dailyProgress} size={192} strokeWidth={12}>
-          <span className="text-5xl font-bold">{dailyProgress}%</span>
+          <span className="text-[clamp(2.25rem,4.5vw,3rem)] font-bold">{dailyProgress}%</span>
           <span className="text-xs text-gray-400 mt-1 uppercase tracking-wide">COMPLETADO</span>
         </CircularProgress>
 

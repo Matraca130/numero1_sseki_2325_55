@@ -59,7 +59,7 @@ export const StudyStreakCard = React.memo(function StudyStreakCard({ stats, stud
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className={clsx(
-          'text-4xl text-gray-900 tabular-nums'
+          'text-[clamp(1.75rem,3.5vw,2.25rem)] text-gray-900 tabular-nums'
         )}
       >
         {streak}

@@ -614,7 +614,7 @@ function PlanCard({ plan, index, onEdit, onDelete, onSetDefault, onToggleActive 
 
         {/* Price */}
         <div>
-          <p className="text-2xl font-bold text-gray-900 tabular-nums">
+          <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-gray-900 tabular-nums">
             {formatPrice(plan.price_cents)}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">

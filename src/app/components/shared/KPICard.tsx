@@ -53,7 +53,7 @@ export const KPICard = React.memo(function KPICard({
       </div>
       <div>
         <p className="text-sm font-medium text-gray-500 mb-1" style={{ fontFamily: '"DM Sans", sans-serif' }}>{label}</p>
-        <h3 className="text-2xl font-bold text-gray-900" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{value}</h3>
+        <h3 className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-gray-900" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{value}</h3>
       </div>
       {children}
     </div>

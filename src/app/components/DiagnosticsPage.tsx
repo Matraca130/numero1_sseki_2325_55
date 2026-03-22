@@ -296,8 +296,8 @@ export function DiagnosticsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                <span className="text-3xl">&#9881;</span>
+              <h1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-white flex items-center gap-3">
+                <span className="text-[clamp(1.5rem,3vw,1.875rem)]">&#9881;</span>
                 Backend Diagnostics
               </h1>
               <p className="text-gray-400 text-sm mt-1">
@@ -326,19 +326,19 @@ export function DiagnosticsPage() {
         {phase === 'done' && (
           <div className="mb-6 flex gap-4">
             <div className="flex-1 bg-emerald-900/40 border border-emerald-700/50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-emerald-400">{summary.pass}</div>
+              <div className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-emerald-400">{summary.pass}</div>
               <div className="text-sm text-emerald-300">Passed</div>
             </div>
             <div className="flex-1 bg-red-900/40 border border-red-700/50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-red-400">{summary.fail}</div>
+              <div className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-red-400">{summary.fail}</div>
               <div className="text-sm text-red-300">Failed</div>
             </div>
             <div className="flex-1 bg-amber-900/40 border border-amber-700/50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-amber-400">{summary.warn}</div>
+              <div className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-amber-400">{summary.warn}</div>
               <div className="text-sm text-amber-300">Warnings</div>
             </div>
             <div className="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-white">{TESTS.length}</div>
+              <div className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-white">{TESTS.length}</div>
               <div className="text-sm text-gray-400">Total</div>
             </div>
           </div>

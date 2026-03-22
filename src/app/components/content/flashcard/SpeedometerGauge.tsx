@@ -141,7 +141,7 @@ export function SpeedometerGauge({ cards, currentIndex, sessionStats }: {
 
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingTop: 8 }}>
-        <span className="text-2xl font-black text-gray-800 tabular-nums leading-none">
+        <span className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-black text-gray-800 tabular-nums leading-none">
           {Math.round(progress)}%
         </span>
       </div>

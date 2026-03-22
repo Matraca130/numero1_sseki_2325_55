@@ -236,7 +236,7 @@ export function StudentDataPanel() {
             <div className="flex-1 space-y-6">
               {/* Welcome Section */}
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                <h1 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-bold text-gray-900 mb-2">
                   Bem-vindo de volta, {profile?.name?.split(' ')[0] || 'Dr. Reed'}
                 </h1>
                 <p className="text-gray-500 italic text-sm">
@@ -265,7 +265,7 @@ export function StudentDataPanel() {
 
               {/* Section Header */}
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Disciplinas em Curso</h2>
+                <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold text-gray-900">Disciplinas em Curso</h2>
                 <button className="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center gap-1">
                   Ver currículo completo →
                 </button>
@@ -343,7 +343,7 @@ export function StudentDataPanel() {
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-5xl font-bold">{dailyProgress}%</span>
+                      <span className="text-[clamp(2rem,4vw,3rem)] font-bold">{dailyProgress}%</span>
                       <span className="text-xs text-gray-400 mt-1 uppercase tracking-wide">CONCLUÍDO</span>
                     </div>
                   </div>
