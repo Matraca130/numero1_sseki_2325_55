@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, AlertCircle, Loader2, XCircle } from 'lucide-react';
+import { headingStyle } from '@/app/design-system';
 import type { GenerationProgressInfo } from '@/app/hooks/useAdaptiveSession';
 
 const SLOW_THRESHOLD_MS = 12000;
@@ -26,7 +27,7 @@ export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerat
         <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }} className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2dd4a8] to-[#2a8c7a] flex items-center justify-center mb-6 shadow-xl shadow-[#2a8c7a]/25">
           <Sparkles size={32} className="text-white" />
         </motion.div>
-        <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mb-2" style={{ fontWeight: 700 }}>Generando Flashcards</h2>
+        <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mb-2" style={{ ...headingStyle, fontWeight: 700 }}>Generando Flashcards</h2>
         <p className="text-gray-500 mb-8 text-sm">La IA est{'\u00E1'} creando flashcards adaptadas a tus {'\u00E1'}reas d{'\u00E9'}biles</p>
         <div className="relative mb-8" style={{ width: ringSize, height: ringSize }}>
           <svg width={ringSize} height={ringSize} className="-rotate-90">

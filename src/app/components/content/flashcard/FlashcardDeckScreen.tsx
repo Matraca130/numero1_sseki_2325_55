@@ -18,6 +18,7 @@ import clsx from 'clsx';
 import { ChevronLeft, ChevronRight, BookOpen, Play, GraduationCap, ChevronDown, Layers, Sparkles, Brain } from 'lucide-react';
 import { getMasteryStats, filterCardsByMastery, type MasteryFilter } from '@/app/hooks/flashcard-types';
 import type { KeywordProgress } from '@/app/hooks/useFlashcardNavigation';
+import { headingStyle } from '@/app/design-system';
 import { FlashcardMiniCard } from './FlashcardMiniCard';
 import { CARD_GRID_CLASSES, GROUP_COLORS } from './constants';
 import { getMasteryColorFromPct } from './mastery-colors';
@@ -95,7 +96,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <button onClick={onBack} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"><ChevronLeft size={20} /></button>
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 truncate" style={{ fontWeight: 700 }}>{topic.title}</h2>
+                <h2 className="text-lg sm:text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 truncate" style={{ ...headingStyle, fontWeight: 700 }}>{topic.title}</h2>
                 <p className="text-xs sm:text-sm text-gray-500 line-clamp-1 hidden sm:block">{topic.summary}</p>
               </div>
             </div>

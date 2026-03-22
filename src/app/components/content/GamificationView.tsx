@@ -37,6 +37,7 @@ import { BadgeShowcase } from '@/app/components/student/gamification/BadgeShowca
 import { XpHistoryFeed } from '@/app/components/student/gamification/XpHistoryFeed';
 import { StudyQueueCard } from '@/app/components/student/gamification/StudyQueueCard';
 import { useAuth } from '@/app/context/AuthContext';
+import { headingStyle } from '@/app/design-system';
 
 const tk = {
   heroFrom: '#1B3B36',
@@ -441,7 +442,7 @@ export default function GamificationView() {
             </div>
 
             <div className="flex-1">
-              <h1 className="text-xl md:text-[clamp(1.25rem,2.5vw,1.5rem)] text-white mb-1" style={{ fontWeight: 800 }}>
+              <h1 className="text-xl md:text-[clamp(1.25rem,2.5vw,1.5rem)] text-white mb-1" style={{ ...headingStyle, fontWeight: 800 }}>
                 {levelInfo.title}
               </h1>
               <p className="text-sm text-white/60 mb-3">

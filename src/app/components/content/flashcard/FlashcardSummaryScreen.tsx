@@ -17,6 +17,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Trophy, TrendingUp, TrendingDown, Star, Sparkles } from 'lucide-react';
+import { headingStyle } from '@/app/design-system';
 import type { CardMasteryDelta } from '@/app/hooks/useFlashcardEngine';
 import { getMasteryColorFromPct } from './mastery-colors';
 
@@ -116,7 +117,7 @@ export function SummaryScreen({
           <Trophy size={40} className="text-white" />
         </div>
 
-        <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] sm:text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-gray-900 mb-2">Sesi\u00F3n Completada!</h2>
+        <h2 className="text-[clamp(1.25rem,2.5vw,1.5rem)] sm:text-[clamp(1.5rem,3vw,1.875rem)] font-bold text-gray-900 mb-2" style={headingStyle}>Sesi\u00F3n Completada!</h2>
         <p className="text-gray-500 mb-6 sm:mb-8 max-w-md text-sm sm:text-base">
           Completaste {stats.length} flashcards con un dominio estimado de:
         </p>

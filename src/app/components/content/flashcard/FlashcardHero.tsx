@@ -16,6 +16,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Layers, Clock, Brain, ChevronRight } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import { focusRing } from './constants';
+import { headingStyle } from '@/app/design-system';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ export function FlashcardHero({
             </div>
             <h1
               className="text-xl sm:text-[clamp(1.25rem,2.5vw,1.5rem)] text-white tracking-tight mt-2"
-              style={{ fontWeight: 700 }}
+              style={{ ...headingStyle, fontWeight: 700 }}
             >
               {totalDue} cards pendientes
             </h1>

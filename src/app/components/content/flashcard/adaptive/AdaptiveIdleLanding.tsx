@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, ArrowLeft, Zap } from 'lucide-react';
+import { headingStyle } from '@/app/design-system';
 
 export interface AdaptiveIdleLandingProps {
   topicTitle: string;
@@ -18,7 +19,7 @@ export function AdaptiveIdleLanding({ topicTitle, cardCount, onStart, onBack }: 
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#2dd4a8] to-[#2a8c7a] flex items-center justify-center mb-6 shadow-xl shadow-[#2a8c7a]/25">
           <Sparkles size={36} className="text-white" />
         </div>
-        <h1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mb-2" style={{ fontWeight: 700 }}>Sesi{'\u00F3'}n Adaptativa</h1>
+        <h1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] text-gray-900 mb-2" style={{ ...headingStyle, fontWeight: 700 }}>Sesi{'\u00F3'}n Adaptativa</h1>
         <p className="text-sm text-gray-500 mb-2">{topicTitle}</p>
         <p className="text-xs text-gray-400 mb-8 max-w-sm">
           Revisa las flashcards del profesor primero. Despu{'\u00E9'}s, la IA generar{'\u00E1'} flashcards enfocadas en tus {'\u00E1'}reas m{'\u00E1'}s d{'\u00E9'}biles. Puedes repetir cuantas rondas quieras.
