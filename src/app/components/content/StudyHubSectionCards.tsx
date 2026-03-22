@@ -224,7 +224,7 @@ function SectionCard({
 
               <h3
                 className="text-base leading-tight transition-colors truncate"
-                style={{ color: hovered ? axon.tealAccent : '#111827', fontWeight: 700 }}
+                style={{ color: hovered ? axon.tealAccent : '#111827', fontWeight: 700, fontFamily: '"Playfair Display", Georgia, serif' }}
               >
                 {section.name}
               </h3>
@@ -352,10 +352,10 @@ function SectionCard({
                     {EMOJI[accentIdx % EMOJI.length]}
                   </div>
                   <div>
-                    <h3 className="text-lg" style={{ color: '#111827', fontWeight: 700 }}>
+                    <h3 className="text-lg" style={{ color: '#111827', fontWeight: 700, fontFamily: '"Playfair Display", Georgia, serif' }}>
                       {section.name}
                     </h3>
-                    <p className="text-xs" style={{ color: '#6b7280', fontWeight: 500 }}>
+                    <p className="text-xs" style={{ color: '#6b7280', fontWeight: 500, fontFamily: '"DM Sans", sans-serif' }}>
                       {topicCount} {topicCount === 1 ? 'resumen' : 'resumenes'} &middot; {completedTopics} completado{completedTopics !== 1 ? 's' : ''}
                       {lastActivity && <> &middot; {lastActivity}</>}
                     </p>

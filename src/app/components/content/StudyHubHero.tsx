@@ -199,7 +199,7 @@ function StudyPathCard({
       <div className="p-6 pb-5">
         <h3
           className="text-lg tracking-tight mb-2 transition-colors duration-300"
-          style={{ color: hovered ? axon.tealAccent : axon.darkTeal, fontWeight: 700 }}
+          style={{ color: hovered ? axon.tealAccent : axon.darkTeal, fontWeight: 700, fontFamily: '"Playfair Display", Georgia, serif' }}
         >
           {title}
         </h3>
@@ -292,10 +292,13 @@ export function StudyHubHero({
 
           {/* Title + subtitle */}
           <motion.div {...fadeUp(0.1)}>
-            <h1 className="text-2xl sm:text-3xl text-white tracking-tight mb-2" style={{ fontWeight: 800 }}>
+            <h1
+              className="text-2xl sm:text-3xl text-white tracking-tight mb-2"
+              style={{ fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700 }}
+            >
               {heroReadingSessions > 0 ? 'Retoma donde dejaste' : 'Empezar a estudiar'}
             </h1>
-            <p className="text-sm text-zinc-300 max-w-lg">
+            <p className="text-sm text-zinc-300 max-w-lg" style={{ fontFamily: '"DM Sans", sans-serif' }}>
               {streakDays > 0 ? (
                 <>Llevas <span className="text-amber-400" style={{ fontWeight: 700 }}>{streakDays} dias seguidos</span> estudiando. </>
               ) : null}
@@ -433,7 +436,7 @@ export function StudyHubHero({
               >
                 <div className="flex items-center gap-2 mb-2">
                   <stat.icon className={`w-3.5 h-3.5 ${stat.accent}`} />
-                  <span className="text-[11px] text-zinc-400" style={{ fontWeight: 500 }}>{stat.label}</span>
+                  <span className="text-[11px] text-zinc-400" style={{ fontWeight: 500, fontFamily: '"DM Sans", sans-serif' }}>{stat.label}</span>
                 </div>
                 <p className="text-xl text-white tracking-tight" style={{ fontWeight: 700 }}>{stat.value}</p>
                 <p className="text-[11px] text-zinc-400 mt-0.5">{stat.sub}</p>
@@ -463,10 +466,10 @@ export function StudyHubHero({
                 <BookOpen size={16} style={{ color: axon.tealAccent }} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs tracking-wider" style={{ color: tint.neutralText, fontWeight: 600, letterSpacing: '0.08em' }}>
+                <p className="text-xs tracking-wider" style={{ color: tint.neutralText, fontWeight: 600, letterSpacing: '0.08em', fontFamily: '"DM Sans", sans-serif' }}>
                   ESTUDIANDO AHORA
                 </p>
-                <p className="text-sm truncate" style={{ color: axon.darkTeal, fontWeight: 700 }}>
+                <p className="text-sm truncate" style={{ color: axon.darkTeal, fontWeight: 700, fontFamily: '"DM Sans", sans-serif' }}>
                   {effectiveTopic.title}
                 </p>
               </div>
