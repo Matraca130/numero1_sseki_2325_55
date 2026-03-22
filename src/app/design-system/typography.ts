@@ -1,12 +1,12 @@
 /**
  * @module @axon/design-system/typography
- * @version 1.0.0
+ * @version 2.0.0 — Evolution Premium
  *
- * Sistema tipografico: familias (Georgia heading, Inter body),
- * reglas de uso por contexto, y helpers de inline style.
+ * Sistema tipografico premium inspirado en Forest Canopy theme.
+ * Playfair Display (heading), Inter (body), DM Sans (display), Lora (editorial).
  *
- * Standalone:  import { typography, headingStyle, bodyStyle } from '@/app/design-system/typography';
- * Barrel:      import { headingStyle } from '@/app/design-system';
+ * Standalone:  import { typography, headingStyle, bodyStyle, displayStyle } from '@/app/design-system/typography';
+ * Barrel:      import { headingStyle, displayStyle } from '@/app/design-system';
  */
 
 import type { CSSProperties } from 'react';
@@ -16,41 +16,122 @@ import type { CSSProperties } from 'react';
 // ─────────────────────────────────────────────
 
 export const typography = {
-  /** Familias tipograficas */
+  /** Familias tipograficas — Evolution Premium */
   families: {
-    heading: 'Georgia, serif',
-    body:    '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    display: '"Space Grotesk", sans-serif',
-    mono:    '"JetBrains Mono", monospace',
+    /** Premium serif for headings — luxurious, editorial feel */
+    heading: '"Playfair Display", Georgia, serif',
+    /** Clean sans-serif for body text — highly legible */
+    body: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    /** Geometric sans for display/hero — modern, premium */
+    display: '"DM Sans", "Inter", system-ui, sans-serif',
+    /** Warm serif for editorial/prose content */
+    editorial: '"Lora", Georgia, serif',
+    /** Monospace for code blocks */
+    mono: '"JetBrains Mono", monospace',
   },
 
-  /** Google Fonts import URLs */
+  /** Google Fonts import URLs (loaded via index.html link tags) */
   imports: [
+    'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&display=swap',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
-    'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap',
+    'https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap',
+    'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap',
+    'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap',
   ],
 
   /** Tailwind CSS variable name */
   cssVariable: '--font-sans',
 
-  /** Regras de uso */
+  /** Reglas de uso — Evolution Premium */
   rules: {
-    pageTitle:     { family: 'heading' as const, style: "fontFamily: 'Georgia, serif'", size: 'text-[clamp(2rem,4vw,3rem)]', weight: 'font-bold', tracking: 'tracking-tight' },
-    sectionTitle:  { family: 'heading' as const, style: "fontFamily: 'Georgia, serif'", size: 'text-lg',  weight: 'font-semibold' },
-    sectionLabel:  { family: 'heading' as const, style: "fontFamily: 'Georgia, serif'", size: 'text-sm',  weight: 'font-semibold', extra: 'uppercase tracking-wide' },
-    cardTitle:     { family: 'heading' as const, style: "fontFamily: 'Georgia, serif'", size: 'default',  weight: 'font-bold' },
-    body:          { family: 'body' as const,    style: "fontFamily: 'Inter'",          size: 'text-sm',  weight: 'font-medium' },
-    caption:       { family: 'body' as const,    style: "fontFamily: 'Inter'",          size: 'text-xs',  weight: 'font-medium' },
-    label:         { family: 'body' as const,    style: "fontFamily: 'Inter'",          size: 'text-[10px]', weight: 'font-medium', extra: 'uppercase tracking-wider' },
+    pageTitle: {
+      family: 'heading' as const,
+      style: "fontFamily: '\"Playfair Display\", Georgia, serif'",
+      size: 'text-[clamp(2rem,4vw,3rem)]',
+      weight: 'font-bold',
+      tracking: 'tracking-tight',
+    },
+    sectionTitle: {
+      family: 'heading' as const,
+      style: "fontFamily: '\"Playfair Display\", Georgia, serif'",
+      size: 'text-lg',
+      weight: 'font-semibold',
+    },
+    sectionLabel: {
+      family: 'display' as const,
+      style: "fontFamily: '\"DM Sans\", sans-serif'",
+      size: 'text-sm',
+      weight: 'font-semibold',
+      extra: 'uppercase tracking-wide',
+    },
+    cardTitle: {
+      family: 'heading' as const,
+      style: "fontFamily: '\"Playfair Display\", Georgia, serif'",
+      size: 'default',
+      weight: 'font-bold',
+    },
+    heroTitle: {
+      family: 'heading' as const,
+      style: "fontFamily: '\"Playfair Display\", Georgia, serif'",
+      size: 'text-[clamp(2.5rem,5vw,4rem)]',
+      weight: 'font-black',
+      tracking: 'tracking-tight',
+    },
+    heroSubtitle: {
+      family: 'display' as const,
+      style: "fontFamily: '\"DM Sans\", sans-serif'",
+      size: 'text-[clamp(1rem,2vw,1.25rem)]',
+      weight: 'font-medium',
+      tracking: 'tracking-normal',
+    },
+    body: {
+      family: 'body' as const,
+      style: "fontFamily: 'Inter'",
+      size: 'text-sm',
+      weight: 'font-medium',
+    },
+    caption: {
+      family: 'body' as const,
+      style: "fontFamily: 'Inter'",
+      size: 'text-xs',
+      weight: 'font-medium',
+    },
+    label: {
+      family: 'display' as const,
+      style: "fontFamily: '\"DM Sans\", sans-serif'",
+      size: 'text-[10px]',
+      weight: 'font-semibold',
+      extra: 'uppercase tracking-wider',
+    },
+    editorial: {
+      family: 'editorial' as const,
+      style: "fontFamily: '\"Lora\", Georgia, serif'",
+      size: 'text-base',
+      weight: 'font-normal',
+      extra: 'leading-relaxed',
+    },
   },
 } as const;
 
 // ─────────────────────────────────────────────
-// HELPERS
+// STYLE HELPERS
 // ─────────────────────────────────────────────
 
-/** Returns the inline style object for heading typography (Georgia, serif) */
+/** Inline style for heading typography (Playfair Display) */
 export const headingStyle: CSSProperties = { fontFamily: typography.families.heading };
 
-/** Returns the inline style object for body typography (Inter) */
+/** Inline style for body typography (Inter) */
 export const bodyStyle: CSSProperties = { fontFamily: typography.families.body };
+
+/** Inline style for display typography (DM Sans) */
+export const displayStyle: CSSProperties = { fontFamily: typography.families.display };
+
+/** Inline style for editorial typography (Lora) */
+export const editorialStyle: CSSProperties = { fontFamily: typography.families.editorial };
+
+/** Inline style for hero titles (Playfair Display, extra bold) */
+export const heroStyle: CSSProperties = {
+  fontFamily: typography.families.heading,
+  fontWeight: 900,
+  letterSpacing: '-0.02em',
+};

@@ -48,9 +48,9 @@ export type { LogoSize, LogoTheme } from './brand';
 export { colors } from './colors';
 
 // ─────────────────────────────────────────────
-// 3. TYPOGRAPHY
+// 3. TYPOGRAPHY — Evolution Premium
 // ─────────────────────────────────────────────
-export { typography, headingStyle, bodyStyle } from './typography';
+export { typography, headingStyle, bodyStyle, displayStyle, editorialStyle, heroStyle } from './typography';
 
 // ─────────────────────────────────────────────
 // 4. SHAPES & RADIUS
@@ -100,3 +100,8 @@ export { animation } from './animation';
 // 11. DESIGN RULES
 // ─────────────────────────────────────────────
 export { designRules } from './rules';
+
+// ─────────────────────────────────────────────
+// 12. TEXTURES — Evolution Premium
+// ─────────────────────────────────────────────
+export { textures, grainStyle, forestMeshStyle, darkForestMeshStyle } from './textures';

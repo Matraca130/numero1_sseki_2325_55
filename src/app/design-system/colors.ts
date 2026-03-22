@@ -1,12 +1,13 @@
 /**
  * @module @axon/design-system/colors
- * @version 2.0.0
+ * @version 3.0.0 — Evolution Premium (Forest Canopy fusion)
  *
- * AUDIT v3 — Palette compliance (Axon Medical Academy):
+ * Palette: Axon Medical Academy + Forest Canopy earth tones
  *   - Dark surfaces: Dark Teal #1B3B36, Dark Panel #1a2e2a
  *   - Primary interaction: Teal Accent #2a8c7a, Hover Teal #244e47
  *   - Progress gradient: #2dd4a8 → #0d9488
- *   - Page BG: #F0F2F5
+ *   - Forest Canopy: forestGreen #2d4a2b, sage #7d8471, olive #a4ac86, ivory #faf9f6
+ *   - Page BG: #faf9f6 (ivory, warmer than old #F0F2F5)
  *
  * Standalone:  import { colors } from '@/app/design-system/colors';
  * Barrel:      import { colors } from '@/app/design-system';
@@ -41,12 +42,27 @@ export const colors = {
     sidebarSubtitle:     '#6db5a5',  // Sidebar logo subtitle / section labels
   },
 
-  /** Backgrounds de pagina */
+  /** Forest Canopy — earth tone accents (premium layer) */
+  forest: {
+    green:     '#2d4a2b',     // Deep forest green — accent, badges, decorative
+    sage:      '#7d8471',     // Muted sage — secondary text, subtle borders
+    olive:     '#a4ac86',     // Olive — highlights, tags, accent badges
+    ivory:     '#faf9f6',     // Warm ivory — premium page background
+    canopy:    '#3d5a3b',     // Mid canopy — hover variant of forest green
+    moss:      '#4a6741',     // Moss green — active state for forest accents
+    bark:      '#5c4a3a',     // Warm bark brown — subtle warm accent
+    fern:      '#6b8f5e',     // Light fern — decorative, success-adjacent
+  },
+
+  /** Backgrounds de pagina — Evolution Premium (warmer ivory base) */
   surface: {
-    page:       '#f0f2f5',     // bg-[#F0F2F5] — fundo geral
-    dashboard:  '#F0F2F5',     // fundo do dashboard (aligned to palette.ts)
+    page:       '#faf9f6',     // Ivory — fundo geral (Forest Canopy)
+    dashboard:  '#faf9f6',     // Ivory — fundo do dashboard
     card:       '#ffffff',     // bg-white — cards
-    hover:      '#f3f4f6',     // bg-gray-100 — hover states
+    cardAlt:    '#fdfcfa',     // Slightly warm card variant
+    hover:      '#f5f4f1',     // Warm hover (ivory-adjacent)
+    elevated:   '#ffffff',     // Elevated surfaces (modals, dropdowns)
+    subtle:     '#f8f7f4',     // Subtle background differentiation
   },
 
   /** Bordas e divisores */

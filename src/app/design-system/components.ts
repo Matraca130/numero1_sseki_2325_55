@@ -1,10 +1,16 @@
 /**
  * @module @axon/design-system/components
- * @version 1.1.0
+ * @version 2.0.0 — Evolution Premium (Forest Canopy)
  *
  * Recetas Tailwind para componentes: cards, botones, iconos,
  * filtros, progress bars, sidebar, header, KPI, charts.
  * Incluye helpers utilitarios para clases compuestas.
+ *
+ * Changelog v2.0.0 — Evolution Premium:
+ *   - pageHeader.titleFont: Georgia → Playfair Display
+ *   - pageHeader.subtitleFont: Georgia → DM Sans
+ *   - card backgrounds: warm ivory variants
+ *   - kpiCard: subtle warm shadow
  *
  * Changelog v1.1.0:
  *   - cardDark.base: #2c3e50 → #1a2e2a (Axon Dark Panel)
@@ -105,13 +111,13 @@ export const components = {
     },
   },
 
-  /** AxonPageHeader */
+  /** AxonPageHeader — Evolution Premium (Playfair Display + DM Sans) */
   pageHeader: {
     wrapper:  'relative px-8 pt-4 pb-6 bg-white overflow-hidden border-b border-gray-200',
     title:    'text-[clamp(2rem,4vw,3rem)] font-bold text-gray-900 tracking-tight leading-[1]',
-    titleFont: 'Georgia, serif',
+    titleFont: '"Playfair Display", Georgia, serif',
     subtitle: 'text-sm text-gray-500',
-    subtitleFont: 'Georgia, serif',
+    subtitleFont: '"DM Sans", "Inter", sans-serif',
   },
 
   /** Sidebar — Axon Dark Teal (#1B3B36) */

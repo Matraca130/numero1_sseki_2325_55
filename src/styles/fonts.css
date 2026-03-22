@@ -1,2 +1,23 @@
-/* Google Fonts are now loaded via <link> tags in index.html for faster
-   preconnect/preload. Do not add @import url(...) here — it blocks rendering. */
+/* ─────────────────────────────────────────────
+ * AXON FONT STACK — Evolution Premium
+ * ─────────────────────────────────────────────
+ * Google Fonts loaded via <link> tags in index.html for faster preconnect/preload.
+ * Do not add @import url(...) here — it blocks rendering.
+ *
+ * Font families:
+ *   - Playfair Display (400-900, italic) — Premium serif for headings
+ *     Replaces Georgia. Luxurious, editorial feel.
+ *   - Inter (300-700) — Body text, UI elements
+ *     Clean, highly legible at small sizes.
+ *   - DM Sans (300-700, italic) — Display text, hero sections
+ *     Replaces Space Grotesk. Geometric, modern, premium.
+ *   - Lora (400-700, italic) — Editorial/prose content (summary reader)
+ *     Warm serif for long-form reading.
+ *   - JetBrains Mono (400-500) — Code blocks
+ *
+ * Forest Canopy theme influence:
+ *   The theme spec calls for FreeSerif/FreeSans. We adapt this to
+ *   Playfair Display (premium serif) + Inter (refined sans) which
+ *   captures the same organic/grounded feel with higher polish.
+ * ─────────────────────────────────────────────
+ */
