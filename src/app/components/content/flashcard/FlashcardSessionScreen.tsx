@@ -152,7 +152,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                 </span>
               )}
 
-              <div className="flex items-center gap-1.5 bg-[#F0F2F5] rounded-lg px-3 py-1.5">
+              <div className="flex items-center gap-1.5 bg-[#faf9f6] rounded-lg px-3 py-1.5">
                 <span className="text-sm tabular-nums" style={{ fontWeight: 700, color: '#1B3B36' }}>
                   {currentIndex + 1}
                 </span>
@@ -214,7 +214,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                 className={clsx(
                   "p-6 md:p-8 lg:p-10 flex flex-col transition-colors duration-300 w-full",
                   isRevealed
-                    ? "bg-[#F0F2F5]/80 border-b border-gray-200/60 shrink-0"
+                    ? "bg-[#faf9f6]/80 border-b border-gray-200/60 shrink-0"
                     : "flex-1 items-center justify-center text-center bg-white"
                 )}
               >
@@ -290,7 +290,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="shrink-0 bg-[#F0F2F5] border-t border-gray-200 px-4 py-4"
+                    className="shrink-0 bg-[#faf9f6] border-t border-gray-200 px-4 py-4"
                   >
                     {/* Rating label */}
                     <p className="text-center text-[11px] text-gray-400 mb-2 sm:mb-3" style={{ fontWeight: 500 }}>

@@ -27,7 +27,7 @@ const METHOD_ICON_MAP: Record<string, React.ReactNode> = {
 const PRIORITY_BADGE: Record<number, { label: string; classes: string }> = {
   1: { label: 'Alta', classes: 'bg-red-50 text-red-600 border-red-200' },
   2: { label: 'Media', classes: 'bg-amber-50 text-amber-600 border-amber-200' },
-  3: { label: 'Normal', classes: 'bg-[#F0F2F5] text-gray-500 border-gray-200' },
+  3: { label: 'Normal', classes: 'bg-[#faf9f6] text-gray-500 border-gray-200' },
 };
 
 interface Props {
@@ -107,7 +107,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
               <div className="w-8 h-8 rounded-lg bg-gray-100" />
               <div className="flex-1 space-y-1.5">
                 <div className="h-3 bg-gray-100 rounded w-3/4" />
-                <div className="h-2.5 bg-[#F0F2F5] rounded w-1/2" />
+                <div className="h-2.5 bg-[#faf9f6] rounded w-1/2" />
               </div>
               <div className="h-5 w-12 bg-gray-100 rounded-full" />
             </div>

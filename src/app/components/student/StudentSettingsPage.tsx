@@ -38,7 +38,7 @@ const LINK_CODE_EXPIRY_SECONDS = 300; // 5 minutes
 
 export function StudentSettingsPage() {
   return (
-    <div className="min-h-full bg-[#F0F2F5]">
+    <div className="min-h-full bg-[#faf9f6]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {/* Page Header */}
         <div className="flex items-center gap-3">

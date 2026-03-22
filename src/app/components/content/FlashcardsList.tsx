@@ -107,7 +107,7 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
               ? 'bg-amber-50 text-amber-600'
               : card.source === 'manual'
                 ? 'bg-blue-50 text-blue-600'
-                : 'bg-[#F0F2F5] text-gray-500'
+                : 'bg-[#faf9f6] text-gray-500'
           }`}>
             {card.source === 'ai' ? 'IA' : card.source === 'manual' ? 'Manual' : card.source}
           </span>

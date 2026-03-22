@@ -14,7 +14,7 @@ export function AIQuestionItem({ question }: { question: AIQuestion }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border rounded-lg border-gray-100 bg-[#F0F2F5]/50 overflow-hidden transition-all hover:bg-gray-50 hover:border-blue-100 group">
+    <div className="border rounded-lg border-gray-100 bg-[#faf9f6]/50 overflow-hidden transition-all hover:bg-gray-50 hover:border-blue-100 group">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full text-left p-3 flex items-start gap-3"

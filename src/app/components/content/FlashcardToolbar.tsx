@@ -190,7 +190,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
                       filterType === ft.val
                         ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                        : 'bg-[#F0F2F5] text-gray-500 border border-gray-200 hover:bg-gray-100'
+                        : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
                     {ft.icon}
@@ -206,7 +206,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
                     !filterKeywordId
                       ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                      : 'bg-[#F0F2F5] text-gray-500 border border-gray-200 hover:bg-gray-100'
+                      : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                   }`}
                 >
                   Todos
@@ -219,7 +219,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
                       filterKeywordId === kw.id
                         ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                        : 'bg-[#F0F2F5] text-gray-500 border border-gray-200 hover:bg-gray-100'
+                        : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
                     <Tag size={10} />
@@ -241,7 +241,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-gray-500 bg-[#F0F2F5] border border-gray-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-gray-500 bg-[#faf9f6] border border-gray-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
                 >
                   <XCircle size={12} />
                   Limpiar
@@ -253,7 +253,7 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                   showDeleted
                     ? 'bg-red-50 text-red-600 border border-red-200'
-                    : 'bg-[#F0F2F5] text-gray-500 border border-gray-200 hover:bg-gray-100'
+                    : 'bg-[#faf9f6] text-gray-500 border border-gray-200 hover:bg-gray-100'
                 }`}
               >
                 <Archive size={12} />

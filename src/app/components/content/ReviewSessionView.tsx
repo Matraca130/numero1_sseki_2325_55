@@ -388,7 +388,7 @@ export function ReviewSessionView() {
           {/* ── DESKTOP TABLE (hidden on mobile) ── */}
           <div className="hidden lg:block overflow-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-[#F0F2F5]/80 sticky top-0 z-10">
+              <thead className="bg-[#faf9f6]/80 sticky top-0 z-10">
                 <tr>
                   <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono">Matéria</th>
                   <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-center">Cards Pendentes</th>
@@ -513,7 +513,7 @@ export function ReviewSessionView() {
                   </button>
                 ) : (
                   <button
-                    className="w-full py-2.5 bg-[#F0F2F5] hover:bg-gray-100 text-gray-500 text-sm rounded-lg transition-colors min-h-[44px]"
+                    className="w-full py-2.5 bg-[#faf9f6] hover:bg-gray-100 text-gray-500 text-sm rounded-lg transition-colors min-h-[44px]"
                     style={{ fontWeight: 500 }}
                   >
                     Ver Detalhes

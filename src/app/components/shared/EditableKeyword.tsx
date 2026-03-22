@@ -25,7 +25,7 @@ import { AIQuestionItem } from '@/app/components/shared/AIQuestionItem';
 
 // ── Extended mastery display config (safe accessor) ──────────
 const masteryDisplay: Record<string, { underlineClass: string; bgLight: string; headerBg: string; bgDot: string }> = {
-  none:      { underlineClass: 'decoration-gray-300', bgLight: 'bg-[#F0F2F5]', headerBg: 'bg-[#F0F2F5]', bgDot: 'bg-gray-400' },
+  none:      { underlineClass: 'decoration-gray-300', bgLight: 'bg-[#faf9f6]', headerBg: 'bg-[#faf9f6]', bgDot: 'bg-gray-400' },
   seen:      { underlineClass: 'decoration-blue-300', bgLight: 'bg-blue-50', headerBg: 'bg-blue-50', bgDot: 'bg-blue-400' },
   learning:  { underlineClass: 'decoration-amber-300', bgLight: 'bg-amber-50', headerBg: 'bg-amber-50', bgDot: 'bg-amber-400' },
   familiar:  { underlineClass: 'decoration-teal-300', bgLight: 'bg-teal-50', headerBg: 'bg-teal-50', bgDot: 'bg-teal-400' },
@@ -298,7 +298,7 @@ export function EditableKeyword({
                     {/* ── Axon Tab Content — Accordion Sections ── */}
 
                     {/* ── 1. Definição ── */}
-                    <div className="border rounded-lg border-gray-100 bg-[#F0F2F5]/50 overflow-hidden transition-all hover:border-gray-200 group/sec">
+                    <div className="border rounded-lg border-gray-100 bg-[#faf9f6]/50 overflow-hidden transition-all hover:border-gray-200 group/sec">
                       <button
                         onClick={() => toggleSection('definition')}
                         className="w-full text-left px-3.5 py-3 flex items-center gap-3"
@@ -548,7 +548,7 @@ export function EditableKeyword({
                           if (e.key === 'Enter') handleAddNote();
                         }}
                         placeholder="Escrever anotacao pessoal..."
-                        className="flex-1 pl-3 pr-3 py-2.5 text-sm bg-[#F0F2F5] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all placeholder:text-gray-400"
+                        className="flex-1 pl-3 pr-3 py-2.5 text-sm bg-[#faf9f6] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all placeholder:text-gray-400"
                       />
                       <button
                         onClick={handleAddNote}

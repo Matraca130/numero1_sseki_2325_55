@@ -273,7 +273,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
   if (phase === 'reviewing' && currentCard) {
     const progressPercent = (reviewedCount / totalCards) * 100;
     return (
-      <div className="flex flex-col h-full min-h-0 bg-[#F0F2F5] relative">
+      <div className="flex flex-col h-full min-h-0 bg-[#faf9f6] relative">
         <XPPopup event={xpState.lastEvent} eventKey={xpEventKey} />
         <div className="shrink-0 px-5 py-3 flex items-center justify-between">
           <button onClick={() => { if (confirm('Salir de la revision? El progreso se perdera.')) { restartReview(); onClose?.(); } }} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all"><X size={20} /></button>
@@ -328,7 +328,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
     const maxGradeCount = Math.max(...gradeDistribution, 1);
 
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4 bg-[#F0F2F5] min-h-full">
+      <div className="flex flex-col items-center justify-center py-12 px-4 bg-[#faf9f6] min-h-full">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }} className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-500/10 border border-amber-400/20 flex items-center justify-center mb-6"><Trophy size={36} className="text-amber-400" /></motion.div>
         <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-2xl font-bold text-gray-900 mb-2">Revision completada!</motion.h2>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-sm text-gray-500 mb-8">Revisaste {totalCards} flashcard{totalCards !== 1 ? 's' : ''} en {minutes > 0 ? `${minutes}m ` : ''}{seconds}s</motion.p>

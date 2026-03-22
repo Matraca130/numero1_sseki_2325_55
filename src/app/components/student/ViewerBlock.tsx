@@ -187,7 +187,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
       return (
         <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-[#F0F2F5]">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-[#faf9f6]">
             <div className="flex items-center gap-2">
               <FileText size={14} className="text-red-500" />
               <span className="text-xs text-gray-600">{title}</span>
@@ -286,7 +286,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     // ── Fallback ────────────────────────────────────────
     default:
       return (
-        <div className="px-4 py-3 rounded-lg bg-[#F0F2F5] border border-gray-200">
+        <div className="px-4 py-3 rounded-lg bg-[#faf9f6] border border-gray-200">
           <p className="text-xs text-gray-400 italic">
             Bloque no soportado: {block.type}
           </p>

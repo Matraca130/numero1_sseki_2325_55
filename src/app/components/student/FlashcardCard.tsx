@@ -186,7 +186,7 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
           <div className="pb-4 text-center"><span className="text-xs text-gray-400">{isCloze ? 'Toca cada blanco para revelar' : 'Toca o presiona espacio para voltear'}</span></div>
         </div>
         {/* ── Back Side ── */}
-        <div className={`absolute inset-0 rounded-2xl border ${backBorder} bg-[#F0F2F5] shadow-md shadow-gray-200/80 flex flex-col`} style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+        <div className={`absolute inset-0 rounded-2xl border ${backBorder} bg-[#faf9f6] shadow-md shadow-gray-200/80 flex flex-col`} style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
           <div className="flex items-center justify-between px-4 pt-4">
             <div className="flex items-center gap-2">
               {keywordName && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#2a8c7a]/10 text-[#2a8c7a]/70 text-[10px] font-semibold uppercase tracking-wider"><Tag size={10} />{keywordName}</span>}

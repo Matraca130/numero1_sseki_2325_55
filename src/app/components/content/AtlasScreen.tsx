@@ -50,7 +50,7 @@ export function AtlasScreen({
   }, [allCoursesSections, searchQuery]);
 
   return (
-    <div className="flex flex-col min-h-full bg-[#F0F2F5]">
+    <div className="flex flex-col min-h-full bg-[#faf9f6]">
       <AxonPageHeader
         title="Atlas 3D"
         subtitle="Explore modelos anatomicos interativos"
@@ -199,12 +199,12 @@ const SectionCard = memo(function SectionCard({
       {/* Topic tags */}
       <div className="flex flex-wrap gap-1.5 mb-4">
         {models.slice(0, 3).map(({ topicName }, i) => (
-          <span key={i} className="px-2.5 py-1 rounded-full bg-[#F0F2F5] border border-gray-200 text-[10px] text-gray-600 font-medium">
+          <span key={i} className="px-2.5 py-1 rounded-full bg-[#faf9f6] border border-gray-200 text-[10px] text-gray-600 font-medium">
             {topicName}
           </span>
         ))}
         {models.length > 3 && (
-          <span className="px-2.5 py-1 rounded-full bg-[#F0F2F5] border border-gray-200 text-[10px] text-gray-400 font-medium">
+          <span className="px-2.5 py-1 rounded-full bg-[#faf9f6] border border-gray-200 text-[10px] text-gray-400 font-medium">
             +{models.length - 3}
           </span>
         )}

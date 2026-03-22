@@ -148,7 +148,7 @@ export function FlashcardPreview({ front, back, frontImageUrl, backImageUrl, car
         </button>
       </div>
 
-      <div className="w-full rounded-xl bg-[#F0F2F5] p-4 border border-gray-200" style={{ perspective: '800px' }}>
+      <div className="w-full rounded-xl bg-[#faf9f6] p-4 border border-gray-200" style={{ perspective: '800px' }}>
         <div className="cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
           <motion.div className="relative w-full" style={{ transformStyle: 'preserve-3d', minHeight: '220px' }} animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}>
             {/* ── Front ── */}
@@ -162,7 +162,7 @@ export function FlashcardPreview({ front, back, frontImageUrl, backImageUrl, car
               </div>
             </div>
             {/* ── Back ── */}
-            <div className="absolute inset-0 rounded-xl border border-[#2a8c7a]/15 bg-[#F0F2F5] flex flex-col overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+            <div className="absolute inset-0 rounded-xl border border-[#2a8c7a]/15 bg-[#faf9f6] flex flex-col overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
               <div className="flex items-center justify-between px-3 pt-3">
                 {keywordName ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#2a8c7a]/10 text-[#2a8c7a]/70 text-[9px] font-semibold uppercase tracking-wider"><Tag size={8} />{keywordName}</span> : <div />}
                 <span className="text-[9px] font-bold uppercase tracking-widest text-[#0d9488]/70">Reverso</span>

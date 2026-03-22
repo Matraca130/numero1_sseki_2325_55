@@ -25,7 +25,7 @@ const ACTION_CFG: Record<string, { label: string; icon: typeof Zap; color: strin
   rag_question: { label: 'Pregunta IA', icon: Brain, color: 'text-violet-500 bg-violet-50' },
 };
 
-function getCfg(a: string) { return ACTION_CFG[a] ?? { label: a.replace(/_/g, ' '), icon: Zap, color: 'text-gray-500 bg-[#F0F2F5]' }; }
+function getCfg(a: string) { return ACTION_CFG[a] ?? { label: a.replace(/_/g, ' '), icon: Zap, color: 'text-gray-500 bg-[#faf9f6]' }; }
 
 function relTime(d: string): string {
   const ms = Date.now() - new Date(d).getTime(); const m = Math.floor(ms / 60000);

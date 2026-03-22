@@ -59,7 +59,7 @@ export function Professor3DPage() {
   const courses = tree?.courses || [];
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#F0F2F5] min-h-screen">
+    <div className="flex-1 flex flex-col h-full bg-[#faf9f6] min-h-screen">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-3">

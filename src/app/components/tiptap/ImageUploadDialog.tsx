@@ -168,7 +168,7 @@ export function ImageUploadDialog({
                   'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
                   dragOver
                     ? 'border-violet-400 bg-violet-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-[#F0F2F5]/50'
+                    : 'border-gray-200 hover:border-gray-300 bg-[#faf9f6]/50'
                 )}
               >
                 <Upload
@@ -200,7 +200,7 @@ export function ImageUploadDialog({
                 <img
                   src={preview}
                   alt="Preview"
-                  className="w-full max-h-52 object-contain rounded-lg border border-gray-200 bg-[#F0F2F5]"
+                  className="w-full max-h-52 object-contain rounded-lg border border-gray-200 bg-[#faf9f6]"
                 />
                 <button
                   onClick={() => {

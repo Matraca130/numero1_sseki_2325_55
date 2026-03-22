@@ -41,7 +41,7 @@ import { useAuth } from '@/app/context/AuthContext';
 const tk = {
   heroFrom: '#1B3B36',
   heroTo: '#0f2b26',
-  pageBg: '#F0F2F5',
+  pageBg: '#faf9f6',
   card: '#ffffff',
   teal: '#2a8c7a',
   ringStart: '#2dd4a8',

@@ -810,7 +810,7 @@ export function StudyOrganizerWizard() {
                   <p className="text-2xl font-bold text-teal-700">{daysRemaining}</p>
                   <p className="text-xs text-gray-500 uppercase tracking-wider">Dias</p>
                 </div>
-                <div className="bg-[#F0F2F5] border border-gray-200 rounded-xl px-5 py-3 text-center">
+                <div className="bg-[#faf9f6] border border-gray-200 rounded-xl px-5 py-3 text-center">
                   <p className="text-2xl font-bold text-gray-800">{Math.ceil(daysRemaining / 7)}</p>
                   <p className="text-xs text-gray-500 uppercase tracking-wider">Semanas</p>
                 </div>
@@ -871,7 +871,7 @@ export function StudyOrganizerWizard() {
                 const est = getTimeEstimate(mId);
                 const isDifferent = est.confidence !== 'fallback' && est.estimatedMinutes !== (method?.avgMinutes || 25);
                 return (
-                  <div key={mId} className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg bg-[#F0F2F5]">
+                  <div key={mId} className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg bg-[#faf9f6]">
                     <span className="text-gray-600 flex-1">{method?.label || mId}</span>
                     <span className="font-semibold text-gray-800 tabular-nums">{est.estimatedMinutes} min</span>
                     {isDifferent && (
@@ -899,7 +899,7 @@ export function StudyOrganizerWizard() {
                 <span className="font-semibold text-gray-700 text-sm">{day.slice(0, 3)}</span>
                 <div className={clsx(
                   "rounded-xl p-3 flex flex-col items-center gap-2 w-full border transition-colors",
-                  weeklyHours[idx] > 0 ? "bg-teal-50 border-teal-200" : "bg-[#F0F2F5] border-gray-200"
+                  weeklyHours[idx] > 0 ? "bg-teal-50 border-teal-200" : "bg-[#faf9f6] border-gray-200"
                 )}>
                   <button
                     onClick={() => updateHour(idx, 1)}
@@ -1188,7 +1188,7 @@ export function StudyOrganizerWizard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-10 bg-[#F0F2F5]">
+        <div className="flex-1 overflow-y-auto p-10 bg-[#faf9f6]">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={step}

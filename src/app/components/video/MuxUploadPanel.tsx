@@ -316,7 +316,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                     "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
                     isDragOver
                       ? "border-violet-400 bg-violet-50"
-                      : "border-gray-300 hover:border-violet-400 bg-[#F0F2F5] hover:bg-violet-50/30"
+                      : "border-gray-300 hover:border-violet-400 bg-[#faf9f6] hover:bg-violet-50/30"
                   )}
                 >
                   <Upload size={28} className={clsx("mx-auto mb-3", isDragOver ? "text-violet-500" : "text-gray-400")} />
@@ -338,7 +338,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                   />
                 </div>
               ) : (
-                <div className="bg-[#F0F2F5] border border-gray-200 rounded-xl p-4">
+                <div className="bg-[#faf9f6] border border-gray-200 rounded-xl p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">

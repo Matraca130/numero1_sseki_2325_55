@@ -116,14 +116,14 @@ export function StudyQueueWidget({
           {/* Skeleton count cards */}
           <div className="grid grid-cols-3 gap-2">
             {[0, 1, 2].map(i => (
-              <div key={i} className="bg-[#F0F2F5] rounded-lg p-3 animate-pulse">
+              <div key={i} className="bg-[#faf9f6] rounded-lg p-3 animate-pulse">
                 <div className="h-6 bg-gray-200 rounded w-8 mx-auto mb-1" />
                 <div className="h-3 bg-gray-200 rounded w-12 mx-auto" />
               </div>
             ))}
           </div>
           {/* Skeleton preview */}
-          <div className="bg-[#F0F2F5] rounded-lg p-3 animate-pulse">
+          <div className="bg-[#faf9f6] rounded-lg p-3 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
             <div className="h-3 bg-gray-200 rounded w-1/2" />
           </div>
@@ -203,15 +203,15 @@ export function StudyQueueWidget({
       <div className="p-4 space-y-3">
         {/* Count breakdown cards */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-[#F0F2F5] rounded-lg p-3 text-center">
+          <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-red-500">{totalDue}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Vencidas</p>
           </div>
-          <div className="bg-[#F0F2F5] rounded-lg p-3 text-center">
+          <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-blue-500">{totalNew}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Nuevas</p>
           </div>
-          <div className="bg-[#F0F2F5] rounded-lg p-3 text-center">
+          <div className="bg-[#faf9f6] rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-emerald-500">{totalReview}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Revision</p>
           </div>
@@ -224,7 +224,7 @@ export function StudyQueueWidget({
 
         {/* Next card preview */}
         {nextCard && (
-          <div className={`bg-[#F0F2F5] rounded-lg p-3 border-l-[3px] ${masteryBorderColor(nextCard.mastery_color)}`}>
+          <div className={`bg-[#faf9f6] rounded-lg p-3 border-l-[3px] ${masteryBorderColor(nextCard.mastery_color)}`}>
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
               Proxima:
             </p>

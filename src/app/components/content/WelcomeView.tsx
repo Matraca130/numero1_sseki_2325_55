@@ -81,7 +81,7 @@ const XP_ACTION_LABELS: Record<string, { label: string; icon: typeof Zap; color:
 };
 
 function getActionMeta(action: string) {
-  return XP_ACTION_LABELS[action] ?? { label: action, icon: Zap, color: 'text-gray-500', bg: 'bg-[#F0F2F5]' };
+  return XP_ACTION_LABELS[action] ?? { label: action, icon: Zap, color: 'text-gray-500', bg: 'bg-[#faf9f6]' };
 }
 
 // ── Greeting logic ─────────────────────────────────────────

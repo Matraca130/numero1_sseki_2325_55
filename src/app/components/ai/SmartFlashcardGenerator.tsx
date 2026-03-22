@@ -188,7 +188,7 @@ export function SmartFlashcardGenerator({
                       return (
                         <div
                           key={keyword}
-                          className="flex items-center justify-between p-3 bg-[#F0F2F5] rounded-lg text-sm"
+                          className="flex items-center justify-between p-3 bg-[#faf9f6] rounded-lg text-sm"
                         >
                           <div className="flex items-center gap-3">
                             <div
@@ -336,7 +336,7 @@ export function SmartFlashcardGenerator({
                 {generated.map((card, index) => (
                   <div
                     key={index}
-                    className="bg-[#F0F2F5] rounded-xl p-4 border border-gray-200"
+                    className="bg-[#faf9f6] rounded-xl p-4 border border-gray-200"
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-[#ec43ef]/10 text-[#ec43ef] font-bold flex items-center justify-center flex-shrink-0 text-sm">

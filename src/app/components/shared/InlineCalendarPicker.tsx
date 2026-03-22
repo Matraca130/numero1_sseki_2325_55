@@ -139,7 +139,7 @@ export function InlineCalendarPicker({
             <p className="text-2xl text-axon-dark" style={{ fontWeight: 700 }}>{daysRemaining}</p>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Dias</p>
           </div>
-          <div className="bg-[#F0F2F5] border border-gray-200 rounded-xl px-5 py-3 text-center">
+          <div className="bg-[#faf9f6] border border-gray-200 rounded-xl px-5 py-3 text-center">
             <p className="text-2xl text-gray-800" style={{ fontWeight: 700 }}>{Math.ceil(daysRemaining / 7)}</p>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Semanas</p>
           </div>

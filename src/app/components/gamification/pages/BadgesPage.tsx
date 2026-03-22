@@ -27,7 +27,7 @@ const RARITIES: { key: BadgeRarity; label: string }[] = [
 ];
 
 const RARITY_COLORS: Record<string, string> = {
-  common: 'border-gray-200 bg-[#F0F2F5]',
+  common: 'border-gray-200 bg-[#faf9f6]',
   rare: 'border-blue-200 bg-blue-50',
   epic: 'border-purple-200 bg-purple-50',
   legendary: 'border-amber-300 bg-amber-50',
@@ -88,7 +88,7 @@ export function BadgesPage() {
         : filtered.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-gray-400"><Sparkles size={32} className="opacity-30 mb-3" /><p className="text-sm">No hay insignias con estos filtros</p></div>
         : <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{filtered.map((badge, i) => (
           <motion.div key={badge.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
-            <div className={`rounded-2xl border p-4 transition-all ${badge.earned ? RARITY_COLORS[badge.rarity ?? 'common'] ?? RARITY_COLORS.common : 'border-gray-200 bg-[#F0F2F5] opacity-50'}`}>
+            <div className={`rounded-2xl border p-4 transition-all ${badge.earned ? RARITY_COLORS[badge.rarity ?? 'common'] ?? RARITY_COLORS.common : 'border-gray-200 bg-[#faf9f6] opacity-50'}`}>
               <div className="flex items-center justify-between mb-2"><span className="text-2xl">{badge.icon_url ?? '🏆'}</span>{badge.earned && <span className="text-[9px] text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full" style={{ fontWeight: 600 }}>✓</span>}</div>
               <p className="text-[12px] text-gray-800 mb-0.5" style={{ fontWeight: 700 }}>{badge.name}</p>
               <p className="text-[10px] text-gray-500 mb-2">{badge.description}</p>

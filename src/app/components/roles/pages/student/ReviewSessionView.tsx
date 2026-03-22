@@ -157,14 +157,14 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
 
   // PHASE: LOADING
   if (phase === 'loading') {
-    return (<div className="flex flex-col items-center justify-center h-full bg-[#F0F2F5]"><Loader2 size={32} className="animate-spin text-[#2a8c7a] mb-4" /><p className="text-sm text-gray-500">Buscando flashcards pendientes...</p></div>);
+    return (<div className="flex flex-col items-center justify-center h-full bg-[#faf9f6]"><Loader2 size={32} className="animate-spin text-[#2a8c7a] mb-4" /><p className="text-sm text-gray-500">Buscando flashcards pendientes...</p></div>);
   }
 
   // PHASE: IDLE
   if (phase === 'idle') {
     if (loadError) {
       return (
-        <div className="flex flex-col items-center justify-center h-full bg-[#F0F2F5] px-4">
+        <div className="flex flex-col items-center justify-center h-full bg-[#faf9f6] px-4">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4"><X size={28} className="text-red-400" /></div>
           <h3 className="font-bold text-gray-800 mb-2">Error al cargar</h3>
           <p className="text-sm text-gray-500 text-center max-w-md mb-4">{loadError}</p>
@@ -174,7 +174,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     }
     if (totalDueCount === 0) {
       return (
-        <div className="flex flex-col items-center justify-center h-full bg-[#F0F2F5] px-4">
+        <div className="flex flex-col items-center justify-center h-full bg-[#faf9f6] px-4">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }} className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6"><CheckCircle size={36} className="text-emerald-500" /></motion.div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">Todo al dia!</h3>
           <p className="text-sm text-gray-500 max-w-md text-center mb-2">No hay repasos pendientes. Vuelve manana!</p>
@@ -184,7 +184,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
       );
     }
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-[#F0F2F5] px-4">
+      <div className="flex flex-col items-center justify-center h-full bg-[#faf9f6] px-4">
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2a8c7a]/20 to-[#1B3B36]/10 border border-[#2a8c7a]/20 flex items-center justify-center mb-6"><Calendar size={36} className="text-[#2a8c7a]" /></div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">Repaso del dia</h3>
         <p className="text-sm text-gray-500 max-w-md text-center mb-1">{totalDueCount} flashcard{totalDueCount !== 1 ? 's' : ''} para repasar hoy</p>
@@ -201,7 +201,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     const correctSoFar = grades.filter(g => g >= 3).length;
     const accuracyPct = reviewedCount > 0 ? Math.round((correctSoFar / reviewedCount) * 100) : 0;
     return (
-      <div className="flex flex-col h-full min-h-0 bg-[#F0F2F5] relative">
+      <div className="flex flex-col h-full min-h-0 bg-[#faf9f6] relative">
         <XPPopup event={xpState.lastEvent} eventKey={xpEventKey} />
         <div className="shrink-0 px-5 py-3 flex items-center justify-between">
           <button onClick={() => { if (confirm('Salir del repaso? El progreso se perdera.')) { stopTimer(); onClose?.(); } }} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all"><X size={20} /></button>
@@ -247,7 +247,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     const minutes = Math.floor(elapsedSeconds / 60); const seconds = elapsedSeconds % 60;
     const maxGradeCount = Math.max(...gradeDistribution, 1);
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4 bg-[#F0F2F5] min-h-full overflow-y-auto">
+      <div className="flex flex-col items-center justify-center py-12 px-4 bg-[#faf9f6] min-h-full overflow-y-auto">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }} className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-500/10 border border-amber-400/20 flex items-center justify-center mb-6"><Trophy size={36} className="text-amber-400" /></motion.div>
         <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-2xl font-bold text-gray-900 mb-2">Repaso completado!</motion.h2>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-sm text-gray-500 mb-8">{grades.length} tarjeta{grades.length !== 1 ? 's' : ''} revisada{grades.length !== 1 ? 's' : ''} en {minutes > 0 ? `${minutes}m ` : ''}{seconds}s</motion.p>

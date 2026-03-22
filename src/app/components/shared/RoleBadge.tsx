@@ -59,7 +59,7 @@ export function StatusBadge({ active, className = '' }: StatusBadgeProps) {
       className={`text-[10px] px-1.5 py-0 ${
         active
           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-          : 'bg-[#F0F2F5] text-gray-500 border-gray-200'
+          : 'bg-[#faf9f6] text-gray-500 border-gray-200'
       } ${className}`}
     >
       {active ? 'Activo' : 'Inactivo'}

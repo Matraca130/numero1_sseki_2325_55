@@ -192,7 +192,7 @@ export function AiPracticeModal({
                       className={`px-3 py-2 rounded-lg border text-[12px] transition-all ${
                         showAnswer && opt === generatedAnswer
                           ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                          : 'bg-[#F0F2F5] border-gray-200 text-gray-600'
+                          : 'bg-[#faf9f6] border-gray-200 text-gray-600'
                       }`}
                       style={{ fontWeight: showAnswer && opt === generatedAnswer ? 600 : 400 }}
                     >
@@ -256,7 +256,7 @@ export function AiPracticeModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-100 bg-[#F0F2F5]/50 flex justify-end">
+        <div className="px-5 py-3 border-t border-gray-100 bg-[#faf9f6]/50 flex justify-end">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl text-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
