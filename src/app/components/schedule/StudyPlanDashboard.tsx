@@ -90,16 +90,16 @@ const METHOD_TAG_FIGMA: Record<string, { bg: string; border: string; text: strin
     iconStroke: '#b45309',
   },
   video: {
-    bg: '#eff6ff',
-    border: 'rgba(191,219,254,0.8)',
-    text: '#3b82f6',
-    iconStroke: '#3b82f6',
+    bg: '#e8f5f1',
+    border: 'rgba(179,221,210,0.8)',
+    text: '#14b8a6',
+    iconStroke: '#14b8a6',
   },
   resumo: {
-    bg: '#faf5ff',
-    border: 'rgba(221,214,254,0.8)',
-    text: '#7c3aed',
-    iconStroke: '#7c3aed',
+    bg: '#f0fdfa',
+    border: 'rgba(153,214,199,0.8)',
+    text: '#0d9488',
+    iconStroke: '#0d9488',
   },
   '3d': {
     bg: '#fff7ed',
@@ -482,7 +482,7 @@ export function StudyPlanDashboard({
     const flatTasks = Object.values(tasksBySubject).flat();
 
     return (
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f8f9fb]">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#faf9f6]">
         {/* Top bar */}
         <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 sm:justify-between">
           {/* View tabs */}

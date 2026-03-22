@@ -68,7 +68,7 @@ interface DisplayMessage {
 
 const QUICK_PROMPTS = [
   { icon: Lightbulb, label: 'Explique o ciclo de Krebs', color: 'text-amber-500' },
-  { icon: Brain, label: 'Mecanismo de ação dos betabloqueadores', color: 'text-blue-500' },
+  { icon: Brain, label: 'Mecanismo de ação dos betabloqueadores', color: 'text-teal-500' },
   { icon: Zap, label: 'Diferença entre artérias e veias', color: 'text-rose-500' },
 ];
 
@@ -663,7 +663,7 @@ export function AxonAIAssistant({
           {(currentCourse || currentTopic) && (
             <div className="flex items-center gap-2 mb-2 px-1">
               <span className="text-[10px] text-gray-400 uppercase tracking-wider">Contexto:</span>
-              <span className="text-[11px] bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full border border-teal-200/60">
+              <span className="text-[11px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full border border-teal-200/60">
                 {currentTopic?.title || currentCourse?.name}
               </span>
             </div>
@@ -687,7 +687,7 @@ export function AxonAIAssistant({
               className={clsx(
                 "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all",
                 input.trim() && !isLoading
-                  ? "bg-teal-600 text-white hover:bg-violet-700 shadow-sm"
+                  ? "bg-teal-600 text-white hover:bg-teal-700 shadow-sm"
                   : "bg-gray-100 text-gray-300"
               )}
             >
@@ -709,8 +709,8 @@ export function AxonAIAssistant({
         {generatedCards.length === 0 ? (
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center border border-blue-200/60 mb-3">
-                <Layers size={24} className="text-blue-500" />
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-teal-100 to-teal-100 flex items-center justify-center border border-teal-200/60 mb-3">
+                <Layers size={24} className="text-teal-500" />
               </div>
               <h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Gerar Flashcards com IA
@@ -732,7 +732,7 @@ export function AxonAIAssistant({
               <button
                 onClick={generateFlashcardsFn}
                 disabled={isLoading || !summaryId}
-                className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-teal-700 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                 {isLoading ? 'Gerando...' : 'Gerar Flashcards'}
@@ -772,7 +772,7 @@ export function AxonAIAssistant({
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className={clsx(
                         "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                        isFlipped ? "bg-emerald-100 text-emerald-600" : "bg-violet-100 text-violet-600"
+                        isFlipped ? "bg-emerald-100 text-emerald-600" : "bg-teal-100 text-teal-600"
                       )}>
                         {isFlipped ? 'Resposta' : `Pergunta ${i + 1}`}
                       </span>
@@ -788,7 +788,7 @@ export function AxonAIAssistant({
 
             <button
               onClick={generateFlashcardsFn}
-              className="w-full py-2.5 border-2 border-dashed border-teal-300/60 text-violet-600 rounded-xl text-sm font-medium hover:bg-violet-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 border-2 border-dashed border-teal-300/60 text-teal-600 rounded-xl text-sm font-medium hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
             >
               <RotateCcw size={14} /> Gerar Novos
             </button>
@@ -1063,7 +1063,7 @@ function renderMarkdown(text: string) {
       );
     } else if (trimmed.startsWith('> ')) {
       elements.push(
-        <blockquote key={i} className="border-l-3 border-violet-400 pl-3 my-2 text-violet-700 bg-violet-50 py-2 pr-3 rounded-r-lg text-xs italic">
+        <blockquote key={i} className="border-l-3 border-teal-400 pl-3 my-2 text-teal-700 bg-teal-50 py-2 pr-3 rounded-r-lg text-xs italic">
           {processInline(trimmed.slice(2))}
         </blockquote>
       );
@@ -1096,7 +1096,7 @@ function processInline(text: string): React.ReactNode {
     if (codeParts.length > 1) {
       return codeParts.map((cp, ci) => {
         if (cp.startsWith('`') && cp.endsWith('`')) {
-          return <code key={`${i}-${ci}`} className="bg-gray-100 text-violet-600 px-1 py-0.5 rounded text-xs font-mono">{cp.slice(1, -1)}</code>;
+          return <code key={`${i}-${ci}`} className="bg-gray-100 text-teal-600 px-1 py-0.5 rounded text-xs font-mono">{cp.slice(1, -1)}</code>;
         }
         return cp;
       });

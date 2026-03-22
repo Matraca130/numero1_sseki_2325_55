@@ -165,14 +165,14 @@ const editorStyles = `
     transition: box-shadow 0.15s ease, opacity 0.15s ease;
   }
   .axon-editor-content .tiptap img:hover {
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
   }
   .axon-editor-content .tiptap img:active {
     cursor: grabbing;
     opacity: 0.7;
   }
   .axon-editor-content .tiptap img.ProseMirror-selectednode {
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.6);
   }
 
   /* ── Drag handle indicator ── */
@@ -197,24 +197,24 @@ const editorStyles = `
     clear: both;
   }
 
-  /* ── Dropcursor (violet line when dragging) ───────── */
+  /* ── Dropcursor (teal line when dragging) ────────── */
   .ProseMirror-dropcursor {
-    border-color: #8b5cf6 !important;
+    border-color: #14b8a6 !important;
     border-width: 2px !important;
   }
 
   /* ── Keyword highlight decorations ────────────────── */
   .axon-keyword-highlight {
-    background: linear-gradient(to bottom, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.15));
-    border-bottom: 2px solid rgba(139, 92, 246, 0.5);
+    background: linear-gradient(to bottom, rgba(20, 184, 166, 0.08), rgba(20, 184, 166, 0.15));
+    border-bottom: 2px solid rgba(20, 184, 166, 0.5);
     border-radius: 2px;
     padding: 0 1px;
     transition: background 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
   }
   .axon-keyword-highlight:hover {
-    background: rgba(139, 92, 246, 0.22);
-    border-bottom-color: rgba(139, 92, 246, 0.8);
+    background: rgba(20, 184, 166, 0.22);
+    border-bottom-color: rgba(20, 184, 166, 0.8);
   }
 `;
 
@@ -272,7 +272,7 @@ export function TipTapEditor({
         placeholder: 'Empieza a escribir tu resumen aqui...',
       }),
       Dropcursor.configure({
-        color: '#8b5cf6',
+        color: '#14b8a6',
         width: 2,
       }),
       KeywordHighlightPlugin,
@@ -779,7 +779,7 @@ function SelectionKeywordBubble({
               onCreateKeyword(selectedText, rect);
             }
           }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-600 text-white shadow-lg shadow-violet-600/25 text-[11px] hover:bg-violet-700 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-600 text-white shadow-lg shadow-teal-600/25 text-[11px] hover:bg-teal-700 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
           style={{ fontWeight: 600 }}
           title="Crear keyword desde seleccion"
         >
@@ -839,7 +839,7 @@ function ImagePopover({
             className={clsx(
               'p-1.5 rounded transition-colors',
               position === opt.value
-                ? 'bg-violet-100 text-violet-700'
+                ? 'bg-teal-100 text-teal-700'
                 : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
             )}
           >

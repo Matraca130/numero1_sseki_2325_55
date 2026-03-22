@@ -69,10 +69,10 @@ export function XPTimeline({ institutionId, limit = 8 }: XPTimelineProps) {
       <div className="space-y-1">
         {items.map((item, idx) => (
           <div key={`${item.type}-${item.timestamp}-${idx}`} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-zinc-800/20 transition-colors">
-            {item.type === 'badge' ? <Award size={13} className="text-violet-400 shrink-0" /> : <Zap size={13} className="text-amber-400 shrink-0" />}
+            {item.type === 'badge' ? <Award size={13} className="text-teal-400 shrink-0" /> : <Zap size={13} className="text-amber-400 shrink-0" />}
             <span className="text-xs text-zinc-400 flex-1 truncate">{item.type === 'badge' ? item.badge_name || 'Logro desbloqueado' : ACTION_LABELS[item.action || ''] || item.action || 'XP ganada'}</span>
             {item.type === 'xp' && item.xp && <span className="text-[10px] text-amber-400/80 tabular-nums shrink-0" style={{ fontWeight: 600 }}>+{item.xp}</span>}
-            {item.type === 'badge' && item.badge_rarity && <span className={`text-[9px] px-1.5 py-0.5 rounded-full capitalize shrink-0 ${item.badge_rarity === 'legendary' ? 'bg-amber-500/15 text-amber-400' : item.badge_rarity === 'epic' ? 'bg-violet-500/15 text-violet-400' : 'bg-zinc-700/50 text-zinc-500'}`} style={{ fontWeight: 600 }}>{item.badge_rarity}</span>}
+            {item.type === 'badge' && item.badge_rarity && <span className={`text-[9px] px-1.5 py-0.5 rounded-full capitalize shrink-0 ${item.badge_rarity === 'legendary' ? 'bg-amber-500/15 text-amber-400' : item.badge_rarity === 'epic' ? 'bg-teal-500/15 text-teal-400' : 'bg-zinc-700/50 text-zinc-500'}`} style={{ fontWeight: 600 }}>{item.badge_rarity}</span>}
             <span className="text-[10px] text-zinc-600 tabular-nums shrink-0">{timeAgo(item.timestamp)}</span>
           </div>
         ))}

@@ -166,8 +166,8 @@ export function SmartFlashcardGenerator({
                     </div>
                     <div className="text-xs text-gray-600">Alta Prioridade</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 text-center border border-blue-200">
-                    <div className="text-2xl font-bold text-blue-600">
+                  <div className="bg-white rounded-lg p-3 text-center border border-teal-200">
+                    <div className="text-2xl font-bold text-teal-600">
                       {estimate.byUrgency.medium}
                     </div>
                     <div className="text-xs text-gray-600">Média Prioridade</div>
@@ -224,12 +224,12 @@ export function SmartFlashcardGenerator({
               )}
 
               {/* How it works */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
                 <div className="flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <div className="text-sm text-blue-900">
+                  <AlertCircle className="w-5 h-5 text-teal-600 flex-shrink-0" />
+                  <div className="text-sm text-teal-900">
                     <strong>Como funciona:</strong>
-                    <ul className="mt-2 space-y-1 list-disc list-inside text-blue-800">
+                    <ul className="mt-2 space-y-1 list-disc list-inside text-teal-800">
                       <li>
                         IA prioriza keywords com <strong>alta urgência</strong> e{' '}
                         <strong>baixa cobertura</strong>

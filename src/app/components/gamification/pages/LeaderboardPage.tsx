@@ -48,18 +48,18 @@ export function LeaderboardPage() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-3xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-blue-100 flex items-center justify-center"><TrendingUp size={22} className="text-blue-600" /></div><div><h1 className="text-xl text-gray-900" style={{ fontWeight: 800 }}>Leaderboard</h1><p className="text-[12px] text-gray-500">Compite con tus companeros</p></div></div>
+          <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-teal-100 flex items-center justify-center"><TrendingUp size={22} className="text-teal-600" /></div><div><h1 className="text-xl text-gray-900" style={{ fontWeight: 800 }}>Leaderboard</h1><p className="text-[12px] text-gray-500">Compite con tus companeros</p></div></div>
           <div className="flex items-center bg-gray-100 rounded-xl p-1">{(['weekly', 'daily'] as const).map(p => (<button key={p} onClick={() => setPeriod(p)} className={`px-4 py-1.5 rounded-lg text-[11px] transition-all ${period === p ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`} style={{ fontWeight: period === p ? 700 : 500 }}>{p === 'weekly' ? 'Semanal' : 'Hoy'}</button>))}</div>
         </div>
-        {data?.my_rank && <div className="mb-6 flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe' }}><div className="flex items-center gap-2"><User size={14} className="text-blue-600" /><span className="text-[12px] text-blue-800" style={{ fontWeight: 600 }}>Tu posicion</span></div><span className="text-lg text-blue-700 tabular-nums" style={{ fontWeight: 800 }}>#{data.my_rank}</span></div>}
-        {loading ? <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-blue-500" /></div>
+        {data?.my_rank && <div className="mb-6 flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: 'linear-gradient(135deg, #e8f5f1 0%, #d1ede5 100%)', border: '1px solid #b3ddd2' }}><div className="flex items-center gap-2"><User size={14} className="text-teal-600" /><span className="text-[12px] text-teal-800" style={{ fontWeight: 600 }}>Tu posicion</span></div><span className="text-lg text-teal-700 tabular-nums" style={{ fontWeight: 800 }}>#{data.my_rank}</span></div>}
+        {loading ? <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-teal-500" /></div>
         : error ? <div className="flex items-center gap-2 p-4 bg-red-50 rounded-xl border border-red-200 text-[12px] text-red-700"><AlertTriangle size={14} />{error}</div>
         : <>
           {top3.length > 0 && <div className="flex items-end justify-center gap-3 mb-8 pt-4">
             {[1, 0, 2].map(idx => top3[idx] && <PodiumCard key={top3[idx].student_id} entry={top3[idx]} rank={(idx === 1 ? 2 : idx === 0 ? 1 : 3) as 1|2|3} xp={getXp(top3[idx])} isMe={top3[idx].student_id === user?.id} />)}
           </div>}
           {rest.length > 0 && <div className="space-y-1.5">{rest.map((entry, i) => { const rank = i + 4; const isMe = entry.student_id === user?.id; return (
-            <motion.div key={entry.student_id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isMe ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
+            <motion.div key={entry.student_id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isMe ? 'bg-teal-50 border border-teal-200' : 'bg-white border border-gray-100 hover:bg-gray-50'}`}>
               <span className="text-[12px] text-gray-400 w-8 text-center tabular-nums" style={{ fontWeight: 700 }}>{rank}</span>
               <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><User size={14} className="text-gray-400" /></div>
               <div className="flex-1 min-w-0"><p className="text-[12px] text-gray-800 truncate" style={{ fontWeight: 600 }}>{isMe ? 'Tu' : `Estudiante ${entry.student_id.substring(0, 6)}`}</p><p className="text-[10px] text-gray-400">Nivel {entry.current_level}</p></div>
@@ -75,7 +75,7 @@ export function LeaderboardPage() {
 function PodiumCard({ entry, rank, xp, isMe }: { entry: LeaderboardEntry; rank: 1|2|3; xp: number; isMe: boolean }) {
   const s = PODIUM[rank - 1]; const h = { 1: 'h-28', 2: 'h-20', 3: 'h-16' } as const;
   return (<motion.div className="flex flex-col items-center" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: rank * 0.1 }}>
-    <div className="relative mb-2"><div className={`w-14 h-14 rounded-full ${s.bg} border-2 ${s.border} flex items-center justify-center ${isMe ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}><User size={20} className={s.text} /></div><div className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: s.gradient }}><span className="text-white text-[10px]" style={{ fontWeight: 800 }}>{rank}</span></div></div>
+    <div className="relative mb-2"><div className={`w-14 h-14 rounded-full ${s.bg} border-2 ${s.border} flex items-center justify-center ${isMe ? 'ring-2 ring-teal-400 ring-offset-2' : ''}`}><User size={20} className={s.text} /></div><div className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: s.gradient }}><span className="text-white text-[10px]" style={{ fontWeight: 800 }}>{rank}</span></div></div>
     <p className="text-[11px] text-gray-700 mb-0.5 text-center" style={{ fontWeight: 600 }}>{isMe ? 'Tu' : `Est. ${entry.student_id.substring(0, 4)}`}</p>
     <p className={`text-[11px] tabular-nums ${s.text}`} style={{ fontWeight: 700 }}>{xp.toLocaleString()} XP</p>
     <p className="text-[9px] text-gray-400">Lv.{entry.current_level}</p>

@@ -62,22 +62,22 @@ const tk = {
   heroTo: '#0f2b26',
   teal: '#2a8c7a',
   tealLight: '#2dd4a8',
-  pageBg: '#f8f9fb',
+  pageBg: '#faf9f6',
 };
 
 // ── XP Action labels (for activity feed) ───────────────────────
 const XP_ACTION_LABELS: Record<string, { label: string; icon: typeof Zap; color: string; bg: string }> = {
   review_flashcard: { label: 'Flashcard revisado', icon: Brain, color: 'text-amber-600', bg: 'bg-amber-50' },
   review_correct: { label: 'Respuesta correcta', icon: CheckCircle, color: 'text-teal-600', bg: 'bg-teal-50' },
-  quiz_answer: { label: 'Quiz respondido', icon: Zap, color: 'text-violet-600', bg: 'bg-violet-50' },
+  quiz_answer: { label: 'Quiz respondido', icon: Zap, color: 'text-teal-600', bg: 'bg-teal-50' },
   quiz_correct: { label: 'Quiz correcto', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  complete_session: { label: 'Sesion completada', icon: Play, color: 'text-blue-600', bg: 'bg-blue-50' },
+  complete_session: { label: 'Sesion completada', icon: Play, color: 'text-teal-600', bg: 'bg-teal-50' },
   complete_reading: { label: 'Lectura completada', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-50' },
-  complete_video: { label: 'Video completado', icon: Play, color: 'text-purple-500', bg: 'bg-purple-50' },
+  complete_video: { label: 'Video completado', icon: Play, color: 'text-teal-500', bg: 'bg-teal-50' },
   streak_daily: { label: 'Bonus de racha', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-50' },
   complete_plan_task: { label: 'Tarea del plan', icon: CheckCircle, color: 'text-teal-600', bg: 'bg-teal-50' },
   complete_plan: { label: 'Plan completado', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50' },
-  rag_question: { label: 'Pregunta AI', icon: Sparkles, color: 'text-blue-500', bg: 'bg-blue-50' },
+  rag_question: { label: 'Pregunta AI', icon: Sparkles, color: 'text-teal-500', bg: 'bg-teal-50' },
 };
 
 function getActionMeta(action: string) {
@@ -277,10 +277,10 @@ function PerformanceSidebar({
 
   // Merge XP history + study sessions into unified feed, sorted by time
   const SESSION_TYPE_META: Record<string, { label: string; icon: typeof Zap; color: string; bg: string }> = {
-    flashcard: { label: 'Sesion de Flashcards', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    quiz: { label: 'Sesion de Quiz', icon: Zap, color: 'text-violet-600', bg: 'bg-violet-50' },
+    flashcard: { label: 'Sesion de Flashcards', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-50' },
+    quiz: { label: 'Sesion de Quiz', icon: Zap, color: 'text-teal-600', bg: 'bg-teal-50' },
     reading: { label: 'Sesion de Lectura', icon: BookOpen, color: 'text-teal-600', bg: 'bg-teal-50' },
-    mixed: { label: 'Sesion de Estudio', icon: Play, color: 'text-blue-600', bg: 'bg-blue-50' },
+    mixed: { label: 'Sesion de Estudio', icon: Play, color: 'text-teal-600', bg: 'bg-teal-50' },
   };
 
   type FeedItem = { id: string; ts: number; type: 'xp' | 'session'; data: XPTransaction | StudySessionRecord };

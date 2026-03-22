@@ -336,7 +336,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
       {/* ── Student: Pin visibility toggle ── */}
       {mode === 'view' && pins.length > 0 && (
         <div className="absolute top-3 left-3 z-20">
-          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 backdrop-blur-sm">
+          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-teal-500/20 text-teal-300 border border-teal-500/30 backdrop-blur-sm">
             <MapPin size={12} />
             {pins.length} punto{pins.length !== 1 ? 's' : ''} de referencia
           </span>
@@ -397,8 +397,8 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
 
                 {/* F1 Keyword link badge */}
                 {pin.keyword_id && (
-                  <div className="mb-2 px-2 py-1 rounded-md bg-violet-500/10 border border-violet-500/20">
-                    <span className="text-[8px] text-violet-400 flex items-center gap-1">
+                  <div className="mb-2 px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/20">
+                    <span className="text-[8px] text-teal-400 flex items-center gap-1">
                       <Link2 size={8} />
                       Keyword vinculado
                     </span>

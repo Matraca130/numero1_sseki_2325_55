@@ -65,7 +65,7 @@ export function VideoThumbnail({
   );
 }
 
-/** VideoBanner — banner violeta para SummaryReader. */
+/** VideoBanner — banner teala para SummaryReader. */
 export function VideoBanner({
   title,
   duration,
@@ -80,20 +80,20 @@ export function VideoBanner({
   onDismiss?: () => void;
 }) {
   return (
-    <div className="bg-violet-700 px-8">
+    <div className="bg-teal-700 px-8">
       <div className="max-w-2xl mx-auto py-3 flex items-center gap-4">
         <div className="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center shrink-0">
           <Video className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-white truncate" style={{ fontWeight: 600 }}>Video disponible: {title}</p>
-          {subtitle && <p className="text-xs text-violet-200" style={{ fontWeight: 500 }}>{duration} · {subtitle}</p>}
+          {subtitle && <p className="text-xs text-teal-200" style={{ fontWeight: 500 }}>{duration} · {subtitle}</p>}
         </div>
-        <motion.button onClick={onPlay} className="flex items-center gap-2 px-4 py-2 bg-white text-violet-800 rounded-lg text-sm cursor-pointer shadow-md hover:bg-violet-50 shrink-0" style={{ fontWeight: 700 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.button onClick={onPlay} className="flex items-center gap-2 px-4 py-2 bg-white text-teal-800 rounded-lg text-sm cursor-pointer shadow-md hover:bg-teal-50 shrink-0" style={{ fontWeight: 700 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Play className="w-4 h-4" />Ver video
         </motion.button>
         {onDismiss && (
-          <button onClick={onDismiss} className="p-1 hover:bg-white/10 rounded cursor-pointer"><X className="w-4 h-4 text-violet-200" /></button>
+          <button onClick={onDismiss} className="p-1 hover:bg-white/10 rounded cursor-pointer"><X className="w-4 h-4 text-teal-200" /></button>
         )}
       </div>
     </div>

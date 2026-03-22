@@ -15,15 +15,15 @@ interface BadgeShowcaseProps {
 
 const RARITY_COLORS: Record<string, string> = {
   common: 'from-zinc-400/20 to-zinc-500/10 border-zinc-600/30',
-  rare: 'from-blue-400/20 to-blue-500/10 border-blue-500/30',
-  epic: 'from-violet-400/20 to-violet-500/10 border-violet-500/30',
+  rare: 'from-teal-400/20 to-teal-500/10 border-teal-500/30',
+  epic: 'from-teal-400/20 to-teal-500/10 border-teal-500/30',
   legendary: 'from-amber-400/20 to-amber-500/10 border-amber-500/30',
 };
 
 const RARITY_GLOW: Record<string, string> = {
   common: '',
-  rare: 'shadow-blue-500/10',
-  epic: 'shadow-violet-500/15',
+  rare: 'shadow-teal-500/10',
+  epic: 'shadow-teal-500/15',
   legendary: 'shadow-amber-500/20',
 };
 
@@ -53,7 +53,7 @@ export function BadgeShowcase({ institutionId, maxDisplay = 12 }: BadgeShowcaseP
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <Award size={14} className="text-violet-400" />
+          <Award size={14} className="text-teal-400" />
           <span className="text-xs text-zinc-400 uppercase tracking-wider" style={{ fontWeight: 600 }}>Logros</span>
         </div>
         <span className="text-[10px] text-zinc-500 tabular-nums">{earnedCount}/{badges.length}</span>
@@ -65,7 +65,7 @@ export function BadgeShowcase({ institutionId, maxDisplay = 12 }: BadgeShowcaseP
           return (
             <motion.button key={badge.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.03, duration: 0.3 }} onClick={() => setSelectedBadge(selectedBadge?.id === badge.id ? null : badge)} className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all ${isEarned ? `bg-gradient-to-br ${RARITY_COLORS[rarity]} shadow-lg ${RARITY_GLOW[rarity]} hover:scale-105` : 'bg-zinc-800/20 border-zinc-800/40 opacity-40 hover:opacity-60'}`}>
               <div className="text-lg mb-0.5">
-                {isEarned ? (badge.icon_url ? <img src={badge.icon_url} alt="" className="w-6 h-6" /> : <Award size={20} className={rarity === 'legendary' ? 'text-amber-400' : rarity === 'epic' ? 'text-violet-400' : rarity === 'rare' ? 'text-blue-400' : 'text-zinc-400'} />) : <Lock size={14} className="text-zinc-600" />}
+                {isEarned ? (badge.icon_url ? <img src={badge.icon_url} alt="" className="w-6 h-6" /> : <Award size={20} className={rarity === 'legendary' ? 'text-amber-400' : rarity === 'epic' ? 'text-teal-400' : rarity === 'rare' ? 'text-teal-400' : 'text-zinc-400'} />) : <Lock size={14} className="text-zinc-600" />}
               </div>
               <p className="text-[9px] text-zinc-400 text-center leading-tight truncate w-full">{badge.name}</p>
             </motion.button>
@@ -82,7 +82,7 @@ export function BadgeShowcase({ institutionId, maxDisplay = 12 }: BadgeShowcaseP
               {selectedBadge.earned && selectedBadge.earned_at && <p className="text-[10px] text-zinc-600 mt-1">Desbloqueado {new Date(selectedBadge.earned_at).toLocaleDateString('es')}</p>}
               {selectedBadge.xp_reward > 0 && <p className="text-[10px] text-amber-500/70 mt-0.5">+{selectedBadge.xp_reward} XP</p>}
             </div>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full capitalize ${selectedBadge.rarity === 'legendary' ? 'bg-amber-500/15 text-amber-400' : selectedBadge.rarity === 'epic' ? 'bg-violet-500/15 text-violet-400' : selectedBadge.rarity === 'rare' ? 'bg-blue-500/15 text-blue-400' : 'bg-zinc-700/50 text-zinc-400'}`} style={{ fontWeight: 600 }}>{selectedBadge.rarity}</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full capitalize ${selectedBadge.rarity === 'legendary' ? 'bg-amber-500/15 text-amber-400' : selectedBadge.rarity === 'epic' ? 'bg-teal-500/15 text-teal-400' : selectedBadge.rarity === 'rare' ? 'bg-teal-500/15 text-teal-400' : 'bg-zinc-700/50 text-zinc-400'}`} style={{ fontWeight: 600 }}>{selectedBadge.rarity}</span>
           </div>
         </motion.div>
       )}

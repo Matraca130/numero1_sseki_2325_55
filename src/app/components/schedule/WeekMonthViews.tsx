@@ -46,8 +46,8 @@ const METHOD_LABELS: Record<string, string> = {
 const METHOD_PILL: Record<string, { bg: string; text: string; border: string }> = {
   flashcard: { bg: '#f0fdf6', text: '#6ba88e', border: 'rgba(198,240,223,0.8)' },
   quiz:      { bg: '#fefce8', text: '#b45309', border: 'rgba(253,230,138,0.6)' },
-  video:     { bg: '#eff6ff', text: '#3b82f6', border: 'rgba(191,219,254,0.8)' },
-  resumo:    { bg: '#faf5ff', text: '#7c3aed', border: 'rgba(221,214,254,0.8)' },
+  video:     { bg: '#e8f5f1', text: '#14b8a6', border: 'rgba(179,221,210,0.8)' },
+  resumo:    { bg: '#f0fdfa', text: '#0d9488', border: 'rgba(153,214,199,0.8)' },
   '3d':      { bg: '#fff7ed', text: '#c2410c', border: 'rgba(254,215,170,0.8)' },
 };
 
@@ -291,7 +291,7 @@ function WeekDayRow({
           isCurrentDay
             ? 'bg-gradient-to-r from-[#e6f5f1] to-[#f0f9f7]'
             : isSelected
-              ? 'bg-[#f8f9fb]'
+              ? 'bg-[#faf9f6]'
               : 'bg-white hover:bg-[#fafafa]',
         )}
       >

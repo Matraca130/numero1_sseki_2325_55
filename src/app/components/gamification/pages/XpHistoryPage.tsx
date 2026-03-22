@@ -12,17 +12,17 @@ import { getXPHistory, getProfile } from '@/app/services/gamificationApi';
 import type { XPTransaction, XPHistoryResponse, GamificationProfile } from '@/app/services/gamificationApi';
 
 const ACTION_CFG: Record<string, { label: string; icon: typeof Zap; color: string }> = {
-  review_flashcard: { label: 'Flashcard revisada', icon: CreditCard, color: 'text-blue-500 bg-blue-50' },
+  review_flashcard: { label: 'Flashcard revisada', icon: CreditCard, color: 'text-teal-500 bg-teal-50' },
   review_correct: { label: 'Flashcard correcta', icon: CheckCircle, color: 'text-emerald-500 bg-emerald-50' },
-  quiz_answer: { label: 'Respuesta de quiz', icon: Target, color: 'text-purple-500 bg-purple-50' },
+  quiz_answer: { label: 'Respuesta de quiz', icon: Target, color: 'text-teal-500 bg-teal-50' },
   quiz_correct: { label: 'Quiz correcto', icon: Award, color: 'text-amber-500 bg-amber-50' },
   complete_session: { label: 'Sesion completada', icon: CheckCircle, color: 'text-teal-500 bg-teal-50' },
-  complete_reading: { label: 'Lectura completada', icon: BookOpen, color: 'text-indigo-500 bg-indigo-50' },
+  complete_reading: { label: 'Lectura completada', icon: BookOpen, color: 'text-teal-500 bg-teal-50' },
   complete_video: { label: 'Video completado', icon: BookOpen, color: 'text-pink-500 bg-pink-50' },
   streak_daily: { label: 'Racha diaria', icon: Flame, color: 'text-orange-500 bg-orange-50' },
   complete_plan_task: { label: 'Tarea de plan', icon: ListTodo, color: 'text-cyan-500 bg-cyan-50' },
   complete_plan: { label: 'Plan completado', icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
-  rag_question: { label: 'Pregunta IA', icon: Brain, color: 'text-violet-500 bg-violet-50' },
+  rag_question: { label: 'Pregunta IA', icon: Brain, color: 'text-teal-500 bg-teal-50' },
 };
 
 function getCfg(a: string) { return ACTION_CFG[a] ?? { label: a.replace(/_/g, ' '), icon: Zap, color: 'text-gray-500 bg-[#faf9f6]' }; }
@@ -89,7 +89,7 @@ export function XpHistoryPage() {
             <div className="flex-1 min-w-0"><p className="text-[12px] text-gray-800" style={{ fontWeight: 600 }}>{c.label}</p>
               <div className="flex items-center gap-2"><span className="text-[10px] text-gray-400">{relTime(tx.created_at)}</span>
                 {tx.bonus_type && <span className="text-[9px] text-amber-600 px-1.5 py-0.5 bg-amber-50 rounded-full" style={{ fontWeight: 600 }}>{tx.bonus_type}</span>}
-                {tx.multiplier > 1 && <span className="text-[9px] text-purple-600 px-1.5 py-0.5 bg-purple-50 rounded-full" style={{ fontWeight: 600 }}>x{tx.multiplier}</span>}</div></div>
+                {tx.multiplier > 1 && <span className="text-[9px] text-teal-600 px-1.5 py-0.5 bg-teal-50 rounded-full" style={{ fontWeight: 600 }}>x{tx.multiplier}</span>}</div></div>
             <div className="text-right shrink-0"><span className="text-[13px] text-green-600 tabular-nums" style={{ fontWeight: 700 }}>+{tx.xp_final}</span>
               {tx.xp_base !== tx.xp_final && <p className="text-[9px] text-gray-400 tabular-nums">base: {tx.xp_base}</p>}</div>
           </motion.div>); })}</div>

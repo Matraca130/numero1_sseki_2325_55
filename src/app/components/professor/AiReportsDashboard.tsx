@@ -190,7 +190,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
     return [
       { reason: 'incorrect' as const, count: stats.reason_incorrect, color: '#ef4444' },
       { reason: 'low_quality' as const, count: stats.reason_low_quality, color: '#f59e0b' },
-      { reason: 'irrelevant' as const, count: stats.reason_irrelevant, color: '#8b5cf6' },
+      { reason: 'irrelevant' as const, count: stats.reason_irrelevant, color: '#14b8a6' },
       { reason: 'inappropriate' as const, count: stats.reason_inappropriate, color: '#ec4899' },
       { reason: 'other' as const, count: stats.reason_other, color: '#6b7280' },
     ].filter(r => r.count > 0);
@@ -214,7 +214,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
         <button
           onClick={() => { fetchStats(); fetchReports(); }}
           disabled={statsLoading || reportsLoading}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-purple-600 hover:bg-purple-50 transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-50"
           title="Actualizar"
         >
           <RefreshCw size={14} className={clsx(statsLoading && 'animate-spin')} />
@@ -232,7 +232,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
       {/* ── Loading state ── */}
       {statsLoading && !stats && (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="animate-spin text-purple-400" size={20} />
+          <Loader2 className="animate-spin text-teal-400" size={20} />
         </div>
       )}
 
@@ -293,7 +293,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                     label="Tasa resolucion"
                     value={`${Math.round((stats.resolution_rate || 0) * 100)}%`}
                     icon={<BarChart3 size={15} />}
-                    color="#8b5cf6"
+                    color="#14b8a6"
                     subValue={stats.avg_resolution_hours > 0
                       ? `~${Math.round(stats.avg_resolution_hours)}h promedio`
                       : undefined
@@ -345,7 +345,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                 className={clsx(
                   'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-colors border',
                   (filterStatus || filterReason)
-                    ? 'text-purple-600 bg-purple-50 border-purple-200'
+                    ? 'text-teal-600 bg-teal-50 border-teal-200'
                     : 'text-zinc-400 hover:text-zinc-600 border-transparent hover:border-zinc-200'
                 )}
                 style={{ fontWeight: 600 }}
@@ -371,7 +371,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                       <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value as AiReportStatus | '')}
-                        className="text-[11px] border border-zinc-200 rounded-lg px-2 py-1 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-purple-300/50"
+                        className="text-[11px] border border-zinc-200 rounded-lg px-2 py-1 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-300/50"
                       >
                         <option value="">Todos</option>
                         <option value="pending">Pendiente</option>
@@ -385,7 +385,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                       <select
                         value={filterReason}
                         onChange={(e) => setFilterReason(e.target.value as AiReportReason | '')}
-                        className="text-[11px] border border-zinc-200 rounded-lg px-2 py-1 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-purple-300/50"
+                        className="text-[11px] border border-zinc-200 rounded-lg px-2 py-1 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-300/50"
                       >
                         <option value="">Todos</option>
                         <option value="incorrect">Incorrecto</option>
@@ -419,7 +419,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                 >
                   {reportsLoading ? (
                     <div className="flex items-center justify-center py-6">
-                      <Loader2 className="animate-spin text-purple-400" size={18} />
+                      <Loader2 className="animate-spin text-teal-400" size={18} />
                     </div>
                   ) : reports.length === 0 ? (
                     <p className="text-center text-[11px] text-zinc-400 py-6">

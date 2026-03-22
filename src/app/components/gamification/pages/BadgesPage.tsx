@@ -28,8 +28,8 @@ const RARITIES: { key: BadgeRarity; label: string }[] = [
 
 const RARITY_COLORS: Record<string, string> = {
   common: 'border-gray-200 bg-[#faf9f6]',
-  rare: 'border-blue-200 bg-blue-50',
-  epic: 'border-purple-200 bg-purple-50',
+  rare: 'border-teal-200 bg-teal-50',
+  epic: 'border-teal-200 bg-teal-50',
   legendary: 'border-amber-300 bg-amber-50',
 };
 

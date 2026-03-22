@@ -19,8 +19,8 @@ import {
 const METHOD_ICON_MAP: Record<string, React.ReactNode> = {
   flashcard: <Zap size={14} className="text-emerald-500" />,
   quiz: <GraduationCap size={14} className="text-amber-600" />,
-  video: <BookOpen size={14} className="text-blue-500" />,
-  resumo: <FileText size={14} className="text-violet-500" />,
+  video: <BookOpen size={14} className="text-teal-500" />,
+  resumo: <FileText size={14} className="text-teal-500" />,
   lectura: <BookOpen size={14} className="text-teal-500" />,
 };
 
@@ -213,7 +213,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 8 }}
                 transition={{ delay: idx * 0.06, duration: 0.2 }}
-                className="flex items-start gap-3 p-3 rounded-xl bg-[#f8f9fb] border border-[#eef0f3] hover:border-[#dfe2e8] transition-colors"
+                className="flex items-start gap-3 p-3 rounded-xl bg-[#faf9f6] border border-[#eef0f3] hover:border-[#dfe2e8] transition-colors"
               >
                 {/* Method icon */}
                 <div className="w-8 h-8 rounded-lg bg-white border border-[#eef0f3] flex items-center justify-center shrink-0 mt-0.5">

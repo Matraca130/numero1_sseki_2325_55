@@ -64,12 +64,12 @@ export function FlashcardManagerCard({
       exit={{ opacity: 0, y: -8 }}
       className={`bg-white rounded-xl border transition-all group ${
         isSelected
-          ? 'border-purple-300 bg-purple-50/30 ring-1 ring-purple-200'
+          ? 'border-teal-300 bg-teal-50/30 ring-1 ring-teal-200'
           : isDeleted
             ? 'border-red-200 bg-red-50/30 opacity-70'
             : isInactive
               ? 'border-amber-200 bg-amber-50/20 opacity-80'
-              : 'border-gray-100 hover:border-purple-200 hover:shadow-sm'
+              : 'border-gray-100 hover:border-teal-200 hover:shadow-sm'
       }`}
     >
       {/* Card header */}
@@ -78,18 +78,18 @@ export function FlashcardManagerCard({
           {/* Selection checkbox */}
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect(card.id); }}
-            className={`p-0.5 rounded transition-all ${isSelected ? 'text-purple-600' : 'text-gray-300 hover:text-gray-500'}`}
+            className={`p-0.5 rounded transition-all ${isSelected ? 'text-teal-600' : 'text-gray-300 hover:text-gray-500'}`}
           >
             {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
           </button>
           {keyword && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-semibold uppercase tracking-wide shrink-0">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 text-teal-600 text-[10px] font-semibold uppercase tracking-wide shrink-0">
               <Tag size={10} />
               {keyword.term}
             </span>
           )}
           {subtopicName && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-medium shrink-0">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 text-teal-600 text-[10px] font-medium shrink-0">
               {subtopicName}
             </span>
           )}
@@ -97,7 +97,7 @@ export function FlashcardManagerCard({
             card.source === 'ai'
               ? 'bg-amber-50 text-amber-600'
               : card.source === 'manual'
-                ? 'bg-blue-50 text-blue-600'
+                ? 'bg-teal-50 text-teal-600'
                 : 'bg-gray-50 text-gray-500'
           }`}>
             {card.source === 'ai' ? 'IA' : card.source === 'manual' ? 'Manual' : card.source}
@@ -152,14 +152,14 @@ export function FlashcardManagerCard({
               </button>
               <button
                 onClick={() => onEdit(card)}
-                className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-all"
+                className="p-1.5 rounded-lg hover:bg-teal-50 text-gray-400 hover:text-teal-600 transition-all"
                 title="Editar"
               >
                 <Pencil size={14} />
               </button>
               <button
                 onClick={() => onDuplicate(card)}
-                className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all"
+                className="p-1.5 rounded-lg hover:bg-teal-50 text-gray-400 hover:text-teal-600 transition-all"
                 title="Duplicar"
               >
                 <Copy size={14} />
@@ -189,7 +189,7 @@ export function FlashcardManagerCard({
       <div className="px-4 py-3 min-h-[72px]">
         <div className="flex items-start gap-2">
           <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 shrink-0 ${
-            flipped ? 'text-emerald-500' : 'text-purple-400'
+            flipped ? 'text-emerald-500' : 'text-teal-400'
           }`}>
             {flipped ? 'Reverso' : 'Frente'}
           </span>

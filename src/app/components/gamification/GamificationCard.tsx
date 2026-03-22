@@ -65,7 +65,7 @@ export function GamificationCard() {
 
   if (!profile) {
     return (
-      <div className="bg-gradient-to-br from-amber-500/10 to-violet-500/10 border border-amber-500/20 rounded-xl p-5">
+      <div className="bg-gradient-to-br from-amber-500/10 to-teal-500/10 border border-amber-500/20 rounded-xl p-5">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
             <Star size={20} className="text-amber-400" />
@@ -104,7 +104,7 @@ export function GamificationCard() {
           <p className="text-[9px] text-zinc-500 uppercase tracking-wider">XP hoy</p>
         </div>
         <div className="bg-zinc-800/50 rounded-lg p-2.5 text-center">
-          <Award size={14} className={badges_earned > 0 ? 'text-violet-400 mx-auto mb-1' : 'text-zinc-600 mx-auto mb-1'} />
+          <Award size={14} className={badges_earned > 0 ? 'text-teal-400 mx-auto mb-1' : 'text-zinc-600 mx-auto mb-1'} />
           <p className="text-lg text-zinc-200 tabular-nums" style={{ fontWeight: 700 }}>{badges_earned}</p>
           <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Logros</p>
         </div>
@@ -143,7 +143,7 @@ export function GamificationCard() {
       )}
 
       {xp.streak_freezes_owned > 0 && (
-        <div className="flex items-center gap-1.5 text-[10px] text-blue-400">
+        <div className="flex items-center gap-1.5 text-[10px] text-teal-400">
           <Shield size={10} />
           <span>{xp.streak_freezes_owned} freeze{xp.streak_freezes_owned !== 1 ? 's' : ''} disponible{xp.streak_freezes_owned !== 1 ? 's' : ''}</span>
         </div>
@@ -162,7 +162,7 @@ export function GamificationCard() {
               } else { setActionMessage('No se pudo comprar (XP insuficiente?)'); }
               setActionPending(false);
               actionTimeoutRef.current = setTimeout(() => setActionMessage(null), 4000);
-            }} className="flex items-center gap-1 text-[10px] text-blue-400/70 hover:text-blue-400 transition-colors disabled:opacity-40">
+            }} className="flex items-center gap-1 text-[10px] text-teal-400/70 hover:text-teal-400 transition-colors disabled:opacity-40">
               <Snowflake size={10} /><span>Comprar freeze</span>
             </button>
           )}

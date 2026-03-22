@@ -129,7 +129,7 @@ export function PlanProgressSidebar({
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="bg-[#f8f9fb] rounded-xl p-3 border border-[#eef0f3] relative"
+                  className="bg-[#faf9f6] rounded-xl p-3 border border-[#eef0f3] relative"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-[#3a4455] text-[12px] truncate flex-1 mr-2">{plan.name}</span>
@@ -217,7 +217,7 @@ export function PlanProgressSidebar({
 
       {/* ── Overall progress ── */}
       {!embedded && (
-        <div className="px-4 py-4 border-t border-[#f0f1f4] bg-[#f8f9fb]">
+        <div className="px-4 py-4 border-t border-[#f0f1f4] bg-[#faf9f6]">
           <div className="flex items-center gap-3">
             <div className="relative shrink-0" style={{ width: 36, height: 36 }}>
               <svg viewBox="0 0 36 36" width="36" height="36" className="-rotate-90">

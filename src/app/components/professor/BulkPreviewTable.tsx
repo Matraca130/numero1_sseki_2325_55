@@ -68,7 +68,7 @@ function EditableCell({
           if (e.key === 'Enter') { onChange(draft); setEditing(false); }
           if (e.key === 'Escape') { setDraft(value); setEditing(false); }
         }}
-        className="w-full px-2 py-1 text-xs border border-purple-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400 bg-white"
+        className="w-full px-2 py-1 text-xs border border-teal-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-400 bg-white"
         placeholder={placeholder}
       />
     );
@@ -157,7 +157,7 @@ export function BulkPreviewTable({
             <div className="relative">
               <button
                 onClick={() => setBulkKeywordOpen(!bulkKeywordOpen)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-teal-50 text-teal-600 border border-teal-200 hover:bg-teal-100 transition-all"
               >
                 <Tag size={10} />
                 Asignar keyword
@@ -174,7 +174,7 @@ export function BulkPreviewTable({
                           onBulkKeyword(kw.id);
                           setBulkKeywordOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-purple-50 text-gray-700 transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-teal-50 text-gray-700 transition-colors"
                       >
                         {kwDisplay(kw)}
                       </button>
@@ -199,7 +199,7 @@ export function BulkPreviewTable({
                 <th className="w-10 px-3 py-2.5">
                   <button
                     onClick={allSelected ? onDeselectAll : onSelectAll}
-                    className="text-gray-400 hover:text-purple-600 transition-colors"
+                    className="text-gray-400 hover:text-teal-600 transition-colors"
                   >
                     {allSelected ? <CheckSquare size={14} /> : <Square size={14} />}
                   </button>
@@ -222,15 +222,15 @@ export function BulkPreviewTable({
                     className={`border-b border-gray-100 last:border-b-0 transition-colors ${
                       row.status === 'error' ? 'bg-red-50/50' :
                       row.status === 'no_keyword' ? 'bg-amber-50/50' :
-                      row.selected ? 'bg-purple-50/30' : 'hover:bg-gray-50/50'
+                      row.selected ? 'bg-teal-50/30' : 'hover:bg-gray-50/50'
                     }`}
                   >
                     <td className="px-3 py-2">
                       <button
                         onClick={() => onToggleSelect(row.id)}
-                        className="text-gray-400 hover:text-purple-600 transition-colors"
+                        className="text-gray-400 hover:text-teal-600 transition-colors"
                       >
-                        {row.selected ? <CheckSquare size={14} className="text-purple-600" /> : <Square size={14} />}
+                        {row.selected ? <CheckSquare size={14} className="text-teal-600" /> : <Square size={14} />}
                       </button>
                     </td>
                     <td className="px-2 py-2 text-[10px] text-gray-400 font-mono">{idx + 1}</td>
@@ -252,7 +252,7 @@ export function BulkPreviewTable({
                       <select
                         value={row.keywordId}
                         onChange={(e) => handleKeywordChange(row.id, e.target.value)}
-                        className={`w-full px-2 py-1.5 rounded-md text-xs border focus:outline-none focus:ring-1 focus:ring-purple-400 transition-all ${
+                        className={`w-full px-2 py-1.5 rounded-md text-xs border focus:outline-none focus:ring-1 focus:ring-teal-400 transition-all ${
                           !row.keywordId
                             ? 'border-amber-300 bg-amber-50/50 text-amber-700'
                             : 'border-gray-200 bg-white text-gray-700'
@@ -270,7 +270,7 @@ export function BulkPreviewTable({
                           <select
                             value={row.subtopicId}
                             onChange={(e) => onUpdateRow(row.id, { subtopicId: e.target.value })}
-                            className="w-full px-2 py-1.5 rounded-md text-xs border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-400 transition-all"
+                            className="w-full px-2 py-1.5 rounded-md text-xs border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-400 transition-all"
                           >
                             <option value="">Sin subtopic</option>
                             {currentSubtopics.map(st => (
