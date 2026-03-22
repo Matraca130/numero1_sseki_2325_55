@@ -11,7 +11,7 @@
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { AxonBrand, AxonBadge, AxonWatermark } from '@/app/components/shared/AxonLogo';
-import { components, headingStyle } from '@/app/design-system';
+import { components, headingStyle, displayStyle } from '@/app/design-system';
 
 interface AxonPageHeaderProps {
   title: string;
@@ -57,7 +57,7 @@ export function AxonPageHeader({
               <span className="truncate">{title}</span>
               <span className="hidden sm:inline"><AxonBrand /></span>
             </h1>
-            <h2 className={`${components.pageHeader.subtitle} line-clamp-2 sm:line-clamp-1`} style={headingStyle}>{subtitle}</h2>
+            <h2 className={`${components.pageHeader.subtitle} line-clamp-2 sm:line-clamp-1`} style={displayStyle}>{subtitle}</h2>
           </div>
 
           {/* Right side — action button */}

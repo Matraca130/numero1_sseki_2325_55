@@ -21,7 +21,7 @@ export const axon = {
   tealAccent:    '#2a8c7a',
   hoverTeal:     '#244e47',
   darkPanel:     '#1a2e2a',
-  pageBg:        '#F0F2F5',
+  pageBg:        '#faf9f6',
   cardBg:        '#FFFFFF',
   progressStart: '#2dd4a8',
   progressEnd:   '#0d9488',

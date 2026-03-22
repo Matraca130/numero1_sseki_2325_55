@@ -1,14 +1,14 @@
 // ============================================================
-// Axon — Sidebar (RESPONSIVE VERSION v2)
+// Axon — Sidebar (RESPONSIVE VERSION v3 — Evolution Premium)
 //
 // This component is "dumb" about its container:
 //   - Desktop: rendered inside a motion.div that handles collapse
 //   - Mobile:  rendered inside MobileDrawer overlay
 //
-// Fixes from v1:
-//   - Removed unused imports (animation, layout)
-//   - Removed redundant lg:w-[260px] (parent controls width)
-//   - Added min-h-[44px] touch targets on all nav items
+// v3 (Evolution Premium):
+//   - DM Sans for section labels
+//   - Refined spacing and subtle Forest Canopy accents
+//   - Premium nav item typography
 // ============================================================
 import React from 'react';
 import { NavLink } from 'react-router';
@@ -69,7 +69,7 @@ export function Sidebar() {
         
         {/* Main Navigation */}
         <div className="space-y-1">
-          <p className={components.sidebar.sectionLabel}>Menu</p>
+          <p className={components.sidebar.sectionLabel} style={{ fontFamily: '"DM Sans", sans-serif' }}>Menu</p>
           {navItems.map((item) => {
             const Icon = item.icon;
             const to = viewToPath(item.id);
@@ -123,7 +123,7 @@ export function Sidebar() {
 
         {/* Secondary Navigation */}
         <div className="space-y-1">
-          <p className={components.sidebar.sectionLabel}>Otros</p>
+          <p className={components.sidebar.sectionLabel} style={{ fontFamily: '"DM Sans", sans-serif' }}>Otros</p>
           {/* Settings — active NavLink */}
           {(() => {
             const SettingsIcon = settingsItem.icon;

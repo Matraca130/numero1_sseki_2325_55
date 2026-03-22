@@ -81,7 +81,7 @@ function StudentShell() {
   }, [isMobile, isSidebarOpen, setSidebarOpen]);
 
   return (
-    <div className="flex h-screen w-full bg-[#F0F2F5] text-gray-900 font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-[#faf9f6] text-gray-900 font-sans overflow-hidden">
       
       {/* ── Desktop Sidebar (collapsible via motion, hidden on mobile) ── */}
       <motion.div
