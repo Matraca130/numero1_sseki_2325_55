@@ -1,7 +1,10 @@
 import type { SummaryBlock } from '@/app/services/summariesApi';
 
 export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
-  const { title, headers = [], rows = [], highlight_column } = block.content;
+  const title = block.content?.title as string | undefined;
+  const headers = (block.content?.headers ?? []) as string[];
+  const rows = (block.content?.rows ?? []) as string[][];
+  const highlight_column = block.content?.highlight_column as number | undefined;
 
   return (
     <div>
@@ -14,10 +17,11 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
-              {headers.map((h: string, i: number) => (
+              {headers.map((h, i) => (
                 <th
                   key={i}
-                  className={`px-3.5 py-2.5 bg-teal-900 dark:bg-gray-950 text-xs font-bold text-left border-b-2 border-b-gray-200 dark:border-b-gray-700 ${
+                  scope="col"
+                  className={`px-3.5 py-2.5 bg-teal-900 dark:bg-gray-950 text-xs font-bold text-left border-b-2 border-b-teal-600 ${
                     i === highlight_column ? 'text-[#3cc9a8]' : 'text-[#d1d5db]'
                   }`}
                 >
@@ -27,9 +31,9 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row: string[], ri: number) => (
-              <tr key={ri}>
-                {row.map((cell: string, ci: number) => (
+            {rows.map((row, ri) => (
+              <tr key={ri} className={ri % 2 === 1 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}>
+                {row.map((cell, ci) => (
                   <td
                     key={ci}
                     className={`px-3.5 py-2.5 border-b border-b-gray-200 dark:border-b-gray-700 ${

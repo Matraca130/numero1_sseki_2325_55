@@ -1,19 +1,28 @@
 import type { SummaryBlock } from '@/app/services/summariesApi';
 import IconByName from './IconByName';
 
+interface ListDetailItem {
+  icon?: string;
+  label?: string;
+  detail?: string;
+  severity?: string;
+}
+
 const SEVERITY_BADGE: Record<string, string> = {
-  high: 'bg-red-50 text-red-600',
-  medium: 'bg-amber-50 text-amber-600',
-  low: 'bg-green-50 text-green-600',
+  high: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400',
+  medium: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
+  low: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400',
 };
 
 export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
-  const { title, intro, items = [] } = block.content;
+  const title = block.content?.title as string | undefined;
+  const intro = block.content?.intro as string | undefined;
+  const items = (block.content?.items ?? []) as ListDetailItem[];
 
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-2 mt-0">
+        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-2.5 mt-0">
           {title}
         </h3>
       )}
@@ -23,7 +32,7 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
         </p>
       )}
       <div className="flex flex-col gap-2">
-        {items.map((item: any, i: number) => (
+        {items.map((item, i) => (
           <div
             key={i}
             className="flex gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-[10px] border border-gray-200 dark:border-gray-700 items-start"
@@ -32,16 +41,20 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
               <IconByName name={item.icon} size={16} className="text-teal-600 dark:text-teal-400" />
             </div>
             <div className="flex-1">
-              <div className="text-sm font-bold text-gray-900 dark:text-gray-200 mb-0.5">
-                {item.label}
-              </div>
-              <div className="text-[13px] text-gray-500 dark:text-gray-400 leading-normal">
-                {item.detail}
-              </div>
+              {item.label && (
+                <div className="text-sm font-bold text-gray-900 dark:text-gray-200 mb-0.5">
+                  {item.label}
+                </div>
+              )}
+              {item.detail && (
+                <div className="text-[13px] text-gray-500 dark:text-gray-400 leading-normal">
+                  {item.detail}
+                </div>
+              )}
             </div>
             {item.severity && SEVERITY_BADGE[item.severity] && (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-[10px] ${SEVERITY_BADGE[item.severity]}`}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-[10px] uppercase ${SEVERITY_BADGE[item.severity]}`}
               >
                 {item.severity}
               </span>
