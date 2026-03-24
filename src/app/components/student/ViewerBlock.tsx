@@ -222,7 +222,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       // Edu callout variants use the new renderer
       const eduVariants = ['tip', 'warning', 'clinical', 'mnemonic', 'exam'];
       if (c.variant && eduVariants.includes(c.variant)) {
-        return <EduCalloutBlock block={block} />;
+        return <EduCalloutBlock block={block} isMobile={isMobile} />;
       }
       // Legacy callout fallback
       const variant = c.variant || c.type || 'info';
@@ -296,21 +296,21 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
     // ── Edu Block Renderers (Fase 2) ────────────────────
     case 'prose':
-      return <ProseBlock block={block} />;
+      return <ProseBlock block={block} isMobile={isMobile} />;
     case 'key_point':
-      return <KeyPointBlock block={block} />;
+      return <KeyPointBlock block={block} isMobile={isMobile} />;
     case 'stages':
-      return <StagesBlock block={block} />;
+      return <StagesBlock block={block} isMobile={isMobile} />;
     case 'comparison':
-      return <ComparisonBlock block={block} />;
+      return <ComparisonBlock block={block} isMobile={isMobile} />;
     case 'list_detail':
-      return <ListDetailBlock block={block} />;
+      return <ListDetailBlock block={block} isMobile={isMobile} />;
     case 'grid':
-      return <GridBlock block={block} />;
+      return <GridBlock block={block} isMobile={isMobile} />;
     case 'two_column':
-      return <TwoColumnBlock block={block} />;
+      return <TwoColumnBlock block={block} isMobile={isMobile} />;
     case 'image_reference':
-      return <ImageReferenceBlock block={block} />;
+      return <ImageReferenceBlock block={block} isMobile={isMobile} />;
     case 'section_divider':
       return <SectionDividerBlock block={block} />;
 

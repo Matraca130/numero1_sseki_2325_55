@@ -14,7 +14,12 @@ const SEVERITY_BADGE: Record<string, string> = {
   low: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400',
 };
 
-export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
+interface Props {
+  block: SummaryBlock;
+  isMobile?: boolean;
+}
+
+export default function ListDetailBlock({ block, isMobile }: Props) {
   const title = block.content?.title as string | undefined;
   const intro = block.content?.intro as string | undefined;
   const items = (block.content?.items ?? []) as ListDetailItem[];
@@ -22,7 +27,7 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-2.5 mt-0">
+        <h3 className={`font-serif font-bold text-teal-900 dark:text-teal-400 mb-2.5 mt-0 ${isMobile ? 'text-lg' : 'text-xl'}`}>
           {title}
         </h3>
       )}
@@ -35,26 +40,26 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
         {items.map((item, i) => (
           <div
             key={i}
-            className="flex gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-[10px] border border-gray-200 dark:border-gray-700 items-start"
+            className={`flex gap-3 py-3 bg-white dark:bg-gray-800 rounded-[10px] border border-gray-200 dark:border-gray-700 items-start ${isMobile ? 'px-3' : 'px-4'}`}
           >
-            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center shrink-0">
-              <IconByName name={item.icon} size={16} className="text-teal-600 dark:text-teal-400" />
+            <div className={`rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center shrink-0 ${isMobile ? 'w-7 h-7' : 'w-8 h-8'}`}>
+              <IconByName name={item.icon} size={isMobile ? 14 : 16} className="text-teal-600 dark:text-teal-400" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {item.label && (
                 <div className="text-sm font-bold text-gray-900 dark:text-gray-200 mb-0.5">
                   {item.label}
                 </div>
               )}
               {item.detail && (
-                <div className="text-[13px] text-gray-500 dark:text-gray-400 leading-normal">
+                <div className={`text-gray-500 dark:text-gray-400 leading-normal ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                   {item.detail}
                 </div>
               )}
             </div>
             {item.severity && SEVERITY_BADGE[item.severity] && (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-[10px] uppercase ${SEVERITY_BADGE[item.severity]}`}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-[10px] uppercase shrink-0 ${SEVERITY_BADGE[item.severity]}`}
               >
                 {item.severity}
               </span>

@@ -44,7 +44,12 @@ const VARIANTS: Record<string, CalloutConfig> = {
   },
 };
 
-export default function CalloutBlock({ block }: { block: SummaryBlock }) {
+interface Props {
+  block: SummaryBlock;
+  isMobile?: boolean;
+}
+
+export default function CalloutBlock({ block, isMobile }: Props) {
   const variantKey = block.content?.variant as string | undefined;
   const title = block.content?.title as string | undefined;
   const content = block.content?.content as string | undefined;
@@ -53,7 +58,7 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
 
   return (
     <div
-      className={`rounded-xl px-5 py-4 border-l-4 ${v.light.bg} ${v.light.border} ${v.dark.bg} ${v.dark.border}`}
+      className={`rounded-xl py-4 border-l-4 ${v.light.bg} ${v.light.border} ${v.dark.bg} ${v.dark.border} ${isMobile ? 'px-3.5' : 'px-5'}`}
     >
       <div className="flex items-center gap-2 mb-2">
         <Icon size={16} className={`${v.light.accent} ${v.dark.accent}`} />
@@ -62,7 +67,7 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
         </span>
       </div>
       {title && (
-        <div className="font-serif text-base font-bold text-gray-900 dark:text-gray-200 mb-1.5">
+        <div className={`font-serif font-bold text-gray-900 dark:text-gray-200 mb-1.5 ${isMobile ? 'text-sm' : 'text-base'}`}>
           {title}
         </div>
       )}

@@ -19,21 +19,26 @@ const SEVERITY_BORDER: Record<string, string> = {
   critical: 'border-l-red-500',
 };
 
-export default function StagesBlock({ block }: { block: SummaryBlock }) {
+interface Props {
+  block: SummaryBlock;
+  isMobile?: boolean;
+}
+
+export default function StagesBlock({ block, isMobile }: Props) {
   const title = block.content?.title as string | undefined;
   const items = (block.content?.items ?? []) as StageItem[];
 
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-4 mt-0">
+        <h3 className={`font-serif font-bold text-teal-900 dark:text-teal-400 mb-4 mt-0 ${isMobile ? 'text-lg' : 'text-xl'}`}>
           {title}
         </h3>
       )}
-      <div className="relative pl-9">
+      <div className={`relative ${isMobile ? 'pl-7' : 'pl-9'}`}>
         {/* Gradient connector line */}
         {items.length > 1 && (
-          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-600 to-red-500" />
+          <div className={`absolute top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-600 to-red-500 ${isMobile ? 'left-[11px]' : 'left-[15px]'}`} />
         )}
         {items.map((item, i) => {
           const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-teal-600') : 'bg-teal-600';
@@ -43,16 +48,16 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
             <div key={i} className={`relative ${i < items.length - 1 ? 'mb-5' : ''}`}>
               {/* Numbered circle */}
               <div
-                className={`absolute -left-[30px] top-0.5 w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center ${sevBg}`}
+                className={`absolute top-0.5 w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center ${sevBg} ${isMobile ? '-left-[26px]' : '-left-[30px]'}`}
               >
                 {item.stage}
               </div>
               {/* Stage card */}
               <div
-                className={`rounded-[10px] px-4 py-3 border border-gray-200 dark:border-gray-700 border-l-[3px] ${sevBorder} bg-white dark:bg-gray-800`}
+                className={`rounded-[10px] py-3 border border-gray-200 dark:border-gray-700 border-l-[3px] ${sevBorder} bg-white dark:bg-gray-800 ${isMobile ? 'px-3' : 'px-4'}`}
               >
                 {item.title && (
-                  <div className="font-bold text-[15px] text-teal-900 dark:text-teal-400 mb-1">
+                  <div className={`font-bold text-teal-900 dark:text-teal-400 mb-1 ${isMobile ? 'text-sm' : 'text-[15px]'}`}>
                     {item.title}
                   </div>
                 )}
