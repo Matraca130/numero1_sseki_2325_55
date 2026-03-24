@@ -87,19 +87,30 @@ export interface Video {
   status?: string | null; // 'uploading' | 'ready' | 'errored'
 }
 
+// ═══ Block Type Unions ═══
+
+export type EduBlockType =
+  | 'prose' | 'key_point' | 'stages' | 'comparison' | 'list_detail'
+  | 'grid' | 'two_column' | 'callout' | 'image_reference' | 'section_divider';
+
+export type LegacyBlockType =
+  | 'text' | 'heading' | 'image' | 'video' | 'pdf' | 'divider' | 'keyword-ref';
+
 export interface SummaryBlock {
   id: string;
   summary_id: string;
-  type: 'text' | 'heading' | 'image' | 'video' | 'pdf' | 'callout' | 'divider' | 'keyword-ref';
+  type: EduBlockType | LegacyBlockType;
   content: Record<string, any>;
-  position_x: number;
-  position_y: number;
-  width: number;
-  height: number;
+  position_x?: number;
+  position_y?: number;
+  width?: number;
+  height?: number;
   order_index: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  style?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
 // ── Summaries ─────────────────────────────────────────────
@@ -305,4 +316,26 @@ export async function reorder(
 
 export async function getSummaryBlocks(summaryId: string): Promise<PaginatedList<SummaryBlock>> {
   return apiCall<PaginatedList<SummaryBlock>>(`/summary-blocks?summary_id=${summaryId}`);
+}
+
+// ═══ Block-based Summary CRUD (Fase 2) ═══
+
+export async function fetchSummaryBlocks(summaryId: string): Promise<SummaryBlock[]> {
+  return apiCall<SummaryBlock[]>(`/summary-blocks?summary_id=${summaryId}`);
+}
+
+export async function createSummaryBlock(data: {
+  summary_id: string; type: string; content: Record<string, any>; order_index?: number;
+}): Promise<SummaryBlock> {
+  return apiCall<SummaryBlock>('/summary-blocks', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function updateSummaryBlock(
+  id: string, data: Partial<Pick<SummaryBlock, 'type' | 'content' | 'order_index' | 'is_active' | 'style' | 'metadata'>>
+): Promise<SummaryBlock> {
+  return apiCall<SummaryBlock>(`/summary-blocks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function deleteSummaryBlock(id: string): Promise<void> {
+  await apiCall(`/summary-blocks/${id}`, { method: 'DELETE' });
 }
