@@ -36,8 +36,8 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
           <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-[#2a8c7a] to-red-500" />
         )}
         {items.map((item, i) => {
-          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-teal-600') : 'bg-teal-600';
-          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-teal-600') : 'border-l-teal-600';
+          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-[#2a8c7a]') : 'bg-[#2a8c7a]';
+          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-[#2a8c7a]') : 'border-l-[#2a8c7a]';
 
           return (
             <div key={i} className={`relative ${i < items.length - 1 ? 'mb-5' : ''}`}>

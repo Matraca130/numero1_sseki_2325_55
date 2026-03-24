@@ -8,7 +8,7 @@ describe('KeyPointBlock', () => {
     const block = makeBlock(FIXTURES.key_point);
     const { container } = render(<KeyPointBlock block={block} />);
     const wrapper = container.firstElementChild as HTMLElement;
-    expect(wrapper.className).toMatch(/bg-teal-900/);
+    expect(wrapper.className).toMatch(/bg-\[#1B3B36\]/);
   });
 
   it('shows CRÍTICO badge for critical importance', () => {

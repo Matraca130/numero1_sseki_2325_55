@@ -9,7 +9,7 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-3 mt-0">
+        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}
@@ -39,7 +39,7 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
                   let cellClass = 'px-3.5 py-2.5 border-b border-b-gray-200 dark:border-b-gray-700';
 
                   if (isHighlight) {
-                    cellClass += ' text-teal-600 dark:text-teal-400 font-semibold bg-[#e8f5f1]/60 dark:bg-teal-950/40';
+                    cellClass += ' text-[#2a8c7a] dark:text-teal-400 font-semibold bg-[#e8f5f1]/60 dark:bg-teal-950/40';
                   } else if (isFirstCol) {
                     cellClass += ' font-semibold text-[#1B3B36] dark:text-gray-200';
                   } else {
