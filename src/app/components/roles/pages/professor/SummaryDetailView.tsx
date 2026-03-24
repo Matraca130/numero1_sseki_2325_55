@@ -299,6 +299,10 @@ export function SummaryDetailView({
           summaryId={summary.id}
           onBack={onBack}
           onStatusChange={handleStatusChange}
+          onKeywordsClick={handleKeywordsClick}
+          onVideosClick={handleVideosClick}
+          keywordsCount={activeKeywords.length}
+          videosCount={videosCount}
           summaryTitle={summary.title || 'Sin titulo'}
           summaryStatus={summary.status}
         />

@@ -59,7 +59,7 @@ export default function BlockCard({
           </span>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <IconButton
               icon={<ChevronUp className="h-3.5 w-3.5" />}
               onClick={onMoveUp}

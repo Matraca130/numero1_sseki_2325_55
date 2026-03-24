@@ -15,7 +15,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { queryKeys } from './queryKeys';
 import * as api from '@/app/services/summariesApi';
-import type { SummaryBlock, ReorderTable } from '@/app/services/summariesApi';
+import type { SummaryBlock } from '@/app/services/summariesApi';
 
 // ── 1. Create block mutation ──────────────────────────────
 
@@ -87,7 +87,7 @@ export function useReorderBlocksMutation(summaryId: string) {
 
   return useMutation({
     mutationFn: (items: { id: string; order_index: number }[]) =>
-      api.reorder('summary_blocks' as ReorderTable, items),
+      api.reorder('summary_blocks', items),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.summaryBlocks(summaryId),

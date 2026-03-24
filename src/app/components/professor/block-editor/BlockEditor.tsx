@@ -9,9 +9,10 @@
 //   - Preview toggle (reuses student ViewerBlock)
 //   - Publish action
 // ============================================================
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Check } from 'lucide-react';
+import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { Button } from '@/app/components/ui/button';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import {
@@ -35,6 +36,10 @@ interface BlockEditorProps {
   summaryId: string;
   onBack: () => void;
   onStatusChange?: (status: string) => void;
+  onKeywordsClick?: () => void;
+  onVideosClick?: () => void;
+  keywordsCount?: number;
+  videosCount?: number;
   summaryTitle?: string;
   summaryStatus?: string;
 }
@@ -60,6 +65,10 @@ export default function BlockEditor({
   summaryId,
   onBack,
   onStatusChange,
+  onKeywordsClick,
+  onVideosClick,
+  keywordsCount = 0,
+  videosCount = 0,
   summaryTitle,
   summaryStatus = 'draft',
 }: BlockEditorProps) {
@@ -77,10 +86,30 @@ export default function BlockEditor({
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [showTopSelector, setShowTopSelector] = useState(false);
+  const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
 
   // ── Auto-save debounce refs ──────────────────────────────
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContent = useRef<Record<string, Record<string, unknown>>>({});
+
+  // ── Cleanup debounce timers on unmount + flush pending saves ──
+  useEffect(() => {
+    return () => {
+      // Flush pending saves before unmount
+      for (const blockId of Object.keys(pendingContent.current)) {
+        if (debounceTimers.current[blockId]) {
+          clearTimeout(debounceTimers.current[blockId]);
+        }
+        const content = pendingContent.current[blockId];
+        if (content) {
+          updateMutation.mutate({ blockId, data: { content } });
+        }
+      }
+      pendingContent.current = {};
+      debounceTimers.current = {};
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -147,10 +176,13 @@ export default function BlockEditor({
     pendingContent.current = {};
   }, [updateMutation]);
 
-  const handleDelete = useCallback((blockId: string) => {
-    if (editingBlockId === blockId) setEditingBlockId(null);
-    deleteMutation.mutate(blockId);
-  }, [editingBlockId, deleteMutation]);
+  const handleDeleteConfirm = useCallback(() => {
+    if (!deletingBlockId) return;
+    if (editingBlockId === deletingBlockId) setEditingBlockId(null);
+    deleteMutation.mutate(deletingBlockId, {
+      onSuccess: () => setDeletingBlockId(null),
+    });
+  }, [deletingBlockId, editingBlockId, deleteMutation]);
 
   const handleDuplicate = useCallback((block: SummaryBlock) => {
     createMutation.mutate({
@@ -209,7 +241,7 @@ export default function BlockEditor({
     flushPending();
     setPublishing(true);
     try {
-      await apiCall(`/content/summaries/${summaryId}/publish`, { method: 'POST' });
+      await apiCall(`/summaries/${summaryId}/publish`, { method: 'POST' });
       toast.success('Resumen publicado');
       onStatusChange?.('published');
     } catch (err: unknown) {
@@ -264,6 +296,10 @@ export default function BlockEditor({
         onPublish={handlePublish}
         status={summaryStatus}
         blockCount={blocks.length}
+        onKeywordsClick={onKeywordsClick}
+        onVideosClick={onVideosClick}
+        keywordsCount={keywordsCount}
+        videosCount={videosCount}
       />
 
       {/* Block type selector (from toolbar "Agregar bloque") */}
@@ -279,11 +315,19 @@ export default function BlockEditor({
         </div>
       )}
 
-      {/* Publishing overlay */}
-      {publishing && (
-        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
-          <span className="text-xs text-amber-700">Publicando...</span>
+      {/* Status bar: auto-save feedback + publishing */}
+      {(publishing || updateMutation.isPending) && (
+        <div className={`flex items-center gap-2 border-b px-4 py-1.5 ${publishing ? 'border-amber-200 bg-amber-50' : 'border-violet-100 bg-violet-50'}`}>
+          <Loader2 className={`h-3 w-3 animate-spin ${publishing ? 'text-amber-600' : 'text-violet-500'}`} />
+          <span className={`text-xs ${publishing ? 'text-amber-700' : 'text-violet-600'}`}>
+            {publishing ? 'Publicando...' : 'Guardando...'}
+          </span>
+        </div>
+      )}
+      {!publishing && !updateMutation.isPending && updateMutation.isSuccess && (
+        <div className="flex items-center gap-1.5 border-b border-emerald-100 bg-emerald-50 px-4 py-1">
+          <Check className="h-3 w-3 text-emerald-500" />
+          <span className="text-xs text-emerald-600">Guardado</span>
         </div>
       )}
 
@@ -330,7 +374,7 @@ export default function BlockEditor({
                       block={mergedBlock}
                       isEditing={editingBlockId === block.id}
                       onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
-                      onDelete={() => handleDelete(block.id)}
+                      onDelete={() => setDeletingBlockId(block.id)}
                       onDuplicate={() => handleDuplicate(block)}
                       onMoveUp={() => handleMoveUp(index)}
                       onMoveDown={() => handleMoveDown(index)}
@@ -358,6 +402,18 @@ export default function BlockEditor({
           })}
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={!!deletingBlockId}
+        onOpenChange={(open) => { if (!open) setDeletingBlockId(null); }}
+        title="Eliminar bloque"
+        description="¿Seguro que deseas eliminar este bloque? Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

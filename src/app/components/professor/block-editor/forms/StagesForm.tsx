@@ -87,9 +87,9 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
               }
             >
               <option value="">Severidad (opcional)</option>
-              <option value="leve">Leve</option>
-              <option value="moderado">Moderado</option>
-              <option value="grave">Grave</option>
+              <option value="mild">Leve</option>
+              <option value="moderate">Moderado</option>
+              <option value="critical">Grave</option>
             </select>
           </div>
         ))}
