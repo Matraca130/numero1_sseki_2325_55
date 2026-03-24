@@ -16,7 +16,7 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-[#1B3B36] mb-3 mt-0">
+        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}
@@ -24,19 +24,19 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
         {items.map((item, i) => (
           <div
             key={i}
-            className="bg-white rounded-[10px] p-3.5 border border-gray-200 flex items-start gap-2.5"
+            className="bg-white dark:bg-gray-800 rounded-[10px] p-3.5 border border-gray-200 dark:border-gray-700 flex items-start gap-2.5"
           >
-            <div className="w-7 h-7 rounded-lg bg-[#e8f5f1] flex items-center justify-center shrink-0">
-              <IconByName name={item.icon} size={16} className="text-[#2a8c7a]" />
+            <div className="w-7 h-7 rounded-lg bg-[#e8f5f1] dark:bg-teal-950 flex items-center justify-center shrink-0">
+              <IconByName name={item.icon} size={16} className="text-[#2a8c7a] dark:text-teal-400" />
             </div>
             <div className="min-w-0">
               {item.label && (
-                <div className="text-[13px] font-bold text-[#1B3B36]">
+                <div className="text-[13px] font-bold text-[#1B3B36] dark:text-gray-200">
                   {item.label}
                 </div>
               )}
               {item.detail && (
-                <div className="text-xs text-gray-500 mt-0.5">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {item.detail}
                 </div>
               )}

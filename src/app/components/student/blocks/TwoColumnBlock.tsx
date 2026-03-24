@@ -20,7 +20,7 @@ export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
       {columns.map((col, ci) => (
         <div
           key={ci}
-          className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
         >
           {col.title && (
             <div className={`${HEADER_COLORS[ci % HEADER_COLORS.length]} px-4 py-2.5`}>
@@ -33,15 +33,15 @@ export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
             {(col.items ?? []).map((item, i) => (
               <div
                 key={i}
-                className="px-4 py-2.5 border-b border-gray-100 last:border-b-0"
+                className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
               >
                 {item.label && (
-                  <div className="text-[13px] font-semibold text-[#1B3B36]">
+                  <div className="text-[13px] font-semibold text-[#1B3B36] dark:text-gray-200">
                     {item.label}
                   </div>
                 )}
                 {item.detail && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     {item.detail}
                   </div>
                 )}

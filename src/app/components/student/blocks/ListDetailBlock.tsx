@@ -37,7 +37,7 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
             key={i}
             className="flex gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-[10px] border border-gray-200 dark:border-gray-700 items-start"
           >
-            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[#e8f5f1] dark:bg-teal-950 flex items-center justify-center shrink-0">
               <IconByName name={item.icon} size={16} className="text-[#2a8c7a] dark:text-teal-400" />
             </div>
             <div className="flex-1">
