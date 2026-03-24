@@ -82,7 +82,7 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-violet-600">
-                Card {idx + 1}
+                Tarjeta {idx + 1}
               </span>
               <button
                 type="button"

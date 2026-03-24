@@ -221,7 +221,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     case 'callout': {
       // Edu callout variants use the new renderer
       const eduVariants = ['tip', 'warning', 'clinical', 'mnemonic', 'exam'];
-      if (c.variant && eduVariants.includes(c.variant) && c.title) {
+      if (c.variant && eduVariants.includes(c.variant)) {
         return <EduCalloutBlock block={block} />;
       }
       // Legacy callout fallback
