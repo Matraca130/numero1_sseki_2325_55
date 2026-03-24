@@ -1,5 +1,12 @@
 import type { SummaryBlock } from '@/app/services/summariesApi';
 
+interface StageItem {
+  stage?: number | string;
+  title?: string;
+  content?: string;
+  severity?: string;
+}
+
 const SEVERITY_COLORS: Record<string, string> = {
   mild: 'bg-emerald-500',
   moderate: 'bg-amber-500',
@@ -13,7 +20,8 @@ const SEVERITY_BORDER: Record<string, string> = {
 };
 
 export default function StagesBlock({ block }: { block: SummaryBlock }) {
-  const { title, items = [] } = block.content;
+  const title = block.content?.title as string | undefined;
+  const items = (block.content?.items ?? []) as StageItem[];
 
   return (
     <div>
@@ -27,9 +35,9 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
         {items.length > 1 && (
           <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-600 to-red-500" />
         )}
-        {items.map((item: any, i: number) => {
-          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] || 'bg-teal-600') : 'bg-teal-600';
-          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] || 'border-l-teal-600') : 'border-l-teal-600';
+        {items.map((item, i) => {
+          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-teal-600') : 'bg-teal-600';
+          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-teal-600') : 'border-l-teal-600';
 
           return (
             <div key={i} className={`relative ${i < items.length - 1 ? 'mb-5' : ''}`}>
@@ -43,12 +51,16 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
               <div
                 className={`rounded-[10px] px-4 py-3 border border-gray-200 dark:border-gray-700 border-l-[3px] ${sevBorder} bg-white dark:bg-gray-800`}
               >
-                <div className="font-bold text-[15px] text-teal-900 dark:text-teal-400 mb-1">
-                  {item.title}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 leading-[1.6]">
-                  {item.content}
-                </div>
+                {item.title && (
+                  <div className="font-bold text-[15px] text-teal-900 dark:text-teal-400 mb-1">
+                    {item.title}
+                  </div>
+                )}
+                {item.content && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400 leading-[1.6]">
+                    {item.content}
+                  </div>
+                )}
               </div>
             </div>
           );

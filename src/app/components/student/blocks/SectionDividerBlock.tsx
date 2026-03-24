@@ -1,7 +1,7 @@
 import type { SummaryBlock } from '@/app/services/summariesApi';
 
 export default function SectionDividerBlock({ block }: { block: SummaryBlock }) {
-  const { label } = block.content;
+  const label = block.content?.label as string | undefined;
 
   return (
     <div className="flex items-center gap-4 py-2" role="separator">

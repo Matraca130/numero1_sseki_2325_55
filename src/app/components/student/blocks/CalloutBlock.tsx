@@ -1,10 +1,11 @@
+import type { LucideProps } from 'lucide-react';
 import {
   Lightbulb, AlertTriangle, Stethoscope, Brain, Target,
 } from 'lucide-react';
 import type { SummaryBlock } from '@/app/services/summariesApi';
 
 interface CalloutConfig {
-  icon: React.FC<any>;
+  icon: React.FC<LucideProps>;
   label: string;
   light: { bg: string; border: string; accent: string };
   dark: { bg: string; border: string; accent: string };
@@ -19,13 +20,13 @@ const VARIANTS: Record<string, CalloutConfig> = {
   },
   warning: {
     icon: AlertTriangle,
-    label: 'Atención',
+    label: 'Atenci\u00f3n',
     light: { bg: 'bg-[#fffbeb]', border: 'border-l-amber-500', accent: 'text-[#92400e]' },
     dark: { bg: 'dark:bg-[#2a2010]', border: 'dark:border-l-amber-500', accent: 'dark:text-amber-300' },
   },
   clinical: {
     icon: Stethoscope,
-    label: 'Correlación Clínica',
+    label: 'Correlaci\u00f3n Cl\u00ednica',
     light: { bg: 'bg-[#eff6ff]', border: 'border-l-blue-500', accent: 'text-[#1e40af]' },
     dark: { bg: 'dark:bg-[#0f1a2e]', border: 'dark:border-l-blue-500', accent: 'dark:text-blue-300' },
   },
@@ -44,8 +45,10 @@ const VARIANTS: Record<string, CalloutConfig> = {
 };
 
 export default function CalloutBlock({ block }: { block: SummaryBlock }) {
-  const { variant: variantKey, title, content } = block.content;
-  const v = VARIANTS[variantKey] || VARIANTS.tip;
+  const variantKey = block.content?.variant as string | undefined;
+  const title = block.content?.title as string | undefined;
+  const content = block.content?.content as string | undefined;
+  const v = VARIANTS[variantKey ?? ''] ?? VARIANTS.tip;
   const Icon = v.icon;
 
   return (
@@ -54,7 +57,7 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
     >
       <div className="flex items-center gap-2 mb-2">
         <Icon size={16} className={`${v.light.accent} ${v.dark.accent}`} />
-        <span className={`text-xs font-bold uppercase tracking-wide ${v.light.accent} ${v.dark.accent}`}>
+        <span className={`text-xs font-bold uppercase tracking-[0.05em] ${v.light.accent} ${v.dark.accent}`}>
           {v.label}
         </span>
       </div>
@@ -64,7 +67,7 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
         </div>
       )}
       {content && (
-        <div className="text-sm leading-relaxed text-gray-500 dark:text-gray-400 whitespace-pre-line">
+        <div className="text-sm leading-[1.6] text-gray-500 dark:text-gray-400 whitespace-pre-line">
           {content}
         </div>
       )}
