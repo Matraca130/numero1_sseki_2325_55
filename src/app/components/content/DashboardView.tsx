@@ -7,7 +7,7 @@
 //   3. Subject progress header wraps on mobile
 //   4. EmptyState action button full-width on mobile
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useApp } from '@/app/context/AppContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
@@ -51,54 +51,61 @@ export function DashboardView() {
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
 
   // ── Build chart data from real daily activity ──
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const sliceDays = timeRange === 'week' ? 7 : 30;
-  const activityData: ActivityDataPoint[] = isConnected && dailyActivity.length > 0
-    ? dailyActivity.slice(-sliceDays).map(d => ({
-        date: dayNames[new Date(d.date + 'T12:00:00').getDay()],
-        videos: Math.round(d.studyMinutes * 0.3),
-        cards: d.cardsReviewed,
-        amt: d.studyMinutes,
-      }))
-    : dayNames.slice(1).concat(dayNames[0]).map(d => ({ date: d, videos: 0, cards: 0, amt: 0 }));
+  const activityData: ActivityDataPoint[] = useMemo(() =>
+    isConnected && dailyActivity.length > 0
+      ? dailyActivity.slice(-sliceDays).map(d => ({
+          date: dayNames[new Date(d.date + 'T12:00:00').getDay()],
+          videos: Math.round(d.studyMinutes * 0.3),
+          cards: d.cardsReviewed,
+          amt: d.studyMinutes,
+        }))
+      : dayNames.slice(1).concat(dayNames[0]).map(d => ({ date: d, videos: 0, cards: 0, amt: 0 })),
+    [isConnected, dailyActivity, sliceDays],
+  );
 
   // ── Build mastery data from BKT states ──
-  const totalBkt = bktStates.length || 1;
-  const masteredBkt = bktStates.filter(b => b.p_know >= 0.9).length;
-  const learningBkt = bktStates.filter(b => b.p_know >= 0.5 && b.p_know < 0.9).length;
-  const reviewingBkt = bktStates.filter(b => b.p_know >= 0.3 && b.p_know < 0.5).length;
-  const notStartedBkt = Math.max(0, totalBkt - masteredBkt - learningBkt - reviewingBkt);
+  const { masteryData, totalCards } = useMemo(() => {
+    const totalBkt = bktStates.length || 1;
+    const masteredBkt = bktStates.filter(b => b.p_know >= 0.9).length;
+    const learningBkt = bktStates.filter(b => b.p_know >= 0.5 && b.p_know < 0.9).length;
+    const reviewingBkt = bktStates.filter(b => b.p_know >= 0.3 && b.p_know < 0.5).length;
+    const notStartedBkt = Math.max(0, totalBkt - masteredBkt - learningBkt - reviewingBkt);
 
-  const totalCards = isConnected && bktStates.length > 0 ? bktStates.length : 0;
+    const cards = isConnected && bktStates.length > 0 ? bktStates.length : 0;
 
-  const masteryData: MasteryDataPoint[] = [
-    { name: 'No Iniciado', value: notStartedBkt || (isConnected ? 0 : 250), color: '#d1d5db' },
-    { name: 'Aprendiendo', value: learningBkt || (isConnected ? 0 : 100), color: '#fbbf24' },
-    { name: 'Revisando', value: reviewingBkt || (isConnected ? 0 : 80), color: '#14b8a6' },
-    { name: 'Dominado', value: masteredBkt || (isConnected ? 0 : 70), color: '#0d9488' },
-  ];
+    const data: MasteryDataPoint[] = [
+      { name: 'Não Iniciado', value: notStartedBkt || (isConnected ? 0 : 250), color: '#d1d5db' },
+      { name: 'Aprendendo', value: learningBkt || (isConnected ? 0 : 100), color: '#fbbf24' },
+      { name: 'Revisando', value: reviewingBkt || (isConnected ? 0 : 80), color: '#14b8a6' },
+      { name: 'Dominado', value: masteredBkt || (isConnected ? 0 : 70), color: '#0d9488' },
+    ];
+
+    return { masteryData: data, totalCards: cards };
+  }, [bktStates, isConnected]);
 
   // ── Subject progress from BKT + content tree ──
-  const subjectProgress = (() => {
+  const subjectProgress = useMemo(() => {
     if (!tree?.courses?.length) return [];
     const COLORS = ['#0d9488', '#14b8a6', '#0891b2', '#7c3aed', '#f59e0b', '#ef4444'];
     return tree.courses.map((course, i) => {
-      const topicIds: string[] = [];
-      course.semesters?.forEach(s => s.sections?.forEach(sec => sec.topics?.forEach(t => topicIds.push(t.id))));
-      const relevantBkt = bktStates.filter(b => topicIds.includes(b.subtopic_id));
+      const topicIds = new Set<string>();
+      course.semesters?.forEach(s => s.sections?.forEach(sec => sec.topics?.forEach(t => topicIds.add(t.id))));
+      const relevantBkt = bktStates.filter(b => topicIds.has(b.subtopic_id));
       return {
         name: course.name,
-        total: topicIds.length,
+        total: topicIds.size,
         completed: relevantBkt.filter(b => b.p_know >= 0.9).length,
         color: COLORS[i % COLORS.length],
       };
     });
-  })();
+  }, [tree, bktStates]);
 
   // ── KPI values from real stats ──
-  const kpiCards = isConnected && stats ? stats.totalCardsReviewed.toLocaleString('es-MX') : '0';
+  const kpiCards = isConnected && stats ? stats.totalCardsReviewed.toLocaleString('pt-BR') : '0';
   const kpiTime = isConnected && stats ? `${Math.floor(stats.totalStudyMinutes / 60)}h ${stats.totalStudyMinutes % 60}m` : '0h 0m';
-  const kpiStreak = isConnected && stats ? `${stats.currentStreak} Dias` : '0 Dias';
+  const kpiStreak = isConnected && stats ? `${stats.currentStreak} dias` : '0 dias';
   const kpiAccuracy = (() => {
     if (!isConnected || !dailyActivity.length) return '0%';
     const withRet = dailyActivity.filter(d => d.retentionPercent !== undefined);
@@ -113,7 +120,7 @@ export function DashboardView() {
       <AxonPageHeader
         title="Dashboard"
         subtitle={currentCourse.name}
-        statsLeft={<p className="text-gray-500 text-sm">Vision general de tu aprendizaje</p>}
+        statsLeft={<p className="text-gray-500 text-sm">Visão geral do seu aprendizado</p>}
         actionButton={
           <div className="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200/60 shrink-0">
             <button
@@ -126,7 +133,7 @@ export function DashboardView() {
               onClick={() => setTimeRange('month')}
               className={clsx("px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap", timeRange === 'month' ? components.filterButton.active : components.filterButton.inactive)}
             >
-              Este Mes
+              Este Mês
             </button>
           </div>
         }
@@ -142,9 +149,9 @@ export function DashboardView() {
               variant="card"
               accent="teal"
               icon={<Target size={24} />}
-              title="Tu dashboard esta listo"
-              description="Completa tu primera sesion de estudio para que las metricas, graficos y curvas de olvido se llenen con datos reales de tu progreso."
-              actionLabel="Comenzar a Estudiar"
+              title="Seu dashboard está pronto"
+              description="Complete sua primeira sessão de estudo para que as métricas, gráficos e curvas de esquecimento sejam preenchidos com dados reais do seu progresso."
+              actionLabel="Começar a Estudar"
               onAction={() => navigateTo('study')}
             />
           )}
@@ -153,28 +160,28 @@ export function DashboardView() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
               icon={<Layers className="w-5 h-5 text-[#2a8c7a]" />}
-              label="Cards Estudiados"
+              label="Cards Estudados"
               value={kpiCards}
               trendSlot={<TrendBadge label="+12%" up />}
               iconColorClass="bg-[#e6f5f1]"
             />
             <KPICard
               icon={<Clock className="w-5 h-5 text-[#2a8c7a]" />}
-              label="Tiempo de Estudio"
+              label="Tempo de Estudo"
               value={kpiTime}
               trendSlot={<TrendBadge label="+5%" up />}
               iconColorClass="bg-[#e6f5f1]"
             />
             <KPICard
               icon={<Flame className="w-5 h-5 text-amber-600" />}
-              label="Racha Actual"
+              label="Sequência Atual"
               value={kpiStreak}
-              trendSlot={<TrendBadge label={isConnected && stats && stats.currentStreak >= stats.longestStreak ? "Record!" : `Mejor: ${stats?.longestStreak ?? 0}`} up />}
+              trendSlot={<TrendBadge label={isConnected && stats && stats.currentStreak >= stats.longestStreak ? "Recorde!" : `Melhor: ${stats?.longestStreak ?? 0}`} up />}
               iconColorClass="bg-amber-50"
             />
             <KPICard
               icon={<Trophy className="w-5 h-5 text-yellow-600" />}
-              label="Promedio de Aciertos"
+              label="Média de Acertos"
               value={kpiAccuracy}
               trendSlot={<TrendBadge label={isConnected ? "BKT" : "\u2014"} up />}
               iconColorClass="bg-yellow-50"
@@ -190,8 +197,8 @@ export function DashboardView() {
           {/* Subject Progress */}
           <div className={components.chartCard.base}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900" style={headingStyle}>Progreso por Materia</h3>
-              <button className="text-sm text-[#2a8c7a] font-medium hover:text-[#1B3B36] whitespace-nowrap">Ver Reporte Completo</button>
+              <h3 className="text-lg font-semibold text-gray-900" style={headingStyle}>Progresso por Matéria</h3>
+              <button className="text-sm text-[#2a8c7a] font-medium hover:text-[#1B3B36] whitespace-nowrap">Ver Relatório Completo</button>
             </div>
             <div className="space-y-6">
               {subjectProgress.map((subject, idx) => {

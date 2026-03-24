@@ -73,7 +73,7 @@ const QUICK_PROMPTS = [
 
 // ── Main Component ────────────────────────────────────────
 
-export function AxonAIAssistant({
+export const AxonAIAssistant = React.memo(function AxonAIAssistant({
   isOpen,
   onClose,
   summaryId,
@@ -87,13 +87,20 @@ export function AxonAIAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Chat RAG metadata — per-message citations & feedback
-  const [messageSources, setMessageSources] = useState<Map<string, Array<{ chunk_id: string; summary_title: string; similarity: number }>>>(new Map());
-  const [messageLogIds, setMessageLogIds] = useState<Map<string, string>>(new Map());
+  // Chat RAG metadata — per-message citations & feedback (useRef: don't trigger re-renders)
+  const messageSourcesRef = useRef<Map<string, Array<{ chunk_id: string; summary_title: string; similarity: number }>>>(new Map());
+  const messageLogIdsRef = useRef<Map<string, string>>(new Map());
   const [feedbackGiven, setFeedbackGiven] = useState<Map<string, 'positive' | 'negative'>>(new Map());
 
   // Streaming state
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // RAF throttle ref for streaming updates
+  const rafIdRef = useRef<number | null>(null);
+  const pendingContentRef = useRef<string | null>(null);
+
+  // Copy timeout ref for cleanup
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Flashcard mode state
   const [generatedCards, setGeneratedCards] = useState<GeneratedFlashcard[]>([]);
@@ -108,6 +115,11 @@ export function AxonAIAssistant({
   const [explainConceptText, setExplainConceptText] = useState('');
   const [explanation, setExplanation] = useState('');
 
+  // Stable ref mirror of messages — lets sendChat read current messages
+  // without adding `messages` to its useCallback deps array.
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -119,29 +131,44 @@ export function AxonAIAssistant({
   // Focus input when opened
   useEffect(() => {
     if (isOpen && mode === 'chat') {
-      setTimeout(() => inputRef.current?.focus(), 300);
+      const t = setTimeout(() => inputRef.current?.focus(), 300);
+      return () => clearTimeout(t);
     }
   }, [isOpen, mode]);
 
+  // Cleanup RAF and copy timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+      if (copyTimeoutRef.current !== null) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
+
   // ── Chat ──────────────────────────────────────────────
 
-  const addMessage = (role: DisplayMessage['role'], content: string, isError = false) => {
+  const addMessage = useCallback((role: DisplayMessage['role'], content: string, isError = false) => {
     setMessages(prev => [
       ...prev,
       { id: `msg-${Date.now()}-${Math.random()}`, role, content, timestamp: new Date(), isError },
     ]);
-  };
+  }, []);
 
   const sendChat = useCallback(async (text?: string) => {
     const msg = text || input.trim();
-    if (!msg || isLoading) return;
+    if (!msg || isLoading || isStreaming) return;
     setInput('');
 
     addMessage('user', msg);
     setIsLoading(true);
 
+    // Sync messagesRef eagerly so fallback path reads up-to-date history
+    // (addMessage uses setState which won't re-render until after this function yields)
+    const userEntry: DisplayMessage = { id: `msg-${Date.now()}-${Math.random()}`, role: 'user', content: msg, timestamp: new Date() };
+    messagesRef.current = [...messagesRef.current, userEntry];
+
     // Build history from previous messages (excluding system errors)
-    const history: ChatHistoryEntry[] = messages
+    // Read from ref to avoid `messages` in useCallback deps (prevents recreation on every message).
+    const history: ChatHistoryEntry[] = messagesRef.current
       .filter(m => m.role !== 'system')
       .map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
 
@@ -163,21 +190,43 @@ export function AxonAIAssistant({
         history,
         onChunk: (chunk) => {
           accumulated += chunk;
-          const current = accumulated;
-          setMessages(prev =>
-            prev.map(m => m.id === streamingMsgId ? { ...m, content: current } : m)
-          );
+          pendingContentRef.current = accumulated;
+          // Throttle setMessages to ~60fps via requestAnimationFrame
+          if (rafIdRef.current === null) {
+            rafIdRef.current = requestAnimationFrame(() => {
+              rafIdRef.current = null;
+              const content = pendingContentRef.current;
+              if (content !== null) {
+                setMessages(prev =>
+                  prev.map(m => m.id === streamingMsgId ? { ...m, content } : m)
+                );
+                pendingContentRef.current = null;
+              }
+            });
+          }
         },
         onSources: (sources) => {
-          setMessageSources(prev => new Map(prev).set(streamingMsgId, sources));
+          messageSourcesRef.current = new Map(messageSourcesRef.current).set(streamingMsgId, sources);
         },
         onDone: (meta) => {
           if (meta.log_id) {
-            setMessageLogIds(prev => new Map(prev).set(streamingMsgId, meta.log_id));
+            messageLogIdsRef.current = new Map(messageLogIdsRef.current).set(streamingMsgId, meta.log_id);
           }
         },
       });
 
+      // Flush any pending RAF content after stream ends
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      if (pendingContentRef.current !== null) {
+        const finalContent = pendingContentRef.current;
+        pendingContentRef.current = null;
+        setMessages(prev =>
+          prev.map(m => m.id === streamingMsgId ? { ...m, content: finalContent } : m)
+        );
+      }
       setIsStreaming(false);
     } catch {
       // Streaming failed — remove placeholder and fall back to non-streaming
@@ -199,10 +248,10 @@ export function AxonAIAssistant({
 
         // Store sources & log_id for citations/feedback
         if (result.sources && result.sources.length > 0) {
-          setMessageSources(prev => new Map(prev).set(fallbackMsgId, result.sources));
+          messageSourcesRef.current = new Map(messageSourcesRef.current).set(fallbackMsgId, result.sources);
         }
         if (result.log_id) {
-          setMessageLogIds(prev => new Map(prev).set(fallbackMsgId, result.log_id));
+          messageLogIdsRef.current = new Map(messageLogIdsRef.current).set(fallbackMsgId, result.log_id);
         }
       } catch (err: unknown) {
         addMessage('system', `Erro: ${(err as Error).message}`, true);
@@ -210,7 +259,7 @@ export function AxonAIAssistant({
         setIsLoading(false);
       }
     }
-  }, [input, isLoading, messages, summaryId]);
+  }, [input, isLoading, isStreaming, summaryId, addMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -221,18 +270,23 @@ export function AxonAIAssistant({
 
   // ── Flashcards ────────────────────────────────────────
 
-  const generateFlashcardsFn = async () => {
+  const generateFlashcardsFn = useCallback(async () => {
     if (!summaryId) return;
     setIsLoading(true);
     setGeneratedCards([]);
     setFlippedCards(new Set());
     try {
-      // Generate multiple flashcards sequentially (API returns one at a time)
+      // Generate multiple flashcards concurrently (allSettled: don't lose all if one fails)
       const count = 5;
-      const cards: GeneratedFlashcard[] = [];
-      for (let i = 0; i < count; i++) {
-        const card = await generateFlashcard({ summaryId });
-        cards.push(card);
+      const results = await Promise.allSettled(
+        Array.from({ length: count }, () => generateFlashcard({ summaryId }))
+      );
+      const cards = results
+        .filter((r): r is PromiseFulfilledResult<GeneratedFlashcard> => r.status === 'fulfilled')
+        .map(r => r.value);
+      if (cards.length === 0) {
+        const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        throw new Error(`Todas as gerações falharam: ${firstError?.reason?.message || 'erro desconhecido'}`);
       }
       setGeneratedCards(cards);
     } catch (err: unknown) {
@@ -241,23 +295,28 @@ export function AxonAIAssistant({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [summaryId, addMessage]);
 
   // ── Quiz ──────────────────────────────────────────────
 
-  const generateQuizFn = async () => {
+  const generateQuizFn = useCallback(async () => {
     if (!summaryId) return;
     setIsLoading(true);
     setGeneratedQuiz([]);
     setSelectedAnswers(new Map());
     setShowExplanations(new Set());
     try {
-      // Generate multiple quiz questions sequentially (API returns one at a time)
+      // Generate multiple quiz questions concurrently (allSettled: don't lose all if one fails)
       const count = 3;
-      const questions: GeneratedQuestion[] = [];
-      for (let i = 0; i < count; i++) {
-        const q = await generateQuizQuestion({ summaryId });
-        questions.push(q);
+      const results = await Promise.allSettled(
+        Array.from({ length: count }, () => generateQuizQuestion({ summaryId }))
+      );
+      const questions = results
+        .filter((r): r is PromiseFulfilledResult<GeneratedQuestion> => r.status === 'fulfilled')
+        .map(r => r.value);
+      if (questions.length === 0) {
+        const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        throw new Error(`Todas as gerações falharam: ${firstError?.reason?.message || 'erro desconhecido'}`);
       }
       setGeneratedQuiz(questions);
     } catch (err: unknown) {
@@ -266,7 +325,7 @@ export function AxonAIAssistant({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [summaryId, addMessage]);
 
   // ── Explain ───────────────────────────────────────────
 
@@ -288,16 +347,20 @@ export function AxonAIAssistant({
 
   // ── Copy ──────────────────────────────────────────────
 
-  const copyText = (text: string, id: string) => {
+  const copyText = useCallback((text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+    if (copyTimeoutRef.current !== null) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => {
+      setCopiedId(null);
+      copyTimeoutRef.current = null;
+    }, 2000);
+  }, []);
 
   // ── RAG Feedback ───────────────────────────────────────
 
   const handleRagFeedback = async (msgId: string, feedback: 'positive' | 'negative') => {
-    const logId = messageLogIds.get(msgId);
+    const logId = messageLogIdsRef.current.get(msgId);
     if (!logId || feedbackGiven.has(msgId)) return;
 
     // Optimistic update
@@ -351,10 +414,11 @@ export function AxonAIAssistant({
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             role="dialog"
-            aria-label="Asistente AI Axon"
+            aria-label="Assistente IA Axon"
             aria-modal="true"
+            data-suppress-shortcuts
             onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col"
+            className="ai-panel fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col"
           >
             {/* ── Header ── */}
             <div className="shrink-0 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-5 py-4 flex items-center justify-between relative overflow-hidden">
@@ -377,7 +441,7 @@ export function AxonAIAssistant({
 
               <button
                 onClick={onClose}
-                aria-label="Cerrar asistente"
+                aria-label="Fechar assistente"
                 className="relative w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
               >
                 <X size={18} />
@@ -391,7 +455,7 @@ export function AxonAIAssistant({
                 { id: 'flashcards', icon: Layers, label: 'Flashcards' },
                 { id: 'quiz', icon: GraduationCap, label: 'Quiz' },
                 { id: 'explain', icon: BookOpen, label: 'Explicar' },
-                { id: 'voice', icon: Phone, label: 'Llamar' },
+                { id: 'voice', icon: Phone, label: 'Ligar' },
               ] as const).map(tab => (
                 <button
                   key={tab.id}
@@ -484,6 +548,7 @@ export function AxonAIAssistant({
                 </div>
               )}
               <div
+                aria-busy={msg.role === 'model' && isStreaming && msg === messages[messages.length - 1] ? 'true' : undefined}
                 className={clsx(
                   "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group",
                   msg.role === 'user'
@@ -499,10 +564,10 @@ export function AxonAIAssistant({
                 {msg.role === 'model' && (
                   <div className="absolute -bottom-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                     {/* Feedback buttons (only when log_id exists) */}
-                    {messageLogIds.has(msg.id) && (
+                    {messageLogIdsRef.current.has(msg.id) && (
                       <>
                         <button
-                          aria-label="Respuesta util"
+                          aria-label="Resposta útil"
                           onClick={() => handleRagFeedback(msg.id, 'positive')}
                           disabled={feedbackGiven.has(msg.id)}
                           className={clsx(
@@ -517,7 +582,7 @@ export function AxonAIAssistant({
                           <ThumbsUp size={12} />
                         </button>
                         <button
-                          aria-label="Respuesta no util"
+                          aria-label="Resposta não útil"
                           onClick={() => handleRagFeedback(msg.id, 'negative')}
                           disabled={feedbackGiven.has(msg.id)}
                           className={clsx(
@@ -534,7 +599,7 @@ export function AxonAIAssistant({
                       </>
                     )}
                     <button
-                      aria-label="Copiar respuesta"
+                      aria-label="Copiar resposta"
                       onClick={() => copyText(msg.content, msg.id)}
                       className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
                     >
@@ -544,13 +609,13 @@ export function AxonAIAssistant({
                 )}
 
                 {/* Citations (collapsible) */}
-                {msg.role === 'model' && messageSources.has(msg.id) && (
+                {msg.role === 'model' && messageSourcesRef.current.has(msg.id) && (
                   <details className="mt-3 border-t border-gray-100 pt-2">
                     <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-violet-500 select-none">
-                      Fontes ({messageSources.get(msg.id)!.length})
+                      Fontes ({messageSourcesRef.current.get(msg.id)!.length})
                     </summary>
                     <ul className="mt-1.5 space-y-1">
-                      {messageSources.get(msg.id)!.map((src, si) => (
+                      {messageSourcesRef.current.get(msg.id)!.map((src, si) => (
                         <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-md px-2 py-1.5">
                           <span className="truncate mr-2">{src.summary_title}</span>
                           <span className="shrink-0 text-[10px] font-mono text-violet-500">
@@ -580,6 +645,7 @@ export function AxonAIAssistant({
             </div>
           )}
 
+          {isStreaming && <span className="sr-only" role="status">A IA está respondendo...</span>}
           <div ref={chatEndRef} />
         </div>
 
@@ -597,7 +663,7 @@ export function AxonAIAssistant({
           <div className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
-              aria-label="Escribe tu mensaje"
+              aria-label="Escreva sua mensagem"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -607,17 +673,17 @@ export function AxonAIAssistant({
               style={{ maxHeight: '120px' }}
             />
             <button
-              aria-label="Enviar mensaje"
+              aria-label="Enviar mensagem"
               onClick={() => sendChat()}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || isStreaming}
               className={clsx(
                 "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                input.trim() && !isLoading
+                input.trim() && !isLoading && !isStreaming
                   ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm"
                   : "bg-gray-100 text-gray-300"
               )}
             >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} />}
+              {isLoading || isStreaming ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} />}
             </button>
           </div>
         </div>
@@ -644,7 +710,7 @@ export function AxonAIAssistant({
               <p className="text-gray-400 text-xs mt-1">
                 {summaryId
                   ? 'Gere flashcards baseados no resumo atual'
-                  : 'Navega a un resumen para generar flashcards'}
+                  : 'Navegue a um resumo para gerar flashcards'}
               </p>
             </div>
 
@@ -652,7 +718,7 @@ export function AxonAIAssistant({
               {!summaryId && (
                 <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
                   <AlertCircle size={14} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">Navega a un resumen para generar flashcards con IA.</p>
+                  <p className="text-xs text-amber-700">Navegue a um resumo para gerar flashcards com IA.</p>
                 </div>
               )}
               <button
@@ -743,7 +809,7 @@ export function AxonAIAssistant({
               <p className="text-gray-400 text-xs mt-1">
                 {summaryId
                   ? 'Questoes no estilo residencia medica'
-                  : 'Navega a un resumen para generar quiz'}
+                  : 'Navegue a um resumo para gerar quiz'}
               </p>
             </div>
 
@@ -751,7 +817,7 @@ export function AxonAIAssistant({
               {!summaryId && (
                 <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
                   <AlertCircle size={14} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">Navega a un resumen para generar quiz con IA.</p>
+                  <p className="text-xs text-amber-700">Navegue a um resumo para gerar quiz com IA.</p>
                 </div>
               )}
               <button
@@ -925,7 +991,7 @@ export function AxonAIAssistant({
                 <ArrowLeft size={14} /> Voltar
               </button>
               <button
-                aria-label="Copiar respuesta"
+                aria-label="Copiar resposta"
                 onClick={() => copyText(explanation, 'explanation')}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500"
               >
@@ -964,7 +1030,7 @@ export function AxonAIAssistant({
       </div>
     );
   }
-}
+});
 
 // ── Markdown renderer (simplified) ────────────────────────
 

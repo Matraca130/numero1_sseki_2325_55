@@ -7,7 +7,9 @@ import type { Course, Topic } from '@/app/data/courses';
 // Keeps existing `import { ViewType } from '@/app/context/AppContext'` working.
 export type { ViewType } from '@/app/hooks/useStudentNav';
 
-export type ThemeType = 'dark' | 'light';
+// ── Re-export ThemeType and useUI from UIContext for backward compat ──
+export type { ThemeType } from '@/app/context/UIContext';
+export { useUI } from '@/app/context/UIContext';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -42,8 +44,6 @@ interface AppContextType {
   setCurrentCourse: (course: Course) => void;
   currentTopic: Topic | null;
   setCurrentTopic: (topic: Topic) => void;
-  isSidebarOpen: boolean;
-  setSidebarOpen: (isOpen: boolean) => void;
   isStudySessionActive: boolean;
   setStudySessionActive: (active: boolean) => void;
   studyPlans: StudyPlan[];
@@ -53,9 +53,20 @@ interface AppContextType {
   setQuizAutoStart: (v: boolean) => void;
   flashcardAutoStart: boolean;
   setFlashcardAutoStart: (v: boolean) => void;
+  // ── Deprecated: use useUI() instead ──
+  /** @deprecated Use useUI().isSidebarOpen instead */
+  isSidebarOpen: boolean;
+  /** @deprecated Use useUI().setSidebarOpen instead */
+  setSidebarOpen: (isOpen: boolean) => void;
+  /** @deprecated Use useUI().theme instead */
   theme: ThemeType;
+  /** @deprecated Use useUI().setTheme instead */
   setTheme: (theme: ThemeType) => void;
 }
+
+// Import ThemeType locally for use in this file
+import type { ThemeType } from '@/app/context/UIContext';
+import { useUI } from '@/app/context/UIContext';
 
 const noop = () => {};
 
@@ -95,12 +106,13 @@ const AppContext = createContext<AppContextType>(defaultContextValue);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [currentCourse, setCurrentCourse] = useState<Course>(emptyCourse);
   const [currentTopic, setCurrentTopic] = useState<Topic | null>(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isStudySessionActive, setStudySessionActive] = useState(false);
   const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
   const [quizAutoStart, setQuizAutoStart] = useState(false);
   const [flashcardAutoStart, setFlashcardAutoStart] = useState(false);
-  const [theme, setTheme] = useState<ThemeType>('light');
+
+  // Delegate sidebar/theme to UIContext (backward compat bridge)
+  const ui = useUI();
 
   const addStudyPlan = useCallback((plan: StudyPlan) => {
     setStudyPlans(prev => {
@@ -132,8 +144,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentCourse,
     currentTopic,
     setCurrentTopic,
-    isSidebarOpen,
-    setSidebarOpen,
+    isSidebarOpen: ui.isSidebarOpen,
+    setSidebarOpen: ui.setSidebarOpen,
     isStudySessionActive,
     setStudySessionActive,
     studyPlans,
@@ -143,12 +155,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setQuizAutoStart,
     flashcardAutoStart,
     setFlashcardAutoStart,
-    theme,
-    setTheme,
+    theme: ui.theme,
+    setTheme: ui.setTheme,
   }), [
     currentCourse, currentTopic,
-    isSidebarOpen, isStudySessionActive, studyPlans, addStudyPlan,
-    toggleTaskComplete, quizAutoStart, flashcardAutoStart, theme,
+    ui.isSidebarOpen, ui.setSidebarOpen, ui.theme, ui.setTheme,
+    isStudySessionActive, studyPlans, addStudyPlan,
+    toggleTaskComplete, quizAutoStart, flashcardAutoStart,
   ]);
 
   return (

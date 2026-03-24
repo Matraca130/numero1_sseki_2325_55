@@ -13,7 +13,7 @@
 // node styles without destroying/recreating the G6 instance.
 // ============================================================
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Graph } from '@antv/g6';
 import type { GraphData, MapNode, G6NodeEvent } from '@/app/types/mindmap';
 import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP, truncateLabel } from '@/app/types/mindmap';
@@ -54,17 +54,26 @@ function buildNodeStyle(node: MapNode, isFocal: boolean) {
   };
 }
 
-// ── Stable key for data identity ────────────────────────────
+// ── Stable key for data identity (O(N) hash, no sort) ──────
 
 function dataKey(data: GraphData): string {
-  const nodeIds = data.nodes.map(n => n.id).sort().join(',');
-  const edgeIds = data.edges.map(e => e.id).sort().join(',');
-  return `${nodeIds}|${edgeIds}`;
+  let hash = 0;
+  for (let i = 0; i < data.nodes.length; i++) {
+    const id = data.nodes[i].id;
+    for (let j = 0; j < id.length; j++) hash = ((hash << 5) - hash + id.charCodeAt(j)) | 0;
+  }
+  const nodeHash = hash;
+  hash = 0;
+  for (let i = 0; i < data.edges.length; i++) {
+    const id = data.edges[i].id;
+    for (let j = 0; j < id.length; j++) hash = ((hash << 5) - hash + id.charCodeAt(j)) | 0;
+  }
+  return `${data.nodes.length}:${nodeHash}|${data.edges.length}:${hash}`;
 }
 
 // ── Component ───────────────────────────────────────────────
 
-export function MiniKnowledgeGraph({
+export const MiniKnowledgeGraph = React.memo(function MiniKnowledgeGraph({
   data,
   focalNodeId,
   onNodeClick,
@@ -257,8 +266,8 @@ export function MiniKnowledgeGraph({
       className={`w-full bg-gray-50 rounded-xl border border-gray-100 ${className}`}
       style={{ height, touchAction: 'none' }}
       role="group"
-      aria-label={`Mini mapa de conocimiento con ${data.nodes.length} conceptos. Haz clic en un nodo para resaltar.`}
-      aria-roledescription="grafo de conocimiento"
+      aria-label={`Mini mapa de conhecimento com ${data.nodes.length} conceitos. Clique em um nó para destacar.`}
+      aria-roledescription="grafo de conhecimento"
     />
   );
-}
+});

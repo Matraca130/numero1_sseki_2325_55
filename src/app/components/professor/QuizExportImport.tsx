@@ -12,7 +12,7 @@
 // Design: purple accent, tabbed modal.
 // ============================================================
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as quizApi from '@/app/services/quizApi';
 import type { QuizQuestion, CreateQuizQuestionPayload } from '@/app/services/quizApi';
 import { QUESTION_TYPE_LABELS, normalizeDifficulty, normalizeQuestionType } from '@/app/services/quizConstants';
@@ -70,6 +70,8 @@ export function QuizExportImport({
   const [importError, setImportError] = useState<string | null>(null);
   const [previewQuestions, setPreviewQuestions] = useState<ExportedQuestion[] | null>(null);
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => { clearTimeout(copiedTimerRef.current); }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Export ─────────────────────────────────────────────
@@ -104,7 +106,8 @@ export function QuizExportImport({
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(exportJson).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
       toast.success('Copiado al portapapeles');
     });
   }, [exportJson]);

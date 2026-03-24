@@ -18,12 +18,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { AppProvider } from '@/app/context/AppContext';
+import { UIProvider } from '@/app/context/UIContext';
 import { StudentDataProvider } from '@/app/context/StudentDataContext';
 import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import { StudyPlansProvider } from '@/app/context/StudyPlansContext';
 import { TopicMasteryProvider } from '@/app/context/TopicMasteryContext';
 import { StudyTimeEstimatesProvider } from '@/app/context/StudyTimeEstimatesContext';
 import { useApp } from '@/app/context/AppContext';
+import { useUI } from '@/app/context/UIContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { Sidebar } from '@/app/components/layout/Sidebar';
 import { TopicSidebar } from '@/app/components/layout/TopicSidebar';
@@ -39,7 +41,8 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 // -- Inner shell (needs AppContext available) ------------------
 
 function StudentShell() {
-  const { isSidebarOpen, setSidebarOpen, isStudySessionActive } = useApp();
+  const { isStudySessionActive } = useApp();
+  const { isSidebarOpen, setSidebarOpen } = useUI();
   const { navigateTo, isView } = useStudentNav();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -180,22 +183,28 @@ function StudentShell() {
   );
 }
 
+// -- ComposeProviders utility (flattens nested context providers) --
+
+function ComposeProviders({ providers, children }: { providers: React.ComponentType<{ children: React.ReactNode }>[]; children: React.ReactNode }) {
+  return providers.reduceRight<React.ReactNode>((acc, Provider) => <Provider>{acc}</Provider>, children);
+}
+
 // -- Public export: wraps providers + shell --------------------
+
+const STUDENT_PROVIDERS: React.ComponentType<{ children: React.ReactNode }>[] = [
+  UIProvider,
+  AppProvider,
+  StudentDataProvider,
+  ContentTreeProvider,
+  TopicMasteryProvider,
+  StudyTimeEstimatesProvider,
+  StudyPlansProvider,
+];
 
 export function StudentLayout() {
   return (
-    <AppProvider>
-      <StudentDataProvider>
-        <ContentTreeProvider>
-          <TopicMasteryProvider>
-            <StudyTimeEstimatesProvider>
-              <StudyPlansProvider>
-                <StudentShell />
-              </StudyPlansProvider>
-            </StudyTimeEstimatesProvider>
-          </TopicMasteryProvider>
-        </ContentTreeProvider>
-      </StudentDataProvider>
-    </AppProvider>
+    <ComposeProviders providers={STUDENT_PROVIDERS}>
+      <StudentShell />
+    </ComposeProviders>
   );
 }

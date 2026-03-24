@@ -54,13 +54,13 @@ import { PresentationMode } from './mindmap/PresentationMode';
 import { ChangeHistoryPanel } from './mindmap/ChangeHistoryPanel';
 import { ShareMapModal } from './mindmap/ShareMapModal';
 import { MapComparisonPanel } from './mindmap/MapComparisonPanel';
-import { StickyNotesLayer, loadStickyNotes, createStickyNote, saveStickyNotes } from './mindmap/StickyNote';
-import type { StickyNoteData } from './mindmap/StickyNote';
-import { loadNodeColors, saveNodeColor } from './mindmap/useNodeColors';
-import type { NodeColorMap } from './mindmap/useNodeColors';
+import { StickyNotesLayer } from './mindmap/StickyNote';
 import { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry } from './mindmap/changeHistoryHelpers';
 import type { HistoryEntry } from './mindmap/changeHistoryHelpers';
-import type { MapTool } from './mindmap/MapToolsPanel';
+import { useMapUIState } from './mindmap/useMapUIState';
+import { useMapToolState } from './mindmap/useMapToolState';
+import { useMapStickyNotes } from './mindmap/useMapStickyNotes';
+import { useMapNodeColors } from './mindmap/useMapNodeColors';
 import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
@@ -91,7 +91,7 @@ export function KnowledgeMapView() {
           for (const topic of section.topics || []) {
             result.push({
               id: topic.id,
-              name: topic.name || 'Sin título',
+              name: topic.name || 'Sem título',
               courseName: course.name,
             });
           }
@@ -208,65 +208,47 @@ export function KnowledgeMapView() {
     setActiveTool('pointer');
   }, [setSearchQuery]);
 
-  // UI state
-  const [layout, setLayout] = useState<'force' | 'radial' | 'dagre'>('force');
+  // ── Extracted state hooks ────────────────────────────────
+  const ui = useMapUIState();
+  const {
+    showAiPanel, showHistory, showComparison, presentationMode, showShareModal, showOnboarding,
+    zoomLevel, showMinimap, aiHighlightNodes, aiReviewNodes,
+    toggleAiPanel, toggleHistory, toggleComparison, toggleMinimap,
+    setShowAiPanel, setShowHistory, setShowComparison, setPresentationMode, setShowShareModal,
+    setZoomLevel, setAiHighlightNodes, setAiReviewNodes,
+    dismissOnboarding, showOnboardingRef,
+  } = ui;
 
+  const tools = useMapToolState(showOnboardingRef);
+  const {
+    activeTool, setActiveTool, activeToolRef,
+    connectSource, setConnectSource, connectSourceRef,
+    connectTarget, setConnectTarget,
+    confirmDeleteNode, setConfirmDeleteNode,
+    annotationNode, setAnnotationNode,
+    handleToolChange,
+  } = tools;
+
+  // UI state (remaining top-level)
+  const [layout, setLayout] = useState<'force' | 'radial' | 'dagre'>('force');
   const [selectedNode, setSelectedNode] = useState<MapNode | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     node: MapNode;
     position: { x: number; y: number };
   } | null>(null);
-  const [annotationNode, setAnnotationNode] = useState<MapNode | null>(null);
   const [collapsedCount, setCollapsedCount] = useState(0);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [exiting, setExiting] = useState(false);
-  const [activeTool, setActiveTool] = useState<MapTool>('pointer');
-  const [connectSource, setConnectSource] = useState<MapNode | null>(null);
-  const [connectTarget, setConnectTarget] = useState<MapNode | null>(null);
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
-  const [presentationMode, setPresentationMode] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
-  const [aiHighlightNodes, setAiHighlightNodes] = useState<Set<string> | undefined>();
-  const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
-  const [zoomLevel, setZoomLevel] = useState(1);
-  // masteryFilter state is declared earlier (before useMemo that depends on it)
-  // Minimap: visible on desktop by default, hidden on mobile
-  const [showMinimap, setShowMinimap] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
-  const toggleMinimap = useCallback(() => setShowMinimap(v => !v), []);
+
   const graphControlsRef = useRef<GraphControls | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const activeToolRef = useRef(activeTool);
-  activeToolRef.current = activeTool;
-  const connectSourceRef = useRef(connectSource);
-  connectSourceRef.current = connectSource;
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const deletingNodeRef = useRef(false);
   const reconnectingRef = useRef(false);
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
-
-  // First-visit onboarding tip
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try { return !localStorage.getItem('axon_map_onboarded'); } catch { return true; }
-  });
-  const showOnboardingRef = useRef(showOnboarding);
-  showOnboardingRef.current = showOnboarding;
-  const dismissOnboarding = useCallback(() => {
-    setShowOnboarding(false);
-    try { localStorage.setItem('axon_map_onboarded', '1'); } catch {}
-  }, []);
-
-  // Dismiss onboarding with Escape key
-  useEffect(() => {
-    if (!showOnboarding) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismissOnboarding(); };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [showOnboarding, dismissOnboarding]);
 
   // Stable callbacks for KnowledgeGraph (avoids unnecessary child re-renders)
   const handleGraphReady = useCallback((controls: GraphControls) => {
@@ -298,7 +280,7 @@ export function KnowledgeMapView() {
       if (tool === 'connect' && source) {
         setConnectSource(null);
         setConnectTarget(null);
-        toast.info('Conexión cancelada');
+        toast.info('Conexão cancelada');
       }
       // In add-node mode, clicking canvas opens the add modal
       if (tool === 'add-node') {
@@ -318,19 +300,19 @@ export function KnowledgeMapView() {
           setConfirmDeleteNode(node);
           setActiveTool('pointer');
         } else {
-          toast.error('Solo puedes eliminar conceptos creados por ti');
+          toast.error('Você só pode excluir conceitos criados por você');
         }
         return;
       case 'connect':
         if (!source) {
           // First click: select source
           setConnectSource(node);
-          toast.info(`Origen: "${node.label}" — Ahora selecciona el destino`);
+          toast.info(`Origem: "${node.label}" — Agora selecione o destino`);
         } else if (source.id === node.id) {
           // Clicked same node: cancel
           setConnectSource(null);
           setConnectTarget(null);
-          toast.info('Conexión cancelada');
+          toast.info('Conexão cancelada');
         } else {
           // Second click: open modal pre-filled with source→target
           setConnectTarget(node);
@@ -374,49 +356,11 @@ export function KnowledgeMapView() {
     if (effectiveTopicId && historyEntries.length > 0) saveHistory(effectiveTopicId, historyEntries);
   }, [effectiveTopicId, historyEntries]);
 
-  // ── Sticky notes ───────────────────────────────────────────
-  const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
-  useEffect(() => {
-    if (effectiveTopicId) {
-      setStickyNotes(loadStickyNotes(effectiveTopicId));
-    } else {
-      setStickyNotes([]);
-    }
-  }, [effectiveTopicId]);
+  // ── Sticky notes (extracted hook) ─────────────────────────
+  const { stickyNotes, setStickyNotes, handleAddStickyNote } = useMapStickyNotes(effectiveTopicId);
 
-  const handleAddStickyNote = useCallback(() => {
-    if (!effectiveTopicId) return;
-    setStickyNotes(prev => {
-      if (prev.length >= 10) {
-        toast.error('Máximo 10 notas por tema');
-        return prev;
-      }
-      const note = createStickyNote();
-      const next = [...prev, note];
-      saveStickyNotes(effectiveTopicId, next);
-      return next;
-    });
-  }, [effectiveTopicId]);
-
-  // ── Custom node colors ────────────────────────────────────
-  const [customNodeColors, setCustomNodeColors] = useState<NodeColorMap>(new Map());
-  useEffect(() => {
-    if (effectiveTopicId) {
-      setCustomNodeColors(loadNodeColors(effectiveTopicId));
-    } else {
-      setCustomNodeColors(new Map());
-    }
-  }, [effectiveTopicId]);
-
-  const handleNodeColorChange = useCallback((nodeId: string, color: string) => {
-    if (!effectiveTopicId) return;
-    saveNodeColor(effectiveTopicId, nodeId, color);
-    setCustomNodeColors(prev => {
-      const next = new Map(prev);
-      next.set(nodeId, color);
-      return next;
-    });
-  }, [effectiveTopicId]);
+  // ── Custom node colors (extracted hook) ──────────────────
+  const { customNodeColors, handleNodeColorChange } = useMapNodeColors(effectiveTopicId);
 
   const handleAction = useCallback((action: NodeAction, node: MapNode) => {
     setContextMenu(null);
@@ -439,7 +383,7 @@ export function KnowledgeMapView() {
       case 'connect':
         setConnectSource(node);
         setActiveTool('connect');
-        toast.info(`Origen: "${node.label}" — Ahora selecciona el destino`);
+        toast.info(`Origem: "${node.label}" — Agora selecione o destino`);
         break;
       case 'annotate':
         setAnnotationNode(node);
@@ -455,8 +399,6 @@ export function KnowledgeMapView() {
   const handlePresentationFocus = useCallback((nodeId: string) => {
     graphControlsRef.current?.focusNode?.(nodeId);
   }, []);
-
-  const [confirmDeleteNode, setConfirmDeleteNode] = useState<MapNode | null>(null);
 
   const handleDeleteCustomNode = useCallback(async (node: MapNode) => {
     if (!node.isUserCreated) return;
@@ -489,7 +431,7 @@ export function KnowledgeMapView() {
       refetch();
     } catch (e: unknown) {
       if (!mountedRef.current) return;
-      toast.error(e instanceof Error ? e.message : 'Error al eliminar concepto');
+      toast.error(e instanceof Error ? e.message : 'Erro ao excluir conceito');
       setConfirmDeleteNode(null);
     } finally {
       deletingNodeRef.current = false;
@@ -508,7 +450,7 @@ export function KnowledgeMapView() {
 
       // Guard: prevent self-loops (finally resets reconnectingRef)
       if (newSource === newTarget) {
-        toast.warning('No puedes conectar un nodo consigo mismo');
+        toast.warning('Você não pode conectar um nó a ele mesmo');
         return;
       }
 
@@ -517,7 +459,7 @@ export function KnowledgeMapView() {
         e => e.source === newSource && e.target === newTarget && e.id !== oldEdge.id,
       );
       if (edgeExists) {
-        toast.warning('Ya existe una conexión entre estos nodos');
+        toast.warning('Já existe uma conexão entre esses nós');
         return;
       }
 
@@ -579,12 +521,12 @@ export function KnowledgeMapView() {
       // Find node labels for toast (use ref for stable callback)
       const srcNode = graphDataNodesRef.current?.find(n => n.id === newSource);
       const tgtNode = graphDataNodesRef.current?.find(n => n.id === newTarget);
-      toast.success(`Conexión reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
+      toast.success(`Conexão reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
       haptic(50);
       refetch();
     } catch (e: unknown) {
       if (!mountedRef.current) return;
-      toast.error(e instanceof Error ? e.message : 'Error al reconectar arista');
+      toast.error(e instanceof Error ? e.message : 'Erro ao reconectar aresta');
     } finally {
       reconnectingRef.current = false;
     }
@@ -602,42 +544,6 @@ export function KnowledgeMapView() {
 
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
-
-  // Tool keyboard shortcuts (V/N/C/D/A) — reset connect state when switching away
-  const handleToolChange = useCallback((tool: MapTool) => {
-    if (tool !== 'connect') {
-      setConnectSource(null);
-      setConnectTarget(null);
-    }
-    setActiveTool(tool);
-  }, []);
-
-  useEffect(() => {
-    const handleToolKey = (e: KeyboardEvent) => {
-      if (showOnboardingRef.current) return;
-      const el = e.target as HTMLElement;
-      if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable) return;
-      // Suppress tool shortcuts when any modal/dialog is open
-      if (el?.closest('[role="dialog"], [role="alertdialog"]')) return;
-      // Escape cancels connect mode or returns to pointer tool
-      if (e.key === 'Escape') {
-        if (connectSourceRef.current) {
-          setConnectSource(null);
-          setConnectTarget(null);
-          setActiveTool('pointer');
-          toast.info('Conexión cancelada');
-        } else if (activeToolRef.current !== 'pointer') {
-          setActiveTool('pointer');
-        }
-        return;
-      }
-      const map: Record<string, MapTool> = { v: 'pointer', n: 'add-node', c: 'connect', d: 'delete', a: 'annotate' };
-      const tool = map[e.key.toLowerCase()];
-      if (tool) handleToolChange(tool);
-    };
-    document.addEventListener('keydown', handleToolKey);
-    return () => document.removeEventListener('keydown', handleToolKey);
-  }, [handleToolChange]);
 
   // Set of node IDs that have children (for collapse/expand in context menu)
   const nodesWithChildren = useMemo(() => {
@@ -780,13 +686,13 @@ export function KnowledgeMapView() {
             className="text-gray-900 mb-2 text-center"
             style={{ ...headingStyle, fontSize: 'clamp(1.1rem, 2vw, 1.35rem)' }}
           >
-            Mapa de Conocimiento
+            Mapa de Conhecimento
           </h2>
           <p
             className="text-gray-500 mb-6 text-center max-w-sm leading-relaxed"
             style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
           >
-            Selecciona un tema para ver tu mapa de conocimiento.
+            Selecione um tema para ver seu mapa de conhecimento.
           </p>
           {allTopics.length > 0 ? (
             <div className="relative w-full max-w-xs">
@@ -796,7 +702,7 @@ export function KnowledgeMapView() {
                 className="w-full appearance-none bg-white border border-gray-200 rounded-full px-4 py-2.5 pr-9 text-sm text-gray-700 shadow-sm hover:border-gray-300 transition-colors"
                 style={{ outlineColor: '#2a8c7a' }}
               >
-                <option value="">Seleccionar tema...</option>
+                <option value="">Selecionar tema...</option>
                 {allTopics.map(t => (
                   <option key={t.id} value={t.id}>
                     {t.courseName} — {t.name}
@@ -810,7 +716,7 @@ export function KnowledgeMapView() {
               className="text-gray-500 leading-relaxed"
               style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
             >
-              Ningún tema disponible. Ingresa a un curso primero.
+              Nenhum tema disponível. Acesse um curso primeiro.
             </p>
           )}
         </div>
@@ -824,16 +730,16 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
           <AxonPageHeader
-            title="Mapa de Conocimiento"
-            subtitle={currentCourse?.name || 'Todos los temas'}
+            title="Mapa de Conhecimento"
+            subtitle={currentCourse?.name || 'Todos os temas'}
             onBack={() => navigate(-1)}
           />
           <EmptyState
             icon={<Globe className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title="Ningún concepto en el curso"
+            title="Nenhum conceito no curso"
             description={courseTopicIds.length === 0
-              ? 'Este curso no tiene temas. Accede a un curso con contenido primero.'
-              : 'Los temas de este curso aún no tienen conceptos mapeados. ¡Estudia más para construir tu mapa!'}
+              ? 'Este curso não tem temas. Acesse um curso com conteúdo primeiro.'
+              : 'Os temas deste curso ainda não têm conceitos mapeados. Estude mais para construir seu mapa!'}
           />
         </div>
       </FadeIn>
@@ -845,14 +751,14 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
           <AxonPageHeader
-            title="Mapa de Conocimiento"
-            subtitle="Visualiza tu dominio de cada concepto"
+            title="Mapa de Conhecimento"
+            subtitle="Visualize seu domínio de cada conceito"
             onBack={() => navigate(-1)}
           />
           <EmptyState
             icon={<Brain className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title="Ningún concepto encontrado"
-            description="Este tema aún no tiene palabras clave con conexiones. ¡Estudia más para construir tu mapa!"
+            title="Nenhum conceito encontrado"
+            description="Este tema ainda não tem palavras-chave com conexões. Estude mais para construir seu mapa!"
           />
         </div>
       </FadeIn>
@@ -876,8 +782,8 @@ export function KnowledgeMapView() {
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {searchQuery.trim()
             ? matchCount === 0
-              ? 'Ningún concepto encontrado'
-              : `${matchCount} conceptos encontrados para "${searchQuery}"`
+              ? 'Nenhum conceito encontrado'
+              : `${matchCount} conceitos encontrados para "${searchQuery}"`
             : ''}
         </div>
 
@@ -921,7 +827,7 @@ export function KnowledgeMapView() {
                 onAddConcept={() => setAddModalOpen(true)}
                 canAdd={!!(effectiveTopicId && scope === 'topic')}
                 showAiPanel={showAiPanel}
-                onToggleAi={() => { setShowAiPanel(v => { if (!v) { setShowHistory(false); setShowComparison(false); } else { setAiHighlightNodes(undefined); setAiReviewNodes(undefined); } return !v; }); }}
+                onToggleAi={toggleAiPanel}
                 onExportPNG={handleExportPNG}
                 onExportJPEG={handleExportJPEG}
                 showMinimap={showMinimap}
@@ -933,10 +839,10 @@ export function KnowledgeMapView() {
                 onExitFullscreen={toggleFullscreen}
                 moreActionsSlot={
                   <MoreActionsDropdown
-                    onToggleHistory={() => { setShowHistory(v => { if (!v) { setShowAiPanel(false); setShowComparison(false); } return !v; }); }}
+                    onToggleHistory={toggleHistory}
                     onTogglePresentation={() => setPresentationMode(true)}
                     onToggleShare={() => setShowShareModal(true)}
-                    onToggleComparison={() => { setShowComparison(v => { if (!v) { setShowAiPanel(false); setShowHistory(false); } return !v; }); }}
+                    onToggleComparison={toggleComparison}
                     onToggleFullscreen={toggleFullscreen}
                     onRefresh={refetch}
                     onAddStickyNote={handleAddStickyNote}
@@ -970,13 +876,13 @@ export function KnowledgeMapView() {
                 className="text-gray-500 text-center"
                 style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
               >
-                Error al renderizar el grafo.
+                Erro ao renderizar o grafo.
               </p>
               <button
                 onClick={reset}
                 className="text-sm font-medium text-[#2a8c7a] hover:underline"
               >
-                Reintentar
+                Tentar novamente
               </button>
             </div>
           )}>
@@ -1009,13 +915,13 @@ export function KnowledgeMapView() {
                     className="font-semibold text-gray-700 mb-1"
                     style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
                   >
-                    Ningún concepto encontrado
+                    Nenhum conceito encontrado
                   </p>
                   <p
                     className="text-gray-500"
                     style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                   >
-                    Intenta buscar otro término
+                    Tente buscar outro termo
                   </p>
                 </div>
               </div>
@@ -1026,12 +932,12 @@ export function KnowledgeMapView() {
           {collapsedCount > 0 && filteredGraphData && collapsedCount >= filteredGraphData.nodes.length && (
             <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
               <div className="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 px-5 py-4 text-center max-w-[260px]">
-                <p className="text-sm font-medium text-gray-600 mb-2">Todas las ramas están colapsadas</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">Todos os ramos estão recolhidos</p>
                 <button
                   onClick={() => graphControlsRef.current?.expandAll()}
                   className="text-xs font-medium text-[#2a8c7a] hover:underline"
                 >
-                  Expandir todo
+                  Expandir tudo
                 </button>
               </div>
             </div>
@@ -1040,8 +946,8 @@ export function KnowledgeMapView() {
           {/* Sticky notes layer — floats above graph, below modals */}
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="absolute bottom-3 right-3 z-10 bg-white rounded-lg shadow border border-gray-200 px-3 py-2 flex items-center gap-2">
-              <p className="text-xs text-gray-500">Error en notas</p>
-              <button onClick={reset} className="text-xs font-medium text-[#2a8c7a] hover:underline">Reintentar</button>
+              <p className="text-xs text-gray-500">Erro nas notas</p>
+              <button onClick={reset} className="text-xs font-medium text-[#2a8c7a] hover:underline">Tentar novamente</button>
             </div>
           )}>
             <StickyNotesLayer
@@ -1057,12 +963,12 @@ export function KnowledgeMapView() {
               <Link2 className="w-3.5 h-3.5 text-[#2a8c7a]" />
               <span className="text-xs text-gray-700">
                 <span className="font-medium text-[#2a8c7a]">{connectSource.label}</span>
-                {' → Selecciona destino'}
+                {' → Selecione o destino'}
               </span>
               <button
                 onClick={() => { setConnectSource(null); setConnectTarget(null); setActiveTool('pointer'); }}
                 className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Cancelar conexión"
+                aria-label="Cancelar conexão"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -1073,8 +979,8 @@ export function KnowledgeMapView() {
           {effectiveTopicId && (
             <ErrorBoundary fallback={(_err, reset) => (
               <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <p className="text-sm text-gray-500">Error al cargar el panel de IA.</p>
-                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+                <p className="text-sm text-gray-500">Erro ao carregar o painel de IA.</p>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
               </div>
             )}>
               <AiTutorPanel
@@ -1095,8 +1001,8 @@ export function KnowledgeMapView() {
           {/* Change history panel — slides in from right */}
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <p className="text-sm text-gray-500">Error al cargar el historial.</p>
-              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+              <p className="text-sm text-gray-500">Erro ao carregar o histórico.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
             </div>
           )}>
             <ChangeHistoryPanel
@@ -1110,8 +1016,8 @@ export function KnowledgeMapView() {
           {/* Map comparison panel — slides in from right */}
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <p className="text-sm text-gray-500">Error al cargar la comparación.</p>
-              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+              <p className="text-sm text-gray-500">Erro ao carregar a comparação.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
             </div>
           )}>
             <MapComparisonPanel
@@ -1125,23 +1031,23 @@ export function KnowledgeMapView() {
 
           {/* First-visit onboarding tips */}
           {showOnboarding && !loading && !isEmpty && filteredGraphData && filteredGraphData.nodes.length > 0 && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl" role="dialog" aria-modal="true" aria-label="Bienvenida al mapa de conocimiento">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl" role="dialog" aria-modal="true" aria-label="Boas-vindas ao mapa de conhecimento">
               <div className="bg-white rounded-2xl shadow-xl p-5 mx-4 max-w-sm w-full">
                 <h3 className="font-medium text-gray-900 mb-3" style={headingStyle}>
-                  ¡Bienvenido al Mapa de Conocimiento!
+                  Bem-vindo ao Mapa de Conhecimento!
                 </h3>
                 <ul className="space-y-2 text-sm text-gray-600 mb-4">
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                    <span>Toca un concepto para ver flashcards, quiz y resumen.</span>
+                    <span>Toque em um conceito para ver flashcards, quiz e resumo.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                    <span>Los colores indican tu dominio: verde = dominado, amarillo = aprendiendo, rojo = débil.</span>
+                    <span>As cores indicam seu domínio: verde = dominado, amarelo = aprendendo, vermelho = fraco.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-                    <span>Pellizca para zoom, arrastra para mover. Usa la barra de búsqueda para encontrar conceptos.</span>
+                    <span>Pinça para zoom, arraste para mover. Use a barra de busca para encontrar conceitos.</span>
                   </li>
                 </ul>
                 <button
@@ -1150,7 +1056,7 @@ export function KnowledgeMapView() {
                   className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors hover:bg-[#244e47]"
                   style={{ backgroundColor: '#2a8c7a' }}
                 >
-                  ¡Entendido!
+                  Entendi!
                 </button>
               </div>
             </div>
@@ -1160,8 +1066,8 @@ export function KnowledgeMapView() {
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
               <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
-                <p className="text-sm text-gray-500 mb-3">Error al cargar la anotación.</p>
-                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+                <p className="text-sm text-gray-500 mb-3">Erro ao carregar a anotação.</p>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
               </div>
             </div>
           )}>
@@ -1176,8 +1082,8 @@ export function KnowledgeMapView() {
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={reset}>
               <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex flex-col items-center gap-2">
-                <p className="text-sm text-gray-600">Error en menú contextual</p>
-                <button onClick={reset} className="text-sm font-medium text-[#2a8c7a] hover:underline">Cerrar</button>
+                <p className="text-sm text-gray-600">Erro no menu contextual</p>
+                <button onClick={reset} className="text-sm font-medium text-[#2a8c7a] hover:underline">Fechar</button>
               </div>
             </div>
           )}>
@@ -1200,8 +1106,8 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
             <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
-              <p className="text-sm text-gray-500 mb-3">Error al cargar el formulario.</p>
-              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+              <p className="text-sm text-gray-500 mb-3">Erro ao carregar o formulário.</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
             </div>
           </div>
         )}>
@@ -1223,10 +1129,10 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
             <div className="bg-white rounded-xl shadow-lg px-6 py-5 flex flex-col items-center gap-3 max-w-xs">
-              <p className="text-sm text-gray-600 text-center">Error al cargar compartir</p>
+              <p className="text-sm text-gray-600 text-center">Erro ao carregar compartilhamento</p>
               <div className="flex gap-2">
-                <button onClick={() => { setShowShareModal(false); reset(); }} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cerrar</button>
-                <button onClick={reset} className="text-sm px-3 py-1.5 rounded-lg bg-[#2a8c7a] text-white hover:bg-[#244e47]">Reintentar</button>
+                <button onClick={() => { setShowShareModal(false); reset(); }} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Fechar</button>
+                <button onClick={reset} className="text-sm px-3 py-1.5 rounded-lg bg-[#2a8c7a] text-white hover:bg-[#244e47]">Tentar novamente</button>
               </div>
             </div>
           </div>
@@ -1243,17 +1149,17 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl p-6 text-center max-w-xs shadow-lg">
-              <p className="text-sm text-gray-500 mb-3">Error al mostrar el diálogo de confirmación.</p>
-              <button onClick={() => { reset(); setConfirmDeleteNode(null); }} className="text-sm text-[#2a8c7a] hover:underline">Cerrar</button>
+              <p className="text-sm text-gray-500 mb-3">Erro ao mostrar o diálogo de confirmação.</p>
+              <button onClick={() => { reset(); setConfirmDeleteNode(null); }} className="text-sm text-[#2a8c7a] hover:underline">Fechar</button>
             </div>
           </div>
         )}>
           {confirmDeleteNode && (
             <ConfirmDialog
-              title="¿Eliminar concepto?"
-              description={`\u201c${confirmDeleteNode.label}\u201d será eliminado de tu mapa. Puedes deshacerlo con Ctrl+Z.`}
+              title="Excluir conceito?"
+              description={`\u201c${confirmDeleteNode.label}\u201d será excluído do seu mapa. Você pode desfazer com Ctrl+Z.`}
               cancelLabel="Cancelar"
-              confirmLabel="Eliminar"
+              confirmLabel="Excluir"
               onCancel={() => setConfirmDeleteNode(null)}
               onConfirm={executeDeleteNode}
             />
@@ -1264,10 +1170,10 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
             <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
-              <p className="text-sm text-gray-500 mb-3">Error en modo presentación.</p>
+              <p className="text-sm text-gray-500 mb-3">Erro no modo apresentação.</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => { reset(); setPresentationMode(false); }} className="text-sm text-gray-500 hover:underline">Salir</button>
-                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Reintentar</button>
+                <button onClick={() => { reset(); setPresentationMode(false); }} className="text-sm text-gray-500 hover:underline">Sair</button>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
               </div>
             </div>
           </div>

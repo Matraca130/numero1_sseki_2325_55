@@ -8,7 +8,7 @@
 //   4. Added safe area padding for mobile dropdown
 // ============================================================
 import React, { useState, useRef, useEffect } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useUI } from '@/app/context/UIContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useAuth } from '@/app/context/AuthContext';
@@ -21,7 +21,7 @@ import {
 import { headingStyle, components, colors } from '@/app/design-system';
 
 export function UserProfileDropdown() {
-  const { theme, setTheme } = useApp();
+  const { theme, setTheme } = useUI();
   const { navigateTo } = useStudentNav();
   const { profile, isConnected } = useStudentDataContext();
   const { user, memberships, activeMembership, signOut } = useAuth();
