@@ -8,10 +8,10 @@ interface ListDetailItem {
   severity?: string;
 }
 
-const SEVERITY_BADGE: Record<string, string> = {
-  high: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400',
-  medium: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
-  low: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400',
+const SEVERITY_COLOR: Record<string, string> = {
+  high: '#ef4444',
+  medium: '#f59e0b',
+  low: '#10b981',
 };
 
 export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
@@ -22,7 +22,7 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-2.5 mt-0">
+        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-2.5 mt-0">
           {title}
         </h3>
       )}
@@ -38,11 +38,11 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
             className="flex gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-[10px] border border-gray-200 dark:border-gray-700 items-start"
           >
             <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center shrink-0">
-              <IconByName name={item.icon} size={16} className="text-teal-600 dark:text-teal-400" />
+              <IconByName name={item.icon} size={16} className="text-[#2a8c7a] dark:text-teal-400" />
             </div>
             <div className="flex-1">
               {item.label && (
-                <div className="text-sm font-bold text-gray-900 dark:text-gray-200 mb-0.5">
+                <div className="text-sm font-bold text-[#1B3B36] dark:text-gray-200 mb-0.5">
                   {item.label}
                 </div>
               )}
@@ -52,12 +52,11 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
                 </div>
               )}
             </div>
-            {item.severity && SEVERITY_BADGE[item.severity] && (
+            {item.severity && SEVERITY_COLOR[item.severity] && (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-[10px] uppercase ${SEVERITY_BADGE[item.severity]}`}
-              >
-                {item.severity}
-              </span>
+                className="w-2 h-2 rounded-full shrink-0 mt-1.5"
+                style={{ background: SEVERITY_COLOR[item.severity] }}
+              />
             )}
           </div>
         ))}

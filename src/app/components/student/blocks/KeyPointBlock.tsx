@@ -7,7 +7,7 @@ export default function KeyPointBlock({ block }: { block: SummaryBlock }) {
   const importance = block.content?.importance as string | undefined;
 
   return (
-    <div className="bg-teal-900 dark:bg-gray-950 rounded-xl px-6 py-5">
+    <div className="bg-[#1B3B36] dark:bg-gray-950 rounded-xl px-6 py-5">
       <div className="flex items-center gap-2 mb-2.5">
         <Zap size={18} className="text-[#3cc9a8]" />
         {title && (

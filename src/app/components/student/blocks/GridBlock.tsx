@@ -16,7 +16,7 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-3 mt-0">
+        <h3 className="font-serif text-xl font-bold text-[#1B3B36] mb-3 mt-0">
           {title}
         </h3>
       )}
@@ -24,19 +24,23 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
         {items.map((item, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-gray-800 rounded-[10px] px-4 py-3.5 border border-gray-200 dark:border-gray-700 text-center"
+            className="bg-white rounded-[10px] p-3.5 border border-gray-200 flex items-start gap-2.5"
           >
-            <IconByName name={item.icon} size={20} className="text-teal-600 dark:text-teal-400 mx-auto" />
-            {item.label && (
-              <div className="text-sm font-bold text-gray-900 dark:text-gray-200 mt-1.5">
-                {item.label}
-              </div>
-            )}
-            {item.detail && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {item.detail}
-              </div>
-            )}
+            <div className="w-7 h-7 rounded-lg bg-[#e8f5f1] flex items-center justify-center shrink-0">
+              <IconByName name={item.icon} size={16} className="text-[#2a8c7a]" />
+            </div>
+            <div className="min-w-0">
+              {item.label && (
+                <div className="text-[13px] font-bold text-[#1B3B36]">
+                  {item.label}
+                </div>
+              )}
+              {item.detail && (
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {item.detail}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

@@ -26,14 +26,14 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-4 mt-0">
+        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-4 mt-0">
           {title}
         </h3>
       )}
       <div className="relative pl-9">
         {/* Gradient connector line */}
         {items.length > 1 && (
-          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-600 to-red-500" />
+          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-[#2a8c7a] to-red-500" />
         )}
         {items.map((item, i) => {
           const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-teal-600') : 'bg-teal-600';
@@ -52,7 +52,7 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
                 className={`rounded-[10px] px-4 py-3 border border-gray-200 dark:border-gray-700 border-l-[3px] ${sevBorder} bg-white dark:bg-gray-800`}
               >
                 {item.title && (
-                  <div className="font-bold text-[15px] text-teal-900 dark:text-teal-400 mb-1">
+                  <div className="font-bold text-[15px] text-[#1B3B36] dark:text-teal-400 mb-1">
                     {item.title}
                   </div>
                 )}
