@@ -115,9 +115,9 @@ export default function ListDetailForm({ block, onChange }: BlockFormProps) {
               }
             >
               <option value="">Severidad (opcional)</option>
-              <option value="leve">Leve</option>
-              <option value="moderado">Moderado</option>
-              <option value="grave">Grave</option>
+              <option value="high">Alta</option>
+              <option value="medium">Media</option>
+              <option value="low">Baja</option>
             </select>
           </div>
         ))}

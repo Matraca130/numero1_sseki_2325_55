@@ -300,7 +300,7 @@ export async function deleteVideo(id: string): Promise<any> {
 
 // ── Reorder ───────────────────────────────────────────────
 
-export type ReorderTable = 'summaries' | 'chunks' | 'subtopics' | 'videos';
+export type ReorderTable = 'summaries' | 'chunks' | 'subtopics' | 'videos' | 'summary_blocks';
 
 export async function reorder(
   table: ReorderTable,
