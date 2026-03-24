@@ -14,10 +14,10 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
 
   return (
     <div className="space-y-3">
-      {/* Image preview or placeholder */}
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Imagen</label>
-        {imageUrl ? (
+      {/* Image preview */}
+      {imageUrl && (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Vista previa</label>
           <div className="rounded-lg overflow-hidden border border-gray-200">
             <img
               src={imageUrl}
@@ -25,13 +25,22 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
               className="w-full h-auto max-h-48 object-contain bg-gray-50"
             />
           </div>
-        ) : (
-          <div className="flex items-center justify-center h-32 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">
-            <span className="text-xs text-gray-400">
-              Sin imagen - usa el boton de upload para agregar
-            </span>
-          </div>
-        )}
+        </div>
+      )}
+
+      {/* Image URL input */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">URL de la imagen</label>
+        <input
+          type="url"
+          className={inputClass}
+          value={(c.image_url as string) ?? ''}
+          onChange={(e) => onChange('image_url', e.target.value)}
+          placeholder="https://ejemplo.com/imagen.jpg"
+        />
+        <p className="mt-1 text-[10px] text-gray-400">
+          Pega la URL de una imagen. Pronto: subir desde el dispositivo.
+        </p>
       </div>
 
       <div>
@@ -45,7 +54,7 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Caption</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Pie de imagen</label>
         <input
           type="text"
           className={inputClass}

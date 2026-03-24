@@ -92,10 +92,19 @@ export default function BlockEditor({
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContent = useRef<Record<string, Record<string, unknown>>>({});
 
+  // ── Clear local state when summaryId changes ─────────────
+  useEffect(() => {
+    for (const timer of Object.values(debounceTimers.current)) clearTimeout(timer);
+    debounceTimers.current = {};
+    pendingContent.current = {};
+    setEditingBlockId(null);
+    setIsPreview(false);
+    setDeletingBlockId(null);
+  }, [summaryId]);
+
   // ── Cleanup debounce timers on unmount + flush pending saves ──
   useEffect(() => {
     return () => {
-      // Flush pending saves before unmount
       for (const blockId of Object.keys(pendingContent.current)) {
         if (debounceTimers.current[blockId]) {
           clearTimeout(debounceTimers.current[blockId]);
@@ -161,8 +170,9 @@ export default function BlockEditor({
     }, 2000);
   }, [blocks, updateMutation]);
 
-  // Flush any pending saves immediately
-  const flushPending = useCallback(() => {
+  // Flush any pending saves immediately (async — await before publish)
+  const flushPending = useCallback(async () => {
+    const promises: Promise<unknown>[] = [];
     for (const blockId of Object.keys(pendingContent.current)) {
       if (debounceTimers.current[blockId]) {
         clearTimeout(debounceTimers.current[blockId]);
@@ -170,14 +180,21 @@ export default function BlockEditor({
       }
       const content = pendingContent.current[blockId];
       if (content) {
-        updateMutation.mutate({ blockId, data: { content } });
+        promises.push(updateMutation.mutateAsync({ blockId, data: { content } }));
       }
     }
     pendingContent.current = {};
+    if (promises.length > 0) await Promise.all(promises);
   }, [updateMutation]);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deletingBlockId) return;
+    // Clear any pending saves for the block being deleted
+    if (debounceTimers.current[deletingBlockId]) {
+      clearTimeout(debounceTimers.current[deletingBlockId]);
+      delete debounceTimers.current[deletingBlockId];
+    }
+    delete pendingContent.current[deletingBlockId];
     if (editingBlockId === deletingBlockId) setEditingBlockId(null);
     deleteMutation.mutate(deletingBlockId, {
       onSuccess: () => setDeletingBlockId(null),
@@ -190,6 +207,10 @@ export default function BlockEditor({
       type: block.type,
       content: { ...block.content },
       order_index: (block.order_index ?? 0) + 1,
+    }, {
+      onSuccess: (newBlock: SummaryBlock) => {
+        setEditingBlockId(newBlock.id);
+      },
     });
   }, [summaryId, createMutation]);
 
@@ -238,7 +259,7 @@ export default function BlockEditor({
   // ── Publish ──────────────────────────────────────────────
 
   const handlePublish = useCallback(async () => {
-    flushPending();
+    await flushPending();
     setPublishing(true);
     try {
       await apiCall(`/summaries/${summaryId}/publish`, { method: 'POST' });
@@ -292,7 +313,7 @@ export default function BlockEditor({
       <BlockEditorToolbar
         onAddBlock={() => setShowTopSelector(true)}
         isPreview={isPreview}
-        onTogglePreview={() => setIsPreview(prev => !prev)}
+        onTogglePreview={() => { if (!isPreview) flushPending(); setIsPreview(prev => !prev); }}
         onPublish={handlePublish}
         status={summaryStatus}
         blockCount={blocks.length}

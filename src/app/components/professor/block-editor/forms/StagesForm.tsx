@@ -32,7 +32,7 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
   const removeItem = (idx: number) =>
     onChange(
       'items',
-      items.filter((_, i) => i !== idx),
+      items.filter((_, i) => i !== idx).map((item, i) => ({ ...item, stage: i + 1 })),
     );
 
   return (
