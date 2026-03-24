@@ -87,6 +87,7 @@ export default function BlockEditor({
   const [publishing, setPublishing] = useState(false);
   const [showTopSelector, setShowTopSelector] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
+  const [, setTick] = useState(0); // Force re-render so getBlockContent merges pending edits
 
   // ── Auto-save debounce refs ──────────────────────────────
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -156,6 +157,9 @@ export default function BlockEditor({
     const block = blocks.find(b => b.id === blockId);
     const currentContent = block?.content || {};
     pendingContent.current[blockId] = { ...currentContent, ...prev, [field]: value };
+
+    // Trigger re-render so merged content is visible in controlled inputs
+    setTick(t => t + 1);
 
     // Debounce 2s
     if (debounceTimers.current[blockId]) {
