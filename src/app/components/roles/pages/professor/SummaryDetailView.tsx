@@ -348,7 +348,7 @@ export function SummaryDetailView({
       {/* KEYWORDS SHEET (right side panel)                  */}
       {/* ═══════════════════════════════════════════════════ */}
       <Sheet open={showKeywords} onOpenChange={setShowKeywords}>
-        <SheetContent className="w-[460px] sm:max-w-[460px] p-0 flex flex-col h-full overflow-hidden">
+        <SheetContent className="w-full max-w-[460px] p-0 flex flex-col h-full overflow-hidden">
           {/* ── Fixed header ─────────────────────────────── */}
           <div className="shrink-0 bg-gradient-to-b from-violet-50/80 to-white px-5 pt-5 pb-3 border-b border-gray-100">
             <SheetHeader className="mb-0">
@@ -752,7 +752,7 @@ export function SummaryDetailView({
       {/* VIDEOS SHEET (right side panel)                    */}
       {/* ═══════════════════════════════════════════════════ */}
       <Sheet open={showVideos} onOpenChange={setShowVideos}>
-        <SheetContent className="w-[420px] sm:max-w-[420px] overflow-y-auto">
+        <SheetContent className="w-full max-w-[420px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <VideoIcon size={16} className="text-blue-500" />

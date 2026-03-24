@@ -54,7 +54,7 @@ export default function BlockTypeSelector({ onSelect, onClose }: BlockTypeSelect
       />
 
       {/* Selector card */}
-      <div className="relative z-50 w-80 max-h-80 overflow-y-auto rounded-xl bg-white p-2 shadow-lg border border-gray-200 sm:w-96">
+      <div className="relative z-50 w-[calc(100vw-2rem)] max-h-80 overflow-y-auto rounded-xl bg-white p-2 shadow-lg border border-gray-200 sm:w-96">
         <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
           {BLOCK_TYPES.map((option) => {
             const Icon = option.icon;

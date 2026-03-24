@@ -43,9 +43,9 @@ export default function BlockCard({
         isEditing ? 'border-violet-300 shadow-sm ring-1 ring-violet-100' : 'border-gray-200 hover:shadow-sm'
       }`}
     >
-      {/* Drag handle */}
-      <div className="flex w-8 shrink-0 cursor-grab items-start justify-center pt-3 text-gray-300 hover:text-gray-500 active:cursor-grabbing">
-        <GripVertical className="h-4 w-4" />
+      {/* Drag handle — larger touch target on mobile */}
+      <div className="flex w-10 shrink-0 cursor-grab items-start justify-center pt-3 text-gray-300 hover:text-gray-500 active:cursor-grabbing sm:w-8">
+        <GripVertical className="h-5 w-5 sm:h-4 sm:w-4" />
       </div>
 
       {/* Content area */}
@@ -58,8 +58,8 @@ export default function BlockCard({
             {getBlockLabel(block.type)}
           </span>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          {/* Action buttons — always visible on mobile (no hover), fade-in on desktop */}
+          <div className="flex items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
             <IconButton
               icon={<ChevronUp className="h-3.5 w-3.5" />}
               onClick={onMoveUp}

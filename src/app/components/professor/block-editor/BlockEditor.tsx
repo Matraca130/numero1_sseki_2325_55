@@ -29,6 +29,7 @@ import BlockCard from './BlockCard';
 import AddBlockButton from './AddBlockButton';
 import BlockFormRouter from './BlockFormRouter';
 import BlockTypeSelector from './BlockTypeSelector';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -72,6 +73,9 @@ export default function BlockEditor({
   summaryTitle,
   summaryStatus = 'draft',
 }: BlockEditorProps) {
+  // ── Mobile detection (sm breakpoint = 640px) ────────────
+  const isMobile = useIsMobile(640);
+
   // ── Data fetching ─────────────────────────────────────────
   const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId);
 
@@ -357,16 +361,16 @@ export default function BlockEditor({
       )}
 
       {/* Blocks list */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="mx-auto max-w-3xl space-y-1">
+      <div className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-4">
+        <div className="mx-auto max-w-full space-y-1 sm:max-w-3xl">
           {/* Top add-block button */}
           {!isPreview && (
             <AddBlockButton afterIndex={-1} onInsert={handleInsert} />
           )}
 
           {sortedBlocks.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 border border-violet-100">
+            <div className="flex flex-col items-center justify-center py-10 text-center sm:py-20">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 border border-violet-100 sm:mb-4 sm:h-16 sm:w-16">
                 <span className="text-2xl text-violet-300">+</span>
               </div>
               <p className="text-sm text-gray-500" style={{ fontWeight: 500 }}>Sin bloques aun</p>
@@ -391,7 +395,7 @@ export default function BlockEditor({
                   {isPreview ? (
                     // Preview mode — use student renderer
                     <div className="py-2">
-                      <ViewerBlock block={mergedBlock} isMobile={false} />
+                      <ViewerBlock block={mergedBlock} isMobile={isMobile} />
                     </div>
                   ) : (
                     // Edit mode — use BlockCard with form/preview toggle
@@ -412,7 +416,7 @@ export default function BlockEditor({
                           onChange={(field, value) => handleFieldChange(block.id, field, value)}
                         />
                       ) : (
-                        <ViewerBlock block={mergedBlock} isMobile={false} />
+                        <ViewerBlock block={mergedBlock} isMobile={isMobile} />
                       )}
                     </BlockCard>
                   )}
