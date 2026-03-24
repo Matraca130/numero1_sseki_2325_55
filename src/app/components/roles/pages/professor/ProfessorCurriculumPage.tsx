@@ -1,12 +1,15 @@
 // ============================================================
-// Axon — Professor: Curriculum Page
+// Axon — Professor: Curriculum Page (Responsive)
 //
 // Two modes:
-//   1. TREE MODE (default): ContentTree (340px) + TopicDetailPanel
-//   2. EDITOR MODE (when editing a summary): EditorSidebar (collapsible) + SummaryDetailView (full-page)
+//   1. TREE MODE (default): ContentTree (collapsible) + TopicDetailPanel
+//   2. EDITOR MODE (when editing a summary): EditorSidebar + SummaryDetailView
+//
+// Responsive:
+//   - Desktop (lg+): inline collapsible tree panel
+//   - Mobile (<lg): tree in MobileDrawer overlay
 //
 // Uses ContentTreeContext for data + ContentTree for UI.
-// PARALLEL-SAFE: This file is independent. Edit freely.
 // ============================================================
 import React, { useState, useCallback } from 'react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
@@ -14,7 +17,9 @@ import { ContentTree } from '@/app/components/shared/ContentTree';
 import { PageHeader } from '@/app/components/shared/PageHeader';
 import { EditorSidebar } from '@/app/components/professor/EditorSidebar';
 import { SummaryDetailView } from './SummaryDetailView';
-import { ListTree, RefreshCw } from 'lucide-react';
+import { MobileDrawer } from '@/app/components/layout/MobileDrawer';
+import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { ListTree, RefreshCw, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 import { TopicDetailPanel } from './TopicDetailPanel';
@@ -33,6 +38,7 @@ export function ProfessorCurriculumPage() {
   } = useContentTree();
 
   const [refreshing, setRefreshing] = useState(false);
+  const isMobile = useIsMobile(1024);
 
   // ── Editor mode state ───────────────────────────────────
   const [editingSummary, setEditingSummary] = useState<Summary | null>(null);
@@ -40,7 +46,16 @@ export function ProfessorCurriculumPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'content' | '3d'>('content');
 
+  // ── Tree panel state ────────────────────────────────────
+  const [treeVisible, setTreeVisible] = useState(true);
+  const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
+
   const isEditorMode = editingSummary !== null;
+
+  // Close mobile drawer when topic is selected
+  React.useEffect(() => {
+    if (selectedTopicId && isMobile) setMobileTreeOpen(false);
+  }, [selectedTopicId, isMobile]);
 
   const handleEditSummary = useCallback((summary: Summary, topicName: string) => {
     setEditingSummary(summary);
@@ -53,7 +68,6 @@ export function ProfessorCurriculumPage() {
   }, []);
 
   const handleSummaryUpdated = useCallback(() => {
-    // Refresh context tree in background (summary status may have changed)
     refresh().catch(() => {});
   }, [refresh]);
 
@@ -81,7 +95,7 @@ export function ProfessorCurriculumPage() {
       }
     };
 
-  // Find selected topic name from tree for the detail panel
+  // Find selected topic name from tree
   let selectedTopicName = '';
   if (tree && selectedTopicId) {
     const courses = tree?.courses || [];
@@ -118,6 +132,34 @@ export function ProfessorCurriculumPage() {
     }
     return { courses: courses.length, semesters, sections, topics };
   }, [tree]);
+
+  // ── Shared tree content (used by desktop panel + mobile drawer) ──
+  const treeContent = (
+    <ContentTree
+      tree={tree}
+      loading={loading}
+      error={error}
+      editable={canEdit}
+      selectedTopicId={selectedTopicId}
+      onSelectTopic={(id) => {
+        selectTopic(id);
+        if (isMobile) setMobileTreeOpen(false);
+      }}
+      onRefresh={refresh}
+      onAddCourse={wrap(addCourse, 'Curso creado')}
+      onEditCourse={wrap(editCourse, 'Curso actualizado')}
+      onDeleteCourse={wrap(removeCourse, 'Curso eliminado')}
+      onAddSemester={wrap(addSemester, 'Semestre creado')}
+      onEditSemester={wrap(editSemester, 'Semestre actualizado')}
+      onDeleteSemester={wrap(removeSemester, 'Semestre eliminado')}
+      onAddSection={wrap(addSection, 'Seccion creada')}
+      onEditSection={wrap(editSection, 'Seccion actualizada')}
+      onDeleteSection={wrap(removeSection, 'Seccion eliminada')}
+      onAddTopic={wrap(addTopic, 'Topico creado')}
+      onEditTopic={wrap(editTopic, 'Topico actualizado')}
+      onDeleteTopic={wrap(removeTopic, 'Topico eliminado')}
+    />
+  );
 
   // ══════════════════════════════════════════════════════════
   // EDITOR MODE: EditorSidebar + SummaryDetailView
@@ -156,42 +198,52 @@ export function ProfessorCurriculumPage() {
   }
 
   // ══════════════════════════════════════════════════════════
-  // TREE MODE: ContentTree + TopicDetailPanel (original view)
+  // TREE MODE: ContentTree + TopicDetailPanel
   // ══════════════════════════════════════════════════════════
   return (
     <div className="h-full flex flex-col bg-[#F0F2F5]">
       <Toaster position="top-right" richColors />
 
       {/* Page Header */}
-      <div className="px-6 pt-6 pb-0">
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-0">
         <PageHeader
           icon={<ListTree size={20} />}
           title="Curriculum"
           subtitle="Administra la estructura de cursos, semestres, secciones y topicos"
           accent="purple"
           actions={
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-              Actualizar
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Mobile: open tree button */}
+              <button
+                onClick={() => setMobileTreeOpen(true)}
+                className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-purple-600 hover:text-purple-700 bg-purple-50 border border-purple-100 rounded-lg hover:bg-purple-100 transition-colors"
+              >
+                <ListTree size={13} />
+                Contenido
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">Actualizar</span>
+              </button>
+            </div>
           }
         />
       </div>
 
       {/* Stats bar */}
       {!loading && tree && (tree?.courses || []).length > 0 && (
-        <div className="px-6 py-3 border-b border-gray-100 bg-white flex items-center gap-6">
+        <div className="px-4 lg:px-6 py-2.5 border-b border-gray-100 bg-white flex items-center gap-4 lg:gap-6 overflow-x-auto">
           {[
-            { label: 'Cursos', value: stats.courses, color: 'text-violet-600' },
+            { label: 'Cursos', value: stats.courses, color: 'text-purple-600' },
             { label: 'Semestres', value: stats.semesters, color: 'text-blue-600' },
             { label: 'Secciones', value: stats.sections, color: 'text-emerald-600' },
             { label: 'Topicos', value: stats.topics, color: 'text-gray-600' },
           ].map(s => (
-            <div key={s.label} className="flex items-center gap-1.5">
+            <div key={s.label} className="flex items-center gap-1.5 shrink-0">
               <span className={`text-sm font-semibold ${s.color}`}>{s.value}</span>
               <span className="text-xs text-gray-400">{s.label}</span>
             </div>
@@ -199,36 +251,47 @@ export function ProfessorCurriculumPage() {
         </div>
       )}
 
+      {/* ── Mobile Tree Drawer ── */}
+      <MobileDrawer
+        isOpen={mobileTreeOpen}
+        onClose={() => setMobileTreeOpen(false)}
+        width={300}
+        zIndex={40}
+      >
+        <div className="h-full bg-white">
+          {treeContent}
+        </div>
+      </MobileDrawer>
+
       {/* Main content: tree + detail panel */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Left: Content Tree (dark panel) */}
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="w-[340px] shrink-0 bg-zinc-950 border-r border-white/[0.06] flex flex-col overflow-hidden"
-        >
-          <ContentTree
-            tree={tree}
-            loading={loading}
-            error={error}
-            editable={canEdit}
-            selectedTopicId={selectedTopicId}
-            onSelectTopic={(id) => selectTopic(id)}
-            onRefresh={refresh}
-            onAddCourse={wrap(addCourse, 'Curso creado')}
-            onEditCourse={wrap(editCourse, 'Curso actualizado')}
-            onDeleteCourse={wrap(removeCourse, 'Curso eliminado')}
-            onAddSemester={wrap(addSemester, 'Semestre creado')}
-            onEditSemester={wrap(editSemester, 'Semestre actualizado')}
-            onDeleteSemester={wrap(removeSemester, 'Semestre eliminado')}
-            onAddSection={wrap(addSection, 'Seccion creada')}
-            onEditSection={wrap(editSection, 'Seccion actualizada')}
-            onDeleteSection={wrap(removeSection, 'Seccion eliminada')}
-            onAddTopic={wrap(addTopic, 'Topico creado')}
-            onEditTopic={wrap(editTopic, 'Topico actualizado')}
-            onDeleteTopic={wrap(removeTopic, 'Topico eliminado')}
-          />
-        </motion.div>
+
+        {/* ── Desktop: collapsible tree panel ── */}
+        <AnimatePresence initial={false}>
+          {treeVisible && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="hidden lg:flex flex-col shrink-0 bg-white border-r border-gray-200 overflow-hidden"
+            >
+              {/* Collapse toggle bar */}
+              <div className="flex items-center justify-end px-2 py-1.5 border-b border-gray-100 shrink-0">
+                <button
+                  onClick={() => setTreeVisible(false)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="Ocultar arbol"
+                >
+                  <PanelLeftClose size={15} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {treeContent}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Right: Detail panel */}
         <div className="flex-1 overflow-y-auto">
@@ -237,14 +300,22 @@ export function ProfessorCurriculumPage() {
               key={selectedTopicId}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-8"
+              className="p-4 lg:p-8"
             >
               <div className="max-w-4xl">
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-                  <span>Curriculum</span>
-                  <ChevronRight size={14} />
-                  <span className="text-gray-600">{selectedTopicName}</span>
-                </div>
+                {/* Action bar: expand tree button */}
+                {!treeVisible && (
+                  <div className="hidden lg:flex mb-4">
+                    <button
+                      onClick={() => setTreeVisible(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                      title="Mostrar arbol"
+                    >
+                      <PanelLeft size={14} />
+                      Mostrar arbol
+                    </button>
+                  </div>
+                )}
 
                 {/* Tabs */}
                 <div className="flex gap-1 mb-6 border-b border-gray-100 pb-0">
@@ -252,7 +323,7 @@ export function ProfessorCurriculumPage() {
                     onClick={() => setActiveTab('content')}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                       activeTab === 'content'
-                        ? 'border-teal-600 text-teal-700 bg-teal-50'
+                        ? 'border-purple-600 text-purple-700 bg-purple-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -263,7 +334,7 @@ export function ProfessorCurriculumPage() {
                     onClick={() => setActiveTab('3d')}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                       activeTab === '3d'
-                        ? 'border-teal-600 text-teal-700 bg-teal-50'
+                        ? 'border-purple-600 text-purple-700 bg-purple-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -286,13 +357,24 @@ export function ProfessorCurriculumPage() {
               </div>
             </motion.div>
           ) : (
-            <div className="h-full flex items-center justify-center">
+            <div className="h-full flex items-center justify-center p-4">
               <div className="text-center">
                 <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
                   <ListTree size={28} className="text-gray-300" />
                 </div>
                 <p className="text-gray-400 text-sm">Selecciona un topico del arbol</p>
                 <p className="text-gray-300 text-xs mt-1">para ver y editar su contenido y modelos 3D</p>
+
+                {/* Mobile/collapsed: quick access to tree */}
+                {(isMobile || !treeVisible) && (
+                  <button
+                    onClick={() => isMobile ? setMobileTreeOpen(true) : setTreeVisible(true)}
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm text-purple-600 bg-purple-50 border border-purple-100 rounded-lg hover:bg-purple-100 transition-colors"
+                  >
+                    <ListTree size={16} />
+                    Abrir arbol de contenido
+                  </button>
+                )}
               </div>
             </div>
           )}

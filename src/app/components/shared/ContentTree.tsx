@@ -1,12 +1,13 @@
 // ============================================================
-// Axon — Content Tree Component
+// Axon — Content Tree Component (Light Theme)
 //
 // Expandable tree: Courses > Semesters > Sections > Topics
 // Supports read-only (student) and editable (professor) modes.
 //
 // Used by:
 //   - ProfessorCurriculumPage (editable, full page)
-//   - TopicSidebar (read-only, narrow sidebar)
+//
+// Theme: Light — harmonizes with the page bg (#F0F2F5).
 // ============================================================
 
 import React, { useState, useCallback } from 'react';
@@ -88,12 +89,12 @@ function InlineEditor({
         onKeyDown={handleKeyDown}
         onBlur={() => { if (value.trim()) onSave(value.trim()); else onCancel(); }}
         placeholder={placeholder}
-        className="flex-1 min-w-0 px-2 py-1 bg-zinc-800 border border-teal-500/40 rounded text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
+        className="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-purple-200 rounded text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
       />
-      <button onClick={() => value.trim() && onSave(value.trim())} className="p-1 text-emerald-400 hover:text-emerald-300">
+      <button onClick={() => value.trim() && onSave(value.trim())} className="p-1 text-emerald-600 hover:text-emerald-700">
         <Check size={14} />
       </button>
-      <button onClick={onCancel} className="p-1 text-zinc-500 hover:text-zinc-300">
+      <button onClick={onCancel} className="p-1 text-gray-400 hover:text-gray-600">
         <X size={14} />
       </button>
     </div>
@@ -116,12 +117,12 @@ function NodeActions({
   compact?: boolean;
 }) {
   return (
-    <div className={clsx("flex items-center gap-0.5 shrink-0", compact ? "opacity-0 group-hover/node:opacity-100" : "opacity-0 group-hover/node:opacity-100")} style={{ transition: 'opacity 0.15s' }}>
+    <div className={clsx("flex items-center gap-0.5 shrink-0", "opacity-0 group-hover/node:opacity-100")} style={{ transition: 'opacity 0.15s' }}>
       {onAddChild && (
         <button
           onClick={e => { e.stopPropagation(); onAddChild(); }}
           title={addLabel}
-          className="p-1 rounded text-teal-400 hover:text-teal-300 hover:bg-teal-500/10"
+          className="p-1 rounded text-purple-500 hover:text-purple-600 hover:bg-purple-50"
         >
           <Plus size={13} />
         </button>
@@ -129,14 +130,14 @@ function NodeActions({
       <button
         onClick={e => { e.stopPropagation(); onEdit(); }}
         title="Editar"
-        className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+        className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
       >
         <Pencil size={12} />
       </button>
       <button
         onClick={e => { e.stopPropagation(); onDelete(); }}
         title="Eliminar"
-        className="p-1 rounded text-red-500/60 hover:text-red-400 hover:bg-red-500/10"
+        className="p-1 rounded text-red-400 hover:text-red-500 hover:bg-red-50"
       >
         <Trash2 size={12} />
       </button>
@@ -191,7 +192,7 @@ export function ContentTree({
     }
   }, [tree, expandAll, expanded.size]);
 
-  // ── CRUD handlers ──────────────────���──────────────────
+  // ── CRUD handlers ──────────────────────────────────────
 
   const handleSave = async (value: string) => {
     if (!editing) return;
@@ -242,8 +243,8 @@ export function ContentTree({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="w-6 h-6 text-teal-400 animate-spin" />
-        <p className="text-sm text-zinc-500">Cargando contenido...</p>
+        <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
+        <p className="text-sm text-gray-400">Cargando contenido...</p>
       </div>
     );
   }
@@ -253,9 +254,9 @@ export function ContentTree({
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 px-4">
         <AlertCircle className="w-6 h-6 text-red-400" />
-        <p className="text-sm text-red-300 text-center">{error}</p>
+        <p className="text-sm text-red-500 text-center">{error}</p>
         {onRefresh && (
-          <button onClick={onRefresh} className="text-xs text-teal-400 hover:text-teal-300 underline">
+          <button onClick={onRefresh} className="text-xs text-purple-600 hover:text-purple-700 underline">
             Reintentar
           </button>
         )}
@@ -267,19 +268,19 @@ export function ContentTree({
   if (!tree || tree.courses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4 px-4">
-        <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-500/20 flex items-center justify-center">
-          <BookMarked className="w-7 h-7 text-teal-500" />
+        <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center">
+          <BookMarked className="w-7 h-7 text-purple-400" />
         </div>
         <div className="text-center">
-          <p className="text-sm text-zinc-300">No hay cursos aun</p>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-sm text-gray-500">No hay cursos aun</p>
+          <p className="text-xs text-gray-400 mt-1">
             {editable ? 'Crea el primer curso para empezar' : 'El profesor aun no ha creado contenido'}
           </p>
         </div>
         {editable && onAddCourse && (
           <button
             onClick={() => setEditing({ type: 'add', level: 'course', id: 'new' })}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2a8c7a] hover:bg-[#244e47] text-white font-semibold text-sm rounded-full transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition-colors"
           >
             <Plus size={16} />
             Crear primer curso
@@ -301,22 +302,22 @@ export function ContentTree({
 
   // ── Delete confirmation ───────────────────────────────
   const deleteModal = confirmDelete && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDelete(null)}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(null)}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-zinc-900 border border-white/10 rounded-xl p-6 max-w-sm mx-4 shadow-2xl"
+        className="bg-white border border-gray-200 rounded-xl p-6 max-w-sm mx-4 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <h3 className="text-white text-sm">Eliminar {confirmDelete.level}</h3>
-        <p className="text-zinc-400 text-xs mt-2">
-          Estas seguro de eliminar <span className="text-white">&ldquo;{confirmDelete.name}&rdquo;</span>?
+        <h3 className="text-gray-900 text-sm font-medium">Eliminar {confirmDelete.level}</h3>
+        <p className="text-gray-500 text-xs mt-2">
+          Estas seguro de eliminar <span className="text-gray-900 font-medium">&ldquo;{confirmDelete.name}&rdquo;</span>?
           {confirmDelete.level !== 'topic' && ' Esto eliminara todo su contenido.'}
         </p>
         <div className="flex justify-end gap-2 mt-5">
           <button
             onClick={() => setConfirmDelete(null)}
-            className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-gray-100 rounded-lg transition-colors"
           >
             Cancelar
           </button>
@@ -344,10 +345,10 @@ export function ContentTree({
   };
 
   const LEVEL_COLORS: Record<NodeLevel, string> = {
-    course: 'text-teal-500',
-    semester: 'text-blue-400',
-    section: 'text-emerald-400',
-    topic: 'text-zinc-400',
+    course: 'text-purple-500',
+    semester: 'text-blue-500',
+    section: 'text-emerald-500',
+    topic: 'text-gray-400',
   };
 
   const CHILD_LEVELS: Record<string, NodeLevel> = {
@@ -385,8 +386,8 @@ export function ContentTree({
             "group/node flex items-center gap-1.5 cursor-pointer transition-colors",
             compact ? "py-1.5 pr-2" : "py-1.5 pr-3",
             isSelected
-              ? "bg-teal-500/15 text-teal-300"
-              : "text-zinc-300 hover:bg-white/[0.04] hover:text-white",
+              ? "bg-purple-50 text-purple-700"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
           )}
           style={{ paddingLeft: depthPadding(depth) }}
           onClick={() => {
@@ -421,7 +422,7 @@ export function ContentTree({
             <span className={clsx(
               "flex-1 min-w-0 truncate",
               compact ? "text-xs" : "text-[13px]",
-              isLeaf && !isSelected && "text-zinc-400",
+              isLeaf && !isSelected && "text-gray-500",
             )}>
               {item.name}
             </span>
@@ -484,11 +485,11 @@ export function ContentTree({
     <div className="flex flex-col h-full">
       {/* Header with "Add course" button */}
       {editable && (
-        <div className={clsx("flex items-center justify-between border-b border-white/[0.06] shrink-0", compact ? "px-3 py-2" : "px-4 py-3")}>
-          <span className="text-xs text-zinc-500 uppercase tracking-wider">Contenido</span>
+        <div className={clsx("flex items-center justify-between border-b border-gray-100 shrink-0", compact ? "px-3 py-2" : "px-4 py-3")}>
+          <span className="text-xs text-gray-400 uppercase tracking-wider">Contenido</span>
           <button
             onClick={() => setEditing({ type: 'add', level: 'course', id: 'new' })}
-            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-teal-400 hover:text-teal-300 bg-teal-500/10 hover:bg-teal-500/15 rounded-full transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors"
           >
             <Plus size={12} />
             Curso
