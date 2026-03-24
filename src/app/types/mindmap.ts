@@ -195,6 +195,8 @@ export interface GraphControls {
   zoomIn: () => void;
   zoomOut: () => void;
   fitView: () => void;
+  /** Reset zoom to 100% (1:1) with smooth animation */
+  resetZoom?: () => void;
   collapseAll: () => void;
   expandAll: () => void;
   /** Toggle collapse on a specific node. Returns true if now collapsed. */

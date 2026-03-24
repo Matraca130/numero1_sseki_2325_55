@@ -19,7 +19,7 @@ export interface GraphI18nStrings {
   quickAdd: string; focusedNode: (label: string) => string;
   groupSelection: string; focusSelection: string;
   groupLabel: (n: number) => string;
-  breadcrumbRoot: string;
+  breadcrumbRoot: string; breadcrumbNav: string;
   reviewAlert: string;
   keys: [string, string][];
 }
@@ -44,7 +44,7 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     focusedNode: (label) => `Nodo focado: ${label}`,
     groupSelection: 'Agrupar', focusSelection: 'Enfocar',
     groupLabel: (n) => `Grupo ${n}`,
-    breadcrumbRoot: 'Mapa completo',
+    breadcrumbRoot: 'Mapa completo', breadcrumbNav: 'Navegação do grafo',
     keys: [['+/-', 'Zoom'], ['0 ou F', 'Ajustar vista'], ['/ ou Ctrl+F', 'Buscar conceito'],
       ['Tab', 'Navegar entre nodos'], ['Setas', 'Mover entre vizinhos'],
       ['Enter', 'Menu de contexto'], ['+', 'Adicionar nodo conectado'],
@@ -72,7 +72,7 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     focusedNode: (label) => `Nodo enfocado: ${label}`,
     groupSelection: 'Agrupar', focusSelection: 'Enfocar',
     groupLabel: (n) => `Grupo ${n}`,
-    breadcrumbRoot: 'Mapa completo',
+    breadcrumbRoot: 'Mapa completo', breadcrumbNav: 'Navegación del grafo',
     keys: [['+/-', 'Zoom'], ['0 o F', 'Ajustar vista'], ['/ o Ctrl+F', 'Buscar concepto'],
       ['Tab', 'Navegar entre nodos'], ['Flechas', 'Mover entre vecinos'],
       ['Enter', 'Menú contextual'], ['+', 'Agregar nodo conectado'],

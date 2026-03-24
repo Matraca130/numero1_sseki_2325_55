@@ -234,8 +234,8 @@ describe('KnowledgeMapView: handleEdgeReconnect has compensating rollback', () =
   });
 
   it('has compensating rollback — re-creates old edge if new edge creation fails', () => {
-    // Should have a catch block that calls createCustomEdge(oldEdgePayload)
-    expect(reconnectBody).toContain('createCustomEdge(oldEdgePayload)');
+    // Should have a catch block that calls createCustomEdge(rollbackPayload)
+    expect(reconnectBody).toContain('createCustomEdge(rollbackPayload)');
     expect(reconnectBody).toContain('throw createErr');
   });
 

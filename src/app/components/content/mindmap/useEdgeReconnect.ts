@@ -29,6 +29,8 @@ const ENDPOINT_HIT_RADIUS = 14;
 const NODE_SNAP_RADIUS = 24;
 /** Minimum drag distance before the reconnect drag actually activates (avoids hijacking clicks) */
 const DRAG_THRESHOLD = 6;
+/** Larger threshold for touch devices where finger jitter is common */
+const TOUCH_DRAG_THRESHOLD = 14;
 /** Throttle interval (ms) for hover cursor checks to reduce O(E) G6 calls per pointermove */
 const HOVER_CHECK_THROTTLE_MS = 50;
 
@@ -52,6 +54,8 @@ interface UseEdgeReconnectOptions {
   onReconnect?: (result: EdgeReconnectResult) => void;
   /** Whether reconnect is enabled */
   enabled?: boolean;
+  /** Shared ref to coordinate with useDragConnect — prevents simultaneous drags */
+  isDraggingRef?: React.MutableRefObject<boolean>;
 }
 
 interface NodeScreenPos {
@@ -184,6 +188,7 @@ export function useEdgeReconnect({
   edges,
   onReconnect,
   enabled = false,
+  isDraggingRef,
 }: UseEdgeReconnectOptions) {
   const dragStateRef = useRef<DragState | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -200,7 +205,7 @@ export function useEdgeReconnect({
     if (!container) return;
 
     const overlay = document.createElement('canvas');
-    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;';
+    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;';
     container.style.position = 'relative';
     container.appendChild(overlay);
     overlayCanvasRef.current = overlay;
@@ -255,19 +260,31 @@ export function useEdgeReconnect({
       ? toLocal(ds.snapX, ds.snapY)
       : toLocal(ds.dragX, ds.dragY);
 
-    // Draw the reconnect line
+    // Draw the reconnect line (bezier curve for visual consistency with useDragConnect)
     ctx.save();
     ctx.strokeStyle = '#2a8c7a';
     ctx.lineWidth = 2.5 * dpr;
     ctx.setLineDash([6 * dpr, 4 * dpr]);
     ctx.lineCap = 'round';
+    const dx = toPoint.x - from.x;
+    const dy = toPoint.y - from.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const curvature = Math.min(dist * 0.25, 60 * dpr);
+    const isHorizontalDominant = Math.abs(dx) > Math.abs(dy);
+    const cp1x = isHorizontalDominant ? from.x + curvature : from.x;
+    const cp1y = isHorizontalDominant ? from.y : from.y + curvature;
+    const cp2x = isHorizontalDominant ? toPoint.x - curvature : toPoint.x;
+    const cp2y = isHorizontalDominant ? toPoint.y : toPoint.y - curvature;
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
-    ctx.lineTo(toPoint.x, toPoint.y);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, toPoint.x, toPoint.y);
     ctx.stroke();
 
-    // Draw arrowhead at the drag end
-    const angle = Math.atan2(toPoint.y - from.y, toPoint.x - from.x);
+    // Draw arrowhead at the drag end (angle from bezier tangent at t≈1)
+    const tA = 0.98;
+    const tAx = (1 - tA) * (1 - tA) * (1 - tA) * from.x + 3 * (1 - tA) * (1 - tA) * tA * cp1x + 3 * (1 - tA) * tA * tA * cp2x + tA * tA * tA * toPoint.x;
+    const tAy = (1 - tA) * (1 - tA) * (1 - tA) * from.y + 3 * (1 - tA) * (1 - tA) * tA * cp1y + 3 * (1 - tA) * tA * tA * cp2y + tA * tA * tA * toPoint.y;
+    const angle = Math.atan2(toPoint.y - tAy, toPoint.x - tAx);
     const arrowLen = 10 * dpr;
     ctx.setLineDash([]);
     ctx.fillStyle = '#2a8c7a';
@@ -335,6 +352,7 @@ export function useEdgeReconnect({
     const handlePointerDown = (e: PointerEvent) => {
       if (dragStateRef.current) return; // already dragging
       if (e.button !== 0) return; // left click only
+      if (isDraggingRef?.current) return; // another drag hook is active
 
       const userEdges = getUserEdges();
       if (userEdges.length === 0) return;
@@ -441,11 +459,13 @@ export function useEdgeReconnect({
       if (!ds.activated) {
         const dx = e.clientX - ds.startX;
         const dy = e.clientY - ds.startY;
-        if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+        const threshold = (e as PointerEvent).pointerType === 'touch' ? TOUCH_DRAG_THRESHOLD : DRAG_THRESHOLD;
+        if (Math.sqrt(dx * dx + dy * dy) < threshold) return;
 
         // Activate the drag: capture pointer and dim the original edge
         ds.activated = true;
         ds.capturedPointerId = e.pointerId;
+        if (isDraggingRef) isDraggingRef.current = true;
         // Cache node positions once at drag start (avoids O(N) per pointermove)
         ds.cachedPositions = getNodeScreenPositions(graph);
         container.setPointerCapture(e.pointerId);
@@ -497,7 +517,7 @@ export function useEdgeReconnect({
         return;
       }
 
-      try { container.releasePointerCapture(e.pointerId); } catch { /* may not be captured */ }
+      try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* may not be captured */ }
       if (overlayCanvasRef.current) {
         overlayCanvasRef.current.style.pointerEvents = 'none';
         overlayCanvasRef.current.style.cursor = '';
@@ -523,6 +543,7 @@ export function useEdgeReconnect({
       }
 
       dragStateRef.current = null;
+      if (isDraggingRef) isDraggingRef.current = false;
 
       // Clear overlay
       cancelAnimationFrame(rafRef.current);
@@ -539,7 +560,7 @@ export function useEdgeReconnect({
       if (!ds) return;
 
       if (ds.activated) {
-        try { container.releasePointerCapture(e.pointerId); } catch { /* may not be captured */ }
+        try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* may not be captured */ }
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'none';
           overlayCanvasRef.current.style.cursor = '';
@@ -561,6 +582,7 @@ export function useEdgeReconnect({
       }
 
       dragStateRef.current = null;
+      if (isDraggingRef) isDraggingRef.current = false;
     };
 
     // Keydown: Escape cancels drag — use capture phase so it fires
@@ -599,6 +621,7 @@ export function useEdgeReconnect({
           } catch { /* graph may be destroyed */ }
         }
         dragStateRef.current = null;
+        if (isDraggingRef) isDraggingRef.current = false;
       }
       const canvasEl = container.querySelector('canvas');
       if (canvasEl) canvasEl.style.cursor = '';

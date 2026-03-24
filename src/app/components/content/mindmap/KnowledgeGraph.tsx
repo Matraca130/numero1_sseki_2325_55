@@ -32,6 +32,7 @@ import { useKeyboardNav } from './useKeyboardNav';
 import { useSpacePan } from './useSpacePan';
 import { useEdgeReconnect } from './useEdgeReconnect';
 import type { EdgeReconnectResult } from './useEdgeReconnect';
+import { useDragConnect } from './useDragConnect';
 import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
 
@@ -58,7 +59,7 @@ function downloadGraphImage(dataURL: string, ext: string) {
   link.download = `mapa-conocimiento-${stamp}.${ext}`;
   document.body.appendChild(link);
   link.click();
-  requestAnimationFrame(() => document.body.removeChild(link));
+  setTimeout(() => { if (link.parentNode) link.parentNode.removeChild(link); }, 100);
 }
 
 // ── Node style helper (extracted for reuse and readability) ──
@@ -150,6 +151,10 @@ function computeEdgeStyle(edge: import('@/app/types/mindmap').GraphData['edges']
     },
   };
 }
+
+// ── Zoom limits ──────────────────────────────────────────────
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 5;
 
 // ── Layout presets (shared by init and layout-switch) ────────
 const LAYOUT_FORCE = { type: 'd3-force' as const, preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.8 };
@@ -255,6 +260,9 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const multiSelectedIdsRef = useRef(multiSelectedIds);
   multiSelectedIdsRef.current = multiSelectedIds;
 
+  // Spotlight (click-to-focus) state: which node is currently spotlighted
+  const spotlightNodeRef = useRef<string | null>(null);
+
   // Breadcrumb trail for drill-down navigation
   const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string; label: string }>>([]);
 
@@ -332,6 +340,36 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const childrenMapRef = useRef(childrenMap);
   childrenMapRef.current = childrenMap;
 
+  // Bidirectional adjacency map for spotlight neighborhood (source<->target)
+  const adjacencyMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const edge of data.edges) {
+      if (!map.has(edge.source)) map.set(edge.source, new Set());
+      if (!map.has(edge.target)) map.set(edge.target, new Set());
+      map.get(edge.source)!.add(edge.target);
+      map.get(edge.target)!.add(edge.source);
+    }
+    return map;
+  }, [data.edges]);
+  const adjacencyMapRef = useRef(adjacencyMap);
+  adjacencyMapRef.current = adjacencyMap;
+
+  // Edge lookup: for each node pair, the edge IDs connecting them
+  const edgeByEndpoints = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const edge of data.edges) {
+      const key1 = `${edge.source}|${edge.target}`;
+      const key2 = `${edge.target}|${edge.source}`;
+      if (!map.has(key1)) map.set(key1, []);
+      map.get(key1)!.push(edge.id);
+      if (!map.has(key2)) map.set(key2, []);
+      map.get(key2)!.push(edge.id);
+    }
+    return map;
+  }, [data.edges]);
+  const edgeByEndpointsRef = useRef(edgeByEndpoints);
+  edgeByEndpointsRef.current = edgeByEndpoints;
+
   // Load saved positions for the current topic
   const savedPositionsRef = useRef<PositionMap>(new Map());
   useEffect(() => {
@@ -381,6 +419,80 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     const graph = graphRef.current;
     if (graph) applyMultiSelectionState(graph, nextIds);
   }, [applyMultiSelectionState]);
+
+  // ── Spotlight (click-to-focus) helpers ──────────────────────
+  const SPOTLIGHT_STATES = ['spotlight', 'spotlightConnected', 'spotlightDim'] as const;
+
+  const clearSpotlight = useCallback((graph: Graph) => {
+    if (!spotlightNodeRef.current) return;
+    spotlightNodeRef.current = null;
+    try {
+      // Batch all state changes in a single rAF to minimize redraws
+      const stateUpdates: Array<{ id: string; states: string[] }> = [];
+      const allNodes = graph.getNodeData();
+      for (const n of allNodes) {
+        const cur = graph.getElementState(n.id);
+        const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
+        stateUpdates.push({ id: String(n.id), states: cleaned });
+      }
+      const allEdges = graph.getEdgeData();
+      for (const e of allEdges) {
+        const cur = graph.getElementState(e.id);
+        const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
+        stateUpdates.push({ id: String(e.id), states: cleaned });
+      }
+      // Apply all at once then draw once
+      for (const u of stateUpdates) graph.setElementState(u.id, u.states);
+      graph.draw();
+    } catch (e: unknown) { warnIfNotDestroyed(e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const applySpotlight = useCallback((graph: Graph, nodeId: string) => {
+    if (spotlightNodeRef.current === nodeId) {
+      clearSpotlight(graph);
+      return;
+    }
+    spotlightNodeRef.current = nodeId;
+
+    const neighbors = adjacencyMapRef.current.get(nodeId) ?? new Set<string>();
+    const connectedEdgeIds = new Set<string>();
+    for (const neighborId of neighbors) {
+      const edgeIds = edgeByEndpointsRef.current.get(`${nodeId}|${neighborId}`);
+      if (edgeIds) for (const eid of edgeIds) connectedEdgeIds.add(eid);
+    }
+
+    try {
+      // Collect all state updates first, then apply in batch to minimize redraws
+      const stateUpdates: Array<{ id: string; states: string[] }> = [];
+      const allNodes = graph.getNodeData();
+      for (const n of allNodes) {
+        const cur = graph.getElementState(n.id);
+        const base = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
+        if (n.id === nodeId) {
+          stateUpdates.push({ id: String(n.id), states: [...base, 'spotlight'] });
+        } else if (neighbors.has(String(n.id))) {
+          stateUpdates.push({ id: String(n.id), states: [...base, 'spotlightConnected'] });
+        } else {
+          stateUpdates.push({ id: String(n.id), states: [...base, 'spotlightDim'] });
+        }
+      }
+      const allEdges = graph.getEdgeData();
+      for (const e of allEdges) {
+        const cur = graph.getElementState(e.id);
+        const base = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
+        if (connectedEdgeIds.has(String(e.id))) {
+          stateUpdates.push({ id: String(e.id), states: [...base, 'spotlightConnected'] });
+        } else {
+          stateUpdates.push({ id: String(e.id), states: [...base, 'spotlightDim'] });
+        }
+      }
+      // Apply all at once then draw once
+      for (const u of stateUpdates) graph.setElementState(u.id, u.states);
+      graph.draw();
+    } catch (e: unknown) { warnIfNotDestroyed(e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearSpotlight]);
 
   // Build node-to-combo lookup from combos state
   const nodeToCombo = useMemo(() => {
@@ -476,8 +588,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     return `${e.length}:${hash}`;
   }, [data.edges]);
   const currentDataKey = useMemo(
-    () => `${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}|dc:${enableDragConnect ? '1' : '0'}`,
-    [nodeSetKey, edgeSetKey, showMinimap, gridEnabled, enableDragConnect],
+    () => `${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}`,
+    [nodeSetKey, edgeSetKey, showMinimap, gridEnabled],
   );
 
   // Stable refs so collapseAll/expandAll/toggleCollapse in onReady always use latest state
@@ -517,6 +629,17 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     });
     return nowCollapsed;
   };
+
+  // Zoom limit flash: brief visual indicator when hitting min/max zoom
+  const [zoomLimitFlash, setZoomLimitFlash] = useState(false);
+  const zoomLimitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashZoomLimit = useCallback(() => {
+    setZoomLimitFlash(true);
+    if (zoomLimitTimerRef.current) clearTimeout(zoomLimitTimerRef.current);
+    zoomLimitTimerRef.current = setTimeout(() => setZoomLimitFlash(false), 400);
+  }, []);
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (zoomLimitTimerRef.current) clearTimeout(zoomLimitTimerRef.current); }, []);
 
   // Guard: skip first update-data effect after graph init (render already drew)
   const justInitializedRef = useRef(false);
@@ -585,6 +708,25 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
+          spotlight: {
+            lineWidth: 3.5,
+            shadowColor: 'rgba(42, 140, 122, 0.85)',
+            shadowBlur: 28,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
+            stroke: '#2a8c7a',
+          },
+          spotlightConnected: {
+            lineWidth: 2.5,
+            shadowColor: 'rgba(42, 140, 122, 0.35)',
+            shadowBlur: 12,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
+          },
+          spotlightDim: {
+            opacity: 0.3,
+            labelFill: '#a1a1aa',
+          },
         },
         animation: {
           enter: [
@@ -605,13 +747,26 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
         },
         state: {
           hover: {
-            lineWidth: 2.5,
+            lineWidth: 3,
             stroke: colors.primary[500],
+            shadowColor: 'rgba(42, 140, 122, 0.4)',
+            shadowBlur: 8,
+          },
+          spotlightConnected: {
+            lineWidth: 2.5,
+            stroke: '#2a8c7a',
+            opacity: 1,
+          },
+          spotlightDim: {
+            opacity: 0.12,
           },
         },
         animation: {
           enter: [
             { fields: ['opacity'], duration: 320, easing: 'ease-out', fill: 'both' },
+          ],
+          update: [
+            { fields: ['stroke', 'lineWidth', 'opacity'], duration: 250, easing: 'ease-out' },
           ],
           exit: [
             { fields: ['opacity'], duration: 200, easing: 'ease-in' },
@@ -620,12 +775,17 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       },
       layout: getLayoutConfig(),
       behaviors: [
-        'drag-canvas',
+        {
+          type: 'drag-canvas',
+          sensitivity: 1,
+        },
         {
           type: 'zoom-canvas',
-          sensitivity: 1,
-          minZoom: 0.15,
-          maxZoom: 5,
+          sensitivity: 1.5,
+          minZoom: MIN_ZOOM,
+          maxZoom: MAX_ZOOM,
+          // Zoom toward mouse cursor position instead of graph center
+          origin: 'pointer',
         },
         {
           type: 'drag-element',
@@ -648,27 +808,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             lineWidth: 1,
           },
         },
-        // Drag-to-connect: drag from node border to create edge
-        ...(enableDragConnect ? [{
-          type: 'create-edge' as const,
-          key: 'create-edge',
-          trigger: 'drag' as const,
-          style: {
-            stroke: '#2a8c7a',
-            lineWidth: 2,
-            lineDash: [6, 3],
-          },
-          onCreate: (edgeData: { id?: string; source?: string; target?: string }) => {
-            const src = edgeData.source;
-            const tgt = edgeData.target;
-            if (src && tgt && src !== tgt) {
-              // Notify parent — actual persistence handled externally
-              onDragConnectRef.current?.(src, tgt);
-            }
-            // Return undefined to cancel G6's internal edge creation — parent handles it
-            return undefined;
-          },
-        }] : []),
+        // Note: drag-to-connect is now handled by useDragConnect hook
+        // (provides bezier arrows, snap feedback, ports, success animation)
       ],
       plugins: [
         {
@@ -704,6 +845,35 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
               'box-shadow': '0 4px 16px rgba(0,0,0,0.1)',
               'border': '1px solid #e5e7eb',
               'padding': '8px 12px',
+            },
+          },
+        },
+        // Edge tooltip — shows connection type / relationship on hover
+        {
+          type: 'tooltip',
+          key: 'edge-tooltip',
+          trigger: 'hover',
+          entryDelay: 300,
+          getContent: (_evt: unknown, items: Array<{ data?: Record<string, unknown> }>) => {
+            if (!items?.length) return '';
+            const item = items[0];
+            const d = item?.data ?? {};
+            const label = escHtml(String(d.label || ''));
+            const connType = String(d.connectionType || '');
+            if (!label && !connType) return '';
+            return `<div style="max-width:180px;font-family:Inter,sans-serif">
+              ${label ? `<div style="font-weight:600;font-size:11px;color:#111827;margin-bottom:1px">${label}</div>` : ''}
+              ${connType ? `<div style="font-size:10px;color:#6b7280">${escHtml(connType)}</div>` : ''}
+            </div>`;
+          },
+          itemTypes: ['edge'],
+          style: {
+            '.tooltip': {
+              'background-color': 'white',
+              'border-radius': '8px',
+              'box-shadow': '0 2px 12px rgba(0,0,0,0.08)',
+              'border': '1px solid #e5e7eb',
+              'padding': '6px 10px',
             },
           },
         },
@@ -785,9 +955,27 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       setReady(true);
       setGraphVersion(v => v + 1);
       onReadyRef.current?.({
-        zoomIn: () => { const g = graphRef.current; if (!g) return; try { g.zoomBy(1.25, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
-        zoomOut: () => { const g = graphRef.current; if (!g) return; try { g.zoomBy(0.8, { duration: 200 }); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        zoomIn: () => {
+          const g = graphRef.current; if (!g) return;
+          try {
+            const currentZoom = g.getZoom();
+            if (currentZoom >= MAX_ZOOM) { flashZoomLimit(); return; }
+            g.zoomBy(1.3, { duration: 250, easing: 'ease-in-out' });
+          } catch (e: unknown) { warnIfNotDestroyed(e); }
+        },
+        zoomOut: () => {
+          const g = graphRef.current; if (!g) return;
+          try {
+            const currentZoom = g.getZoom();
+            if (currentZoom <= MIN_ZOOM) { flashZoomLimit(); return; }
+            g.zoomBy(1 / 1.3, { duration: 250, easing: 'ease-in-out' });
+          } catch (e: unknown) { warnIfNotDestroyed(e); }
+        },
         fitView: () => { const g = graphRef.current; if (!g) return; try { g.fitView(); } catch (e: unknown) { warnIfNotDestroyed(e); } },
+        resetZoom: () => {
+          const g = graphRef.current; if (!g) return;
+          try { g.zoomTo(1, { duration: 250, easing: 'ease-in-out' }); } catch (e: unknown) { warnIfNotDestroyed(e); }
+        },
         collapseAll: () => collapseAllRef.current(),
         expandAll: () => expandAllRef.current(),
         toggleCollapse: (nodeId: string) => toggleCollapseRef.current(nodeId),
@@ -825,7 +1013,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDataKey, showMinimap, gridEnabled, enableDragConnect]);
+  }, [currentDataKey, showMinimap, gridEnabled]);
 
   // Smooth layout switching: morph nodes to new positions instead of destroying the graph
   const prevLayoutRef = useRef(layout);
@@ -1081,6 +1269,12 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           y: evt.client?.y ?? evt.clientY ?? 0,
         });
       }
+
+      // Apply spotlight effect (toggle: click same node again to clear)
+      requestAnimationFrame(() => {
+        const g = graphRef.current;
+        if (g) applySpotlight(g, nodeId);
+      });
     };
 
     const handleNodeContextMenu = (evt: G6NodeEvent) => {
@@ -1136,6 +1330,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       if (multiSelectedIdsRef.current.size > 0) {
         updateMultiSelection(new Set());
       }
+      // Clear spotlight
+      clearSpotlight(graph);
     };
 
     // Brush-select event: G6 fires 'afterbrushselect' with selected element IDs
@@ -1232,11 +1428,52 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     graph.on('node:pointerleave', clearActiveState);
     graph.on('node:pointermove', handleNodePointerMove);
 
-    // Track zoom level changes for the toolbar indicator
+    // Edge hover: highlight the two connected nodes when hovering an edge
+    let edgeHoverNodes: string[] = [];
+    const handleEdgePointerEnter = (evt: { target?: { id?: string }; itemId?: string }) => {
+      const edgeId = evt.target?.id ?? evt.itemId;
+      if (!edgeId) return;
+      try {
+        const edgeData = graph.getEdgeData(edgeId);
+        if (!edgeData) return;
+        const src = edgeData.source as string;
+        const tgt = edgeData.target as string;
+        edgeHoverNodes = [src, tgt].filter(Boolean);
+        for (const nId of edgeHoverNodes) {
+          const cur = graph.getElementState(nId);
+          const base = Array.isArray(cur) ? cur.filter(s => s !== 'hover') : [];
+          graph.setElementState(nId, [...base, 'hover']);
+        }
+      } catch (e: unknown) { warnIfNotDestroyed(e); }
+    };
+    const handleEdgePointerLeave = () => {
+      try {
+        for (const nId of edgeHoverNodes) {
+          const cur = graph.getElementState(nId);
+          const cleaned = Array.isArray(cur) ? cur.filter(s => s !== 'hover') : [];
+          graph.setElementState(nId, cleaned);
+        }
+        edgeHoverNodes = [];
+      } catch (e: unknown) { warnIfNotDestroyed(e); }
+    };
+    graph.on('edge:pointerenter', handleEdgePointerEnter);
+    graph.on('edge:pointerleave', handleEdgePointerLeave);
+
+    // Track zoom level changes for the toolbar indicator + flash on limit
+    let prevZoomForLimit = NaN;
     const handleViewportChange = () => {
       try {
         const zoom = graph.getZoom();
-        if (typeof zoom === 'number') onZoomChangeRef.current?.(zoom);
+        if (typeof zoom === 'number') {
+          onZoomChangeRef.current?.(zoom);
+          // Flash when wheel zoom clamps at min/max boundaries
+          if (!isNaN(prevZoomForLimit)) {
+            const atMin = zoom <= MIN_ZOOM + 0.001 && prevZoomForLimit <= MIN_ZOOM + 0.001;
+            const atMax = zoom >= MAX_ZOOM - 0.01 && prevZoomForLimit >= MAX_ZOOM - 0.01;
+            if (atMin || atMax) flashZoomLimit();
+          }
+          prevZoomForLimit = zoom;
+        }
       } catch { /* graph may be destroyed */ }
     };
     graph.on('afterviewportchange', handleViewportChange);
@@ -1255,6 +1492,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
         graph.off('node:pointerup', clearActiveState);
         graph.off('node:pointerleave', clearActiveState);
         graph.off('node:pointermove', handleNodePointerMove);
+        graph.off('edge:pointerenter', handleEdgePointerEnter);
+        graph.off('edge:pointerleave', handleEdgePointerLeave);
         graph.off('afterviewportchange', handleViewportChange);
       } catch { /* graph may already be destroyed */ }
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
@@ -1269,6 +1508,9 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     ready,
   });
 
+  // Shared ref to prevent useDragConnect and useEdgeReconnect from activating simultaneously
+  const sharedIsDraggingRef = useRef(false);
+
   // Edge reconnect: drag endpoint of custom edges to reconnect
   useEdgeReconnect({
     graphRef: graphRef as React.RefObject<Graph | null>,
@@ -1278,9 +1520,23 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     edges: data.edges,
     onReconnect: onEdgeReconnect,
     enabled: enableEdgeReconnect,
+    isDraggingRef: sharedIsDraggingRef,
   });
 
-  // Keyboard navigation: Tab, Arrow keys, Enter, Escape, +, zoom, collapse
+  // Enhanced drag-to-connect: bezier arrows, snap feedback, ports, success animation
+  useDragConnect({
+    graphRef: graphRef as React.RefObject<Graph | null>,
+    containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
+    ready,
+    graphVersion,
+    enabled: enableDragConnect,
+    edges: data.edges,
+    onDragConnect,
+    onQuickAdd,
+    isDraggingRef: sharedIsDraggingRef,
+  });
+
+// Keyboard navigation: Tab, Arrow keys, Enter, Escape, +, zoom, collapse
   const { focusedNodeId } = useKeyboardNav({
     graphRef: graphRef as React.RefObject<Graph | null>,
     containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
@@ -1451,11 +1707,24 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
         aria-describedby="kg-shortcut-desc"
         aria-busy={!ready}
       />
+      {/* Zoom limit flash — brief border highlight when hitting min/max zoom */}
+      {zoomLimitFlash && (
+        <div
+          className="absolute inset-0 rounded-2xl pointer-events-none z-[3]"
+          style={{
+            boxShadow: 'inset 0 0 0 2px rgba(42, 140, 122, 0.45)',
+            animation: 'kg-zoom-limit-flash 400ms ease-out forwards',
+          }}
+          aria-hidden="true"
+        />
+      )}
+      {/* Inline keyframes for zoom limit flash animation */}
+      <style>{`@keyframes kg-zoom-limit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }`}</style>
       {/* Breadcrumb trail — visible when user has drilled into collapsed branches */}
       {ready && breadcrumbs.length > 0 && (
         <nav
           className="absolute top-2 left-2 z-[6] flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm border border-gray-100 px-2 py-1.5 text-[11px] max-w-[calc(100%-1rem)] overflow-x-auto"
-          aria-label="Navegación del grafo"
+          aria-label={t.breadcrumbNav}
         >
           <button
             onClick={() => handleBreadcrumbClick(null)}

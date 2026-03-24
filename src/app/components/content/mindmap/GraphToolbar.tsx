@@ -27,7 +27,8 @@ const I18N: Record<Locale, {
   toolbar: string; layoutGroup: string; zoomGroup: string; collapseGroup: string;
   edgeLegendTitle: string; edgeLegendToggle: string; masteryGroup: string;
   matchOf: (match: number, total: number) => string;
-  exportLabel: string; exportPNG: string; exportJPEG: string; exporting: string;
+  exportLabel: string; exportPNG: string; exportJPEG: string; exporting: string; exportError: string;
+  exportOptions: string; filterLabel: (label: string) => string; filterBy: (label: string) => string; edgeLegend: string; graphNav: string;
   minimap: string; minimapToggle: string;
   grid: string; gridToggle: string;
   autoLayout: string; autoLayoutLabel: string;
@@ -42,7 +43,8 @@ const I18N: Record<Locale, {
     collapseGroup: 'Controles de expansão', edgeLegendTitle: 'Tipos de conexão',
     edgeLegendToggle: 'Mostrar legenda de tipos de conexão', masteryGroup: 'Legenda de domínio',
     matchOf: (match, total) => `${match} de ${total}`,
-    exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...',
+    exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...', exportError: 'Não foi possível exportar o mapa',
+    exportOptions: 'Opções de exportação', filterLabel: (l) => `Filtrar: ${l}`, filterBy: (l) => `Filtrar por ${l}`, edgeLegend: 'Legenda de tipos de conexão', graphNav: 'Navegação do grafo',
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
     grid: 'Quadrícula', gridToggle: 'Mostrar/ocultar quadrícula',
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
@@ -57,7 +59,8 @@ const I18N: Record<Locale, {
     collapseGroup: 'Controles de expansión', edgeLegendTitle: 'Tipos de conexión',
     edgeLegendToggle: 'Mostrar leyenda de tipos de conexión', masteryGroup: 'Leyenda de dominio',
     matchOf: (match, total) => `${match} de ${total}`,
-    exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...',
+    exportLabel: 'Exportar', exportPNG: 'Exportar como PNG', exportJPEG: 'Exportar como JPEG', exporting: 'Exportando...', exportError: 'No se pudo exportar el mapa',
+    exportOptions: 'Opciones de exportación', filterLabel: (l) => `Filtrar: ${l}`, filterBy: (l) => `Filtrar por ${l}`, edgeLegend: 'Leyenda de tipos de conexión', graphNav: 'Navegación del grafo',
     minimap: 'Mapa', minimapToggle: 'Mostrar/ocultar minimapa',
     grid: 'Cuadrícula', gridToggle: 'Mostrar/ocultar cuadrícula',
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automáticamente',
@@ -109,6 +112,8 @@ interface GraphToolbarProps {
   onAutoLayout?: () => void;
   /** Current zoom level (0-1 scale, e.g. 0.75 = 75%) */
   zoomLevel?: number;
+  /** Reset zoom to 100% (double-click on zoom indicator) */
+  onResetZoom?: () => void;
   /** Active mastery filter (null = show all) */
   masteryFilter?: MasteryColor | null;
   /** Callback when mastery filter changes */
@@ -165,6 +170,7 @@ export const GraphToolbar = memo(function GraphToolbar({
   onGridToggle,
   onAutoLayout,
   zoomLevel,
+  onResetZoom,
   masteryFilter,
   onMasteryFilterChange,
 }: GraphToolbarProps) {
@@ -224,7 +230,7 @@ export const GraphToolbar = memo(function GraphToolbar({
     try {
       await exportFn();
     } catch {
-      toast.error('No se pudo exportar el mapa');
+      toast.error(t.exportError);
     } finally {
       exportingRef.current = false;
       if (mountedRef.current) setExporting(false);
@@ -299,9 +305,10 @@ export const GraphToolbar = memo(function GraphToolbar({
         {typeof zoomLevel === 'number' && (
           <button
             onClick={onFitView}
+            onDoubleClick={(e) => { e.preventDefault(); onResetZoom?.(); }}
             className="hidden sm:flex items-center justify-center min-w-[36px] px-1 py-0.5 rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150 font-sans tabular-nums"
             style={{ fontSize: fontSize.overline }}
-            title={`${t.fitView} (0)`}
+            title={`${t.fitView} (0) — double-click: 100%`}
             aria-label={`Zoom: ${Math.round(zoomLevel * 100)}%`}
           >
             {Math.round(zoomLevel * 100)}%
@@ -442,7 +449,7 @@ export const GraphToolbar = memo(function GraphToolbar({
             <div
               className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 py-1.5 w-48 max-w-[calc(100vw-2rem)]"
               role="menu"
-              aria-label="Opciones de exportación"
+              aria-label={t.exportOptions}
               onKeyDown={(e) => {
                 const items = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
                 if (!items.length) return;
@@ -520,9 +527,9 @@ export const GraphToolbar = memo(function GraphToolbar({
                 fontSize: fontSize.xs,
                 ...(isActive ? { boxShadow: `0 0 0 2px ${MASTERY_HEX[color]}` } : {}),
               }}
-              title={`Filtrar: ${getMasteryLabel(color, locale)}`}
+              title={t.filterLabel(getMasteryLabel(color, locale))}
               aria-pressed={isActive}
-              aria-label={`Filtrar por ${getMasteryLabel(color, locale)}`}
+              aria-label={t.filterBy(getMasteryLabel(color, locale))}
             >
               <span
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -624,7 +631,7 @@ export const GraphToolbar = memo(function GraphToolbar({
           <Info className="w-3.5 h-3.5" />
         </button>
         {showEdgeLegend && (
-          <div className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 w-56 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto" role="dialog" aria-label="Leyenda de tipos de conexión">
+          <div className="absolute right-0 sm:right-0 top-full mt-1.5 z-20 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 w-56 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto" role="dialog" aria-label={t.edgeLegend}>
             <p
               className="font-semibold text-gray-500 uppercase tracking-wider mb-2.5 font-sans"
               style={{ fontSize: fontSize.overline }}

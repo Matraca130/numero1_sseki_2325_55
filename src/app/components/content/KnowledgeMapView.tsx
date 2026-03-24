@@ -394,7 +394,7 @@ export function KnowledgeMapView() {
     }
   }, [navigateWithFade, effectiveTopicId]);
 
-  const { handleZoomIn, handleZoomOut, handleFitView, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG } = useGraphControls(graphControlsRef);
+  const { handleZoomIn, handleZoomOut, handleFitView, handleResetZoom, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG } = useGraphControls(graphControlsRef);
 
   const handlePresentationFocus = useCallback((nodeId: string) => {
     graphControlsRef.current?.focusNode?.(nodeId);
@@ -456,18 +456,15 @@ export function KnowledgeMapView() {
 
       // Guard: prevent duplicate edges (use ref for fresh data)
       const edgeExists = graphDataEdgesRef.current?.some(
-        e => e.source === newSource && e.target === newTarget && e.id !== oldEdge.id,
+        (e) => ((e.source === newSource && e.target === newTarget) || (e.source === newTarget && e.target === newSource)) && e.id !== oldEdge.id,
       );
       if (edgeExists) {
         toast.warning('Já existe uma conexão entre esses nós');
         return;
       }
 
-      // Delete the old edge
-      await deleteCustomEdge(oldEdge.id);
-
-      // Create the new edge (preserving label, connection type, style, etc.)
-      const oldEdgePayload = {
+      // Create the new edge first so the old one remains intact if creation fails
+      const rollbackPayload = {
         source_node_id: oldEdge.source,
         target_node_id: oldEdge.target,
         label: oldEdge.label,
@@ -478,24 +475,20 @@ export function KnowledgeMapView() {
         directed: oldEdge.directed,
         arrow_type: oldEdge.arrowType,
       };
-      let newEdgeRes;
-      try {
-        newEdgeRes = await createCustomEdge({
-          source_node_id: newSource,
-          target_node_id: newTarget,
-          label: oldEdge.label,
-          connection_type: oldEdge.connectionType,
-          topic_id: effectiveTopicId,
-          line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
-          custom_color: oldEdge.customColor,
-          directed: oldEdge.directed,
-          arrow_type: oldEdge.arrowType,
-        });
-      } catch (createErr: unknown) {
-        // Compensate: re-create the old edge since delete already succeeded
-        try { await createCustomEdge(oldEdgePayload); } catch { /* best effort */ }
-        throw createErr;
-      }
+      const newEdgeRes = await createCustomEdge({
+        source_node_id: newSource,
+        target_node_id: newTarget,
+        label: oldEdge.label,
+        connection_type: oldEdge.connectionType,
+        topic_id: effectiveTopicId,
+        line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
+        custom_color: oldEdge.customColor,
+        directed: oldEdge.directed,
+        arrow_type: oldEdge.arrowType,
+      });
+
+      // New edge created successfully — now safe to delete the old one
+      await deleteCustomEdge(oldEdge.id);
 
       if (!mountedRef.current) return;
 
@@ -503,7 +496,7 @@ export function KnowledgeMapView() {
       pushAction({
         type: 'reconnect-edge',
         oldEdgeId: oldEdge.id,
-        oldPayload: oldEdgePayload,
+        oldPayload: rollbackPayload,
         newEdgeId: newEdgeRes.id,
         newPayload: {
           source_node_id: newSource,
@@ -537,6 +530,17 @@ export function KnowledgeMapView() {
     const sourceNode = graphDataNodesRef.current?.find(n => n.id === sourceId);
     if (sourceNode) {
       setConnectSource(sourceNode);
+      setAddModalOpen(true);
+    }
+  }, []);
+
+  // Drag-to-connect handler: open AddNodeEdgeModal pre-filled with source → target
+  const handleDragConnect = useCallback((sourceId: string, targetId: string) => {
+    const sourceNode = graphDataNodesRef.current?.find(n => n.id === sourceId);
+    const targetNode = graphDataNodesRef.current?.find(n => n.id === targetId);
+    if (sourceNode && targetNode) {
+      setConnectSource(sourceNode);
+      setConnectTarget(targetNode);
       setAddModalOpen(true);
     }
   }, []);
@@ -810,6 +814,7 @@ export function KnowledgeMapView() {
                 onZoomIn={handleZoomIn}
                 onZoomOut={handleZoomOut}
                 onFitView={handleFitView}
+                onResetZoom={handleResetZoom}
                 zoomLevel={zoomLevel}
                 onCollapseAll={handleCollapseAll}
                 onExpandAll={handleExpandAll}
@@ -901,6 +906,8 @@ export function KnowledgeMapView() {
                 showMinimap={showMinimap}
                 customNodeColors={customNodeColors}
                 onQuickAdd={handleQuickAdd}
+                enableDragConnect
+                onDragConnect={handleDragConnect}
                 enableEdgeReconnect
                 onEdgeReconnect={handleEdgeReconnect}
                 onZoomChange={setZoomLevel}

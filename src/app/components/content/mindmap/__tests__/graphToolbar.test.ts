@@ -331,7 +331,7 @@ describe('GraphToolbar: exportingRef double-click prevention', () => {
   });
 
   it('shows error toast on export failure', () => {
-    expect(source).toContain("toast.error('No se pudo exportar el mapa')");
+    expect(source).toContain("toast.error(t.exportError)");
   });
 
   it('catches errors without rethrowing', () => {
