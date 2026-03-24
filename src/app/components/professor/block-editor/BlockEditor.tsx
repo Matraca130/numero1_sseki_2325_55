@@ -27,6 +27,7 @@ import BlockEditorToolbar from './BlockEditorToolbar';
 import BlockCard from './BlockCard';
 import AddBlockButton from './AddBlockButton';
 import BlockFormRouter from './BlockFormRouter';
+import BlockTypeSelector from './BlockTypeSelector';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -264,6 +265,19 @@ export default function BlockEditor({
         status={summaryStatus}
         blockCount={blocks.length}
       />
+
+      {/* Block type selector (from toolbar "Agregar bloque") */}
+      {showTopSelector && (
+        <div className="relative shrink-0 flex justify-center border-b border-gray-100 bg-gray-50 py-3">
+          <BlockTypeSelector
+            onSelect={(type) => {
+              handleInsert(type, -1);
+              setShowTopSelector(false);
+            }}
+            onClose={() => setShowTopSelector(false)}
+          />
+        </div>
+      )}
 
       {/* Publishing overlay */}
       {publishing && (

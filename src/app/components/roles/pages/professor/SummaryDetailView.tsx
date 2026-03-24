@@ -276,12 +276,12 @@ export function SummaryDetailView({
       {/* EDITOR MODE SWITCH                                */}
       {/* ═══════════════════════════════════════════════════ */}
 
-      {/* Mode toggle banner — shows when blocks exist so professor can switch */}
-      {hasBlocks && resolvedMode === 'tiptap' && (
+      {/* Mode toggle banner — always visible in TipTap mode so professor can switch */}
+      {resolvedMode === 'tiptap' && (
         <div className="shrink-0 px-4 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-100 text-violet-700 border border-violet-200">
-              Vista enriquecida disponible
+              {hasBlocks ? 'Vista enriquecida disponible' : 'Editor de bloques'}
             </span>
             <button
               onClick={() => setEditorMode('blocks')}
