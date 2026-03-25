@@ -26,9 +26,10 @@ describe('StagesBlock', () => {
     expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
-  it('preserves keyword markers in content', () => {
+  it('renders keyword name as fallback when no keywords provided', () => {
     const block = makeBlock(FIXTURES.stages);
     render(<StagesBlock block={block} />);
-    expect(screen.getByText(/\{\{macrofagos\}\}/)).toBeInTheDocument();
+    // Without keywords prop, {{macrofagos}} renders as plain "macrofagos"
+    expect(screen.getByText('macrofagos')).toBeInTheDocument();
   });
 });

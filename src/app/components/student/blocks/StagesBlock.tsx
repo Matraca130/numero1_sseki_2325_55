@@ -1,4 +1,5 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface StageItem {
   stage?: number | string;
@@ -19,7 +20,7 @@ const SEVERITY_BORDER: Record<string, string> = {
   critical: 'border-l-red-500',
 };
 
-export default function StagesBlock({ block }: { block: SummaryBlock }) {
+export default function StagesBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const title = block.content?.title as string | undefined;
   const items = (block.content?.items ?? []) as StageItem[];
 
@@ -58,7 +59,7 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
                 )}
                 {item.content && (
                   <div className="text-sm text-gray-500 dark:text-gray-400 leading-[1.6]">
-                    {item.content}
+                    {renderTextWithKeywords(item.content, keywords)}
                   </div>
                 )}
               </div>

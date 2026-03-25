@@ -1,4 +1,5 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 import IconByName from './IconByName';
 
 interface ListDetailItem {
@@ -14,7 +15,7 @@ const SEVERITY_COLOR: Record<string, string> = {
   low: '#10b981',
 };
 
-export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
+export default function ListDetailBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const title = block.content?.title as string | undefined;
   const intro = block.content?.intro as string | undefined;
   const items = (block.content?.items ?? []) as ListDetailItem[];
@@ -48,7 +49,7 @@ export default function ListDetailBlock({ block }: { block: SummaryBlock }) {
               )}
               {item.detail && (
                 <div className="text-[13px] text-gray-500 dark:text-gray-400 leading-normal">
-                  {item.detail}
+                  {renderTextWithKeywords(item.detail, keywords)}
                 </div>
               )}
             </div>

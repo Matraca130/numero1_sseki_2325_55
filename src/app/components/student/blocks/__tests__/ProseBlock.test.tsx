@@ -16,10 +16,11 @@ describe('ProseBlock', () => {
     expect(screen.getByText(/enfermedad inflamatoria crónica/)).toBeInTheDocument();
   });
 
-  it('preserves keyword {{}} markers in text', () => {
+  it('renders keyword name as fallback when no keywords provided', () => {
     const block = makeBlock(FIXTURES.prose);
     render(<ProseBlock block={block} />);
-    expect(screen.getByText(/\{\{aterosclerosis\}\}/)).toBeInTheDocument();
+    // Without keywords prop, {{aterosclerosis}} renders as plain "aterosclerosis"
+    expect(screen.getByText('aterosclerosis')).toBeInTheDocument();
   });
 
   it('handles empty content gracefully', () => {

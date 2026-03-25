@@ -1,7 +1,8 @@
 import { Zap } from 'lucide-react';
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
-export default function KeyPointBlock({ block }: { block: SummaryBlock }) {
+export default function KeyPointBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const title = block.content?.title as string | undefined;
   const content = block.content?.content as string | undefined;
   const importance = block.content?.importance as string | undefined;
@@ -23,7 +24,7 @@ export default function KeyPointBlock({ block }: { block: SummaryBlock }) {
       </div>
       {content && (
         <div className="text-sm leading-[1.7] text-[#d1d5db]">
-          {content}
+          {renderTextWithKeywords(content, keywords)}
         </div>
       )}
     </div>

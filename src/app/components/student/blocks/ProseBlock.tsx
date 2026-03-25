@@ -1,6 +1,7 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
-export default function ProseBlock({ block }: { block: SummaryBlock }) {
+export default function ProseBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const title = block.content?.title as string | undefined;
   const content = block.content?.content as string | undefined;
   const image = block.content?.image as string | undefined;
@@ -13,8 +14,8 @@ export default function ProseBlock({ block }: { block: SummaryBlock }) {
         </h3>
       )}
       {content && (
-        <div className="text-[15px] leading-[1.75] text-gray-500 dark:text-gray-400 whitespace-pre-line">
-          {content}
+        <div className="text-[15px] leading-[1.75] text-gray-500 dark:text-gray-400">
+          {renderTextWithKeywords(content, keywords)}
         </div>
       )}
       {image && (

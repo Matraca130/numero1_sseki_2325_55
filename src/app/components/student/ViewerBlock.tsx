@@ -24,6 +24,7 @@ import {
 interface ViewerBlockProps {
   block: SummaryBlock;
   isMobile: boolean;
+  keywords?: SummaryKeyword[];
   onImageClick?: (src: string, alt?: string, caption?: string) => void;
   onKeywordClick?: (keywordId: string) => void;
   onVideoPlay?: (videoId: string) => void;
@@ -50,6 +51,7 @@ const calloutBg: Record<string, string> = {
 export const ViewerBlock = React.memo(function ViewerBlock({
   block,
   isMobile,
+  keywords,
   onImageClick,
   onKeywordClick,
   onVideoPlay,
@@ -222,7 +224,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       // Edu callout variants use the new renderer
       const eduVariants = ['tip', 'warning', 'clinical', 'mnemonic', 'exam'];
       if (c.variant && eduVariants.includes(c.variant)) {
-        return <EduCalloutBlock block={block} />;
+        return <EduCalloutBlock block={block} keywords={keywords} />;
       }
       // Legacy callout fallback
       const variant = c.variant || c.type || 'info';
@@ -296,19 +298,19 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
     // ── Edu Block Renderers (Fase 2) ────────────────────
     case 'prose':
-      return <ProseBlock block={block} />;
+      return <ProseBlock block={block} keywords={keywords} />;
     case 'key_point':
-      return <KeyPointBlock block={block} />;
+      return <KeyPointBlock block={block} keywords={keywords} />;
     case 'stages':
-      return <StagesBlock block={block} />;
+      return <StagesBlock block={block} keywords={keywords} />;
     case 'comparison':
       return <ComparisonBlock block={block} />;
     case 'list_detail':
-      return <ListDetailBlock block={block} />;
+      return <ListDetailBlock block={block} keywords={keywords} />;
     case 'grid':
       return <GridBlock block={block} />;
     case 'two_column':
-      return <TwoColumnBlock block={block} />;
+      return <TwoColumnBlock block={block} keywords={keywords} />;
     case 'image_reference':
       return <ImageReferenceBlock block={block} />;
     case 'section_divider':

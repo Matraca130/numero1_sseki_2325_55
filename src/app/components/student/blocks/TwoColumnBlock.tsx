@@ -1,4 +1,5 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface ColumnItem {
   label?: string;
@@ -10,7 +11,7 @@ interface Column {
   items?: ColumnItem[];
 }
 
-export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
+export default function TwoColumnBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const columns = (block.content?.columns ?? []) as Column[];
 
   return (
@@ -38,7 +39,7 @@ export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
                 )}
                 {item.detail && (
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {item.detail}
+                    {renderTextWithKeywords(item.detail, keywords)}
                   </div>
                 )}
               </div>

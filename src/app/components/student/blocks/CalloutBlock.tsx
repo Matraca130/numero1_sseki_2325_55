@@ -2,7 +2,8 @@ import type { LucideProps } from 'lucide-react';
 import {
   Lightbulb, AlertTriangle, Stethoscope, Brain, Target,
 } from 'lucide-react';
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface CalloutConfig {
   icon: React.FC<LucideProps>;
@@ -44,7 +45,7 @@ const VARIANTS: Record<string, CalloutConfig> = {
   },
 };
 
-export default function CalloutBlock({ block }: { block: SummaryBlock }) {
+export default function CalloutBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const variantKey = block.content?.variant as string | undefined;
   const title = block.content?.title as string | undefined;
   const content = block.content?.content as string | undefined;
@@ -67,8 +68,8 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
         </div>
       )}
       {content && (
-        <div className="text-sm leading-[1.65] text-gray-500 dark:text-gray-400 whitespace-pre-line">
-          {content}
+        <div className="text-sm leading-[1.65] text-gray-500 dark:text-gray-400">
+          {renderTextWithKeywords(content, keywords)}
         </div>
       )}
     </div>
