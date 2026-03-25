@@ -1,11 +1,29 @@
 ---
-name: Axon Current State (audited 2026-03-20)
-description: Platform v4.5. Security audit completed 2026-03-19. RLS enabled (33+ tables), JWT verified (jose ES256). 62 migrations, backend tests increased. Agent system Phase 1 approved (13 agents).
+name: Axon Current State (updated 2026-03-25)
+description: Platform v4.6. Block editor (Fase 2+5) complete. 74-agent system deployed. Security audit 2026-03-19. RLS 33+ tables, JWT jose ES256.
 type: project
 ---
 
-Platform version: v4.5 (both frontend and backend)
-Both repos on branch `main` as of 2026-03-20.
+Platform version: v4.6 (frontend), v4.5 (backend)
+Frontend main as of 2026-03-25 (74-agent system merged).
+Block editor on branch `feat/block-editor-professor` (14 commits, ready for PR).
+
+**Block Editor (Fase 2 + 5) — 2026-03-24/25:**
+- 10 edu block types: prose, key_point, stages, comparison, list_detail, grid, two_column, callout, image_reference, section_divider
+- Student renderers: all 10 with prototype-matching colors (#1B3B36, #2a8c7a), dark mode, {{keyword}} parsing
+- Professor editor: BlockEditor orchestrator, 10 forms, auto-save 2s debounce, drag-drop, preview, publish
+- Image upload: real file upload via POST /storage/upload (ImageReferenceForm + ProseForm)
+- KeywordChip: hover popover with definition, 150ms delay, dark mode
+- Tests: 571 total (499 pre-existing + 72 new form tests)
+- Agent registry updated: SM-01 and SM-03 own all new files
+- 11 audits + 5 verifications executed, 19+ bugs found and fixed
+
+**74-Agent System (deployed 2026-03-25):**
+- 76 agent definitions in .claude/agents/
+- 68 individual memories in .claude/agent-memory/individual/
+- 15 section memories in .claude/agent-memory/
+- Architect (XX-01) orchestrates via AGENT-REGISTRY.md
+- First real session: block editor sprint (summaries section)
 
 **Security audit completed (2026-03-19):**
 - jose + ES256 JWKS JWT verification (replaces base64 decode)
