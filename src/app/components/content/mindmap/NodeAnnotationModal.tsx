@@ -13,6 +13,26 @@ import { toast } from 'sonner';
 import { apiCall } from '@/app/lib/api';
 import type { MapNode } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
+
+const I18N_ANNOTATION = {
+  pt: {
+    close: 'Fechar', label: 'Sua anotação pessoal', placeholder: 'Adicione notas sobre este conceito...',
+    delete: 'Excluir', saving: 'Salvando...', save: 'Salvar',
+    savedToast: 'Anotação salva', saveError: 'Erro ao salvar anotação',
+    deletedToast: 'Anotação excluída', deleteError: 'Erro ao excluir anotação',
+    unsavedTitle: 'Alterações não salvas', unsavedDesc: 'Descartar as alterações da sua anotação?',
+    unsavedCancel: 'Continuar editando', unsavedConfirm: 'Descartar',
+  },
+  es: {
+    close: 'Cerrar', label: 'Tu anotación personal', placeholder: 'Añade notas sobre este concepto...',
+    delete: 'Eliminar', saving: 'Guardando...', save: 'Guardar',
+    savedToast: 'Anotación guardada', saveError: 'Error al guardar anotación',
+    deletedToast: 'Anotación eliminada', deleteError: 'Error al eliminar anotación',
+    unsavedTitle: 'Cambios sin guardar', unsavedDesc: '¿Descartar los cambios de tu anotación?',
+    unsavedCancel: 'Seguir editando', unsavedConfirm: 'Descartar',
+  },
+} as const;
+const tA = I18N_ANNOTATION['pt'];
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -138,11 +158,11 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
         });
         if (created) setExistingNote(created);
       }
-      toast.success('Anotación guardada');
+      toast.success(tA.savedToast);
       onSaved?.();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error al guardar anotación');
+      toast.error(e instanceof Error ? e.message : tA.saveError);
     } finally {
       savingRef.current = false;
       if (mountedRef.current) setSaving(false);
@@ -157,13 +177,13 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
     setSaving(true);
     try {
       await apiCall(`/kw-student-notes/${existingNote.id}`, { method: 'DELETE' });
-      toast.success('Anotación eliminada');
+      toast.success(tA.deletedToast);
       setContent('');
       setExistingNote(null);
       onSaved?.();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error al eliminar anotación');
+      toast.error(e instanceof Error ? e.message : tA.deleteError);
     } finally {
       savingRef.current = false;
       if (mountedRef.current) setSaving(false);
@@ -221,7 +241,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
                 onClick={safeClose}
                 disabled={saving}
                 className="p-3 -mr-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-                aria-label="Cerrar"
+                aria-label={tA.close}
               >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
@@ -243,13 +263,13 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
               ) : (
                 <>
                   <label htmlFor="node-annotation" className="block text-xs font-medium text-gray-500 mb-2">
-                    Tu anotación personal
+                    {tA.label}
                   </label>
                   <textarea
                     id="node-annotation"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Añade notas sobre este concepto..."
+                    placeholder={tA.placeholder}
                     autoFocus
                     className="w-full h-32 px-3 py-2 text-base sm:text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500 placeholder:text-gray-400"
                     maxLength={1000}
@@ -272,7 +292,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
                   className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-full transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Eliminar
+                  {tA.delete}
                 </button>
               ) : (
                 <div />
@@ -289,7 +309,7 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
                 className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-ax-primary-500 hover:bg-ax-primary-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors shadow-sm"
               >
                 <Save className="w-3.5 h-3.5" />
-                {saving ? 'Guardando...' : 'Guardar'}
+                {saving ? tA.saving : tA.save}
               </button>
             </div>
           </motion.div>
@@ -300,10 +320,10 @@ export const NodeAnnotationModal = memo(function NodeAnnotationModal({ node, onC
     {/* Discard-changes confirm (replaces native window.confirm) */}
     {showDiscardConfirm && (
       <ConfirmDialog
-        title="Cambios sin guardar"
-        description="¿Descartar los cambios de tu anotación?"
-        cancelLabel="Seguir editando"
-        confirmLabel="Descartar"
+        title={tA.unsavedTitle}
+        description={tA.unsavedDesc}
+        cancelLabel={tA.unsavedCancel}
+        confirmLabel={tA.unsavedConfirm}
         zClass="z-[60]"
         onCancel={() => setShowDiscardConfirm(false)}
         onConfirm={() => { setShowDiscardConfirm(false); onCloseRef.current(); }}

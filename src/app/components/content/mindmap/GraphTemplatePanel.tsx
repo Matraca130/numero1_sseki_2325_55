@@ -9,7 +9,7 @@
 //   - Load a template into the active graph
 //   - Delete with confirmation
 //
-// LANG: Spanish (professor UI)
+// LANG: i18n (pt / es)
 // ============================================================
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -27,6 +27,102 @@ import type { GraphTemplate, MapNode, MapEdge } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useFocusTrap } from './useFocusTrap';
+import type { GraphLocale } from './graphI18n';
+
+// ── I18N strings ─────────────────────────────────────────────
+
+const translations = {
+  pt: {
+    panelAriaLabel: 'Painel de modelos de grafo',
+    heading: 'Modelos de Grafo',
+    closePanelAriaLabel: 'Fechar painel de modelos',
+    saveAsTemplate: 'Salvar como modelo',
+    newTemplate: 'Novo modelo',
+    nameLabel: 'Nome *',
+    namePlaceholder: 'Ex: Sistema cardiovascular base',
+    descriptionLabel: 'Descrição (opcional)',
+    descriptionPlaceholder: 'Breve descrição do modelo...',
+    saving: 'Salvando...',
+    save: 'Salvar',
+    cancel: 'Cancelar',
+    nodesAndEdges: (nodes: number, edges: number) =>
+      `${nodes} nós e ${edges} conexões serão salvos.`,
+    loadingTemplates: 'Carregando modelos...',
+    emptyTitle: 'Sem modelos',
+    emptyDescription:
+      'Salve um grafo como modelo para reutilizá-lo rapidamente em futuros tópicos.',
+    templateCount: (n: number) =>
+      `${n} modelo${n !== 1 ? 's' : ''} salvo${n !== 1 ? 's' : ''}`,
+    nodes: 'nós',
+    connections: 'conexões',
+    loadTemplate: 'Carregar modelo',
+    deleteTemplateAriaLabel: (name: string) => `Excluir modelo ${name}`,
+    deleteTooltip: 'Excluir',
+    loadConfirmTitle: 'Carregar modelo?',
+    loadConfirmDescription: (name: string) =>
+      `Carregar "${name}" substituirá o grafo atual. Continuar?`,
+    loadConfirmLabel: 'Carregar',
+    deleteConfirmTitle: 'Excluir modelo?',
+    deleteConfirmDescription: (name: string) =>
+      `O modelo "${name}" será excluído. Esta ação não pode ser desfeita.`,
+    deleting: 'Excluindo...',
+    deleteLabel: 'Excluir',
+    // Toast messages
+    errorLoadingTemplates: 'Erro ao carregar modelos',
+    nameRequired: 'O nome é obrigatório',
+    graphEmpty: 'O grafo atual não tem nós',
+    templateSaved: 'Modelo salvo',
+    errorSavingTemplate: 'Erro ao salvar modelo',
+    templateDeleted: 'Modelo excluído',
+    errorDeletingTemplate: 'Erro ao excluir modelo',
+    templateLoaded: (name: string) => `Modelo "${name}" carregado`,
+  },
+  es: {
+    panelAriaLabel: 'Panel de plantillas de grafo',
+    heading: 'Plantillas de Grafo',
+    closePanelAriaLabel: 'Cerrar panel de plantillas',
+    saveAsTemplate: 'Guardar como plantilla',
+    newTemplate: 'Nueva plantilla',
+    nameLabel: 'Nombre *',
+    namePlaceholder: 'Ej: Sistema cardiovascular base',
+    descriptionLabel: 'Descripción (opcional)',
+    descriptionPlaceholder: 'Breve descripción de la plantilla...',
+    saving: 'Guardando...',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    nodesAndEdges: (nodes: number, edges: number) =>
+      `${nodes} nodos y ${edges} conexiones se guardarán.`,
+    loadingTemplates: 'Cargando plantillas...',
+    emptyTitle: 'Sin plantillas',
+    emptyDescription:
+      'Guarda un grafo como plantilla para reutilizarlo rápidamente en futuros tópicos.',
+    templateCount: (n: number) =>
+      `${n} plantilla${n !== 1 ? 's' : ''} guardada${n !== 1 ? 's' : ''}`,
+    nodes: 'nodos',
+    connections: 'conexiones',
+    loadTemplate: 'Cargar plantilla',
+    deleteTemplateAriaLabel: (name: string) => `Eliminar plantilla ${name}`,
+    deleteTooltip: 'Eliminar',
+    loadConfirmTitle: '¿Cargar plantilla?',
+    loadConfirmDescription: (name: string) =>
+      `Cargar "${name}" reemplazará el grafo actual. ¿Continuar?`,
+    loadConfirmLabel: 'Cargar',
+    deleteConfirmTitle: '¿Eliminar plantilla?',
+    deleteConfirmDescription: (name: string) =>
+      `Se eliminará la plantilla "${name}". Esta acción no se puede deshacer.`,
+    deleting: 'Eliminando...',
+    deleteLabel: 'Eliminar',
+    // Toast messages
+    errorLoadingTemplates: 'Error al cargar plantillas',
+    nameRequired: 'El nombre es obligatorio',
+    graphEmpty: 'El grafo actual no tiene nodos',
+    templateSaved: 'Plantilla guardada',
+    errorSavingTemplate: 'Error al guardar plantilla',
+    templateDeleted: 'Plantilla eliminada',
+    errorDeletingTemplate: 'Error al eliminar plantilla',
+    templateLoaded: (name: string) => `Plantilla "${name}" cargada`,
+  },
+} as const satisfies Record<GraphLocale, unknown>;
 
 // ── Brand colors (professor accent) ──────────────────────────
 
@@ -54,6 +150,8 @@ interface GraphTemplatePanelProps {
   currentEdges: MapEdge[];
   /** Called when a template is loaded — parent updates graph */
   onLoadTemplate: (nodes: MapNode[], edges: MapEdge[]) => void;
+  /** Locale for i18n (defaults to 'es') */
+  locale?: GraphLocale;
 }
 
 // ── Component ────────────────────────────────────────────────
@@ -66,7 +164,10 @@ export function GraphTemplatePanel({
   currentNodes,
   currentEdges,
   onLoadTemplate,
+  locale = 'es',
 }: GraphTemplatePanelProps) {
+  const t = translations[locale];
+
   // ── State ─────────────────────────────────────────────────
   const [templates, setTemplates] = useState<GraphTemplate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -112,11 +213,11 @@ export function GraphTemplatePanel({
       const result = await fetchGraphTemplates(institutionId);
       if (mountedRef.current && fetchId === fetchIdRef.current) setTemplates(result);
     } catch {
-      if (mountedRef.current && fetchId === fetchIdRef.current) toast.error('Error al cargar plantillas');
+      if (mountedRef.current && fetchId === fetchIdRef.current) toast.error(t.errorLoadingTemplates);
     } finally {
       if (mountedRef.current && fetchId === fetchIdRef.current) setLoading(false);
     }
-  }, [institutionId]);
+  }, [institutionId, t]);
 
   useEffect(() => {
     if (open) {
@@ -144,11 +245,11 @@ export function GraphTemplatePanel({
     if (savingRef.current) return;
     const trimmedName = saveName.trim();
     if (!trimmedName) {
-      toast.error('El nombre es obligatorio');
+      toast.error(t.nameRequired);
       return;
     }
     if (currentNodes.length === 0) {
-      toast.error('El grafo actual no tiene nodos');
+      toast.error(t.graphEmpty);
       return;
     }
     savingRef.current = true;
@@ -167,16 +268,16 @@ export function GraphTemplatePanel({
       setSaveName('');
       setSaveDescription('');
       setShowSaveForm(false);
-      toast.success('Plantilla guardada');
+      toast.success(t.templateSaved);
     } catch (err: unknown) {
       if (mountedRef.current) {
-        toast.error(err instanceof Error ? err.message : 'Error al guardar plantilla');
+        toast.error(err instanceof Error ? err.message : t.errorSavingTemplate);
       }
     } finally {
       savingRef.current = false;
       if (mountedRef.current) setSaving(false);
     }
-  }, [saveName, saveDescription, institutionId, topicId, currentNodes, currentEdges]);
+  }, [saveName, saveDescription, institutionId, topicId, currentNodes, currentEdges, t]);
 
   // ── Delete handler ────────────────────────────────────────
 
@@ -189,26 +290,26 @@ export function GraphTemplatePanel({
       if (!mountedRef.current) return;
       setTemplates(prev => prev.filter(t => t.id !== deleteTarget.id));
       setDeleteTarget(null);
-      toast.success('Plantilla eliminada');
+      toast.success(t.templateDeleted);
     } catch (err: unknown) {
       if (mountedRef.current) {
-        toast.error(err instanceof Error ? err.message : 'Error al eliminar plantilla');
+        toast.error(err instanceof Error ? err.message : t.errorDeletingTemplate);
       }
     } finally {
       deletingRef.current = false;
       if (mountedRef.current) setDeleting(false);
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, t]);
 
   // ── Load handler ──────────────────────────────────────────
 
   const executeLoad = useCallback(() => {
     if (!loadTarget) return;
     onLoadTemplate(loadTarget.nodes, loadTarget.edges);
-    toast.success(`Plantilla "${loadTarget.name}" cargada`);
+    toast.success(t.templateLoaded(loadTarget.name));
     setLoadTarget(null);
     onCloseRef.current();
-  }, [loadTarget, onLoadTemplate]);
+  }, [loadTarget, onLoadTemplate, t]);
 
   // ── Render ────────────────────────────────────────────────
 
@@ -224,7 +325,7 @@ export function GraphTemplatePanel({
             ref={focusTrapRef}
             className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
             role="dialog"
-            aria-label="Panel de plantillas de grafo"
+            aria-label={t.panelAriaLabel}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
@@ -239,13 +340,13 @@ export function GraphTemplatePanel({
                   className="font-semibold text-gray-900"
                   style={{ ...headingStyle, fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
                 >
-                  Plantillas de Grafo
+                  {t.heading}
                 </h3>
               </div>
               <button
                 onClick={onClose}
                 className="w-8 h-8 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                aria-label="Cerrar panel de plantillas"
+                aria-label={t.closePanelAriaLabel}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -267,7 +368,7 @@ export function GraphTemplatePanel({
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = BRAND.primary; }}
                 >
                   <Plus className="w-4 h-4" aria-hidden="true" />
-                  Guardar como plantilla
+                  {t.saveAsTemplate}
                 </button>
               ) : (
                 <motion.div
@@ -281,14 +382,14 @@ export function GraphTemplatePanel({
                     style={{ ...headingStyle, fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
                   >
                     <Save className="w-3.5 h-3.5" style={{ color: BRAND.primary }} aria-hidden="true" />
-                    Nueva plantilla
+                    {t.newTemplate}
                   </h4>
                   <div>
                     <label
                       htmlFor="template-name"
                       className="block font-sans text-xs text-gray-500 mb-1"
                     >
-                      Nombre *
+                      {t.nameLabel}
                     </label>
                     <input
                       ref={nameInputRef}
@@ -296,7 +397,7 @@ export function GraphTemplatePanel({
                       type="text"
                       value={saveName}
                       onChange={(e) => setSaveName(e.target.value)}
-                      placeholder="Ej: Sistema cardiovascular base"
+                      placeholder={t.namePlaceholder}
                       maxLength={100}
                       className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] transition-shadow font-sans"
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
@@ -307,13 +408,13 @@ export function GraphTemplatePanel({
                       htmlFor="template-description"
                       className="block font-sans text-xs text-gray-500 mb-1"
                     >
-                      Descripción (opcional)
+                      {t.descriptionLabel}
                     </label>
                     <textarea
                       id="template-description"
                       value={saveDescription}
                       onChange={(e) => setSaveDescription(e.target.value)}
-                      placeholder="Breve descripción de la plantilla..."
+                      placeholder={t.descriptionPlaceholder}
                       maxLength={300}
                       rows={2}
                       className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a] transition-shadow resize-none font-sans"
@@ -334,18 +435,18 @@ export function GraphTemplatePanel({
                       ) : (
                         <Save className="w-3.5 h-3.5" />
                       )}
-                      {saving ? 'Guardando...' : 'Guardar'}
+                      {saving ? t.saving : t.save}
                     </button>
                     <button
                       onClick={() => { setShowSaveForm(false); setSaveName(''); setSaveDescription(''); }}
                       className="px-3 py-2 font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
                       style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                     >
-                      Cancelar
+                      {t.cancel}
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 font-sans">
-                    {currentNodes.length} nodos y {currentEdges.length} conexiones se guardarán.
+                    {t.nodesAndEdges(currentNodes.length, currentEdges.length)}
                   </p>
                 </motion.div>
               )}
@@ -355,7 +456,7 @@ export function GraphTemplatePanel({
                 <div aria-live="polite" aria-atomic="true">
                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                   <Loader2 className="w-5 h-5 animate-spin" style={{ color: BRAND.primary }} aria-hidden="true" />
-                  <p className="text-sm text-gray-500 font-sans">Cargando plantillas...</p>
+                  <p className="text-sm text-gray-500 font-sans">{t.loadingTemplates}</p>
                 </div>
                 </div>
               )}
@@ -378,13 +479,13 @@ export function GraphTemplatePanel({
                     className="font-semibold text-gray-900 mb-1.5"
                     style={{ ...headingStyle, fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
                   >
-                    Sin plantillas
+                    {t.emptyTitle}
                   </h4>
                   <p
                     className="text-gray-500 leading-relaxed font-sans"
                     style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                   >
-                    Guarda un grafo como plantilla para reutilizarlo rápidamente en futuros tópicos.
+                    {t.emptyDescription}
                   </p>
                 </motion.div>
               )}
@@ -395,7 +496,7 @@ export function GraphTemplatePanel({
                   <p
                     className="text-xs font-medium text-gray-500 uppercase tracking-wider px-1 font-sans"
                   >
-                    {templates.length} plantilla{templates.length !== 1 ? 's' : ''} guardada{templates.length !== 1 ? 's' : ''}
+                    {t.templateCount(templates.length)}
                   </p>
                   {templates.map((template, index) => (
                     <motion.div
@@ -432,13 +533,13 @@ export function GraphTemplatePanel({
                             color: BRAND.primary,
                           }}
                         >
-                          {template.nodes.length} nodos
+                          {template.nodes.length} {t.nodes}
                         </span>
                         <span
                           className="font-sans px-2 py-0.5 rounded-full bg-gray-50 text-gray-500"
                           style={{ fontSize: 'clamp(0.625rem, 1vw, 0.6875rem)' }}
                         >
-                          {template.edges.length} conexiones
+                          {template.edges.length} {t.connections}
                         </span>
                       </div>
                       {/* Actions */}
@@ -454,13 +555,13 @@ export function GraphTemplatePanel({
                           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = BRAND.primary; }}
                         >
                           <Download className="w-3.5 h-3.5" aria-hidden="true" />
-                          Cargar plantilla
+                          {t.loadTemplate}
                         </button>
                         <button
                           onClick={() => setDeleteTarget(template)}
                           className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-                          aria-label={`Eliminar plantilla ${template.name}`}
-                          title="Eliminar"
+                          aria-label={t.deleteTemplateAriaLabel(template.name)}
+                          title={t.deleteTooltip}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -471,7 +572,7 @@ export function GraphTemplatePanel({
                         style={{ fontSize: 'clamp(0.5625rem, 0.9vw, 0.625rem)' }}
                       >
                         {template.created_at
-                          ? new Date(template.created_at).toLocaleDateString('es', {
+                          ? new Date(template.created_at).toLocaleDateString(locale, {
                               day: 'numeric',
                               month: 'short',
                               year: 'numeric',
@@ -490,10 +591,10 @@ export function GraphTemplatePanel({
       {/* Load confirmation */}
       {loadTarget && (
         <ConfirmDialog
-          title="¿Cargar plantilla?"
-          description={`Cargar "${loadTarget.name}" reemplazará el grafo actual. ¿Continuar?`}
-          cancelLabel="Cancelar"
-          confirmLabel="Cargar"
+          title={t.loadConfirmTitle}
+          description={t.loadConfirmDescription(loadTarget.name)}
+          cancelLabel={t.cancel}
+          confirmLabel={t.loadConfirmLabel}
           onCancel={() => setLoadTarget(null)}
           onConfirm={executeLoad}
           zClass="z-[60]"
@@ -503,10 +604,10 @@ export function GraphTemplatePanel({
       {/* Delete confirmation */}
       {deleteTarget && (
         <ConfirmDialog
-          title="¿Eliminar plantilla?"
-          description={`Se eliminará la plantilla "${deleteTarget.name}". Esta acción no se puede deshacer.`}
-          cancelLabel="Cancelar"
-          confirmLabel={deleting ? 'Eliminando...' : 'Eliminar'}
+          title={t.deleteConfirmTitle}
+          description={t.deleteConfirmDescription(deleteTarget.name)}
+          cancelLabel={t.cancel}
+          confirmLabel={deleting ? t.deleting : t.deleteLabel}
           onCancel={() => { if (!deleting) setDeleteTarget(null); }}
           onConfirm={executeDelete}
           confirmDisabled={deleting}

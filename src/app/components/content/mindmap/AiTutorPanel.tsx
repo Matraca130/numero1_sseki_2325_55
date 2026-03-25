@@ -23,6 +23,86 @@ import { createCustomEdge } from '@/app/services/mindmapApi';
 import { colors, headingStyle } from '@/app/design-system';
 import { useCountUp } from '@/app/hooks/useCountUp';
 
+// ── Inline I18N ─────────────────────────────────────────────
+const I18N_TUTOR = {
+  pt: {
+    improved: 'Melhorado',
+    analysisComplete: 'Analise concluida',
+    errorAnalyzing: 'Erro ao analisar o mapa',
+    noSuggestedConnections: 'Nenhuma conexao sugerida encontrada',
+    errorSuggestingConnections: 'Erro ao sugerir conexoes',
+    connectionAdded: 'Conexao adicionada ao mapa',
+    errorCreatingConnection: 'Erro ao criar conexao',
+    actionSummary: 'Resumo',
+    actionReview: 'Revisar',
+    panelAriaLabel: 'Painel de IA Tutor',
+    closePanelAriaLabel: 'Fechar painel IA',
+    releaseToRefresh: 'Solte para atualizar',
+    pullDown: 'Puxe para baixo',
+    analyzeYourMap: 'Analise seu mapa',
+    analyzeDescription: 'A IA avaliara seu dominio, identificara pontos fracos e sugerira uma rota de estudo personalizada.',
+    analyzeMyMap: 'Analisar meu mapa',
+    analyzingMap: 'Analisando seu mapa de conhecimento...',
+    overallScore: 'Pontuacao geral',
+    progressDetected: 'Progresso detectado',
+    weakPoints: 'Pontos fracos',
+    strongPoints: 'Pontos fortes',
+    studyPath: 'Rota de estudo',
+    analyzeAgain: 'Analisar novamente',
+    searchingConnections: 'Buscando conexoes...',
+    suggestConnections: 'Sugerir conexoes',
+    suggestedConnections: 'Conexoes sugeridas',
+    confidence: 'confianca',
+    added: 'Adicionada',
+    acceptConnectionAriaLabel: 'Aceitar conexao',
+    acceptTitle: 'Aceitar',
+    rejectConnectionAriaLabel: 'Rejeitar conexao',
+    rejectTitle: 'Rejeitar',
+    conceptsToReview: 'Conceitos para revisar',
+    highlightWeakPointAriaLabel: (name: string, mastery: number) =>
+      `Destacar ponto fraco: ${name}, ${mastery}% dominio`,
+    iaTutor: 'IA Tutor',
+  },
+  es: {
+    improved: 'Mejorado',
+    analysisComplete: 'Análisis completado',
+    errorAnalyzing: 'Error al analizar el mapa',
+    noSuggestedConnections: 'No se encontraron conexiones sugeridas',
+    errorSuggestingConnections: 'Error al sugerir conexiones',
+    connectionAdded: 'Conexión añadida al mapa',
+    errorCreatingConnection: 'Error al crear conexión',
+    actionSummary: 'Resumen',
+    actionReview: 'Revisar',
+    panelAriaLabel: 'Panel de IA Tutor',
+    closePanelAriaLabel: 'Cerrar panel IA',
+    releaseToRefresh: 'Soltar para actualizar',
+    pullDown: 'Tira hacia abajo',
+    analyzeYourMap: 'Analiza tu mapa',
+    analyzeDescription: 'La IA evaluará tu dominio, identificará puntos débiles y te sugerirá una ruta de estudio personalizada.',
+    analyzeMyMap: 'Analizar mi mapa',
+    analyzingMap: 'Analizando tu mapa de conocimiento...',
+    overallScore: 'Puntuación general',
+    progressDetected: 'Progreso detectado',
+    weakPoints: 'Puntos débiles',
+    strongPoints: 'Puntos fuertes',
+    studyPath: 'Ruta de estudio',
+    analyzeAgain: 'Analizar de nuevo',
+    searchingConnections: 'Buscando conexiones...',
+    suggestConnections: 'Sugerir conexiones',
+    suggestedConnections: 'Conexiones sugeridas',
+    confidence: 'confianza',
+    added: 'Añadida',
+    acceptConnectionAriaLabel: 'Aceptar conexión',
+    acceptTitle: 'Aceptar',
+    rejectConnectionAriaLabel: 'Rechazar conexión',
+    rejectTitle: 'Rechazar',
+    conceptsToReview: 'Conceptos para repasar',
+    highlightWeakPointAriaLabel: (name: string, mastery: number) =>
+      `Resaltar punto débil: ${name}, ${mastery}% dominio`,
+    iaTutor: 'IA Tutor',
+  },
+} as const;
+
 // ── Skeleton shimmer for loading state ─────────────────────
 function SkeletonBlock({ className }: { className?: string }) {
   return (
@@ -63,7 +143,7 @@ function AnimatedPercent({ value, className }: { value: number; className?: stri
 }
 
 // ── Success checkmark shown when a weak node improves after study ──
-function ImprovedCheckmark({ name }: { name: string }) {
+function ImprovedCheckmark({ name, label }: { name: string; label: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
@@ -82,7 +162,7 @@ function ImprovedCheckmark({ name }: { name: string }) {
         <Check className="w-3 h-3 text-white" strokeWidth={3} />
       </motion.div>
       <span className="font-medium text-emerald-700 truncate">{name}</span>
-      <span className="text-emerald-500 flex-shrink-0 ml-auto">Mejorado</span>
+      <span className="text-emerald-500 flex-shrink-0 ml-auto">{label}</span>
     </motion.div>
   );
 }
@@ -195,6 +275,7 @@ interface AiTutorPanelProps {
 // ── Component ───────────────────────────────────────────────
 
 export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNodes, onNavigateToAction, open, onClose, existingNodeIds, existingEdgeIds, onEdgeCreated, nodeLabels, onReviewNodes }: AiTutorPanelProps) {
+  const tT = I18N_TUTOR['pt'];
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalyzeKnowledgeGraphResponse | null>(null);
   const [weakPoints, setWeakPoints] = useState<WeakPoint[]>([]);
@@ -304,10 +385,10 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
         onHighlightRef.current?.(weakIds);
         onReviewRef.current?.(weakIds);
       }
-      toast.success('Análisis completado');
+      toast.success(tT.analysisComplete);
     } catch (err: unknown) {
       if (import.meta.env.DEV) console.error('AI analysis failed:', err);
-      if (mountedRef.current) toast.error('Error al analizar el mapa');
+      if (mountedRef.current) toast.error(tT.errorAnalyzing);
     } finally {
       analyzingRef.current = false;
       if (mountedRef.current) setAnalyzing(false);
@@ -333,10 +414,10 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
       setSuggestions(result);
       setAcceptedSuggestions(new Set());
       if (result.length === 0) {
-        toast.info('No se encontraron conexiones sugeridas');
+        toast.info(tT.noSuggestedConnections);
       }
     } catch {
-      if (mountedRef.current) toast.error('Error al sugerir conexiones');
+      if (mountedRef.current) toast.error(tT.errorSuggestingConnections);
     } finally {
       suggestingRef.current = false;
       if (mountedRef.current) setSuggestingConnections(false);
@@ -368,9 +449,9 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
       if (!mountedRef.current || topicIdRef.current !== capturedTopicId) return;
       setAcceptedSuggestions(prev => new Set(prev).add(key));
       onEdgeCreatedRef.current?.();
-      toast.success('Conexión añadida al mapa');
+      toast.success(tT.connectionAdded);
     } catch (err: unknown) {
-      if (mountedRef.current) toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
+      if (mountedRef.current) toast.error(err instanceof Error ? err.message : tT.errorCreatingConnection);
     } finally {
       if (mountedRef.current) setAcceptingKey(null);
     }
@@ -398,8 +479,8 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
   const ACTION_LABELS: Record<string, string> = {
     flashcard: 'Flashcards',
     quiz: 'Quiz',
-    summary: 'Resumen',
-    review: 'Revisar',
+    summary: tT.actionSummary,
+    review: tT.actionReview,
   };
 
   // Pull-to-refresh — only active when analysis results exist
@@ -420,7 +501,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
           className="absolute right-0 top-0 bottom-0 w-80 sm:w-[22rem] bg-surface-page border-l border-gray-200 shadow-lg z-20 flex flex-col overflow-hidden"
           role="dialog"
           aria-modal="true"
-          aria-label="Panel de IA Tutor"
+          aria-label={tT.panelAriaLabel}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
@@ -438,7 +519,7 @@ export const AiTutorPanel = memo(function AiTutorPanel({ topicId, onHighlightNod
             <button
               onClick={onClose}
               className="w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              aria-label="Cerrar panel IA"
+              aria-label={tT.closePanelAriaLabel}
             >
               <X className="w-4 h-4" />
             </button>

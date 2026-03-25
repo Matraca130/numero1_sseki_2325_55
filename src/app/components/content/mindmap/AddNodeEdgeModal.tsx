@@ -3,10 +3,10 @@
 //
 // Modal for students to create custom nodes and edges in
 // their knowledge graph. Supports two tabs:
-//   - "Nuevo concepto": create a custom node
-//   - "Nueva conexión": create a custom edge between existing nodes
+//   - "Novo conceito" / "Nuevo concepto": create a custom node
+//   - "Nova conexão" / "Nueva conexión": create a custom edge between existing nodes
 //
-// LANG: Spanish (student UI)
+// LANG: pt (default) | es — inline I18N
 // ============================================================
 
 import { useState, useMemo, useEffect, useRef, memo } from 'react';
@@ -19,6 +19,101 @@ import { CONNECTION_TYPES, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import type { MapNode, EdgeArrowType } from '@/app/types/mindmap';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
+
+// ── I18N ────────────────────────────────────────────────────
+
+const I18N = {
+  pt: {
+    modalTitle: 'Personalizar mapa mental',
+    close: 'Fechar',
+    tabListLabel: 'Tipo de personalização',
+    tabNode: 'Novo conceito',
+    tabEdge: 'Nova conexão',
+    nodeLabelField: 'Nome do conceito *',
+    nodeLabelPlaceholder: 'Ex: Hemoglobina, Mitocôndria...',
+    nodeDefField: 'Definição (opcional)',
+    nodeDefPlaceholder: 'Breve descrição do conceito...',
+    edgeSourceField: 'Conceito de origem *',
+    edgeTargetField: 'Conceito de destino *',
+    selectPlaceholder: 'Selecionar...',
+    yours: '(seu)',
+    edgeTypeField: 'Tipo de relação',
+    directedToggle: 'Seta direcional',
+    fromLabel: 'De',
+    originFallback: 'origem',
+    targetFallback: 'destino',
+    arrowTypeField: 'Tipo de seta',
+    arrowTypeGroupLabel: 'Tipo de seta',
+    arrowTriangle: 'Triângulo',
+    arrowDiamond: 'Diamante',
+    arrowCircle: 'Círculo',
+    arrowOpen: 'Aberta',
+    lineStyleField: 'Estilo de linha',
+    lineStyleGroupLabel: 'Estilo de linha',
+    lineSolid: 'Sólida',
+    lineDashed: 'Tracejada',
+    lineDotted: 'Pontilhada',
+    colorField: 'Cor',
+    colorTitle: 'Cor da conexão',
+    quickLabel: 'Rápido:',
+    colorAriaLabel: (c: string) => `Cor ${c}`,
+    edgeLabelField: 'Descrição (opcional)',
+    edgeLabelPlaceholder: 'Ex: regula, causa, componente de...',
+    cancel: 'Cancelar',
+    addNodeBtn: 'Adicionar conceito',
+    addEdgeBtn: 'Adicionar conexão',
+    addShort: 'Adicionar',
+    toastNodeSuccess: 'Conceito adicionado ao mapa',
+    toastNodeError: 'Erro ao criar conceito',
+    toastEdgeSuccess: 'Conexão adicionada ao mapa',
+    toastEdgeError: 'Erro ao criar conexão',
+  },
+  es: {
+    modalTitle: 'Personalizar mapa mental',
+    close: 'Cerrar',
+    tabListLabel: 'Tipo de personalización',
+    tabNode: 'Nuevo concepto',
+    tabEdge: 'Nueva conexión',
+    nodeLabelField: 'Nombre del concepto *',
+    nodeLabelPlaceholder: 'Ej: Hemoglobina, Mitocondria...',
+    nodeDefField: 'Definición (opcional)',
+    nodeDefPlaceholder: 'Breve descripción del concepto...',
+    edgeSourceField: 'Concepto de origen *',
+    edgeTargetField: 'Concepto de destino *',
+    selectPlaceholder: 'Seleccionar...',
+    yours: '(tuyo)',
+    edgeTypeField: 'Tipo de relación',
+    directedToggle: 'Flecha direccional',
+    fromLabel: 'De',
+    originFallback: 'origen',
+    targetFallback: 'destino',
+    arrowTypeField: 'Tipo de flecha',
+    arrowTypeGroupLabel: 'Tipo de flecha',
+    arrowTriangle: 'Triángulo',
+    arrowDiamond: 'Diamante',
+    arrowCircle: 'Círculo',
+    arrowOpen: 'Abierta',
+    lineStyleField: 'Estilo de línea',
+    lineStyleGroupLabel: 'Estilo de línea',
+    lineSolid: 'Sólida',
+    lineDashed: 'Rayada',
+    lineDotted: 'Punteada',
+    colorField: 'Color',
+    colorTitle: 'Color de la conexión',
+    quickLabel: 'Rápido:',
+    colorAriaLabel: (c: string) => `Color ${c}`,
+    edgeLabelField: 'Descripción (opcional)',
+    edgeLabelPlaceholder: 'Ej: regula, causa, componente de...',
+    cancel: 'Cancelar',
+    addNodeBtn: 'Añadir concepto',
+    addEdgeBtn: 'Añadir conexión',
+    addShort: 'Añadir',
+    toastNodeSuccess: 'Concepto añadido al mapa',
+    toastNodeError: 'Error al crear concepto',
+    toastEdgeSuccess: 'Conexión añadida al mapa',
+    toastEdgeError: 'Error al crear conexión',
+  },
+} as const;
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -58,6 +153,8 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
   initialEdgeTarget,
   initialTab,
 }: AddNodeEdgeModalProps) {
+  const t = I18N['pt'];
+
   const [tab, setTab] = useState<TabType>(initialTab || 'node');
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -161,13 +258,13 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
         topic_id: topicId,
       };
       const res = await createCustomNode(payload);
-      toast.success('Concepto añadido al mapa');
+      toast.success(t.toastNodeSuccess);
       onNodeCreated?.(res.id, payload);
       resetForms();
       onCreated();
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al crear concepto');
+      toast.error(err instanceof Error ? err.message : t.toastNodeError);
     } finally {
       savingRef.current = false;
       if (mountedRef.current) setSaving(false);
@@ -191,13 +288,13 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
         arrow_type: edgeDirected && edgeArrowType !== 'triangle' ? edgeArrowType : undefined,
       };
       const res = await createCustomEdge(payload);
-      toast.success('Conexión añadida al mapa');
+      toast.success(t.toastEdgeSuccess);
       onEdgeCreated?.(res.id, payload);
       resetForms();
       onCreated();
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al crear conexión');
+      toast.error(err instanceof Error ? err.message : t.toastEdgeError);
     } finally {
       savingRef.current = false;
       if (mountedRef.current) setSaving(false);
@@ -247,12 +344,12 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   className="font-semibold text-gray-900"
                   style={{ ...headingStyle, fontSize: 'clamp(1rem, 2vw, 1.125rem)' }}
                 >
-                  Personalizar mapa mental
+                  {t.modalTitle}
                 </h2>
                 <button
                   onClick={() => { if (!savingRef.current) onClose(); }}
                   className="p-3 -mr-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                  aria-label="Cerrar"
+                  aria-label={t.close}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -262,7 +359,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
               <div
                 className="flex px-5 gap-1 border-b border-gray-100"
                 role="tablist"
-                aria-label="Tipo de personalización"
+                aria-label={t.tabListLabel}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
                     e.preventDefault();
@@ -284,7 +381,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Nuevo concepto
+                  {t.tabNode}
                 </button>
                 <button
                   id="tab-add-edge"
@@ -300,7 +397,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   }`}
                 >
                   <Link2 className="w-3.5 h-3.5" />
-                  Nueva conexión
+                  {t.tabEdge}
                 </button>
               </div>
 
@@ -321,7 +418,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   >
                     <div>
                       <label htmlFor="custom-node-label" className="block text-xs font-medium text-gray-600 mb-1">
-                        Nombre del concepto *
+                        {t.nodeLabelField}
                       </label>
                       <input
                         ref={nodeLabelRef}
@@ -329,20 +426,20 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                         type="text"
                         value={nodeLabel}
                         onChange={(e) => setNodeLabel(e.target.value)}
-                        placeholder="Ej: Hemoglobina, Mitocondria..."
+                        placeholder={t.nodeLabelPlaceholder}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none transition-colors font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                         maxLength={100}
                       />
                     </div>
                     <div>
                       <label htmlFor="custom-node-def" className="block text-xs font-medium text-gray-600 mb-1">
-                        Definición (opcional)
+                        {t.nodeDefField}
                       </label>
                       <textarea
                         id="custom-node-def"
                         value={nodeDefinition}
                         onChange={(e) => setNodeDefinition(e.target.value)}
-                        placeholder="Breve descripción del concepto..."
+                        placeholder={t.nodeDefPlaceholder}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none resize-none transition-colors font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                         rows={2}
                         maxLength={300}
@@ -359,7 +456,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   >
                     <div>
                       <label htmlFor="custom-edge-source" className="block text-xs font-medium text-gray-600 mb-1">
-                        Concepto de origen *
+                        {t.edgeSourceField}
                       </label>
                       <select
                         ref={edgeSourceRef}
@@ -368,17 +465,17 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                         onChange={(e) => setEdgeSource(e.target.value)}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                       >
-                        <option value="">Seleccionar...</option>
+                        <option value="">{t.selectPlaceholder}</option>
                         {sortedNodes.map((n) => (
                           <option key={n.id} value={n.id}>
-                            {n.label}{n.isUserCreated ? ' (tuyo)' : ''}
+                            {n.label}{n.isUserCreated ? ` ${t.yours}` : ''}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
                       <label htmlFor="custom-edge-target" className="block text-xs font-medium text-gray-600 mb-1">
-                        Concepto de destino *
+                        {t.edgeTargetField}
                       </label>
                       <select
                         id="custom-edge-target"
@@ -386,19 +483,19 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                         onChange={(e) => setEdgeTarget(e.target.value)}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                       >
-                        <option value="">Seleccionar...</option>
+                        <option value="">{t.selectPlaceholder}</option>
                         {sortedNodes
                           .filter((n) => n.id !== edgeSource)
                           .map((n) => (
                             <option key={n.id} value={n.id}>
-                              {n.label}{n.isUserCreated ? ' (tuyo)' : ''}
+                              {n.label}{n.isUserCreated ? ` ${t.yours}` : ''}
                             </option>
                           ))}
                       </select>
                     </div>
                     <div>
                       <label htmlFor="custom-edge-type" className="block text-xs font-medium text-gray-600 mb-1">
-                        Tipo de relación
+                        {t.edgeTypeField}
                       </label>
                       <select
                         id="custom-edge-type"
@@ -423,11 +520,11 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <label htmlFor="custom-edge-directed" className="block text-xs font-medium text-gray-600">
-                          Flecha direccional
+                          {t.directedToggle}
                         </label>
                         {edgeDirected && edgeSource && edgeTarget && (
                           <p className="text-[10px] text-gray-500 mt-0.5 truncate">
-                            De {sortedNodes.find(n => n.id === edgeSource)?.label ?? 'origen'} → {sortedNodes.find(n => n.id === edgeTarget)?.label ?? 'destino'}
+                            {t.fromLabel} {sortedNodes.find(n => n.id === edgeSource)?.label ?? t.originFallback} → {sortedNodes.find(n => n.id === edgeTarget)?.label ?? t.targetFallback}
                           </p>
                         )}
                       </div>
@@ -452,12 +549,12 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                     {edgeDirected && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Tipo de flecha
+                          {t.arrowTypeField}
                         </label>
                         <div
                           className="flex gap-1.5"
                           role="radiogroup"
-                          aria-label="Tipo de flecha"
+                          aria-label={t.arrowTypeGroupLabel}
                           onKeyDown={(e) => {
                             const types = ['triangle', 'diamond', 'circle', 'vee'] as const;
                             const idx = types.indexOf(edgeArrowType);
@@ -473,10 +570,10 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                           }}
                         >
                           {([
-                            { type: 'triangle' as const, label: 'Triángulo' },
-                            { type: 'diamond' as const, label: 'Diamante' },
-                            { type: 'circle' as const, label: 'Círculo' },
-                            { type: 'vee' as const, label: 'Abierta' },
+                            { type: 'triangle' as const, label: t.arrowTriangle },
+                            { type: 'diamond' as const, label: t.arrowDiamond },
+                            { type: 'circle' as const, label: t.arrowCircle },
+                            { type: 'vee' as const, label: t.arrowOpen },
                           ]).map(({ type, label }) => (
                             <button
                               key={type}
@@ -518,12 +615,12 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                     <div className="flex gap-3">
                       <div className="flex-1">
                         <label htmlFor="custom-edge-line" className="block text-xs font-medium text-gray-600 mb-1">
-                          Estilo de línea
+                          {t.lineStyleField}
                         </label>
                         <div
                           className="flex gap-1.5"
                           role="radiogroup"
-                          aria-label="Estilo de línea"
+                          aria-label={t.lineStyleGroupLabel}
                           onKeyDown={(e) => {
                             const styles = ['solid', 'dashed', 'dotted'] as const;
                             const idx = styles.indexOf(edgeLineStyle);
@@ -551,7 +648,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                               }`}
                               role="radio"
                               aria-checked={edgeLineStyle === style}
-                              aria-label={style === 'solid' ? 'Sólida' : style === 'dashed' ? 'Rayada' : 'Punteada'}
+                              aria-label={style === 'solid' ? t.lineSolid : style === 'dashed' ? t.lineDashed : t.lineDotted}
                             >
                               <svg width="24" height="2" className="flex-shrink-0">
                                 <line
@@ -567,7 +664,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                       </div>
                       <div className="w-20">
                         <label htmlFor="custom-edge-color" className="block text-xs font-medium text-gray-600 mb-1">
-                          Color
+                          {t.colorField}
                         </label>
                         <div className="relative">
                           <input
@@ -576,7 +673,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                             value={edgeColor}
                             onChange={(e) => setEdgeColor(e.target.value)}
                             className="w-full h-[38px] rounded-lg border border-gray-200 cursor-pointer p-0.5"
-                            title="Color de la conexión"
+                            title={t.colorTitle}
                           />
                         </div>
                       </div>
@@ -584,7 +681,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
 
                     {/* Quick color swatches */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-500 mr-1">Rápido:</span>
+                      <span className="text-[10px] text-gray-500 mr-1">{t.quickLabel}</span>
                       {[colors.primary[500], colors.semantic.error, '#f97316', '#8b5cf6', '#06b6d4', '#64748b'].map((c) => (
                         <button
                           key={c}
@@ -594,21 +691,21 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                             edgeColor === c ? 'border-gray-800 scale-110' : 'border-transparent'
                           }`}
                           style={{ backgroundColor: c }}
-                          aria-label={`Color ${c}`}
+                          aria-label={t.colorAriaLabel(c)}
                         />
                       ))}
                     </div>
 
                     <div>
                       <label htmlFor="custom-edge-label" className="block text-xs font-medium text-gray-600 mb-1">
-                        Descripción (opcional)
+                        {t.edgeLabelField}
                       </label>
                       <input
                         id="custom-edge-label"
                         type="text"
                         value={edgeLabel}
                         onChange={(e) => setEdgeLabel(e.target.value)}
-                        placeholder="Ej: regula, causa, componente de..."
+                        placeholder={t.edgeLabelPlaceholder}
                         className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
                         maxLength={100}
                       />
@@ -624,7 +721,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   className="px-4 py-2.5 min-h-[44px] text-sm font-medium text-gray-500 hover:text-gray-700 rounded-full transition-colors"
                   disabled={saving}
                 >
-                  Cancelar
+                  {t.cancel}
                 </button>
                 <button
                   onClick={() => {
@@ -643,8 +740,8 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                   ) : (
                     <Plus className="w-3.5 h-3.5" />
                   )}
-                  <span className="hidden sm:inline">{tab === 'node' ? 'Añadir concepto' : 'Añadir conexión'}</span>
-                  <span className="sm:hidden">Añadir</span>
+                  <span className="hidden sm:inline">{tab === 'node' ? t.addNodeBtn : t.addEdgeBtn}</span>
+                  <span className="sm:hidden">{t.addShort}</span>
                 </button>
               </div>
             </motion.div>
