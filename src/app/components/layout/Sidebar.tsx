@@ -28,6 +28,7 @@ import {
   Calendar,
   Home,
   Database,
+  Flame,
   type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -48,6 +49,7 @@ export function Sidebar() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'study-hub', label: 'Estudiar', icon: BookOpen, also: ['study'] },
     { id: 'schedule', label: 'Cronograma', icon: Calendar },
+    { id: 'knowledge-heatmap', label: 'Mapa de Calor', icon: Flame },
     { id: 'flashcards', label: 'Flashcards', icon: Layers },
     { id: '3d', label: 'Atlas 3D', icon: Box },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
