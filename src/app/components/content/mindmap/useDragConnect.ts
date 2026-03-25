@@ -18,11 +18,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
+import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS } from './graphHelpers';
+import type { NodeScreenPos } from './graphHelpers';
+import { I18N_GRAPH } from './graphI18n';
+import type { GraphLocale } from './graphI18n';
 
 // ── Constants ───────────────────────────────────────────────
-
-/** Whether the device supports touch input */
-const IS_TOUCH = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
 /** Distance from node center at which a port is considered "hit" */
 const PORT_HIT_RADIUS = 18;
@@ -33,7 +34,7 @@ const DRAG_THRESHOLD = 6;
 /** Minimum drag distance to activate (touch — larger to avoid accidental drags) */
 const TOUCH_DRAG_THRESHOLD = 14;
 /** Size of connection port circles — larger on touch for visibility */
-const PORT_RADIUS = IS_TOUCH ? 8 : 4;
+function getPortRadius(isTouch: boolean) { return isTouch ? 8 : 4; }
 /** How far ports are placed from node center (fraction of node radius) */
 const PORT_OFFSET_FACTOR = 1.05;
 /** Hover check throttle interval */
@@ -41,36 +42,13 @@ const HOVER_THROTTLE_MS = 50;
 /** Duration (ms) of the success celebration animation */
 const SUCCESS_ANIM_DURATION = 600;
 /** Quick-connect button size — 44px on touch for minimum touch target */
-const QUICK_CONNECT_SIZE = IS_TOUCH ? 44 : 20;
+function getQuickConnectSize(isTouch: boolean) { return isTouch ? 44 : 20; }
 
-// ── i18n ────────────────────────────────────────────────────
+// ── i18n (delegated to graphI18n.ts) ────────────────────────
 
-const I18N_DRAG = {
-  pt: {
-    connectTo: 'Conectar a...',
-    sameNode: 'Mesmo nó',
-    alreadyConnected: 'Já conectados',
-    quickConnectTitle: 'Conectar a partir deste nó',
-  },
-  es: {
-    connectTo: 'Conectar a...',
-    sameNode: 'Mismo nodo',
-    alreadyConnected: 'Ya conectados',
-    quickConnectTitle: 'Conectar desde este nodo',
-  },
-} as const;
-
-type DragLocale = keyof typeof I18N_DRAG;
+type DragLocale = GraphLocale;
 
 // ── Types ───────────────────────────────────────────────────
-
-interface NodeScreenPos {
-  id: string;
-  x: number;
-  y: number;
-  size: number;
-  label: string;
-}
 
 interface DragState {
   sourceNodeId: string;
@@ -130,55 +108,6 @@ interface UseDragConnectOptions {
 
 // ── Helpers ─────────────────────────────────────────────────
 
-function getNodeScreenPositions(graph: Graph): NodeScreenPos[] {
-  const positions: NodeScreenPos[] = [];
-  try {
-    const allNodeData = graph.getNodeData();
-    for (const node of allNodeData) {
-      const id = String(node.id);
-      try {
-        const bounds = graph.getElementRenderBounds(id);
-        if (bounds) {
-          const cx = (bounds.min[0] + bounds.max[0]) / 2;
-          const cy = (bounds.min[1] + bounds.max[1]) / 2;
-          const size = Math.max(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1]);
-          const clientPt = graph.getClientByCanvas([cx, cy]);
-          positions.push({
-            id,
-            x: clientPt[0],
-            y: clientPt[1],
-            size,
-            label: String(node.data?.fullLabel || node.data?.label || id),
-          });
-        }
-      } catch { /* Node may not be rendered yet */ }
-    }
-  } catch { /* Graph may be destroyed */ }
-  return positions;
-}
-
-function findNearestNode(
-  positions: NodeScreenPos[],
-  x: number,
-  y: number,
-  radius: number,
-  excludeId?: string,
-): NodeScreenPos | null {
-  let best: NodeScreenPos | null = null;
-  let bestDist = radius;
-  for (const pos of positions) {
-    if (pos.id === excludeId) continue;
-    const dx = pos.x - x;
-    const dy = pos.y - y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = pos;
-    }
-  }
-  return best;
-}
-
 /** Build a Set of edge keys for O(1) existence checks */
 function buildEdgeSet(edges: MapEdge[]): Set<string> {
   const set = new Set<string>();
@@ -208,7 +137,8 @@ export function useDragConnect({
   locale = 'pt',
   isDraggingRef,
 }: UseDragConnectOptions) {
-  const t = I18N_DRAG[locale];
+  const gi = I18N_GRAPH[locale];
+  const t = { connectTo: gi.dragConnectTo, sameNode: gi.dragSameNode, alreadyConnected: gi.dragAlreadyConnected, quickConnectTitle: gi.dragQuickConnectTitle };
   const dragStateRef = useRef<DragState | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>(0);
@@ -229,6 +159,8 @@ export function useDragConnect({
   const edgeSetRef = useRef<Set<string>>(new Set());
   /** Quick-connect button DOM element */
   const quickConnectBtnRef = useRef<HTMLDivElement | null>(null);
+  /** Last detected pointer type — updated on every hover/drag event */
+  const lastPointerTypeRef = useRef<string>('mouse');
 
   // Create/destroy overlay canvas and quick-connect button
   useEffect(() => {
@@ -243,13 +175,14 @@ export function useDragConnect({
     container.appendChild(overlay);
     overlayCanvasRef.current = overlay;
 
-    // Quick-connect "+" button
+    // Quick-connect "+" button — initial size uses mouse default; updated dynamically on hover
+    const initSize = getQuickConnectSize(false);
     const btn = document.createElement('div');
     btn.style.cssText = `
-      position:absolute;z-index:6;width:${QUICK_CONNECT_SIZE}px;height:${QUICK_CONNECT_SIZE}px;
-      border-radius:50%;background:#2a8c7a;color:white;display:none;align-items:center;
+      position:absolute;z-index:6;width:${initSize}px;height:${initSize}px;
+      border-radius:50%;background:${GRAPH_COLORS.primary};color:white;display:none;align-items:center;
       justify-content:center;cursor:pointer;font-size:14px;font-weight:700;line-height:1;
-      box-shadow:0 2px 8px rgba(42,140,122,0.35);transition:transform 0.15s ease,opacity 0.15s ease;
+      box-shadow:0 2px 8px rgba(${GRAPH_COLORS.primaryRgb},0.35);transition:transform 0.15s ease,opacity 0.15s ease;
       user-select:none;pointer-events:auto;font-family:Inter,sans-serif;
     `;
     btn.textContent = '+';
@@ -289,7 +222,7 @@ export function useDragConnect({
     if (!graph) return;
     const invalidate = () => { hoverPositionsValidRef.current = false; };
     graph.on('afterviewportchange', invalidate);
-    return () => { try { graph.off('afterviewportchange', invalidate); } catch { /* graph may be destroyed */ } };
+    return () => { try { graph.off('afterviewportchange', invalidate); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] graph may be destroyed", e); } };
   }, [enabled, ready, graphRef, graphVersion]);
 
   // Keep edge Set in sync with edges prop
@@ -341,26 +274,27 @@ export function useDragConnect({
 
         // Fade-in pulse animation
         const pulse = 0.6 + 0.4 * Math.sin(now / 400);
+        const portRadius = getPortRadius(lastPointerTypeRef.current === 'touch');
 
         for (const port of portPositions) {
           // Glow
           ctx.save();
-          ctx.fillStyle = `rgba(42, 140, 122, ${0.15 * pulse})`;
+          ctx.fillStyle = `rgba(${GRAPH_COLORS.primaryRgb}, ${0.15 * pulse})`;
           ctx.beginPath();
-          ctx.arc(port.x, port.y, (PORT_RADIUS + 4) * dpr, 0, Math.PI * 2);
+          ctx.arc(port.x, port.y, (portRadius + 4) * dpr, 0, Math.PI * 2);
           ctx.fill();
 
           // Port circle
-          ctx.fillStyle = `rgba(42, 140, 122, ${0.7 * pulse})`;
+          ctx.fillStyle = `rgba(${GRAPH_COLORS.primaryRgb}, ${0.7 * pulse})`;
           ctx.beginPath();
-          ctx.arc(port.x, port.y, PORT_RADIUS * dpr, 0, Math.PI * 2);
+          ctx.arc(port.x, port.y, portRadius * dpr, 0, Math.PI * 2);
           ctx.fill();
 
           // Border
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 1.5 * dpr;
           ctx.beginPath();
-          ctx.arc(port.x, port.y, PORT_RADIUS * dpr, 0, Math.PI * 2);
+          ctx.arc(port.x, port.y, portRadius * dpr, 0, Math.PI * 2);
           ctx.stroke();
           ctx.restore();
         }
@@ -379,7 +313,7 @@ export function useDragConnect({
       const pulseFactor = 1 + 0.08 * Math.sin(elapsed / 300);
       const srcR = (ds.sourceSize / 2) * pulseFactor * dpr;
       ctx.save();
-      ctx.strokeStyle = 'rgba(42, 140, 122, 0.4)';
+      ctx.strokeStyle = `rgba(${GRAPH_COLORS.primaryRgb}, 0.4)`;
       ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
       ctx.arc(from.x, from.y, srcR + 4 * dpr, 0, Math.PI * 2);
@@ -388,7 +322,7 @@ export function useDragConnect({
 
       // Source port indicator (solid dot)
       ctx.save();
-      ctx.fillStyle = '#2a8c7a';
+      ctx.fillStyle = GRAPH_COLORS.primary;
       ctx.beginPath();
       ctx.arc(from.x, from.y, 5 * dpr, 0, Math.PI * 2);
       ctx.fill();
@@ -409,7 +343,7 @@ export function useDragConnect({
       // Draw animated dashed bezier curve
       const dashOffset = -(elapsed / 20) % 20;
       ctx.save();
-      ctx.strokeStyle = ds.snapInvalid ? '#ef4444' : '#2a8c7a';
+      ctx.strokeStyle = ds.snapInvalid ? '#ef4444' : GRAPH_COLORS.primary;
       ctx.lineWidth = 2.5 * dpr;
       ctx.setLineDash([8 * dpr, 5 * dpr]);
       ctx.lineDashOffset = dashOffset * dpr;
@@ -432,7 +366,7 @@ export function useDragConnect({
       const arrowLen = 12 * dpr;
       ctx.save();
       ctx.setLineDash([]);
-      ctx.fillStyle = ds.snapInvalid ? '#ef4444' : '#2a8c7a';
+      ctx.fillStyle = ds.snapInvalid ? '#ef4444' : GRAPH_COLORS.primary;
       ctx.beginPath();
       ctx.moveTo(toPoint.x, toPoint.y);
       ctx.lineTo(
@@ -461,7 +395,7 @@ export function useDragConnect({
       const ly = labelX.y - 16 * dpr;
 
       // Background pill
-      ctx.fillStyle = ds.snapInvalid ? 'rgba(239, 68, 68, 0.9)' : 'rgba(42, 140, 122, 0.9)';
+      ctx.fillStyle = ds.snapInvalid ? 'rgba(239, 68, 68, 0.9)' : `rgba(${GRAPH_COLORS.primaryRgb}, 0.9)`;
       const pillW = metrics.width + padX * 2;
       const pillH = 11 * dpr + padY * 2;
       const pillR = 4 * dpr;
@@ -670,7 +604,7 @@ export function useDragConnect({
       if (e.button !== 0) return;
       if (isDraggingRef?.current) return;
 
-      const positions = getNodeScreenPositions(graph);
+      const positions = getNodeScreenPositions(graph, true);
       const sx = e.clientX;
       const sy = e.clientY;
 
@@ -686,7 +620,7 @@ export function useDragConnect({
         if (dist > nodeRadius * 0.6 && dist <= nodeRadius + PORT_HIT_RADIUS) {
           dragStateRef.current = {
             sourceNodeId: node.id,
-            sourceLabel: node.label,
+            sourceLabel: node.label || '',
             sourceX: node.x,
             sourceY: node.y,
             sourceSize: node.size,
@@ -713,6 +647,9 @@ export function useDragConnect({
     let lastHoverCheck = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
+      // Track pointer type for reactive touch sizing
+      lastPointerTypeRef.current = e.pointerType;
+
       const ds = dragStateRef.current;
 
       if (!ds) {
@@ -723,7 +660,7 @@ export function useDragConnect({
 
         // Use cached positions; recalculate only when invalidated by viewport changes
         if (!hoverPositionsValidRef.current) {
-          hoverPositionsRef.current = getNodeScreenPositions(graph);
+          hoverPositionsRef.current = getNodeScreenPositions(graph, true);
           hoverPositionsValidRef.current = true;
         }
         const positions = hoverPositionsRef.current;
@@ -745,8 +682,12 @@ export function useDragConnect({
 
         if (foundHover !== hoveredNodeRef.current) {
           hoveredNodeRef.current = foundHover;
-          // Show/hide quick-connect button
+          // Show/hide quick-connect button — dynamically sized per pointer type
           if (btn && hoverNode) {
+            const isTouch = e.pointerType === 'touch';
+            const qcSize = getQuickConnectSize(isTouch);
+            btn.style.width = `${qcSize}px`;
+            btn.style.height = `${qcSize}px`;
             const containerRect = container.getBoundingClientRect();
             const bx = hoverNode.x - containerRect.left + hoverNode.size / 2 + 2;
             const by = hoverNode.y - containerRect.top - hoverNode.size / 2 - 2;
@@ -800,7 +741,7 @@ export function useDragConnect({
         ds.snapNodeId = nearest.id;
         ds.snapX = nearest.x;
         ds.snapY = nearest.y;
-        ds.snapLabel = nearest.label;
+        ds.snapLabel = nearest.label || '';
 
         // Check validity
         if (nearest.id === ds.sourceNodeId) {
@@ -833,7 +774,7 @@ export function useDragConnect({
         return;
       }
 
-      try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* */ }
+      try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] ", e); }
       if (overlayCanvasRef.current) {
         overlayCanvasRef.current.style.pointerEvents = 'none';
         overlayCanvasRef.current.style.cursor = '';
@@ -882,7 +823,7 @@ export function useDragConnect({
       if (!ds) return;
 
       if (ds.activated) {
-        try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* */ }
+        try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] ", e); }
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'none';
           overlayCanvasRef.current.style.cursor = '';
@@ -930,7 +871,7 @@ export function useDragConnect({
       cancelAnimationFrame(rafRef.current);
       const ds = dragStateRef.current;
       if (ds?.activated) {
-        try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* */ }
+        try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] ", e); }
       }
       dragStateRef.current = null;
       hoveredNodeRef.current = null;

@@ -97,7 +97,7 @@ export function useRagAnalytics(institutionId: string) {
   const updateDateRange = useCallback((newRange: DateRange) => {
     setDateRange(newRange);
     // Only refetch analytics (coverage has no date range)
-    fetchAnalytics(newRange).catch(() => {});
+    fetchAnalytics(newRange).catch((err) => { console.warn('[useRagAnalytics] Failed to fetch analytics:', err); });
   }, [fetchAnalytics]);
 
   // ── Computed metrics ─────────────────────────────────

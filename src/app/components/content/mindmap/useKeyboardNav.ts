@@ -222,7 +222,7 @@ export function useKeyboardNav({
           : [];
         graph.setElementState(currentFocused, filtered);
         graph.draw();
-      } catch { /* graph may be destroyed */ }
+      } catch (e) { if (import.meta.env.DEV) console.warn("[useKeyboardNav] graph may be destroyed", e); }
     }
     setFocusedNodeId(null);
   }, [graphRef]);

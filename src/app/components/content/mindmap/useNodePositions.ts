@@ -28,7 +28,7 @@ function touchTopicIndex(topicId: string): void {
       localStorage.removeItem(COMBO_STORAGE_PREFIX + evicted);
     }
     localStorage.setItem(TOPIC_INDEX_KEY, JSON.stringify(filtered));
-  } catch { /* ignore */ }
+  } catch (e) { if (import.meta.env.DEV) console.warn("[useNodePositions] ignore", e); }
 }
 
 export interface NodePosition {

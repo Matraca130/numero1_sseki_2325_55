@@ -21,7 +21,20 @@ export interface GraphI18nStrings {
   groupLabel: (n: number) => string;
   breadcrumbRoot: string; breadcrumbNav: string;
   reviewAlert: string;
+  srNodeListLabel: string;
+  srNodeItem: (name: string, mastery: number, connections: number) => string;
   keys: [string, string][];
+  /** Mobile gesture guide */
+  gestureGuideTitle: string;
+  gestures: [string, string][];
+  /** Drag-connect strings (from useDragConnect) */
+  dragConnectTo: string;
+  dragSameNode: string;
+  dragAlreadyConnected: string;
+  dragQuickConnectTitle: string;
+  /** Export error strings (from useGraphControls) */
+  exportPngError: string;
+  exportJpegError: string;
 }
 
 export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
@@ -32,6 +45,8 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     nCollapsed: (n) => `${n} nodos recolhidos`, allExpanded: 'Todos os nodos expandidos',
     mobileHint: 'Arraste para mover · Pinça para zoom · Mantenha para menu',
     reviewAlert: 'IA recomenda revisar',
+    srNodeListLabel: 'Lista de conceitos do mapa',
+    srNodeItem: (name, mastery, connections) => `${name}, dominio ${Math.round(mastery * 100)}%, ${connections} conexões`,
     fitView: 'Ajustar a vista', shortcuts: 'Atalhos', search: 'buscar',
     closeShortcuts: 'Fechar atalhos', shortcutDialog: 'Atalhos de teclado',
     nSelected: (n) => `${n} nodos selecionados`,
@@ -52,6 +67,19 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
       ['Ctrl+]', 'Expandir todos'], ['Shift+clique', 'Selecionar varios'],
       ['Espaco+arrastar', 'Mover mapa'],
       ['Esc', 'Desmarcar'], ['?', 'Esta ajuda']],
+    gestureGuideTitle: 'Gestos',
+    gestures: [
+      ['👆 Arraste', 'Mover nodos'],
+      ['🤏 Pinça', 'Zoom'],
+      ['👆 Mantenha', 'Menu de contexto'],
+      ['👆👆 Toque duplo', 'Recolher/expandir'],
+    ],
+    dragConnectTo: 'Conectar a...',
+    dragSameNode: 'Mesmo nó',
+    dragAlreadyConnected: 'Já conectados',
+    dragQuickConnectTitle: 'Conectar a partir deste nó',
+    exportPngError: 'Não foi possível exportar como PNG',
+    exportJpegError: 'Não foi possível exportar como JPEG',
   },
   es: {
     noData: 'Sin datos', mastery: 'Dominio',
@@ -60,6 +88,8 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     nCollapsed: (n) => `${n} nodos colapsados`, allExpanded: 'Todos los nodos expandidos',
     mobileHint: 'Arrastre para mover · Pellizque para zoom · Mantenga para menú',
     reviewAlert: 'IA recomienda revisar',
+    srNodeListLabel: 'Lista de conceptos del mapa',
+    srNodeItem: (name, mastery, connections) => `${name}, dominio ${Math.round(mastery * 100)}%, ${connections} conexiones`,
     fitView: 'Ajustar a la vista', shortcuts: 'Atajos', search: 'buscar',
     closeShortcuts: 'Cerrar atajos', shortcutDialog: 'Atajos de teclado',
     nSelected: (n) => `${n} nodos seleccionados`,
@@ -80,5 +110,18 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
       ['Ctrl+]', 'Expandir todos'], ['Shift+clic', 'Seleccionar varios'],
       ['Espacio+arrastrar', 'Mover mapa'],
       ['Esc', 'Deseleccionar'], ['?', 'Esta ayuda']],
+    gestureGuideTitle: 'Gestos',
+    gestures: [
+      ['👆 Arrastre', 'Mover nodos'],
+      ['🤏 Pellizque', 'Zoom'],
+      ['👆 Mantenga', 'Menú de contexto'],
+      ['👆👆 Doble toque', 'Colapsar/expandir'],
+    ],
+    dragConnectTo: 'Conectar a...',
+    dragSameNode: 'Mismo nodo',
+    dragAlreadyConnected: 'Ya conectados',
+    dragQuickConnectTitle: 'Conectar desde este nodo',
+    exportPngError: 'No se pudo exportar como PNG',
+    exportJpegError: 'No se pudo exportar como JPEG',
   },
 };

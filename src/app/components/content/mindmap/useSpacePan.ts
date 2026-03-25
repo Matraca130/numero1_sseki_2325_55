@@ -79,7 +79,7 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
         if (graph) {
           try {
             graph.updateBehavior({ type: 'drag-element', enable: true });
-          } catch { /* ignore */ }
+          } catch (e) { if (import.meta.env.DEV) console.warn("[useSpacePan] ignore", e); }
         }
       }
     };
@@ -111,7 +111,7 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
         container.style.cursor = '';
         const graph = graphRef.current;
         if (graph) {
-          try { graph.updateBehavior({ type: 'drag-element', enable: true }); } catch { /* ignore */ }
+          try { graph.updateBehavior({ type: 'drag-element', enable: true }); } catch (e) { if (import.meta.env.DEV) console.warn("[useSpacePan] ignore", e); }
         }
       }
     };

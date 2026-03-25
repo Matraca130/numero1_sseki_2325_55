@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { loadStickyNotes, createStickyNote, saveStickyNotes } from './StickyNote';
 import type { StickyNoteData } from './StickyNote';
+import type { MapViewI18nStrings } from './mapViewI18n';
 
 export interface MapStickyNotesState {
   stickyNotes: StickyNoteData[];
@@ -18,7 +19,10 @@ export interface MapStickyNotesState {
   handleDeleteStickyNote: (noteId: string) => void;
 }
 
-export function useMapStickyNotes(effectiveTopicId: string): MapStickyNotesState {
+export function useMapStickyNotes(
+  effectiveTopicId: string,
+  i18n?: Pick<MapViewI18nStrings, 'maxStickyNotes'>,
+): MapStickyNotesState {
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
 
   // Track current effectiveTopicId to detect stale callbacks during rapid navigation
@@ -40,7 +44,7 @@ export function useMapStickyNotes(effectiveTopicId: string): MapStickyNotesState
       // If topic changed since callback was queued, bail
       if (topicIdRef.current !== effectiveTopicId) return prev;
       if (prev.length >= 10) {
-        toast.error('Máximo 10 notas por tema');
+        toast.error(i18n?.maxStickyNotes ?? 'Máximo 10 notas por tema');
         return prev;
       }
       const note = createStickyNote();

@@ -135,7 +135,7 @@ export function useSessionXP(): UseSessionXPReturn {
     });
 
     // Fire daily check-in (idempotent, fire-and-forget)
-    gamificationApi.dailyCheckIn(institutionId).catch(() => {});
+    gamificationApi.dailyCheckIn(institutionId).catch((err) => { console.warn('[useSessionXP] dailyCheckIn failed:', err); });
   }, []);
 
   const recordReview = useCallback((grade: number): XPEvent => {
@@ -209,30 +209,33 @@ export function useSessionXP(): UseSessionXPReturn {
       leveledUp,
     }));
 
-    // ── Check for new badges (fire-and-forget toast notifications) ──
+    // ── Check for new badges ──
+    // FIX: await the badge check so newBadges is populated before return.
+    // Previously this was fire-and-forget (.then), so newBadges was always [].
     let newBadges: BadgeWithStatus[] = [];
-    gamificationApi.checkBadges(institutionId)
-      .then((result) => {
-        if (result && result.new_badges.length > 0) {
-          newBadges = result.new_badges;
+    try {
+      const result = await gamificationApi.checkBadges(institutionId);
+      if (result && result.new_badges.length > 0) {
+        newBadges = result.new_badges;
 
-          // Fire a toast for each new badge (staggered for premium feel)
-          result.new_badges.forEach((badge, idx) => {
-            setTimeout(() => {
-              const rarityEmoji =
-                badge.rarity === 'legendary' ? '\u2728' :
-                badge.rarity === 'epic' ? '\ud83d\udc8e' :
-                badge.rarity === 'rare' ? '\ud83d\udd37' : '\ud83c\udfc5';
+        // Fire a toast for each new badge (staggered for premium feel)
+        result.new_badges.forEach((badge, idx) => {
+          setTimeout(() => {
+            const rarityEmoji =
+              badge.rarity === 'legendary' ? '\u2728' :
+              badge.rarity === 'epic' ? '\ud83d\udc8e' :
+              badge.rarity === 'rare' ? '\ud83d\udd37' : '\ud83c\udfc5';
 
-              toast(`${rarityEmoji} ${badge.name}`, {
-                description: badge.description,
-                duration: 5000,
-              });
-            }, 1500 + idx * 800); // Stagger: 1.5s delay + 0.8s between each
-          });
-        }
-      })
-      .catch(() => {}); // Silent fail — badges are non-critical
+            toast(`${rarityEmoji} ${badge.name}`, {
+              description: badge.description,
+              duration: 5000,
+            });
+          }, 1500 + idx * 800); // Stagger: 1.5s delay + 0.8s between each
+        });
+      }
+    } catch {
+      // Silent fail — badges are non-critical
+    }
 
     // ── Level-up toast ──
     if (leveledUp) {

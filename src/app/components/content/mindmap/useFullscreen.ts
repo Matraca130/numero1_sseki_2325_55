@@ -95,7 +95,7 @@ export function useFullscreen(): UseFullscreenReturn {
         restoreRef.current = clearAncestorTransforms(fullscreenRef.current);
       }
     });
-    try { sessionStorage.setItem('axon_map_fullscreen', '1'); } catch {}
+    try { sessionStorage.setItem('axon_map_fullscreen', '1'); } catch (e) { if (import.meta.env.DEV) console.warn("[useFullscreen] swallowed error", e); }
   }, [supportsFullscreen, doRestore]);
 
   const exitFullscreen = useCallback(async () => {
@@ -110,7 +110,7 @@ export function useFullscreen(): UseFullscreenReturn {
     }
     isFullscreenRef.current = false;
     setIsFullscreen(false);
-    try { sessionStorage.removeItem('axon_map_fullscreen'); } catch {}
+    try { sessionStorage.removeItem('axon_map_fullscreen'); } catch (e) { if (import.meta.env.DEV) console.warn("[useFullscreen] swallowed error", e); }
   }, [supportsFullscreen, doRestore]);
 
   const toggleFullscreen = useCallback(() => {
@@ -132,7 +132,7 @@ export function useFullscreen(): UseFullscreenReturn {
         doRestore();
         isFullscreenRef.current = false;
         setIsFullscreen(false);
-        try { sessionStorage.removeItem('axon_map_fullscreen'); } catch {}
+        try { sessionStorage.removeItem('axon_map_fullscreen'); } catch (e) { if (import.meta.env.DEV) console.warn("[useFullscreen] swallowed error", e); }
       }
     };
 
@@ -146,7 +146,7 @@ export function useFullscreen(): UseFullscreenReturn {
       if (sessionStorage.getItem('axon_map_fullscreen')) {
         sessionStorage.removeItem('axon_map_fullscreen');
       }
-    } catch {}
+    } catch (e) { if (import.meta.env.DEV) console.warn("[useFullscreen] swallowed error", e); }
   }, []);
 
   // Cleanup on unmount: restore ancestor transforms if still overridden

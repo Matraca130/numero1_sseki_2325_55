@@ -111,7 +111,7 @@ export function useReadingTimeTracker(
   // ── Layer 1: Periodic save every 30s ────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      save().catch(() => {});
+      save().catch((err) => { console.warn('[useReadingTimeTracker] Periodic save failed:', err); });
     }, SAVE_INTERVAL_MS);
 
     return () => clearInterval(interval);
@@ -121,7 +121,7 @@ export function useReadingTimeTracker(
   useEffect(() => {
     const handler = () => {
       if (document.visibilityState === 'hidden') {
-        save().catch(() => {});
+        save().catch((err) => { console.warn('[useReadingTimeTracker] Visibility-change save failed:', err); });
       }
     };
     document.addEventListener('visibilitychange', handler);
@@ -139,7 +139,7 @@ export function useReadingTimeTracker(
   useEffect(() => {
     return () => {
       // Fire and forget — React doesn't wait for async cleanup
-      save().catch(() => {});
+      save().catch((err) => { console.warn('[useReadingTimeTracker] Unmount save failed:', err); });
     };
   }, [save]);
 

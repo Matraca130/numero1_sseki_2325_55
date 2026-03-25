@@ -255,7 +255,7 @@ export const MiniKnowledgeGraph = React.memo(function MiniKnowledgeGraph({
     };
 
     graph.on('node:click', handler);
-    return () => { try { graph.off('node:click', handler); } catch { /* graph may be destroyed */ } };
+    return () => { try { graph.off('node:click', handler); } catch (e) { if (import.meta.env.DEV) console.warn("[MiniKnowledgeGraph] graph may be destroyed", e); } };
   }, [ready]);
 
   if (data.nodes.length === 0) return null;

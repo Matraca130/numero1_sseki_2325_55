@@ -230,7 +230,8 @@ export class ModelPartLoader {
         promises.push(this.loadPart(id));
       }
     }
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+    results.filter(r => r.status === 'rejected').forEach(r => console.error('[ModelPartMesh] loadAllVisible part failed:', (r as PromiseRejectedResult).reason));
   }
 
   /** Set visibility of a part */

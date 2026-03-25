@@ -5,9 +5,17 @@
 // Extracted to keep KnowledgeGraph.tsx focused on rendering.
 // ============================================================
 
+import type { Graph } from '@antv/g6';
 import type { GraphData } from '@/app/types/mindmap';
 import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
+
+// ── Graph color constants ─────────────────────────────────────
+export const GRAPH_COLORS = {
+  primary: '#2a8c7a',
+  primaryDark: '#244e47',
+  primaryRgb: '42, 140, 122',
+} as const;
 
 // ── Node style helpers ──────────────────────────────────────
 
@@ -115,4 +123,74 @@ export function computeHiddenNodes(
     if (!rescued.has(id) && !collapsedNodes.has(id)) hidden.add(id);
   }
   return hidden;
+}
+
+// ── Shared screen-position helpers ──────────────────────────────
+
+export interface NodeScreenPos {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  /** Optional label — populated by useDragConnect, omitted by useEdgeReconnect */
+  label?: string;
+}
+
+/**
+ * Get screen (client) position of all nodes using G6's coordinate system.
+ * Uses getElementRenderBounds for canvas-space coords, then
+ * graph.getClientByCanvas to convert to browser client coords.
+ * When `includeLabels` is true, each entry includes the node's label string.
+ */
+export function getNodeScreenPositions(
+  graph: Graph,
+  includeLabels?: boolean,
+): NodeScreenPos[] {
+  const positions: NodeScreenPos[] = [];
+  try {
+    const allNodeData = graph.getNodeData();
+    for (const node of allNodeData) {
+      const id = String(node.id);
+      try {
+        const bounds = graph.getElementRenderBounds(id);
+        if (bounds) {
+          const cx = (bounds.min[0] + bounds.max[0]) / 2;
+          const cy = (bounds.min[1] + bounds.max[1]) / 2;
+          const size = Math.max(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1]);
+          const clientPt = graph.getClientByCanvas([cx, cy]);
+          const entry: NodeScreenPos = { id, x: clientPt[0], y: clientPt[1], size };
+          if (includeLabels) {
+            entry.label = String(node.data?.fullLabel || node.data?.label || id);
+          }
+          positions.push(entry);
+        }
+      } catch (e) { if (import.meta.env.DEV) console.warn("[graphHelpers] Node may not be rendered yet", e); }
+    }
+  } catch (e) { if (import.meta.env.DEV) console.warn("[graphHelpers] Graph may be destroyed", e); }
+  return positions;
+}
+
+/**
+ * Find the nearest node to a screen position within a radius.
+ */
+export function findNearestNode(
+  positions: NodeScreenPos[],
+  x: number,
+  y: number,
+  radius: number,
+  excludeId?: string,
+): NodeScreenPos | null {
+  let best: NodeScreenPos | null = null;
+  let bestDist = radius;
+  for (const pos of positions) {
+    if (pos.id === excludeId) continue;
+    const dx = pos.x - x;
+    const dy = pos.y - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = pos;
+    }
+  }
+  return best;
 }

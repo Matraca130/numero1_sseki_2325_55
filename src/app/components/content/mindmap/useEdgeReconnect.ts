@@ -22,6 +22,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
+import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS } from './graphHelpers';
+import type { NodeScreenPos } from './graphHelpers';
 
 /** Snap distance in pixels (screen coords) to detect proximity to an endpoint */
 const ENDPOINT_HIT_RADIUS = 14;
@@ -58,51 +60,6 @@ interface UseEdgeReconnectOptions {
   isDraggingRef?: React.MutableRefObject<boolean>;
 }
 
-interface NodeScreenPos {
-  id: string;
-  x: number;
-  y: number;
-  size: number;
-}
-
-/**
- * Get screen (client) position of all nodes using G6's coordinate system.
- * Uses getElementRenderBounds for canvas-space coords, then
- * graph.getClientByCanvas to convert to browser client coords.
- */
-function getNodeScreenPositions(
-  graph: Graph,
-): NodeScreenPos[] {
-  const positions: NodeScreenPos[] = [];
-  try {
-    const allNodeData = graph.getNodeData();
-    for (const node of allNodeData) {
-      const id = String(node.id);
-      try {
-        const bounds = graph.getElementRenderBounds(id);
-        if (bounds) {
-          const canvasCenterX = (bounds.min[0] + bounds.max[0]) / 2;
-          const canvasCenterY = (bounds.min[1] + bounds.max[1]) / 2;
-          const size = Math.max(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1]);
-          // Convert canvas coords to browser client coords
-          const clientPt = graph.getClientByCanvas([canvasCenterX, canvasCenterY]);
-          positions.push({
-            id,
-            x: clientPt[0],
-            y: clientPt[1],
-            size,
-          });
-        }
-      } catch {
-        // Node may not be rendered yet
-      }
-    }
-  } catch {
-    // Graph may be destroyed
-  }
-  return positions;
-}
-
 /**
  * Get the screen (client) position of a specific node.
  */
@@ -122,31 +79,6 @@ function getNodeScreenPos(
     // Node may not exist or graph destroyed
   }
   return null;
-}
-
-/**
- * Find the nearest node to a screen position within a radius.
- */
-function findNearestNode(
-  positions: NodeScreenPos[],
-  x: number,
-  y: number,
-  radius: number,
-  excludeId?: string,
-): NodeScreenPos | null {
-  let best: NodeScreenPos | null = null;
-  let bestDist = radius;
-  for (const pos of positions) {
-    if (pos.id === excludeId) continue;
-    const dx = pos.x - x;
-    const dy = pos.y - y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = pos;
-    }
-  }
-  return best;
 }
 
 // ── Drag state ──────────────────────────────────────────────
@@ -197,6 +129,12 @@ export function useEdgeReconnect({
   onReconnectRef.current = onReconnect;
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
+
+  // Cached user-created edges — only recalculated when edges prop changes
+  const userEdgesRef = useRef<MapEdge[]>([]);
+  useEffect(() => {
+    userEdgesRef.current = edges.filter(e => e.isUserCreated);
+  }, [edges]);
 
   // Create/destroy overlay canvas
   useEffect(() => {
@@ -262,7 +200,7 @@ export function useEdgeReconnect({
 
     // Draw the reconnect line (bezier curve for visual consistency with useDragConnect)
     ctx.save();
-    ctx.strokeStyle = '#2a8c7a';
+    ctx.strokeStyle = GRAPH_COLORS.primary;
     ctx.lineWidth = 2.5 * dpr;
     ctx.setLineDash([6 * dpr, 4 * dpr]);
     ctx.lineCap = 'round';
@@ -287,7 +225,7 @@ export function useEdgeReconnect({
     const angle = Math.atan2(toPoint.y - tAy, toPoint.x - tAx);
     const arrowLen = 10 * dpr;
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2a8c7a';
+    ctx.fillStyle = GRAPH_COLORS.primary;
     ctx.beginPath();
     ctx.moveTo(toPoint.x, toPoint.y);
     ctx.lineTo(
@@ -303,7 +241,7 @@ export function useEdgeReconnect({
 
     // Draw dragged endpoint handle
     const dragHandle = toLocal(ds.dragX, ds.dragY);
-    ctx.fillStyle = 'rgba(42, 140, 122, 0.25)';
+    ctx.fillStyle = `rgba(${GRAPH_COLORS.primaryRgb}, 0.25)`;
     ctx.beginPath();
     ctx.arc(dragHandle.x, dragHandle.y, 8 * dpr, 0, Math.PI * 2);
     ctx.fill();
@@ -311,7 +249,7 @@ export function useEdgeReconnect({
     // Draw snap highlight ring around target node
     if (ds.snapNodeId) {
       const snapLocal = toLocal(ds.snapX, ds.snapY);
-      ctx.strokeStyle = '#2a8c7a';
+      ctx.strokeStyle = GRAPH_COLORS.primary;
       ctx.lineWidth = 3 * dpr;
       ctx.setLineDash([]);
       ctx.beginPath();
@@ -319,7 +257,7 @@ export function useEdgeReconnect({
       ctx.stroke();
 
       // Glow effect
-      ctx.strokeStyle = 'rgba(42, 140, 122, 0.3)';
+      ctx.strokeStyle = `rgba(${GRAPH_COLORS.primaryRgb}, 0.3)`;
       ctx.lineWidth = 6 * dpr;
       ctx.beginPath();
       ctx.arc(snapLocal.x, snapLocal.y, 26 * dpr, 0, Math.PI * 2);
@@ -328,7 +266,7 @@ export function useEdgeReconnect({
 
     // Draw fixed endpoint indicator
     const fixedLocal = toLocal(ds.fixedX, ds.fixedY);
-    ctx.fillStyle = '#244e47';
+    ctx.fillStyle = GRAPH_COLORS.primaryDark;
     ctx.beginPath();
     ctx.arc(fixedLocal.x, fixedLocal.y, 5 * dpr, 0, Math.PI * 2);
     ctx.fill();
@@ -343,10 +281,6 @@ export function useEdgeReconnect({
     const container = containerRef.current;
     if (!graph || !container) return;
 
-    // Cache for user-created edge lookup
-    const getUserEdges = (): MapEdge[] =>
-      edgesRef.current.filter(e => e.isUserCreated);
-
     // We need to listen on the actual canvas element or the container
     // Using pointer events on container (capturing) so we get all events
     const handlePointerDown = (e: PointerEvent) => {
@@ -354,7 +288,7 @@ export function useEdgeReconnect({
       if (e.button !== 0) return; // left click only
       if (isDraggingRef?.current) return; // another drag hook is active
 
-      const userEdges = getUserEdges();
+      const userEdges = userEdgesRef.current;
       if (userEdges.length === 0) return;
 
       const screenX = e.clientX;
@@ -428,7 +362,7 @@ export function useEdgeReconnect({
         lastHoverCheckTime = now;
 
         // Check for hover-near-endpoint to show cursor hint
-        const userEdges = getUserEdges();
+        const userEdges = userEdgesRef.current;
         if (userEdges.length === 0) return;
 
         let nearEndpoint = false;
@@ -476,7 +410,7 @@ export function useEdgeReconnect({
         try {
           graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 0.15, lineDash: [4, 4] } }]);
           graph.draw();
-        } catch { /* edge may not exist in G6 */ }
+        } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] edge may not exist in G6", e); }
       }
 
       // Dragging: update position
@@ -517,7 +451,7 @@ export function useEdgeReconnect({
         return;
       }
 
-      try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* may not be captured */ }
+      try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] may not be captured", e); }
       if (overlayCanvasRef.current) {
         overlayCanvasRef.current.style.pointerEvents = 'none';
         overlayCanvasRef.current.style.cursor = '';
@@ -531,7 +465,7 @@ export function useEdgeReconnect({
         graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
         graph.setElementState(ds.edge.id, []);
         graph.draw();
-      } catch { /* edge may not exist */ }
+      } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] edge may not exist", e); }
 
       // If snapped to a valid node, fire reconnect
       if (ds.snapNodeId && ds.snapNodeId !== ds.edge.source && ds.snapNodeId !== ds.edge.target) {
@@ -560,7 +494,7 @@ export function useEdgeReconnect({
       if (!ds) return;
 
       if (ds.activated) {
-        try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* may not be captured */ }
+        try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] may not be captured", e); }
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'none';
           overlayCanvasRef.current.style.cursor = '';
@@ -571,7 +505,7 @@ export function useEdgeReconnect({
           graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
           graph.setElementState(ds.edge.id, []);
           graph.draw();
-        } catch { /* */ }
+        } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] ", e); }
 
         cancelAnimationFrame(rafRef.current);
         const overlay = overlayCanvasRef.current;
@@ -612,13 +546,13 @@ export function useEdgeReconnect({
       const ds = dragStateRef.current;
       if (ds) {
         if (ds.capturedPointerId >= 0) {
-          try { container.releasePointerCapture(ds.capturedPointerId); } catch { /* already released */ }
+          try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] already released", e); }
         }
         if (ds.activated && graph) {
           try {
             graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
             graph.draw();
-          } catch { /* graph may be destroyed */ }
+          } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] graph may be destroyed", e); }
         }
         dragStateRef.current = null;
         if (isDraggingRef) isDraggingRef.current = false;

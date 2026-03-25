@@ -65,6 +65,8 @@ import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
 import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
+import { I18N_MAP_VIEW } from './mindmap/mapViewI18n';
+import type { GraphLocale } from './mindmap/graphI18n';
 
 /** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
 const haptic = (ms = 50) => navigator?.vibrate?.(ms);
@@ -81,6 +83,10 @@ export function KnowledgeMapView() {
   const { currentTopic, currentCourse } = useApp();
   const { tree } = useContentTree();
 
+  // ── I18N ─────────────────────────────────────────────────
+  const locale: GraphLocale = 'pt';
+  const t = I18N_MAP_VIEW[locale];
+
   // ── Flatten all topics from content tree for the selector ──
   const allTopics = useMemo(() => {
     if (!tree?.courses) return [];
@@ -91,7 +97,7 @@ export function KnowledgeMapView() {
           for (const topic of section.topics || []) {
             result.push({
               id: topic.id,
-              name: topic.name || 'Sem título',
+              name: topic.name || t.untitled,
               courseName: course.name,
             });
           }
@@ -219,7 +225,7 @@ export function KnowledgeMapView() {
     dismissOnboarding, showOnboardingRef,
   } = ui;
 
-  const tools = useMapToolState(showOnboardingRef);
+  const tools = useMapToolState(showOnboardingRef, t);
   const {
     activeTool, setActiveTool, activeToolRef,
     connectSource, setConnectSource, connectSourceRef,
@@ -280,7 +286,7 @@ export function KnowledgeMapView() {
       if (tool === 'connect' && source) {
         setConnectSource(null);
         setConnectTarget(null);
-        toast.info('Conexão cancelada');
+        toast.info(t.connectionCancelled);
       }
       // In add-node mode, clicking canvas opens the add modal
       if (tool === 'add-node') {
@@ -300,19 +306,19 @@ export function KnowledgeMapView() {
           setConfirmDeleteNode(node);
           setActiveTool('pointer');
         } else {
-          toast.error('Você só pode excluir conceitos criados por você');
+          toast.error(t.deleteOnlyUserCreated);
         }
         return;
       case 'connect':
         if (!source) {
           // First click: select source
           setConnectSource(node);
-          toast.info(`Origem: "${node.label}" — Agora selecione o destino`);
+          toast.info(t.connectSourceSelected(node.label));
         } else if (source.id === node.id) {
           // Clicked same node: cancel
           setConnectSource(null);
           setConnectTarget(null);
-          toast.info('Conexão cancelada');
+          toast.info(t.connectionCancelled);
         } else {
           // Second click: open modal pre-filled with source→target
           setConnectTarget(node);
@@ -320,16 +326,27 @@ export function KnowledgeMapView() {
           setActiveTool('pointer');
         }
         return;
-      default:
+      default: {
         setSelectedNode(node);
-        setContextMenu({ node, position: position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 } });
+        const rawPos = position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const clampedPos = {
+          x: Math.min(rawPos.x, window.innerWidth - 250),
+          y: Math.min(rawPos.y, window.innerHeight - 300),
+        };
+        setContextMenu({ node, position: clampedPos });
         haptic(10);
+        break;
+      }
     }
   }, []);
 
   const handleNodeRightClick = useCallback((node: MapNode, position: { x: number; y: number }) => {
     haptic(30);
-    setContextMenu({ node, position });
+    const clampedPos = {
+      x: Math.min(position.x, window.innerWidth - 250),
+      y: Math.min(position.y, window.innerHeight - 300),
+    };
+    setContextMenu({ node, position: clampedPos });
   }, []);
 
   const handleContextMenuClose = useCallback(() => {
@@ -357,7 +374,7 @@ export function KnowledgeMapView() {
   }, [effectiveTopicId, historyEntries]);
 
   // ── Sticky notes (extracted hook) ─────────────────────────
-  const { stickyNotes, setStickyNotes, handleAddStickyNote } = useMapStickyNotes(effectiveTopicId);
+  const { stickyNotes, setStickyNotes, handleAddStickyNote } = useMapStickyNotes(effectiveTopicId, t);
 
   // ── Custom node colors (extracted hook) ──────────────────
   const { customNodeColors, handleNodeColorChange } = useMapNodeColors(effectiveTopicId);
@@ -383,7 +400,7 @@ export function KnowledgeMapView() {
       case 'connect':
         setConnectSource(node);
         setActiveTool('connect');
-        toast.info(`Origem: "${node.label}" — Agora selecione o destino`);
+        toast.info(t.connectSourceSelected(node.label));
         break;
       case 'annotate':
         setAnnotationNode(node);
@@ -431,7 +448,7 @@ export function KnowledgeMapView() {
       refetch();
     } catch (e: unknown) {
       if (!mountedRef.current) return;
-      toast.error(e instanceof Error ? e.message : 'Erro ao excluir conceito');
+      toast.error(e instanceof Error ? e.message : t.deleteNodeError);
       setConfirmDeleteNode(null);
     } finally {
       deletingNodeRef.current = false;
@@ -450,7 +467,7 @@ export function KnowledgeMapView() {
 
       // Guard: prevent self-loops (finally resets reconnectingRef)
       if (newSource === newTarget) {
-        toast.warning('Você não pode conectar um nó a ele mesmo');
+        toast.warning(t.selfLoopError);
         return;
       }
 
@@ -459,7 +476,7 @@ export function KnowledgeMapView() {
         (e) => ((e.source === newSource && e.target === newTarget) || (e.source === newTarget && e.target === newSource)) && e.id !== oldEdge.id,
       );
       if (edgeExists) {
-        toast.warning('Já existe uma conexão entre esses nós');
+        toast.warning(t.duplicateEdgeError);
         return;
       }
 
@@ -514,12 +531,12 @@ export function KnowledgeMapView() {
       // Find node labels for toast (use ref for stable callback)
       const srcNode = graphDataNodesRef.current?.find(n => n.id === newSource);
       const tgtNode = graphDataNodesRef.current?.find(n => n.id === newTarget);
-      toast.success(`Conexão reconectada: ${srcNode?.label ?? '?'} → ${tgtNode?.label ?? '?'}`);
+      toast.success(t.edgeReconnected(srcNode?.label ?? '?', tgtNode?.label ?? '?'));
       haptic(50);
       refetch();
     } catch (e: unknown) {
       if (!mountedRef.current) return;
-      toast.error(e instanceof Error ? e.message : 'Erro ao reconectar aresta');
+      toast.error(e instanceof Error ? e.message : t.reconnectEdgeError);
     } finally {
       reconnectingRef.current = false;
     }
@@ -690,13 +707,13 @@ export function KnowledgeMapView() {
             className="text-gray-900 mb-2 text-center"
             style={{ ...headingStyle, fontSize: 'clamp(1.1rem, 2vw, 1.35rem)' }}
           >
-            Mapa de Conhecimento
+            {t.pageTitle}
           </h2>
           <p
             className="text-gray-500 mb-6 text-center max-w-sm leading-relaxed"
             style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
           >
-            Selecione um tema para ver seu mapa de conhecimento.
+            {t.selectTopicPrompt}
           </p>
           {allTopics.length > 0 ? (
             <div className="relative w-full max-w-xs">
@@ -706,7 +723,7 @@ export function KnowledgeMapView() {
                 className="w-full appearance-none bg-white border border-gray-200 rounded-full px-4 py-2.5 pr-9 text-sm text-gray-700 shadow-sm hover:border-gray-300 transition-colors"
                 style={{ outlineColor: '#2a8c7a' }}
               >
-                <option value="">Selecionar tema...</option>
+                <option value="">{t.selectTopicPlaceholder}</option>
                 {allTopics.map(t => (
                   <option key={t.id} value={t.id}>
                     {t.courseName} — {t.name}
@@ -720,7 +737,7 @@ export function KnowledgeMapView() {
               className="text-gray-500 leading-relaxed"
               style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
             >
-              Nenhum tema disponível. Acesse um curso primeiro.
+              {t.noTopicsAvailable}
             </p>
           )}
         </div>
@@ -734,16 +751,16 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
           <AxonPageHeader
-            title="Mapa de Conhecimento"
-            subtitle={currentCourse?.name || 'Todos os temas'}
+            title={t.pageTitle}
+            subtitle={currentCourse?.name || t.allTopics}
             onBack={() => navigate(-1)}
           />
           <EmptyState
             icon={<Globe className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title="Nenhum conceito no curso"
+            title={t.noCourseConceptsTitle}
             description={courseTopicIds.length === 0
-              ? 'Este curso não tem temas. Acesse um curso com conteúdo primeiro.'
-              : 'Os temas deste curso ainda não têm conceitos mapeados. Estude mais para construir seu mapa!'}
+              ? t.noCourseConceptsNoTopics
+              : t.noCourseConceptsEmpty}
           />
         </div>
       </FadeIn>
@@ -755,14 +772,14 @@ export function KnowledgeMapView() {
       <FadeIn>
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
           <AxonPageHeader
-            title="Mapa de Conhecimento"
-            subtitle="Visualize seu domínio de cada conceito"
+            title={t.pageTitle}
+            subtitle={t.pageSubtitle}
             onBack={() => navigate(-1)}
           />
           <EmptyState
             icon={<Brain className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title="Nenhum conceito encontrado"
-            description="Este tema ainda não tem palavras-chave com conexões. Estude mais para construir seu mapa!"
+            title={t.noConceptsTitle}
+            description={t.noConceptsDescription}
           />
         </div>
       </FadeIn>
@@ -786,8 +803,8 @@ export function KnowledgeMapView() {
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {searchQuery.trim()
             ? matchCount === 0
-              ? 'Nenhum conceito encontrado'
-              : `${matchCount} conceitos encontrados para "${searchQuery}"`
+              ? t.srNoResults
+              : t.srResultsFound(matchCount, searchQuery)
             : ''}
         </div>
 
@@ -799,7 +816,7 @@ export function KnowledgeMapView() {
             <ErrorBoundary fallback={() => null}>
               <GraphSidebar
                 onBack={() => navigate(-1)}
-                topicName={scope === 'course' ? (currentCourse?.name || 'Todos') : (currentTopic?.title || 'Mapa')}
+                topicName={scope === 'course' ? (currentCourse?.name || t.allTopics) : (currentTopic?.title || t.mapFallbackLabel)}
                 topicOptions={allTopics.length > 1 && scope === 'topic' ? allTopics : undefined}
                 selectedTopicId={topicId || ''}
                 onTopicChange={handleTopicSelect}
@@ -881,13 +898,13 @@ export function KnowledgeMapView() {
                 className="text-gray-500 text-center"
                 style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
               >
-                Erro ao renderizar o grafo.
+                {t.graphRenderError}
               </p>
               <button
                 onClick={reset}
                 className="text-sm font-medium text-[#2a8c7a] hover:underline"
               >
-                Tentar novamente
+                {t.retry}
               </button>
             </div>
           )}>
@@ -922,13 +939,13 @@ export function KnowledgeMapView() {
                     className="font-semibold text-gray-700 mb-1"
                     style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
                   >
-                    Nenhum conceito encontrado
+                    {t.searchNoResults}
                   </p>
                   <p
                     className="text-gray-500"
                     style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
                   >
-                    Tente buscar outro termo
+                    {t.searchTryAnother}
                   </p>
                 </div>
               </div>
@@ -939,12 +956,12 @@ export function KnowledgeMapView() {
           {collapsedCount > 0 && filteredGraphData && collapsedCount >= filteredGraphData.nodes.length && (
             <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
               <div className="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 px-5 py-4 text-center max-w-[260px]">
-                <p className="text-sm font-medium text-gray-600 mb-2">Todos os ramos estão recolhidos</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">{t.allCollapsed}</p>
                 <button
                   onClick={() => graphControlsRef.current?.expandAll()}
                   className="text-xs font-medium text-[#2a8c7a] hover:underline"
                 >
-                  Expandir tudo
+                  {t.expandAll}
                 </button>
               </div>
             </div>
@@ -953,8 +970,8 @@ export function KnowledgeMapView() {
           {/* Sticky notes layer — floats above graph, below modals */}
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="absolute bottom-3 right-3 z-10 bg-white rounded-lg shadow border border-gray-200 px-3 py-2 flex items-center gap-2">
-              <p className="text-xs text-gray-500">Erro nas notas</p>
-              <button onClick={reset} className="text-xs font-medium text-[#2a8c7a] hover:underline">Tentar novamente</button>
+              <p className="text-xs text-gray-500">{t.stickyNotesError}</p>
+              <button onClick={reset} className="text-xs font-medium text-[#2a8c7a] hover:underline">{t.retry}</button>
             </div>
           )}>
             <StickyNotesLayer
@@ -970,12 +987,12 @@ export function KnowledgeMapView() {
               <Link2 className="w-3.5 h-3.5 text-[#2a8c7a]" />
               <span className="text-xs text-gray-700">
                 <span className="font-medium text-[#2a8c7a]">{connectSource.label}</span>
-                {' → Selecione o destino'}
+                {t.selectTarget}
               </span>
               <button
                 onClick={() => { setConnectSource(null); setConnectTarget(null); setActiveTool('pointer'); }}
                 className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Cancelar conexão"
+                aria-label={t.cancelConnection}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -986,8 +1003,8 @@ export function KnowledgeMapView() {
           {effectiveTopicId && (
             <ErrorBoundary fallback={(_err, reset) => (
               <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <p className="text-sm text-gray-500">Erro ao carregar o painel de IA.</p>
-                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
+                <p className="text-sm text-gray-500">{t.aiPanelError}</p>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">{t.retry}</button>
               </div>
             )}>
               <AiTutorPanel
@@ -1008,8 +1025,8 @@ export function KnowledgeMapView() {
           {/* Change history panel — slides in from right */}
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <p className="text-sm text-gray-500">Erro ao carregar o histórico.</p>
-              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
+              <p className="text-sm text-gray-500">{t.historyPanelError}</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">{t.retry}</button>
             </div>
           )}>
             <ChangeHistoryPanel
@@ -1023,8 +1040,8 @@ export function KnowledgeMapView() {
           {/* Map comparison panel — slides in from right */}
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-lg z-40 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <p className="text-sm text-gray-500">Erro ao carregar a comparação.</p>
-              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
+              <p className="text-sm text-gray-500">{t.comparisonPanelError}</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">{t.retry}</button>
             </div>
           )}>
             <MapComparisonPanel
@@ -1038,23 +1055,23 @@ export function KnowledgeMapView() {
 
           {/* First-visit onboarding tips */}
           {showOnboarding && !loading && !isEmpty && filteredGraphData && filteredGraphData.nodes.length > 0 && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl" role="dialog" aria-modal="true" aria-label="Boas-vindas ao mapa de conhecimento">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-2xl" role="dialog" aria-modal="true" aria-label={t.onboardingAriaLabel}>
               <div className="bg-white rounded-2xl shadow-xl p-5 mx-4 max-w-sm w-full">
                 <h3 className="font-medium text-gray-900 mb-3" style={headingStyle}>
-                  Bem-vindo ao Mapa de Conhecimento!
+                  {t.onboardingTitle}
                 </h3>
                 <ul className="space-y-2 text-sm text-gray-600 mb-4">
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-                    <span>Toque em um conceito para ver flashcards, quiz e resumo.</span>
+                    <span>{t.onboardingTip1}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-                    <span>As cores indicam seu domínio: verde = dominado, amarelo = aprendendo, vermelho = fraco.</span>
+                    <span>{t.onboardingTip2}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-[#e8f5f1] text-[#2a8c7a] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-                    <span>Pinça para zoom, arraste para mover. Use a barra de busca para encontrar conceitos.</span>
+                    <span>{t.onboardingTip3}</span>
                   </li>
                 </ul>
                 <button
@@ -1063,7 +1080,7 @@ export function KnowledgeMapView() {
                   className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-full transition-colors hover:bg-[#244e47]"
                   style={{ backgroundColor: '#2a8c7a' }}
                 >
-                  Entendi!
+                  {t.onboardingDismiss}
                 </button>
               </div>
             </div>
@@ -1073,8 +1090,8 @@ export function KnowledgeMapView() {
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
               <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
-                <p className="text-sm text-gray-500 mb-3">Erro ao carregar a anotação.</p>
-                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
+                <p className="text-sm text-gray-500 mb-3">{t.annotationError}</p>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">{t.retry}</button>
               </div>
             </div>
           )}>
@@ -1089,8 +1106,8 @@ export function KnowledgeMapView() {
           <ErrorBoundary fallback={(_err, reset) => (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={reset}>
               <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex flex-col items-center gap-2">
-                <p className="text-sm text-gray-600">Erro no menu contextual</p>
-                <button onClick={reset} className="text-sm font-medium text-[#2a8c7a] hover:underline">Fechar</button>
+                <p className="text-sm text-gray-600">{t.contextMenuError}</p>
+                <button onClick={reset} className="text-sm font-medium text-[#2a8c7a] hover:underline">{t.close}</button>
               </div>
             </div>
           )}>
@@ -1113,8 +1130,8 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
             <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
-              <p className="text-sm text-gray-500 mb-3">Erro ao carregar o formulário.</p>
-              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
+              <p className="text-sm text-gray-500 mb-3">{t.formError}</p>
+              <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">{t.retry}</button>
             </div>
           </div>
         )}>
@@ -1136,10 +1153,10 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
             <div className="bg-white rounded-xl shadow-lg px-6 py-5 flex flex-col items-center gap-3 max-w-xs">
-              <p className="text-sm text-gray-600 text-center">Erro ao carregar compartilhamento</p>
+              <p className="text-sm text-gray-600 text-center">{t.shareError}</p>
               <div className="flex gap-2">
-                <button onClick={() => { setShowShareModal(false); reset(); }} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Fechar</button>
-                <button onClick={reset} className="text-sm px-3 py-1.5 rounded-lg bg-[#2a8c7a] text-white hover:bg-[#244e47]">Tentar novamente</button>
+                <button onClick={() => { setShowShareModal(false); reset(); }} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">{t.close}</button>
+                <button onClick={reset} className="text-sm px-3 py-1.5 rounded-lg bg-[#2a8c7a] text-white hover:bg-[#244e47]">{t.retry}</button>
               </div>
             </div>
           </div>
@@ -1156,17 +1173,17 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl p-6 text-center max-w-xs shadow-lg">
-              <p className="text-sm text-gray-500 mb-3">Erro ao mostrar o diálogo de confirmação.</p>
-              <button onClick={() => { reset(); setConfirmDeleteNode(null); }} className="text-sm text-[#2a8c7a] hover:underline">Fechar</button>
+              <p className="text-sm text-gray-500 mb-3">{t.confirmDialogError}</p>
+              <button onClick={() => { reset(); setConfirmDeleteNode(null); }} className="text-sm text-[#2a8c7a] hover:underline">{t.close}</button>
             </div>
           </div>
         )}>
           {confirmDeleteNode && (
             <ConfirmDialog
-              title="Excluir conceito?"
-              description={`\u201c${confirmDeleteNode.label}\u201d será excluído do seu mapa. Você pode desfazer com Ctrl+Z.`}
-              cancelLabel="Cancelar"
-              confirmLabel="Excluir"
+              title={t.deleteDialogTitle}
+              description={t.deleteDialogDescription(confirmDeleteNode.label)}
+              cancelLabel={t.cancel}
+              confirmLabel={t.deleteLabel}
               onCancel={() => setConfirmDeleteNode(null)}
               onConfirm={executeDeleteNode}
             />
@@ -1177,10 +1194,10 @@ export function KnowledgeMapView() {
         <ErrorBoundary fallback={(_err, reset) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
             <div className="bg-white rounded-2xl p-6 text-center max-w-xs">
-              <p className="text-sm text-gray-500 mb-3">Erro no modo apresentação.</p>
+              <p className="text-sm text-gray-500 mb-3">{t.presentationError}</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => { reset(); setPresentationMode(false); }} className="text-sm text-gray-500 hover:underline">Sair</button>
-                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">Tentar novamente</button>
+                <button onClick={() => { reset(); setPresentationMode(false); }} className="text-sm text-gray-500 hover:underline">{t.exit}</button>
+                <button onClick={reset} className="text-sm text-[#2a8c7a] hover:underline">{t.retry}</button>
               </div>
             </div>
           </div>

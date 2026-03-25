@@ -508,15 +508,15 @@ export const GraphToolbar = memo(function GraphToolbar({
         </div>
       )}
 
-      {/* Mastery legend / filter — hidden on mobile (parent renders its own strip) */}
-      <div className="hidden sm:flex items-center gap-1.5" role="group" aria-label={t.masteryGroup}>
+      {/* Mastery legend / filter — horizontal scrollable strip on all sizes */}
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1" role="group" aria-label={t.masteryGroup}>
         {MASTERY_COLORS.map((color) => {
           const isActive = masteryFilter === color;
           return (
             <button
               key={color}
               onClick={() => onMasteryFilterChange?.(isActive ? null : color)}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full font-sans transition-all duration-150 ${
+              className={`flex items-center gap-1 px-2 py-1 rounded-full font-sans transition-all duration-150 flex-shrink-0 ${
                 isActive
                   ? 'ring-1 ring-offset-1 bg-gray-50'
                   : masteryFilter && !isActive
@@ -549,10 +549,10 @@ export const GraphToolbar = memo(function GraphToolbar({
 
       {/* View Options dropdown — groups Grid, Minimap, Auto-layout */}
       {(onGridToggle || onMinimapToggle || onAutoLayout) && (
-        <div className="hidden sm:block relative" ref={viewOptionsRef}>
+        <div className="relative" ref={viewOptionsRef}>
           <button
             onClick={() => { setShowViewOptions(v => !v); setShowExportMenu(false); setShowEdgeLegend(false); }}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
+            className={`flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:px-2.5 sm:py-1.5 rounded-full font-medium font-sans transition-all duration-150 ${
               showViewOptions
                 ? 'text-ax-primary-500 bg-ax-primary-50'
                 : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'
@@ -564,7 +564,7 @@ export const GraphToolbar = memo(function GraphToolbar({
             aria-haspopup="true"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>{t.viewOptions}</span>
+            <span className="hidden sm:inline">{t.viewOptions}</span>
           </button>
           {showViewOptions && (
             <div
@@ -574,12 +574,12 @@ export const GraphToolbar = memo(function GraphToolbar({
             >
               {onGridToggle && (
                 <button
-                  role="menuitem"
+                  role="menuitemcheckbox"
                   tabIndex={-1}
                   onClick={() => { onGridToggle(); }}
                   className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
                   style={{ fontSize: fontSize.xs }}
-                  aria-pressed={!!showGrid}
+                  aria-checked={!!showGrid}
                 >
                   <Grid3x3 className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="flex-1">{t.grid}</span>
@@ -588,12 +588,12 @@ export const GraphToolbar = memo(function GraphToolbar({
               )}
               {onMinimapToggle && (
                 <button
-                  role="menuitem"
+                  role="menuitemcheckbox"
                   tabIndex={-1}
                   onClick={() => { onMinimapToggle(); }}
                   className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-gray-700 hover:bg-ax-primary-50 hover:text-ax-primary-500 focus:bg-ax-primary-50 focus:text-ax-primary-500 focus:outline-none transition-all duration-150 text-left font-sans"
                   style={{ fontSize: fontSize.xs }}
-                  aria-pressed={!!showMinimap}
+                  aria-checked={!!showMinimap}
                 >
                   <MapIcon className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="flex-1">{t.minimap}</span>

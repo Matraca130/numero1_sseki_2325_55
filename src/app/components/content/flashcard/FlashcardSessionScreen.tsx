@@ -105,6 +105,11 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
     return null;
   }
 
+  // Cache mastery lookup to avoid repeated ?.get() calls and guard against undefined masteryMap
+  const mastery = masteryMap?.get(currentCard?.id);
+  const isLeech = mastery?.is_leech ?? false;
+  const clinicalPriority = mastery?.clinical_priority ?? 0;
+
   const remaining = cards.length - currentIndex - 1;
   const hasImage = !!(currentCard.image || currentCard.frontImageUrl || currentCard.backImageUrl);
 
@@ -145,16 +150,16 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
             {/* Center: Progress counter */}
             <div className="flex items-center gap-3">
               {/* Leech + Priority badges */}
-              {masteryMap?.get(currentCard.id)?.is_leech && (
+              {isLeech && (
                 <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100" style={{ fontWeight: 600 }}>
                   <AlertTriangle size={10} />
                   Leech
                 </span>
               )}
-              {(masteryMap?.get(currentCard.id)?.clinical_priority ?? 0) > 0 && (
+              {clinicalPriority > 0 && (
                 <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100" style={{ fontWeight: 600 }}>
                   <Stethoscope size={10} />
-                  P{Math.round((masteryMap?.get(currentCard.id)?.clinical_priority ?? 0) * 100)}
+                  P{Math.round(clinicalPriority * 100)}
                 </span>
               )}
 

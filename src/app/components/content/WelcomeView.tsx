@@ -285,14 +285,17 @@ function PerformanceSidebar({
 
   type FeedItem = { id: string; ts: number; type: 'xp' | 'session'; data: XPTransaction | StudySessionRecord };
 
+  // Safe date parser: returns 0 for malformed/missing dates to avoid NaN breaking sort
+  const safeTs = (d: string | null | undefined): number => new Date(d || 0).getTime() || 0;
+
   const unifiedFeed = useMemo(() => {
     const feed: FeedItem[] = [];
     for (const tx of xpHistory) {
-      feed.push({ id: `xp-${tx.id}`, ts: new Date(tx.created_at).getTime(), type: 'xp', data: tx });
+      feed.push({ id: `xp-${tx.id}`, ts: safeTs(tx.created_at), type: 'xp', data: tx });
     }
     for (const sess of recentSessions) {
       if (sess.completed_at) {
-        feed.push({ id: `sess-${sess.id}`, ts: new Date(sess.completed_at || sess.created_at || '').getTime(), type: 'session', data: sess });
+        feed.push({ id: `sess-${sess.id}`, ts: safeTs(sess.completed_at || sess.created_at), type: 'session', data: sess });
       }
     }
     feed.sort((a, b) => b.ts - a.ts);
@@ -467,13 +470,14 @@ export function WelcomeView() {
   const checkInMutation = useDailyCheckIn(institutionId);
   const [didCheckIn, setDidCheckIn] = useState(false);
 
-  // Auto daily check-in
+  // Auto daily check-in — runs once when loading finishes and institutionId is available.
+  // didCheckIn state guard prevents repeated calls; checkInMutation is stable (from useMutation).
   useEffect(() => {
     if (!didCheckIn && !studentLoading && institutionId) {
       setDidCheckIn(true);
       checkInMutation.mutate(undefined, { onError: () => {} });
     }
-  }, [studentLoading, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [didCheckIn, studentLoading, institutionId, checkInMutation]);
 
   // ── Derived (all from real APIs) ────────────────────────────
   const studentName = user?.full_name ?? user?.name ?? profile?.name ?? 'Estudiante';

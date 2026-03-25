@@ -135,7 +135,8 @@ export async function getProfile(institutionId: string): Promise<GamificationPro
     return await apiCall<GamificationProfile>(
       `/gamification/profile?institution_id=${institutionId}`
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getProfile failed:', err);
     return null;
   }
 }
@@ -150,7 +151,8 @@ export async function getXPHistory(
     return await apiCall<XPHistoryResponse>(
       `/gamification/xp-history?institution_id=${institutionId}&limit=${limit}&offset=${offset}`
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getXPHistory failed:', err);
     return { items: [], total: 0, limit: opts?.limit ?? 20, offset: opts?.offset ?? 0 };
   }
 }
@@ -165,7 +167,8 @@ export async function getLeaderboard(
     return await apiCall<LeaderboardResponse>(
       `/gamification/leaderboard?institution_id=${institutionId}&limit=${limit}&period=${period}`
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getLeaderboard failed:', err);
     return { leaderboard: [], my_rank: null, period: opts?.period ?? 'weekly' };
   }
 }
@@ -175,7 +178,8 @@ export async function getStreakStatus(institutionId: string): Promise<StreakStat
     return await apiCall<StreakStatus>(
       `/gamification/streak-status?institution_id=${institutionId}`
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getStreakStatus failed:', err);
     return null;
   }
 }
@@ -186,7 +190,8 @@ export async function dailyCheckIn(institutionId: string): Promise<CheckInResult
       `/gamification/daily-check-in?institution_id=${institutionId}`,
       { method: 'POST' }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] dailyCheckIn failed:', err);
     return null;
   }
 }
@@ -202,7 +207,8 @@ export async function buyStreakFreeze(institutionId: string): Promise<{
       `/gamification/streak-freeze/buy?institution_id=${institutionId}`,
       { method: 'POST' }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] buyStreakFreeze failed:', err);
     return null;
   }
 }
@@ -218,7 +224,8 @@ export async function repairStreak(institutionId: string): Promise<{
       `/gamification/streak-repair?institution_id=${institutionId}`,
       { method: 'POST' }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] repairStreak failed:', err);
     return null;
   }
 }
@@ -231,7 +238,8 @@ export async function getBadges(institutionId?: string, category?: string): Prom
     if (category) params.push(`category=${category}`);
     if (params.length) path += '?' + params.join('&');
     return await apiCall<BadgesResponse>(path);
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getBadges failed:', err);
     return { badges: [], total: 0, earned_count: 0 };
   }
 }
@@ -246,7 +254,8 @@ export async function checkBadges(institutionId: string): Promise<{
       `/gamification/check-badges?institution_id=${institutionId}`,
       { method: 'POST' }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] checkBadges failed:', err);
     return null;
   }
 }
@@ -260,7 +269,8 @@ export async function getNotifications(
     return await apiCall(
       `/gamification/notifications?institution_id=${institutionId}&limit=${limit}`
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getNotifications failed:', err);
     return { notifications: [], total: 0 };
   }
 }
@@ -279,7 +289,8 @@ export async function updateDailyGoal(
         body: JSON.stringify({ institution_id: institutionId, daily_goal_minutes: dailyGoal }),
       }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] updateDailyGoal failed:', err);
     return null;
   }
 }
@@ -296,7 +307,8 @@ export async function completeGoal(
         body: JSON.stringify({ institution_id: institutionId, goal_type: goalType }),
       }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] completeGoal failed:', err);
     return null;
   }
 }
@@ -313,7 +325,8 @@ export async function onboarding(institutionId: string): Promise<{
         body: JSON.stringify({ institution_id: institutionId }),
       }
     );
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] onboarding failed:', err);
     return null;
   }
 }
@@ -327,7 +340,10 @@ export async function getMyXP(institutionId: string) {
     current_level: profile.xp.level,
     xp_today: profile.xp.today,
     xp_this_week: profile.xp.this_week,
-    daily_goal: profile.xp.daily_goal_minutes, // B-001: reads from daily_goal_minutes
+    // FIX: expose both names so old consumers (daily_goal) and new consumers
+    // (daily_goal_minutes) both get the correct value from the backend field.
+    daily_goal: profile.xp.daily_goal_minutes,
+    daily_goal_minutes: profile.xp.daily_goal_minutes,
     daily_cap: profile.xp.daily_cap,
     streak_freezes_owned: profile.xp.streak_freezes_owned,
     current_streak: profile.streak.current,
@@ -347,7 +363,8 @@ export async function getStudyQueue(
     if (opts?.limit) params.push(`limit=${opts.limit}`);
     const qs = params.length ? '?' + params.join('&') : '';
     return await apiCall<StudyQueueResponse>(`/study-queue${qs}`);
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[gamificationApi] getStudyQueue failed:', err);
     return {
       queue: [],
       meta: {

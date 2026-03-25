@@ -180,7 +180,7 @@ export function useSummaryPersistence({
         editTimeMinutes: Math.round(sessionElapsed / 60),
         tags: [],
         bookmarked: false,
-      }).catch(() => {});
+      }).catch((err) => { console.warn('[useSummaryPersistence] Failed to save persistence:', err); });
     };
   }, []);
 

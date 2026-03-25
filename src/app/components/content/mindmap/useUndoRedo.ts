@@ -131,7 +131,7 @@ export function useUndoRedo(onGraphChanged: () => void) {
             return { ...action, oldEdgeId: res.id };
           } catch (recreateErr) {
             // Step 2 failed — rollback step 1 by re-creating the deleted edge
-            try { await createCustomEdge(action.newPayload); } catch { /* best-effort rollback */ }
+            try { await createCustomEdge(action.newPayload); } catch (e) { if (import.meta.env.DEV) console.warn("[useUndoRedo] best-effort rollback", e); }
             throw recreateErr;
           }
         }
@@ -172,7 +172,7 @@ export function useUndoRedo(onGraphChanged: () => void) {
             return { ...action, newEdgeId: res.id };
           } catch (recreateErr) {
             // Step 2 failed — rollback step 1 by re-creating the deleted edge
-            try { await createCustomEdge(action.oldPayload); } catch { /* best-effort rollback */ }
+            try { await createCustomEdge(action.oldPayload); } catch (e) { if (import.meta.env.DEV) console.warn("[useUndoRedo] best-effort rollback", e); }
             throw recreateErr;
           }
         }

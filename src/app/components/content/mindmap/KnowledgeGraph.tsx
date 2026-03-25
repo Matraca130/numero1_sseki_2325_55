@@ -24,7 +24,7 @@ import { Maximize2, X, Link, Trash2, Plus, Group, Focus, ChevronRight } from 'lu
 import type { GraphData, MapNode, G6NodeEvent, GraphControls } from '@/app/types/mindmap';
 import { MASTERY_HEX, truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
-import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes } from './graphHelpers';
+import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes, GRAPH_COLORS } from './graphHelpers';
 import { loadPositions, saveNodePosition, loadCombos, saveCombos, loadGridEnabled, saveGridEnabled } from './useNodePositions';
 import type { PositionMap, PersistedCombo } from './useNodePositions';
 import { NODE_COLOR_FILL } from './useNodeColors';
@@ -156,6 +156,9 @@ function computeEdgeStyle(edge: import('@/app/types/mindmap').GraphData['edges']
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 5;
 
+// ── Keyframes CSS (module-level constant to avoid re-evaluation on render) ──
+const ZOOM_LIMIT_FLASH_KEYFRAMES = `@keyframes kg-zoom-limit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }`;
+
 // ── Layout presets (shared by init and layout-switch) ────────
 const LAYOUT_FORCE = { type: 'd3-force' as const, preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.8 };
 const LAYOUT_RADIAL = { type: 'radial' as const, unitRadius: 120, preventOverlap: true, nodeSize: 50 };
@@ -262,6 +265,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
 
   // Spotlight (click-to-focus) state: which node is currently spotlighted
   const spotlightNodeRef = useRef<string | null>(null);
+  // Track which node/edge IDs currently have spotlight states (O(delta) clear/apply)
+  const spotlightedIdsRef = useRef<Set<string>>(new Set());
 
   // Breadcrumb trail for drill-down navigation
   const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string; label: string }>>([]);
@@ -329,7 +334,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     if (!ready || !showMobileHint) return;
     const hintTimer = setTimeout(() => {
       setShowMobileHint(false);
-      try { sessionStorage.setItem('axon_map_mobile_hint_seen', '1'); } catch {}
+      try { sessionStorage.setItem('axon_map_mobile_hint_seen', '1'); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] swallowed error", e); }
     }, 4000);
     return () => clearTimeout(hintTimer);
   }, [ready, showMobileHint]);
@@ -427,22 +432,15 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     if (!spotlightNodeRef.current) return;
     spotlightNodeRef.current = null;
     try {
-      // Batch all state changes in a single rAF to minimize redraws
-      const stateUpdates: Array<{ id: string; states: string[] }> = [];
-      const allNodes = graph.getNodeData();
-      for (const n of allNodes) {
-        const cur = graph.getElementState(n.id);
-        const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
-        stateUpdates.push({ id: String(n.id), states: cleaned });
+      // Only reset IDs that are in the tracked set (O(delta) instead of O(N))
+      for (const id of spotlightedIdsRef.current) {
+        try {
+          const cur = graph.getElementState(id);
+          const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
+          graph.setElementState(id, cleaned);
+        } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] element may have been removed", e); }
       }
-      const allEdges = graph.getEdgeData();
-      for (const e of allEdges) {
-        const cur = graph.getElementState(e.id);
-        const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
-        stateUpdates.push({ id: String(e.id), states: cleaned });
-      }
-      // Apply all at once then draw once
-      for (const u of stateUpdates) graph.setElementState(u.id, u.states);
+      spotlightedIdsRef.current.clear();
       graph.draw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -462,33 +460,55 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       if (edgeIds) for (const eid of edgeIds) connectedEdgeIds.add(eid);
     }
 
+    // Compute the set of IDs that need spotlight states this time
+    const nextSpotlightIds = new Set<string>();
+
     try {
-      // Collect all state updates first, then apply in batch to minimize redraws
-      const stateUpdates: Array<{ id: string; states: string[] }> = [];
       const allNodes = graph.getNodeData();
       for (const n of allNodes) {
-        const cur = graph.getElementState(n.id);
+        const id = String(n.id);
+        const cur = graph.getElementState(id);
         const base = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
-        if (n.id === nodeId) {
-          stateUpdates.push({ id: String(n.id), states: [...base, 'spotlight'] });
-        } else if (neighbors.has(String(n.id))) {
-          stateUpdates.push({ id: String(n.id), states: [...base, 'spotlightConnected'] });
+        let newState: string;
+        if (id === nodeId) {
+          newState = 'spotlight';
+        } else if (neighbors.has(id)) {
+          newState = 'spotlightConnected';
         } else {
-          stateUpdates.push({ id: String(n.id), states: [...base, 'spotlightDim'] });
+          newState = 'spotlightDim';
         }
+        // Only update if the state actually changes
+        const prevHasSpotlight = Array.isArray(cur) && cur.some(s => (SPOTLIGHT_STATES as readonly string[]).includes(s));
+        const prevSpotlightState = prevHasSpotlight ? cur.find(s => (SPOTLIGHT_STATES as readonly string[]).includes(s)) : undefined;
+        if (prevSpotlightState !== newState || !prevHasSpotlight) {
+          graph.setElementState(id, [...base, newState]);
+        }
+        nextSpotlightIds.add(id);
       }
       const allEdges = graph.getEdgeData();
       for (const e of allEdges) {
-        const cur = graph.getElementState(e.id);
+        const id = String(e.id);
+        const cur = graph.getElementState(id);
         const base = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
-        if (connectedEdgeIds.has(String(e.id))) {
-          stateUpdates.push({ id: String(e.id), states: [...base, 'spotlightConnected'] });
-        } else {
-          stateUpdates.push({ id: String(e.id), states: [...base, 'spotlightDim'] });
+        const newState = connectedEdgeIds.has(id) ? 'spotlightConnected' : 'spotlightDim';
+        const prevSpotlightState = Array.isArray(cur) ? cur.find(s => (SPOTLIGHT_STATES as readonly string[]).includes(s)) : undefined;
+        if (prevSpotlightState !== newState) {
+          graph.setElementState(id, [...base, newState]);
+        }
+        nextSpotlightIds.add(id);
+      }
+
+      // Clean up any IDs that were in the previous set but not in the new set
+      for (const oldId of spotlightedIdsRef.current) {
+        if (!nextSpotlightIds.has(oldId)) {
+          try {
+            const cur = graph.getElementState(oldId);
+            const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
+            graph.setElementState(oldId, cleaned);
+          } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] element may have been removed", e); }
         }
       }
-      // Apply all at once then draw once
-      for (const u of stateUpdates) graph.setElementState(u.id, u.states);
+      spotlightedIdsRef.current = nextSpotlightIds;
       graph.draw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -681,44 +701,44 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
         state: {
           hover: {
             lineWidth: 2.5,
-            shadowColor: 'rgba(42, 140, 122, 0.4)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.4)`,
             shadowBlur: 14,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
           selected: {
             lineWidth: 3,
-            shadowColor: 'rgba(42, 140, 122, 0.55)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.55)`,
             shadowBlur: 18,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
           multiSelected: {
-            stroke: '#2a8c7a',
+            stroke: GRAPH_COLORS.primary,
             lineWidth: 3.5,
-            shadowColor: 'rgba(42, 140, 122, 0.6)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.6)`,
             shadowBlur: 14,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
           active: {
             lineWidth: 3,
-            shadowColor: 'rgba(42, 140, 122, 0.7)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.7)`,
             shadowBlur: 20,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
           },
           spotlight: {
             lineWidth: 3.5,
-            shadowColor: 'rgba(42, 140, 122, 0.85)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.85)`,
             shadowBlur: 28,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
-            stroke: '#2a8c7a',
+            stroke: GRAPH_COLORS.primary,
           },
           spotlightConnected: {
             lineWidth: 2.5,
-            shadowColor: 'rgba(42, 140, 122, 0.35)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.35)`,
             shadowBlur: 12,
             shadowOffsetX: 0,
             shadowOffsetY: 0,
@@ -749,12 +769,12 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           hover: {
             lineWidth: 3,
             stroke: colors.primary[500],
-            shadowColor: 'rgba(42, 140, 122, 0.4)',
+            shadowColor: `rgba(${GRAPH_COLORS.primaryRgb}, 0.4)`,
             shadowBlur: 8,
           },
           spotlightConnected: {
             lineWidth: 2.5,
-            stroke: '#2a8c7a',
+            stroke: GRAPH_COLORS.primary,
             opacity: 1,
           },
           spotlightDim: {
@@ -802,9 +822,9 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           key: 'brush-select',
           trigger: 'shift',
           style: {
-            fill: '#2a8c7a',
+            fill: GRAPH_COLORS.primary,
             fillOpacity: 0.1,
-            stroke: '#2a8c7a',
+            stroke: GRAPH_COLORS.primary,
             lineWidth: 1,
           },
         },
@@ -834,7 +854,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
               ${def ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px">${def}</div>` : ''}
               <div style="font-size:10px;color:#6b7280">${escHtml(t.mastery)}: ${pct}</div>
               ${review ? `<div style="font-size:10px;color:#f97316;margin-top:2px;font-weight:500">\u26a0 ${escHtml(t.reviewAlert)}</div>` : ''}
-              ${annotation ? `<div style="font-size:10px;color:#2a8c7a;font-style:italic;margin-top:2px">&ldquo;${annotation}&rdquo;</div>` : ''}
+              ${annotation ? `<div style="font-size:10px;color:${GRAPH_COLORS.primary};font-style:italic;margin-top:2px">&ldquo;${annotation}&rdquo;</div>` : ''}
             </div>`;
           },
           itemTypes: ['node'],
@@ -894,9 +914,9 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             overflow: 'hidden',
           },
           maskStyle: {
-            border: '2px solid #2a8c7a',
+            border: `2px solid ${GRAPH_COLORS.primary}`,
             borderRadius: '4px',
-            background: 'rgba(42,140,122,0.08)',
+            background: `rgba(${GRAPH_COLORS.primaryRgb}, 0.08)`,
           },
           delay: 150,
         }] : []),
@@ -905,7 +925,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           type: 'grid-line' as const,
           key: 'grid-line',
           size: 40,
-          stroke: 'rgba(42, 140, 122, 0.08)',
+          stroke: `rgba(${GRAPH_COLORS.primaryRgb}, 0.08)`,
           lineWidth: 1,
           border: false,
           follow: true,
@@ -916,28 +936,28 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           key: 'snapline',
           tolerance: 20,
           autoSnap: true,
-          verticalLineStyle: { stroke: '#2a8c7a', lineWidth: 1, opacity: 0.5 },
-          horizontalLineStyle: { stroke: '#2a8c7a', lineWidth: 1, opacity: 0.5 },
+          verticalLineStyle: { stroke: GRAPH_COLORS.primary, lineWidth: 1, opacity: 0.5 },
+          horizontalLineStyle: { stroke: GRAPH_COLORS.primary, lineWidth: 1, opacity: 0.5 },
         }] : []),
       ],
       // Combo (group) config
       combo: {
         type: 'rect' as const,
         style: {
-          fill: 'rgba(42, 140, 122, 0.05)',
-          stroke: 'rgba(42, 140, 122, 0.2)',
+          fill: `rgba(${GRAPH_COLORS.primaryRgb}, 0.05)`,
+          stroke: `rgba(${GRAPH_COLORS.primaryRgb}, 0.2)`,
           lineWidth: 1.5,
           radius: 12,
           padding: [20, 16, 16, 16],
           labelText: (d: { id?: string; data?: Record<string, unknown> }) => String(d?.data?.label || ''),
-          labelFill: '#2a8c7a',
+          labelFill: GRAPH_COLORS.primary,
           labelFontSize: 11,
           labelFontFamily: 'Inter, sans-serif',
           labelFontWeight: 600,
           labelPlacement: 'top',
           cursor: 'pointer',
           collapsedMarker: true,
-          collapsedMarkerFill: '#2a8c7a',
+          collapsedMarkerFill: GRAPH_COLORS.primary,
         },
       },
       animation: true,
@@ -1009,7 +1029,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       layoutInProgressRef.current = false;
       // Clear any pending long-press timer to prevent firing on a destroyed graph
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
-      try { graph.destroy(); } catch { /* G6 may throw if mid-render */ }
+      try { graph.destroy(); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] G6 may throw if mid-render", e); }
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1031,7 +1051,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     graph.setLayout(layoutConfig);
     graph.layout().then(() => {
       if (!mountedRef.current || graphRef.current !== graph) return;
-      try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
+      try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] ", e); }
     }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
       layoutInProgressRef.current = false;
     });
@@ -1123,7 +1143,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     try {
       const gNodes = graph.getNodeData();
       visibleNodeIds = new Set(gNodes.map((n: { id: string }) => n.id));
-    } catch { /* fallback: update all */ }
+    } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] fallback: update all", e); }
 
     for (const node of dataNodesRef.current) {
       if (visibleNodeIds && !visibleNodeIds.has(node.id)) continue;
@@ -1474,7 +1494,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           }
           prevZoomForLimit = zoom;
         }
-      } catch { /* graph may be destroyed */ }
+      } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may be destroyed", e); }
     };
     graph.on('afterviewportchange', handleViewportChange);
     // Fire initial zoom level
@@ -1495,7 +1515,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
         graph.off('edge:pointerenter', handleEdgePointerEnter);
         graph.off('edge:pointerleave', handleEdgePointerLeave);
         graph.off('afterviewportchange', handleViewportChange);
-      } catch { /* graph may already be destroyed */ }
+      } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may already be destroyed", e); }
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps — callbacks stabilized via refs (onNodeClickRef, onNodeRightClickRef, onCollapseChangeRef)
@@ -1650,7 +1670,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       graph.setLayout(layoutConfig);
       graph.layout().then(() => {
         if (!mountedRef.current || graphRef.current !== graph) return;
-        try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch { /* */ }
+        try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] ", e); }
       }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
         layoutInProgressRef.current = false;
       });
@@ -1669,7 +1689,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       setCollapsedNodes(new Set());
       setBreadcrumbs([]);
       onCollapseChangeRef.current?.(0, new Set());
-      try { graph.fitView(undefined, { duration: 400, easing: 'ease-out' }); } catch { /* */ }
+      try { graph.fitView(undefined, { duration: 400, easing: 'ease-out' }); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] ", e); }
     } else {
       // Clicked a specific breadcrumb — remove all breadcrumbs after it,
       // expand the nodes that were removed, and focus on the clicked node
@@ -1690,9 +1710,38 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       });
       try {
         graph.focusElements([crumbId], { animation: { duration: 400, easing: 'ease-in-out' } });
-      } catch { /* graph may be destroyed */ }
+      } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may be destroyed", e); }
     }
   }, []);
+
+  // Fix 1: Memoized screen-reader node list — only recalculates when data changes
+  const srNodeList = useMemo(() => {
+    const connectionCount = new Map<string, number>();
+    for (const edge of data.edges) {
+      connectionCount.set(edge.source, (connectionCount.get(edge.source) || 0) + 1);
+      connectionCount.set(edge.target, (connectionCount.get(edge.target) || 0) + 1);
+    }
+    return (
+      <ul className="sr-only" aria-live="polite" aria-label={t.srNodeListLabel}>
+        {data.nodes.map((node) => (
+          <li key={node.id}>
+            {t.srNodeItem(node.label, node.mastery >= 0 ? node.mastery : 0, connectionCount.get(node.id) || 0)}
+          </li>
+        ))}
+      </ul>
+    );
+  }, [data, t]);
+
+  // Ref for the shortcut dialog trigger element (to return focus on close)
+  const shortcutTriggerRef = useRef<HTMLElement | null>(null);
+  const shortcutDialogRef = useRef<HTMLDivElement>(null);
+
+  // Capture the active element when shortcut dialog opens so we can restore focus
+  useEffect(() => {
+    if (showShortcuts) {
+      shortcutTriggerRef.current = document.activeElement as HTMLElement | null;
+    }
+  }, [showShortcuts]);
 
   return (
     <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
@@ -1707,19 +1756,21 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
         aria-describedby="kg-shortcut-desc"
         aria-busy={!ready}
       />
+      {/* Screen-reader accessible node list */}
+      {srNodeList}
       {/* Zoom limit flash — brief border highlight when hitting min/max zoom */}
       {zoomLimitFlash && (
         <div
           className="absolute inset-0 rounded-2xl pointer-events-none z-[3]"
           style={{
-            boxShadow: 'inset 0 0 0 2px rgba(42, 140, 122, 0.45)',
+            boxShadow: `inset 0 0 0 2px rgba(${GRAPH_COLORS.primaryRgb}, 0.45)`,
             animation: 'kg-zoom-limit-flash 400ms ease-out forwards',
           }}
           aria-hidden="true"
         />
       )}
       {/* Inline keyframes for zoom limit flash animation */}
-      <style>{`@keyframes kg-zoom-limit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }`}</style>
+      <style>{ZOOM_LIMIT_FLASH_KEYFRAMES}</style>
       {/* Breadcrumb trail — visible when user has drilled into collapsed branches */}
       {ready && breadcrumbs.length > 0 && (
         <nav
@@ -1869,7 +1920,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       )}
       {/* Mastery color legend — bottom-left, always visible */}
       {ready && showMasteryLegend && data.nodes.length > 0 && (
-        <div className="absolute bottom-2 left-2 z-[4] bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-100 px-2.5 py-2 text-[10px] pointer-events-none hidden sm:block">
+        <div className="absolute bottom-2 left-2 z-[4] bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-100 px-2.5 py-2 text-[10px] pointer-events-none hidden sm:block" role="group" aria-label={t.masteryLegend}>
           <div className="font-semibold text-gray-500 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
             {t.masteryLegend}
           </div>
@@ -1921,22 +1972,51 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           {/* Tap-outside to dismiss */}
           <div
             className="absolute inset-0 z-[9]"
-            onClick={() => setShowShortcuts(false)}
+            onClick={() => { setShowShortcuts(false); shortcutTriggerRef.current?.focus(); }}
             aria-hidden="true"
           />
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <div
+            ref={shortcutDialogRef}
             className="absolute top-3 right-3 hidden sm:block bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-10 text-xs max-h-[60vh] overflow-y-auto"
             role="dialog"
             aria-label={t.shortcutDialog}
-            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setShowShortcuts(false); } }}
+            aria-modal="true"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                setShowShortcuts(false);
+                shortcutTriggerRef.current?.focus();
+                return;
+              }
+              // Focus trap: cycle Tab within dialog
+              if (e.key === 'Tab') {
+                const dialog = shortcutDialogRef.current;
+                if (!dialog) return;
+                const focusable = dialog.querySelectorAll<HTMLElement>(
+                  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusable.length === 0) { e.preventDefault(); return; }
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey) {
+                  if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+                } else {
+                  if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+                }
+              }
+            }}
           >
           <div className="flex items-center justify-between mb-2">
             <span className="font-semibold text-gray-700" style={{ fontFamily: 'Georgia, serif' }}>
               {t.shortcuts}
             </span>
             <button
-              onClick={() => setShowShortcuts(false)}
+              ref={(el) => {
+                // Auto-focus close button when dialog opens
+                if (el) el.focus();
+              }}
+              onClick={() => { setShowShortcuts(false); shortcutTriggerRef.current?.focus(); }}
               className="text-gray-500 hover:text-gray-700 p-3 -mr-1"
               aria-label={t.closeShortcuts}
             >
@@ -1954,6 +2034,34 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
             ))}
           </div>
         </div>
+          {/* Mobile: gesture guide (replaces keyboard shortcuts on touch devices) */}
+          <div
+            className="absolute inset-x-3 bottom-3 sm:hidden bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-10 text-xs"
+            role="dialog"
+            aria-label={t.gestureGuideTitle}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setShowShortcuts(false); } }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-gray-700" style={{ fontFamily: 'Georgia, serif' }}>
+                {t.gestureGuideTitle}
+              </span>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                className="text-gray-500 hover:text-gray-700 p-2 -mr-1"
+                aria-label={t.closeShortcuts}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="space-y-1.5 text-gray-500">
+              {t.gestures.map(([gesture, desc]) => (
+                <div key={gesture} className="flex items-center gap-2.5">
+                  <span className="text-[11px] min-w-[80px]">{gesture}</span>
+                  <span>{desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       )}
     </div>

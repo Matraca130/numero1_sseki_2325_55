@@ -71,3 +71,10 @@ export {
   getSummary,
   saveSummary,
 } from './student-api/sa-ai-legacy';
+
+// Telegram Integration
+export {
+  getTelegramLinkStatus,
+  generateTelegramLinkCode,
+  unlinkTelegram,
+} from './student-api/sa-telegram';

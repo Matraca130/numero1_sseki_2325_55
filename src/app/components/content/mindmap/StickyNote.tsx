@@ -150,7 +150,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
     setDragOffset(null);
     setIsDragging(false);
     if (captureRef.current) {
-      try { captureRef.current.el.releasePointerCapture(captureRef.current.pid); } catch { /* may already be released */ }
+      try { captureRef.current.el.releasePointerCapture(captureRef.current.pid); } catch (e) { if (import.meta.env.DEV) console.warn("[StickyNote] may already be released", e); }
       captureRef.current = null;
     }
   }, [isDragging, dragOffset]);

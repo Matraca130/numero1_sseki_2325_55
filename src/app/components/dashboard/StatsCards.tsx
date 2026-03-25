@@ -81,8 +81,8 @@ export function useStudentDashboardStats() {
       const weekAgo = weekAgoISO();
 
       const [statsRes, weekRes] = await Promise.all([
-        getStudentStatsReal().catch(() => null),
-        getDailyActivities(weekAgo, today).catch(() => []),
+        getStudentStatsReal().catch((err) => { console.warn('[StatsCards] getStudentStatsReal failed:', err); return null; }),
+        getDailyActivities(weekAgo, today).catch((err) => { console.warn('[StatsCards] getDailyActivities failed:', err); return []; }),
       ]);
 
       const todayRec = weekRes.find(d => d.activity_date === today) || null;

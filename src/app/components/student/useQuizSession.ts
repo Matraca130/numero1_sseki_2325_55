@@ -272,7 +272,8 @@ export function useQuizSession(
 
       const bktPromise = handleBktUpdate(question, correct);
 
-      await Promise.allSettled([attemptPromise, reviewPromise, bktPromise]);
+      const settledResults = await Promise.allSettled([attemptPromise, reviewPromise, bktPromise]);
+      settledResults.filter(r => r.status === 'rejected').forEach(r => console.error('[useQuizSession] submit answer step failed:', (r as PromiseRejectedResult).reason));
       submittingRef.current = false;
       setSubmitting(false);
     },

@@ -312,7 +312,8 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         })
       );
 
-      await Promise.allSettled(taskPromises);
+      const taskSettled = await Promise.allSettled(taskPromises);
+      taskSettled.filter(r => r.status === 'rejected').forEach(r => console.error('[useStudyPlans] createPlan task failed:', (r as PromiseRejectedResult).reason));
 
       // 3) Sync the frontend plan with the real backend ID
       const syncedPlan: StudyPlan = {
@@ -477,7 +478,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         if (import.meta.env.DEV) {
           console.warn('[useStudyPlans] Batch endpoint unavailable, falling back to individual updates:', batchErr.message);
         }
-        await Promise.allSettled(
+        const fallbackResults = await Promise.allSettled(
           batchPayload.updates.map(u =>
             apiUpdateTask(u.id, {
               scheduled_date: u.scheduled_date,
@@ -486,6 +487,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
             })
           )
         );
+        fallbackResults.filter(r => r.status === 'rejected').forEach(r => console.error('[useStudyPlans] fallback task update failed:', (r as PromiseRejectedResult).reason));
       }
 
       // Update local state optimistically with rescheduled tasks

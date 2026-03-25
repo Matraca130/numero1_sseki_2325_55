@@ -12,6 +12,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { MapTool } from './MapToolsPanel';
 import type { MapNode } from '@/app/types/mindmap';
+import type { MapViewI18nStrings } from './mapViewI18n';
 
 export interface MapToolState {
   activeTool: MapTool;
@@ -38,6 +39,7 @@ export interface MapToolState {
  */
 export function useMapToolState(
   showOnboardingRef: React.MutableRefObject<boolean>,
+  i18n?: Pick<MapViewI18nStrings, 'connectionCancelled'>,
 ): MapToolState {
   const [activeTool, setActiveTool] = useState<MapTool>('pointer');
   const [connectSource, setConnectSource] = useState<MapNode | null>(null);
@@ -74,7 +76,7 @@ export function useMapToolState(
           setConnectSource(null);
           setConnectTarget(null);
           setActiveTool('pointer');
-          toast.info('Conexão cancelada');
+          toast.info(i18n?.connectionCancelled ?? 'Conexão cancelada');
         } else if (activeToolRef.current !== 'pointer') {
           setActiveTool('pointer');
         }

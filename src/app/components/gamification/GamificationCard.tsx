@@ -11,9 +11,9 @@
 // + GET /gamification/leaderboard (1 call for top 3).
 // ============================================================
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { Star, Flame, Zap, Shield, Users, Loader2, Award, Snowflake, Wrench } from 'lucide-react';
+import { Star, Flame, Zap, Shield, Users, Loader2, Award, Snowflake, Wrench, RefreshCw } from 'lucide-react';
 import * as gamificationApi from '@/app/services/gamificationApi';
 import type { GamificationProfile, LeaderboardResponse } from '@/app/services/gamificationApi';
 import { LevelProgressBar } from './LevelProgressBar';
@@ -27,6 +27,7 @@ export function GamificationCard() {
   const [profile, setProfile] = useState<GamificationProfile | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [actionPending, setActionPending] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const actionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,8 +38,10 @@ export function GamificationCard() {
     };
   }, []);
 
-  useEffect(() => {
+  const loadGamification = useCallback(() => {
     if (!institutionId) { setLoading(false); return; }
+    setFetchError(false);
+    setLoading(true);
     Promise.all([
       gamificationApi.getProfile(institutionId),
       gamificationApi.getLeaderboard(institutionId, { limit: 3, period: 'weekly' }),
@@ -49,15 +52,39 @@ export function GamificationCard() {
         setProfile(profileData);
         setLeaderboard(lbData);
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (import.meta.env.DEV) console.warn('[GamificationCard] Failed to load gamification data:', err);
+        setFetchError(true);
+      })
       .finally(() => setLoading(false));
   }, [institutionId]);
+
+  useEffect(() => {
+    loadGamification();
+  }, [loadGamification]);
 
   if (loading) {
     return (
       <div className="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-5">
         <div className="flex items-center justify-center py-6">
           <Loader2 size={20} className="animate-spin text-zinc-500" />
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-5">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-zinc-500">No se pudo cargar gamificacion</p>
+          <button
+            onClick={loadGamification}
+            className="flex items-center gap-1 text-[10px] text-amber-400/70 hover:text-amber-400 transition-colors"
+          >
+            <RefreshCw size={10} />
+            <span>Reintentar</span>
+          </button>
         </div>
       </div>
     );
