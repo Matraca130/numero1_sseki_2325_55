@@ -213,3 +213,40 @@ import { colors, components, headingStyle } from '@/app/design-system';
 - **Deploy**: Vercel (auto-deploys, SPA rewrite configured in `vercel.json`)
 - **Security headers**: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
 - **Asset caching**: `Cache-Control: public, max-age=31536000, immutable` for `/assets/*`
+
+## Sistema Multi-Agente (74 agentes especializados)
+
+Para tareas complejas, AXON tiene un sistema de 74 agentes especializados con memoria individual, métricas, y auto-mejora.
+
+### Archivos de referencia (en `.claude/`)
+
+| Archivo | Qué es | Cuándo leerlo |
+|---------|--------|---------------|
+| `.claude/AGENT-REGISTRY.md` | Índice de 74 agentes con ownership y dependencias | Para saber qué agente usar |
+| `.claude/agents/<nombre>.md` | Definición de cada agente (rol, zona, reglas) | Al actuar como un agente |
+| `.claude/agent-memory/individual/<ID>.md` | Memoria personal del agente (lecciones, patrones, métricas) | Al iniciar como un agente |
+| `.claude/memory/feedback_agent_isolation.md` | Reglas de aislamiento + evolución continua | SIEMPRE antes de escribir código |
+| `.claude/MULTI-AGENT-PROCEDURE.md` | Procedimiento completo del sistema | Para orquestación multi-agente |
+| `.claude/SECTION-MAP.md` | Mapa de 624 archivos asignados a agentes | Para identificar qué agente toca qué |
+
+### Cómo usar
+
+**Tarea simple (1 agente):**
+```
+Actuá como [agente]. Lee tu definición en .claude/agents/<nombre>.md
+y tu memoria en .claude/agent-memory/individual/<ID>.md.
+Implementá [tarea].
+```
+
+**Tarea compleja (multi-agente):**
+```
+Actuá como el Arquitecto (XX-01). Lee .claude/agents/architect.md.
+Necesito [descripción de lo que quiero].
+```
+El Arquitecto selecciona agentes, resuelve dependencias, genera plan, y pide confirmación.
+
+### Regla de oro
+
+- Después de cada tarea, el agente reflexiona y actualiza su memoria individual (EVOLUCIÓN CONTINUA)
+- El Quality Gate (XX-02) audita después de cada agente y auto-registra lecciones
+- Los agentes leen sus lecciones previas al iniciar → no repiten errores
