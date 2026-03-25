@@ -260,21 +260,21 @@ const BlockEditor = React.memo(function BlockEditor({
 
   const handleMoveUp = useCallback((index: number) => {
     if (index <= 0) return;
-    const currentBlocks = blocksRef.current;
-    const items = currentBlocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? currentBlocks[index - 1].order_index : i === index - 1 ? currentBlocks[index].order_index : b.order_index,
-    }));
+    // Swap adjacent blocks and assign sequential order_index
+    const arr = [...blocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index - 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
   }, [reorderMutation]);
 
   const handleMoveDown = useCallback((index: number) => {
-    const currentBlocks = blocksRef.current;
-    if (index >= currentBlocks.length - 1) return;
-    const items = currentBlocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? currentBlocks[index + 1].order_index : i === index + 1 ? currentBlocks[index].order_index : b.order_index,
-    }));
+    if (index >= blocks.length - 1) return;
+    // Swap adjacent blocks and assign sequential order_index
+    const arr = [...blocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index + 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
   }, [reorderMutation]);
 
