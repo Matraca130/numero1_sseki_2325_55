@@ -78,9 +78,9 @@ The **Architect agent** reads this index and selects agents based on:
 
 | ID | Agent Name | Scope | Files Owned | Depends On | Definition |
 |----|-----------|-------|-------------|------------|------------|
-| SM-01 | summaries-frontend | Summary viewer + editor UI | `components/content/Summary*.tsx`, `pages/student/SummaryPage.tsx` | SM-02 | `agents/summaries-frontend.md` |
+| SM-01 | summaries-frontend-v2 | Summary viewer + block editor UI | `components/content/Summary*.tsx`, `components/professor/block-editor/**`, `components/student/blocks/**`, `components/student/ViewerBlock.tsx`, `hooks/queries/useBlockEditorMutations.ts`, `services/summariesApi.ts` | SM-02 | `agents/summaries-frontend-v2.md` |
 | SM-02 | summaries-backend | Summary API routes + DB | `routes/summaries*.ts`, `summary-service.ts` | AS-01 | `agents/summaries-backend.md` |
-| SM-03 | summaries-tester | Summary tests | `tests/summaries/**` | SM-01, SM-02 | `agents/summaries-tester.md` |
+| SM-03 | summaries-tester | Summary + block editor tests | `tests/summaries/**`, `components/student/blocks/__tests__/**`, `components/professor/block-editor/forms/__tests__/**` | SM-01, SM-02 | `agents/summaries-tester.md` |
 | SM-04 | content-tree | Content hierarchy (Institution→Course→Topic) | `context/ContentTreeContext.tsx`, `hooks/useContentTree.ts`, `services/content.ts` | SM-02 | `agents/content-tree.md` |
 | SM-05 | video-player | Mux video player + professor upload | `components/content/VideoPlayer.tsx` (split), `services/videoApi.ts` | SM-02 | `agents/video-player.md` |
 | SM-06 | text-highlighter | Text highlighting + annotation | `components/content/TextHighlighter.tsx` (split) | SM-01 | `agents/text-highlighter.md` |

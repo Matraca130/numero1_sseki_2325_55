@@ -1,4 +1,13 @@
+import { useState, useRef, useCallback } from 'react';
+import { Upload, Loader2, AlertCircle } from 'lucide-react';
+import { apiCall } from '@/app/lib/api';
 import type { SummaryBlock } from '@/app/services/summariesApi';
+
+// ── Constants ─────────────────────────────────────────────
+const STORAGE_BASE =
+  'https://xdnciktarvxyhkrokbng.supabase.co/storage/v1/object/public/axon-images';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface BlockFormProps {
   block: SummaryBlock;
@@ -10,6 +19,90 @@ const inputClass =
 
 export default function ProseForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Validate ────────────────────────────────────────────
+  const validateFile = (file: File): string | null => {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      return 'Formato no soportado. Usa JPG, PNG o WebP.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'Archivo muy grande (max 5 MB).';
+    }
+    return null;
+  };
+
+  // ── Upload ──────────────────────────────────────────────
+  const uploadFile = useCallback(
+    async (file: File) => {
+      const validationError = validateFile(file);
+      if (validationError) {
+        setUploadError(validationError);
+        return;
+      }
+
+      setUploadError(null);
+      setUploading(true);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'summaries');
+
+        const result = await apiCall<{ path: string }>('/storage/upload', {
+          method: 'POST',
+          body: formData,
+          // Do NOT set Content-Type — the browser sets the multipart boundary automatically
+        });
+
+        const publicUrl = `${STORAGE_BASE}/${result.path}`;
+        onChange('image', publicUrl);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : 'Error al subir imagen';
+        setUploadError(message);
+      } finally {
+        setUploading(false);
+      }
+    },
+    [onChange],
+  );
+
+  // ── File input handler ──────────────────────────────────
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) void uploadFile(file);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    [uploadFile],
+  );
+
+  // ── Drag & drop ─────────────────────────────────────────
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) void uploadFile(file);
+    },
+    [uploadFile],
+  );
+
   return (
     <div className="space-y-3">
       <div>
@@ -31,9 +124,14 @@ export default function ProseForm({ block, onChange }: BlockFormProps) {
           placeholder="Escribe el contenido..."
         />
       </div>
-      {/* Image URL (optional) */}
+
+      {/* ── Image (optional) ── */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Imagen (opcional)</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          Imagen (opcional)
+        </label>
+
+        {/* Preview */}
         {(c.image as string) && (
           <div className="rounded-lg overflow-hidden border border-gray-200 mb-2">
             <img
@@ -43,6 +141,64 @@ export default function ProseForm({ block, onChange }: BlockFormProps) {
             />
           </div>
         )}
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES.join(',')}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+
+        {/* Dropzone */}
+        <div
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
+            dragOver
+              ? 'border-violet-400 bg-violet-50/30'
+              : 'border-gray-300 hover:border-violet-400 hover:bg-violet-50/10'
+          } ${uploading ? 'pointer-events-none opacity-60' : ''}`}
+        >
+          {uploading ? (
+            <Loader2 size={20} className="animate-spin text-violet-500" />
+          ) : (
+            <Upload
+              size={20}
+              className={dragOver ? 'text-violet-500' : 'text-gray-400'}
+            />
+          )}
+          <p className="text-xs text-gray-500">
+            {uploading
+              ? 'Subiendo...'
+              : dragOver
+                ? 'Suelta aqui'
+                : 'Arrastra una imagen o haz click'}
+          </p>
+          {!uploading && (
+            <p className="text-[10px] text-gray-400">
+              JPG, PNG o WebP (max 5 MB)
+            </p>
+          )}
+        </div>
+
+        {/* Upload error */}
+        {uploadError && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-1.5">
+            <AlertCircle size={12} />
+            {uploadError}
+          </div>
+        )}
+
+        {/* Separator */}
+        <p className="text-[10px] text-gray-400 text-center my-1.5">
+          o pega una URL abajo
+        </p>
+
+        {/* URL input */}
         <input
           type="url"
           className={inputClass}
