@@ -27,7 +27,7 @@ export default function StagesBlock({ block, keywords }: { block: SummaryBlock; 
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-4 mt-0">
+        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}

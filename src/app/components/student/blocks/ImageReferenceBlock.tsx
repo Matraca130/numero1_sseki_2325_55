@@ -12,7 +12,7 @@ export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) 
         <img
           src={image_url}
           alt={description ?? ''}
-          className="max-w-full rounded-lg border border-gray-200 dark:border-gray-700 inline-block"
+          className="max-w-full rounded-xl border border-gray-200 dark:border-gray-700 inline-block"
         />
         {caption && (
           <figcaption className="text-[12px] italic text-gray-400 dark:text-gray-500 mt-1 text-center">

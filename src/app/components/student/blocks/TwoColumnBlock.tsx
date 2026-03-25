@@ -38,7 +38,7 @@ export default function TwoColumnBlock({ block, keywords }: { block: SummaryBloc
                   </div>
                 )}
                 {item.detail && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-[13px] text-gray-500 dark:text-gray-400">
                     {renderTextWithKeywords(item.detail, keywords)}
                   </div>
                 )}

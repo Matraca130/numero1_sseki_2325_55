@@ -24,7 +24,7 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
         {items.map((item, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-gray-800 rounded-[10px] p-3.5 border border-gray-200 dark:border-gray-700 text-center"
+            className="bg-white dark:bg-gray-800 rounded-[10px] p-3.5 border border-gray-200 dark:border-gray-700 text-center hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all"
           >
             <div className="flex justify-center mb-1.5">
               <IconByName name={item.icon} size={20} className="text-[#2a8c7a] dark:text-teal-400" />
