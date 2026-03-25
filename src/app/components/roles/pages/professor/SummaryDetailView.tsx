@@ -45,6 +45,7 @@ import {
 } from '@/app/components/professor/QuickKeywordCreator';
 import { KeywordClickPopover } from '@/app/components/professor/KeywordClickPopover';
 import { extractItems } from '@/app/lib/api-helpers';
+import BlockEditor from '@/app/components/professor/block-editor/BlockEditor';
 
 // ── Keyword list priority config (module-scope — no per-render/per-item allocation) ──
 const KW_PRIORITY_CONFIG: Record<number, { border: string; dot: string; label: string }> = {
@@ -76,6 +77,9 @@ export function SummaryDetailView({
   onBack,
   onSummaryUpdated,
 }: SummaryDetailViewProps) {
+  // ── Editor mode: 'blocks' when summary has blocks, 'tiptap' otherwise ──
+  const [editorMode, setEditorMode] = useState<'blocks' | 'tiptap' | null>(null);
+
   // ── Sheet state ─────────────────────────────────────────
   const [showKeywords, setShowKeywords] = useState(false);
   const [showVideos, setShowVideos] = useState(false);
@@ -149,6 +153,10 @@ export function SummaryDetailView({
     staleTime: PROFESSOR_CONTENT_STALE,
     select: (blocks) => blocks.length > 0,
   });
+
+  // ── Auto-detect editor mode based on blocks presence ─────
+  // Once query resolves, set mode if not yet chosen by user.
+  const resolvedMode = editorMode ?? (hasBlocks ? 'blocks' : 'tiptap');
 
   // ── Quick keyword creator from text selection ───────────
   const quickKw = useQuickKeywordCreator();
@@ -264,36 +272,58 @@ export function SummaryDetailView({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Blocks badge (visual editor indicator) */}
-      {hasBlocks && (
+      {/* ══════════════════════════════════════════════════ */}
+      {/* EDITOR MODE SWITCH                                */}
+      {/* ═══════════════════════════════════════════════════ */}
+
+      {/* Mode toggle banner — always visible in TipTap mode so professor can switch */}
+      {resolvedMode === 'tiptap' && (
         <div className="shrink-0 px-4 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-100 text-violet-700 border border-violet-200">
-              Vista enriquecida
+              {hasBlocks ? 'Vista enriquecida disponible' : 'Editor de bloques'}
             </span>
-            <span className="text-[10px] text-gray-400">Este resumen tiene bloques visuales</span>
+            <button
+              onClick={() => setEditorMode('blocks')}
+              className="text-[10px] text-violet-600 hover:text-violet-800 underline"
+            >
+              Cambiar a editor de bloques
+            </button>
           </div>
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════ */}
-      {/* FULL-PAGE EDITOR — fills entire container          */}
-      {/* ═══════════════════════════════════════════════════ */}
-      <TipTapEditor
-        summaryId={summary.id}
-        contentMarkdown={summary.content_markdown}
-        summaryTitle={summary.title || 'Sin titulo'}
-        summaryStatus={summary.status}
-        onBack={onBack}
-        onStatusChange={handleStatusChange}
-        onKeywordsClick={handleKeywordsClick}
-        onVideosClick={handleVideosClick}
-        keywordsCount={activeKeywords.length}
-        videosCount={videosCount}
-        onCreateKeywordFromSelection={quickKw.triggerFromEditor}
-        keywordNames={activeKeywordNames}
-        onKeywordClick={handleKeywordClick}
-      />
+      {resolvedMode === 'blocks' ? (
+        /* ── Block Editor (Fase 5) ───────────────────────── */
+        <BlockEditor
+          summaryId={summary.id}
+          onBack={onBack}
+          onStatusChange={handleStatusChange}
+          onKeywordsClick={handleKeywordsClick}
+          onVideosClick={handleVideosClick}
+          keywordsCount={activeKeywords.length}
+          videosCount={videosCount}
+          summaryTitle={summary.title || 'Sin titulo'}
+          summaryStatus={summary.status}
+        />
+      ) : (
+        /* ── TipTap Editor (legacy) ──────────────────────── */
+        <TipTapEditor
+          summaryId={summary.id}
+          contentMarkdown={summary.content_markdown}
+          summaryTitle={summary.title || 'Sin titulo'}
+          summaryStatus={summary.status}
+          onBack={onBack}
+          onStatusChange={handleStatusChange}
+          onKeywordsClick={handleKeywordsClick}
+          onVideosClick={handleVideosClick}
+          keywordsCount={activeKeywords.length}
+          videosCount={videosCount}
+          onCreateKeywordFromSelection={quickKw.triggerFromEditor}
+          keywordNames={activeKeywordNames}
+          onKeywordClick={handleKeywordClick}
+        />
+      )}
 
       {/* Quick Keyword Creator Portal (from text selection) */}
       <QuickKeywordFormPortal

@@ -13,6 +13,11 @@ import {
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { sanitizeHtml } from '@/app/lib/sanitize';
+import {
+  ProseBlock, KeyPointBlock, StagesBlock, ComparisonBlock,
+  ListDetailBlock, GridBlock, TwoColumnBlock, CalloutBlock as EduCalloutBlock,
+  ImageReferenceBlock, SectionDividerBlock,
+} from './blocks';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -214,6 +219,12 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
     // ── Callout ─────────────────────────────────────────
     case 'callout': {
+      // Edu callout variants use the new renderer
+      const eduVariants = ['tip', 'warning', 'clinical', 'mnemonic', 'exam'];
+      if (c.variant && eduVariants.includes(c.variant)) {
+        return <EduCalloutBlock block={block} />;
+      }
+      // Legacy callout fallback
       const variant = c.variant || c.type || 'info';
       const text = c.text || c.html || '';
       const icon = calloutIcons[variant] || calloutIcons.info;
@@ -282,6 +293,26 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         </button>
       );
     }
+
+    // ── Edu Block Renderers (Fase 2) ────────────────────
+    case 'prose':
+      return <ProseBlock block={block} />;
+    case 'key_point':
+      return <KeyPointBlock block={block} />;
+    case 'stages':
+      return <StagesBlock block={block} />;
+    case 'comparison':
+      return <ComparisonBlock block={block} />;
+    case 'list_detail':
+      return <ListDetailBlock block={block} />;
+    case 'grid':
+      return <GridBlock block={block} />;
+    case 'two_column':
+      return <TwoColumnBlock block={block} />;
+    case 'image_reference':
+      return <ImageReferenceBlock block={block} />;
+    case 'section_divider':
+      return <SectionDividerBlock block={block} />;
 
     // ── Fallback ────────────────────────────────────────
     default:
