@@ -220,19 +220,21 @@ export default function BlockEditor({
 
   const handleMoveUp = useCallback((index: number) => {
     if (index <= 0) return;
-    const items = blocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? blocks[index - 1].order_index : i === index - 1 ? blocks[index].order_index : b.order_index,
-    }));
+    // Swap adjacent blocks and assign sequential order_index
+    const arr = [...blocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index - 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
   }, [blocks, reorderMutation]);
 
   const handleMoveDown = useCallback((index: number) => {
     if (index >= blocks.length - 1) return;
-    const items = blocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? blocks[index + 1].order_index : i === index + 1 ? blocks[index].order_index : b.order_index,
-    }));
+    // Swap adjacent blocks and assign sequential order_index
+    const arr = [...blocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index + 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
   }, [blocks, reorderMutation]);
 
