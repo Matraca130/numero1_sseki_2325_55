@@ -58,6 +58,8 @@ interface UseEdgeReconnectOptions {
   enabled?: boolean;
   /** Shared ref to coordinate with useDragConnect — prevents simultaneous drags */
   isDraggingRef?: React.MutableRefObject<boolean>;
+  /** Batched draw function to coalesce multiple graph.draw() calls */
+  batchDraw?: () => void;
 }
 
 /**
@@ -121,12 +123,20 @@ export function useEdgeReconnect({
   onReconnect,
   enabled = false,
   isDraggingRef,
+  batchDraw: batchDrawProp,
 }: UseEdgeReconnectOptions) {
   const dragStateRef = useRef<DragState | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>(0);
   const onReconnectRef = useRef(onReconnect);
   onReconnectRef.current = onReconnect;
+  const batchDrawRef = useRef(batchDrawProp);
+  batchDrawRef.current = batchDrawProp;
+  const doDraw = useCallback(() => {
+    if (batchDrawRef.current) { batchDrawRef.current(); return; }
+    const g = graphRef.current;
+    if (g && !g.destroyed) g.draw();
+  }, [graphRef]);
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
 
@@ -409,7 +419,7 @@ export function useEdgeReconnect({
         }
         try {
           graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 0.15, lineDash: [4, 4] } }]);
-          graph.draw();
+          doDraw();
         } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] edge may not exist in G6", e); }
       }
 
@@ -504,7 +514,7 @@ export function useEdgeReconnect({
         try {
           graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
           graph.setElementState(ds.edge.id, []);
-          graph.draw();
+          doDraw();
         } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] ", e); }
 
         cancelAnimationFrame(rafRef.current);
@@ -551,7 +561,7 @@ export function useEdgeReconnect({
         if (ds.activated && graph) {
           try {
             graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
-            graph.draw();
+            doDraw();
           } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] graph may be destroyed", e); }
         }
         dragStateRef.current = null;

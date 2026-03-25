@@ -41,6 +41,7 @@ export interface UseGraphEventsOptions {
   applyMultiSelectionState: (graph: Graph, ids: Set<string>) => void;
   updateMultiSelection: (ids: Set<string>) => void;
   flashZoomLimit: () => void;
+  batchDraw: () => void;
 }
 
 export interface UseGraphEventsReturn {
@@ -75,6 +76,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
     applyMultiSelectionState,
     updateMultiSelection,
     flashZoomLimit,
+    batchDraw,
   } = opts;
 
   // Spotlight state
@@ -124,7 +126,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
         } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] element may have been removed", e); }
       }
       spotlightedIdsRef.current.clear();
-      graph.draw();
+      batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -189,7 +191,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
         }
       }
       spotlightedIdsRef.current = nextSpotlightIds;
-      graph.draw();
+      batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearSpotlight]);
@@ -314,7 +316,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
               x = Math.round(x / GRID_SIZE) * GRID_SIZE;
               y = Math.round(y / GRID_SIZE) * GRID_SIZE;
               graph.updateNodeData([{ id: nodeId, style: { x, y } }]);
-              graph.draw();
+              batchDraw();
             }
             saveNodePosition(topicIdRef.current, nodeId, { x, y });
           }

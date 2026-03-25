@@ -213,6 +213,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     nodeById,
     gridEnabled,
     setGridEnabledInternal,
+    batchDraw,
   } = initResult;
 
   // ── Highlighting ──
@@ -229,6 +230,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     dataNodesRef,
     dataEdgesRef,
     nodeById,
+    batchDraw,
   });
 
   // Now wire up the real updateMultiSelection
@@ -264,6 +266,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     applyMultiSelectionState,
     updateMultiSelection,
     flashZoomLimit,
+    batchDraw,
   });
 
   // Auto-dismiss mobile hint after 4 seconds
@@ -296,6 +299,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     onReconnect: onEdgeReconnect,
     enabled: enableEdgeReconnect,
     isDraggingRef: sharedIsDraggingRef,
+    batchDraw,
   });
 
   // Enhanced drag-to-connect
@@ -328,6 +332,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     multiSelectedIdsRef: multiSelectedIdsRef as React.RefObject<Set<string>>,
     updateMultiSelection,
     setShowShortcuts,
+    batchDraw,
   });
 
   // Focused node data for quick-add button positioning and aria
@@ -368,7 +373,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       try {
         graph.addComboData([{ id: comboId, data: { label: newCombo.label } }]);
         graph.updateNodeData(ids.map(nId => ({ id: nId, combo: comboId })));
-        graph.draw();
+        batchDraw();
       } catch {
         // Graph may be in transition
       }

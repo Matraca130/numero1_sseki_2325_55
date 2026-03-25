@@ -3,12 +3,12 @@
 // Extracted from KnowledgeGraph.tsx (pure refactor)
 // ============================================================
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, type MutableRefObject } from 'react';
 import { Graph } from '@antv/g6';
 import type { GraphData, MapNode, GraphControls } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
 import { getNodeFill, getNodeStroke, getEdgeColor, escHtml, buildChildrenMap, computeHiddenNodes, GRAPH_COLORS } from './graphHelpers';
-import { loadPositions, saveGridEnabled, loadGridEnabled, loadCombos, saveCombos } from './useNodePositions';
+import { loadPositions, loadGridEnabled, loadCombos } from './useNodePositions';
 import type { PositionMap, PersistedCombo } from './useNodePositions';
 import { NODE_COLOR_FILL } from './useNodeColors';
 import { truncateLabel } from '@/app/types/mindmap';
@@ -20,6 +20,27 @@ export function warnIfNotDestroyed(e: unknown): void {
   if (import.meta.env.DEV && !(e instanceof Error && e.message.includes('destroyed'))) {
     console.warn('[KnowledgeGraph]', e);
   }
+}
+
+/**
+ * Creates a batchDraw function that coalesces multiple `graph.draw()` calls
+ * within a single animation frame, avoiding redundant rendering.
+ */
+export function createBatchDraw(
+  graphRef: React.RefObject<Graph | null>,
+  pendingDrawRef: MutableRefObject<boolean>,
+): () => void {
+  return () => {
+    if (pendingDrawRef.current) return;
+    pendingDrawRef.current = true;
+    requestAnimationFrame(() => {
+      pendingDrawRef.current = false;
+      const g = graphRef.current;
+      if (g && !g.destroyed) {
+        g.draw();
+      }
+    });
+  };
 }
 
 /** Trigger a browser download from a data URL */
@@ -188,6 +209,8 @@ export interface UseGraphInitReturn {
   gridEnabled: boolean;
   gridEnabledInternal: boolean;
   setGridEnabledInternal: React.Dispatch<React.SetStateAction<boolean>>;
+  batchDraw: () => void;
+  pendingDrawRef: React.MutableRefObject<boolean>;
 }
 
 export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
@@ -208,6 +231,9 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
   const t = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
+  const pendingDrawRef = useRef(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const batchDraw = useCallback(createBatchDraw(graphRef, pendingDrawRef), []);
   const mountedRef = useRef(true);
   const layoutInProgressRef = useRef(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -278,6 +304,23 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     return map;
   }, [combos]);
 
+  // Pre-compute node styles (memoized separately — only re-runs when dependencies change)
+  // This avoids recomputing fill/stroke/size for every node on each g6Data() call.
+  const memoizedNodeStyles = useMemo(() => {
+    const styleMap = new Map<string, ReturnType<typeof computeNodeStyle>>();
+    for (const node of data.nodes) {
+      styleMap.set(node.id, computeNodeStyle(
+        node,
+        false, // collapsed state applied dynamically in g6Data
+        childrenMap.get(node.id)?.length ?? 0,
+        customNodeColors,
+        undefined, // positions applied dynamically in g6Data
+        nodeToCombo.get(node.id),
+      ));
+    }
+    return styleMap;
+  }, [data.nodes, customNodeColors, childrenMap, nodeToCombo]);
+
   // Pre-compute edge styles (memoized separately — only re-runs when edges change)
   const memoizedEdgeStyles = useMemo(
     () => data.edges.map(computeEdgeStyle),
@@ -294,16 +337,37 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
   const g6Data = useCallback((collapsed: Set<string>, positions?: PositionMap) => {
     const hidden = computeHiddenNodes(data.nodes, data.edges, collapsed, childrenMap);
 
-    const nodes = data.nodes
-      .filter(node => !hidden.has(node.id))
-      .map((node) => computeNodeStyle(
-        node,
-        collapsed.has(node.id),
-        childrenMap.get(node.id)?.length ?? 0,
-        customNodeColors,
-        positions?.get(node.id),
-        nodeToCombo.get(node.id),
-      ));
+    const nodes: ReturnType<typeof computeNodeStyle>[] = [];
+    for (const node of data.nodes) {
+      if (hidden.has(node.id)) continue;
+      const base = memoizedNodeStyles.get(node.id);
+      if (!base) continue;
+
+      const isCollapsed = collapsed.has(node.id);
+      const savedPos = positions?.get(node.id);
+
+      // Fast path: if no collapse override and no position override, reuse cached style
+      if (!isCollapsed && !savedPos) {
+        nodes.push(base);
+      } else {
+        // Apply collapse/position overrides on top of the memoized base
+        const childCount = childrenMap.get(node.id)?.length ?? 0;
+        const displayLabel = isCollapsed && childCount > 0
+          ? truncateLabel(node.label) + ` (+${childCount})`
+          : (base.style.labelText as string);
+        nodes.push({
+          ...base,
+          data: { ...base.data, label: displayLabel },
+          style: {
+            ...base.style,
+            lineWidth: isCollapsed ? 2.5 : base.style.lineWidth,
+            lineDash: isCollapsed ? [4, 4] : base.style.lineDash,
+            labelText: displayLabel,
+            ...(savedPos ? { x: savedPos.x, y: savedPos.y } : {}),
+          },
+        });
+      }
+    }
 
     const visibleNodeIds = new Set(nodes.map(n => n.id));
     const edges = memoizedEdgeStyles.filter(
@@ -312,7 +376,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     );
 
     return { nodes, edges, combos: g6Combos };
-  }, [data, childrenMap, customNodeColors, nodeToCombo, memoizedEdgeStyles, g6Combos]);
+  }, [data, childrenMap, memoizedNodeStyles, memoizedEdgeStyles, g6Combos]);
 
   // Layout config
   const getLayoutConfig = useCallback(() => {
@@ -815,7 +879,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
 
     try {
       graph.setData(g6Data(collapsedNodes));
-      graph.draw();
+      batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
 
     setHighlightEpoch(e => e + 1);
@@ -861,5 +925,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     gridEnabled,
     gridEnabledInternal,
     setGridEnabledInternal,
+    batchDraw,
+    pendingDrawRef,
   };
 }

@@ -24,6 +24,7 @@ export interface UseGraphHighlightingOptions {
   dataNodesRef: React.RefObject<GraphData['nodes']>;
   dataEdgesRef: React.RefObject<GraphData['edges']>;
   nodeById: Map<string, MapNode>;
+  batchDraw: () => void;
 }
 
 export interface UseGraphHighlightingReturn {
@@ -44,6 +45,7 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
     dataNodesRef,
     dataEdgesRef,
     nodeById,
+    batchDraw,
   } = opts;
 
   // ── Multi-selection visual state ──
@@ -71,9 +73,10 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
         }
       }
       prevMultiRef.current = new Set(ids);
-      graph.draw();
+      batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchDraw]);
 
   // ── Highlight/review styling ──
   const prevHighlightRef = useRef<Set<string> | undefined>(undefined);
@@ -147,7 +150,7 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
     try {
       if (nodeUpdates.length > 0) graph.updateNodeData(nodeUpdates);
       if (edgeUpdates.length > 0) graph.updateEdgeData(edgeUpdates);
-      graph.draw();
+      batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightNodeIds, reviewNodeIds, ready, highlightEpoch]);
@@ -192,7 +195,7 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
     if (updates.length > 0) {
       try {
         graph.updateNodeData(updates);
-        graph.draw();
+        batchDraw();
       } catch (e: unknown) { warnIfNotDestroyed(e); }
     }
   }, [selectedNodeId, ready, graphVersion, nodeById, graphRef]);

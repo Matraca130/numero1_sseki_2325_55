@@ -35,6 +35,7 @@ interface UseKeyboardNavOptions {
   multiSelectedIdsRef: React.RefObject<Set<string>>;
   updateMultiSelection: (ids: Set<string>) => void;
   setShowShortcuts: React.Dispatch<React.SetStateAction<boolean>>;
+  batchDraw: () => void;
 }
 
 interface UseKeyboardNavReturn {
@@ -138,6 +139,7 @@ export function useKeyboardNav({
   multiSelectedIdsRef,
   updateMultiSelection,
   setShowShortcuts,
+  batchDraw,
 }: UseKeyboardNavOptions): UseKeyboardNavReturn {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
 
@@ -204,11 +206,11 @@ export function useKeyboardNav({
         // Pan to make focused node visible
         graph.focusElements([nodeId], { animation: { duration: 200, easing: 'ease-out' } });
       }
-      graph.draw();
+      batchDraw();
     } catch {
       // Graph may be destroyed
     }
-  }, []);
+  }, [batchDraw]);
 
   const clearFocus = useCallback(() => {
     const graph = graphRef.current;
@@ -221,11 +223,11 @@ export function useKeyboardNav({
           ? currentStates.filter((s: string) => s !== 'selected')
           : [];
         graph.setElementState(currentFocused, filtered);
-        graph.draw();
+        batchDraw();
       } catch (e) { if (import.meta.env.DEV) console.warn("[useKeyboardNav] graph may be destroyed", e); }
     }
     setFocusedNodeId(null);
-  }, [graphRef]);
+  }, [graphRef, batchDraw]);
 
   // Sync: when selectedNodeId changes externally, also set focus
   useEffect(() => {

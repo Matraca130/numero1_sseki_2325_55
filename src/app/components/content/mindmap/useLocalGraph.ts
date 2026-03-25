@@ -21,11 +21,14 @@ export function useLocalGraph(
   return useMemo(() => {
     if (!fullGraph || !focalNodeId) return null;
     if (fullGraph.nodes.length === 0) return null;
-    // If focal node doesn't exist in the graph, return null (caller falls back to full graph)
-    if (!fullGraph.nodes.some(n => n.id === focalNodeId)) return null;
 
     // BFS to find nodes within depth
     const nodeIds = new Set<string>();
+
+    // If focal node doesn't exist in the graph, return null (caller falls back to full graph)
+    // Build nodeId set first so we can do O(1) lookup instead of O(N) array scan
+    const allNodeIds = new Set(fullGraph.nodes.map(n => n.id));
+    if (!allNodeIds.has(focalNodeId)) return null;
     const queue: { id: string; d: number }[] = [{ id: focalNodeId, d: 0 }];
     let queueHead = 0; // O(n) BFS: advance head instead of shift()
     nodeIds.add(focalNodeId);
