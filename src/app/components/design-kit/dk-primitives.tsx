@@ -54,6 +54,8 @@ export function ProgressRing({
   const radius = (size - stroke) / 2;
   const circ = 2 * Math.PI * radius;
   const filled = value === 1;
+  const shouldReduceRing = useReducedMotion();
+  const target = circ * (1 - value);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -68,9 +70,9 @@ export function ProgressRing({
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: circ * (1 - value) }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          initial={shouldReduceRing ? { strokeDashoffset: target } : { strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: target }}
+          transition={{ duration: shouldReduceRing ? 0 : 1, ease: "easeOut" }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

@@ -393,7 +393,7 @@ function PerformanceSidebar({
                 );
               } else {
                 const sess = item.data as StudySessionRecord;
-                const meta = SESSION_TYPE_META[sess.session_type] ?? SESSION_TYPE_META.mixed;
+                const meta = SESSION_TYPE_META[sess.session_type] ?? { label: sess.session_type ?? 'Sesión', icon: FileText, color: 'text-gray-500', bg: 'bg-gray-50' };
                 const Icon = meta.icon;
                 const reviewInfo = sess.total_reviews
                   ? `${sess.correct_reviews ?? 0}/${sess.total_reviews} correctas`

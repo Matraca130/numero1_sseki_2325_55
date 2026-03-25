@@ -124,7 +124,8 @@ export function useFlashcardCoverage(queue: StudyQueueItem[], sqLoading: boolean
     } finally { if (mountedRef.current) setLoading(false); }
   }, [queue]);
 
-  useEffect(() => { fetchMapping(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps — mount-only fetch; fetchMapping depends on queue which triggers its own refresh cycle
+  useEffect(() => { fetchMapping(); }, []);
 
   const keywordStats = useMemo(() => buildKeywordStats(mappingLookup, queue), [mappingLookup, queue]);
 

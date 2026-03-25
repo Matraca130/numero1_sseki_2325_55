@@ -116,7 +116,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
       if (initialEdgeSource) setEdgeDirected(true); // Connect tool defaults to directed
       setEdgeTarget(initialEdgeTarget || '');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps — reset form state when modal opens; setters are stable and don't need to be deps
   }, [open, initialEdgeSource, initialEdgeTarget, initialTab]);
 
   // Escape key to close + prevent body scroll on mobile

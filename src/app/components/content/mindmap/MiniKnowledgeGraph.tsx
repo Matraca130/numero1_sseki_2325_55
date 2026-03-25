@@ -187,7 +187,7 @@ export const MiniKnowledgeGraph = React.memo(function MiniKnowledgeGraph({
       graph.destroy();
       graphRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps — D3 graph init runs once per data key; other deps (container, config) are refs
   }, [currentDataKey]);
 
   // Effect 1b: ResizeObserver for container resizing

@@ -220,7 +220,8 @@ export function useTopicProgress(
       refresh();
     }
     return () => { abortRef.current?.abort(); };
-  }, [topicIds, bySummaryId, sqLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps — refresh is stable via useCallback; including it would not change behavior but triggers false positives
+  }, [topicIds, bySummaryId, sqLoading]);
 
   // ── Derived helpers ─────────────────────────────────────
 

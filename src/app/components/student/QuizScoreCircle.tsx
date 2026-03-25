@@ -7,7 +7,7 @@
 // ============================================================
 
 import React, { memo, useId } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 
 interface QuizScoreCircleProps {
   correctCount: number;
@@ -25,6 +25,8 @@ export const QuizScoreCircle = memo(function QuizScoreCircle({
   const radius = 84;
   const circumference = 2 * Math.PI * radius;
   const gradientId = useId();
+  const shouldReduce = useReducedMotion();
+  const target = circumference * (1 - percentage / 100);
 
   return (
     <motion.div
@@ -57,9 +59,9 @@ export const QuizScoreCircle = memo(function QuizScoreCircle({
           fill="none"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: circumference * (1 - percentage / 100) }}
-          transition={{ duration: 1.5, ease: 'easeOut' }}
+          initial={shouldReduce ? { strokeDashoffset: target } : { strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: target }}
+          transition={{ duration: shouldReduce ? 0 : 1.5, ease: 'easeOut' }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

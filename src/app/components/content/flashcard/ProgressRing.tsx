@@ -1,9 +1,11 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 
 export function ProgressRing({ pct, size = 44, stroke = 4, color }: { pct: number; size?: number; stroke?: number; color: string }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
+  const shouldReduce = useReducedMotion();
+  const target = circ * (1 - pct / 100);
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
@@ -16,9 +18,9 @@ export function ProgressRing({ pct, size = 44, stroke = 4, color }: { pct: numbe
           strokeLinecap="round"
           className={color}
           strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: circ * (1 - pct / 100) }}
-          transition={{ duration: 1, ease: 'easeOut' }}
+          initial={shouldReduce ? { strokeDashoffset: target } : { strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: target }}
+          transition={{ duration: shouldReduce ? 0 : 1, ease: 'easeOut' }}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">

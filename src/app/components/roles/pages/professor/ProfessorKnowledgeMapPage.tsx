@@ -113,7 +113,7 @@ export function ProfessorKnowledgeMapPage() {
       .catch(() => { if (!cancelled) { setHeatmapData(null); toast.error('Error al cargar mapa de calor'); } })
       .finally(() => { if (!cancelled) setHeatmapLoading(false); });
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps — fetchClassMastery is module-level; graphData.nodes captured via graphNodeKey
   }, [heatmapEnabled, topicId, graphNodeKey]);
 
   /** Graph data with class-wide mastery overlaid when heatmap is active */

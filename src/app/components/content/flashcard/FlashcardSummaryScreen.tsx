@@ -15,7 +15,7 @@
 // ============================================================
 
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Trophy, TrendingUp, TrendingDown, Star, Sparkles } from 'lucide-react';
 import type { CardMasteryDelta } from '@/app/hooks/useFlashcardEngine';
 import { getMasteryColorFromPct } from './mastery-colors';
@@ -64,6 +64,7 @@ export function SummaryScreen({
   masteryDeltas,
   onStartAdaptive,
 }: SummaryScreenProps) {
+  const shouldReduce = useReducedMotion();
   // [F1 FIX] Guard against empty stats (prevents NaN from division by zero)
   if (stats.length === 0) {
     return (
@@ -131,9 +132,9 @@ export function SummaryScreen({
               fill="none"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 88}
-              initial={{ strokeDashoffset: 2 * Math.PI * 88 }}
+              initial={shouldReduce ? { strokeDashoffset: 2 * Math.PI * 88 * (1 - mastery / 100) } : { strokeDashoffset: 2 * Math.PI * 88 }}
               animate={{ strokeDashoffset: 2 * Math.PI * 88 * (1 - mastery / 100) }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
+              transition={{ duration: shouldReduce ? 0 : 1.5, ease: "easeOut" }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">

@@ -356,7 +356,7 @@ export function TipTapEditor({
       }
     })();
     return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps — load content when summary/editor changes; other deps (setLoading, initialLoadRef) are stable refs/setters
   }, [summaryId, editor, contentMarkdown]);
 
   // ── Sync keyword highlights ─────────────────────────────

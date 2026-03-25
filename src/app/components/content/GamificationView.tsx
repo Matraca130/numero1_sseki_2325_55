@@ -367,7 +367,8 @@ export default function GamificationView() {
         onError: () => setCheckedIn(true),
       });
     }
-  }, [streakLoading, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps — one-time auto check-in; adding doCheckIn/checkedIn would cause re-fire loops
+  }, [streakLoading, institutionId]);
 
   // ── Derived ─────────────────────────────────────────────
   const totalXP = profileData?.xp?.total ?? 0;

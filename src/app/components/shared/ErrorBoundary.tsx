@@ -67,19 +67,40 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <p style={{ color: '#7f1d1d', fontSize: '0.875rem', marginBottom: '1rem' }}>
           {this.state.error.message}
         </p>
-        <button
-          onClick={this.handleReset}
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '0.375rem',
-            border: '1px solid #d1d5db',
-            backgroundColor: '#ffffff',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-          }}
-        >
-          Intentar de nuevo
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+          <button
+            onClick={this.handleReset}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #d1d5db',
+              backgroundColor: '#ffffff',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+            }}
+          >
+            Intentar de nuevo
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('¿Seguro que deseas cerrar sesión?')) {
+                localStorage.removeItem('axon_access_token');
+                window.location.href = '/';
+              }
+            }}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #fca5a5',
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+            }}
+          >
+            Volver al inicio
+          </button>
+        </div>
       </div>
     );
   }

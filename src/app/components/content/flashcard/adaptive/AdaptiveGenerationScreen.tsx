@@ -1,6 +1,6 @@
 // AdaptiveGenerationScreen — AI generation loading view
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Sparkles, AlertCircle, Loader2, XCircle } from 'lucide-react';
 import type { GenerationProgressInfo } from '@/app/hooks/useAdaptiveSession';
 
@@ -12,6 +12,7 @@ export interface AdaptiveGenerationScreenProps {
 }
 
 export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerationScreenProps) {
+  const shouldReduce = useReducedMotion();
   const [isSlow, setIsSlow] = useState(false);
   useEffect(() => { setIsSlow(false); const t = setTimeout(() => setIsSlow(true), SLOW_THRESHOLD_MS); return () => clearTimeout(t); }, []);
 
@@ -31,7 +32,7 @@ export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerat
         <div className="relative mb-8" style={{ width: ringSize, height: ringSize }}>
           <svg width={ringSize} height={ringSize} className="-rotate-90">
             <circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="#e2e8f0" strokeWidth={ringStroke} />
-            <motion.circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="#2dd4a8" strokeWidth={ringStroke} strokeLinecap="round" strokeDasharray={ringCirc} animate={{ strokeDashoffset: ringCirc * (1 - pct / 100) }} transition={{ duration: 0.4, ease: 'easeOut' }} />
+            <motion.circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="#2dd4a8" strokeWidth={ringStroke} strokeLinecap="round" strokeDasharray={ringCirc} initial={shouldReduce ? { strokeDashoffset: ringCirc * (1 - pct / 100) } : undefined} animate={{ strokeDashoffset: ringCirc * (1 - pct / 100) }} transition={{ duration: shouldReduce ? 0 : 0.4, ease: 'easeOut' }} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-3xl text-gray-900 tabular-nums" style={{ fontWeight: 700 }}>{generated}</span>

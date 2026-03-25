@@ -62,7 +62,8 @@ export function FlashcardView() {
       if (topic) { nav.openDeck(topic); return; }
     }
     if (import.meta.env.DEV) console.warn(`[FlashcardView] Topic ${selectedTopicId} not found`);
-  }, [selectedTopicId, nav.allSections]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps — nav object is unstable; only re-sync when selectedTopicId or section list changes
+  }, [selectedTopicId, nav.allSections]);
 
   const handleStartAll = useCallback(() => { engine.startSession(nav.allFlashcards); nav.setViewState('session'); }, [engine, nav]);
   const handleStartSection = useCallback((cards: import('@/app/types/content').Flashcard[]) => { engine.startSession(cards); nav.setViewState('session'); }, [engine, nav]);

@@ -35,6 +35,9 @@ export interface GraphI18nStrings {
   /** Export error strings (from useGraphControls) */
   exportPngError: string;
   exportJpegError: string;
+  /** Graph init error fallback */
+  initErrorTitle: string;
+  retry: string;
 }
 
 export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
@@ -80,6 +83,8 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     dragQuickConnectTitle: 'Conectar a partir deste nó',
     exportPngError: 'Não foi possível exportar como PNG',
     exportJpegError: 'Não foi possível exportar como JPEG',
+    initErrorTitle: 'Erro ao inicializar o gráfico',
+    retry: 'Tentar novamente',
   },
   es: {
     noData: 'Sin datos', mastery: 'Dominio',
@@ -123,5 +128,7 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     dragQuickConnectTitle: 'Conectar desde este nodo',
     exportPngError: 'No se pudo exportar como PNG',
     exportJpegError: 'No se pudo exportar como JPEG',
+    initErrorTitle: 'Error al inicializar el gráfico',
+    retry: 'Reintentar',
   },
 };

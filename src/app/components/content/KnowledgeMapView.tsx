@@ -17,6 +17,9 @@
 //
 // ROUTE: /student/knowledge-map
 // AGENT: Mind Map Agent
+//
+// Edge/node CRUD callbacks are in useMapEdgeActions / useMapNodeActions.
+// Empty/loading states are in MapViewEmptyStates.
 // ============================================================
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -28,8 +31,6 @@ import { toast } from 'sonner';
 import { MoreActionsDropdown } from './mindmap/MoreActionsDropdown';
 import { GraphSidebar } from './mindmap/GraphSidebar';
 import { useCountUp } from '@/app/hooks/useCountUp';
-import { EmptyState, ErrorState } from '@/app/components/shared/PageStates';
-import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { FadeIn } from '@/app/components/shared/FadeIn';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { useApp } from '@/app/context/AppContext';
@@ -40,8 +41,6 @@ import { NodeAnnotationModal } from './mindmap/NodeAnnotationModal';
 import { useGraphData } from './mindmap/useGraphData';
 import { useGraphSearch } from './mindmap/useGraphSearch';
 import { AddNodeEdgeModal } from './mindmap/AddNodeEdgeModal';
-import { deleteCustomNode, deleteCustomEdge, createCustomEdge } from '@/app/services/mindmapApi';
-import type { EdgeReconnectResult } from './mindmap/useEdgeReconnect';
 import { useSearchFocus } from './mindmap/useSearchFocus';
 import { useGraphControls } from './mindmap/useGraphControls';
 import { ConfirmDialog } from './mindmap/ConfirmDialog';
@@ -49,20 +48,30 @@ import { useFullscreen } from './mindmap/useFullscreen';
 import { MapToolsPanel } from './mindmap/MapToolsPanel';
 import { AiTutorPanel } from './mindmap/AiTutorPanel';
 import { useUndoRedo } from './mindmap/useUndoRedo';
-import { GraphSkeleton } from './mindmap/GraphSkeleton';
 import { PresentationMode } from './mindmap/PresentationMode';
 import { ChangeHistoryPanel } from './mindmap/ChangeHistoryPanel';
 import { ShareMapModal } from './mindmap/ShareMapModal';
 import { MapComparisonPanel } from './mindmap/MapComparisonPanel';
 import { StickyNotesLayer } from './mindmap/StickyNote';
-import { loadHistory, saveHistory, clearHistoryStorage, createNodeEntry, createEdgeEntry, createDeleteNodeEntry } from './mindmap/changeHistoryHelpers';
+import { loadHistory, saveHistory, clearHistoryStorage } from './mindmap/changeHistoryHelpers';
 import type { HistoryEntry } from './mindmap/changeHistoryHelpers';
 import { useMapUIState } from './mindmap/useMapUIState';
 import { useMapToolState } from './mindmap/useMapToolState';
 import { useMapStickyNotes } from './mindmap/useMapStickyNotes';
 import { useMapNodeColors } from './mindmap/useMapNodeColors';
+import { useMapEdgeActions } from './mindmap/useMapEdgeActions';
+import { useMapNodeActions } from './mindmap/useMapNodeActions';
+import {
+  MapViewLoadingSkeleton,
+  MapViewError,
+  NoTopicSelected,
+  CourseScopeEmpty,
+  TopicEmpty,
+  GraphErrorFallback,
+  AllCollapsedHint,
+  SearchNoResults,
+} from './mindmap/MapViewEmptyStates';
 import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
-import { MASTERY_HEX } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
 import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
 import { I18N_MAP_VIEW } from './mindmap/mapViewI18n';
@@ -252,8 +261,6 @@ export function KnowledgeMapView() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
-  const deletingNodeRef = useRef(false);
-  const reconnectingRef = useRef(false);
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   // Stable callbacks for KnowledgeGraph (avoids unnecessary child re-renders)
@@ -273,6 +280,50 @@ export function KnowledgeMapView() {
     setExiting(true);
     fadeTimerRef.current = setTimeout(() => navigate(to), 150);
   }, [navigate]);
+
+  // Effective topicId for custom node creation and navigation fallback
+  const effectiveTopicId = topicId || courseTopicIds[0] || '';
+
+  // ── Extracted edge/node action hooks ────────────────────
+  const {
+    handleEdgeReconnect,
+    handleQuickAdd,
+    handleDragConnect,
+    handleEdgeCreated,
+    reconnectingRef,
+  } = useMapEdgeActions({
+    effectiveTopicId,
+    graphDataNodesRef,
+    graphDataEdgesRef,
+    mountedRef,
+    pushAction,
+    refetch,
+    setConnectSource,
+    setConnectTarget,
+    setAddModalOpen,
+    setHistoryEntries,
+    t,
+  });
+
+  const {
+    handleDeleteCustomNode,
+    executeDeleteNode,
+    handleNodeCreated,
+    deletingNodeRef,
+  } = useMapNodeActions({
+    effectiveTopicId,
+    mountedRef,
+    confirmDeleteNode,
+    setConfirmDeleteNode,
+    setSelectedNode,
+    setContextMenu,
+    setConnectSource,
+    setAnnotationNode,
+    pushAction,
+    refetch,
+    setHistoryEntries,
+    t,
+  });
 
   // ── Handlers ────────────────────────────────────────────
 
@@ -361,9 +412,6 @@ export function KnowledgeMapView() {
     if (id) graphControlsRef.current?.toggleCollapse(id);
   }, []);
 
-  // Effective topicId for custom node creation and navigation fallback
-  const effectiveTopicId = topicId || courseTopicIds[0] || '';
-
   // Load history from sessionStorage when topic changes
   useEffect(() => {
     if (effectiveTopicId) setHistoryEntries(loadHistory(effectiveTopicId));
@@ -416,152 +464,6 @@ export function KnowledgeMapView() {
   const handlePresentationFocus = useCallback((nodeId: string) => {
     graphControlsRef.current?.focusNode?.(nodeId);
   }, []);
-
-  const handleDeleteCustomNode = useCallback(async (node: MapNode) => {
-    if (!node.isUserCreated) return;
-    setConfirmDeleteNode(node);
-  }, []);
-
-  const executeDeleteNode = useCallback(async () => {
-    if (!confirmDeleteNode || deletingNodeRef.current || !effectiveTopicId) return;
-    deletingNodeRef.current = true;
-    try {
-      await deleteCustomNode(confirmDeleteNode.id);
-      if (!mountedRef.current) return;
-      // Record for undo — store enough data to re-create the node
-      pushAction({
-        type: 'delete-node',
-        nodeId: confirmDeleteNode.id,
-        payload: {
-          label: confirmDeleteNode.label,
-          definition: confirmDeleteNode.definition,
-          topic_id: effectiveTopicId,
-        },
-      });
-      setHistoryEntries(prev => [...prev, createDeleteNodeEntry(confirmDeleteNode.label)]);
-      const deletedId = confirmDeleteNode.id;
-      setSelectedNode(prev => prev?.id === deletedId ? null : prev);
-      setContextMenu(prev => prev?.node.id === deletedId ? null : prev);
-      setConnectSource(prev => prev?.id === deletedId ? null : prev);
-      setAnnotationNode(prev => prev?.id === deletedId ? null : prev);
-      setConfirmDeleteNode(null);
-      refetch();
-    } catch (e: unknown) {
-      if (!mountedRef.current) return;
-      toast.error(e instanceof Error ? e.message : t.deleteNodeError);
-      setConfirmDeleteNode(null);
-    } finally {
-      deletingNodeRef.current = false;
-    }
-  }, [confirmDeleteNode, refetch, pushAction, effectiveTopicId]);
-
-  // Handle edge reconnect: delete old edge, create new edge, record undo action
-  const handleEdgeReconnect = useCallback(async (result: EdgeReconnectResult) => {
-    if (reconnectingRef.current || !effectiveTopicId) return;
-    reconnectingRef.current = true;
-    const { oldEdge, movedEndpoint, newNodeId } = result;
-    try {
-      // Build new edge source/target
-      const newSource = movedEndpoint === 'source' ? newNodeId : oldEdge.source;
-      const newTarget = movedEndpoint === 'target' ? newNodeId : oldEdge.target;
-
-      // Guard: prevent self-loops (finally resets reconnectingRef)
-      if (newSource === newTarget) {
-        toast.warning(t.selfLoopError);
-        return;
-      }
-
-      // Guard: prevent duplicate edges (use ref for fresh data)
-      const edgeExists = graphDataEdgesRef.current?.some(
-        (e) => ((e.source === newSource && e.target === newTarget) || (e.source === newTarget && e.target === newSource)) && e.id !== oldEdge.id,
-      );
-      if (edgeExists) {
-        toast.warning(t.duplicateEdgeError);
-        return;
-      }
-
-      // Create the new edge first so the old one remains intact if creation fails
-      const rollbackPayload = {
-        source_node_id: oldEdge.source,
-        target_node_id: oldEdge.target,
-        label: oldEdge.label,
-        connection_type: oldEdge.connectionType,
-        topic_id: effectiveTopicId,
-        line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
-        custom_color: oldEdge.customColor,
-        directed: oldEdge.directed,
-        arrow_type: oldEdge.arrowType,
-      };
-      const newEdgeRes = await createCustomEdge({
-        source_node_id: newSource,
-        target_node_id: newTarget,
-        label: oldEdge.label,
-        connection_type: oldEdge.connectionType,
-        topic_id: effectiveTopicId,
-        line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
-        custom_color: oldEdge.customColor,
-        directed: oldEdge.directed,
-        arrow_type: oldEdge.arrowType,
-      });
-
-      // New edge created successfully — now safe to delete the old one
-      await deleteCustomEdge(oldEdge.id);
-
-      if (!mountedRef.current) return;
-
-      // Record for undo
-      pushAction({
-        type: 'reconnect-edge',
-        oldEdgeId: oldEdge.id,
-        oldPayload: rollbackPayload,
-        newEdgeId: newEdgeRes.id,
-        newPayload: {
-          source_node_id: newSource,
-          target_node_id: newTarget,
-          label: oldEdge.label,
-          connection_type: oldEdge.connectionType,
-          topic_id: effectiveTopicId,
-          line_style: oldEdge.lineStyle === 'solid' ? undefined : oldEdge.lineStyle,
-          custom_color: oldEdge.customColor,
-          directed: oldEdge.directed,
-          arrow_type: oldEdge.arrowType,
-        },
-      });
-
-      // Find node labels for toast (use ref for stable callback)
-      const srcNode = graphDataNodesRef.current?.find(n => n.id === newSource);
-      const tgtNode = graphDataNodesRef.current?.find(n => n.id === newTarget);
-      toast.success(t.edgeReconnected(srcNode?.label ?? '?', tgtNode?.label ?? '?'));
-      haptic(50);
-      refetch();
-    } catch (e: unknown) {
-      if (!mountedRef.current) return;
-      toast.error(e instanceof Error ? e.message : t.reconnectEdgeError);
-    } finally {
-      reconnectingRef.current = false;
-    }
-  }, [effectiveTopicId, pushAction, refetch]);
-
-  // Quick-add handler: open AddNodeEdgeModal with source pre-filled
-  const handleQuickAdd = useCallback((sourceId: string) => {
-    const sourceNode = graphDataNodesRef.current?.find(n => n.id === sourceId);
-    if (sourceNode) {
-      setConnectSource(sourceNode);
-      setAddModalOpen(true);
-    }
-  }, []);
-
-  // Drag-to-connect handler: open AddNodeEdgeModal pre-filled with source → target
-  const handleDragConnect = useCallback((sourceId: string, targetId: string) => {
-    const sourceNode = graphDataNodesRef.current?.find(n => n.id === sourceId);
-    const targetNode = graphDataNodesRef.current?.find(n => n.id === targetId);
-    if (sourceNode && targetNode) {
-      setConnectSource(sourceNode);
-      setConnectTarget(targetNode);
-      setAddModalOpen(true);
-    }
-  }, []);
-
 
   // Ctrl+F / '/' → focus search input
   useSearchFocus(searchInputRef);
@@ -630,20 +532,6 @@ export function KnowledgeMapView() {
     setConnectTarget(null);
   }, []);
 
-  const handleNodeCreated = useCallback((nodeId: string, payload: { label: string; definition?: string }) => {
-    pushAction({ type: 'create-node', nodeId, payload: { ...payload, topic_id: effectiveTopicId } });
-    setHistoryEntries(prev => [...prev, createNodeEntry(payload.label)]);
-    haptic(50);
-  }, [pushAction, effectiveTopicId]);
-
-  const handleEdgeCreated = useCallback((edgeId: string, payload: { source_node_id: string; target_node_id: string; label?: string; connection_type?: string }) => {
-    pushAction({ type: 'create-edge', edgeId, payload: { ...payload, topic_id: effectiveTopicId } });
-    const srcNode = graphDataNodesRef.current?.find(n => n.id === payload.source_node_id);
-    const tgtNode = graphDataNodesRef.current?.find(n => n.id === payload.target_node_id);
-    setHistoryEntries(prev => [...prev, createEdgeEntry(srcNode?.label || '?', tgtNode?.label || '?')]);
-    haptic(50);
-  }, [pushAction, effectiveTopicId]);
-
   // ── Derived data ────────────────────────────────────────
 
   const masteryStats = useMemo(() => {
@@ -672,118 +560,28 @@ export function KnowledgeMapView() {
 
   // ── Render states ───────────────────────────────────────
 
-  if (loading) return (
-    <FadeIn>
-      <div className="flex flex-col h-[calc(100dvh-4rem)] p-3 sm:p-6 lg:p-8">
-        {/* Skeleton header */}
-        <div className="flex-shrink-0 mb-4">
-          <div className="h-7 w-48 bg-gray-200 rounded-lg animate-pulse motion-reduce:animate-none mb-2" />
-          <div className="h-4 w-32 bg-gray-100 rounded animate-pulse motion-reduce:animate-none" />
-        </div>
-        {/* Skeleton toolbar */}
-        <div className="flex-shrink-0 mb-3 flex items-center gap-2">
-          <div className="h-9 w-36 bg-gray-100 rounded-full animate-pulse motion-reduce:animate-none" />
-          <div className="h-9 w-24 bg-gray-100 rounded-full animate-pulse motion-reduce:animate-none" />
-          <div className="h-9 w-44 bg-gray-100 rounded-full animate-pulse motion-reduce:animate-none" />
-        </div>
-        {/* Skeleton graph canvas — content-shaped nodes & edges */}
-        <div className="flex-1 min-h-0">
-          <GraphSkeleton />
-        </div>
-      </div>
-    </FadeIn>
-  );
+  if (loading) return <MapViewLoadingSkeleton />;
 
-  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (error) return <MapViewError message={error} onRetry={refetch} />;
 
   if (!topicId && !summaryId && scope !== 'course') {
-    return (
-      <FadeIn>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
-          <div className="w-16 h-16 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-5">
-            <MapIcon className="w-8 h-8 text-[#2a8c7a] animate-pulse" aria-hidden="true" />
-          </div>
-          <h2
-            className="text-gray-900 mb-2 text-center"
-            style={{ ...headingStyle, fontSize: 'clamp(1.1rem, 2vw, 1.35rem)' }}
-          >
-            {t.pageTitle}
-          </h2>
-          <p
-            className="text-gray-500 mb-6 text-center max-w-sm leading-relaxed"
-            style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
-          >
-            {t.selectTopicPrompt}
-          </p>
-          {allTopics.length > 0 ? (
-            <div className="relative w-full max-w-xs">
-              <select
-                value=""
-                onChange={(e) => e.target.value && handleTopicSelect(e.target.value)}
-                className="w-full appearance-none bg-white border border-gray-200 rounded-full px-4 py-2.5 pr-9 text-sm text-gray-700 shadow-sm hover:border-gray-300 transition-colors"
-                style={{ outlineColor: '#2a8c7a' }}
-              >
-                <option value="">{t.selectTopicPlaceholder}</option>
-                {allTopics.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.courseName} — {t.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-          ) : (
-            <p
-              className="text-gray-500 leading-relaxed"
-              style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
-            >
-              {t.noTopicsAvailable}
-            </p>
-          )}
-        </div>
-      </FadeIn>
-    );
+    return <NoTopicSelected allTopics={allTopics} onTopicSelect={handleTopicSelect} t={t} />;
   }
 
   // Course scope with no data (no graphData or empty)
   if (scope === 'course' && !loading && (!graphData || graphData.nodes.length === 0)) {
     return (
-      <FadeIn>
-        <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-          <AxonPageHeader
-            title={t.pageTitle}
-            subtitle={currentCourse?.name || t.allTopics}
-            onBack={() => navigate(-1)}
-          />
-          <EmptyState
-            icon={<Globe className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title={t.noCourseConceptsTitle}
-            description={courseTopicIds.length === 0
-              ? t.noCourseConceptsNoTopics
-              : t.noCourseConceptsEmpty}
-          />
-        </div>
-      </FadeIn>
+      <CourseScopeEmpty
+        courseName={currentCourse?.name}
+        courseTopicIds={courseTopicIds}
+        onBack={() => navigate(-1)}
+        t={t}
+      />
     );
   }
 
   if (isEmpty) {
-    return (
-      <FadeIn>
-        <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-          <AxonPageHeader
-            title={t.pageTitle}
-            subtitle={t.pageSubtitle}
-            onBack={() => navigate(-1)}
-          />
-          <EmptyState
-            icon={<Brain className="w-12 h-12 text-[#2a8c7a] animate-pulse" />}
-            title={t.noConceptsTitle}
-            description={t.noConceptsDescription}
-          />
-        </div>
-      </FadeIn>
-    );
+    return <TopicEmpty onBack={() => navigate(-1)} t={t} />;
   }
 
   // ── Main render ─────────────────────────────────────────
@@ -889,25 +687,7 @@ export function KnowledgeMapView() {
               visible={!loading && !!filteredGraphData && filteredGraphData.nodes.length > 0}
             />
           </ErrorBoundary>
-          <ErrorBoundary fallback={(_err, reset) => (
-            <div className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center gap-3 px-4">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 text-red-400" />
-              </div>
-              <p
-                className="text-gray-500 text-center"
-                style={{ fontSize: 'clamp(0.8125rem, 1.3vw, 0.875rem)' }}
-              >
-                {t.graphRenderError}
-              </p>
-              <button
-                onClick={reset}
-                className="text-sm font-medium text-[#2a8c7a] hover:underline"
-              >
-                {t.retry}
-              </button>
-            </div>
-          )}>
+          <ErrorBoundary fallback={(_err, reset) => <GraphErrorFallback reset={reset} t={t} />}>
             {filteredGraphData && filteredGraphData.nodes.length > 0 ? (
               <KnowledgeGraph
                 data={filteredGraphData}
@@ -930,41 +710,13 @@ export function KnowledgeMapView() {
                 onZoomChange={setZoomLevel}
               />
             ) : searchQuery.trim() ? (
-              <div className="w-full h-full min-h-[180px] sm:min-h-[280px] bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
-                <div className="flex flex-col items-center text-center px-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#e8f5f1] flex items-center justify-center mb-3">
-                    <Brain className="w-6 h-6 text-[#2a8c7a]" />
-                  </div>
-                  <p
-                    className="font-semibold text-gray-700 mb-1"
-                    style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(0.875rem, 1.5vw, 1rem)' }}
-                  >
-                    {t.searchNoResults}
-                  </p>
-                  <p
-                    className="text-gray-500"
-                    style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}
-                  >
-                    {t.searchTryAnother}
-                  </p>
-                </div>
-              </div>
+              <SearchNoResults t={t} />
             ) : null}
           </ErrorBoundary>
 
           {/* Hint when all nodes are collapsed — canvas appears empty */}
           {collapsedCount > 0 && filteredGraphData && collapsedCount >= filteredGraphData.nodes.length && (
-            <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 px-5 py-4 text-center max-w-[260px]">
-                <p className="text-sm font-medium text-gray-600 mb-2">{t.allCollapsed}</p>
-                <button
-                  onClick={() => graphControlsRef.current?.expandAll()}
-                  className="text-xs font-medium text-[#2a8c7a] hover:underline"
-                >
-                  {t.expandAll}
-                </button>
-              </div>
-            </div>
+            <AllCollapsedHint onExpandAll={() => graphControlsRef.current?.expandAll()} t={t} />
           )}
 
           {/* Sticky notes layer — floats above graph, below modals */}
@@ -1217,4 +969,3 @@ export function KnowledgeMapView() {
     </FadeIn>
   );
 }
-
