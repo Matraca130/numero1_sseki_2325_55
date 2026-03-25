@@ -279,13 +279,13 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
 
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">
-          Descripcion
+          Descripción
         </label>
         <textarea
-          className={inputClass}
+          className={`${inputClass} min-h-[60px]`}
           value={(c.description as string) ?? ''}
           onChange={(e) => onChange('description', e.target.value)}
-          placeholder="Descripcion de la imagen..."
+          placeholder="Descripción de la imagen..."
         />
       </div>
 

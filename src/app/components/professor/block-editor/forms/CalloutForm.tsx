@@ -42,19 +42,19 @@ export default function CalloutForm({ block, onChange }: BlockFormProps) {
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Titulo</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
         <input
           type="text"
           className={inputClass}
           value={(c.title as string) ?? ''}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="Titulo del callout"
+          placeholder="Título del callout"
         />
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">Contenido</label>
         <textarea
-          className={inputClass}
+          className={`${inputClass} min-h-[80px]`}
           value={(c.content as string) ?? ''}
           onChange={(e) => onChange('content', e.target.value)}
           placeholder="Contenido del callout..."

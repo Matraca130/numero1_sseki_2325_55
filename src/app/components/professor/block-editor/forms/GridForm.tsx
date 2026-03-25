@@ -20,6 +20,15 @@ const validIcons = [
   'AlertTriangle', 'HelpCircle', 'CheckCircle2', 'CircleDot',
 ] as const;
 
+const ICON_LABELS: Record<string, string> = {
+  Activity: 'Actividad', Heart: 'Corazón', Pill: 'Medicamento',
+  Stethoscope: 'Estetoscopio', Shield: 'Escudo', FlaskConical: 'Laboratorio',
+  Clock: 'Reloj', Lightbulb: 'Idea', Target: 'Objetivo',
+  AlertCircle: 'Alerta', Brain: 'Cerebro', Info: 'Información',
+  AlertTriangle: 'Advertencia', HelpCircle: 'Ayuda', CheckCircle2: 'Verificado',
+  CircleDot: 'Punto',
+};
+
 export default function GridForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
   const columns = (c.columns as number) || 2;
@@ -44,13 +53,13 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Titulo</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
         <input
           type="text"
           className={inputClass}
           value={(c.title as string) ?? ''}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="Titulo del grid"
+          placeholder="Título del grid"
         />
       </div>
 
@@ -99,7 +108,7 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
             >
               {validIcons.map((icon) => (
                 <option key={icon} value={icon}>
-                  {icon}
+                  {ICON_LABELS[icon] || icon}
                 </option>
               ))}
             </select>
@@ -111,7 +120,7 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
               placeholder="Etiqueta"
             />
             <textarea
-              className={inputClass}
+              className={`${inputClass} min-h-[60px]`}
               value={item.detail ?? ''}
               onChange={(e) => updateItem(idx, 'detail', e.target.value)}
               placeholder="Detalle..."

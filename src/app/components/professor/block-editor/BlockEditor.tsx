@@ -369,7 +369,7 @@ export default function BlockEditor({
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 border border-violet-100">
                 <span className="text-2xl text-violet-300">+</span>
               </div>
-              <p className="text-sm text-gray-500" style={{ fontWeight: 500 }}>Sin bloques aun</p>
+              <p className="text-sm text-gray-500" style={{ fontWeight: 500 }}>Sin bloques aún</p>
               <p className="mt-1 text-xs text-gray-400">
                 Haz click en "Agregar bloque" para empezar a construir el resumen
               </p>
@@ -386,7 +386,7 @@ export default function BlockEditor({
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={dragIndex === index ? 'opacity-50' : ''}
+                  className={`transition-opacity duration-150 ${dragIndex === index ? 'opacity-50' : ''}`}
                 >
                   {isPreview ? (
                     // Preview mode — use student renderer

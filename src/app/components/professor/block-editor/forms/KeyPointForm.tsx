@@ -21,22 +21,22 @@ export default function KeyPointForm({ block, onChange }: BlockFormProps) {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Titulo</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
         <input
           type="text"
           className={inputClass}
           value={(c.title as string) ?? ''}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="Titulo del punto clave"
+          placeholder="Título del punto clave"
         />
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">Contenido</label>
         <textarea
-          className={inputClass}
+          className={`${inputClass} min-h-[80px]`}
           value={(c.content as string) ?? ''}
           onChange={(e) => onChange('content', e.target.value)}
-          placeholder="Descripcion del punto clave..."
+          placeholder="Descripción del punto clave..."
         />
       </div>
       <div>

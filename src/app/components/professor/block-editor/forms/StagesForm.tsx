@@ -38,13 +38,13 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Titulo</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
         <input
           type="text"
           className={inputClass}
           value={(c.title as string) ?? ''}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="Titulo de las etapas"
+          placeholder="Título de las etapas"
         />
       </div>
 
@@ -71,10 +71,10 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
               className={inputClass}
               value={item.title ?? ''}
               onChange={(e) => updateItem(idx, 'title', e.target.value)}
-              placeholder="Titulo de la etapa"
+              placeholder="Título de la etapa"
             />
             <textarea
-              className={inputClass}
+              className={`${inputClass} min-h-[60px]`}
               value={item.content ?? ''}
               onChange={(e) => updateItem(idx, 'content', e.target.value)}
               placeholder="Contenido de la etapa..."

@@ -56,13 +56,13 @@ export default function ComparisonForm({ block, onChange }: BlockFormProps) {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Titulo</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
         <input
           type="text"
           className={inputClass}
           value={(c.title as string) ?? ''}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="Titulo de la comparacion"
+          placeholder="Título de la comparación"
         />
       </div>
 

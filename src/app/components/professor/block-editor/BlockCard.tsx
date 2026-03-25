@@ -39,12 +39,12 @@ export default function BlockCard({
 
   return (
     <div
-      className={`group relative flex rounded-xl border bg-white transition-shadow ${
+      className={`group relative flex rounded-xl border bg-white transition-all duration-200 ${
         isEditing ? 'border-violet-300 shadow-sm ring-1 ring-violet-100' : 'border-gray-200 hover:shadow-sm'
       }`}
     >
       {/* Drag handle */}
-      <div className="flex w-8 shrink-0 cursor-grab items-start justify-center pt-3 text-gray-300 hover:text-gray-500 active:cursor-grabbing">
+      <div className="flex w-8 shrink-0 cursor-grab items-start justify-center pt-3 text-gray-400 hover:text-gray-500 active:cursor-grabbing">
         <GripVertical className="h-4 w-4" />
       </div>
 

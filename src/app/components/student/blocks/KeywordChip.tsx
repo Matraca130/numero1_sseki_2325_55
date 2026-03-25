@@ -47,7 +47,7 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
       ref={chipRef}
       role="button"
       tabIndex={0}
-      className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#e8f5f1] text-[#1B3B36] border border-[#d1f0e7] hover:bg-[#d1f0e7] cursor-pointer transition-colors"
+      className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#e8f5f1] dark:bg-teal-950 text-[#1B3B36] dark:text-teal-200 border border-[#d1f0e7] dark:border-teal-800 hover:bg-[#d1f0e7] dark:hover:bg-teal-900 cursor-pointer transition-colors"
       onClick={() => onClick?.(keyword.id)}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick?.(keyword.id); }}
       onMouseEnter={handleMouseEnter}

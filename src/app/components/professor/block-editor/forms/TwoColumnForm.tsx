@@ -91,7 +91,7 @@ export default function TwoColumnForm({ block, onChange }: BlockFormProps) {
             className={inputClass}
             value={col.title ?? ''}
             onChange={(e) => updateColumn(colIdx, 'title', e.target.value)}
-            placeholder="Titulo de la columna"
+            placeholder="Título de la columna"
           />
 
           <div className="space-y-2">
@@ -122,7 +122,7 @@ export default function TwoColumnForm({ block, onChange }: BlockFormProps) {
                   placeholder="Etiqueta"
                 />
                 <textarea
-                  className={inputClass}
+                  className={`${inputClass} min-h-[60px]`}
                   value={item.detail ?? ''}
                   onChange={(e) =>
                     updateColumnItem(colIdx, itemIdx, 'detail', e.target.value)

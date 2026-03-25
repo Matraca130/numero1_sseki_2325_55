@@ -48,7 +48,7 @@ export default function BlockEditorToolbar({
         {onKeywordsClick && (
           <Button variant="ghost" size="sm" onClick={onKeywordsClick} className="text-violet-600">
             <Tag className="h-3.5 w-3.5" />
-            Keywords
+            Palabras clave
             {keywordsCount > 0 && (
               <span className="ml-1 rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">
                 {keywordsCount}
