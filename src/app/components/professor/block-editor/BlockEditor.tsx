@@ -265,9 +265,9 @@ export default function BlockEditor({
   // ── Publish ──────────────────────────────────────────────
 
   const handlePublish = useCallback(async () => {
-    await flushPending();
     setPublishing(true);
     try {
+      await flushPending();
       await apiCall(`/summaries/${summaryId}/publish`, { method: 'POST' });
       toast.success('Resumen publicado');
       onStatusChange?.('published');
