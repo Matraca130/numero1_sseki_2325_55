@@ -25,11 +25,34 @@ export default function ProseForm({ block, onChange }: BlockFormProps) {
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">Contenido</label>
         <textarea
-          className={`${inputClass} min-h-[120px]`}
+          className={`${inputClass} min-h-[160px]`}
           value={(c.content as string) ?? ''}
           onChange={(e) => onChange('content', e.target.value)}
           placeholder="Escribe el contenido..."
         />
+      </div>
+      {/* Image URL (optional) */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Imagen (opcional)</label>
+        {(c.image as string) && (
+          <div className="rounded-lg overflow-hidden border border-gray-200 mb-2">
+            <img
+              src={c.image as string}
+              alt="Vista previa"
+              className="w-full h-auto max-h-40 object-contain bg-gray-50"
+            />
+          </div>
+        )}
+        <input
+          type="url"
+          className={inputClass}
+          value={(c.image as string) ?? ''}
+          onChange={(e) => onChange('image', e.target.value)}
+          placeholder="https://ejemplo.com/imagen.jpg"
+        />
+        <p className="mt-1 text-[10px] text-gray-400">
+          URL de una imagen para acompanar el texto
+        </p>
       </div>
     </div>
   );

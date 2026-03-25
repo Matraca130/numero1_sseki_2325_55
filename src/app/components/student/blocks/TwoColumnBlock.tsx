@@ -10,8 +10,6 @@ interface Column {
   items?: ColumnItem[];
 }
 
-const HEADER_COLORS = ['bg-[#2a8c7a]', 'bg-[#1B3B36]'] as const;
-
 export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
   const columns = (block.content?.columns ?? []) as Column[];
 
@@ -23,11 +21,9 @@ export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
           className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
         >
           {col.title && (
-            <div className={`${HEADER_COLORS[ci % HEADER_COLORS.length]} px-4 py-2.5`}>
-              <span className="text-[15px] font-bold text-white font-serif">
-                {col.title}
-              </span>
-            </div>
+            <h4 className="font-serif text-base font-bold text-[#1B3B36] dark:text-teal-400 mb-2.5 mt-0 px-4 pt-3">
+              {col.title}
+            </h4>
           )}
           <div>
             {(col.items ?? []).map((item, i) => (

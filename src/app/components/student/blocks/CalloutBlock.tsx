@@ -56,7 +56,7 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
       className={`rounded-xl px-5 py-4 border-l-4 ${v.light.bg} ${v.light.border} ${v.dark.bg} ${v.dark.border}`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Icon size={18} className={`${v.light.accent} ${v.dark.accent}`} />
+        <Icon size={16} className={`${v.light.accent} ${v.dark.accent}`} />
         <span className={`text-xs font-bold uppercase tracking-[0.05em] ${v.light.accent} ${v.dark.accent}`}>
           {v.label}
         </span>
