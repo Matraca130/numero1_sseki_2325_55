@@ -38,6 +38,10 @@ export interface GraphI18nStrings {
   /** Graph init error fallback */
   initErrorTitle: string;
   retry: string;
+  /** Export strings (from useGraphExport) */
+  exportNotReady: string;
+  exportFailed: string;
+  exportFilenamePrefix: string;
   /** G6 new features — layouts, toolbar, undo/redo, collapse */
   layoutDagre: string; layoutMindmap: string; layoutConcentric: string;
   undo: string; redo: string; fullscreen: string; exitFullscreen: string;
@@ -91,6 +95,9 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     exportJpegError: 'Não foi possível exportar como JPEG',
     initErrorTitle: 'Erro ao inicializar o gráfico',
     retry: 'Tentar novamente',
+    exportNotReady: 'O mapa ainda não está pronto para exportar',
+    exportFailed: 'Não foi possível exportar a imagem do mapa',
+    exportFilenamePrefix: 'mapa-conhecimento',
     layoutDagre: 'Hierárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concêntrico',
     undo: 'Desfazer', redo: 'Refazer', fullscreen: 'Tela cheia', exitFullscreen: 'Sair da tela cheia',
     hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Seleção livre',
@@ -141,6 +148,9 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     exportJpegError: 'No se pudo exportar como JPEG',
     initErrorTitle: 'Error al inicializar el gráfico',
     retry: 'Reintentar',
+    exportNotReady: 'El mapa aún no está listo para exportar',
+    exportFailed: 'No se pudo exportar la imagen del mapa',
+    exportFilenamePrefix: 'mapa-conocimiento',
     layoutDagre: 'Jerárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concéntrico',
     undo: 'Deshacer', redo: 'Rehacer', fullscreen: 'Pantalla completa', exitFullscreen: 'Salir de pantalla completa',
     hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Selección libre',

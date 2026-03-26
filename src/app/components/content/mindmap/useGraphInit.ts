@@ -112,6 +112,10 @@ export function computeNodeStyle(
       labelFontSize: 12,
       labelFontFamily: 'Inter, sans-serif',
       size: Math.max(44, Math.min(56, 44 + (node.mastery >= 0 ? node.mastery * 12 : 0))),
+      // Donut ring (mastery progress)
+      innerR: '65%',
+      donuts: (node.mastery >= 0 && node.mastery > 0) ? [node.mastery, 1 - node.mastery] : [0, 1],
+      donutPalette: [strokeColor, '#e5e7eb'],
       ...(savedPos ? { x: savedPos.x, y: savedPos.y } : {}),
     },
   };
@@ -156,13 +160,15 @@ export const MIN_ZOOM = 0.2;
 export const MAX_ZOOM = 5;
 
 // ── Layout presets (shared by init and layout-switch) ────────
-export const LAYOUT_FORCE = { type: 'd3-force' as const, preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.8 };
+export const LAYOUT_FORCE = { type: 'd3-force' as const, preventOverlap: true, nodeSize: 50, linkDistance: 150, nodeStrength: -200, collideStrength: 0.4 };
 export const LAYOUT_RADIAL = { type: 'radial' as const, unitRadius: 120, preventOverlap: true, nodeSize: 50 };
 export const LAYOUT_DAGRE = { type: 'dagre' as const, rankdir: 'TB', nodesep: 40, ranksep: 60 };
+export const LAYOUT_MINDMAP = { type: 'mindmap' as const, direction: 'H', getHeight: () => 32, getWidth: () => 32, getHGap: () => 40, getVGap: () => 20 };
+export const LAYOUT_CONCENTRIC = { type: 'concentric' as const, minNodeSpacing: 40, preventOverlap: true };
 
 export interface UseGraphInitOptions {
   data: GraphData;
-  layout: 'force' | 'radial' | 'dagre';
+  layout: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric';
   showMinimap: boolean;
   gridEnabled: boolean;
   topicId?: string;
@@ -425,8 +431,8 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     return `${e.length}:${hash}`;
   }, [data.edges]);
   const currentDataKey = useMemo(
-    () => `${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}`,
-    [nodeSetKey, edgeSetKey, showMinimap, gridEnabled],
+    () => `${nodeSetKey}|${edgeSetKey}|mm:${showMinimap ? '1' : '0'}|grid:${gridEnabled ? '1' : '0'}|lay:${layout}`,
+    [nodeSetKey, edgeSetKey, showMinimap, gridEnabled, layout],
   );
 
   // Stable refs for collapse/expand
@@ -497,7 +503,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
       autoFit: 'view',
       padding: [pad, pad, pad, pad],
       node: {
-        type: 'circle',
+        type: 'donut',
         style: {
           labelPlacement: 'bottom',
           labelMaxWidth: 100,
@@ -565,7 +571,9 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
         },
       },
       edge: {
-        type: 'line',
+        type: layout === 'dagre' ? 'cubic-vertical'
+          : layout === 'mindmap' ? 'cubic-horizontal'
+          : 'line',
         style: {
           labelPlacement: 'center',
         },
@@ -620,6 +628,12 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
         },
         {
           type: 'drag-element',
+          shadow: true,
+          hideEdge: 'none',
+          shadowStroke: GRAPH_COLORS.primary,
+          shadowStrokeOpacity: 0.6,
+          shadowFill: `rgba(${GRAPH_COLORS.primaryRgb}, 0.08)`,
+          shadowLineDash: [4, 4],
         },
         {
           type: 'hover-activate',
@@ -871,7 +885,17 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
 
     const layoutConfig = layout === 'dagre' ? LAYOUT_DAGRE
       : layout === 'radial' ? LAYOUT_RADIAL
+      : layout === 'mindmap' ? LAYOUT_MINDMAP
+      : layout === 'concentric' ? LAYOUT_CONCENTRIC
       : LAYOUT_FORCE;
+
+    // Update edge type for curved edges on hierarchical layouts
+    const edgeType = layout === 'dagre' ? 'cubic-vertical'
+      : layout === 'mindmap' ? 'cubic-horizontal'
+      : 'line';
+    try {
+      graph.setEdge({ type: edgeType });
+    } catch { /* ignore if method not available */ }
 
     layoutInProgressRef.current = true;
     graph.setLayout(layoutConfig);

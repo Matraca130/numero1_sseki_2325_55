@@ -14,6 +14,8 @@
 import { useCallback, useRef } from 'react';
 import type { Graph } from '@antv/g6';
 import { toast } from 'sonner';
+import type { GraphLocale } from './graphI18n';
+import { I18N_GRAPH } from './graphI18n';
 
 type ExportFormat = 'png' | 'jpeg';
 
@@ -35,7 +37,7 @@ function downloadDataURL(dataURL: string, filename: string) {
 /**
  * Build a timestamped filename for the export.
  */
-function buildFilename(format: ExportFormat): string {
+function buildFilename(prefix: string, format: ExportFormat): string {
   const now = new Date();
   const stamp = [
     now.getFullYear(),
@@ -44,7 +46,7 @@ function buildFilename(format: ExportFormat): string {
     String(now.getHours()).padStart(2, '0'),
     String(now.getMinutes()).padStart(2, '0'),
   ].join('');
-  return `mapa-conocimiento-${stamp}.${format === 'jpeg' ? 'jpg' : format}`;
+  return `${prefix}-${stamp}.${format === 'jpeg' ? 'jpg' : format}`;
 }
 
 export interface GraphExportControls {
@@ -65,8 +67,9 @@ export interface GraphExportControls {
  * setGraph(graph);
  * ```
  */
-export function useGraphExport() {
+export function useGraphExport(locale: GraphLocale = 'es') {
   const graphRef = useRef<Graph | null>(null);
+  const t = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
 
   const setGraph = useCallback((graph: Graph | null) => {
     graphRef.current = graph;
@@ -78,7 +81,7 @@ export function useGraphExport() {
     if (exportingRef.current) return; // Prevent concurrent exports
     const graph = graphRef.current;
     if (!graph || (graph as Graph & { destroyed?: boolean }).destroyed) {
-      toast.error('El mapa aún no está listo para exportar');
+      toast.error(t.exportNotReady);
       return;
     }
 
@@ -90,15 +93,15 @@ export function useGraphExport() {
         type: mimeType as 'image/png' | 'image/jpeg',
         encoderOptions: format === 'jpeg' ? 0.92 : 1,
       });
-      downloadDataURL(dataURL, buildFilename(format));
+      downloadDataURL(dataURL, buildFilename(t.exportFilenamePrefix, format));
     } catch (err: unknown) {
       // Graph may be destroyed or in transition
       if (import.meta.env.DEV) console.error('Export failed:', err);
-      toast.error('No se pudo exportar la imagen del mapa');
+      toast.error(t.exportFailed);
     } finally {
       exportingRef.current = false;
     }
-  }, []);
+  }, [t]);
 
   const exportPNG = useCallback(() => doExport('png'), [doExport]);
   const exportJPEG = useCallback(() => doExport('jpeg'), [doExport]);

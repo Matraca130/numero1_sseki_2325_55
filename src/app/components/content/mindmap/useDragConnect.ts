@@ -281,6 +281,15 @@ export function useDragConnect({
       const sy = e.clientY;
 
       // Check if pointer is near any node (within the node circle)
+      // First pass: check if pointer is inside the center of ANY node — if so, skip drag-connect
+      // This prevents capturing the pointer when nodes overlap and the user wants to drag normally
+      for (const node of positions) {
+        const dx = sx - node.x;
+        const dy = sy - node.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= node.size / 2 * 0.6) return; // Inside node center → let G6 handle drag
+      }
+
       for (const node of positions) {
         const dx = sx - node.x;
         const dy = sy - node.y;

@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { ZoomIn, ZoomOut, Maximize2, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon, Grid3x3, Shuffle, SlidersHorizontal } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Minimize as MinimizeIcon, LayoutGrid, Circle as CircleIcon, GitBranch, Search, X, Minimize2, Expand, Info, Download, Map as MapIcon, Grid3x3, Shuffle, SlidersHorizontal, Undo2, Redo2, BrainCircuit, Target, Hexagon } from 'lucide-react';
 import { MASTERY_HEX, CONNECTION_TYPES } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
@@ -16,11 +16,11 @@ import { toast } from 'sonner';
 
 // ── Types ───────────────────────────────────────────────────
 
-type LayoutType = 'force' | 'radial' | 'dagre';
+type LayoutType = 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric';
 type Locale = 'pt' | 'es';
 
 const I18N: Record<Locale, {
-  force: string; radial: string; tree: string;
+  force: string; radial: string; tree: string; mindmap: string; concentric: string;
   zoomIn: string; zoomOut: string; fitView: string;
   collapse: string; expand: string; expandN: (n: number) => string;
   search: string; clear: string; nodes: string; connections: string;
@@ -33,9 +33,11 @@ const I18N: Record<Locale, {
   grid: string; gridToggle: string;
   autoLayout: string; autoLayoutLabel: string;
   viewOptions: string; viewOptionsLabel: string;
+  undo: string; redo: string; fullscreen: string; exitFullscreen: string; hulls: string; hullsToggle: string;
+  undoRedoGroup: string;
 }> = {
   pt: {
-    force: 'Força', radial: 'Radial', tree: 'Árvore',
+    force: 'Força', radial: 'Radial', tree: 'Árvore', mindmap: 'Mapa mental', concentric: 'Concêntrico',
     zoomIn: 'Aumentar zoom', zoomOut: 'Diminuir zoom', fitView: 'Ajustar à vista',
     collapse: 'Recolher', expand: 'Expandir', expandN: (n) => `Expandir (${n})`,
     search: 'Buscar conceito...', clear: 'Limpar busca', nodes: 'nós', connections: 'conexões',
@@ -49,9 +51,11 @@ const I18N: Record<Locale, {
     grid: 'Quadrícula', gridToggle: 'Mostrar/ocultar quadrícula',
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automaticamente',
     viewOptions: 'Vista', viewOptionsLabel: 'Opções de visualização',
+    undo: 'Desfazer', redo: 'Refazer', fullscreen: 'Tela cheia', exitFullscreen: 'Sair da tela cheia',
+    hulls: 'Grupos', hullsToggle: 'Mostrar/ocultar grupos', undoRedoGroup: 'Desfazer/Refazer',
   },
   es: {
-    force: 'Fuerza', radial: 'Radial', tree: 'Árbol',
+    force: 'Fuerza', radial: 'Radial', tree: 'Árbol', mindmap: 'Mapa mental', concentric: 'Concéntrico',
     zoomIn: 'Acercar', zoomOut: 'Alejar', fitView: 'Ajustar a la vista',
     collapse: 'Colapsar', expand: 'Expandir', expandN: (n) => `Expandir (${n})`,
     search: 'Buscar concepto...', clear: 'Limpiar búsqueda', nodes: 'nodos', connections: 'conexiones',
@@ -65,6 +69,8 @@ const I18N: Record<Locale, {
     grid: 'Cuadrícula', gridToggle: 'Mostrar/ocultar cuadrícula',
     autoLayout: 'Organizar', autoLayoutLabel: 'Reorganizar grafo automáticamente',
     viewOptions: 'Vista', viewOptionsLabel: 'Opciones de vista',
+    undo: 'Deshacer', redo: 'Rehacer', fullscreen: 'Pantalla completa', exitFullscreen: 'Salir de pantalla completa',
+    hulls: 'Grupos', hullsToggle: 'Mostrar/ocultar grupos', undoRedoGroup: 'Deshacer/Rehacer',
   },
 };
 
@@ -118,6 +124,12 @@ interface GraphToolbarProps {
   masteryFilter?: MasteryColor | null;
   /** Callback when mastery filter changes */
   onMasteryFilterChange?: (filter: MasteryColor | null) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onFullscreen?: () => void;
+  isFullscreen?: boolean;
+  onHullsToggle?: () => void;
+  showHulls?: boolean;
 }
 
 // ── Mastery Legend ───────────────────────────────────────────
@@ -130,6 +142,8 @@ const LAYOUT_ICONS: Record<LayoutType, React.ElementType> = {
   force: GitBranch,
   radial: CircleIcon,
   dagre: LayoutGrid,
+  mindmap: BrainCircuit,
+  concentric: Target,
 };
 
 // ── Separator component ─────────────────────────────────────
@@ -173,6 +187,7 @@ export const GraphToolbar = memo(function GraphToolbar({
   onResetZoom,
   masteryFilter,
   onMasteryFilterChange,
+  onUndo, onRedo, onFullscreen, isFullscreen, onHullsToggle, showHulls,
 }: GraphToolbarProps) {
   const t = I18N[locale];
   const [showEdgeLegend, setShowEdgeLegend] = useState(false);
@@ -186,7 +201,7 @@ export const GraphToolbar = memo(function GraphToolbar({
   const viewOptionsRef = useRef<HTMLDivElement>(null);
 
   const LAYOUT_LABELS = useMemo<Record<LayoutType, string>>(() => ({
-    force: t.force, radial: t.radial, dagre: t.tree,
+    force: t.force, radial: t.radial, dagre: t.tree, mindmap: t.mindmap, concentric: t.concentric,
   }), [t]);
 
   const hasExport = !!(onExportPNG || onExportJPEG);
@@ -249,7 +264,7 @@ export const GraphToolbar = memo(function GraphToolbar({
         role="radiogroup"
         aria-label={t.layoutGroup}
         onKeyDown={(e) => {
-          const layouts = ['force', 'radial', 'dagre'] as const;
+          const layouts = ['force', 'radial', 'dagre', 'mindmap', 'concentric'] as const;
           const idx = layouts.indexOf(layout);
           if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             e.preventDefault();
@@ -264,7 +279,7 @@ export const GraphToolbar = memo(function GraphToolbar({
           }
         }}
       >
-        {(['force', 'radial', 'dagre'] as const).map((value) => {
+        {(['force', 'radial', 'dagre', 'mindmap', 'concentric'] as const).map((value) => {
           const Icon = LAYOUT_ICONS[value];
           const label = LAYOUT_LABELS[value];
           return (
@@ -331,6 +346,42 @@ export const GraphToolbar = memo(function GraphToolbar({
           <ZoomIn className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Undo/Redo */}
+      {(onUndo || onRedo) && (
+        <>
+          <ToolSeparator />
+          <div className="flex items-center gap-0.5" role="group" aria-label={t.undoRedoGroup}>
+            {onUndo && (
+              <button onClick={onUndo} className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150" title={`${t.undo} (Ctrl+Z)`} aria-label={t.undo}>
+                <Undo2 className="w-4 h-4" />
+              </button>
+            )}
+            {onRedo && (
+              <button onClick={onRedo} className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150" title={`${t.redo} (Ctrl+Y)`} aria-label={t.redo}>
+                <Redo2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Fullscreen */}
+      {onFullscreen && (
+        <>
+          <ToolSeparator />
+          <button onClick={onFullscreen} className="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50 transition-all duration-150" title={isFullscreen ? t.exitFullscreen : t.fullscreen} aria-label={isFullscreen ? t.exitFullscreen : t.fullscreen}>
+            {isFullscreen ? <MinimizeIcon className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+        </>
+      )}
+
+      {/* Hulls toggle */}
+      {onHullsToggle && (
+        <button onClick={onHullsToggle} className={`flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-full transition-all duration-150 ${showHulls ? 'text-ax-primary-500 bg-ax-primary-50' : 'text-gray-500 hover:text-ax-primary-700 hover:bg-gray-50'}`} title={t.hullsToggle} aria-label={t.hullsToggle} aria-pressed={!!showHulls}>
+          <Hexagon className="w-4 h-4" />
+        </button>
+      )}
 
       <ToolSeparator />
 

@@ -34,7 +34,7 @@ import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
 
 // Extracted hooks
-import { useGraphInit, warnIfNotDestroyed, LAYOUT_FORCE, LAYOUT_RADIAL, LAYOUT_DAGRE } from './useGraphInit';
+import { useGraphInit, warnIfNotDestroyed, LAYOUT_FORCE, LAYOUT_RADIAL, LAYOUT_DAGRE, LAYOUT_MINDMAP, LAYOUT_CONCENTRIC } from './useGraphInit';
 import { useGraphEvents } from './useGraphEvents';
 import { useGraphHighlighting } from './useGraphHighlighting';
 
@@ -52,7 +52,7 @@ interface KnowledgeGraphProps {
   onNodeClick?: (node: MapNode | null, position?: { x: number; y: number }) => void;
   onNodeRightClick?: (node: MapNode, position: { x: number; y: number }) => void;
   selectedNodeId?: string | null;
-  layout?: 'force' | 'radial' | 'dagre';
+  layout?: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric';
   className?: string;
   /** Called when the graph is ready, exposes zoom/fitView/collapse controls */
   onReady?: (controls: GraphControls) => void;
@@ -407,7 +407,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     const graph = graphRef.current;
     if (!graph || layoutInProgressRef.current) return;
 
-    const layouts = ['d3-force', 'dagre', 'radial'] as const;
+    const layouts = ['d3-force', 'dagre', 'radial', 'mindmap', 'concentric'] as const;
     type LayoutKey = typeof layouts[number];
     try {
       const currentLayout = graph.getLayout();
@@ -420,6 +420,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
 
       const layoutConfig = nextType === 'dagre' ? LAYOUT_DAGRE
         : nextType === 'radial' ? LAYOUT_RADIAL
+        : nextType === 'mindmap' ? LAYOUT_MINDMAP
+        : nextType === 'concentric' ? LAYOUT_CONCENTRIC
         : LAYOUT_FORCE;
 
       layoutInProgressRef.current = true;
