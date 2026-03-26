@@ -22,5 +22,11 @@ export default defineConfig({
     setupFiles: ['src/test/setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['node_modules', 'dist', '.git'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'text-summary', 'html'],
+      include: ['src/app/**/*.{ts,tsx}'],
+      exclude: ['src/app/components/ui/**', '**/*.test.*', '**/test-utils.*'],
+    },
   },
 });

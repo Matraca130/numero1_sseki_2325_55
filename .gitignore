@@ -8,3 +8,4 @@ package-lock.json
 .claude/worktrees/
 .claude/agent-memory/
 .claude/ralph-loop.local.md
+coverage/

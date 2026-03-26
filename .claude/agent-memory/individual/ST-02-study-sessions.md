@@ -1,5 +1,5 @@
 # Agent Memory: ST-02 (study-sessions)
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
 ## Rol
 Mantener y evolucionar el flujo completo de sesiones de estudio: creación de sesión, envío de batches de revisión FSRS y registro de analítica de actividad.
@@ -8,6 +8,9 @@ Mantener y evolucionar el flujo completo de sesiones de estudio: creación de se
 | Fecha | Lección | Prevención |
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
+| 2026-03-26 | studentApi.ts es un barrel re-exporter; las implementaciones reales viven en student-api/sa-*.ts sub-files. Tests deben importar desde barrel pero entender las sub-files para verificar contratos. | Siempre leer los sub-files antes de escribir tests |
+| 2026-03-26 | saveReviews tiene un flujo de 3 pasos: (1) POST /study-sessions, (2) POST /reviews por cada review, (3) PUT /study-sessions/:id para finalizar. correct_reviews se calcula con rating >= 3. | Verificar los 3 pasos en contract tests |
+| 2026-03-26 | Funciones stub (getReviews, getReviewsByCourse, getAllSummaries, etc.) retornan valores vacios sin llamar apiCall. Los tests deben verificar que NO se llama mockApiCall. | No mockear apiCall para stubs |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -27,6 +30,7 @@ Mantener y evolucionar el flujo completo de sesiones de estudio: creación de se
 - `session-stats.ts` debe ser función pura sin side effects; los side effects de tracking van en `sessionAnalytics.ts`.
 - Aplicar retry con exponential backoff en todas las llamadas a API.
 - Flujo estándar: crear sesión → obtener batch → estudiante responde → enviar batch → actualizar FSRS → registrar analytics → cerrar sesión.
+- Para contract tests: mock `apiCall` con `vi.fn()` ANTES de los imports, usar `mockApiCall.mock.calls[N]` para inspeccionar URL/method/body. Resetear caches de infra en `beforeEach`.
 
 ## Patrones a evitar
 | Pattern | Por qué | Alternativa |
@@ -41,7 +45,7 @@ Mantener y evolucionar el flujo completo de sesiones de estudio: creación de se
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 0 | — |
+| Sesiones ejecutadas | 1 | 2026-03-26 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
