@@ -19,7 +19,7 @@ describe('ProseForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.prose);
     render(<ProseForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo del bloque')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título del bloque')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -34,7 +34,7 @@ describe('ProseForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.prose);
     render(<ProseForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo del bloque'), { target: { value: 'New Title' } });
+    fireEvent.change(screen.getByPlaceholderText('Título del bloque'), { target: { value: 'New Title' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New Title');
   });
 
@@ -68,7 +68,7 @@ describe('KeyPointForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.key_point);
     render(<KeyPointForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo del punto clave')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título del punto clave')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -82,7 +82,7 @@ describe('KeyPointForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.key_point);
     render(<KeyPointForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo del punto clave'), { target: { value: 'New Key' } });
+    fireEvent.change(screen.getByPlaceholderText('Título del punto clave'), { target: { value: 'New Key' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New Key');
   });
 
@@ -90,7 +90,7 @@ describe('KeyPointForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.key_point);
     render(<KeyPointForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Descripcion del punto clave...'), { target: { value: 'Updated desc' } });
+    fireEvent.change(screen.getByPlaceholderText('Descripción del punto clave...'), { target: { value: 'Updated desc' } });
     expect(onChange).toHaveBeenCalledWith('content', 'Updated desc');
   });
 
@@ -126,7 +126,7 @@ describe('StagesForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.stages);
     render(<StagesForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo de las etapas')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título de las etapas')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -148,7 +148,7 @@ describe('StagesForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.stages);
     render(<StagesForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo de las etapas'), { target: { value: 'New Stages' } });
+    fireEvent.change(screen.getByPlaceholderText('Título de las etapas'), { target: { value: 'New Stages' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New Stages');
   });
 
@@ -156,7 +156,7 @@ describe('StagesForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.stages);
     render(<StagesForm block={block} onChange={onChange} />);
-    const stageTitleInputs = screen.getAllByPlaceholderText('Titulo de la etapa');
+    const stageTitleInputs = screen.getAllByPlaceholderText('Título de la etapa');
     fireEvent.change(stageTitleInputs[0], { target: { value: 'Updated Step' } });
     expect(onChange).toHaveBeenCalledWith('items', expect.arrayContaining([
       expect.objectContaining({ title: 'Updated Step' }),
@@ -196,7 +196,7 @@ describe('ComparisonForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.comparison);
     render(<ComparisonForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo de la comparacion')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título de la comparación')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -221,7 +221,7 @@ describe('ComparisonForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.comparison);
     render(<ComparisonForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo de la comparacion'), { target: { value: 'New Compare' } });
+    fireEvent.change(screen.getByPlaceholderText('Título de la comparación'), { target: { value: 'New Compare' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New Compare');
   });
 
@@ -265,7 +265,7 @@ describe('ListDetailForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.list_detail);
     render(<ListDetailForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo de la lista')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título de la lista')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -281,7 +281,7 @@ describe('ListDetailForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.list_detail);
     render(<ListDetailForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo de la lista'), { target: { value: 'New List' } });
+    fireEvent.change(screen.getByPlaceholderText('Título de la lista'), { target: { value: 'New List' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New List');
   });
 
@@ -335,7 +335,7 @@ describe('GridForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.grid);
     render(<GridForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo del grid')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título del grid')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -350,7 +350,7 @@ describe('GridForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.grid);
     render(<GridForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo del grid'), { target: { value: 'New Grid' } });
+    fireEvent.change(screen.getByPlaceholderText('Título del grid'), { target: { value: 'New Grid' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New Grid');
   });
 
@@ -480,7 +480,7 @@ describe('CalloutForm', () => {
   it('renders without crashing', () => {
     const block = makeBlock(FORM_FIXTURES.callout);
     render(<CalloutForm block={block} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Titulo del callout')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Título del callout')).toBeInTheDocument();
   });
 
   it('displays current content values', () => {
@@ -520,7 +520,7 @@ describe('CalloutForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.callout);
     render(<CalloutForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Titulo del callout'), { target: { value: 'New Callout' } });
+    fireEvent.change(screen.getByPlaceholderText('Título del callout'), { target: { value: 'New Callout' } });
     expect(onChange).toHaveBeenCalledWith('title', 'New Callout');
   });
 
@@ -569,7 +569,7 @@ describe('ImageReferenceForm', () => {
     const onChange = vi.fn();
     const block = makeBlock(FORM_FIXTURES.image_reference);
     render(<ImageReferenceForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('Descripcion de la imagen...'), { target: { value: 'Updated desc' } });
+    fireEvent.change(screen.getByPlaceholderText('Descripción de la imagen...'), { target: { value: 'Updated desc' } });
     expect(onChange).toHaveBeenCalledWith('description', 'Updated desc');
   });
 
