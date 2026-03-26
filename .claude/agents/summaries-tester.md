@@ -15,6 +15,13 @@ Sos el agente tester de la sección Resúmenes de AXON.
 - `src/__tests__/summary-annotations.test.ts`
 - `src/__tests__/summary-rag.test.ts`
 
+**Tests block editor (frontend):**
+- `components/student/blocks/__tests__/*.test.tsx` — 11 renderer tests
+- `components/student/blocks/__tests__/test-utils.ts`
+- `components/student/__tests__/ViewerBlock.integration.test.tsx`
+- `components/professor/block-editor/forms/__tests__/forms.test.tsx` — 72 form tests
+- `components/professor/block-editor/forms/__tests__/test-utils.ts`
+
 **Tests backend:**
 - `supabase/functions/server/tests/semantic_chunker_test.ts`
 - `supabase/functions/server/tests/summary_hook_test.ts`

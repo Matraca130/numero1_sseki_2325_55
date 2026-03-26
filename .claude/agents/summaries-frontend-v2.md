@@ -43,6 +43,17 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 - `services/studentSummariesApi.ts` (227L)
 - `lib/summary-content-helpers.tsx`
 - `components/content/summary-helpers.ts`
+- `components/professor/block-editor/BlockEditor.tsx` — Block editor orchestrator
+- `components/professor/block-editor/BlockEditorToolbar.tsx`
+- `components/professor/block-editor/BlockCard.tsx`
+- `components/professor/block-editor/BlockTypeSelector.tsx`
+- `components/professor/block-editor/AddBlockButton.tsx`
+- `components/professor/block-editor/BlockFormRouter.tsx`
+- `components/professor/block-editor/forms/*.tsx` — 10 block type forms
+- `components/student/blocks/*.tsx` — 10 block renderers + IconByName + KeywordChip + renderTextWithKeywords
+- `components/student/blocks/index.ts` — Block renderers barrel
+- `components/student/ViewerBlock.tsx` — Block type router
+- `hooks/queries/useBlockEditorMutations.ts` — Block CRUD mutations
 
 ## Zona de solo lectura
 
