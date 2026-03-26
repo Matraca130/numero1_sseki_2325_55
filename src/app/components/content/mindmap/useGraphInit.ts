@@ -808,6 +808,13 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
           collapsedMarkerFill: GRAPH_COLORS.primary,
         },
       },
+      transforms: [
+        // Curve parallel edges so they don't overlap (e.g. bidirectional relations)
+        {
+          type: 'process-parallel-edges',
+          distance: 20,
+        },
+      ],
       animation: true,
     });
 
