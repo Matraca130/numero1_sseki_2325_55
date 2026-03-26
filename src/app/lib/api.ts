@@ -20,6 +20,7 @@
 // ============================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/app/lib/supabase';
+import { extractItems } from '@/app/lib/api-helpers';
 
 export const API_BASE = `${SUPABASE_URL}/functions/v1/server`;
 export const ANON_KEY = SUPABASE_ANON_KEY;
@@ -285,9 +286,10 @@ interface KeywordRow {
  */
 export async function ensureGeneralKeyword(summaryId: string): Promise<string> {
   // 1. Fetch existing keywords for this summary
-  const keywords = await apiCall<KeywordRow[]>(
+  const raw = await apiCall(
     `/keywords?summary_id=${encodeURIComponent(summaryId)}`
   );
+  const keywords = extractItems<KeywordRow>(raw);
 
   // 2. Look for an existing "General" keyword (case-insensitive)
   const general = keywords.find(
