@@ -86,11 +86,9 @@ export async function getQuizzes(
  * Create a new quiz entity.
  */
 export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
-  // BUG-020: Strip time_limit_seconds — backend has no column for it yet
-  const { time_limit_seconds: _omit, ...payload } = data;
   return apiCall<QuizEntity>('/quizzes', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   });
 }
 
@@ -98,11 +96,9 @@ export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
  * Update a quiz entity.
  */
 export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<QuizEntity> {
-  // BUG-020: Strip time_limit_seconds — backend has no column for it yet
-  const { time_limit_seconds: _omit, ...payload } = data;
   return apiCall<QuizEntity>(`/quizzes/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   });
 }
 

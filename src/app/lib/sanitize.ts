@@ -31,7 +31,7 @@ export function sanitizeHtml(dirty: string): string {
       'class', 'id', 'style', 'src', 'alt', 'title', 'width', 'height',
       'loading', 'href', 'target', 'rel', 'colspan', 'rowspan', 'scope',
     ],
-    ALLOW_DATA_ATTR: true,
+    ALLOW_DATA_ATTR: false,
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
   });
