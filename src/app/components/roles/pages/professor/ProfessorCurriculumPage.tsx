@@ -216,7 +216,7 @@ export function ProfessorCurriculumPage() {
               {/* Mobile: open tree button */}
               <button
                 onClick={() => setMobileTreeOpen(true)}
-                className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-purple-600 hover:text-purple-700 bg-purple-50 border border-purple-100 rounded-lg hover:bg-purple-100 transition-colors"
+                className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-violet-600 hover:text-violet-700 bg-violet-50 border border-violet-100 rounded-lg hover:bg-violet-100 transition-colors"
               >
                 <ListTree size={13} />
                 Contenido
@@ -238,7 +238,7 @@ export function ProfessorCurriculumPage() {
       {!loading && tree && (tree?.courses || []).length > 0 && (
         <div className="px-4 lg:px-6 py-2.5 border-b border-gray-100 bg-white flex items-center gap-4 lg:gap-6 overflow-x-auto">
           {[
-            { label: 'Cursos', value: stats.courses, color: 'text-purple-600' },
+            { label: 'Cursos', value: stats.courses, color: 'text-violet-600' },
             { label: 'Semestres', value: stats.semesters, color: 'text-blue-600' },
             { label: 'Secciones', value: stats.sections, color: 'text-emerald-600' },
             { label: 'Topicos', value: stats.topics, color: 'text-gray-600' },
@@ -282,6 +282,7 @@ export function ProfessorCurriculumPage() {
                   onClick={() => setTreeVisible(false)}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   title="Ocultar arbol"
+                  aria-label="Ocultar arbol de contenido"
                 >
                   <PanelLeftClose size={15} />
                 </button>
@@ -310,6 +311,7 @@ export function ProfessorCurriculumPage() {
                       onClick={() => setTreeVisible(true)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
                       title="Mostrar arbol"
+                      aria-label="Mostrar arbol de contenido"
                     >
                       <PanelLeft size={14} />
                       Mostrar arbol
@@ -323,7 +325,7 @@ export function ProfessorCurriculumPage() {
                     onClick={() => setActiveTab('content')}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                       activeTab === 'content'
-                        ? 'border-purple-600 text-purple-700 bg-purple-50'
+                        ? 'border-violet-600 text-violet-700 bg-violet-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -334,7 +336,7 @@ export function ProfessorCurriculumPage() {
                     onClick={() => setActiveTab('3d')}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                       activeTab === '3d'
-                        ? 'border-purple-600 text-purple-700 bg-purple-50'
+                        ? 'border-violet-600 text-violet-700 bg-violet-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -369,7 +371,7 @@ export function ProfessorCurriculumPage() {
                 {(isMobile || !treeVisible) && (
                   <button
                     onClick={() => isMobile ? setMobileTreeOpen(true) : setTreeVisible(true)}
-                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm text-purple-600 bg-purple-50 border border-purple-100 rounded-lg hover:bg-purple-100 transition-colors"
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm text-violet-600 bg-violet-50 border border-violet-100 rounded-lg hover:bg-violet-100 transition-colors"
                   >
                     <ListTree size={16} />
                     Abrir arbol de contenido
