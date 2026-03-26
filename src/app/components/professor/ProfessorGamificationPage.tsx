@@ -64,10 +64,10 @@ export function ProfessorGamificationPage() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center"><TrendingUp size={24} className="text-purple-600" /></div><div><h1 className="text-xl text-gray-900" style={{ fontWeight: 800 }}>Gamificacion de Estudiantes</h1><p className="text-[12px] text-gray-500">Monitorea el progreso y engagement</p></div></div>
+          <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-teal-100 flex items-center justify-center"><TrendingUp size={24} className="text-teal-600" /></div><div><h1 className="text-xl text-gray-900" style={{ fontWeight: 800 }}>Gamificacion de Estudiantes</h1><p className="text-[12px] text-gray-500">Monitorea el progreso y engagement</p></div></div>
           <div className="flex items-center bg-gray-100 rounded-xl p-1">{(['weekly', 'daily'] as const).map(p => (<button key={p} onClick={() => setPeriod(p)} className={`px-4 py-1.5 rounded-lg text-[11px] transition-all ${period === p ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`} style={{ fontWeight: period === p ? 700 : 500 }}>{p === 'weekly' ? 'Semanal' : 'Hoy'}</button>))}</div>
         </div>
-        {loading ? <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-purple-500" /></div>
+        {loading ? <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-teal-500" /></div>
         : error ? <div className="flex items-center gap-2 p-4 bg-red-50 rounded-xl border border-red-200 text-[12px] text-red-700"><AlertTriangle size={14} />{error}</div>
         : <>
           <div className="grid grid-cols-4 gap-4 mb-8">
@@ -98,6 +98,6 @@ export function ProfessorGamificationPage() {
 }
 
 function StatC({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
-  const cm: Record<string, string> = { purple: 'text-purple-600 bg-purple-50 border-purple-200', blue: 'text-blue-600 bg-blue-50 border-blue-200', amber: 'text-amber-600 bg-amber-50 border-amber-200', emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
+  const cm: Record<string, string> = { purple: 'text-teal-600 bg-teal-50 border-teal-200', blue: 'text-teal-600 bg-teal-50 border-teal-200', amber: 'text-amber-600 bg-amber-50 border-amber-200', emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
   return <div className={`rounded-2xl px-4 py-4 border ${cm[color] ?? cm.purple}`}><div className="flex items-center gap-1.5 mb-2">{icon}</div><p className="text-2xl tabular-nums" style={{ fontWeight: 800 }}>{value}</p><p className="text-[10px] opacity-70 mt-0.5" style={{ fontWeight: 500 }}>{label}</p></div>;
 }

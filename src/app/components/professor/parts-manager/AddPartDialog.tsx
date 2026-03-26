@@ -98,7 +98,7 @@ export function AddPartDialog({ layers, onAdd, onCancel }: AddPartDialogProps) {
         <button
           type="submit"
           disabled={!name.trim() || !fileUrl.trim()}
-          className="px-3 py-1.5 text-[10px] font-semibold text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors disabled:opacity-50"
+          className="px-3 py-1.5 text-[10px] font-semibold text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-full transition-colors disabled:opacity-50"
         >
           Agregar Parte
         </button>

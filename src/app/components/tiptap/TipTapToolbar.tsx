@@ -68,7 +68,7 @@ function ToolbarButton({
       className={clsx(
         'p-1.5 rounded-md transition-colors',
         active
-          ? 'bg-violet-100 text-violet-700'
+          ? 'bg-teal-100 text-teal-700'
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
         disabled && 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-gray-500'
       )}
@@ -314,13 +314,13 @@ export function TipTapToolbar({
           className={clsx(
             'flex items-center gap-1 p-1.5 rounded-md transition-colors',
             editor && !editor.state.selection.empty
-              ? 'text-violet-600 bg-violet-50 hover:bg-violet-100 ring-1 ring-violet-200'
-              : 'text-gray-500 hover:bg-violet-50 hover:text-violet-600'
+              ? 'text-teal-600 bg-teal-50 hover:bg-teal-100 ring-1 ring-teal-200'
+              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-600'
           )}
         >
           <Tag size={14} />
           {keywordsCount != null && keywordsCount > 0 && (
-            <span className="text-[10px] bg-violet-100 text-violet-600 rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+            <span className="text-[10px] bg-teal-100 text-teal-600 rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
               {keywordsCount}
             </span>
           )}
@@ -332,11 +332,11 @@ export function TipTapToolbar({
           type="button"
           onClick={onVideosClick}
           title="Videos"
-          className="flex items-center gap-1 p-1.5 rounded-md text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+          className="flex items-center gap-1 p-1.5 rounded-md text-gray-500 hover:bg-teal-50 hover:text-teal-600 transition-colors"
         >
           <VideoIcon size={14} />
           {videosCount != null && videosCount > 0 && (
-            <span className="text-[10px] bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+            <span className="text-[10px] bg-teal-100 text-teal-600 rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
               {videosCount}
             </span>
           )}
@@ -362,7 +362,7 @@ export function TipTapToolbar({
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : saveStatus === 'error'
                 ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                : 'bg-violet-600 hover:bg-violet-700 text-white'
+                : 'bg-[#2a8c7a] hover:bg-[#244e47] text-white'
         )}
       >
         {saveStatus === 'saving' ? (

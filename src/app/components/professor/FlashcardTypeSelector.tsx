@@ -173,13 +173,13 @@ function SideToggle({
   ];
 
   const activeClasses = color === 'purple'
-    ? 'bg-purple-100 text-purple-700 border-purple-200 shadow-sm'
+    ? 'bg-teal-100 text-teal-700 border-teal-200 shadow-sm'
     : 'bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm';
 
   return (
     <div className="flex flex-col gap-1">
       <span className={`text-[10px] font-semibold tracking-wide uppercase ${
-        color === 'purple' ? 'text-purple-500' : 'text-emerald-500'
+        color === 'purple' ? 'text-teal-500' : 'text-emerald-500'
       }`}>
         {label}
       </span>

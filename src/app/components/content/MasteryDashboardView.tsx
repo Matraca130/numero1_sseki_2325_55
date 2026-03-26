@@ -65,10 +65,10 @@ const SUBJECT_BADGE_STYLES: Record<string, string> = {
 };
 
 const SUBJECT_ACCENT_COLORS: Record<string, string> = {
-  'Psicologia Cognitiva': 'bg-gradient-to-b from-red-500 to-orange-500',
-  'Fisiologia II': 'bg-gradient-to-r from-blue-400 to-blue-600',
-  'Anatomia': 'bg-gradient-to-r from-pink-400 to-pink-600',
-  'Bioquímica': 'bg-gradient-to-r from-emerald-400 to-emerald-600',
+  'Psicologia Cognitiva': 'bg-red-500',
+  'Fisiologia II': 'bg-blue-500',
+  'Anatomia': 'bg-pink-500',
+  'Bioquímica': 'bg-emerald-500',
   'Geral': 'bg-gray-300',
 };
 
@@ -89,9 +89,9 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
         <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
             <path className="text-gray-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-            <path className="text-violet-500 drop-shadow-md" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${completionPct}, 100`} strokeLinecap="round" strokeWidth="3" />
+            <path className="text-teal-500 drop-shadow-md" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${completionPct}, 100`} strokeLinecap="round" strokeWidth="3" />
           </svg>
-          <span className="absolute text-xs text-violet-600" style={{ fontWeight: 700 }}>{completionPct}%</span>
+          <span className="absolute text-xs text-teal-600" style={{ fontWeight: 700 }}>{completionPct}%</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 lg:px-6 py-4 space-y-6">
@@ -103,7 +103,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
             </div>
             {displayTasks.filter(t => t.type === 'review').map(task => (
               <div key={task.id} className="bg-white rounded-xl p-3 lg:p-4 shadow-md ring-1 ring-red-500/30 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-red-500 to-orange-500" />
+                <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
                 <div className="flex justify-between items-start mb-2">
                   <span className={clsx("px-2 py-1 rounded-md text-xs uppercase tracking-wider", SUBJECT_BADGE_STYLES[task.subject] || 'bg-gray-100 text-gray-500')} style={{ fontWeight: 700 }}><Brain size={12} className="inline mr-1" />{task.subject}</span>
                   <span className="font-mono text-xs text-red-500 bg-red-50 px-2 py-1 rounded" style={{ fontWeight: 700 }}>Urgente</span>
@@ -111,9 +111,9 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
                 <h3 className="text-gray-800 mb-1" style={{ fontWeight: 700 }}>{task.title}</h3>
                 <div className="mb-4">
                   <div className="flex justify-between text-[10px] text-gray-400 mb-1 uppercase"><span>Retenção</span><span className="text-red-500">{task.retention}% (Crítico)</span></div>
-                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-red-500 to-orange-400 rounded-full" style={{ width: `${task.retention}%` }} /></div>
+                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-red-500 rounded-full" style={{ width: `${task.retention}%` }} /></div>
                 </div>
-                <button onClick={() => navigateTo('review-session')} className="w-full h-11 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm tracking-wide shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-95 min-h-[44px]" style={{ fontWeight: 700 }}><PlayCircle size={16} className="animate-pulse" /> Iniciar Revisão</button>
+                <button onClick={() => navigateTo('review-session')} className="w-full h-11 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm tracking-wide shadow-lg transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[44px] font-semibold" style={{ fontWeight: 700 }}><PlayCircle size={16} /> Iniciar Revisão</button>
               </div>
             ))}
           </div>
@@ -123,7 +123,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
           {displayTasks.filter(t => t.type === 'session').map((task, i) => {
             const opacity = i >= 2 ? (i >= 3 ? 'opacity-60 hover:opacity-100' : 'opacity-80 hover:opacity-100') : '';
             return (
-              <div key={task.id} className={clsx("bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-white hover:bg-white transition-colors relative overflow-hidden", task.isPrimary && "ring-1 ring-violet-500/20 shadow-md", opacity)}>
+              <div key={task.id} className={clsx("bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-white hover:bg-white transition-colors relative overflow-hidden", task.isPrimary && "ring-1 ring-teal-500/20 shadow-md", opacity)}>
                 <div className={clsx("absolute top-0 left-0 w-1 h-full", SUBJECT_ACCENT_COLORS[task.subject] || 'bg-gray-300')} />
                 <div className="flex justify-between items-start mb-2">
                   <span className={clsx("px-2 py-1 rounded-md text-xs uppercase tracking-wider", SUBJECT_BADGE_STYLES[task.subject] || 'bg-gray-100 text-gray-500')} style={{ fontWeight: 700 }}>{task.subject}</span>
@@ -131,7 +131,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
                 </div>
                 <h3 className={clsx("text-gray-800 mb-1", !task.isPrimary && 'text-base')} style={{ fontWeight: 700 }}>{task.title}</h3>
                 {task.description && <p className="text-sm text-gray-400 mb-3">{task.description}</p>}
-                {task.isPrimary && (<button onClick={() => navigateTo('study')} className="w-full h-11 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm tracking-wide shadow-md hover:shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-95 min-h-[44px]" style={{ fontWeight: 700 }}><Play size={16} /> Iniciar Sessão</button>)}
+                {task.isPrimary && (<button onClick={() => navigateTo('study')} className="w-full h-11 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm tracking-wide shadow-md transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[44px] font-semibold" style={{ fontWeight: 700 }}><Play size={16} /> Iniciar Sessão</button>)}
                 {task.duration && (<div className="flex gap-2 mt-1"><span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={12} /> {task.duration}</span></div>)}
               </div>
             );
@@ -139,7 +139,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
         </div>
       </div>
       <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-md shrink-0">
-        <button className="w-full py-2.5 rounded-lg border-2 border-dashed border-violet-500/30 text-violet-600 text-sm hover:bg-violet-50 hover:border-violet-500/50 transition-all flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><Plus size={16} /> Adicionar Nova Tarefa</button>
+        <button className="w-full py-2.5 rounded-full border-2 border-dashed border-teal-500/30 text-teal-600 text-sm hover:bg-teal-50 hover:border-teal-500/50 transition-all flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><Plus size={16} /> Adicionar Nova Tarefa</button>
       </div>
     </div>
   );
@@ -195,7 +195,7 @@ export function MasteryDashboardView() {
           subtitle="Painel de domínio do estudo"
           onBack={() => navigateTo('schedule')}
           statsLeft={<div className="flex items-center gap-1 bg-white/60 rounded-lg p-1 border border-gray-200/60"><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronLeft size={18} /></button><button className="px-2 lg:px-3 py-1 text-sm text-gray-700 min-h-[44px]">Hoje</button><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronRight size={18} /></button></div>}
-          statsRight={<div className="flex items-center gap-2"><button onClick={() => setSidebarOpen(true)} className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-gray-200/60 text-gray-600 text-sm min-h-[44px]"><CalendarDays size={16} className="text-violet-500" /><span className="hidden sm:inline">Agenda</span></button><div className="flex bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">{(['day', 'week', 'month'] as const).map(mode => (<button key={mode} onClick={() => setViewMode(mode)} className={clsx("px-3 lg:px-4 py-1.5 rounded-lg text-sm transition-all whitespace-nowrap min-h-[44px]", viewMode === mode ? "bg-white shadow-sm text-violet-600" : "text-gray-400 hover:text-gray-600 hover:bg-white/50")}>{mode === 'day' ? 'Dia' : mode === 'week' ? 'Sem' : 'Mês'}</button>))}</div></div>}
+          statsRight={<div className="flex items-center gap-2"><button onClick={() => setSidebarOpen(true)} className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-gray-200/60 text-gray-600 text-sm min-h-[44px]"><CalendarDays size={16} className="text-teal-500" /><span className="hidden sm:inline">Agenda</span></button><div className="flex bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">{(['day', 'week', 'month'] as const).map(mode => (<button key={mode} onClick={() => setViewMode(mode)} className={clsx("px-3 lg:px-4 py-1.5 rounded-lg text-sm transition-all whitespace-nowrap min-h-[44px]", viewMode === mode ? "bg-white shadow-sm text-teal-600" : "text-gray-400 hover:text-gray-600 hover:bg-white/50")}>{mode === 'day' ? 'Dia' : mode === 'week' ? 'Sem' : 'Mês'}</button>))}</div></div>}
         />
       </div>
       <div className="flex-1 flex overflow-hidden">
@@ -210,9 +210,9 @@ export function MasteryDashboardView() {
                 const events = getEventsForDay(day);
                 const isCurrentDay = day === today;
                 return (
-                  <div key={day} className={clsx("border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] relative group transition-colors", isCurrentDay ? "bg-violet-500/5 ring-inset ring-2 ring-violet-500/20" : "hover:bg-white/40")}>
-                    <span className={clsx("font-mono text-[10px] lg:text-sm", isCurrentDay ? "text-violet-600 font-bold" : "text-gray-500")}>{day}</span>
-                    {isCurrentDay && <div className="absolute top-1 lg:top-2 right-1 lg:right-2 w-1.5 lg:w-2 h-1.5 lg:h-2 bg-violet-500 rounded-full" />}
+                  <div key={day} className={clsx("border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] relative group transition-colors", isCurrentDay ? "bg-teal-500/5 ring-inset ring-2 ring-teal-500/20" : "hover:bg-white/40")}>
+                    <span className={clsx("font-mono text-[10px] lg:text-sm", isCurrentDay ? "text-teal-600 font-bold" : "text-gray-500")}>{day}</span>
+                    {isCurrentDay && <div className="absolute top-1 lg:top-2 right-1 lg:right-2 w-1.5 lg:w-2 h-1.5 lg:h-2 bg-teal-500 rounded-full" />}
                     <div className="mt-1 lg:mt-2 space-y-1 hidden lg:block">
                       {events.map((event, i) => (<div key={i} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer hover:brightness-95 transition-all shadow-sm relative overflow-hidden", CATEGORY_STYLES[event.category])}><div className="mb-0.5 pr-4 truncate" style={{ fontWeight: 700 }}>{event.title}</div>{event.time && <div className="opacity-80 font-mono text-[10px]">{event.time}</div>}{event.hasReview && <div className="absolute top-1.5 right-1.5 text-blue-600 bg-white/40 rounded-full p-0.5"><Brain size={12} /></div>}</div>))}
                     </div>

@@ -195,8 +195,8 @@ export function QuizExportImport({
         {/* Header */}
         <div className={MODAL_HEADER}>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center">
-              <FileJson size={17} className="text-purple-600" />
+            <div className="w-9 h-9 rounded-xl bg-teal-100 flex items-center justify-center">
+              <FileJson size={17} className="text-teal-600" />
             </div>
             <div>
               <h3 className="text-sm text-gray-900" style={{ fontWeight: 700 }}>Exportar / Importar</h3>
@@ -247,7 +247,7 @@ export function QuizExportImport({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleDownload}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-lg text-[12px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-sm"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#2a8c7a] text-white rounded-full text-[12px] hover:bg-[#244e47] active:scale-[0.97] transition-all shadow-sm"
                   style={{ fontWeight: 600 }}
                 >
                   <Download size={14} /> Descargar .json
@@ -309,7 +309,7 @@ export function QuizExportImport({
                       <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-[11px]">
                         <span className="text-zinc-400 shrink-0" style={{ fontWeight: 600 }}>#{i + 1}</span>
                         <span className="text-zinc-600 truncate flex-1">{q.question}</span>
-                        <span className="text-[9px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded shrink-0" style={{ fontWeight: 600 }}>
+                        <span className="text-[9px] text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded shrink-0" style={{ fontWeight: 600 }}>
                           {QUESTION_TYPE_LABELS[normalizeQuestionType(q.question_type)] || q.question_type}
                         </span>
                       </div>
@@ -318,7 +318,7 @@ export function QuizExportImport({
                   <button
                     onClick={handleImport}
                     disabled={importing}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg text-[12px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-sm disabled:bg-purple-400"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#2a8c7a] text-white rounded-full text-[12px] hover:bg-[#244e47] active:scale-[0.97] transition-all shadow-sm disabled:bg-[#2a8c7a]/60"
                     style={{ fontWeight: 600 }}
                   >
                     {importing ? (

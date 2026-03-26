@@ -11,7 +11,17 @@ const StudyTimeEstimatesCtx = createContext<UseStudyTimeEstimatesResult | null>(
 export function StudyTimeEstimatesProvider({ children }: { children: React.ReactNode }) {
   const hook = useStudyTimeEstimates();
 
-  const value = useMemo<UseStudyTimeEstimatesResult>(() => hook, [
+  const value = useMemo<UseStudyTimeEstimatesResult>(() => ({
+    methodEstimates: hook.methodEstimates,
+    getEstimate: hook.getEstimate,
+    computeTotalHours: hook.computeTotalHours,
+    computeWeeklyHours: hook.computeWeeklyHours,
+    overallConfidence: hook.overallConfidence,
+    hasRealData: hook.hasRealData,
+    summary: hook.summary,
+    loading: hook.loading,
+    error: hook.error,
+  }), [
     hook.methodEstimates,
     hook.getEstimate,
     hook.computeTotalHours,

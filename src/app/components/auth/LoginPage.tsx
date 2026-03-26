@@ -1,7 +1,7 @@
 // ============================================================
 // Axon — Login / Signup Page
 // Calls login() and signup() from AuthContext.
-// Dark mode, violet/indigo accent.
+// Dark mode, teal accent.
 // ============================================================
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router';
@@ -71,11 +71,11 @@ export function LoginPage() {
   return (
     <div className="min-h-screen w-full flex bg-zinc-950">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] bg-gradient-to-br from-violet-950 via-zinc-900 to-indigo-950 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] bg-[#0d2926] relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-violet-500 blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-indigo-500 blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-violet-400 blur-3xl" />
+          <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-teal-600 blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-teal-700 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-teal-500 blur-3xl" />
         </div>
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -110,7 +110,7 @@ export function LoginPage() {
                   transition={{ delay: 0.3 + i * 0.15, duration: 0.5 }}
                   className="flex items-center gap-3"
                 >
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" />
                   <span className="text-white/40 text-xs">{feature}</span>
                 </motion.div>
               ))}
@@ -174,7 +174,7 @@ export function LoginPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
-                    className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                     required
                     autoComplete="name"
                   />
@@ -188,7 +188,7 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 transition-all"
+                  className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                   required
                   autoComplete="email"
                 />
@@ -207,7 +207,7 @@ export function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={mode === 'signup' ? 'Minimo 8 caracteres' : 'Tu contrasena'}
-                    className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 transition-all"
+                    className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                     required
                     minLength={mode === 'signup' ? 8 : 1}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
@@ -226,7 +226,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:from-violet-600/50 disabled:to-indigo-600/50 text-white py-2.5 px-4 rounded-xl transition-all duration-200 text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 disabled:shadow-none disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 bg-[#2a8c7a] hover:bg-[#244e47] disabled:bg-[#2a8c7a]/50 text-white font-semibold py-2.5 px-4 rounded-full transition-colors duration-200 text-sm disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -249,7 +249,7 @@ export function LoginPage() {
               </span>
               <button
                 onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
-                className="ml-1.5 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+                className="ml-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors"
               >
                 {mode === 'signin' ? 'Registrate' : 'Inicia sesion'}
               </button>
@@ -257,7 +257,7 @@ export function LoginPage() {
           </div>
 
           <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
             <span className="text-xs text-zinc-600">Conectado al backend</span>
           </div>
         </motion.div>

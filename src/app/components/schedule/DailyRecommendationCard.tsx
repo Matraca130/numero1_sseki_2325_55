@@ -20,7 +20,7 @@ const METHOD_ICON_MAP: Record<string, React.ReactNode> = {
   flashcard: <Zap size={14} className="text-emerald-500" />,
   quiz: <GraduationCap size={14} className="text-amber-600" />,
   video: <BookOpen size={14} className="text-blue-500" />,
-  resumo: <FileText size={14} className="text-violet-500" />,
+  resumo: <FileText size={14} className="text-teal-500" />,
   lectura: <BookOpen size={14} className="text-teal-500" />,
 };
 
@@ -136,7 +136,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
           <p className="text-[12px] text-[#9ba3b2] mb-3">No hay recomendaciones disponibles</p>
           <button
             onClick={fetchRecommendations}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors min-h-[36px]"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-full hover:bg-[#ccebe3] transition-colors min-h-[36px]"
           >
             <RefreshCw size={12} />
             Reintentar

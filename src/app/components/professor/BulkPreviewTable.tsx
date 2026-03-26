@@ -157,7 +157,7 @@ export function BulkPreviewTable({
             <div className="relative">
               <button
                 onClick={() => setBulkKeywordOpen(!bulkKeywordOpen)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium bg-teal-50 text-teal-600 border border-teal-200 hover:bg-teal-100 transition-all"
               >
                 <Tag size={10} />
                 Asignar keyword
@@ -174,7 +174,7 @@ export function BulkPreviewTable({
                           onBulkKeyword(kw.id);
                           setBulkKeywordOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-purple-50 text-gray-700 transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-teal-50 text-gray-700 transition-colors"
                       >
                         {kwDisplay(kw)}
                       </button>
@@ -222,7 +222,7 @@ export function BulkPreviewTable({
                     className={`border-b border-gray-100 last:border-b-0 transition-colors ${
                       row.status === 'error' ? 'bg-red-50/50' :
                       row.status === 'no_keyword' ? 'bg-amber-50/50' :
-                      row.selected ? 'bg-purple-50/30' : 'hover:bg-gray-50/50'
+                      row.selected ? 'bg-teal-50/30' : 'hover:bg-gray-50/50'
                     }`}
                   >
                     <td className="px-3 py-2">

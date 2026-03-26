@@ -104,12 +104,12 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
                 <GraduationCap size={14} /> Ver T\u00F3pico
               </button>
               {cards.length > 0 && (
-                <button onClick={() => onStart(cardsToStart)} className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all" style={{ backgroundColor: deckColor.hex, fontWeight: 700 }}>
+                <button onClick={() => onStart(cardsToStart)} className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all" style={{ backgroundColor: deckColor.hex, fontWeight: 700 }}>
                   <Play size={16} fill="currentColor" /> Estudiar{filterMastery !== 'all' ? ` (${filteredCards.length})` : ''}
                 </button>
               )}
               {onStartAdaptive && cards.length > 0 && (
-                <button onClick={() => onStartAdaptive()} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-white text-xs sm:text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all bg-gradient-to-r from-violet-500 to-[#2a8c7a]" style={{ fontWeight: 600 }} title="Sesi\u00F3n adaptativa con IA">
+                <button onClick={() => onStartAdaptive()} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-white text-xs sm:text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all bg-[#2a8c7a] hover:bg-[#244e47]" style={{ fontWeight: 600 }} title="Sesi\u00F3n adaptativa con IA">
                   <Sparkles size={14} /><span className="hidden sm:inline">Con IA</span><span className="sm:hidden">IA</span>
                 </button>
               )}
@@ -128,7 +128,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
               </div>
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
                 {FILTER_PILLS.map(f => (
-                  <button key={f.key} onClick={() => setFilterMastery(f.key)} className={clsx("px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap shrink-0", filterMastery === f.key ? `${f.color} ring-1 ring-current/20 shadow-sm` : "text-gray-400 hover:text-gray-600 hover:bg-gray-50")}>
+                  <button key={f.key} onClick={() => setFilterMastery(f.key)} className={clsx("px-2.5 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap shrink-0", filterMastery === f.key ? `${f.color} ring-1 ring-current/20 shadow-sm` : "text-gray-400 hover:text-gray-600 hover:bg-gray-50")}>
                     {f.label} ({countForFilter(f.key)})
                   </button>
                 ))}
@@ -215,7 +215,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
       </div>
       {cards.length > 0 && (
         <div className="sm:hidden shrink-0 px-4 py-3 bg-white border-t border-gray-200 safe-area-bottom">
-          <button onClick={() => onStart(cardsToStart)} className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-white text-sm shadow-lg active:scale-[0.98] transition-all" style={{ backgroundColor: deckColor.hex, fontWeight: 700 }}>
+          <button onClick={() => onStart(cardsToStart)} className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-full text-white text-sm shadow-lg active:scale-[0.98] transition-all" style={{ backgroundColor: deckColor.hex, fontWeight: 700 }}>
             <Play size={16} fill="currentColor" /> Estudiar{filterMastery !== 'all' ? ` (${filteredCards.length})` : ` (${cards.length})`}
           </button>
         </div>

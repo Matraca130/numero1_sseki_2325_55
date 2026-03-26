@@ -115,9 +115,9 @@ export function KeywordActionsSection({
         <button
           disabled={flashcardCount === 0}
           className={clsx(
-            'w-full flex items-center gap-2 py-2 px-3 rounded-lg text-xs transition-all',
+            'w-full flex items-center gap-2 py-2 px-3 rounded-full text-xs transition-all',
             flashcardCount && flashcardCount > 0
-              ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+              ? 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20'
               : 'bg-zinc-800 text-zinc-600 cursor-not-allowed opacity-50',
           )}
           title={flashcardCount === 0 ? 'No hay flashcards para este keyword' : 'Revisar flashcards'}
@@ -129,9 +129,9 @@ export function KeywordActionsSection({
         <button
           disabled={quizCount === 0}
           className={clsx(
-            'w-full flex items-center gap-2 py-2 px-3 rounded-lg text-xs transition-all',
+            'w-full flex items-center gap-2 py-2 px-3 rounded-full text-xs transition-all',
             quizCount && quizCount > 0
-              ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+              ? 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20'
               : 'bg-zinc-800 text-zinc-600 cursor-not-allowed opacity-50',
           )}
           title={quizCount === 0 ? 'No hay preguntas para este keyword' : 'Tomar quiz'}
@@ -149,10 +149,10 @@ export function KeywordActionsSection({
         onClick={handleAiExplain}
         disabled={aiExplaining}
         className={clsx(
-          'w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs transition-all',
+          'w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-xs transition-all',
           aiExplaining
-            ? 'bg-violet-500/10 text-violet-400 cursor-wait'
-            : 'bg-gradient-to-r from-violet-500/20 to-blue-500/20 text-violet-300 hover:from-violet-500/30 hover:to-blue-500/30 active:scale-[0.98]',
+            ? 'bg-teal-500/10 text-teal-400 cursor-wait'
+            : 'bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 active:scale-[0.98]',
         )}
       >
         {aiExplaining ? (
@@ -164,10 +164,10 @@ export function KeywordActionsSection({
 
       {/* AI Explanation result */}
       {aiExplanation && (
-        <div className="bg-violet-500/5 border border-violet-500/20 rounded-lg px-3 py-2.5">
+        <div className="bg-teal-500/5 border border-teal-500/20 rounded-lg px-3 py-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles size={10} className="text-violet-400" />
-            <span className="text-[10px] text-violet-400">Explicacion IA</span>
+            <Sparkles size={10} className="text-teal-400" />
+            <span className="text-[10px] text-teal-400">Explicacion IA</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
             {typeof aiExplanation === 'string' ? aiExplanation : JSON.stringify(aiExplanation)}
@@ -189,9 +189,9 @@ export function KeywordActionsSection({
               key={i}
               onClick={() => handleAiQuery(q)}
               disabled={aiExplaining}
-              className="w-full text-left text-[11px] text-zinc-400 hover:text-violet-300 px-2.5 py-1.5 rounded-lg hover:bg-violet-500/10 transition-colors disabled:opacity-50 disabled:cursor-wait"
+              className="w-full text-left text-[11px] text-zinc-400 hover:text-teal-300 px-2.5 py-1.5 rounded-full hover:bg-teal-500/10 transition-colors disabled:opacity-50 disabled:cursor-wait"
             >
-              <span className="text-violet-500 mr-1">?</span> {q}
+              <span className="text-teal-500 mr-1">?</span> {q}
             </button>
           ))}
         </div>
@@ -203,7 +203,7 @@ export function KeywordActionsSection({
           value={aiChatInput}
           onChange={e => setAiChatInput(e.target.value)}
           placeholder={`Pregunta sobre "${keyword.name}"...`}
-          className="flex-1 text-xs text-zinc-200 bg-zinc-800/50 border border-zinc-700 rounded-lg px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50"
+          className="flex-1 text-xs text-zinc-200 bg-zinc-800/50 border border-zinc-700 rounded-lg px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-teal-500/50"
           onKeyDown={e => {
             if (e.key === 'Enter') { e.preventDefault(); handleAiChat(); }
           }}
@@ -212,7 +212,7 @@ export function KeywordActionsSection({
         <button
           onClick={handleAiChat}
           disabled={aiExplaining || !aiChatInput.trim()}
-          className="text-violet-400 hover:text-violet-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors p-1.5"
+          className="text-teal-400 hover:text-teal-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors p-1.5"
           title="Enviar pregunta"
         >
           {aiExplaining ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}

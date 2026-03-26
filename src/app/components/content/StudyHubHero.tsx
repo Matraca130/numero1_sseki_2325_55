@@ -146,7 +146,6 @@ function StudyPathCard({
           className="absolute top-5 left-5 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
           style={{
             backgroundColor: `${accentColor}dd`,
-            backdropFilter: 'blur(12px)',
             border: `1px solid ${accentColor}40`,
           }}
         >
@@ -159,7 +158,6 @@ function StudyPathCard({
           style={{
             color: 'rgba(255,255,255,0.9)',
             backgroundColor: `${accentColor}55`,
-            backdropFilter: 'blur(12px)',
             border: `1px solid ${accentColor}30`,
             fontWeight: 600,
             letterSpacing: '0.08em',

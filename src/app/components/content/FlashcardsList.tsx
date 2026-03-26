@@ -288,7 +288,7 @@ export const FlashcardsList = React.memo(function FlashcardsList({
         {!searchQuery && (
           <button
             onClick={onCreate}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all"
           >
             <Plus size={16} />
             Crear primera flashcard

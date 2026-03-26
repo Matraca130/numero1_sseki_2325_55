@@ -71,7 +71,7 @@ const MOCK_DECKS: Deck[] = [
     nextReviewSub: 'Atrasado 2h',
     nextReviewColor: 'text-red-600',
     icon: <Calculator size={18} />,
-    iconBg: 'bg-gradient-to-br from-blue-400 to-blue-600',
+    iconBg: 'bg-blue-500',
   },
   {
     id: '2',
@@ -87,7 +87,7 @@ const MOCK_DECKS: Deck[] = [
     nextReviewSub: 'Em 4h',
     nextReviewColor: 'text-gray-800',
     icon: <Palette size={18} />,
-    iconBg: 'bg-gradient-to-br from-pink-400 to-pink-600',
+    iconBg: 'bg-pink-500',
   },
   {
     id: '3',
@@ -103,7 +103,7 @@ const MOCK_DECKS: Deck[] = [
     nextReviewSub: '09:00',
     nextReviewColor: 'text-gray-800',
     icon: <FlaskConical size={18} />,
-    iconBg: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+    iconBg: 'bg-emerald-500',
   },
   {
     id: '4',
@@ -135,19 +135,19 @@ const MOCK_DECKS: Deck[] = [
     nextReviewSub: 'Revisão',
     nextReviewColor: 'text-gray-800',
     icon: <Scale size={18} />,
-    iconBg: 'bg-indigo-500',
+    iconBg: 'bg-teal-500',
   },
 ];
 
 // ── Icon pool for dynamically-built decks ──
 const DECK_ICONS = [
-  { icon: <Calculator size={18} />, bg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
-  { icon: <Palette size={18} />, bg: 'bg-gradient-to-br from-pink-400 to-pink-600' },
-  { icon: <FlaskConical size={18} />, bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
+  { icon: <Calculator size={18} />, bg: 'bg-blue-500' },
+  { icon: <Palette size={18} />, bg: 'bg-pink-500' },
+  { icon: <FlaskConical size={18} />, bg: 'bg-emerald-500' },
   { icon: <Languages size={18} />, bg: 'bg-gray-500' },
-  { icon: <Scale size={18} />, bg: 'bg-indigo-500' },
-  { icon: <Brain size={18} />, bg: 'bg-gradient-to-br from-purple-400 to-purple-600' },
-  { icon: <GraduationCap size={18} />, bg: 'bg-gradient-to-br from-amber-400 to-amber-600' },
+  { icon: <Scale size={18} />, bg: 'bg-teal-500' },
+  { icon: <Brain size={18} />, bg: 'bg-teal-600' },
+  { icon: <GraduationCap size={18} />, bg: 'bg-amber-500' },
 ];
 
 const DUE_BADGE_STYLES = {

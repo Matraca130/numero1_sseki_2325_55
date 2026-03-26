@@ -83,7 +83,7 @@ export class QuizErrorBoundary extends Component<
         </p>
         <button
           onClick={this.handleRetry}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${btnBg} text-white text-sm transition-colors`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full ${btnBg} text-white text-sm transition-colors`}
           style={{ fontWeight: 600 }}
         >
           <RotateCw size={14} /> Reintentar

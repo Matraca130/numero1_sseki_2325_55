@@ -112,7 +112,7 @@ export const QuizFiltersBar = React.memo(function QuizFiltersBar({
         {onCreate && (
           <button
             onClick={onCreate}
-            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-xl text-[11px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-lg shadow-purple-600/25"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#2a8c7a] text-white rounded-full text-[11px] hover:bg-[#244e47] active:scale-[0.97] transition-all shadow-lg shadow-[#2a8c7a]/25"
             style={{ fontWeight: 600 }}
           >
             <Plus size={14} />

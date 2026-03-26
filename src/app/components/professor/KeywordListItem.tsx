@@ -86,7 +86,7 @@ export function KeywordListItem({
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isSubExpanded
-              ? "bg-violet-100 text-violet-700"
+              ? "bg-teal-100 text-teal-700"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           )}
           title="Subtemas"
@@ -102,7 +102,7 @@ export function KeywordListItem({
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isConnExpanded
-              ? "bg-violet-100 text-violet-700"
+              ? "bg-teal-100 text-teal-700"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           )}
           title="Conexiones"
@@ -116,7 +116,7 @@ export function KeywordListItem({
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isNotesExpanded
-              ? "bg-violet-100 text-violet-700"
+              ? "bg-teal-100 text-teal-700"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           )}
           title="Notas"

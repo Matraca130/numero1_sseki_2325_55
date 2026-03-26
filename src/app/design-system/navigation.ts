@@ -43,6 +43,7 @@ export const navigation = {
     { id: 'dashboard',    label: 'Dashboard',      icon: 'LayoutDashboard' },
     { id: 'study-hub',    label: 'Estudar',        icon: 'BookOpen' },
     { id: 'schedule',     label: 'Cronograma',     icon: 'Calendar' },
+    { id: 'knowledge-heatmap', label: 'Mapa de Calor', icon: 'Flame' },
     { id: 'flashcards',   label: 'Flashcards',     icon: 'Layers' },
     { id: '3d',           label: 'Atlas 3D',       icon: 'Box' },
     { id: 'quiz',         label: 'Quiz',           icon: 'GraduationCap' },

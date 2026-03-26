@@ -71,14 +71,14 @@ export const QuestionCard = React.memo(function QuestionCard({
     >
       {/* Header */}
       <div className="flex items-start gap-3 px-5 py-4">
-        <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-purple-600 text-white text-[11px] shrink-0 mt-0.5 shadow-sm" style={{ fontWeight: 700 }}>
+        <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#2a8c7a] text-white text-[11px] shrink-0 mt-0.5 shadow-sm" style={{ fontWeight: 700 }}>
           {index}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             {/* Type badge */}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px]" style={{ fontWeight: 600 }}>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 text-[10px]" style={{ fontWeight: 600 }}>
               {QUESTION_TYPE_ICONS[normalizedType]}
               {QUESTION_TYPE_LABELS[normalizedType]}
             </span>
@@ -119,7 +119,7 @@ export const QuestionCard = React.memo(function QuestionCard({
           </button>
           <button
             onClick={onEdit}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title="Editar"
           >
             <Pencil size={14} />
