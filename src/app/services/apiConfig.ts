@@ -9,7 +9,7 @@
 // ============================================================
 
 import { API_BASE, ANON_KEY, apiCall, getAccessToken } from '@/app/lib/api';
-import { devLog } from '@/app/utils/devLog';
+import { logger } from '@/app/lib/logger';
 
 // ── Backend URLs ──────────────────────────────────────
 
@@ -77,14 +77,14 @@ export async function realRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
   const method = options?.method || 'GET';
-  devLog(`[API] ${method} ${path}`);
+  logger.debug('API', `${method} ${path}`);
 
   // PERF-S2: Only deduplicate GET requests (safe to share — idempotent)
   const isGet = method === 'GET';
   if (isGet) {
     const inflight = inflightGets.get(url);
     if (inflight) {
-      devLog(`[API] Dedup: reusing in-flight GET ${path}`);
+      logger.debug('API', `Dedup: reusing in-flight GET ${path}`);
       return inflight as Promise<T>;
     }
   }
@@ -144,7 +144,7 @@ export async function figmaRequest<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
-  devLog(`[FigmaAPI] ${options?.method || 'GET'} ${path}`);
+  logger.debug('FigmaAPI', `${options?.method || 'GET'} ${path}`);
 
   const res = await fetch(url, {
     ...options,
