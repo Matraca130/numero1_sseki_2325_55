@@ -219,6 +219,47 @@ function StudentShell() {
 }
 
 // -- Public export: wraps providers + shell --------------------
+//
+// Provider Dependency Chain -- DO NOT reorder without checking
+// dependencies below.
+//
+// 1. AppProvider (outermost)
+//    Wraps UIProvider + NavigationProvider internally.
+//    Supplies useApp(), useStudySession(), sidebar/navigation state
+//    that almost every descendant reads.
+//    Depends on: AuthContext (provided higher in the tree by App.tsx).
+//
+// 2. GamificationProvider
+//    Depends on: AuthContext (reads user JWT for XP/badge API calls).
+//    Does NOT depend on StudentDataProvider, so it can sit above it.
+//    Placed here so gamification data is available to all child pages.
+//
+// 3. StudentDataProvider
+//    Depends on: AuthContext (fetches student-specific data with JWT).
+//    Provides course list, enrollment, and student profile to children.
+//
+// 4. ContentTreeProvider
+//    Depends on: AuthContext (fetches content tree per institution).
+//    Provides the topic/content tree used by study views.
+//
+// 5. TopicMasteryProvider
+//    Standalone hook wrapper (useTopicMastery). No direct context dep,
+//    but consumers often also read ContentTree data, so it must be
+//    nested inside ContentTreeProvider.
+//
+// 6. StudyTimeEstimatesProvider
+//    Standalone hook wrapper (useStudyTimeEstimates). Same reasoning
+//    as TopicMasteryProvider.
+//
+// 7. StudyPlansProvider (innermost data provider)
+//    Depends on: TopicMasteryContext + StudyTimeEstimatesContext
+//    (imports useTopicMasteryContext and useStudyTimeEstimatesContext).
+//    MUST be nested inside both providers above; moving it higher
+//    will throw a "must be used within Provider" error at runtime.
+//
+// Summary: AppProvider > GamificationProvider > StudentDataProvider
+//   > ContentTreeProvider > TopicMasteryProvider
+//   > StudyTimeEstimatesProvider > StudyPlansProvider > Shell
 
 export function StudentLayout() {
   return (
