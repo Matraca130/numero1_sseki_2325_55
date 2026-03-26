@@ -204,6 +204,9 @@ export default function ProseForm({ block, onChange }: BlockFormProps) {
 
         {/* Dropzone */}
         <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!uploading) fileInputRef.current?.click(); } }}
           onClick={() => !uploading && fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}

@@ -227,6 +227,9 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
             </div>
           ) : (
             <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -282,7 +285,7 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
           Descripción
         </label>
         <textarea
-          className={`${inputClass} min-h-[60px]`}
+          className={`${inputClass} min-h-[80px]`}
           value={(c.description as string) ?? ''}
           onChange={(e) => onChange('description', e.target.value)}
           placeholder="Descripción de la imagen..."

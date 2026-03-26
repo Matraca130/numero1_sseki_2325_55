@@ -122,7 +122,7 @@ export default function TwoColumnForm({ block, onChange }: BlockFormProps) {
                   placeholder="Etiqueta"
                 />
                 <textarea
-                  className={`${inputClass} min-h-[60px]`}
+                  className={`${inputClass} min-h-[80px]`}
                   value={item.detail ?? ''}
                   onChange={(e) =>
                     updateColumnItem(colIdx, itemIdx, 'detail', e.target.value)
