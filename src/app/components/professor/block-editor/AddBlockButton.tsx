@@ -1,3 +1,4 @@
+import React from 'react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import BlockTypeSelector from './BlockTypeSelector';
@@ -8,7 +9,7 @@ interface AddBlockButtonProps {
   onInsert: (type: EduBlockType, afterIndex: number) => void;
 }
 
-export default function AddBlockButton({ afterIndex, onInsert }: AddBlockButtonProps) {
+const AddBlockButton = React.memo(function AddBlockButton({ afterIndex, onInsert }: AddBlockButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -39,4 +40,6 @@ export default function AddBlockButton({ afterIndex, onInsert }: AddBlockButtonP
       )}
     </div>
   );
-}
+});
+
+export default AddBlockButton;

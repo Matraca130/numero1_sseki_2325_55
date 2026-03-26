@@ -1,7 +1,7 @@
+import React from 'react';
 import { GripVertical, Edit3, Copy, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import type { SummaryBlock } from '@/app/services/summariesApi';
-import { BLOCK_TYPES } from './BlockTypeSelector';
-import type { EduBlockType } from '@/app/services/summariesApi';
+import { BLOCK_TYPE_MAP } from './BlockTypeSelector';
 
 interface BlockCardProps {
   block: SummaryBlock;
@@ -17,11 +17,10 @@ interface BlockCardProps {
 }
 
 function getBlockLabel(type: string): string {
-  const found = BLOCK_TYPES.find((bt) => bt.type === type);
-  return found ? found.name : type;
+  return BLOCK_TYPE_MAP.get(type)?.name ?? type;
 }
 
-export default function BlockCard({
+const BlockCard = React.memo(function BlockCard({
   block,
   isEditing,
   onToggleEdit,
@@ -33,8 +32,7 @@ export default function BlockCard({
   isLast,
   children,
 }: BlockCardProps) {
-  const blockType = block.type as EduBlockType;
-  const blockConfig = BLOCK_TYPES.find((bt) => bt.type === blockType);
+  const blockConfig = BLOCK_TYPE_MAP.get(block.type);
   const Icon = blockConfig?.icon;
 
   return (
@@ -97,7 +95,9 @@ export default function BlockCard({
       </div>
     </div>
   );
-}
+});
+
+export default BlockCard;
 
 /* ─── Internal icon button ─── */
 

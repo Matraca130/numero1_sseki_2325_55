@@ -23,11 +23,9 @@ import {
 } from '@/app/hooks/queries/useBlockEditorMutations';
 import type { SummaryBlock, EduBlockType } from '@/app/services/summariesApi';
 import { apiCall } from '@/app/lib/api';
-import { ViewerBlock } from '@/app/components/student/ViewerBlock';
 import BlockEditorToolbar from './BlockEditorToolbar';
-import BlockCard from './BlockCard';
 import AddBlockButton from './AddBlockButton';
-import BlockFormRouter from './BlockFormRouter';
+import EditableBlock from './EditableBlock';
 import BlockTypeSelector from './BlockTypeSelector';
 
 // ── Props ─────────────────────────────────────────────────
@@ -61,7 +59,7 @@ const DEFAULT_CONTENT: Record<EduBlockType, Record<string, unknown>> = {
 
 // ── Component ─────────────────────────────────────────────
 
-export default function BlockEditor({
+const BlockEditor = React.memo(function BlockEditor({
   summaryId,
   onBack,
   onStatusChange,
@@ -87,39 +85,16 @@ export default function BlockEditor({
   const [publishing, setPublishing] = useState(false);
   const [showTopSelector, setShowTopSelector] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
-  const [, setTick] = useState(0); // Force re-render so getBlockContent merges pending edits
 
-  // ── Auto-save debounce refs ──────────────────────────────
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingContent = useRef<Record<string, Record<string, unknown>>>({});
+  // ── Flush registry: each EditableBlock registers its flush fn here ─
+  const blockFlushRef = useRef<Map<string, () => void>>(new Map());
 
   // ── Clear local state when summaryId changes ─────────────
   useEffect(() => {
-    for (const timer of Object.values(debounceTimers.current)) clearTimeout(timer);
-    debounceTimers.current = {};
-    pendingContent.current = {};
     setEditingBlockId(null);
     setIsPreview(false);
     setDeletingBlockId(null);
   }, [summaryId]);
-
-  // ── Cleanup debounce timers on unmount + flush pending saves ──
-  useEffect(() => {
-    return () => {
-      for (const blockId of Object.keys(pendingContent.current)) {
-        if (debounceTimers.current[blockId]) {
-          clearTimeout(debounceTimers.current[blockId]);
-        }
-        const content = pendingContent.current[blockId];
-        if (content) {
-          updateMutation.mutate({ blockId, data: { content } });
-        }
-      }
-      pendingContent.current = {};
-      debounceTimers.current = {};
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -151,54 +126,33 @@ export default function BlockEditor({
     });
   }, [blocks, summaryId, createMutation]);
 
-  const handleFieldChange = useCallback((blockId: string, field: string, value: unknown) => {
-    // Merge into pending content
-    const prev = pendingContent.current[blockId] || {};
-    const block = blocks.find(b => b.id === blockId);
-    const currentContent = block?.content || {};
-    pendingContent.current[blockId] = { ...currentContent, ...prev, [field]: value };
-
-    // Trigger re-render so merged content is visible in controlled inputs
-    setTick(t => t + 1);
-
-    // Debounce 2s
-    if (debounceTimers.current[blockId]) {
-      clearTimeout(debounceTimers.current[blockId]);
-    }
-    debounceTimers.current[blockId] = setTimeout(() => {
-      const content = pendingContent.current[blockId];
-      if (content) {
-        updateMutation.mutate({ blockId, data: { content } });
-        delete pendingContent.current[blockId];
-      }
-    }, 2000);
-  }, [blocks, updateMutation]);
-
-  // Flush any pending saves immediately (async — await before publish)
-  const flushPending = useCallback(async () => {
-    const promises: Promise<unknown>[] = [];
-    for (const blockId of Object.keys(pendingContent.current)) {
-      if (debounceTimers.current[blockId]) {
-        clearTimeout(debounceTimers.current[blockId]);
-        delete debounceTimers.current[blockId];
-      }
-      const content = pendingContent.current[blockId];
-      if (content) {
-        promises.push(updateMutation.mutateAsync({ blockId, data: { content } }));
-      }
-    }
-    pendingContent.current = {};
-    if (promises.length > 0) await Promise.all(promises);
+  // ── Stable ID-based callbacks for EditableBlock ─────────
+  const handleBlockSave = useCallback((blockId: string, content: Record<string, unknown>) => {
+    updateMutation.mutate({ blockId, data: { content } });
   }, [updateMutation]);
+
+  const handleToggleEdit = useCallback((blockId: string) => {
+    setEditingBlockId((prev) => (prev === blockId ? null : blockId));
+  }, []);
+
+  const handleSetDeleting = useCallback((blockId: string) => {
+    setDeletingBlockId(blockId);
+  }, []);
+
+  // ── Flush all pending saves immediately (async — await before publish) ─
+  const flushPending = useCallback(async () => {
+    for (const flushFn of blockFlushRef.current.values()) {
+      flushFn();
+    }
+    // Give mutations a tick to fire
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }, []);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deletingBlockId) return;
-    // Clear any pending saves for the block being deleted
-    if (debounceTimers.current[deletingBlockId]) {
-      clearTimeout(debounceTimers.current[deletingBlockId]);
-      delete debounceTimers.current[deletingBlockId];
-    }
-    delete pendingContent.current[deletingBlockId];
+    // Flush then discard any pending saves for the block being deleted
+    const flushFn = blockFlushRef.current.get(deletingBlockId);
+    if (flushFn) blockFlushRef.current.delete(deletingBlockId);
     if (editingBlockId === deletingBlockId) setEditingBlockId(null);
     deleteMutation.mutate(deletingBlockId, {
       onSuccess: () => setDeletingBlockId(null),
@@ -276,13 +230,6 @@ export default function BlockEditor({
       setPublishing(false);
     }
   }, [summaryId, flushPending, onStatusChange]);
-
-  // ── Get content for a block (merges pending edits) ────────
-  const getBlockContent = useCallback((block: SummaryBlock): SummaryBlock => {
-    const pending = pendingContent.current[block.id];
-    if (!pending) return block;
-    return { ...block, content: { ...block.content, ...pending } };
-  }, []);
 
   // ── Render ───────────────────────────────────────────────
 
@@ -376,55 +323,38 @@ export default function BlockEditor({
             </div>
           )}
 
-          {sortedBlocks.map((block, index) => {
-            const mergedBlock = getBlockContent(block);
+          {sortedBlocks.map((block, index) => (
+            <React.Fragment key={block.id}>
+              <div
+                draggable={!isPreview}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`transition-opacity duration-150 ${dragIndex === index ? 'opacity-50' : ''}`}
+              >
+                <EditableBlock
+                  block={block}
+                  index={index}
+                  isEditing={editingBlockId === block.id}
+                  isPreview={isPreview}
+                  isFirst={index === 0}
+                  isLast={index === sortedBlocks.length - 1}
+                  onToggleEdit={handleToggleEdit}
+                  onDelete={handleSetDeleting}
+                  onDuplicate={handleDuplicate}
+                  onMoveUp={handleMoveUp}
+                  onMoveDown={handleMoveDown}
+                  onSave={handleBlockSave}
+                  onFlushRef={blockFlushRef}
+                />
+              </div>
 
-            return (
-              <React.Fragment key={block.id}>
-                <div
-                  draggable={!isPreview}
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={`transition-opacity duration-150 ${dragIndex === index ? 'opacity-50' : ''}`}
-                >
-                  {isPreview ? (
-                    // Preview mode — use student renderer
-                    <div className="py-2">
-                      <ViewerBlock block={mergedBlock} isMobile={false} />
-                    </div>
-                  ) : (
-                    // Edit mode — use BlockCard with form/preview toggle
-                    <BlockCard
-                      block={mergedBlock}
-                      isEditing={editingBlockId === block.id}
-                      onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
-                      onDelete={() => setDeletingBlockId(block.id)}
-                      onDuplicate={() => handleDuplicate(block)}
-                      onMoveUp={() => handleMoveUp(index)}
-                      onMoveDown={() => handleMoveDown(index)}
-                      isFirst={index === 0}
-                      isLast={index === sortedBlocks.length - 1}
-                    >
-                      {editingBlockId === block.id ? (
-                        <BlockFormRouter
-                          block={mergedBlock}
-                          onChange={(field, value) => handleFieldChange(block.id, field, value)}
-                        />
-                      ) : (
-                        <ViewerBlock block={mergedBlock} isMobile={false} />
-                      )}
-                    </BlockCard>
-                  )}
-                </div>
-
-                {/* Add block between */}
-                {!isPreview && (
-                  <AddBlockButton afterIndex={index} onInsert={handleInsert} />
-                )}
-              </React.Fragment>
-            );
-          })}
+              {/* Add block between */}
+              {!isPreview && (
+                <AddBlockButton afterIndex={index} onInsert={handleInsert} />
+              )}
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
@@ -441,4 +371,6 @@ export default function BlockEditor({
       />
     </div>
   );
-}
+});
+
+export default BlockEditor;

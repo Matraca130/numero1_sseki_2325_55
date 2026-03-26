@@ -84,4 +84,9 @@ export default function BlockTypeSelector({ onSelect, onClose }: BlockTypeSelect
   );
 }
 
-export { BLOCK_TYPES, type BlockTypeOption };
+// O(1) lookup map by block type
+const BLOCK_TYPE_MAP = new Map<string, BlockTypeOption>(
+  BLOCK_TYPES.map((bt) => [bt.type, bt]),
+);
+
+export { BLOCK_TYPES, BLOCK_TYPE_MAP, type BlockTypeOption };

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Plus, Eye, EyeOff, Send, Tag, Video as VideoIcon } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 
@@ -14,7 +15,7 @@ interface BlockEditorToolbarProps {
   blockCount: number;
 }
 
-export default function BlockEditorToolbar({
+const BlockEditorToolbar = React.memo(function BlockEditorToolbar({
   onAddBlock,
   isPreview,
   onTogglePreview,
@@ -86,4 +87,6 @@ export default function BlockEditorToolbar({
       </div>
     </div>
   );
-}
+});
+
+export default BlockEditorToolbar;
