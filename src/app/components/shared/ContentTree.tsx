@@ -89,7 +89,7 @@ function InlineEditor({
         onKeyDown={handleKeyDown}
         onBlur={() => { if (value.trim()) onSave(value.trim()); else onCancel(); }}
         placeholder={placeholder}
-        className="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-purple-200 rounded text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+        className="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-violet-200 rounded text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
       />
       <button onClick={() => value.trim() && onSave(value.trim())} className="p-1 text-emerald-600 hover:text-emerald-700">
         <Check size={14} />
@@ -122,7 +122,7 @@ function NodeActions({
         <button
           onClick={e => { e.stopPropagation(); onAddChild(); }}
           title={addLabel}
-          className="p-1 rounded text-purple-500 hover:text-purple-600 hover:bg-purple-50"
+          className="p-1 rounded text-violet-500 hover:text-violet-600 hover:bg-violet-50"
         >
           <Plus size={13} />
         </button>
@@ -243,7 +243,7 @@ export function ContentTree({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
+        <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
         <p className="text-sm text-gray-400">Cargando contenido...</p>
       </div>
     );
@@ -256,7 +256,7 @@ export function ContentTree({
         <AlertCircle className="w-6 h-6 text-red-400" />
         <p className="text-sm text-red-500 text-center">{error}</p>
         {onRefresh && (
-          <button onClick={onRefresh} className="text-xs text-purple-600 hover:text-purple-700 underline">
+          <button onClick={onRefresh} className="text-xs text-violet-600 hover:text-violet-700 underline">
             Reintentar
           </button>
         )}
@@ -268,8 +268,8 @@ export function ContentTree({
   if (!tree || tree.courses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4 px-4">
-        <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center">
-          <BookMarked className="w-7 h-7 text-purple-400" />
+        <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center">
+          <BookMarked className="w-7 h-7 text-violet-400" />
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-500">No hay cursos aun</p>
@@ -280,7 +280,7 @@ export function ContentTree({
         {editable && onAddCourse && (
           <button
             onClick={() => setEditing({ type: 'add', level: 'course', id: 'new' })}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
           >
             <Plus size={16} />
             Crear primer curso
@@ -345,7 +345,7 @@ export function ContentTree({
   };
 
   const LEVEL_COLORS: Record<NodeLevel, string> = {
-    course: 'text-purple-500',
+    course: 'text-violet-500',
     semester: 'text-blue-500',
     section: 'text-emerald-500',
     topic: 'text-gray-400',
@@ -386,7 +386,7 @@ export function ContentTree({
             "group/node flex items-center gap-1.5 cursor-pointer transition-colors",
             compact ? "py-1.5 pr-2" : "py-1.5 pr-3",
             isSelected
-              ? "bg-purple-50 text-purple-700"
+              ? "bg-violet-50 text-violet-700"
               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
           )}
           style={{ paddingLeft: depthPadding(depth) }}
@@ -489,7 +489,7 @@ export function ContentTree({
           <span className="text-xs text-gray-400 uppercase tracking-wider">Contenido</span>
           <button
             onClick={() => setEditing({ type: 'add', level: 'course', id: 'new' })}
-            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-md transition-colors"
           >
             <Plus size={12} />
             Curso
