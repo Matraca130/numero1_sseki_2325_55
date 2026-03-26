@@ -6,8 +6,11 @@
 //   2. Action button (time range toggle) stacks on mobile via AxonPageHeader responsive
 //   3. Subject progress header wraps on mobile
 //   4. EmptyState action button full-width on mobile
+//   5. Skeleton loading for KPIs and charts
+//   6. ErrorBoundary wrapping chart sections
+//   7. EmptyState for zero study data
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
@@ -25,7 +28,10 @@ import clsx from 'clsx';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { KPICard, TrendBadge } from '@/app/components/shared/KPICard';
 import { colors, components, headingStyle, layout } from '@/app/design-system';
-import { EmptyState } from '@/app/components/shared/PageStates';
+import { EmptyState } from '@/app/components/shared/EmptyState';
+import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
+import { SkeletonChart } from '@/app/components/shared/SkeletonChart';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 // ── Extracted modules ──
 import { ActivityChart, MasteryDonut, type ActivityDataPoint, type MasteryDataPoint } from '@/app/components/dashboard/DashboardCharts';
@@ -39,6 +45,14 @@ export function DashboardView() {
   const { plans: studyPlans, loading: plansLoading, toggleTaskComplete } = useStudyPlansContext();
 
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
+
+  // ── Loading detection ──
+  const isInitialLoading = !isConnected || (!stats && dailyActivity.length === 0);
+  const hasNoStudyData = isConnected && bktStates.length === 0 && dailyActivity.length === 0;
+
+  // ── Chart retry callbacks ──
+  const [chartRetryKey, setChartRetryKey] = useState(0);
+  const retryCharts = useCallback(() => setChartRetryKey(k => k + 1), []);
 
   // ── Build chart data from real daily activity ──
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
@@ -127,55 +141,67 @@ export function DashboardView() {
         <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
 
           {/* Onboarding empty state */}
-          {isConnected && bktStates.length === 0 && dailyActivity.length === 0 && (
+          {hasNoStudyData && (
             <EmptyState
-              variant="card"
-              accent="teal"
-              icon={<Target size={24} />}
+              icon={Target}
               title="Tu dashboard esta listo"
-              description="Completa tu primera sesion de estudio para que las metricas, graficos y curvas de olvido se llenen con datos reales de tu progreso."
-              actionLabel="Comenzar a Estudiar"
-              onAction={() => navigateTo('study')}
+              description="Completa tu primera sesion de estudio para ver metricas reales."
+              action={{ label: 'Comenzar a Estudiar', onClick: () => navigateTo('study') }}
             />
           )}
 
-          {/* KPI Cards — already responsive grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard
-              icon={<Layers className="w-5 h-5 text-[#2a8c7a]" />}
-              label="Cards Estudiados"
-              value={kpiCards}
-              trendSlot={<TrendBadge label="+12%" up />}
-              iconColorClass="bg-[#e6f5f1]"
-            />
-            <KPICard
-              icon={<Clock className="w-5 h-5 text-[#2a8c7a]" />}
-              label="Tiempo de Estudio"
-              value={kpiTime}
-              trendSlot={<TrendBadge label="+5%" up />}
-              iconColorClass="bg-[#e6f5f1]"
-            />
-            <KPICard
-              icon={<Flame className="w-5 h-5 text-amber-600" />}
-              label="Racha Actual"
-              value={kpiStreak}
-              trendSlot={<TrendBadge label={isConnected && stats && stats.currentStreak >= stats.longestStreak ? "Record!" : `Mejor: ${stats?.longestStreak ?? 0}`} up />}
-              iconColorClass="bg-amber-50"
-            />
-            <KPICard
-              icon={<Trophy className="w-5 h-5 text-yellow-600" />}
-              label="Promedio de Aciertos"
-              value={kpiAccuracy}
-              trendSlot={<TrendBadge label={isConnected ? "BKT" : "\u2014"} up />}
-              iconColorClass="bg-yellow-50"
-            />
-          </div>
+          {/* KPI Cards — skeleton while loading, real data when ready */}
+          {isInitialLoading ? (
+            <SkeletonCard variant="kpi" count={4} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard
+                icon={<Layers className="w-5 h-5 text-[#2a8c7a]" />}
+                label="Cards Estudiados"
+                value={kpiCards}
+                trendSlot={<TrendBadge label="+12%" up />}
+                iconColorClass="bg-[#e6f5f1]"
+              />
+              <KPICard
+                icon={<Clock className="w-5 h-5 text-[#2a8c7a]" />}
+                label="Tiempo de Estudio"
+                value={kpiTime}
+                trendSlot={<TrendBadge label="+5%" up />}
+                iconColorClass="bg-[#e6f5f1]"
+              />
+              <KPICard
+                icon={<Flame className="w-5 h-5 text-amber-600" />}
+                label="Racha Actual"
+                value={kpiStreak}
+                trendSlot={<TrendBadge label={isConnected && stats && stats.currentStreak >= stats.longestStreak ? "Record!" : `Mejor: ${stats?.longestStreak ?? 0}`} up />}
+                iconColorClass="bg-amber-50"
+              />
+              <KPICard
+                icon={<Trophy className="w-5 h-5 text-yellow-600" />}
+                label="Promedio de Aciertos"
+                value={kpiAccuracy}
+                trendSlot={<TrendBadge label={isConnected ? "BKT" : "\u2014"} up />}
+                iconColorClass="bg-yellow-50"
+              />
+            </div>
+          )}
 
-          {/* Charts Section — already responsive grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-            <ActivityChart data={activityData} />
-            <MasteryDonut data={masteryData} totalCards={totalCards} />
-          </div>
+          {/* Charts Section — skeleton while loading, ErrorBoundary for resilience */}
+          {isInitialLoading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+              <SkeletonChart type="bar" height="h-64" className="lg:col-span-2" />
+              <SkeletonChart type="donut" height="h-64" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" key={chartRetryKey}>
+              <ErrorBoundary variant="section" retry={retryCharts}>
+                <ActivityChart data={activityData} />
+              </ErrorBoundary>
+              <ErrorBoundary variant="section" retry={retryCharts}>
+                <MasteryDonut data={masteryData} totalCards={totalCards} />
+              </ErrorBoundary>
+            </div>
+          )}
 
           {/* Subject Progress */}
           <div className={components.chartCard.base}>

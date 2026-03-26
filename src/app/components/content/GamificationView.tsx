@@ -17,8 +17,11 @@ import {
   TrendingUp,
   Sparkles,
   PartyPopper,
+  Trophy,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { EmptyState } from '@/app/components/shared/EmptyState';
+import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import {
   useGamificationProfile,
@@ -369,6 +372,9 @@ export default function GamificationView() {
     }
   }, [streakLoading, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Consolidated loading state ──────────────────────────
+  const isInitialLoading = streakLoading || badgesLoading || lbLoading || historyLoading || queueLoading;
+
   // ── Derived ─────────────────────────────────────────────
   const totalXP = profileData?.xp?.total ?? 0;
   const levelInfo = getLevelInfo(totalXP);
@@ -493,78 +499,102 @@ export default function GamificationView() {
 
       {/* ── Stats Grid ────────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <StatCard
-            icon={Zap}
-            label="XP Hoy"
-            value={dailyUsed}
-            sub={`Meta: ${dailyGoal} XP`}
-            color="#2a8c7a"
-            delay={0.1}
-          />
-          <StatCard
-            icon={Flame}
-            label="Racha"
-            value={streakDays}
-            sub={`Record: ${streak?.longest_streak ?? 0}d`}
-            color="#f97316"
-            delay={0.15}
-          />
-          <StatCard
-            icon={Award}
-            label="Insignias"
-            value={earnedBadges}
-            sub={`de ${badges.length} disponibles`}
-            color="#a78bfa"
-            delay={0.2}
-          />
-          <StatCard
-            icon={Brain}
-            label="Cards Pendientes"
-            value={queue?.meta?.total_due ?? 0}
-            sub={`${queue?.meta?.total_new ?? 0} nuevas`}
-            color="#0d9488"
-            delay={0.25}
-          />
-        </div>
-
-        {/* ── Main Grid ────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-8">
-          {/* Left Column (2/3) */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <StreakPanel
-                streak={streak}
-                onRepair={() => repair.mutate()}
-                repairing={repair.isPending}
+        {isInitialLoading ? (
+          <SkeletonCard variant="content" count={3} className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <StatCard
+                icon={Zap}
+                label="XP Hoy"
+                value={dailyUsed}
+                sub={`Meta: ${dailyGoal} XP`}
+                color="#2a8c7a"
+                delay={0.1}
               />
-              <StudyQueueCard
-                data={queue}
-                isLoading={queueLoading}
-                onStartReview={() => navigateTo('review-session')}
+              <StatCard
+                icon={Flame}
+                label="Racha"
+                value={streakDays}
+                sub={`Record: ${streak?.longest_streak ?? 0}d`}
+                color="#f97316"
+                delay={0.15}
+              />
+              <StatCard
+                icon={Award}
+                label="Insignias"
+                value={earnedBadges}
+                sub={`de ${badges.length} disponibles`}
+                color="#a78bfa"
+                delay={0.2}
+              />
+              <StatCard
+                icon={Brain}
+                label="Cards Pendientes"
+                value={queue?.meta?.total_due ?? 0}
+                sub={`${queue?.meta?.total_new ?? 0} nuevas`}
+                color="#0d9488"
+                delay={0.25}
               />
             </div>
 
-            <BadgeShowcase badges={badges} isLoading={badgesLoading} maxVisible={18} />
+            {/* ── Main Grid ────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-8">
+              {/* Left Column (2/3) */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <StreakPanel
+                    streak={streak}
+                    onRepair={() => repair.mutate()}
+                    repairing={repair.isPending}
+                  />
+                  <StudyQueueCard
+                    data={queue}
+                    isLoading={queueLoading}
+                    onStartReview={() => navigateTo('review-session')}
+                  />
+                </div>
 
-            <XpHistoryFeed
-              transactions={xpHistory}
-              isLoading={historyLoading}
-              maxItems={30}
-            />
-          </div>
+                {/* Badge Showcase — with empty state */}
+                {!badgesLoading && badges.length === 0 ? (
+                  <EmptyState
+                    icon={Award}
+                    title="Sin insignias aun"
+                    description="Completa actividades para ganar insignias"
+                  />
+                ) : (
+                  <BadgeShowcase badges={badges} isLoading={badgesLoading} maxVisible={18} />
+                )}
 
-          {/* Right Column (1/3) */}
-          <div className="space-y-4">
-            <LeaderboardCard data={leaderboard} currentUserId={user?.id} isLoading={lbLoading} />
+                <XpHistoryFeed
+                  transactions={xpHistory}
+                  isLoading={historyLoading}
+                  maxItems={30}
+                />
+              </div>
 
-            {/* Daily Goal Ring (personal goal, not cap) */}
-            <DailyGoalRing used={dailyUsed} goal={dailyGoal} />
+              {/* Right Column (1/3) */}
+              <div className="space-y-4">
+                {/* Leaderboard — with empty state */}
+                {!lbLoading && (!leaderboard || (leaderboard as any)?.entries?.length === 0 || (Array.isArray(leaderboard) && leaderboard.length === 0)) ? (
+                  <EmptyState
+                    icon={Trophy}
+                    title="Tabla de posiciones vacia"
+                    description="Estudia para aparecer en el ranking"
+                  />
+                ) : (
+                  <LeaderboardCard data={leaderboard} currentUserId={user?.id} isLoading={lbLoading} />
+                )}
 
-            {/* Dynamic "Tu d\u00eda en XP" (replaces static XP table) */}
-            <TodayXpBreakdown transactions={todayTx} />
-          </div>
-        </div>
+                {/* Daily Goal Ring (personal goal, not cap) */}
+                <DailyGoalRing used={dailyUsed} goal={dailyGoal} />
+
+                {/* Dynamic "Tu dia en XP" (replaces static XP table) */}
+                <TodayXpBreakdown transactions={todayTx} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
