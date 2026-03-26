@@ -190,6 +190,48 @@ function ComposeProviders({ providers, children }: { providers: React.ComponentT
 }
 
 // -- Public export: wraps providers + shell --------------------
+//
+// Provider Dependency Chain -- DO NOT reorder without checking
+// dependencies below.
+//
+// 1. UIProvider (outermost)
+//    Supplies useUI() (sidebar open/close state, theme).
+//    No context dependencies — can be outermost.
+//
+// 2. AppProvider
+//    Wraps NavigationProvider internally.
+//    Supplies useApp(), useStudySession(), navigation state.
+//    Depends on: AuthContext (provided higher in the tree by App.tsx).
+//
+// 3. StudentDataProvider
+//    Depends on: AuthContext (fetches student-specific data with JWT).
+//    Provides course list, enrollment, and student profile to children.
+//
+// 4. ContentTreeProvider
+//    Depends on: AuthContext (fetches content tree per institution).
+//    Provides the topic/content tree used by study views.
+//
+// 5. TopicMasteryProvider
+//    Standalone hook wrapper (useTopicMastery). No direct context dep,
+//    but consumers often also read ContentTree data, so it must be
+//    nested inside ContentTreeProvider.
+//
+// 6. StudyTimeEstimatesProvider
+//    Standalone hook wrapper (useStudyTimeEstimates). Same reasoning
+//    as TopicMasteryProvider.
+//
+// 7. StudyPlansProvider (innermost data provider)
+//    Does NOT directly import TopicMasteryContext or
+//    StudyTimeEstimatesContext. Instead, it exposes a
+//    setRescheduleData(data) callback that consuming components
+//    use to inject mastery + time-estimate data. The ordering
+//    constraint is still real — consumers that call
+//    setRescheduleData themselves sit inside all these providers
+//    — but the mechanism is callbacks, not direct context imports.
+//
+// Summary: UIProvider > AppProvider > StudentDataProvider
+//   > ContentTreeProvider > TopicMasteryProvider
+//   > StudyTimeEstimatesProvider > StudyPlansProvider > Shell
 
 const STUDENT_PROVIDERS: React.ComponentType<{ children: React.ReactNode }>[] = [
   UIProvider,
