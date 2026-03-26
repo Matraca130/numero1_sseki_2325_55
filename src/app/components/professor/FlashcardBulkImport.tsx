@@ -484,7 +484,7 @@ export function FlashcardBulkImport({
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setShowPreview(false)}
-                    className="text-xs text-teal-600 hover:text-purple-700 font-medium transition-colors"
+                    className="text-xs text-teal-600 hover:text-teal-700 font-medium transition-colors"
                   >
                     ← Volver a importar
                   </button>
