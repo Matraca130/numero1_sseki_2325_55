@@ -28,10 +28,9 @@ export function sanitizeHtml(dirty: string): string {
       'hr', 'dl', 'dt', 'dd',
     ],
     ALLOWED_ATTR: [
-      'class', 'id', 'style', 'src', 'alt', 'title', 'width', 'height',
+      'class', 'id', 'src', 'alt', 'title', 'width', 'height',
       'loading', 'href', 'target', 'rel', 'colspan', 'rowspan', 'scope',
     ],
-    ALLOW_DATA_ATTR: true,
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
   });

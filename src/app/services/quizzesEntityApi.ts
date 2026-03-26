@@ -41,10 +41,9 @@ export interface QuizEntityListResponse {
 
 // Backend CRUD factory fields:
 // requiredFields: ["title", "source"]
-// createFields: ["title", "description", "source"]
-// updateFields: ["title", "description", "is_active"]
-// Q-UX2 NOTE: Backend needs to add "time_limit_seconds" to createFields + updateFields
-// + ALTER TABLE quizzes ADD COLUMN time_limit_seconds INTEGER;
+// createFields: ["title", "description", "source", "time_limit_seconds"]
+// updateFields: ["title", "description", "is_active", "time_limit_seconds"]
+// Migration 20260326_02 applied — time_limit_seconds column exists in DB.
 
 export interface CreateQuizPayload {
   summary_id: string;
@@ -86,11 +85,9 @@ export async function getQuizzes(
  * Create a new quiz entity.
  */
 export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
-  // BUG-020: Strip time_limit_seconds — backend has no column for it yet
-  const { time_limit_seconds: _omit, ...payload } = data;
   return apiCall<QuizEntity>('/quizzes', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   });
 }
 
@@ -98,11 +95,9 @@ export async function createQuiz(data: CreateQuizPayload): Promise<QuizEntity> {
  * Update a quiz entity.
  */
 export async function updateQuiz(id: string, data: UpdateQuizPayload): Promise<QuizEntity> {
-  // BUG-020: Strip time_limit_seconds — backend has no column for it yet
-  const { time_limit_seconds: _omit, ...payload } = data;
   return apiCall<QuizEntity>(`/quizzes/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   });
 }
 
