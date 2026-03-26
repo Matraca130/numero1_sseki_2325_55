@@ -12,6 +12,7 @@ export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) 
         <img
           src={image_url}
           alt={description ?? ''}
+          loading="lazy"
           className="max-w-full rounded-[10px] border border-gray-200 dark:border-gray-700 inline-block"
         />
         {caption && (

@@ -24,6 +24,7 @@ import {
 import type { SummaryBlock, EduBlockType } from '@/app/services/summariesApi';
 import { apiCall } from '@/app/lib/api';
 import { ViewerBlock } from '@/app/components/student/ViewerBlock';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import BlockEditorToolbar from './BlockEditorToolbar';
 import BlockCard from './BlockCard';
 import AddBlockButton from './AddBlockButton';
@@ -168,8 +169,11 @@ export default function BlockEditor({
     debounceTimers.current[blockId] = setTimeout(() => {
       const content = pendingContent.current[blockId];
       if (content) {
-        updateMutation.mutate({ blockId, data: { content } });
-        delete pendingContent.current[blockId];
+        updateMutation.mutate({ blockId, data: { content } }, {
+          onSuccess: () => {
+            delete pendingContent.current[blockId];
+          },
+        });
       }
     }, 2000);
   }, [blocks, updateMutation]);
@@ -393,7 +397,9 @@ export default function BlockEditor({
                   {isPreview ? (
                     // Preview mode — use student renderer
                     <div className="py-2">
-                      <ViewerBlock block={mergedBlock} isMobile={false} />
+                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                        <ViewerBlock block={mergedBlock} isMobile={false} />
+                      </ErrorBoundary>
                     </div>
                   ) : (
                     // Edit mode — use BlockCard with form/preview toggle
@@ -414,7 +420,9 @@ export default function BlockEditor({
                           onChange={(field, value) => handleFieldChange(block.id, field, value)}
                         />
                       ) : (
-                        <ViewerBlock block={mergedBlock} isMobile={false} />
+                        <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                          <ViewerBlock block={mergedBlock} isMobile={false} />
+                        </ErrorBoundary>
                       )}
                     </BlockCard>
                   )}

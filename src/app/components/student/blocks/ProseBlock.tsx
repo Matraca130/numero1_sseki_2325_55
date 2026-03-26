@@ -21,6 +21,7 @@ export default function ProseBlock({ block }: { block: SummaryBlock }) {
         <img
           src={image}
           alt={title ?? ''}
+          loading="lazy"
           className="max-w-full rounded-[10px] border border-gray-200 dark:border-gray-700 mt-3"
         />
       )}

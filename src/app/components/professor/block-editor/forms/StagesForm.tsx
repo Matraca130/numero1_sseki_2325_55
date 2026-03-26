@@ -1,9 +1,4 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
-
-interface BlockFormProps {
-  block: SummaryBlock;
-  onChange: (field: string, value: unknown) => void;
-}
+import { type BlockFormProps, inputClass } from './shared';
 
 interface StageItem {
   stage: number;
@@ -11,9 +6,6 @@ interface StageItem {
   content: string;
   severity?: string;
 }
-
-const inputClass =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400';
 
 export default function StagesForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};

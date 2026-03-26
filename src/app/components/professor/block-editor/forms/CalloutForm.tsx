@@ -1,12 +1,4 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
-
-interface BlockFormProps {
-  block: SummaryBlock;
-  onChange: (field: string, value: unknown) => void;
-}
-
-const inputClass =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400';
+import { type BlockFormProps, inputClass } from './shared';
 
 const variants = [
   { value: 'tip', label: 'Consejo', color: 'bg-green-100 text-green-700 border-green-300' },
