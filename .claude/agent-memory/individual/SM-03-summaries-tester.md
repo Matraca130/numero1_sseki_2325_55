@@ -1,5 +1,5 @@
 # Agent Memory: SM-03 (summaries-tester)
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
 ## Rol
 Agente tester de la sección Resúmenes de AXON: escribe y ejecuta tests para chunking, RAG pipeline, summary UI y anotaciones, con ownership exclusivo sobre archivos de test.
@@ -8,6 +8,7 @@ Agente tester de la sección Resúmenes de AXON: escribe y ejecuta tests para ch
 | Fecha | Lección | Prevención |
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
+| 2026-03-26 | forms.test.tsx tilde fix was already applied -- always verify current state before making changes | Run tests first to confirm actual failures before editing |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -25,6 +26,8 @@ Agente tester de la sección Resúmenes de AXON: escribe y ejecuta tests para ch
 - Ejecutar tests backend con `deno test supabase/functions/server/tests/semantic_chunker_test.ts` y `summary_hook_test.ts` por separado
 - Solo hacer Write en archivos de test (`src/__tests__/summary-*.test.ts`, `semantic_chunker_test.ts`, `summary_hook_test.ts`) — nunca tocar código de producción
 - Leer `agent-memory/summaries.md` al inicio para alinear los tests con el modelo de datos actual
+- Always run `npx vitest run <file>` FIRST to confirm failures before editing -- the issue may already be resolved
+- Use `npx vitest run` (no path filter) to verify 601/601 full suite passes after any change
 
 ## Patrones a evitar
 | Pattern | Por qué | Alternativa |
@@ -36,7 +39,7 @@ Agente tester de la sección Resúmenes de AXON: escribe y ejecuta tests para ch
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 0 | — |
+| Sesiones ejecutadas | 1 | 2026-03-26 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
