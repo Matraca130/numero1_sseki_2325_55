@@ -75,6 +75,7 @@ import type { MapNode, NodeAction, GraphControls } from '@/app/types/mindmap';
 import { headingStyle } from '@/app/design-system';
 import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
 import { I18N_MAP_VIEW } from './mindmap/mapViewI18n';
+import { I18N_GRAPH } from './mindmap/graphI18n';
 import type { GraphLocale } from './mindmap/graphI18n';
 
 /** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
@@ -154,7 +155,7 @@ export function KnowledgeMapView() {
   graphDataEdgesRef.current = graphData?.edges;
 
   // Undo/redo history for custom node/edge actions
-  const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch);
+  const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch, I18N_GRAPH[locale]);
 
   // Search (shared hook: debounce + filter + highlight)
   // Must be declared before handlers that call setSearchQuery
@@ -657,6 +658,7 @@ export function KnowledgeMapView() {
                 edgeCount={edgeCount}
                 isFullscreen={isFullscreen}
                 onExitFullscreen={toggleFullscreen}
+                locale={locale}
                 moreActionsSlot={
                   <MoreActionsDropdown
                     onToggleHistory={toggleHistory}
@@ -918,6 +920,7 @@ export function KnowledgeMapView() {
             onClose={() => setShowShareModal(false)}
             topicId={effectiveTopicId}
             topicName={currentTopic?.title || allTopics.find(t => t.id === topicId)?.name}
+            locale={locale}
           />
         </ErrorBoundary>
 

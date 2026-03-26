@@ -16,6 +16,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
+import { I18N_MAP_VIEW } from './mapViewI18n';
+import type { GraphLocale } from './graphI18n';
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -24,11 +26,13 @@ interface ShareMapModalProps {
   onClose: () => void;
   topicId: string;
   topicName?: string;
+  locale?: GraphLocale;
 }
 
 // ── Component ───────────────────────────────────────────────
 
-export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicId, topicName }: ShareMapModalProps) {
+export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicId, topicName, locale = 'pt' }: ShareMapModalProps) {
+  const tModal = I18N_MAP_VIEW[locale];
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusTrapRef = useFocusTrap(open);
@@ -75,13 +79,13 @@ export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicI
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success('Enlace copiado');
+      toast.success(tModal.linkCopied);
       clearTimeout(copiedTimerRef.current);
       copiedTimerRef.current = setTimeout(() => setCopied(false), 2500);
     } catch {
       // Fallback: select text for manual copy
       inputRef.current?.select();
-      toast.info('Selecciona y copia el enlace manualmente');
+      toast.info(tModal.linkCopyFallback);
     }
   }, [shareUrl]);
 

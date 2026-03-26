@@ -25,6 +25,8 @@ import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import { getMasteryLabel } from '@/app/lib/mastery-helpers';
 import { toast } from 'sonner';
 import { headingStyle } from '@/app/design-system';
+import { I18N_MAP_VIEW } from './mapViewI18n';
+import type { GraphLocale } from './graphI18n';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -104,6 +106,9 @@ interface GraphSidebarProps {
   // ── Fullscreen ──
   isFullscreen?: boolean;
   onExitFullscreen?: () => void;
+
+  // ── I18N ──
+  locale?: GraphLocale;
 }
 
 // ── Constants ───────────────────────────────────────────────
@@ -181,7 +186,10 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
     moreActionsSlot,
     nodeCount, edgeCount,
     isFullscreen, onExitFullscreen,
+    locale = 'pt',
   } = props;
+
+  const tSidebar = I18N_MAP_VIEW[locale];
 
   const [showSearch, setShowSearch] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
@@ -236,7 +244,7 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
     setExporting(true);
     setShowExportMenu(false);
     try { await exportFn(); }
-    catch { toast.error('No se pudo exportar el mapa'); }
+    catch { toast.error(tSidebar.exportMapError); }
     finally {
       exportingRef.current = false;
       if (mountedRef.current) setExporting(false);

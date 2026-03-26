@@ -22,6 +22,8 @@ import {
   deleteCustomEdge,
 } from '@/app/services/mindmapApi';
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
+import type { GraphI18nStrings } from './graphI18n';
+import { I18N_GRAPH } from './graphI18n';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -68,7 +70,8 @@ const MAX_HISTORY = 30;
 
 // ── Hook ────────────────────────────────────────────────────
 
-export function useUndoRedo(onGraphChanged: () => void) {
+export function useUndoRedo(onGraphChanged: () => void, i18n?: GraphI18nStrings) {
+  const t: GraphI18nStrings = i18n ?? I18N_GRAPH.pt;
   const [past, setPast] = useState<UndoableAction[]>([]);
   const [future, setFuture] = useState<UndoableAction[]>([]);
   const [busy, setBusy] = useState(false);
@@ -138,10 +141,10 @@ export function useUndoRedo(onGraphChanged: () => void) {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error';
-      toast.error(`No se pudo deshacer: ${msg}`);
+      toast.error(t.undoErrorWithMsg(msg));
       return null;
     }
-  }, []);
+  }, [t]);
 
   /** Execute the forward version of an action (for redo).
    *  Returns the (possibly updated) action — server may assign new IDs on re-create. */
@@ -179,10 +182,10 @@ export function useUndoRedo(onGraphChanged: () => void) {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error';
-      toast.error(`No se pudo rehacer: ${msg}`);
+      toast.error(t.redoErrorWithMsg(msg));
       return null;
     }
-  }, []);
+  }, [t]);
 
   const undo = useCallback(async () => {
     if (busyRef.current || pastRef.current.length === 0) return;
@@ -203,16 +206,16 @@ export function useUndoRedo(onGraphChanged: () => void) {
         setFuture(prev => [...prev, updated]);
         onGraphChanged();
         if (updated.type === 'reconnect-edge') {
-          toast.info('Deshacer: Reconexión de arista');
+          toast.info(t.undoReconnect);
         } else {
-          const label = updated.type.includes('node') ? 'concepto' : 'conexión';
-          const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
-          toast.info(`Deshacer: ${verb} de ${label}`);
+          const label = updated.type.includes('node') ? t.labelConcept : t.labelConnection;
+          const verb = updated.type.startsWith('create') ? t.verbCreation : t.verbDeletion;
+          toast.info(t.undoAction(verb, label));
         }
       } else {
         // reverseAction failed — remove only the failed action, preserve rest of history
         setPast(prev => prev.slice(0, -1));
-        toast.error('No se pudo deshacer la acción');
+        toast.error(t.undoFailed);
       }
     } finally {
       if (mountedRef.current) setBusy(false);
@@ -237,16 +240,16 @@ export function useUndoRedo(onGraphChanged: () => void) {
         setPast(prev => [...prev, updated]);
         onGraphChanged();
         if (updated.type === 'reconnect-edge') {
-          toast.info('Rehacer: Reconexión de arista');
+          toast.info(t.redoReconnect);
         } else {
-          const label = updated.type.includes('node') ? 'concepto' : 'conexión';
-          const verb = updated.type.startsWith('create') ? 'Creación' : 'Eliminación';
-          toast.info(`Rehacer: ${verb} de ${label}`);
+          const label = updated.type.includes('node') ? t.labelConcept : t.labelConnection;
+          const verb = updated.type.startsWith('create') ? t.verbCreation : t.verbDeletion;
+          toast.info(t.redoAction(verb, label));
         }
       } else {
         // replayAction failed — remove only the failed action, preserve rest of history
         setFuture(prev => prev.slice(0, -1));
-        toast.error('No se pudo rehacer la acción');
+        toast.error(t.redoFailed);
       }
     } finally {
       if (mountedRef.current) setBusy(false);

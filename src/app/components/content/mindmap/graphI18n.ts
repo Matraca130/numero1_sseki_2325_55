@@ -48,6 +48,19 @@ export interface GraphI18nStrings {
   hullsToggle: string; lassoSelect: string;
   undoToast: string; redoToast: string; nothingToUndo: string; nothingToRedo: string;
   collapseNode: string; expandNode: string;
+  /** Undo/redo toast messages (from useUndoRedo) */
+  undoErrorWithMsg: (msg: string) => string;
+  redoErrorWithMsg: (msg: string) => string;
+  undoReconnect: string;
+  redoReconnect: string;
+  undoFailed: string;
+  redoFailed: string;
+  undoAction: (verb: string, label: string) => string;
+  redoAction: (verb: string, label: string) => string;
+  verbCreation: string;
+  verbDeletion: string;
+  labelConcept: string;
+  labelConnection: string;
 }
 
 export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
@@ -103,6 +116,16 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Seleção livre',
     undoToast: 'Ação desfeita', redoToast: 'Ação refeita', nothingToUndo: 'Nada para desfazer', nothingToRedo: 'Nada para refazer',
     collapseNode: 'Recolher ramo', expandNode: 'Expandir ramo',
+    undoErrorWithMsg: (msg) => `Não foi possível desfazer: ${msg}`,
+    redoErrorWithMsg: (msg) => `Não foi possível refazer: ${msg}`,
+    undoReconnect: 'Desfazer: Reconexão de aresta',
+    redoReconnect: 'Refazer: Reconexão de aresta',
+    undoFailed: 'Não foi possível desfazer a ação',
+    redoFailed: 'Não foi possível refazer a ação',
+    undoAction: (verb, label) => `Desfazer: ${verb} de ${label}`,
+    redoAction: (verb, label) => `Refazer: ${verb} de ${label}`,
+    verbCreation: 'Criação', verbDeletion: 'Eliminação',
+    labelConcept: 'conceito', labelConnection: 'conexão',
   },
   es: {
     noData: 'Sin datos', mastery: 'Dominio',
@@ -156,5 +179,15 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Selección libre',
     undoToast: 'Acción deshecha', redoToast: 'Acción rehecha', nothingToUndo: 'Nada que deshacer', nothingToRedo: 'Nada que rehacer',
     collapseNode: 'Colapsar rama', expandNode: 'Expandir rama',
+    undoErrorWithMsg: (msg) => `No se pudo deshacer: ${msg}`,
+    redoErrorWithMsg: (msg) => `No se pudo rehacer: ${msg}`,
+    undoReconnect: 'Deshacer: Reconexión de arista',
+    redoReconnect: 'Rehacer: Reconexión de arista',
+    undoFailed: 'No se pudo deshacer la acción',
+    redoFailed: 'No se pudo rehacer la acción',
+    undoAction: (verb, label) => `Deshacer: ${verb} de ${label}`,
+    redoAction: (verb, label) => `Rehacer: ${verb} de ${label}`,
+    verbCreation: 'Creación', verbDeletion: 'Eliminación',
+    labelConcept: 'concepto', labelConnection: 'conexión',
   },
 };

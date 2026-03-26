@@ -83,6 +83,13 @@ export interface MapViewI18nStrings {
   // ── Misc ─────────────────────────────────────────────────
   close: string;
   exit: string;
+
+  // ── ShareMapModal toasts ─────────────────────────────────
+  linkCopied: string;
+  linkCopyFallback: string;
+
+  // ── GraphSidebar export error ────────────────────────────
+  exportMapError: string;
 }
 
 export const I18N_MAP_VIEW: Record<GraphLocale, MapViewI18nStrings> = {
@@ -162,6 +169,13 @@ export const I18N_MAP_VIEW: Record<GraphLocale, MapViewI18nStrings> = {
     // Misc
     close: 'Fechar',
     exit: 'Sair',
+
+    // ShareMapModal
+    linkCopied: 'Link copiado',
+    linkCopyFallback: 'Selecione e copie o link manualmente',
+
+    // GraphSidebar
+    exportMapError: 'Não foi possível exportar o mapa',
   },
 
   es: {
@@ -240,5 +254,12 @@ export const I18N_MAP_VIEW: Record<GraphLocale, MapViewI18nStrings> = {
     // Misc
     close: 'Cerrar',
     exit: 'Salir',
+
+    // ShareMapModal
+    linkCopied: 'Enlace copiado',
+    linkCopyFallback: 'Selecciona y copia el enlace manualmente',
+
+    // GraphSidebar
+    exportMapError: 'No se pudo exportar el mapa',
   },
 };
