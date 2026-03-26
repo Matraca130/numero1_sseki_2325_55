@@ -599,18 +599,25 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
       behaviors: [
         {
           type: 'drag-canvas',
-          sensitivity: 1,
+          sensitivity: 1.3,
         },
         {
           type: 'zoom-canvas',
-          sensitivity: 1.5,
+          sensitivity: 1,
           minZoom: MIN_ZOOM,
           maxZoom: MAX_ZOOM,
           origin: 'pointer',
+          trigger: ['Control'],
+        },
+        {
+          type: 'scroll-canvas',
+          sensitivity: 1,
+        },
+        {
+          type: 'optimize-viewport-transform',
         },
         {
           type: 'drag-element',
-          ...(typeof window !== 'undefined' && 'ontouchstart' in window ? { delay: 150 } : {}),
         },
         {
           type: 'hover-activate',

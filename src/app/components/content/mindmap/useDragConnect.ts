@@ -30,19 +30,19 @@ import type { DragDrawState, SuccessAnimState } from './drawDragConnectOverlay';
 // ── Constants ───────────────────────────────────────────────
 
 /** Distance from node center at which a port is considered "hit" */
-const PORT_HIT_RADIUS = 18;
+const PORT_HIT_RADIUS = 24;
 /** Distance from a node center to detect snap */
-const NODE_SNAP_RADIUS = 40;
+const NODE_SNAP_RADIUS = 55;
 /** Minimum drag distance to activate (desktop) */
-const DRAG_THRESHOLD = 6;
+const DRAG_THRESHOLD = 4;
 /** Minimum drag distance to activate (touch — larger to avoid accidental drags) */
-const TOUCH_DRAG_THRESHOLD = 14;
+const TOUCH_DRAG_THRESHOLD = 12;
 /** Size of connection port circles — larger on touch for visibility */
-function getPortRadius(isTouch: boolean) { return isTouch ? 8 : 4; }
+function getPortRadius(isTouch: boolean) { return isTouch ? 10 : 6; }
 /** Hover check throttle interval */
 const HOVER_THROTTLE_MS = 50;
 /** Quick-connect button size — 44px on touch for minimum touch target */
-function getQuickConnectSize(isTouch: boolean) { return isTouch ? 44 : 20; }
+function getQuickConnectSize(isTouch: boolean) { return isTouch ? 44 : 28; }
 
 // ── i18n (delegated to graphI18n.ts) ────────────────────────
 
