@@ -568,13 +568,13 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
         },
         animation: {
           enter: [
-            { fields: ['opacity', 'size'], duration: 320, easing: 'ease-out', fill: 'both' },
+            { fields: ['opacity'], duration: 300, easing: 'ease-out', fill: 'both' },
           ],
           update: [
-            { fields: ['x', 'y', 'fill', 'stroke', 'opacity', 'size', 'lineWidth'], duration: 200, easing: 'ease-out' },
+            { fields: ['x', 'y', 'fill', 'stroke', 'opacity', 'lineWidth'], duration: 200, easing: 'ease-out' },
           ],
           exit: [
-            { fields: ['opacity', 'size'], duration: 200, easing: 'ease-in' },
+            { fields: ['opacity'], duration: 200, easing: 'ease-in' },
           ],
         },
       },
