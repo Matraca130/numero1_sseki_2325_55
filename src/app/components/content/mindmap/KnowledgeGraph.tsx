@@ -32,6 +32,8 @@ import type { EdgeReconnectResult } from './useEdgeReconnect';
 import { useDragConnect } from './useDragConnect';
 import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
+import { GraphToolbar } from './GraphToolbar';
+import { useFullscreen } from './useFullscreen';
 
 // Extracted hooks
 import { useGraphInit, warnIfNotDestroyed, LAYOUT_FORCE, LAYOUT_RADIAL, LAYOUT_DAGRE, LAYOUT_MINDMAP, LAYOUT_CONCENTRIC } from './useGraphInit';
@@ -94,6 +96,14 @@ interface KnowledgeGraphProps {
   onEdgeReconnect?: (result: EdgeReconnectResult) => void;
   /** Called when zoom level changes (value is the zoom ratio, e.g. 1.0 = 100%) */
   onZoomChange?: (zoom: number) => void;
+  /** Called when the embedded GraphToolbar requests a layout change */
+  onLayoutChange?: (layout: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric') => void;
+  /** Current search query — passed to embedded GraphToolbar */
+  searchQuery?: string;
+  /** Called when user types in the embedded GraphToolbar search field */
+  onSearchChange?: (query: string) => void;
+  /** Whether to render the embedded GraphToolbar (default false — backward compatible) */
+  showToolbar?: boolean;
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -125,8 +135,15 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   enableEdgeReconnect = false,
   onEdgeReconnect,
   onZoomChange,
+  onLayoutChange,
+  searchQuery = '',
+  onSearchChange,
+  showToolbar = false,
 }: KnowledgeGraphProps) {
   const t = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
+
+  // Fullscreen support for embedded toolbar
+  const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMobileHint, setShowMobileHint] = useState(() => {
@@ -145,10 +162,18 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   onNodeClickRef.current = onNodeClick;
   const onNodeRightClickRef = useRef(onNodeRightClick);
   onNodeRightClickRef.current = onNodeRightClick;
-  const onZoomChangeRef = useRef(onZoomChange);
-  onZoomChangeRef.current = onZoomChange;
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const onZoomChangeRef = useRef<((zoom: number) => void) | undefined>(undefined);
+  onZoomChangeRef.current = (zoom: number) => {
+    setZoomLevel(zoom);
+    onZoomChange?.(zoom);
+  };
+  const graphControlsRef = useRef<GraphControls | null>(null);
+  const onReadyRef = useRef<((controls: GraphControls) => void) | undefined>(undefined);
+  onReadyRef.current = (controls: GraphControls) => {
+    graphControlsRef.current = controls;
+    onReady?.(controls);
+  };
   const onCollapseChangeRef = useRef(onCollapseChange);
   onCollapseChangeRef.current = onCollapseChange;
   const onMultiSelectRef = useRef(onMultiSelect);
@@ -437,6 +462,18 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     }
   }, [graphRef, layoutInProgressRef, mountedRef]);
 
+  // Toolbar: zoom / export / undo / redo / collapse delegates via graphControlsRef
+  const handleZoomIn = useCallback(() => { graphControlsRef.current?.zoomIn(); }, []);
+  const handleZoomOut = useCallback(() => { graphControlsRef.current?.zoomOut(); }, []);
+  const handleFitView = useCallback(() => { graphControlsRef.current?.fitView(); }, []);
+  const handleResetZoom = useCallback(() => { graphControlsRef.current?.resetZoom?.(); }, []);
+  const handleCollapseAll = useCallback(() => { graphControlsRef.current?.collapseAll(); }, []);
+  const handleExpandAll = useCallback(() => { graphControlsRef.current?.expandAll(); }, []);
+  const handleExportPNG = useCallback(async () => { await graphControlsRef.current?.exportPNG(); }, []);
+  const handleExportJPEG = useCallback(async () => { await graphControlsRef.current?.exportJPEG(); }, []);
+  const handleUndo = useCallback(() => { graphControlsRef.current?.undo?.(); }, []);
+  const handleRedo = useCallback(() => { graphControlsRef.current?.redo?.(); }, []);
+
   // Handler: breadcrumb click
   const handleBreadcrumbClick = useCallback((crumbId: string | null) => {
     const graph = graphRef.current;
@@ -490,7 +527,41 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const shortcutTriggerRef = useRef<HTMLElement | null>(null);
 
   return (
-    <div className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${className}`}>
+    <div
+      ref={fullscreenRef}
+      className={`relative w-full h-full min-h-[180px] sm:min-h-[300px] ${isFullscreen ? 'fixed inset-0 z-50 bg-white flex flex-col' : ''} ${className}`}
+    >
+      {/* Embedded toolbar — opt-in via showToolbar prop */}
+      {showToolbar && (
+        <GraphToolbar
+          layout={layout}
+          onLayoutChange={onLayoutChange ?? (() => {})}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFitView={handleFitView}
+          nodeCount={data.nodes.length}
+          edgeCount={data.edges.length}
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange ?? (() => {})}
+          matchCount={highlightNodeIds?.size}
+          onCollapseAll={handleCollapseAll}
+          onExpandAll={handleExpandAll}
+          collapsedCount={collapsedCount}
+          locale={locale}
+          onExportPNG={handleExportPNG}
+          onExportJPEG={handleExportJPEG}
+          showMinimap={showMinimap}
+          showGrid={gridEnabled}
+          onGridToggle={handleGridToggle}
+          onAutoLayout={handleAutoLayout}
+          zoomLevel={zoomLevel}
+          onResetZoom={handleResetZoom}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreen}
+        />
+      )}
       <div
         ref={containerRef}
         className="w-full h-full bg-white rounded-2xl shadow-sm border border-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-ax-primary-500/30 focus-visible:border-ax-primary-500/50 overflow-hidden"
