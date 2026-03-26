@@ -8,6 +8,7 @@ Agente del sistema de keywords de AXON: gestiona popups de detalle, highlighting
 | Fecha | Lección | Prevención |
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
+| 2026-03-25 | `kwConnections` prefix matching covers `kwConnectionsResolved` — React Query invalidateQueries uses prefix matching by default. Check prefix behavior before reporting cache key mismatches. queryKeys.ts L77-80 documents this. | FALSE POSITIVE avoided |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -40,7 +41,7 @@ Agente del sistema de keywords de AXON: gestiona popups de detalle, highlighting
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 0 | — |
+| Sesiones ejecutadas | 1 | 2026-03-25 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
