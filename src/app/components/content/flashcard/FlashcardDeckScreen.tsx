@@ -15,7 +15,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Topic, Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
-import { ChevronLeft, ChevronRight, BookOpen, Play, GraduationCap, ChevronDown, Layers, Sparkles, Brain } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, FileText, Play, GraduationCap, ChevronDown, Layers, Sparkles, Brain } from 'lucide-react';
+import { EmptyState } from '@/app/components/shared/EmptyState';
 import { getMasteryStats, filterCardsByMastery, type MasteryFilter } from '@/app/hooks/flashcard-types';
 import type { KeywordProgress } from '@/app/hooks/useFlashcardNavigation';
 import { FlashcardMiniCard } from './FlashcardMiniCard';
@@ -164,10 +165,11 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 sm:py-5 bg-surface-dashboard">
         <div className="h-full">
           {filteredCards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <BookOpen size={48} className="mb-3 text-gray-300" />
-              <p className="text-sm font-medium">{cards.length === 0 ? 'No hay flashcards en este mazo' : 'No hay cards en esta categor\u00EDa'}</p>
-            </div>
+            <EmptyState
+              icon={cards.length === 0 ? FileText : BookOpen}
+              title={cards.length === 0 ? 'Deck vacío' : 'No hay tarjetas en esta categoría'}
+              description={cards.length === 0 ? 'No hay tarjetas en este deck' : 'Prueba con otro filtro de dominio'}
+            />
           ) : cardGroups.length <= 1 ? (
             <div className={CARD_GRID_CLASSES}>{filteredCards.map((card, idx) => <FlashcardMiniCard key={card.id} card={card} idx={idx} onClick={() => onStart([card])} />)}</div>
           ) : (
