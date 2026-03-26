@@ -67,7 +67,7 @@ export default function ListDetailForm({ block, onChange }: BlockFormProps) {
           Introducción (opcional)
         </label>
         <textarea
-          className={`${inputClass} min-h-[60px]`}
+          className={`${inputClass} min-h-[80px]`}
           value={(c.intro as string) ?? ''}
           onChange={(e) => onChange('intro', e.target.value)}
           placeholder="Texto introductorio..."
@@ -111,7 +111,7 @@ export default function ListDetailForm({ block, onChange }: BlockFormProps) {
               placeholder="Etiqueta"
             />
             <textarea
-              className={`${inputClass} min-h-[60px]`}
+              className={`${inputClass} min-h-[80px]`}
               value={item.detail ?? ''}
               onChange={(e) => updateItem(idx, 'detail', e.target.value)}
               placeholder="Detalle..."

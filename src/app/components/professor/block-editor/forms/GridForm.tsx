@@ -120,7 +120,7 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
               placeholder="Etiqueta"
             />
             <textarea
-              className={`${inputClass} min-h-[60px]`}
+              className={`${inputClass} min-h-[80px]`}
               value={item.detail ?? ''}
               onChange={(e) => updateItem(idx, 'detail', e.target.value)}
               placeholder="Detalle..."

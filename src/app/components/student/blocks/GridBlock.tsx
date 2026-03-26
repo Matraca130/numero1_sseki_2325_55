@@ -13,6 +13,19 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
   const items = (block.content?.items ?? []) as GridItem[];
   const gridCols = columns === 2 ? 'grid-cols-2' : 'grid-cols-3';
 
+  if (!items.length) {
+    return (
+      <div>
+        {title && (
+          <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
+            {title}
+          </h3>
+        )}
+        <p className="text-sm text-gray-400 italic py-4 text-center">Sin datos</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {title && (

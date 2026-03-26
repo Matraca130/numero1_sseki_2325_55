@@ -74,7 +74,7 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
               placeholder="Título de la etapa"
             />
             <textarea
-              className={`${inputClass} min-h-[60px]`}
+              className={`${inputClass} min-h-[80px]`}
               value={item.content ?? ''}
               onChange={(e) => updateItem(idx, 'content', e.target.value)}
               placeholder="Contenido de la etapa..."

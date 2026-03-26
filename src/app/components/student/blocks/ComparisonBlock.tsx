@@ -6,6 +6,19 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
   const rows = (block.content?.rows ?? []) as string[][];
   const highlight_column = block.content?.highlight_column as number | undefined;
 
+  if (!rows.length) {
+    return (
+      <div>
+        {title && (
+          <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
+            {title}
+          </h3>
+        )}
+        <p className="text-sm text-gray-400 italic py-4 text-center">Sin datos</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {title && (
