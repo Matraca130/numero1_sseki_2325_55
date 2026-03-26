@@ -16,7 +16,7 @@ interface Column {
 }
 
 const inputClass =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400';
+  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-400';
 
 const defaultColumns: Column[] = [
   { title: '', items: [] },

@@ -47,7 +47,7 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
       ref={chipRef}
       role="button"
       tabIndex={0}
-      className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#e8f5f1] dark:bg-teal-950 text-[#1B3B36] dark:text-teal-200 border border-[#d1f0e7] dark:border-teal-800 hover:bg-[#d1f0e7] dark:hover:bg-teal-900 cursor-pointer transition-colors"
+      className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-axon-teal-50 dark:bg-teal-950 text-axon-dark dark:text-teal-200 border border-axon-teal-100 dark:border-teal-800 hover:bg-axon-teal-100 dark:hover:bg-teal-900 cursor-pointer transition-colors"
       onClick={() => onClick?.(keyword.id)}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick?.(keyword.id); }}
       onMouseEnter={handleMouseEnter}
@@ -68,7 +68,7 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
               positionAbove ? 'bottom-full mb-2' : 'top-full mt-2',
             ].join(' ')}
           >
-            <span className="block font-serif text-sm font-bold text-[#1B3B36] dark:text-teal-400 mb-1.5">
+            <span className="block font-serif text-sm font-bold text-axon-dark dark:text-teal-400 mb-1.5">
               {keyword.name}
             </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400 leading-relaxed">

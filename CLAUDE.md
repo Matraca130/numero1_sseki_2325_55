@@ -194,7 +194,8 @@ import { colors, components, headingStyle } from '@/app/design-system';
 ### Forbidden
 - Glassmorphism (`backdrop-blur` on content cards)
 - Gradients on buttons or icons
-- Blue/violet/purple on interactive elements (use teal instead)
+- Blue/violet/purple on **interactive** elements (use teal instead)
+  - **Exception**: Professor role accent is violet — badges, labels, and decorative elements in professor pages MAY use violet. Only focus rings and clickable controls must be teal.
 - Font-size via Tailwind classes (`text-2xl`, etc.) — use `clamp()` or tokens
 
 ## Key Conventions

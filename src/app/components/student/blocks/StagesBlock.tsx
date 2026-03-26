@@ -27,18 +27,18 @@ export default function StagesBlock({ block, keywords }: { block: SummaryBlock; 
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
+        <h3 className="font-serif text-xl font-bold text-axon-dark dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}
       <div className="relative pl-9">
         {/* Gradient connector line */}
         {items.length > 1 && (
-          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-[#2a8c7a] to-red-500" />
+          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-axon-accent to-red-500" />
         )}
         {items.map((item, i) => {
-          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-[#2a8c7a]') : 'bg-[#2a8c7a]';
-          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-[#2a8c7a]') : 'border-l-[#2a8c7a]';
+          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-axon-accent') : 'bg-axon-accent';
+          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-axon-accent') : 'border-l-axon-accent';
 
           return (
             <div key={i} className={`relative ${i < items.length - 1 ? 'mb-5' : ''}`}>
@@ -53,7 +53,7 @@ export default function StagesBlock({ block, keywords }: { block: SummaryBlock; 
                 className={`rounded-[10px] px-4 py-3 border border-gray-200 dark:border-gray-700 border-l-[3px] ${sevBorder} bg-white dark:bg-gray-800`}
               >
                 {item.title && (
-                  <div className="font-bold text-[15px] text-[#1B3B36] dark:text-teal-400 mb-1">
+                  <div className="font-bold text-[15px] text-axon-dark dark:text-teal-400 mb-1">
                     {item.title}
                   </div>
                 )}
