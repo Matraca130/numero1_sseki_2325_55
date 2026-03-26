@@ -8,13 +8,41 @@ bash .claude/bootstrap-memory.sh
 ```
 If memory already exists, the script exits cleanly (no-op).
 
-## 2. Agent Memory — Mandatory for every agent invocation
+## 2. Agent Prompt Template — MANDATORY for every Agent tool call
 
-Every Agent tool call MUST include in its prompt:
+Every prompt passed to the Agent tool MUST start with this preamble BEFORE the task description.
+This is not a suggestion — it is a blocking requirement. Do NOT summarize or paraphrase it.
+
 ```
-Lee tu memoria en .claude/agent-memory/individual/<ID>-<nombre>.md
+ANTES DE CUALQUIER OTRA ACCION, lee estos archivos en este orden:
+1. .claude/agents/<nombre>.md  (tu definicion, rol, zona de ownership, reglas)
+2. .claude/agent-memory/individual/<ID>-<nombre>.md  (tu memoria: lecciones, errores, patrones)
+3. Sigue las instrucciones de "Al iniciar SIEMPRE" de tu definicion si las tiene.
+
+Si alguno no existe, continua con los que si existen.
+
+AL FINALIZAR tu tarea, DEBES hacer append a tu memoria individual siguiendo .claude/AGENT-MEMORY-PROTOCOL.md:
+- Fecha, tarea, que aprendiste, errores, archivos tocados.
 ```
-And at session end, every agent MUST append to its memory file following `.claude/AGENT-MEMORY-PROTOCOL.md`.
+
+### Why this matters
+
+The agent definition file contains:
+- Ownership zone (which files it CAN touch)
+- Coding rules specific to its section
+- Dependencies on other agents
+- "Al iniciar SIEMPRE" steps (extra files to read)
+
+The memory file contains:
+- Past mistakes to avoid (prevents repeated errors)
+- Patterns that worked (accelerates work)
+- Metrics to update at session end
+
+Without reading these, the agent operates blind and may:
+- Touch files outside its ownership (scope creep)
+- Repeat documented mistakes
+- Skip section-specific rules
+- Break contracts with other agents
 
 ## 3. Agent Teams — Default execution mode
 
