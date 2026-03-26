@@ -33,6 +33,7 @@ import {
   BookOpen, X, Loader2, Clock,
 } from 'lucide-react';
 import { logger } from '@/app/lib/logger';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 // ── Inlined from design-kit (file not in repo) ──────────
 const focusRing = "focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none";
@@ -345,6 +346,24 @@ export function QuizSessionView({
   };
 
   return (
+    <ErrorBoundary
+      variant="section"
+      retry={() => {}}
+      fallback={(error, reset) => (
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+          <p className="text-red-600 mb-2" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+            Algo salio mal durante el quiz. Tu progreso fue guardado.
+          </p>
+          <button
+            onClick={reset}
+            className="px-5 py-2 rounded-full bg-teal-500 text-white font-medium hover:bg-teal-600 transition-colors"
+            style={{ fontSize: '0.875rem' }}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+    >
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col h-full bg-zinc-50 overflow-hidden">
 
       {/* Top Bar — Glass */}
@@ -643,5 +662,6 @@ export function QuizSessionView({
         </div>
       </div>
     </motion.div>
+    </ErrorBoundary>
   );
 }

@@ -34,8 +34,9 @@ import { normalizeDifficulty } from '@/app/services/quizConstants';
 import { QuizResults } from '@/app/components/student/QuizResults';
 import type { QuizQuestion } from '@/app/services/quizApi';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lightbulb, Loader2, AlertTriangle } from 'lucide-react';
+import { Lightbulb, Loader2, AlertTriangle, RotateCw } from 'lucide-react';
 import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 // ── Sub-components (Phase 3 extractions) ─────────────────
 import { QuestionRenderer } from '@/app/components/student/QuestionRenderer';
@@ -325,13 +326,23 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
           </div>
           <h2 className="text-xl text-gray-900 mb-3" style={{ fontWeight: 700 }}>Quiz no disponible</h2>
           <p className="text-gray-500 mb-6 text-sm">{errorMsg}</p>
-          <button
-            onClick={onBack}
-            className="text-axon-accent hover:underline text-sm"
-            style={{ fontWeight: 600 }}
-          >
-            Volver
-          </button>
+          <div className="flex items-center gap-3 justify-center">
+            <button
+              onClick={() => restartSession()}
+              className="flex items-center gap-2 px-5 py-2 rounded-full bg-teal-500 text-white text-sm hover:bg-teal-600 transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <RotateCw size={14} />
+              Reintentar
+            </button>
+            <button
+              onClick={onBack}
+              className="text-axon-accent hover:underline text-sm"
+              style={{ fontWeight: 600 }}
+            >
+              Volver
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -461,20 +472,45 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
                 exit="exit"
                 transition={{ duration: 0.25 }}
               >
-                <QuestionRenderer
-                  question={currentQ}
-                  questionIndex={currentIdx}
-                  isReviewing={isReviewing}
-                  showResult={showResult}
-                  isCorrectResult={isCorrectResult}
-                  selectedAnswer={selectedAnswer}
-                  onSelectOption={setLiveSelectedOption}
-                  tfAnswer={tfAnswer}
-                  onSelectTF={setLiveTFAnswer}
-                  textAnswer={textAnswer}
-                  onChangeText={setLiveTextInput}
-                  onSubmitText={handleSubmitOpen}
-                />
+                <ErrorBoundary
+                  variant="minimal"
+                  retry={() => {}}
+                  fallback={(error, reset) => (
+                    <div className="py-8 text-center">
+                      <p className="text-red-500 text-sm mb-3">Esta pregunta no se pudo cargar</p>
+                      <div className="flex items-center gap-3 justify-center">
+                        <button
+                          onClick={reset}
+                          className="text-sm text-teal-600 hover:underline"
+                          style={{ fontWeight: 600 }}
+                        >
+                          Reintentar
+                        </button>
+                        <button
+                          onClick={handleNext}
+                          className="text-sm text-zinc-500 hover:underline"
+                        >
+                          Saltar pregunta
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                >
+                  <QuestionRenderer
+                    question={currentQ}
+                    questionIndex={currentIdx}
+                    isReviewing={isReviewing}
+                    showResult={showResult}
+                    isCorrectResult={isCorrectResult}
+                    selectedAnswer={selectedAnswer}
+                    onSelectOption={setLiveSelectedOption}
+                    tfAnswer={tfAnswer}
+                    onSelectTF={setLiveTFAnswer}
+                    textAnswer={textAnswer}
+                    onChangeText={setLiveTextInput}
+                    onSubmitText={handleSubmitOpen}
+                  />
+                </ErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </div>
