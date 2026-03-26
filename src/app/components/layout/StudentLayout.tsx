@@ -224,9 +224,10 @@ function StudentShell() {
 // dependencies below.
 //
 // 1. AppProvider (outermost)
-//    Wraps UIProvider + NavigationProvider internally.
-//    Supplies useApp(), useStudySession(), sidebar/navigation state
-//    that almost every descendant reads.
+//    Wraps UIProvider + NavigationProvider internally, so useUI()
+//    and useStudentNav() are available to all descendants without
+//    a separate provider in this tree.
+//    Supplies useApp(), useStudySession(), sidebar/navigation state.
 //    Depends on: AuthContext (provided higher in the tree by App.tsx).
 //
 // 2. GamificationProvider
@@ -252,8 +253,9 @@ function StudentShell() {
 //    as TopicMasteryProvider.
 //
 // 7. StudyPlansProvider (innermost data provider)
-//    Depends on: TopicMasteryContext + StudyTimeEstimatesContext
-//    (imports useTopicMasteryContext and useStudyTimeEstimatesContext).
+//    Directly imports useTopicMasteryContext and
+//    useStudyTimeEstimatesContext to feed mastery + time-estimate
+//    data into its useStudyPlans hook (see StudyPlansContext.tsx).
 //    MUST be nested inside both providers above; moving it higher
 //    will throw a "must be used within Provider" error at runtime.
 //
