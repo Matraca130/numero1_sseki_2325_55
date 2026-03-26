@@ -25,6 +25,8 @@ export function useGraphControls(ref: RefObject<GraphControls | null>, locale: G
   const handleExportJPEG = useCallback(async () => {
     try { await ref.current?.exportJPEG(); } catch (err) { if (import.meta.env.DEV) console.error('JPEG export failed:', err); toast.error(t.exportJpegError); }
   }, [ref, t]);
+  const handleUndo = useCallback(() => { ref.current?.undo?.(); }, [ref]);
+  const handleRedo = useCallback(() => { ref.current?.redo?.(); }, [ref]);
 
-  return { handleZoomIn, handleZoomOut, handleFitView, handleResetZoom, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG };
+  return { handleZoomIn, handleZoomOut, handleFitView, handleResetZoom, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG, handleUndo, handleRedo };
 }

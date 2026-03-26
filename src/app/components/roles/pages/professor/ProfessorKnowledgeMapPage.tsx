@@ -166,7 +166,7 @@ export function ProfessorKnowledgeMapPage() {
     setSelectedNode(node);
   }, []);
 
-  const { handleZoomIn, handleZoomOut, handleFitView, handleResetZoom, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG } = useGraphControls(graphControlsRef);
+  const { handleZoomIn, handleZoomOut, handleFitView, handleResetZoom, handleCollapseAll, handleExpandAll, handleExportPNG, handleExportJPEG, handleUndo, handleRedo } = useGraphControls(graphControlsRef);
 
   const [deleteEdgeId, setDeleteEdgeId] = useState<string | null>(null);
   const deletingRef = useRef(false);
@@ -450,6 +450,8 @@ export function ProfessorKnowledgeMapPage() {
                 onExportJPEG={handleExportJPEG}
                 showMinimap={showMinimap}
                 onMinimapToggle={toggleMinimap}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
               />
             </div>
 

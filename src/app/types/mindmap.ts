@@ -215,6 +215,10 @@ export interface GraphControls {
   autoLayout?: () => void;
   /** Whether grid is currently enabled */
   gridEnabled?: boolean;
+  /** Undo last graph action (requires history plugin) */
+  undo?: () => void;
+  /** Redo last undone graph action (requires history plugin) */
+  redo?: () => void;
 }
 
 // ── Graph Helpers ──────────────────────────────────────────
