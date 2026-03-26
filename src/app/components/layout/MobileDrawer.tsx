@@ -7,6 +7,7 @@
 //   - Body scroll lock when open
 //   - Only renders on <lg (hidden on desktop via lg:hidden)
 //   - Close button inside drawer
+//   - Focus trap when open (Tab wraps, focus returns on close)
 //
 // Usage:
 //   <MobileDrawer isOpen={open} onClose={() => setOpen(false)} width={280}>
@@ -14,12 +15,15 @@
 //   </MobileDrawer>
 // ============================================================
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
 // Global counter to track how many drawers are open (prevents scroll lock race condition)
 let openDrawerCount = 0;
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -44,6 +48,16 @@ export function MobileDrawer({
   topOffset = 0,
   children,
 }: MobileDrawerProps) {
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  // Capture the element that was focused before the drawer opened
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement | null;
+    }
+  }, [isOpen]);
+
   // Body scroll lock — uses global counter to handle multiple drawers
   useEffect(() => {
     if (isOpen) {
@@ -61,15 +75,59 @@ export function MobileDrawer({
     }
   }, [isOpen]);
 
-  // Close on Escape key
+  // Focus first element when drawer opens
   useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+    if (!isOpen || !drawerRef.current) return;
+    // Slight delay to ensure the drawer animation has started and DOM is ready
+    const raf = requestAnimationFrame(() => {
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable && focusable.length > 0) {
+        focusable[0].focus();
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isOpen]);
+
+  // Return focus to trigger element on close
+  useEffect(() => {
+    if (!isOpen && triggerRef.current) {
+      triggerRef.current.focus();
+      triggerRef.current = null;
+    }
+  }, [isOpen]);
+
+  // Focus trap + Escape key handler
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key !== 'Tab' || !drawerRef.current) return;
+
+      const focusable = drawerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        // Shift+Tab on first → wrap to last
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        // Tab on last → wrap to first
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    },
+    [onClose],
+  );
 
   return (
     <AnimatePresence>
@@ -87,6 +145,7 @@ export function MobileDrawer({
           />
           {/* Drawer */}
           <motion.div
+            ref={drawerRef}
             initial={{ x: -width }}
             animate={{ x: 0 }}
             exit={{ x: -width }}
@@ -98,6 +157,10 @@ export function MobileDrawer({
               top: topOffset,
               bottom: 0,
             }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            onKeyDown={handleKeyDown}
           >
             <div className="h-full relative">
               {showCloseButton && (
