@@ -47,6 +47,8 @@ import {
 } from 'lucide-react';
 import { RATINGS } from '@/app/hooks/flashcard-types';
 import { ReportContentButton } from '@/app/components/shared/ReportContentButton';
+import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { useSessionXP } from '@/app/hooks/useSessionXP';
 import { XPPopup } from '@/app/components/gamification/XPPopup';
 import { ComboIndicator } from '@/app/components/gamification/ComboIndicator';
@@ -66,7 +68,15 @@ interface FlashcardReviewerProps {
 
 type ReviewPhase = 'idle' | 'reviewing' | 'finished';
 
-export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardReviewerProps) {
+export function FlashcardReviewer(props: FlashcardReviewerProps) {
+  return (
+    <ErrorBoundary variant="section" retry={props.onClose}>
+      <FlashcardReviewerInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function FlashcardReviewerInner({ summaryId, onClose, masteryMap }: FlashcardReviewerProps) {
   const [flashcards, setFlashcards] = useState<FlashcardItem[]>([]);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
@@ -236,7 +246,7 @@ export function FlashcardReviewer({ summaryId, onClose, masteryMap }: FlashcardR
 
   // ── Loading ─────────────────────────────────────────────────────
   if (loading) {
-    return (<div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-[#2a8c7a]" /></div>);
+    return (<div className="px-4 py-8"><SkeletonCard variant="content" count={1} /></div>);
   }
 
   // ── No flashcards ─────────────────────────────────────────────────
