@@ -38,6 +38,12 @@ export interface GraphI18nStrings {
   /** Graph init error fallback */
   initErrorTitle: string;
   retry: string;
+  /** G6 new features — layouts, toolbar, undo/redo, collapse */
+  layoutDagre: string; layoutMindmap: string; layoutConcentric: string;
+  undo: string; redo: string; fullscreen: string; exitFullscreen: string;
+  hullsToggle: string; lassoSelect: string;
+  undoToast: string; redoToast: string; nothingToUndo: string; nothingToRedo: string;
+  collapseNode: string; expandNode: string;
 }
 
 export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
@@ -85,6 +91,11 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     exportJpegError: 'Não foi possível exportar como JPEG',
     initErrorTitle: 'Erro ao inicializar o gráfico',
     retry: 'Tentar novamente',
+    layoutDagre: 'Hierárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concêntrico',
+    undo: 'Desfazer', redo: 'Refazer', fullscreen: 'Tela cheia', exitFullscreen: 'Sair da tela cheia',
+    hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Seleção livre',
+    undoToast: 'Ação desfeita', redoToast: 'Ação refeita', nothingToUndo: 'Nada para desfazer', nothingToRedo: 'Nada para refazer',
+    collapseNode: 'Recolher ramo', expandNode: 'Expandir ramo',
   },
   es: {
     noData: 'Sin datos', mastery: 'Dominio',
@@ -130,5 +141,10 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     exportJpegError: 'No se pudo exportar como JPEG',
     initErrorTitle: 'Error al inicializar el gráfico',
     retry: 'Reintentar',
+    layoutDagre: 'Jerárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concéntrico',
+    undo: 'Deshacer', redo: 'Rehacer', fullscreen: 'Pantalla completa', exitFullscreen: 'Salir de pantalla completa',
+    hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Selección libre',
+    undoToast: 'Acción deshecha', redoToast: 'Acción rehecha', nothingToUndo: 'Nada que deshacer', nothingToRedo: 'Nada que rehacer',
+    collapseNode: 'Colapsar rama', expandNode: 'Expandir rama',
   },
 };

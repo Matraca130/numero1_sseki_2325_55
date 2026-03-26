@@ -383,6 +383,8 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     switch (layout) {
       case 'radial': return LAYOUT_RADIAL;
       case 'dagre': return LAYOUT_DAGRE;
+      case 'mindmap': return { type: 'mindmap' as const, direction: 'H', getHeight: () => 32, getWidth: () => 32, getHGap: () => 40, getVGap: () => 20 };
+      case 'concentric': return { type: 'concentric' as const, minNodeSpacing: 40, preventOverlap: true };
       case 'force':
       default: return LAYOUT_FORCE;
     }
@@ -634,6 +636,30 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
             lineWidth: 1,
           },
         },
+        // ── G6 v5 behaviors (new) ──
+        {
+          type: 'collapse-expand',
+          trigger: 'dblclick',
+          animation: true,
+          align: true,
+        },
+        {
+          type: 'click-select',
+          multiple: true,
+          trigger: ['shift'],
+          state: 'selected',
+        },
+        {
+          type: 'fix-element-size',
+          enable: (event: any) => event?.data?.scale < 0.6,
+          node: [{ shape: 'label' }],
+          edge: [{ shape: 'label' }],
+        },
+        {
+          type: 'auto-adapt-label',
+          padding: 4,
+          throttle: 100,
+        },
       ],
       plugins: [
         {
@@ -738,6 +764,12 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
           verticalLineStyle: { stroke: GRAPH_COLORS.primary, lineWidth: 1, opacity: 0.5 },
           horizontalLineStyle: { stroke: GRAPH_COLORS.primary, lineWidth: 1, opacity: 0.5 },
         }] : []),
+        // ── G6 v5 plugins (new) ──
+        {
+          type: 'history' as const,
+          key: 'history',
+          stackSize: 50,
+        },
       ],
       combo: {
         type: 'rect' as const,
