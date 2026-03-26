@@ -1,5 +1,5 @@
 # Agent Memory: AS-04 (security-scanner)
-Last updated: 2026-03-25
+Last updated: 2026-03-26 (session 1 — full scan)
 
 ## Rol
 Escanea vulnerabilidades de seguridad (OWASP Top 10). Solo lectura — genera reportes, no modifica código.
@@ -33,6 +33,19 @@ Escanea vulnerabilidades de seguridad (OWASP Top 10). Solo lectura — genera re
 | Fecha | Lección | Prevención |
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
+| 2026-03-26 | WhatsApp webhook uses fallback static salt when env var missing — silent degradation of crypto | Always check for hardcoded fallback values in crypto/hashing code |
+| 2026-03-26 | sanitize.ts ALLOW_DATA_ATTR: true is overly permissive | Check DOMPurify config options, not just ALLOWED_TAGS |
+| 2026-03-26 | No 401 interceptor means expired sessions show broken UI | Verify both auth flow AND session expiration handling |
+| 2026-03-26 | Scan result: 0 CRITICAL, 0 HIGH, 3 MEDIUM, 2 LOW. Codebase is generally secure. | Falsos positivos documentados: ANON_KEY, chart.tsx, CSRF absence, test tokens |
+
+## Vulnerabilidades tracking (2026-03-26 scan)
+| Severidad | Archivo | Issue | Status |
+|-----------|---------|-------|--------|
+| MEDIUM | sanitize.ts:34 | ALLOW_DATA_ATTR: true | OPEN |
+| MEDIUM | AuthContext.tsx | No 401/session expiration handling | OPEN |
+| MEDIUM | webhook.ts:167,331 | Hardcoded fallback salt | OPEN |
+| LOW | vercel.json:22 | unsafe-inline in style-src | OPEN |
+| LOW | — | No CSRF tokens (mitigated by Bearer auth design) | ACCEPTED |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
