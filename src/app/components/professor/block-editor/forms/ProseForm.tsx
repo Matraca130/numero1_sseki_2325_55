@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Upload, Loader2, AlertCircle } from 'lucide-react';
-import { apiCall } from '@/app/lib/api';
+import { toast } from 'sonner';
+import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
 import type { SummaryBlock } from '@/app/services/summariesApi';
 
 // ── Constants ─────────────────────────────────────────────
@@ -53,18 +54,68 @@ export default function ProseForm({ block, onChange }: BlockFormProps) {
         formData.append('file', file);
         formData.append('folder', 'summaries');
 
-        const result = await apiCall<{ path: string }>('/storage/upload', {
+        // Use raw fetch — apiCall forces Content-Type: application/json
+        // which breaks FormData (browser must set multipart boundary).
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${ANON_KEY}`,
+        };
+        const token = getAccessToken();
+        if (token) {
+          headers['X-Access-Token'] = token;
+        }
+
+        const res = await fetch(`${API_BASE}/storage/upload`, {
           method: 'POST',
+          headers,
           body: formData,
-          // Do NOT set Content-Type — the browser sets the multipart boundary automatically
         });
 
-        const publicUrl = `${STORAGE_BASE}/${result.path}`;
+        if (!res.ok) {
+          const text = await res.text();
+          let msg = `Error ${res.status}`;
+          try {
+            const json: unknown = JSON.parse(text);
+            if (
+              typeof json === 'object' &&
+              json !== null &&
+              typeof (json as Record<string, unknown>).error === 'string'
+            ) {
+              msg = (json as Record<string, string>).error;
+            }
+          } catch {
+            /* non-JSON response */
+          }
+          throw new Error(msg);
+        }
+
+        const json: unknown = await res.json();
+        let path: string | undefined;
+
+        if (typeof json === 'object' && json !== null) {
+          const obj = json as Record<string, unknown>;
+          if (
+            typeof obj.data === 'object' &&
+            obj.data !== null &&
+            typeof (obj.data as Record<string, unknown>).path === 'string'
+          ) {
+            path = (obj.data as Record<string, string>).path;
+          } else if (typeof obj.path === 'string') {
+            path = obj.path;
+          }
+        }
+
+        if (!path) {
+          throw new Error('Upload succeeded but no path returned');
+        }
+
+        const publicUrl = `${STORAGE_BASE}/${path}`;
         onChange('image', publicUrl);
+        toast.success('Imagen subida');
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : 'Error al subir imagen';
         setUploadError(message);
+        toast.error(message);
       } finally {
         setUploading(false);
       }
