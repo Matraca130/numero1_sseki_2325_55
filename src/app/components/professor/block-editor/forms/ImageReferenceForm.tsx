@@ -1,30 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
-import { Loader2, Upload, X, ImagePlus } from 'lucide-react';
-import { toast } from 'sonner';
-import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
-import type { SummaryBlock } from '@/app/services/summariesApi';
-import ResizableImage from '@/app/components/professor/block-editor/ResizableImage';
-
-// ── Constants ─────────────────────────────────────────────
-
-const STORAGE_BASE =
-  'https://xdnciktarvxyhkrokbng.supabase.co/storage/v1/object/public/axon-images';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
-// ── Props ─────────────────────────────────────────────────
-
-interface BlockFormProps {
-  block: SummaryBlock;
-  onChange: (field: string, value: unknown) => void;
-}
-
-// ── Styles ────────────────────────────────────────────────
-
-const inputClass =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-600';
-
-// ── Component ─────────────────────────────────────────────
+import { type BlockFormProps, inputClass } from './shared';
 
 export default function ImageReferenceForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};

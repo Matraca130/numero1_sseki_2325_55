@@ -24,6 +24,8 @@ import {
 } from '@/app/hooks/queries/useBlockEditorMutations';
 import type { SummaryBlock, EduBlockType } from '@/app/services/summariesApi';
 import { apiCall } from '@/app/lib/api';
+import { ViewerBlock } from '@/app/components/student/ViewerBlock';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import BlockEditorToolbar from './BlockEditorToolbar';
 import AddBlockButton from './AddBlockButton';
 import EditableBlock from './EditableBlock';
@@ -221,9 +223,21 @@ const BlockEditor = React.memo(function BlockEditor({
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
   }, []);
 
-  const handleSetDeleting = useCallback((blockId: string) => {
-    setDeletingBlockId(blockId);
-  }, []);
+    // Debounce 2s
+    if (debounceTimers.current[blockId]) {
+      clearTimeout(debounceTimers.current[blockId]);
+    }
+    debounceTimers.current[blockId] = setTimeout(() => {
+      const content = pendingContent.current[blockId];
+      if (content) {
+        updateMutation.mutate({ blockId, data: { content } }, {
+          onSuccess: () => {
+            delete pendingContent.current[blockId];
+          },
+        });
+      }
+    }, 2000);
+  }, [blocks, updateMutation]);
 
   // ── Flush all pending saves immediately (async — await before publish) ─
   const flushPending = useCallback(async () => {
@@ -441,12 +455,56 @@ const BlockEditor = React.memo(function BlockEditor({
                 />
               </div>
 
-              {/* Add block between */}
-              {!isPreview && (
-                <AddBlockButton afterIndex={index} onInsert={handleInsert} />
-              )}
-            </React.Fragment>
-          ))}
+            return (
+              <React.Fragment key={block.id}>
+                <div
+                  draggable={!isPreview}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={dragIndex === index ? 'opacity-50' : ''}
+                >
+                  {isPreview ? (
+                    // Preview mode — use student renderer
+                    <div className="py-2">
+                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                        <ViewerBlock block={mergedBlock} isMobile={false} />
+                      </ErrorBoundary>
+                    </div>
+                  ) : (
+                    // Edit mode — use BlockCard with form/preview toggle
+                    <BlockCard
+                      block={mergedBlock}
+                      isEditing={editingBlockId === block.id}
+                      onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
+                      onDelete={() => setDeletingBlockId(block.id)}
+                      onDuplicate={() => handleDuplicate(block)}
+                      onMoveUp={() => handleMoveUp(index)}
+                      onMoveDown={() => handleMoveDown(index)}
+                      isFirst={index === 0}
+                      isLast={index === sortedBlocks.length - 1}
+                    >
+                      {editingBlockId === block.id ? (
+                        <BlockFormRouter
+                          block={mergedBlock}
+                          onChange={(field, value) => handleFieldChange(block.id, field, value)}
+                        />
+                      ) : (
+                        <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                          <ViewerBlock block={mergedBlock} isMobile={false} />
+                        </ErrorBoundary>
+                      )}
+                    </BlockCard>
+                  )}
+                </div>
+
+                {/* Add block between */}
+                {!isPreview && (
+                  <AddBlockButton afterIndex={index} onInsert={handleInsert} />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
 
