@@ -29,7 +29,7 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
+        <h3 className="font-serif text-xl font-bold text-axon-dark dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}
@@ -40,10 +40,10 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
             className="bg-white dark:bg-gray-800 rounded-[10px] p-3.5 border border-gray-200 dark:border-gray-700 text-center hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all"
           >
             <div className="flex justify-center mb-1.5">
-              <IconByName name={item.icon} size={20} className="text-[#2a8c7a] dark:text-teal-400" />
+              <IconByName name={item.icon} size={20} className="text-axon-accent dark:text-teal-400" />
             </div>
             {item.label && (
-              <div className="text-sm font-bold text-[#1B3B36] dark:text-gray-200 mt-1.5">
+              <div className="text-sm font-bold text-axon-dark dark:text-gray-200 mt-1.5">
                 {item.label}
               </div>
             )}

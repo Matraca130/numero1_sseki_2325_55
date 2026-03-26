@@ -23,6 +23,7 @@ export const colors = {
     100: '#d1f0e7',   // Teal soft
     200: '#b3ddd2',   // Teal border
     300: '#5cbdaa',   // Label "Concluido"
+    350: '#3cc9a8',   // Mid-teal — KeyPoint icon/text, ComparisonBlock highlight
     400: '#2dd4a8',   // Progress gradient start
     500: '#2a8c7a',   // Teal Accent — botoes, badges, progresso
     600: '#244e47',   // Hover Teal — botoes hover, texto ativo

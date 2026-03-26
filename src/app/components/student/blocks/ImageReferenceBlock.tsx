@@ -24,7 +24,7 @@ export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) 
   }
 
   return (
-    <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-7 bg-[#F0F2F5] dark:bg-gray-950 text-center">
+    <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-7 bg-axon-page-bg dark:bg-gray-950 text-center">
       <FileText size={32} className="text-[#9CA3AF] dark:text-gray-500 mx-auto mb-2" aria-hidden="true" />
       <div className="text-sm font-semibold text-[#9CA3AF] dark:text-gray-400">
         {description ?? 'Imagen por agregar'}

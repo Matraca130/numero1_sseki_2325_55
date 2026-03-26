@@ -63,7 +63,7 @@ export default function CalloutBlock({ block, keywords }: { block: SummaryBlock;
         </span>
       </div>
       {title && (
-        <div className="font-serif text-[15px] font-semibold text-[#1B3B36] dark:text-gray-200 mb-1.5">
+        <div className="font-serif text-[15px] font-semibold text-axon-dark dark:text-gray-200 mb-1.5">
           {title}
         </div>
       )}
