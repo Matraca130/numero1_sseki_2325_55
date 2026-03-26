@@ -54,7 +54,7 @@ interface KnowledgeGraphProps {
   onNodeClick?: (node: MapNode | null, position?: { x: number; y: number }) => void;
   onNodeRightClick?: (node: MapNode, position: { x: number; y: number }) => void;
   selectedNodeId?: string | null;
-  layout?: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric';
+  layout?: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric' | 'circular' | 'fruchterman';
   className?: string;
   /** Called when the graph is ready, exposes zoom/fitView/collapse controls */
   onReady?: (controls: GraphControls) => void;
@@ -97,7 +97,7 @@ interface KnowledgeGraphProps {
   /** Called when zoom level changes (value is the zoom ratio, e.g. 1.0 = 100%) */
   onZoomChange?: (zoom: number) => void;
   /** Called when the embedded GraphToolbar requests a layout change */
-  onLayoutChange?: (layout: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric') => void;
+  onLayoutChange?: (layout: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric' | 'circular' | 'fruchterman') => void;
   /** Current search query — passed to embedded GraphToolbar */
   searchQuery?: string;
   /** Called when user types in the embedded GraphToolbar search field */

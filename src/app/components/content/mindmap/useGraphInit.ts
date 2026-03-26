@@ -166,10 +166,12 @@ export const LAYOUT_RADIAL = { type: 'radial' as const, unitRadius: 120, prevent
 export const LAYOUT_DAGRE = { type: 'dagre' as const, rankdir: 'TB', nodesep: 40, ranksep: 60 };
 export const LAYOUT_MINDMAP = { type: 'mindmap' as const, direction: 'H', getHeight: () => 32, getWidth: () => 32, getHGap: () => 40, getVGap: () => 20 };
 export const LAYOUT_CONCENTRIC = { type: 'concentric' as const, minNodeSpacing: 40, preventOverlap: true };
+export const LAYOUT_CIRCULAR = { type: 'circular' as const, radius: null, ordering: 'degree' as const };
+export const LAYOUT_FRUCHTERMAN = { type: 'fruchterman' as const, gravity: 10, speed: 5, clustering: true, nodeClusterBy: 'cluster' };
 
 export interface UseGraphInitOptions {
   data: GraphData;
-  layout: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric';
+  layout: 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric' | 'circular' | 'fruchterman';
   showMinimap: boolean;
   gridEnabled: boolean;
   topicId?: string;
@@ -395,6 +397,8 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
       case 'dagre': return LAYOUT_DAGRE;
       case 'mindmap': return { type: 'mindmap' as const, direction: 'H', getHeight: () => 32, getWidth: () => 32, getHGap: () => 40, getVGap: () => 20 };
       case 'concentric': return { type: 'concentric' as const, minNodeSpacing: 40, preventOverlap: true };
+      case 'circular': return LAYOUT_CIRCULAR;
+      case 'fruchterman': return LAYOUT_FRUCHTERMAN;
       case 'force':
       default: return LAYOUT_FORCE;
     }
@@ -920,6 +924,8 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
       : layout === 'radial' ? LAYOUT_RADIAL
       : layout === 'mindmap' ? LAYOUT_MINDMAP
       : layout === 'concentric' ? LAYOUT_CONCENTRIC
+      : layout === 'circular' ? LAYOUT_CIRCULAR
+      : layout === 'fruchterman' ? LAYOUT_FRUCHTERMAN
       : LAYOUT_FORCE;
 
     // Update edge type for curved edges on hierarchical layouts

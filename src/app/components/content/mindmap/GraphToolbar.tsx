@@ -16,11 +16,11 @@ import { toast } from 'sonner';
 
 // ── Types ───────────────────────────────────────────────────
 
-type LayoutType = 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric';
+type LayoutType = 'force' | 'radial' | 'dagre' | 'mindmap' | 'concentric' | 'circular' | 'fruchterman';
 type Locale = 'pt' | 'es';
 
 const I18N: Record<Locale, {
-  force: string; radial: string; tree: string; mindmap: string; concentric: string;
+  force: string; radial: string; tree: string; mindmap: string; concentric: string; circular: string; fruchterman: string;
   zoomIn: string; zoomOut: string; fitView: string;
   collapse: string; expand: string; expandN: (n: number) => string;
   search: string; clear: string; nodes: string; connections: string;
@@ -37,7 +37,7 @@ const I18N: Record<Locale, {
   undoRedoGroup: string;
 }> = {
   pt: {
-    force: 'Força', radial: 'Radial', tree: 'Árvore', mindmap: 'Mapa mental', concentric: 'Concêntrico',
+    force: 'Força', radial: 'Radial', tree: 'Árvore', mindmap: 'Mapa mental', concentric: 'Concêntrico', circular: 'Circular', fruchterman: 'Clusters',
     zoomIn: 'Aumentar zoom', zoomOut: 'Diminuir zoom', fitView: 'Ajustar à vista',
     collapse: 'Recolher', expand: 'Expandir', expandN: (n) => `Expandir (${n})`,
     search: 'Buscar conceito...', clear: 'Limpar busca', nodes: 'nós', connections: 'conexões',
@@ -55,7 +55,7 @@ const I18N: Record<Locale, {
     hulls: 'Grupos', hullsToggle: 'Mostrar/ocultar grupos', undoRedoGroup: 'Desfazer/Refazer',
   },
   es: {
-    force: 'Fuerza', radial: 'Radial', tree: 'Árbol', mindmap: 'Mapa mental', concentric: 'Concéntrico',
+    force: 'Fuerza', radial: 'Radial', tree: 'Árbol', mindmap: 'Mapa mental', concentric: 'Concéntrico', circular: 'Circular', fruchterman: 'Clusters',
     zoomIn: 'Acercar', zoomOut: 'Alejar', fitView: 'Ajustar a la vista',
     collapse: 'Colapsar', expand: 'Expandir', expandN: (n) => `Expandir (${n})`,
     search: 'Buscar concepto...', clear: 'Limpiar búsqueda', nodes: 'nodos', connections: 'conexiones',
@@ -144,6 +144,8 @@ const LAYOUT_ICONS: Record<LayoutType, React.ElementType> = {
   dagre: LayoutGrid,
   mindmap: BrainCircuit,
   concentric: Target,
+  circular: Hexagon,
+  fruchterman: Shuffle,
 };
 
 // ── Separator component ─────────────────────────────────────
@@ -202,6 +204,7 @@ export const GraphToolbar = memo(function GraphToolbar({
 
   const LAYOUT_LABELS = useMemo<Record<LayoutType, string>>(() => ({
     force: t.force, radial: t.radial, dagre: t.tree, mindmap: t.mindmap, concentric: t.concentric,
+    circular: t.circular, fruchterman: t.fruchterman,
   }), [t]);
 
   const hasExport = !!(onExportPNG || onExportJPEG);
@@ -264,7 +267,7 @@ export const GraphToolbar = memo(function GraphToolbar({
         role="radiogroup"
         aria-label={t.layoutGroup}
         onKeyDown={(e) => {
-          const layouts = ['force', 'radial', 'dagre', 'mindmap', 'concentric'] as const;
+          const layouts = ['force', 'radial', 'dagre', 'mindmap', 'concentric', 'circular', 'fruchterman'] as const;
           const idx = layouts.indexOf(layout);
           if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             e.preventDefault();
@@ -279,7 +282,7 @@ export const GraphToolbar = memo(function GraphToolbar({
           }
         }}
       >
-        {(['force', 'radial', 'dagre', 'mindmap', 'concentric'] as const).map((value) => {
+        {(['force', 'radial', 'dagre', 'mindmap', 'concentric', 'circular', 'fruchterman'] as const).map((value) => {
           const Icon = LAYOUT_ICONS[value];
           const label = LAYOUT_LABELS[value];
           return (

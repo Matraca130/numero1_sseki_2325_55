@@ -43,7 +43,7 @@ export interface GraphI18nStrings {
   exportFailed: string;
   exportFilenamePrefix: string;
   /** G6 new features — layouts, toolbar, undo/redo, collapse */
-  layoutDagre: string; layoutMindmap: string; layoutConcentric: string;
+  layoutDagre: string; layoutMindmap: string; layoutConcentric: string; layoutCircular: string; layoutFruchterman: string;
   undo: string; redo: string; fullscreen: string; exitFullscreen: string;
   hullsToggle: string; lassoSelect: string;
   undoToast: string; redoToast: string; nothingToUndo: string; nothingToRedo: string;
@@ -98,7 +98,7 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     exportNotReady: 'O mapa ainda não está pronto para exportar',
     exportFailed: 'Não foi possível exportar a imagem do mapa',
     exportFilenamePrefix: 'mapa-conhecimento',
-    layoutDagre: 'Hierárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concêntrico',
+    layoutDagre: 'Hierárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concêntrico', layoutCircular: 'Circular', layoutFruchterman: 'Clusters',
     undo: 'Desfazer', redo: 'Refazer', fullscreen: 'Tela cheia', exitFullscreen: 'Sair da tela cheia',
     hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Seleção livre',
     undoToast: 'Ação desfeita', redoToast: 'Ação refeita', nothingToUndo: 'Nada para desfazer', nothingToRedo: 'Nada para refazer',
@@ -151,7 +151,7 @@ export const I18N_GRAPH: Record<GraphLocale, GraphI18nStrings> = {
     exportNotReady: 'El mapa aún no está listo para exportar',
     exportFailed: 'No se pudo exportar la imagen del mapa',
     exportFilenamePrefix: 'mapa-conocimiento',
-    layoutDagre: 'Jerárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concéntrico',
+    layoutDagre: 'Jerárquico', layoutMindmap: 'Mapa mental', layoutConcentric: 'Concéntrico', layoutCircular: 'Circular', layoutFruchterman: 'Clusters',
     undo: 'Deshacer', redo: 'Rehacer', fullscreen: 'Pantalla completa', exitFullscreen: 'Salir de pantalla completa',
     hullsToggle: 'Mostrar/ocultar grupos', lassoSelect: 'Selección libre',
     undoToast: 'Acción deshecha', redoToast: 'Acción rehecha', nothingToUndo: 'Nada que deshacer', nothingToRedo: 'Nada que rehacer',
