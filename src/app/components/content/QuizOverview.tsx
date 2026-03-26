@@ -11,12 +11,14 @@ import clsx from 'clsx';
 import {
   CheckCircle2, ChevronRight, ChevronDown,
   BookOpen, Clock, FileText, Play, History,
-  Loader2, Circle, Sparkles,
+  Loader2, Circle, Sparkles, BarChart3,
 } from 'lucide-react';
 import type { Summary } from '@/app/types/platform';
 import type { TreeCourse, TreeSemester } from '@/app/services/contentTreeApi';
 import type { StudySession } from '@/app/services/quizApi';
 import { PLACEHOLDER_PROGRESS } from './quiz-helpers';
+import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
+import { EmptyState } from '@/app/components/shared/EmptyState';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -158,6 +160,11 @@ export function QuizOverview({
         })()}
       </div>
 
+      {/* KPI skeletons while loading */}
+      {loadingTopics.size > 0 && Object.keys(topicSummaries).length === 0 && (
+        <SkeletonCard variant="kpi" count={3} className="grid grid-cols-3 gap-4 mb-6" />
+      )}
+
       {/* Sections with their topics */}
       {activeSemester.sections.map((section, secIdx) => {
         const sectionProgress = PLACEHOLDER_PROGRESS[secIdx % 6] ?? 50;
@@ -287,6 +294,17 @@ export function QuizOverview({
           </div>
         );
       })}
+
+      {/* Quiz History — Empty */}
+      {quizHistory.length === 0 && (
+        <div className="mt-6 pt-6 border-t border-zinc-100">
+          <EmptyState
+            icon={BarChart3}
+            title="Sin intentos previos"
+            description="Completa un quiz para ver tu progreso"
+          />
+        </div>
+      )}
 
       {/* Quiz History */}
       {quizHistory.length > 0 && (

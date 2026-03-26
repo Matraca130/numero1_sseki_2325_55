@@ -20,9 +20,11 @@ import clsx from 'clsx';
 import {
   ChevronLeft, ChevronRight, ChevronDown,
   BookOpen, Loader2, FileText, Layers, Filter,
-  Play, AlertCircle, ClipboardList,
+  Play, AlertCircle, ClipboardList, ListChecks, GraduationCap,
 } from 'lucide-react';
 import { QuizOverview } from './QuizOverview';
+import { EmptyState } from '@/app/components/shared/EmptyState';
+import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -310,21 +312,20 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
   // ── Loading state ──
   if (treeLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin text-teal-500" size={32} />
+      <div className="p-6">
+        <SkeletonCard variant="content" count={4} className="grid grid-cols-1 md:grid-cols-2 gap-4" />
       </div>
     );
   }
 
   if (!tree || tree.courses.length === 0) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full py-20 text-zinc-400">
-        <BookOpen size={40} className="mb-3 opacity-30" />
-        <p className="text-sm" style={{ fontWeight: 600 }}>No hay cursos disponibles</p>
-        <p className="text-[11px] text-zinc-300 mt-2 text-center max-w-sm">
-          Verifica que tienes una institucion seleccionada y que el profesor ha creado cursos con contenido.
-        </p>
-      </motion.div>
+      <EmptyState
+        icon={GraduationCap}
+        title="Sin quizzes disponibles"
+        description="No hay quizzes para este tema aun"
+        action={{ label: 'Volver', onClick: onBack }}
+      />
     );
   }
 
@@ -659,9 +660,7 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
               /* Summary selected: Show quizzes */
               <div>
                 {quizzesLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <Loader2 className="animate-spin text-teal-500" size={24} />
-                  </div>
+                  <SkeletonCard variant="content" count={3} className="grid grid-cols-1 md:grid-cols-2 gap-3" />
                 ) : (
                   <div className="space-y-4">
                     {/* Professor quizzes */}
@@ -705,11 +704,11 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
 
                     {/* No quizzes message */}
                     {quizzesForSummary.length === 0 && loosePracticeCount === 0 && !loadError && (
-                      <div className="flex flex-col items-center py-12 text-zinc-400">
-                        <ClipboardList size={28} className="mb-2 opacity-40" />
-                        <p className="text-sm">No hay quizzes disponibles para este resumen</p>
-                        <p className="text-[11px] text-zinc-300 mt-1">El profesor aun no ha creado quizzes aqui</p>
-                      </div>
+                      <EmptyState
+                        icon={ListChecks}
+                        title="Sin preguntas"
+                        description="Este quiz no tiene preguntas configuradas"
+                      />
                     )}
 
                     {/* Practice all loose questions */}
