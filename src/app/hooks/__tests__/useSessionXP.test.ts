@@ -427,11 +427,11 @@ describe('useSessionXP', () => {
       summary = await result.current.endSession('inst-001');
     });
 
-    // Should use optimistic values as fallback
-    // optimisticXP = 15 (reviews) + 25 (session complete) = 40
+    // optimisticXP field = sessionXPRef.current (15 + 25 session bonus = 40)
     expect(summary!.optimisticXP).toBe(40);
-    // actualXP = (80 + 15) - 80 = 15, but max(15, 40) = 40
-    expect(summary!.actualXP).toBe(40);
+    // actualTotal = baselineRef.xp + local optimisticXP (captured before bonus) = 80 + 15 = 95
+    // actualXP = 95 - 80 = 15. Math.max(15, 15) = 15 (local var, not ref)
+    expect(summary!.actualXP).toBe(15);
   });
 
   // ── Test 16: reset ─────────────────────────────────────────
