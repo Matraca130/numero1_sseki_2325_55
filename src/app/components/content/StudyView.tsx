@@ -6,7 +6,12 @@
 // ============================================================
 import React from 'react';
 import { StudentSummariesView } from '@/app/components/content/StudentSummariesView';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 export function StudyView() {
-  return <StudentSummariesView />;
+  return (
+    <ErrorBoundary variant="section" retry={() => window.location.reload()}>
+      <StudentSummariesView />
+    </ErrorBoundary>
+  );
 }
