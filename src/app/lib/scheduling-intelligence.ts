@@ -18,6 +18,7 @@
  */
 
 import type { TopicDifficultyData } from '@/app/types/student';
+import { logger } from '@/app/lib/logger';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -43,6 +44,13 @@ export interface ScheduleDay {
 export type DifficultyTier = 'hard' | 'medium' | 'easy';
 
 // ─── Constants ──────────────────────────────────────────────────
+
+const BASE_TIME_MULTIPLIER = 0.75;
+const DIFFICULTY_TIME_SCALE = 0.65;
+const TIME_OVERFLOW_TOLERANCE_MIN = 10;
+const SPACING_RATIO = 0.6;
+const GAIN_FACTOR_DEFAULT = 2.5;
+const GAIN_FACTOR_HARD = 1.8;
 
 const DIFFICULTY_THRESHOLDS = {
   hard: 0.65,    // >= 0.65 is hard
@@ -83,10 +91,11 @@ export function adjustTimeByDifficulty(
   difficulty: number | null,
   masteryPercent: number = 0,
 ): number {
+  const safeBase = Math.max(0, baseMinutes);
   const d = difficulty ?? 0.5;
 
   // Base multiplier from difficulty (0.75 to 1.4)
-  const difficultyMultiplier = 0.75 + (d * 0.65);
+  const difficultyMultiplier = BASE_TIME_MULTIPLIER + (d * DIFFICULTY_TIME_SCALE);
 
   // Mastery adjustment: high mastery = less time needed
   const masteryMultiplier = masteryPercent >= 80 ? 0.7
@@ -95,12 +104,14 @@ export function adjustTimeByDifficulty(
     : masteryPercent >= 20 ? 1.15
     : 1.3; // very low mastery = more time
 
-  return Math.round(baseMinutes * difficultyMultiplier * masteryMultiplier);
+  return Math.round(safeBase * difficultyMultiplier * masteryMultiplier);
 }
 
 // ─── Prerequisite Ordering ──────────────────────────────────────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Topological sort of topics based on prerequisite_topic_ids.
  * Topics with no prerequisites come first.
  * Falls back to original order if cycles are detected.
@@ -133,6 +144,15 @@ export function orderByPrerequisites(
     if (degree === 0) queue.push(id);
   }
 
+  // Build reverse adjacency map: prerequisite -> topics that depend on it
+  const dependents = new Map<string, string[]>();
+  for (const [topicId, prereqs] of graph) {
+    for (const prereq of prereqs) {
+      if (!dependents.has(prereq)) dependents.set(prereq, []);
+      dependents.get(prereq)!.push(topicId);
+    }
+  }
+
   const result: string[] = [];
   const visited = new Set<string>();
 
@@ -142,13 +162,13 @@ export function orderByPrerequisites(
     visited.add(current);
     result.push(current);
 
-    // Find topics that depend on this one
-    for (const [topicId, prereqs] of graph) {
-      if (prereqs.includes(current) && !visited.has(topicId)) {
-        const newDegree = (inDegree.get(topicId) ?? 0) - 1;
-        inDegree.set(topicId, newDegree);
+    // Find topics that depend on this one (O(1) lookup via reverse map)
+    for (const dep of dependents.get(current) ?? []) {
+      if (!visited.has(dep)) {
+        const newDegree = (inDegree.get(dep) ?? 0) - 1;
+        inDegree.set(dep, newDegree);
         if (newDegree <= 0) {
-          queue.push(topicId);
+          queue.push(dep);
         }
       }
     }
@@ -156,6 +176,7 @@ export function orderByPrerequisites(
 
   // If not all topics were visited (cycle detected), append remaining in original order
   if (result.length < allIds.size) {
+    logger.warn('SchedulingIntelligence', 'Cycle detected in prerequisites, falling back to original order', { totalTopics: allIds.size, orderedCount: result.length });
     for (const t of topics) {
       if (!visited.has(t.topicId)) {
         result.push(t.topicId);
@@ -169,6 +190,8 @@ export function orderByPrerequisites(
 // ─── Cognitive Load Balancing ───────────────────────────────────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Redistribute tasks across days to balance cognitive load.
  *
  * Principle: Each day should have a mix of hard, medium, and easy tasks.
@@ -230,13 +253,14 @@ export function balanceCognitiveLoad(
             const neighborTimeAfterSwap = neighbor.tasks.reduce((s, t) => s + t.estimatedMinutes, 0)
               - easyTask.estimatedMinutes + hardTask.estimatedMinutes;
 
-            if (dayTimeAfterSwap <= day.availableMinutes + 10 &&
-                neighborTimeAfterSwap <= neighbor.availableMinutes + 10) {
+            if (dayTimeAfterSwap <= day.availableMinutes + TIME_OVERFLOW_TOLERANCE_MIN &&
+                neighborTimeAfterSwap <= neighbor.availableMinutes + TIME_OVERFLOW_TOLERANCE_MIN) {
               // Swap
               day.tasks[hardTaskIdx] = easyTask;
               neighbor.tasks[easyTaskIdx] = hardTask;
               day.cognitiveLoad = computeDayCognitiveLoad(day.tasks);
               neighbor.cognitiveLoad = computeDayCognitiveLoad(neighbor.tasks);
+              logger.debug('SchedulingIntelligence', 'Cognitive load swap', { pass, fromDay: i, toDay: neighborIdx });
               swapped = true;
               break;
             }
@@ -262,6 +286,8 @@ function computeDayCognitiveLoad(tasks: ScheduleTask[]): number {
 // ─── Adaptive Interleaving ──────────────────────────────────────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Reorder tasks within each day to avoid consecutive same-tier tasks.
  *
  * Based on interleaving research (Rohrer, 2012):
@@ -302,10 +328,12 @@ export function interleaveWithinDays(days: ScheduleDay[]): ScheduleDay[] {
         // If we've hit max consecutive, force switch
         if (consecutive >= MAX_CONSECUTIVE_SAME_TIER) {
           tierIdx++;
+        } else {
+          tierIdx++;
         }
+      } else {
+        tierIdx++;
       }
-
-      tierIdx++;
 
       // Safety: if all remaining tasks are same tier, just append them
       const remaining = byTier.hard.length + byTier.medium.length + byTier.easy.length;
@@ -326,11 +354,13 @@ export function interleaveWithinDays(days: ScheduleDay[]): ScheduleDay[] {
 // ─── Enrichment: Add difficulty to tasks from backend data ──────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Enrich plan tasks with difficulty data from the study-intelligence API.
  * Maps TopicDifficultyData to the task's difficulty fields.
  */
 export function enrichTasksWithDifficulty(
-  tasks: Array<{ topicId: string; estimatedMinutes: number }>,
+  tasks: Array<{ topicId: string; estimatedMinutes: number; method?: string }>,
   difficultyMap: Map<string, TopicDifficultyData>,
   masteryMap?: Map<string, number>,
 ): ScheduleTask[] {
@@ -341,7 +371,7 @@ export function enrichTasksWithDifficulty(
     return {
       ...task,
       topicTitle: diff?.name ?? task.topicId,
-      method: (task as Record<string, unknown>).method as string ?? 'resumo',
+      method: task.method ?? 'resumo',
       difficulty: diff?.difficulty_estimate ?? 0.5,
       bloomLevel: diff?.bloom_level ?? 2,
       courseId: '',
@@ -359,6 +389,8 @@ export function enrichTasksWithDifficulty(
 // ─── Full Pipeline ──────────────────────────────────────────────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Run the complete scheduling intelligence pipeline.
  *
  * Input: raw tasks + difficulty data + schedule days
@@ -396,10 +428,11 @@ export function runSchedulingPipeline(
     })),
   );
 
-  // Sort tasks by prerequisite order
+  // Sort tasks by prerequisite order (O(N) lookup via index map)
+  const prereqIndex = new Map(prereqOrder.map((id, i) => [id, i]));
   const ordered = [...enriched].sort((a, b) => {
-    const aIdx = prereqOrder.indexOf(a.topicId);
-    const bIdx = prereqOrder.indexOf(b.topicId);
+    const aIdx = prereqIndex.get(a.topicId) ?? Infinity;
+    const bIdx = prereqIndex.get(b.topicId) ?? Infinity;
     return aIdx - bIdx;
   });
 
@@ -419,7 +452,7 @@ export function runSchedulingPipeline(
       const day = days[idx];
       const usedMinutes = day.tasks.reduce((s, t) => s + t.estimatedMinutes, 0);
 
-      if (usedMinutes + task.estimatedMinutes <= day.availableMinutes + 10) {
+      if (usedMinutes + task.estimatedMinutes <= day.availableMinutes + TIME_OVERFLOW_TOLERANCE_MIN) {
         day.tasks.push(task);
         dayIdx = (idx + 1) % days.length; // next task starts on next day
         placed = true;
@@ -433,7 +466,7 @@ export function runSchedulingPipeline(
         const used = d.tasks.reduce((s, t) => s + t.estimatedMinutes, 0);
         const minUsed = min.tasks.reduce((s, t) => s + t.estimatedMinutes, 0);
         return used < minUsed ? d : min;
-      });
+      }, days[0]);
       leastLoaded.tasks.push(task);
     }
   }
@@ -448,6 +481,8 @@ export function runSchedulingPipeline(
 // ─── Study Momentum Score ─────────────────────────────────────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Compute a rolling study momentum score (0.5-1.5).
  *
  * Based on the ratio of completed sessions to scheduled sessions
@@ -484,10 +519,7 @@ export function computeStudyMomentum(
   const sorted = [...recentSessions].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
-  const last7 = sorted.slice(-14).filter((_, i, arr) => {
-    // Keep only the most recent 7 unique dates
-    return true;
-  });
+  const last7 = sorted.slice(-14);
 
   // Deduplicate by date, aggregating within each day
   const byDate = new Map<string, { completed: number; total: number; actualMin: number; scheduledMin: number }>();
@@ -587,6 +619,8 @@ export interface ExamReviewPlan {
 }
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Compute optimal review timing for exam preparation.
  *
  * Given an exam date, distributes reviews so that each topic's
@@ -625,6 +659,8 @@ export function planExamCountdown(
   }>,
   today: Date = new Date(),
 ): ExamReviewPlan[] {
+  if (isNaN(examDate.getTime())) return [];
+
   const daysUntilExam = Math.max(
     0,
     Math.floor((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
@@ -678,7 +714,7 @@ export function planExamCountdown(
     // Backsolve the review schedule
     // Gain factor per successful review (FSRS average)
     const isHard = difficulty > 0.65;
-    const gainFactor = isHard ? 1.8 : 2.5;
+    const gainFactor = isHard ? GAIN_FACTOR_HARD : GAIN_FACTOR_DEFAULT;
     const extraReviewForHard = isHard ? 1 : 0;
 
     // Determine how many reviews are needed to build stability to cover exam
@@ -812,7 +848,7 @@ function distributeReviewDates(
   let stab = initialStability;
   for (let i = 1; i < reviewCount; i++) {
     // Gap = ~60% of current stability, but at least 1 day
-    const gap = Math.max(1, Math.round(stab * 0.6));
+    const gap = Math.max(1, Math.round(stab * SPACING_RATIO));
     currentOffset -= gap;
 
     // Don't go before today
@@ -822,8 +858,8 @@ function distributeReviewDates(
 
     reviewDayOffsets.push(currentOffset);
 
-    // Stability increases with each review (forward simulation)
-    stab *= gainFactor;
+    // Stability decreases going backward (earlier reviews had lower stability)
+    stab /= gainFactor;
   }
 
   // Sort chronologically and deduplicate
@@ -851,6 +887,8 @@ function distributeReviewDates(
 // ─── Difficulty Badge Helper ──────────────────────────────────
 
 /**
+ * @internal — not yet consumed, planned for future iteration
+ *
  * Get a difficulty badge configuration for UI display.
  * Used by the study organizer wizard and schedule views.
  *

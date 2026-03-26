@@ -315,15 +315,8 @@ export function StudyOrganizerWizard() {
           return adjustTimeByDifficulty(baseMinutes, difficulty, masteryPercent);
         }
 
-        // Fallback: mastery-only multiplier (Phase 3 original logic)
-        let multiplier = 1.0;
-        if (m && m.totalAttempts > 0) {
-          if (m.masteryPercent < 30) multiplier = 1.5;
-          else if (m.masteryPercent < 50) multiplier = 1.3;
-          else if (m.masteryPercent >= 80) multiplier = 0.7;
-          else if (m.masteryPercent >= 65) multiplier = 0.85;
-        }
-        return Math.round(baseMinutes * multiplier);
+        // Fallback: use adjustTimeByDifficulty with null difficulty (defaults to 0.5)
+        return adjustTimeByDifficulty(baseMinutes, null, masteryPercent);
       };
 
       // Create all task items: topic x method (sorted by priority)
