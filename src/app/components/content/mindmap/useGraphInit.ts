@@ -14,6 +14,7 @@ import { NODE_COLOR_FILL } from './useNodeColors';
 import { truncateLabel } from '@/app/types/mindmap';
 import type { GraphLocale } from './graphI18n';
 import { I18N_GRAPH } from './graphI18n';
+import { toast } from 'sonner';
 
 /** Warn about non-G6-destroyed errors so real bugs aren't silently swallowed */
 export function warnIfNotDestroyed(e: unknown): void {
@@ -251,6 +252,9 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
   // Grid state: controlled or uncontrolled
   const [gridEnabledInternal, setGridEnabledInternal] = useState(() => loadGridEnabled());
   const gridEnabled = gridEnabledProp ?? gridEnabledInternal;
+
+  // Hull (cluster highlight) state
+  const [showHulls, setShowHulls] = useState(false);
 
   // Combo/group state
   const [combos, setCombos] = useState<PersistedCombo[]>([]);
@@ -863,6 +867,28 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
         clearMultiSelection: () => {
           updateMultiSelection(new Set());
         },
+        undo: () => {
+          const g = graphRef.current; if (!g) return;
+          try {
+            if ((g as unknown as { canUndo?: () => boolean }).canUndo?.()) {
+              (g as unknown as { undo: () => void }).undo();
+              toast.success(t.undoToast);
+            } else {
+              toast(t.nothingToUndo);
+            }
+          } catch (e: unknown) { warnIfNotDestroyed(e); }
+        },
+        redo: () => {
+          const g = graphRef.current; if (!g) return;
+          try {
+            if ((g as unknown as { canRedo?: () => boolean }).canRedo?.()) {
+              (g as unknown as { redo: () => void }).redo();
+              toast.success(t.redoToast);
+            } else {
+              toast(t.nothingToRedo);
+            }
+          } catch (e: unknown) { warnIfNotDestroyed(e); }
+        },
       });
     }).catch((e) => { warnIfNotDestroyed(e); if (mountedRef.current) setReady(true); });
 
@@ -906,6 +932,56 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
       layoutInProgressRef.current = false;
     });
   }, [layout, ready]);
+
+  // Hull plugin toggle — dynamically add/remove hull plugins based on topicId grouping
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || graph.destroyed || !ready) return;
+
+    try {
+      if (showHulls) {
+        // Group visible nodes by topicId (fall back to node type for ungrouped)
+        const groups = new Map<string, string[]>();
+        for (const node of data.nodes) {
+          const key = node.topicId ? `topic-${node.topicId}` : `type-${node.type}`;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(node.id);
+        }
+
+        const hullColors = [
+          { fill: 'rgba(20,184,166,0.07)', stroke: 'rgba(20,184,166,0.4)' },
+          { fill: 'rgba(249,115,22,0.07)', stroke: 'rgba(249,115,22,0.4)' },
+          { fill: 'rgba(99,102,241,0.07)', stroke: 'rgba(99,102,241,0.4)' },
+          { fill: 'rgba(34,197,94,0.07)', stroke: 'rgba(34,197,94,0.4)' },
+          { fill: 'rgba(236,72,153,0.07)', stroke: 'rgba(236,72,153,0.4)' },
+        ];
+
+        const hullPlugins = Array.from(groups.entries())
+          .filter(([, members]) => members.length >= 2)
+          .map(([key, members], idx) => ({
+            type: 'hull' as const,
+            key: `hull-${key}`,
+            members,
+            padding: 20,
+            style: {
+              ...hullColors[idx % hullColors.length],
+              lineWidth: 1.5,
+            },
+          }));
+
+        graph.setPlugins((prev) =>
+          [
+            ...(prev as Array<{ key?: string }>).filter(p => !p?.key?.startsWith('hull-')),
+            ...hullPlugins,
+          ],
+        );
+      } else {
+        graph.setPlugins((prev) =>
+          (prev as Array<{ key?: string }>).filter(p => !p?.key?.startsWith('hull-')),
+        );
+      }
+    } catch (e: unknown) { warnIfNotDestroyed(e); }
+  }, [showHulls, ready, data.nodes]);
 
   // ResizeObserver
   const prevSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
@@ -988,6 +1064,8 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     gridEnabled,
     gridEnabledInternal,
     setGridEnabledInternal,
+    showHulls,
+    setShowHulls,
     batchDraw,
     pendingDrawRef,
   };

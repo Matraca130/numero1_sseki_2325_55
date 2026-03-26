@@ -238,6 +238,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     nodeById,
     gridEnabled,
     setGridEnabledInternal,
+    showHulls,
+    setShowHulls,
     batchDraw,
   } = initResult;
 
@@ -473,6 +475,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const handleExportJPEG = useCallback(async () => { await graphControlsRef.current?.exportJPEG(); }, []);
   const handleUndo = useCallback(() => { graphControlsRef.current?.undo?.(); }, []);
   const handleRedo = useCallback(() => { graphControlsRef.current?.redo?.(); }, []);
+  const handleHullsToggle = useCallback(() => setShowHulls(v => !v), [setShowHulls]);
 
   // Handler: breadcrumb click
   const handleBreadcrumbClick = useCallback((crumbId: string | null) => {
@@ -560,6 +563,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
           onRedo={handleRedo}
           onFullscreen={toggleFullscreen}
           isFullscreen={isFullscreen}
+          onHullsToggle={handleHullsToggle}
+          showHulls={showHulls}
         />
       )}
       <div
