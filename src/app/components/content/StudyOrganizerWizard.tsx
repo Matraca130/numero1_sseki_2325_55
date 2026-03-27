@@ -59,6 +59,15 @@ export function StudyOrganizerWizard() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
 
+  // Wizard state (must be declared before any code that references them)
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<{ courseId: string; courseName: string; sectionTitle: string; topicTitle: string; topicId: string }[]>([]);
+  const [completionDate, setCompletionDate] = useState('');
+  const [weeklyHours, setWeeklyHours] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPowered, setAiPowered] = useState(false);
+
   const { topicMastery, courseMastery, loading: masteryLoading } = useTopicMasteryContext();
 
   // ──────────── Phase 5: Study Intelligence (difficulty metadata) ────────────
@@ -121,15 +130,6 @@ export function StudyOrganizerWizard() {
     const c = courses.find(c => c.id === id);
     return c?.name || id;
   };
-
-  // Wizard state
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
-  const [selectedTopics, setSelectedTopics] = useState<{ courseId: string; courseName: string; sectionTitle: string; topicTitle: string; topicId: string }[]>([]);
-  const [completionDate, setCompletionDate] = useState('');
-  const [weeklyHours, setWeeklyHours] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiPowered, setAiPowered] = useState(false);
 
   const totalWeeklyHours = weeklyHours.reduce((a, b) => a + b, 0);
 
