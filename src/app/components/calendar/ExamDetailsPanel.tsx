@@ -216,10 +216,6 @@ export function ExamDetailsPanel({
   }, [isOpen, focusManager]);
 
   if (!exam) {
-    // Render closed Sheet/Drawer so animations work
-    if (isDesktop) {
-      return <Sheet open={false} onOpenChange={handleOpenChange}><SheetContent /></Sheet>;
-    }
     return null;
   }
 

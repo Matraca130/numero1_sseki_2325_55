@@ -7,7 +7,7 @@
 // Deep-link support via useSearchParams (ADR-03).
 // ============================================================
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DayPicker, Day, useDayPicker } from 'react-day-picker';
 import type { DayContentProps, RowProps } from 'react-day-picker';
 import { getUnixTime } from 'date-fns';
@@ -17,6 +17,9 @@ import { DayCell } from './DayCell';
 import { CellEvents } from './EventBadge';
 const ExamDetailsPanel = React.lazy(() =>
   import('./ExamDetailsPanel').then(m => ({ default: m.ExamDetailsPanel })),
+);
+const ExamForm = React.lazy(() =>
+  import('./ExamForm').then(m => ({ default: m.ExamForm })),
 );
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import {
@@ -55,6 +58,7 @@ export function CalendarView() {
   const isDesktop = useMediaQuery(768);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
 
   const {
     viewMode,
@@ -367,8 +371,19 @@ export function CalendarView() {
             examId={examId}
             events={events}
             onClose={handleClosePanel}
+            onEdit={(id) => setEditingExamId(id)}
           />
         </React.Suspense>
+
+        {/* ExamForm — lazy loaded, shown when editing */}
+        {editingExamId !== null && (
+          <React.Suspense fallback={null}>
+            <ExamForm
+              exam={events.find(e => e.id === editingExamId) ?? null}
+              onClose={() => setEditingExamId(null)}
+            />
+          </React.Suspense>
+        )}
       </div>
     </ErrorBoundary>
   );

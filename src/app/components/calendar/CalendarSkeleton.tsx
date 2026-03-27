@@ -9,6 +9,7 @@
 // Responsive: collapses to smaller cells on mobile.
 // ============================================================
 
+import { cn } from '@/app/components/ui/utils';
 import { useMediaQuery } from '@/app/hooks/useMediaQuery';
 
 // ── Day labels ──────────────────────────────────────────────
@@ -21,10 +22,10 @@ const DAY_LABELS_MOBILE = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 function SkeletonCell({ isDesktop }: { isDesktop: boolean }) {
   return (
     <div
-      className={`
-        animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700
-        ${isDesktop ? 'aspect-[4/3]' : 'aspect-square'}
-      `}
+      className={cn(
+        'animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700',
+        isDesktop ? 'aspect-[4/3]' : 'aspect-square',
+      )}
     >
       {/* Simulated day number */}
       <div className="p-1.5">
