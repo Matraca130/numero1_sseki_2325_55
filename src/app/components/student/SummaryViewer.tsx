@@ -126,9 +126,9 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
   // ── Empty state ─────────────────────────────────────────
   if (blocks.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Layers size={28} className="text-gray-300 mx-auto mb-3" />
-        <p className="text-sm text-gray-400">Este resumen no tiene bloques visuales</p>
+      <div className="text-center py-12 dark:bg-[#111215]">
+        <Layers size={28} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+        <p className="text-sm text-gray-400 dark:text-gray-500">Este resumen no tiene bloques visuales</p>
       </div>
     );
   }
@@ -140,7 +140,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
     <>
       <div
         ref={containerRef}
-        className={isMobile ? 'space-y-4 px-4 py-6' : 'relative'}
+        className={`dark:bg-[#111215] ${isMobile ? 'space-y-4 px-4 py-6' : 'relative'}`}
         style={{
           ...(!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
           ...(readingSettings ? {
