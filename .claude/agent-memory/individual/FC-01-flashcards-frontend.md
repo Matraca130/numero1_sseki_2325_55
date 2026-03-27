@@ -47,15 +47,17 @@ Agente frontend de la sección Flashcards de AXON: implementa y modifica compone
 
 | Archivo | Exports clave | Patrón | Gotcha |
 |---------|--------------|--------|--------|
-| `FlashcardView.tsx` | `FlashcardView` | Legacy entry; delegates to flashcard/ sub-views | Being replaced by hub/deck/session screens |
-| `FlashcardsManager.tsx` | `FlashcardsManager` | Professor CRUD list | Toolbar integration |
-| `flashcard/FlashcardSessionScreen.tsx` | `FlashcardSessionScreen` | Core review session, FSRS grading | Keyboard shortcuts (1-4 for grades) |
-| `flashcard/FlashcardSummaryScreen.tsx` | `FlashcardSummaryScreen` | Post-session stats | MasteryRing, SpeedometerGauge |
-| `flashcard/FlashcardHubScreen.tsx` | `FlashcardHubScreen` | Hub navigation | Entry point for adaptive flow |
-| `flashcard/FlashcardDeckScreen.tsx` | `FlashcardDeckScreen` | Deck view with card list | Sort/filter state |
-| `flashcard/adaptive/AdaptiveGenerationScreen.tsx` | `AdaptiveGenerationScreen` | AI-powered adaptive flashcard generation | Uses adaptiveGenerationApi with progress callback |
-| `student/FlashcardCard.tsx` | `FlashcardCard` | Card flip animation | motion/react for flip; front/back content |
-| `student/FlashcardReviewer.tsx` | `FlashcardReviewer` | Review loop orchestrator | Integrates with useFlashcardEngine hook |
+| `FlashcardView.tsx` | `FlashcardView` | Orchestrator: useFlashcardNavigation+useFlashcardEngine | `courseColor` deprecated; usar getMasteryColorFromPct |
+| `FlashcardsManager.tsx` | `FlashcardsManager` (named+default) | Thin orchestrator; delega a useFlashcardsManager | Usado en profesor Y SummaryView (EV-2) |
+| `ReviewSessionView.tsx` | `ReviewSessionView` | Local state; getFsrsStates en useEffect | console.error sin logger; fallback MOCK_DECKS |
+| `flashcard/index.ts` | 5 screens + UI primitives | Barrel; courseColor @deprecated en todos | ProgressRing→MasteryRing; FlashcardSidebar→TopicSidebar |
+| `flashcard/SessionScreen.tsx` | `SessionScreen` | Stateless; keyboard en window; AnimatePresence | Retorna null+onBack si cards vacíos |
+| `flashcard/SummaryScreen.tsx` | `SummaryScreen` | realMasteryPercent override avg-of-ratings | Oculta CTA adaptive si >= 90% |
+| `flashcard/MasteryRing.tsx` | `MasteryRing` | SVG motion.circle; acepta value(0-1) O pct(0-100) | Si colorClass presente usa currentColor |
+| `flashcard/SpeedometerGauge.tsx` | `SpeedometerGauge` | Arc SVG 270° sweep; getMasteryColor | Standalone; teal #14b8a6 segmento activo |
+| `flashcard/adaptive/AdaptiveGenerationScreen.tsx` | `AdaptiveGenerationScreen` | Loading ring SVG; slow-threshold 12s | Consume GenerationProgressInfo de useAdaptiveSession |
+| `student/FlashcardCard.tsx` | `FlashcardCard` | 3D flip motion; 6 card types; detectCardType | Cloze: highlight {{word}} via regex; teal border |
+| `student/FlashcardReviewer.tsx` | `FlashcardReviewer` | idle→reviewing→finished; useReviewBatch (1 POST final) | Image preloading next card; RATINGS de flashcard-types |
 | Reimplementar lógica FSRS en frontend | FSRS vive en `lib/fsrs-v4.ts` (backend) | Consumir via API |
 
 ## Métricas
