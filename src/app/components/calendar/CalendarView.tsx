@@ -49,8 +49,11 @@ import {
 } from '@/app/lib/calendar-constants';
 import { cn } from '@/app/components/ui/utils';
 import { Button } from '@/app/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/app/components/ui/drawer';
 import { WeekView } from './WeekView';
 import { formatDateISO } from '@/app/lib/calendar-utils';
+import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 
 // ── Component ──────────────────────────────────────────────
 
@@ -59,6 +62,7 @@ export function CalendarView() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
+  const { courses } = useTreeCourses();
 
   const {
     viewMode,
@@ -375,14 +379,53 @@ export function CalendarView() {
           />
         </React.Suspense>
 
-        {/* ExamForm — lazy loaded, shown when editing */}
-        {editingExamId !== null && (
-          <React.Suspense fallback={null}>
-            <ExamForm
-              exam={events.find(e => e.id === editingExamId) ?? null}
-              onClose={() => setEditingExamId(null)}
-            />
-          </React.Suspense>
+        {/* ExamForm — lazy loaded, shown in Sheet (desktop) / Drawer (mobile) */}
+        {isDesktop ? (
+          <Sheet open={editingExamId !== null} onOpenChange={(open) => { if (!open) setEditingExamId(null); }}>
+            <SheetContent className="w-[440px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle style={{ fontFamily: 'Georgia, serif' }}>
+                  {editingExamId ? 'Editar examen' : 'Nuevo examen'}
+                </SheetTitle>
+                <SheetDescription className="sr-only">
+                  Formulario para crear o editar un examen
+                </SheetDescription>
+              </SheetHeader>
+              <React.Suspense fallback={null}>
+                {editingExamId !== null && (
+                  <ExamForm
+                    exam={events.find(e => e.id === editingExamId) ?? null}
+                    onClose={() => setEditingExamId(null)}
+                    courses={courses.map(c => ({ id: c.id, name: c.name }))}
+                  />
+                )}
+              </React.Suspense>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Drawer open={editingExamId !== null} onOpenChange={(open) => { if (!open) setEditingExamId(null); }}>
+            <DrawerContent className="max-h-[85dvh] flex flex-col">
+              <DrawerHeader>
+                <DrawerTitle style={{ fontFamily: 'Georgia, serif' }}>
+                  {editingExamId ? 'Editar examen' : 'Nuevo examen'}
+                </DrawerTitle>
+                <DrawerDescription className="sr-only">
+                  Formulario para crear o editar un examen
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="flex-1 overflow-y-auto px-4 pb-[env(safe-area-inset-bottom)]">
+                <React.Suspense fallback={null}>
+                  {editingExamId !== null && (
+                    <ExamForm
+                      exam={events.find(e => e.id === editingExamId) ?? null}
+                      onClose={() => setEditingExamId(null)}
+                      courses={courses.map(c => ({ id: c.id, name: c.name }))}
+                    />
+                  )}
+                </React.Suspense>
+              </div>
+            </DrawerContent>
+          </Drawer>
         )}
       </div>
     </ErrorBoundary>
