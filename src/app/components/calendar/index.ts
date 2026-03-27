@@ -22,3 +22,15 @@ export type { DayCellProps } from './DayCell';
 // S-1B: EventBadge (event indicator)
 export { EventBadge, EventBadgeOverflow, CellEvents } from './EventBadge';
 export type { EventBadgeProps, EventBadgeOverflowProps, CellEventsProps } from './EventBadge';
+
+// S-2: ExamDetailsPanel (side panel / bottom drawer)
+export { ExamDetailsPanel } from './ExamDetailsPanel';
+export type { ExamDetailsPanelProps } from './ExamDetailsPanel';
+
+// S-2: ExamForm (create / edit / delete exam)
+export { ExamForm } from './ExamForm';
+export type { ExamFormProps } from './ExamForm';
+
+// S-2: HeatmapTooltip (hover / long-press tooltip)
+export { HeatmapTooltip } from './HeatmapTooltip';
+export type { HeatmapTooltipProps } from './HeatmapTooltip';
