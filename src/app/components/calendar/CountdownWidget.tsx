@@ -62,7 +62,7 @@ export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) 
     const todayISO = today.toISOString().slice(0, 10);
 
     return events
-      .filter(e => e.date >= todayISO)
+      .filter(e => e.date >= todayISO && e.exam_type)
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [events]);
 

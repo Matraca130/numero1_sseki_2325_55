@@ -8,7 +8,7 @@
 // deep-linking works (ADR-03: ?examId=xxx opens the panel).
 // ============================================================
 
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 
 // ── Types ───────────────────────────────────────────────────
@@ -22,8 +22,8 @@ export interface UseCalendarUIReturn {
   setViewMode: (mode: CalendarViewMode) => void;
   /** Currently selected date */
   selectedDate: Date;
-  /** Set the selected date */
-  setSelectedDate: (date: Date) => void;
+  /** Set the selected date (supports functional updater) */
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
   /** Currently open exam ID (from URL search params), or null */
   examId: string | null;
   /** Open the exam detail panel (updates URL) */

@@ -219,7 +219,7 @@ export function CalendarView() {
 
   return (
     <ErrorBoundary variant="section">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4" aria-busy={isLoading}>
         {/* Header: month navigation + view toggle + streak */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -234,6 +234,7 @@ export function CalendarView() {
             </Button>
 
             <h2
+              aria-live="polite"
               className="text-lg min-w-[160px] text-center capitalize"
               style={{ fontFamily: 'Georgia, serif' }}
             >
@@ -272,6 +273,7 @@ export function CalendarView() {
                     type="button"
                     className={cn(
                       'px-3 py-1.5 text-sm capitalize transition-colors',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500',
                       viewMode === mode
                         ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 font-medium'
                         : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',

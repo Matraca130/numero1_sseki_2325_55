@@ -61,6 +61,7 @@ export function EventBadge({ event, onTap }: EventBadgeProps) {
           : 'min-h-[44px] px-2 py-2 text-xs leading-snug flex items-center',
       ].join(' ')}
       title={event.title}
+      aria-label={`${event.title} - ${event.exam_type}`}
     >
       <span className="truncate">{event.title}</span>
     </button>

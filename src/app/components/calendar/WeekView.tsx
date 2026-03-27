@@ -59,16 +59,36 @@ export function WeekView({ events, selectedDate, onDaySelect, onEventClick, isDe
 
   return (
     <div
-      className={cn(
-        'flex gap-1 overflow-x-auto pb-2',
-        // Mobile: horizontal scroll with snap
-        'snap-x snap-mandatory',
-        // Desktop: no scroll needed, equal columns
-        'md:grid md:grid-cols-7 md:overflow-x-visible md:snap-none',
-      )}
       role="grid"
       aria-label="Vista semanal del calendario"
     >
+      {/* Header row with day names */}
+      <div
+        className="hidden md:grid md:grid-cols-7 md:gap-1 md:mb-1"
+        role="row"
+      >
+        {weekDays.map(day => (
+          <div
+            key={`header-${formatDateISO(day)}`}
+            role="columnheader"
+            className="text-center text-xs font-medium uppercase tracking-wide text-gray-500"
+          >
+            {format(day, 'EEE', { locale: es })}
+          </div>
+        ))}
+      </div>
+
+      {/* Data row with day cells */}
+      <div
+        className={cn(
+          'flex gap-1 overflow-x-auto pb-2',
+          // Mobile: horizontal scroll with snap
+          'snap-x snap-mandatory',
+          // Desktop: no scroll needed, equal columns
+          'md:grid md:grid-cols-7 md:overflow-x-visible md:snap-none',
+        )}
+        role="row"
+      >
       {weekDays.map(day => {
         const iso = formatDateISO(day);
         const dayEvents = eventsByDate.get(iso) ?? [];
@@ -159,6 +179,7 @@ export function WeekView({ events, selectedDate, onDaySelect, onEventClick, isDe
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
