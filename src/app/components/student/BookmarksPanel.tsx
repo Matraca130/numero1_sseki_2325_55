@@ -71,17 +71,17 @@ export default function BookmarksPanel({
     <div
       role="dialog"
       aria-label="Bloques guardados"
-      className="absolute top-full right-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl p-3 shadow-lg z-50 max-h-[350px] overflow-y-auto"
+      className="absolute top-full right-0 mt-1.5 w-72 bg-white dark:bg-[var(--reader-card-bg,#1e1f25)] border border-gray-200 dark:border-[var(--reader-border,#2d2e34)] rounded-2xl p-3 shadow-lg z-50 max-h-[350px] overflow-y-auto"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
-        <span className="font-bold text-gray-900" style={{ fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)' }}>
+        <span className="font-bold text-gray-900 dark:text-[var(--reader-text-primary,#e6e7eb)]" style={{ fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)' }}>
           Marcadores ({bookmarks.length})
         </span>
         <button
           onClick={onClose}
           aria-label="Cerrar marcadores"
-          className="flex text-gray-400 hover:text-gray-600 transition-colors"
+          className="flex text-gray-400 dark:text-[var(--reader-text-muted,#8b8d94)] hover:text-gray-600 dark:hover:text-[var(--reader-text-primary,#e6e7eb)] transition-colors"
         >
           <X size={14} />
         </button>
@@ -89,8 +89,8 @@ export default function BookmarksPanel({
 
       {/* Empty state */}
       {bookmarks.length === 0 ? (
-        <div className="text-center py-4 text-gray-400" style={{ fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)' }}>
-          <Bookmark size={24} className="mx-auto mb-2 text-gray-300" />
+        <div className="text-center py-4 text-gray-400 dark:text-[var(--reader-text-muted,#8b8d94)]" style={{ fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)' }}>
+          <Bookmark size={24} className="mx-auto mb-2 text-gray-300 dark:text-[var(--reader-text-muted,#8b8d94)]" />
           <p>No hay marcadores</p>
           <p className="mt-1" style={{ fontSize: 'clamp(0.6rem, 1vw, 0.65rem)' }}>
             Usa el icono <Bookmark size={10} className="inline align-middle" /> en cada bloque para guardar.
@@ -106,17 +106,17 @@ export default function BookmarksPanel({
                 onBlockClick(item.blockId);
                 onClose();
               }}
-              className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-left transition-colors hover:bg-teal-50 group"
+              className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-left transition-colors hover:bg-teal-50 dark:hover:bg-[var(--reader-teal-50,#1a2e2a)] group"
             >
               <BookmarkCheck size={14} className="text-teal-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div
-                  className="font-semibold text-gray-900 truncate"
+                  className="font-semibold text-gray-900 dark:text-[var(--reader-text-primary,#e6e7eb)] truncate"
                   style={{ fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)' }}
                 >
                   {item.title || item.blockType}
                 </div>
-                <div className="text-gray-400" style={{ fontSize: 'clamp(0.6rem, 1vw, 0.625rem)' }}>
+                <div className="text-gray-400 dark:text-[var(--reader-text-muted,#8b8d94)]" style={{ fontSize: 'clamp(0.6rem, 1vw, 0.625rem)' }}>
                   {item.blockType.replace('_', ' ')}
                 </div>
               </div>
@@ -126,7 +126,7 @@ export default function BookmarksPanel({
                   onRemove(item.blockId);
                 }}
                 title="Quitar"
-                className="flex p-0.5 text-gray-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                className="flex p-0.5 text-gray-300 dark:text-[var(--reader-text-muted,#8b8d94)] hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
               >
                 <X size={12} />
               </button>

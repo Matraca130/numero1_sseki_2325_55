@@ -67,6 +67,8 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   useEffect(() => {
     if (seconds !== 0) return;
 
+    setRunning(false);
+
     if (mode === 'study') {
       toast('Tempo de estudo finalizado!');
       setMode('break');
