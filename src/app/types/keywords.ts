@@ -79,9 +79,17 @@ export function getAllKeywordTerms(): string[] {
 
 // ── Stub functions (previously in services/keywordManager.ts) ─
 
+export interface KeywordNeed {
+  keyword: string;
+  coverage: number;
+  needScore: number;
+}
+
 export function getKeywordsNeedingCards(
   _keywords: KeywordCollection,
-): KeywordState[] {
+  _minCoverage?: number,
+  _maxResults?: number,
+): KeywordNeed[] {
   return [];
 }
 
