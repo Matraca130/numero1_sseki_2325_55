@@ -228,8 +228,7 @@ export function useQuestionForm({
         // ── CREATE ──
         let resolvedKeywordId = keywordId;
         if (!resolvedKeywordId && !keywordRequired) {
-          const generalKw = await ensureGeneralKeyword(summaryId);
-          resolvedKeywordId = generalKw.id;
+          resolvedKeywordId = await ensureGeneralKeyword(summaryId);
         }
 
         const payload: CreateQuizQuestionPayload = {

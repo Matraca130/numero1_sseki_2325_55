@@ -7,7 +7,7 @@
  * @owner SM-01 (summaries-frontend-v2)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 
 // ── Types & defaults ────────────────────────────────
@@ -82,8 +82,33 @@ export default function ReadingSettingsPanel({
   onChange,
   onClose,
 }: ReadingSettingsPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [onClose]);
+
+  // Close on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
     <div
+      ref={panelRef}
       role="dialog"
       aria-label="Configuração de leitura"
       className="absolute top-full right-0 w-[260px] bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-4 space-y-4"
