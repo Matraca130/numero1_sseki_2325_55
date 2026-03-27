@@ -15,7 +15,9 @@ import 'react-day-picker/dist/style.css';
 import { CalendarSkeleton } from './CalendarSkeleton';
 import { DayCell } from './DayCell';
 import { CellEvents } from './EventBadge';
-import { ExamDetailsPanel } from './ExamDetailsPanel';
+const ExamDetailsPanel = React.lazy(() =>
+  import('./ExamDetailsPanel').then(m => ({ default: m.ExamDetailsPanel })),
+);
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import {
   startOfMonth,
@@ -45,15 +47,7 @@ import {
 import { cn } from '@/app/components/ui/utils';
 import { Button } from '@/app/components/ui/button';
 import { WeekView } from './WeekView';
-
-// ── Helpers ────────────────────────────────────────────────
-
-function formatISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+import { formatDateISO } from '@/app/lib/calendar-utils';
 
 // ── Component ──────────────────────────────────────────────
 
@@ -162,7 +156,7 @@ export function CalendarView() {
       const { styles, classNames } = useDayPicker();
 
       const isFinalsRow = props.dates.some(date => {
-        const isoStr = formatISO(date);
+        const isoStr = formatDateISO(date);
         const weekKey = toISOWeekKey(isoStr);
         return finalsWeeks.has(weekKey);
       });
@@ -197,7 +191,7 @@ export function CalendarView() {
   const renderDayContent = useCallback(
     (props: DayContentProps) => {
       const date = props.date;
-      const iso = formatISO(date);
+      const iso = formatDateISO(date);
       const dayEvents = eventsByDate.get(iso) ?? [];
       const heatmapDay = heatmapMap.get(iso);
 
@@ -261,7 +255,7 @@ export function CalendarView() {
             {/* Streak indicator */}
             {currentStreak > 0 && (
               <span
-                className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-sm text-green-700"
+                className="flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-900/30 px-3 py-1 text-sm text-green-700 dark:text-green-400"
                 aria-label={`Racha de ${currentStreak} dias`}
               >
                 <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
@@ -271,7 +265,7 @@ export function CalendarView() {
 
             {/* View mode toggle (only on desktop) */}
             {isDesktop && (
-              <div className="flex rounded-lg border" role="group" aria-label="Modo de vista">
+              <div className="flex rounded-lg border dark:border-gray-700" role="group" aria-label="Modo de vista">
                 {(['month', 'week'] as const).map(mode => (
                   <button
                     key={mode}
@@ -279,8 +273,8 @@ export function CalendarView() {
                     className={cn(
                       'px-3 py-1.5 text-sm capitalize transition-colors',
                       viewMode === mode
-                        ? 'bg-teal-50 text-teal-700 font-medium'
-                        : 'text-gray-500 hover:bg-gray-50',
+                        ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 font-medium'
+                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
                     )}
                     onClick={() => setViewMode(mode)}
                     aria-pressed={viewMode === mode}
@@ -299,7 +293,7 @@ export function CalendarView() {
             <p>Error cargando datos del calendario.</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-teal-600 underline hover:text-teal-800"
+              className="mt-2 text-teal-600 dark:text-teal-400 underline hover:text-teal-800 dark:hover:text-teal-300"
             >
               Reintentar
             </button>
@@ -317,6 +311,7 @@ export function CalendarView() {
                 events={events}
                 selectedDate={selectedDate}
                 onDaySelect={handleDaySelect}
+                isDesktop={isDesktop}
               />
             ) : (
               <div {...swipeHandlers}>
@@ -341,7 +336,7 @@ export function CalendarView() {
                     table: 'w-full border-collapse',
                     head_row: 'flex',
                     head_cell:
-                      'flex-1 text-center text-xs font-medium text-gray-500 py-2',
+                      'flex-1 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2',
                     row: 'flex w-full',
                     cell: cn(
                       'flex-1 relative p-0.5 text-center',
@@ -349,12 +344,12 @@ export function CalendarView() {
                     ),
                     day: cn(
                       'w-full min-h-[60px] rounded-lg p-1',
-                      'hover:bg-gray-50 transition-colors',
+                      'hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
                       'focus:outline-none focus:ring-2 focus:ring-teal-400',
                       !isDesktop && 'min-h-[72px]',
                     ),
                     day_selected:
-                      'bg-teal-50 ring-1 ring-teal-300',
+                      'bg-teal-50 dark:bg-teal-900/30 ring-1 ring-teal-300 dark:ring-teal-700',
                     day_today: 'font-bold',
                     day_outside: 'opacity-40',
                   }}
@@ -364,12 +359,14 @@ export function CalendarView() {
           </>
         )}
 
-        {/* FIX 3: ExamDetailsPanel integration */}
-        <ExamDetailsPanel
-          examId={examId}
-          events={events}
-          onClose={handleClosePanel}
-        />
+        {/* FIX 3: ExamDetailsPanel integration (lazy loaded) */}
+        <React.Suspense fallback={null}>
+          <ExamDetailsPanel
+            examId={examId}
+            events={events}
+            onClose={handleClosePanel}
+          />
+        </React.Suspense>
       </div>
     </ErrorBoundary>
   );

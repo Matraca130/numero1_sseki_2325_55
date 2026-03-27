@@ -51,7 +51,8 @@ export function EventBadge({ event, onTap }: EventBadgeProps) {
       onClick={() => onTap?.(event)}
       className={[
         'w-full text-left rounded border truncate',
-        'transition-colors duration-100',
+        'transition-colors transition-transform duration-100',
+        'active:scale-95 active:opacity-80',
         colors.bg,
         colors.text,
         colors.border,
@@ -78,9 +79,10 @@ export function EventBadgeOverflow({ totalEvents, onTap }: EventBadgeOverflowPro
       onClick={() => onTap?.()}
       className={[
         'w-full text-center rounded border',
-        'bg-gray-100 text-gray-600 border-gray-300',
+        'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600',
         'min-h-[44px] px-2 py-2 text-xs leading-snug flex items-center justify-center',
-        'transition-colors duration-100 hover:bg-gray-200',
+        'transition-colors transition-transform duration-100 hover:bg-gray-200 dark:hover:bg-gray-700',
+        'active:scale-95 active:opacity-80',
       ].join(' ')}
       aria-label={`${hiddenCount} evento${hiddenCount > 1 ? 's' : ''} adicional${hiddenCount > 1 ? 'es' : ''}`}
     >

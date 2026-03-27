@@ -22,23 +22,29 @@
   --color-axon-dark: #1B3B36;
   --color-axon-accent: #2a8c7a;
   --color-axon-mint: #3cc9a8;
+
+  /* Calendar tokens (moved from @layer base :root) */
+  --cal-exam: #C0392B; --cal-recov: #E67E22;
+  --cal-review: #2980B9; --cal-study: #27AE60;
+  --cal-quiz: #F39C12; --cal-reading: #16A085;
+  --heat-0: transparent;
+  --heat-1: #F0FDFA;
+  --heat-2: #99F6E4;
+  --heat-3: #2DD4BF;
+  --heat-4: #0F766E;
+  --streak-active: #22C55E; --streak-freeze: #F59E0B;
 }
 
 @layer base {
-  :root {
-    --cal-exam: #C0392B; --cal-recov: #E67E22;
-    --cal-review: #2980B9; --cal-study: #27AE60;
-    --cal-quiz: #F39C12; --cal-reading: #16A085;
-    --heat-0: transparent; --heat-1: #EFF6FF;
-    --heat-2: #BFDBFE; --heat-3: #60A5FA; --heat-4: #1D4ED8;
-    --streak-active: #22C55E; --streak-freeze: #F59E0B;
-  }
   .dark {
     --cal-exam: #F87171; --cal-recov: #FB923C;
     --cal-review: #60A5FA; --cal-study: #4ADE80;
     --cal-quiz: #FBBF24; --cal-reading: #2DD4BF;
-    --heat-0: transparent; --heat-1: #1E3A5F;
-    --heat-2: #1E40AF; --heat-3: #1D4ED8; --heat-4: #312E81;
+    --heat-0: transparent;
+    --heat-1: #042F2E;
+    --heat-2: #115E59;
+    --heat-3: #0D9488;
+    --heat-4: #14B8A6;
     --streak-active: #4ADE80; --streak-freeze: #FBBF24;
   }
 
