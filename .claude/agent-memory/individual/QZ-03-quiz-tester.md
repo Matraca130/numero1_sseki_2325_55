@@ -41,6 +41,20 @@ Agente tester de la sección Quiz de AXON — escribe y ejecuta tests para quiz 
 | Omitir `npm run build` tras los tests | TypeScript errors pueden quedar silenciosos | Siempre hacer build como paso final de verificación |
 | Tests sin casos de error/edge | Cobertura incompleta de BKT y quiz session | Incluir casos negativos y edge cases en cada suite |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Tests clave | Patrón | Gotcha |
+|---------|------------|--------|--------|
+| `quiz-bkt-computation.test.ts` | BKT formula, recovery factor, color classify (green≥0.80/yellow≥0.50/red) | Pure fn, no mocks | Constants must match `useQuizBkt.ts` exactly |
+| `quiz-constants.test.ts` | normalizeQuestionType (AUD-01), normalizeDifficulty (AUD-02), bidirectional maps | Pure fn, no mocks | AI returns "multiple_choice" not "mcq"; Spanish "facil"/"dificil" mapped |
+| `quiz-content-helpers.test.ts` | normalizeText (Unicode), checkAnswer (4 tipos), emptyAnswer factory | vi.mock lucide-react | open/fill_blank uses contains-match; MCQ uses exact-match |
+| `quiz-session-helpers.test.ts` | loadAndNormalizeQuestions, checkAndProcessBackup | vi.mock apiCall+quizApi+useQuizBackup | Mock ANTES del import; preloaded solo 1 vez (hasUsedPreloaded) |
+| `quiz-route-integrity.test.ts` | Rutas reales (no Placeholder), viewToPath("quiz")→"/student/quizzes", round-trip | Static analysis (.toString() en lazy fn) | Guards vs PR #87 (PERF-70) y PR #88 (quiz≠quizzes slug) |
+| `quiz-api-contracts.test.ts` | URL flat (Rule 2), difficulty INTEGER (Rule 3), NO student_id (Rule 6) | vi.mock apiCall, inspect mock.calls[0] | difficulty string→int en query param; student_id NUNCA en body |
+
+- **TD-3**: `bkt_v4_test.ts` backend NO existe — BKT testing cubre `useQuizBkt.ts` en frontend
+- **Sesiones**: 1 | **QG Pass**: — | **Resultado**: especialización completada
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
