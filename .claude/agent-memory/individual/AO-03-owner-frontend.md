@@ -37,6 +37,21 @@ Agente frontend del rol owner: mantiene las páginas de dashboard, miembros, pla
 | Crear subcomponentes sin respetar la estructura de directorios existente | Inconsistencia arquitectural | Seguir el patrón de organización de `components/roles/pages/owner/` |
 | Modificar archivos fuera de `**/pages/owner/*` o `owner-routes.*` | Viola aislamiento de agentes | Escalar al Arquitecto (XX-01) |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `owner-routes.ts` | ownerChildren[] | lazyRetry() | No React.lazy directo |
+| `OwnerDashboardPage.tsx` (602L) | OwnerDashboardPage | Recharts+ChartErrorBoundary | FadeIn local duplicado (no de shared) |
+| `OwnerMembersPage.tsx` (1276L) | OwnerMembersPage | Context wrappers: invite/remove/toggle/changeRole | console.error linea 724 (violacion); candidato #1 a splitting |
+| `OwnerPlansPage.tsx` (844L) | OwnerPlansPage | billing_cycle: monthly/quarterly/biannual/annual/one_time | Toggle activo via updateInstitutionPlan |
+| `OwnerSubscriptionsPage.tsx` (373L) | OwnerSubscriptionsPage | Carga subs+platformPlans paralelo | — |
+| `OwnerInstitutionPage.tsx` | OwnerInstitutionPage | **Placeholder** | No implementado |
+| `OwnerSettingsPage.tsx` | OwnerSettingsPage | **Placeholder** | No implementado |
+
+- FadeIn duplicado localmente en 6/8 archivos
+- No existen subdirectorios components/owner/ aun
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

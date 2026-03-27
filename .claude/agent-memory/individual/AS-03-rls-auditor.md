@@ -55,3 +55,16 @@ Audita políticas Row Level Security de PostgreSQL. Detecta tablas sin protecci�
 ## Decisiones técnicas (NO re-litigar)
 | Fecha | Decisión | Por qué | Alternativas descartadas |
 |-------|----------|---------|--------------------------|
+
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Tables | Key Finding |
+|---------|--------|------------|
+| `rls_helper_function.sql` | Helper fn user_institution_ids() | SECURITY DEFINER, search_path locked — correcto |
+| `rls_content_tables.sql` | 17 content tables (courses→model_parts) | Full S/I/U/D + service_role_all — sin gaps |
+| `rls_user_tables.sql` | 16 user/gamification tables | user-scoped uid + service_role_all — sin gaps |
+| `rls_admin_tables.sql` | 14 admin/core tables | **platform_plans I/U/D open** — FIXED por migration posterior |
+| `rls_missing_tables.sql` | 8 tables (reading_states, profiles) | Mixed scoping — sin gaps |
+| `rls_platform_plans_restrict_writes.sql` | platform_plans | FIX: drops permissive writes; crud.ts debe usar getAdminClient() |
+
+- RLS NO esta en database/rls-*.sql — vive en supabase/migrations/

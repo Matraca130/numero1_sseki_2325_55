@@ -38,6 +38,16 @@ Desarrollar y mantener la capa de API y servicios del sistema de gamificacion: c
 | Endpoints sin validacion de inputs | Vulnerabilidades y errores dificiles de depurar | Validar siempre en la capa de rutas |
 | `any` o `// @ts-ignore` | Rompe TypeScript estricto | Tipar correctamente con las interfaces de `types/gamification.ts` |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `xp-engine.ts` | XP_TABLE, calculateLevel, grantXP, getDailyCap | Pure fns + DB writes | quiz_correct=15 (no 10 como dice la def); daily_goal_minutes not daily_goal |
+| `streak-engine.ts` | checkStreak, repairStreak, getStreakStatus | Streak logic + repair tokens | Siempre getAdminClient() para writes; .maybeSingle() never .single() |
+| `xp-hooks.ts` | xpHookForSessionComplete, xpHookForReview | afterWrite hooks fire-and-forget | Llamados desde crud-factory.ts; no awaited |
+| `gamification-dispatcher.ts` | dispatchGamificationEvent | Advisory lock (FNV-1a hash) | Previene concurrent double-badge-award; tryAwardBadge con 23505 guard |
+| `routes/gamification/*.ts` | profile, goals, badges, streak, helpers | Hono routes | gamification-service.ts NO existe — arquitectura real es engine+hooks+dispatcher |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

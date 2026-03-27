@@ -57,3 +57,15 @@ Escanea vulnerabilidades de seguridad (OWASP Top 10). Solo lectura — genera re
 ## Decisiones técnicas (NO re-litigar)
 | Fecha | Decisión | Por qué | Alternativas descartadas |
 |-------|----------|---------|--------------------------|
+
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Patrón | Vulnerabilidad Addressed |
+|---------|--------|------------------------|
+| `sanitize.ts` (frontend) | DOMPurify + allowlist + FORBID_TAGS | XSS (A03) — ALLOW_DATA_ATTR vuln ya FIXED en FE-001 |
+| `auth-helpers.ts` (backend) | Fail-closed; ROLE_HIERARCHY | Broken Access Control (A01) |
+| `validate.ts` (backend) | Guard fns + declarative validateFields() | Injection (A03) |
+| `prompt-sanitize.ts` (backend) | Strip control chars + XML tag wrap | Prompt injection |
+| `rate-limit.ts` (backend) | In-memory Map per JWT sub; 120 req/min | DoS/brute-force (A04) |
+| `safe-error.ts` (backend) | Log full server-side, generic to client | Info leakage (A09) |
+| `db.ts` (backend) | JWKS ES256 via jose; RLS-respecting user client | Broken Auth (A07) |

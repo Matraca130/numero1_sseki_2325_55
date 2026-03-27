@@ -39,6 +39,14 @@ Desarrollar y mantener la interfaz del leaderboard: pagina completa con podio, t
 | No manejar estado vacio o error | UI rota cuando el leaderboard esta vacio o la API falla | Siempre incluir fallback de carga, error y lista vacia |
 | `any` o `// @ts-ignore` | Rompe TypeScript estricto | Usar `LeaderboardEntry` de `types/gamification.ts` |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `LeaderboardPage.tsx` | `LeaderboardPage` | stateful: useCallback+useEffect, local state | Podium reorders [1,0,2]; PodiumCard interno; imports LeaderboardEntry de gamificationApi |
+| `LeaderboardCard.tsx` | `LeaderboardCard` | stateless: data via props | FUN_NAMES deterministic; XP = xp_this_week ?? xp_today ?? 0; shows top 10 |
+| `gamificationApi.ts` (read-only) | getLeaderboard, LeaderboardEntry | institution_id as query param; empty fallback on error | leaderboard_weekly MV no existe — usar student_xp.xp_this_week |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

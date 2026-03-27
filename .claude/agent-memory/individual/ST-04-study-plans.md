@@ -38,6 +38,16 @@ Mantener y evolucionar el sistema completo de planes de estudio: wizard de 6 pas
 | Usar `any` en TypeScript | Rompe la seguridad de tipos | Tipar explícitamente con tipos del dominio |
 | Modificar archivos de ST-05 para obtener mastery | Viola ownership | Consumir hooks de ST-05 en modo solo lectura |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `pa-study-plans.ts` (238L) | CRUD plans/tasks/sessions, batchUpdateTasks, reorderItems | Pure API client over apiCall() | StudyPlanPage.tsx NO existe; real: pa-study-plans.ts. Dual response shape handling |
+| `useStudyPlans.ts` (735L) | useStudyPlans(opts?) → plans, createPlanFromWizard, toggleTaskComplete, reorderTasks | Orchestrator: fetch→map→sync AppContext | runReschedule: AI-first, algorithmic fallback. isRescheduling.current guard. Double-mapping anti-stale-state |
+
+- studyPlanApi.ts NO existe — archivo real es `services/platform-api/pa-study-plans.ts`
+- StudyPlanPage.tsx NO existe — dashboard en `components/schedule/StudyPlanDashboard.tsx`
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

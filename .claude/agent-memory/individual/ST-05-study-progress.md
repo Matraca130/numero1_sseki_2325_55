@@ -46,6 +46,14 @@ Mantener y evolucionar el sistema de tracking de progreso y mastery: hooks BKT/F
 | Mezclar CRUD, agregación y caché en `keywordMasteryApi.ts` | Hace el archivo inmanejable (~529L) | Mantener secciones bien delimitadas |
 | Usar `any` en TypeScript | Rompe la seguridad de tipos | Tipar explícitamente |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `ProgressPage.tsx` | **NO EXISTE** | — | Listado en ownership pero ausente en repo |
+| `StudentDataContext.tsx` | StudentDataProvider, useStudentDataContext, StudentDataState | Context+useMemo; Promise.allSettled tolerante | isConnected = profile && rawStats !== null; legacy mutators son no-ops; courseProgress siempre [] |
+| `useTopicProgress.ts` | useTopicProgress(bySummaryId, sqLoading, courseId), TopicProgress | Consume shared bySummaryId de useStudyQueueData; module cache; batch=10 anti-N+1 | Thresholds: mastered>=0.80/learning>=0.50/new<0.50 (difieren de Delta Scale 0.85/0.60/0.30); cache singleton stale risk |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

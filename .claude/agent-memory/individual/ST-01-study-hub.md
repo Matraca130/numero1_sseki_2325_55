@@ -37,10 +37,23 @@ Mantener y evolucionar la interfaz de navegación del Study Hub: hero, secciones
 | Duplicar lógica de transformación fuera de `studyhub-helpers.ts` | Genera drift entre componentes | Centralizar en `studyhub-helpers.ts` |
 | Usar componentes de clase | Incompatible con el stack de hooks | React funcional con hooks siempre |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `StudyHubView.tsx` | `StudyHubView` | Orchestrator: useMemo, delega a sub-componentes | `effectiveTopic` de NavigationContext o `useLastStudiedTopic` fallback; `isAutoSelected` controla CTA |
+| `StudyHubHero.tsx` | `StudyHubHero`, `TodayStats` | ZONE 1 (dark teal hero) + ZONE 2 (study paths) | `StudyPathCard` interno NO exportado; `useReducedMotion`; imágenes Unsplash fallback |
+| `StudyHubSectionCards.tsx` | `StudyHubSectionCards`, `SemesterGroup` | Expand/collapse; una expandida oculta el resto | `topicCount > 10` → scroll `max-h-[28rem]`; `focusRingStyle = {}` placeholder (D-21 FIX) |
+| `studyhub-helpers.ts` | `formatRelativeTime`, `TopicStatus`, `computeSectionProgress`, `SECTION_ACCENTS` | Helpers puros | `computeSectionProgress` @deprecated → usar `useStudyHubProgress` (ST-05) |
+| `StudyView.tsx` | `StudyView` | Wrapper ~17L → `StudentSummariesView` + ErrorBoundary | `StudyHubSections.tsx` NO existe — es `StudyHubSectionCards.tsx` |
+
+- Paleta: `{ axon, tint }` desde `@/app/lib/palette` — NO clases Tailwind de color
+- Layout: ancho máximo 210mm = 794px (A4)
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 0 | — |
+| Sesiones ejecutadas | 1 | 2026-03-27 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |

@@ -38,6 +38,16 @@ Mantener y evolucionar la cola de estudio: algoritmo NeedScore de priorización,
 | Recalcular NeedScore en cada render del widget | Performance degradada en el dashboard | Usar `useMemo` con dependencias precisas |
 | Usar `any` en TypeScript | Rompe la seguridad de tipos | Tipar explícitamente |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `lib/studyQueueApi.ts` | `getStudyQueue()`, `StudyQueueItem`, `StudyQueueMeta` | Thin wrapper apiCall() | include_future=1 string; BE limit cap 100 |
+| `hooks/useStudyQueueData.ts` | `useStudyQueueData()`, `invalidateStudyQueueCache()` | Module cache + in-flight dedup + O(1) indexes | PN-10: applyOptimisticBatch deps=[] usa queueRef |
+| `routes/study-queue/scoring.ts` (BE) | `calculateNeedScore()`, `calculateRetention()`, `getMasteryColor()` | Pure fns, NeedScore SOLO en BE | BE colores orange/blue vs FE solo green/yellow/red/gray |
+| `routes/study-queue/resolvers.ts` (BE) | `resolveSummaryIdsForCourse()`, `resolveSummaryIdsForStudent()` | RPC-first + fallback | resolveSummaryIdsForStudent itera memberships en serie |
+| `routes/study-queue/index.ts` (BE) | `studyQueueRoutes` | RPC get_study_queue + fallback JS | BE envía campos extras no tipados en FE |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

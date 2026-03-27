@@ -37,6 +37,15 @@ Desarrollar y mantener la interfaz del dashboard del profesor: pagina principal,
 | `any` o `// @ts-ignore` | Rompe TypeScript estricto | Tipar correctamente |
 | Llamadas directas a la API sin el hook | Duplicacion de logica de transformacion | Usar `useQuizAnalytics` como unica fuente |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `ProfessorDashboardPage.tsx` | `ProfessorDashboardPage()` | PlaceholderPage — **sin implementar** | PENDIENTE: implementar con /flashcards/stats, /quiz/stats |
+| `QuizAnalyticsPanel.tsx` | `QuizAnalyticsPanel` | Modal puro UI; delega al hook | ChartErrorBoundary requerido; isAnimationActive=false en todos los Bar |
+| `useQuizAnalytics.ts` | `useQuizAnalytics(quizId,summaryId)` | Hook datos+transform; 4 useMemo | N+1 requests (1 por pregunta); cancelación via cancelled flag |
+| `ProfessorGamificationPage.tsx` | `ProfessorGamificationPage()` | Promise.allSettled leaderboard+badges | period state activa re-fetch; datos read-only |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

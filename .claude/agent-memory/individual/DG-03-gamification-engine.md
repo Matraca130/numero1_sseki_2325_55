@@ -38,6 +38,15 @@ Desarrollar y mantener la capa frontend del sistema de gamificacion: XP, badges,
 | Actualizar XP sin mecanismo de reversion | UI inconsistente ante errores de red | Siempre implementar rollback en `GamificationContext` |
 | `any` o `// @ts-ignore` | Rompe TypeScript estricto | Tipar correctamente |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `gamificationApi.ts` (read-only) | getProfile, getBadges, checkBadges, dailyCheckIn, repairStreak | xp.{total,today,level,daily_cap} | daily_goal_minutes not daily_goal (B-001); getMyXP deprecated |
+| `useGamification.ts` | useGamificationProfile, useStreakStatus, useBadges, useLeaderboard | staleTime varies: 30s/60s/120s | useBadges no incluye instId en queryKey → cache compartida entre instituciones |
+| `useSessionXP.ts` | useSessionXP → {state, initSession, recordReview, endSession} | optimista; combo>=5 → Flow Zone +25% | endSession retorna max(optimistic,actual) — puede ocultar discrepancias |
+| `BadgeShowcase.tsx` (2 versiones) | student + gamification versions | Diferentes: uno con React Query, otro sin | Tipo Badge local != BadgeWithStatus; tooltip duplicado |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

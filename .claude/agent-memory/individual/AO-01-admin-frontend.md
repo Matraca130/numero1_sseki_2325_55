@@ -37,6 +37,16 @@ Agente frontend de administracion institucional: mantiene las paginas del rol ad
 | Fetch directo sin `apiCall()` | Inconsistencia en manejo de auth headers y errores | Siempre usar `apiCall()` de `lib/api.ts` |
 | Editar mega-componentes sin revisar líneas totales | Riesgo de introducir regresiones en componentes grandes | Leer el archivo completo antes de editar |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `admin-routes.ts` | adminChildren[] | lazyPlaceholder() helper | No React.lazy directo |
+| `AdminDashboardPage.tsx` | AdminDashboardPage | Stats + charts | Placeholder parcial |
+| `AdminMembersPage.tsx` | AdminMembersPage | CRUD members + scopes | Inline modals, candidato a splitting |
+| `AdminAIHealthPage.tsx` | AdminAIHealthPage | AI monitoring | Sin auto-refresh (solo manual button) |
+| `AdminMessagingSettingsPage.tsx` | AdminMessagingSettingsPage | Telegram/WhatsApp config | Embebida en Settings, sin ruta propia |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

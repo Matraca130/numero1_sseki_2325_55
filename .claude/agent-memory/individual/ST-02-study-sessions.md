@@ -42,6 +42,14 @@ Mantener y evolucionar el flujo completo de sesiones de estudio: creación de se
 | Usar `any` en TypeScript | Rompe la seguridad de tipos | Tipar explícitamente |
 | Modificar `studyQueueApi.ts` o `bktApi.ts` directamente | Viola ownership de ST-03 y ST-05 | Escalar al Arquitecto (XX-01) |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `studySessionApi.ts` | `createStudySession`, `closeStudySession`, `getStudySessions`, `submitReviewBatch`, `getFsrsStates` | Pure API client, one apiCall per fn | DB column `student_id` (not user_id), `completed_at` (not ended_at); handles both CRUD factory and plain array |
+| `useReviewBatch.ts` | `useReviewBatch()` → queueReview, submitBatch, reset | useRef accumulator (zero re-renders); local BKT heuristic for visual only | Batch persisted to localStorage BEFORE sending; sessionId.startsWith('local-') silently discards |
+| `routes/study/sessions.ts` (backend) | `sessionRoutes` (Hono) | 3 registerCrud: study_sessions, study_plans, study_plan_tasks | updateFields only accepts completed_at/total_reviews/correct_reviews; xpHookForSessionComplete on afterWrite |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

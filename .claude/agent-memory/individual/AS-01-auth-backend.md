@@ -41,6 +41,16 @@ Last updated: 2026-03-25
 - Cualquier cambio en auth middleware afecta a toda la plataforma
 - Cambios requieren: tests exhaustivos + security review + quality-gate
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `db.ts` | authenticate, extractToken, getUserClient, getAdminClient | JWT: X-Access-Token → Bearer fallback; jose ES256 JWKS | No importable en unit tests (valida env vars en module load) |
+| `auth-helpers.ts` | requireInstitutionRole, resolveCallerRole, canAssignRole, isDenied, ROLE_HIERARCHY | Pure business logic, zero deps de db.ts, 100% testeable | canAssignRole fail-closed: caller desconocido → nivel 0, target → Infinity |
+| `routes-auth.ts` | authRoutes (Hono) | POST /signup (rate-limit 5/IP/hora), GET /me, PUT /me | Signup rollback: falla profile → delete auth user; middleware/auth.ts NO existe |
+
+- getUserClient es per-request (no singleton) para evitar timer accumulation en Edge Functions
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

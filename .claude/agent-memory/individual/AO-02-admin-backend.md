@@ -37,6 +37,18 @@ Agente backend de administracion institucional: mantiene las rutas API de admin,
 | Modificar archivos fuera de `**/routes/admin*` o `pa-admin.*` | Viola aislamiento de agentes | Escalar al Arquitecto (XX-01) |
 | Duplicar lógica de plataforma fuera de pa-admin.ts | Inconsistencia y mantenimiento difícil | Centralizar en pa-admin.ts |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `routes/members/admin-scopes.ts` | admin scope CRUD | Hono routes | Solo archivo con admin en nombre |
+| `routes/members/memberships.ts` | membership CRUD | requireInstitutionRole per handler | auth real: authenticate(c) + requireInstitutionRole() inline |
+| `routes/members/institutions.ts` | institution CRUD | Hono routes | getAdminClient() bypasa RLS (solo POST) |
+
+- admin-service.ts NO existe — contrato mapea a pa-admin.ts (frontend)
+- ROLE_HIERARCHY: owner=4, admin=3
+- A-5: admin no puede desactivar owner; H-1: DELETE retorna 404 (no 403) anti-info-disclosure
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

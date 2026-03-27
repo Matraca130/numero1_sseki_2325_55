@@ -37,6 +37,18 @@ Desarrollar y mantener la interfaz del dashboard del estudiante: KPI cards, heat
 | Hardcodear datos en componentes | Dificulta mantenimiento | Obtener datos desde hooks tipados |
 | Modificar archivos fuera de `components/dashboard/`, `pages/DashboardPage.tsx`, `components/content/DashboardView.tsx`, `components/content/WelcomeView.tsx` | Viola el aislamiento de agente | Escalar al Arquitecto (XX-01) |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `DashboardPage.tsx` | DashboardPage (default) | Orquestador 3 filas | HeatMap/Mastery hacen fetch propio — no reciben datos via props |
+| `StatsCards.tsx` | StatsCards, useStudentDashboardStats | 4 KPI + hook colocado | Hook re-exportado y reutilizado en DashboardPage para studiedToday |
+| `ActivityHeatMap.tsx` | ActivityHeatMap | Grid 26sem desktop / 13 mobile | Fetch propio con cleanup cancelled flag; colores Tailwind por nivel |
+| `MasteryOverview.tsx` | MasteryOverview | Shell fino — logica en hook | Filtro + KPI bar; error/empty states aqui |
+| `StudyStreakCard.tsx` | StudyStreakCard | Presentacional puro | Color dinamico por umbral 3/7/14 dias |
+| `DashboardCharts.tsx` | ActivityChart, MasteryDonut | Recharts + ChartErrorBoundary | isAnimationActive=false; usa colors.chart.* del design-system |
+| `useMasteryOverviewData.ts` | useMasteryOverviewData | Pipeline 5 pasos + filtros | any en linea 93 (violacion TS); subtopics pre-cacheados evitan N+1 |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

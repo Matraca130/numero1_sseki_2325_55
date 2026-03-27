@@ -38,6 +38,13 @@ Agente backend del rol owner: mantiene las rutas API de owner, los servicios pa-
 | Mezclar lógica de instituciones y planes en el mismo servicio | Dificulta mantenimiento y viola SRP | Mantener pa-institutions.ts y pa-plans.ts separados |
 | Modificar archivos fuera de `**/routes/owner*`, `pa-institutions.*` o `pa-plans.*` | Viola aislamiento de agentes | Escalar al Arquitecto (XX-01) |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `routes/members/*.ts` | Owner routes via memberships+institutions | Hono + requireInstitutionRole | owner-service.ts NO existe; logica distribuida en routes/members/ |
+| `routes/billing/*.ts` | Stripe integration | checkout, webhooks, plans | Delegado a BL-01/BL-02 agents |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

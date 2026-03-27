@@ -47,6 +47,20 @@ Agente frontend de autenticación: mantiene el AuthContext, las páginas de logi
 | Modificar archivos fuera de la zona: AuthContext, components/auth/*, RequireAuth, RequireRole | Viola aislamiento de agentes | Escalar al Arquitecto (XX-01) |
 | Omitir guard RequireRole en rutas que requieren rol específico | Expone páginas de rol a usuarios sin permisos | Siempre componer RequireAuth + RequireRole en rutas protegidas |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `AuthContext.tsx` (487L) | AuthProvider, useAuth, AuthUser, UserInstitution, AuthStatus | signIn→getSession→/me→/institutions→auto-select/picker | Role NO en JWT; dual API new+compat; useMemo 17+ consumers |
+| `LoginPage.tsx` | LoginPage | login()/signup(); redirect via location.state.from | Redirect guard: solo si institutions.length>0 |
+| `RequireAuth.tsx` | RequireAuth | loading→spinner, unauth→/login, auth→Outlet | Spinner usa text-violet-400 (no teal) |
+| `RequireRole.tsx` | RequireRole({roles}) | sin inst→/, rol no coincide→/select-org | Doble fallback: selectedInstitution luego activeMembership |
+| `PostLoginRouter.tsx` | PostLoginRouter | 0 insts→/login, 1→auto-rol, N→/select-org | Logout en useEffect no en render; ROLE_ROUTES hardcoded |
+| `SelectRolePage.tsx` | SelectRolePage | 0→/login, 1→auto-redirect, N→picker | Llama ambas APIs (nueva+compat) al seleccionar |
+| `AuthLayout.tsx` | AuthLayout | QueryClientProvider+AuthProvider+Toaster+Outlet | Toaster aqui por FE-BUG-005 |
+
+- login() tiene console.error SIN import.meta.env.DEV guard (lineas 308, 324)
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
