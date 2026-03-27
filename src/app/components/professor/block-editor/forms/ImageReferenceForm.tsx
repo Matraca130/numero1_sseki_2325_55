@@ -3,6 +3,7 @@ import { Loader2, Upload, X, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
 import type { SummaryBlock } from '@/app/services/summariesApi';
+import ResizableImage from '../ResizableImage';
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -181,10 +182,15 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
             Vista previa
           </label>
           <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-            <img
+            <ResizableImage
               src={imageUrl}
               alt={(c.caption as string) || 'Imagen de referencia'}
-              className="w-full h-auto max-h-48 object-contain"
+              width={(c.image_width as number) || 300}
+              height={(c.image_height as number) || 200}
+              onResize={(w, h) => {
+                onChange('image_width', w);
+                onChange('image_height', h);
+              }}
             />
             {uploading && (
               <div className="absolute inset-0 bg-white/70 flex items-center justify-center">

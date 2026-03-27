@@ -12,6 +12,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Check } from 'lucide-react';
+import { useUndoRedo } from '@/app/hooks/useUndoRedo';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { Button } from '@/app/components/ui/button';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
@@ -73,6 +74,16 @@ const BlockEditor = React.memo(function BlockEditor({
   // ── Data fetching ─────────────────────────────────────────
   const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId);
 
+  // ── Undo/Redo for block snapshots ──────────────────────
+  const {
+    set: pushSnapshot,
+    undo: undoSnapshot,
+    redo: redoSnapshot,
+    canUndo,
+    canRedo,
+    reset: resetSnapshot,
+  } = useUndoRedo<Record<string, unknown>[] | null>(null);
+
   // ── Mutations ────────────────────────────────────────────
   const createMutation = useCreateBlockMutation(summaryId);
   const updateMutation = useUpdateBlockMutation(summaryId);
@@ -94,7 +105,24 @@ const BlockEditor = React.memo(function BlockEditor({
     setEditingBlockId(null);
     setIsPreview(false);
     setDeletingBlockId(null);
-  }, [summaryId]);
+    resetSnapshot(null);
+  }, [summaryId, resetSnapshot]);
+
+  // ── Keyboard shortcuts for undo/redo ──────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoSnapshot();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redoSnapshot();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [undoSnapshot, redoSnapshot]);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -128,8 +156,10 @@ const BlockEditor = React.memo(function BlockEditor({
 
   // ── Stable ID-based callbacks for EditableBlock ─────────
   const handleBlockSave = useCallback((blockId: string, content: Record<string, unknown>) => {
+    // Push snapshot for undo before applying the update
+    pushSnapshot(blocks.map((b) => ({ ...b.content })));
     updateMutation.mutate({ blockId, data: { content } });
-  }, [updateMutation]);
+  }, [updateMutation, blocks, pushSnapshot]);
 
   const handleToggleEdit = useCallback((blockId: string) => {
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
@@ -272,6 +302,10 @@ const BlockEditor = React.memo(function BlockEditor({
         onVideosClick={onVideosClick}
         keywordsCount={keywordsCount}
         videosCount={videosCount}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undoSnapshot}
+        onRedo={redoSnapshot}
       />
 
       {/* Block type selector (from toolbar "Agregar bloque") */}
