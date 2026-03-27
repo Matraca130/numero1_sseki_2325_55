@@ -83,7 +83,7 @@ export function useCalendarEvents(options: UseCalendarEventsOptions) {
   const fromStr = format(options.from, 'yyyy-MM-dd');
   const toStr = format(options.to, 'yyyy-MM-dd');
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: calendarKeys.data(fromStr, toStr),
     queryFn: () => fetchCalendarData(fromStr, toStr),
     staleTime: 5 * 60 * 1000,  // 5 minutes
@@ -100,5 +100,6 @@ export function useCalendarEvents(options: UseCalendarEventsOptions) {
     tasks,
     isLoading,
     error,
+    refetch,
   };
 }

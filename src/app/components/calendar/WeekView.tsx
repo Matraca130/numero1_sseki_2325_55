@@ -129,11 +129,11 @@ export function WeekView({ events, selectedDate, onDaySelect, onEventClick, isDe
               </div>
               <div
                 className={cn(
-                  'text-lg font-semibold',
+                  'font-semibold',
                   selected && 'text-teal-700',
                   today && !selected && 'text-teal-600',
                 )}
-                style={{ fontFamily: 'Georgia, serif' }}
+                style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
               >
                 {day.getDate()}
               </div>

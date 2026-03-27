@@ -84,7 +84,7 @@ export function CalendarView() {
     [selectedDate],
   );
 
-  const { events, heatmap, isLoading, error } = useCalendarEvents({
+  const { events, heatmap, isLoading, error, refetch } = useCalendarEvents({
     from: rangeFrom,
     to: rangeTo,
   });
@@ -243,8 +243,8 @@ export function CalendarView() {
 
             <h2
               aria-live="polite"
-              className="text-lg min-w-[160px] text-center capitalize"
-              style={{ fontFamily: 'Georgia, serif' }}
+              className="min-w-[160px] text-center capitalize"
+              style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
             >
               {format(selectedDate, 'MMMM yyyy', { locale: es })}
             </h2>
@@ -302,7 +302,7 @@ export function CalendarView() {
           <div className="p-6 text-center text-red-600 dark:text-red-400" role="alert">
             <p>Error cargando datos del calendario.</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => refetch()}
               className="mt-2 text-teal-600 dark:text-teal-400 underline hover:text-teal-800 dark:hover:text-teal-300"
             >
               Reintentar
