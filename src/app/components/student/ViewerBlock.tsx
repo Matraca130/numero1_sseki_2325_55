@@ -20,7 +20,7 @@ import {
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
 import TTSButton from './TTSButton';
-import { MasteryBar } from '@/app/components/student/MasteryBar';
+import { getMasteryStyle } from '@/app/components/student/MasteryBar';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -29,6 +29,8 @@ interface ViewerBlockProps {
   isMobile: boolean;
   keywords?: SummaryKeyword[];
   masteryLevel?: number;
+  /** Dark mode flag — drives mastery color palette */
+  dark?: boolean;
   onImageClick?: (src: string, alt?: string, caption?: string) => void;
   onKeywordClick?: (keywordId: string) => void;
   onVideoPlay?: (videoId: string) => void;
@@ -80,6 +82,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   isMobile,
   keywords,
   masteryLevel,
+  dark = false,
   onImageClick,
   onKeywordClick,
   onVideoPlay,
@@ -366,14 +369,58 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   if (!blockContent) return null;
 
+  // ── Mastery: left-border + badge (prototype parity) ──────
+  // Self-styled blocks (key_point, callout, comparison, etc.) keep their own
+  // background/border and skip the mastery wrapper, matching PROTOTYPE.jsx:622-648.
+  const isSelfStyled = ['key_point', 'callout', 'comparison', 'image_reference', 'section_divider'].includes(block.type);
+  const mastery = masteryLevel !== undefined ? getMasteryStyle(masteryLevel, dark) : null;
+  const applyMasteryWrapper = mastery && !isSelfStyled;
+
   return (
-    <>
-      {blockContent}
-      {masteryLevel !== undefined && (
-        <div className="mt-1">
-          <MasteryBar level={masteryLevel} size="sm" />
+    <div
+      style={{
+        position: 'relative',
+        transition: 'background 0.3s, border-color 0.3s',
+        ...(applyMasteryWrapper
+          ? {
+              background: dark ? mastery.bg : `${mastery.bg}99`,
+              borderLeft: `3px solid ${mastery.border}50`,
+              paddingLeft: 16,
+              borderRadius: 4,
+            }
+          : {}),
+      }}
+    >
+      {/* Mastery percentage badge — top right */}
+      {mastery && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: mastery.border,
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 700,
+            lineHeight: 1,
+            zIndex: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+          }}
+          title={mastery.label}
+          aria-label={`Dominio: ${Math.round((masteryLevel ?? 0) * 100)}%`}
+        >
+          {Math.round((masteryLevel ?? 0) * 100)}%
         </div>
       )}
+
+      {blockContent}
+
       {(hasActions || ttsText) && (
         <div className="flex items-center gap-1 mt-1">
           {ttsText && <TTSButton text={ttsText} />}
@@ -406,7 +453,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           )}
         </div>
       )}
-    </>
+    </div>
   );
 });
 
