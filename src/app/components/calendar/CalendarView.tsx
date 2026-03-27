@@ -12,6 +12,7 @@ import { DayPicker, Day, useDayPicker } from 'react-day-picker';
 import type { DayContentProps, RowProps } from 'react-day-picker';
 import { getUnixTime } from 'date-fns';
 import 'react-day-picker/dist/style.css';
+import { CalendarSkeleton } from './CalendarSkeleton';
 import {
   startOfMonth,
   endOfMonth,
@@ -382,12 +383,7 @@ export function CalendarView() {
       </div>
 
       {/* Loading state */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12" aria-busy="true">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
-          <span className="sr-only">Cargando calendario...</span>
-        </div>
-      )}
+      {isLoading && <CalendarSkeleton />}
 
       {/* Calendar body */}
       {!isLoading && (
