@@ -5,11 +5,12 @@
 // Interactable: images (lightbox), videos (play), PDFs (view),
 // keyword-refs (SmartPopup).
 // ============================================================
-import React, { useState } from 'react';
+import React from 'react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
-  Play, Download, ExternalLink, Tag,
+  Play, Download, ExternalLink, Tag, StickyNote, Brain,
 } from 'lucide-react';
+import BookmarkButton from './BookmarkButton';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { sanitizeHtml } from '@/app/lib/sanitize';
@@ -30,6 +31,13 @@ interface ViewerBlockProps {
   onImageClick?: (src: string, alt?: string, caption?: string) => void;
   onKeywordClick?: (keywordId: string) => void;
   onVideoPlay?: (videoId: string) => void;
+  /** Bookmark integration */
+  onBookmarkToggle?: () => void;
+  isBookmarked?: boolean;
+  /** Toggle annotations panel for this block */
+  onNotesToggle?: () => void;
+  /** Trigger quiz modal for this block */
+  onQuizTrigger?: () => void;
 }
 
 // ── Callout icon map ──────────────────────────────────────
@@ -58,8 +66,14 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   onImageClick,
   onKeywordClick,
   onVideoPlay,
+  onBookmarkToggle,
+  isBookmarked,
+  onNotesToggle,
+  onQuizTrigger,
 }: ViewerBlockProps) {
   const c = block.content || {};
+
+  const hasActions = onBookmarkToggle || onNotesToggle || onQuizTrigger;
 
   const blockContent = (() => { switch (block.type) {
     // ── Text ────────────────────────────────────────────
@@ -333,14 +347,45 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   if (!blockContent) return null;
 
   return (
-    <div>
+    <>
       {blockContent}
       {masteryLevel !== undefined && (
         <div className="mt-1">
           <MasteryBar level={masteryLevel} size="sm" />
         </div>
       )}
-    </div>
+      {hasActions && (
+        <div className="flex items-center gap-1 mt-1">
+          {onBookmarkToggle && (
+            <BookmarkButton
+              blockId={block.id}
+              isBookmarked={!!isBookmarked}
+              onToggle={onBookmarkToggle}
+            />
+          )}
+          {onNotesToggle && (
+            <button
+              onClick={onNotesToggle}
+              title="Notas del bloque"
+              aria-label="Alternar notas del bloque"
+              className="flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-teal-500 transition-colors"
+            >
+              <StickyNote size={15} />
+            </button>
+          )}
+          {onQuizTrigger && (
+            <button
+              onClick={onQuizTrigger}
+              title="Quiz del bloque"
+              aria-label="Abrir quiz del bloque"
+              className="flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-teal-500 transition-colors"
+            >
+              <Brain size={15} />
+            </button>
+          )}
+        </div>
+      )}
+    </>
   );
 });
 

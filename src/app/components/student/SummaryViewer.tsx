@@ -21,6 +21,9 @@ import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
+import { useBookmarks } from './BookmarksPanel';
+import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
+import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 
 // ── Props ─────────────────────────────────────────────────
@@ -48,6 +51,18 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
 
   // ── Video modal state ───────────────────────────────────
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
+  // ── Bookmarks state ───────────────────────────────────
+  const { toggle: toggleBookmark, isBookmarked } = useBookmarks(summaryId);
+
+  // ── Annotations state (per-block toggle) ──────────────
+  const [annotationsOpen, setAnnotationsOpen] = useState<Record<string, boolean>>({});
+  const toggleAnnotations = useCallback((blockId: string) => {
+    setAnnotationsOpen(prev => ({ ...prev, [blockId]: !prev[blockId] }));
+  }, []);
+
+  // ── Quiz modal state ──────────────────────────────────
+  const [quizBlockId, setQuizBlockId] = useState<string | null>(null);
 
   // ── Detect mobile ───────────────────────────────────────
   useEffect(() => {
@@ -144,7 +159,16 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
+                onBookmarkToggle={() => toggleBookmark(block.id)}
+                isBookmarked={isBookmarked(block.id)}
+                onNotesToggle={() => toggleAnnotations(block.id)}
+                onQuizTrigger={() => setQuizBlockId(block.id)}
               />
+              {annotationsOpen[block.id] && (
+                <div className="mt-2">
+                  <BlockAnnotationsPanel blockId={block.id} summaryId={summaryId} />
+                </div>
+              )}
             </motion.div>
           );
 
@@ -206,6 +230,14 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
           </div>
         </div>
       )}
+
+      {/* ── Block Quiz Modal ───────────────────────────── */}
+      <BlockQuizModal
+        blockId={quizBlockId || ''}
+        summaryId={summaryId}
+        isOpen={!!quizBlockId}
+        onClose={() => setQuizBlockId(null)}
+      />
     </>
   );
 }
