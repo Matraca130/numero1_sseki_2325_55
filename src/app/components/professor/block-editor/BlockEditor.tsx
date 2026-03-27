@@ -83,7 +83,7 @@ const BlockEditor = React.memo(function BlockEditor({
     canUndo,
     canRedo,
     reset: resetSnapshot,
-  } = useUndoRedo<Record<string, unknown>[] | null>(null);
+  } = useUndoRedo<Record<string, Record<string, unknown>> | null>(null);
 
   // Local overrides applied when undo/redo restores a snapshot
   const [localBlockOverrides, setLocalBlockOverrides] = useState<Record<string, Record<string, unknown>>>({});
@@ -109,16 +109,18 @@ const BlockEditor = React.memo(function BlockEditor({
   useEffect(() => {
     if (undoState === null) return;
     const overrides: Record<string, Record<string, unknown>> = {};
-    blocks.forEach((block, i) => {
-      if (undoState[i]) {
-        overrides[block.id] = undoState[i];
+    blocks.forEach((block) => {
+      const restored = undoState[block.id];
+      if (restored) {
+        overrides[block.id] = restored;
       }
     });
     setLocalBlockOverrides(overrides);
     // Persist each changed block to server
-    blocks.forEach((block, i) => {
-      if (undoState[i] && JSON.stringify(block.content) !== JSON.stringify(undoState[i])) {
-        updateMutation.mutate({ blockId: block.id, data: { content: undoState[i] } });
+    blocks.forEach((block) => {
+      const restored = undoState[block.id];
+      if (restored && JSON.stringify(block.content) !== JSON.stringify(restored)) {
+        updateMutation.mutate({ blockId: block.id, data: { content: restored } });
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -204,7 +206,7 @@ const BlockEditor = React.memo(function BlockEditor({
   // ── Stable ID-based callbacks for EditableBlock ─────────
   const handleBlockSave = useCallback((blockId: string, content: Record<string, unknown>) => {
     // Push snapshot for undo before applying the update (read from ref for stable deps)
-    pushSnapshot(blocksRef.current.map((b) => ({ ...b.content })));
+    pushSnapshot(Object.fromEntries(blocksRef.current.map((b) => [b.id, { ...b.content }])));
     // Clear any local override for this block since we're saving new content
     setLocalBlockOverrides((prev) => {
       if (!prev[blockId]) return prev;

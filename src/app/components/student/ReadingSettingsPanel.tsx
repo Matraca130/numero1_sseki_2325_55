@@ -2,7 +2,7 @@
  * ReadingSettingsPanel — Dropdown panel for reading configuration
  * (font size, line spacing, font family).
  *
- * Persists settings to localStorage per summary via useReadingSettings hook.
+ * Persists settings globally to localStorage via useReadingSettings hook.
  *
  * @owner SM-01 (summaries-frontend-v2)
  */
@@ -41,7 +41,7 @@ function loadSettings(): ReadingSettings {
   return { ...DEFAULT_READING_SETTINGS };
 }
 
-export function useReadingSettings(_summaryId: string) {
+export function useReadingSettings(_summaryId?: string) {
   const [settings, setSettings] = useState<ReadingSettings>(loadSettings);
 
   useEffect(() => {
@@ -91,8 +91,8 @@ export default function ReadingSettingsPanel({
         onClose();
       }
     }
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [onClose]);
 
   // Close on Escape key

@@ -3,7 +3,7 @@ import { Loader2, Upload, X, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
 import type { SummaryBlock } from '@/app/services/summariesApi';
-import ResizableImage from '../ResizableImage';
+import ResizableImage from '@/app/components/professor/block-editor/ResizableImage';
 
 // ── Constants ─────────────────────────────────────────────
 

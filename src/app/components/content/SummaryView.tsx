@@ -128,6 +128,7 @@ export function SummaryView() {
 
   // Edu blocks: student-only, determines block-based vs HTML monolithic rendering
   const blocksQuery = useSummaryBlocksQuery(selectedSummaryId || '');
+  const blocksLoading = !isProfessor && blocksQuery.isLoading && !!selectedSummaryId;
   const hasEduBlocks = !isProfessor && (blocksQuery.data ?? []).length > 0;
 
   const selectedSummary = summaries.find(s => s.id === selectedSummaryId) || null;
@@ -334,6 +335,19 @@ export function SummaryView() {
   // ── Student path ────────────────────────────────────────
   // If edu blocks exist → SummaryViewer (block-based enriched view)
   // Otherwise → StudentSummaryReader (HTML monolithic fallback)
+  if (!isProfessor && selectedSummary && blocksLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-6 w-1/2" />
+        <Skeleton className="h-4 w-1/3" />
+        <div className="space-y-3 mt-4">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (!isProfessor && selectedSummary) {
     if (hasEduBlocks) {
       return (
@@ -355,8 +369,8 @@ export function SummaryView() {
               </div>
             </div>
             <h1
-              className="text-xl text-teal-900 dark:text-[#3cc9a8]"
-              style={{ fontFamily: 'Georgia, serif', fontWeight: 700 }}
+              className="text-teal-900 dark:text-[#3cc9a8]"
+              style={{ fontSize: 'clamp(1.125rem, 2vw, 1.25rem)', fontFamily: 'Georgia, serif', fontWeight: 700 }}
             >
               {selectedSummary.title || 'Resumo'}
             </h1>

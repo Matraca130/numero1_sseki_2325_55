@@ -24,6 +24,12 @@ const ResizableImage = React.memo(function ResizableImage({
   const startRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const aspectRatio = width / height;
 
+  // Refs to avoid stale closures and listener thrash
+  const sizeRef = useRef(currentSize);
+  sizeRef.current = currentSize;
+  const onResizeRef = useRef(onResize);
+  onResizeRef.current = onResize;
+
   // Sync external size changes
   useEffect(() => {
     if (!isResizing) {
@@ -35,10 +41,10 @@ const ResizableImage = React.memo(function ResizableImage({
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      startRef.current = { x: e.clientX, y: e.clientY, w: currentSize.w, h: currentSize.h };
+      startRef.current = { x: e.clientX, y: e.clientY, w: sizeRef.current.w, h: sizeRef.current.h };
       setIsResizing(true);
     },
-    [currentSize],
+    [],
   );
 
   useEffect(() => {
@@ -54,7 +60,7 @@ const ResizableImage = React.memo(function ResizableImage({
 
     const handleMouseUp = () => {
       setIsResizing(false);
-      onResize(currentSize.w, currentSize.h);
+      onResizeRef.current(sizeRef.current.w, sizeRef.current.h);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -63,7 +69,7 @@ const ResizableImage = React.memo(function ResizableImage({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, aspectRatio, minWidth, maxWidth, onResize, currentSize.w, currentSize.h]);
+  }, [isResizing, aspectRatio, minWidth, maxWidth]);
 
   return (
     <div

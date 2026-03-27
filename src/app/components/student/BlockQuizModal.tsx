@@ -12,10 +12,34 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, X, Check, ChevronRight } from 'lucide-react';
-import {
-  MODAL_OVERLAY, MODAL_CARD, MODAL_HEADER,
-  FEEDBACK, BTN_CLOSE,
-} from '@/app/services/quizDesignTokens';
+// ── Design tokens (inlined from design system) ──────────────
+
+const MODAL_OVERLAY =
+  'fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm';
+
+const MODAL_CARD =
+  'bg-white rounded-2xl shadow-2xl border border-gray-200';
+
+const MODAL_HEADER =
+  'flex items-center justify-between px-6 py-4 border-b border-gray-100';
+
+const BTN_CLOSE =
+  'p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors';
+
+const FEEDBACK = {
+  correct: {
+    border: 'border-emerald-400',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-600',
+    textBold: 'text-emerald-700',
+  },
+  incorrect: {
+    border: 'border-rose-300',
+    bg: 'bg-rose-50',
+    text: 'text-rose-500',
+    textBold: 'text-rose-600',
+  },
+} as const;
 
 // ── Types ────────────────────────────────────────────────
 

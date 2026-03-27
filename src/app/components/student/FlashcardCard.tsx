@@ -187,7 +187,7 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
               alt={extractText(front) || "Flashcard image"}
               size="full"
             />
-            <SideContent content={front} explicitImageUrl={frontImageUrl} cardType={cardType} side="front" onImageZoom={onImageZoom} cardId={front} onClozeComplete={onClozeComplete} />
+            <SideContent content={front} cardType={cardType} side="front" onImageZoom={onImageZoom} cardId={front} onClozeComplete={onClozeComplete} />
           </div>
           <div className="pb-4 text-center"><span className="text-xs text-gray-400">{isCloze ? 'Toca cada blanco para revelar' : 'Toca o presiona espacio para voltear'}</span></div>
         </div>
@@ -206,7 +206,7 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
               alt={extractText(back) || "Flashcard image"}
               size="full"
             />
-            <SideContent content={back} explicitImageUrl={backImageUrl} cardType={cardType} side="back" onImageZoom={onImageZoom} />
+            <SideContent content={back} cardType={cardType} side="back" onImageZoom={onImageZoom} />
           </div>
           <div className="pb-4 text-center"><span className="text-xs text-gray-400">Califica tu respuesta abajo</span></div>
         </div>

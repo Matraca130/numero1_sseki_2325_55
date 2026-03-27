@@ -13,7 +13,7 @@
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Layers } from 'lucide-react';
+import { Layers, Bookmark } from 'lucide-react';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { ViewerBlock } from './ViewerBlock';
@@ -23,6 +23,7 @@ import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import type { ReadingSettings } from './ReadingSettingsPanel';
 import { useBookmarks } from './BookmarksPanel';
+import BookmarksPanel from './BookmarksPanel';
 import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
@@ -58,7 +59,8 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   // ── Bookmarks state ───────────────────────────────────
-  const { toggle: toggleBookmark, isBookmarked } = useBookmarks(summaryId);
+  const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBookmarks(summaryId);
+  const [showBookmarks, setShowBookmarks] = useState(false);
 
   // ── Annotations state (per-block toggle) ──────────────
   const [annotationsOpen, setAnnotationsOpen] = useState<Record<string, boolean>>({});
@@ -89,6 +91,26 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       }))
       .filter(img => img.src);
   }, [blocks]);
+
+  // ── Bookmark items for panel ────────────────────────────
+  const bookmarkItems = useMemo(() => {
+    return bookmarkIds
+      .map(id => {
+        const block = blocks.find(b => b.id === id);
+        if (!block) return null;
+        return {
+          blockId: block.id,
+          blockType: block.type,
+          title: block.content?.title || block.content?.text?.slice(0, 40) || block.type,
+        };
+      })
+      .filter(Boolean) as { blockId: string; blockType: string; title: string }[];
+  }, [bookmarkIds, blocks]);
+
+  const handleBookmarkBlockClick = useCallback((blockId: string) => {
+    const el = containerRef.current?.querySelector(`[data-block-id="${blockId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
 
   // ── Image click → open lightbox at correct index ────────
   const handleImageClick = useCallback((src: string) => {
@@ -251,6 +273,27 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
         isOpen={!!quizBlockId}
         onClose={() => setQuizBlockId(null)}
       />
+
+      {/* ── Bookmarks toggle + panel ──────────────────── */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="relative">
+          <button
+            onClick={() => setShowBookmarks(prev => !prev)}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white shadow-lg hover:bg-teal-600 transition-colors"
+            aria-label="Marcadores"
+          >
+            <Bookmark size={18} />
+          </button>
+          {showBookmarks && (
+            <BookmarksPanel
+              bookmarks={bookmarkItems}
+              onBlockClick={handleBookmarkBlockClick}
+              onRemove={removeBookmark}
+              onClose={() => setShowBookmarks(false)}
+            />
+          )}
+        </div>
+      </div>
     </>
   );
 }

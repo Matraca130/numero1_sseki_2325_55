@@ -125,7 +125,7 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
 
       {/* Time display */}
       <div className="px-3 py-2 text-center">
-        <span className="font-mono text-3xl font-bold tabular-nums text-gray-800">
+        <span className="font-mono font-bold tabular-nums text-gray-800" style={{ fontSize: 'clamp(1.5rem, 3vw, 1.875rem)' }}>
           {display}
         </span>
       </div>
