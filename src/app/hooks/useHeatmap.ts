@@ -17,7 +17,7 @@ import {
   STREAK_THRESHOLD_MINUTES,
   type HeatmapLevel,
 } from '@/app/lib/calendar-constants';
-import type { HeatmapEntry } from './useCalendarEvents';
+import type { HeatmapEntry } from '@/app/hooks/useCalendarEvents';
 
 // ── Types ───────────────────────────────────────────────────
 

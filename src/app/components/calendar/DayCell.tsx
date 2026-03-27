@@ -14,6 +14,7 @@ import { useMemo } from 'react';
 import { ZINDEX, HEATMAP_CLASSES } from '@/app/lib/calendar-constants';
 import type { HeatmapLevel } from '@/app/lib/calendar-constants';
 import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import { cn } from '@/app/components/ui/utils';
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ export function DayCell({
 
       {/* Heatmap overlay */}
       <div
-        className={`absolute inset-0 rounded-md pointer-events-none opacity-40 dark:opacity-70 ${heatmapClass}`}
+        className={cn('absolute inset-0 rounded-md pointer-events-none opacity-40 dark:opacity-70', heatmapClass)}
         style={{ zIndex: ZINDEX.overlay }}
         aria-hidden="true"
       />

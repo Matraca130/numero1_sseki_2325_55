@@ -22,6 +22,7 @@ import { useMediaQuery } from '@/app/hooks/useMediaQuery';
 import { createFocusManager } from '@/app/lib/calendar-focus';
 import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
 import { EVENT_COLORS, type EventType } from '@/app/lib/calendar-constants';
+import { cn } from '@/app/components/ui/utils';
 
 import {
   Sheet,
@@ -101,13 +102,13 @@ function PanelContent({
         {/* Countdown badge */}
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${getCountdownColor(days)}`}
+            className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 font-medium', getCountdownColor(days))}
             style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)' }}
           >
             {getCountdownText(days)}
           </span>
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 ${colorClasses.bg} ${colorClasses.text}`}
+            className={cn('inline-flex items-center rounded-full px-2.5 py-0.5', colorClasses.bg, colorClasses.text)}
             style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)' }}
           >
             {exam.exam_type}
