@@ -21,6 +21,7 @@ import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
+import type { ReadingSettings } from './ReadingSettingsPanel';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -29,9 +30,11 @@ interface SummaryViewerProps {
   /** Pre-fetched blocks (seeds React Query cache, avoids fetch) */
   blocks?: SummaryBlock[];
   onKeywordClick?: (keywordId: string) => void;
+  /** Reading settings from ReadingSettingsPanel */
+  readingSettings?: ReadingSettings;
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -121,7 +124,14 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       <div
         ref={containerRef}
         className={isMobile ? 'space-y-4 px-4 py-6' : 'relative'}
-        style={!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : undefined}
+        style={{
+          ...(!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
+          ...(readingSettings ? {
+            fontSize: `${readingSettings.fontSize}px`,
+            lineHeight: readingSettings.lineHeight,
+            fontFamily: readingSettings.fontFamily,
+          } : {}),
+        }}
         role="region"
         aria-label="Contenido del resumen"
       >

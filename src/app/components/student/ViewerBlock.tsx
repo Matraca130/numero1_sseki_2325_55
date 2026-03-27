@@ -18,6 +18,7 @@ import {
   ListDetailBlock, GridBlock, TwoColumnBlock, CalloutBlock as EduCalloutBlock,
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
+import TTSButton from './TTSButton';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -46,6 +47,22 @@ const calloutBg: Record<string, string> = {
   tip: 'bg-teal-50 border-teal-200',
 };
 
+// ── Plain text extraction for TTS ─────────────────────────
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extractBlockText(block: SummaryBlock): string {
+  const c = block.content || {};
+  const parts: string[] = [];
+  if (c.title) parts.push(c.title);
+  if (c.text) parts.push(c.text);
+  if (c.description) parts.push(c.description);
+  if (c.html) parts.push(stripHtml(c.html));
+  return parts.join('. ').trim();
+}
+
 // ── Component ─────────────────────────────────────────────
 
 export const ViewerBlock = React.memo(function ViewerBlock({
@@ -58,7 +75,10 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 }: ViewerBlockProps) {
   const c = block.content || {};
 
-  switch (block.type) {
+  // Extract text for TTS (only for text-bearing blocks)
+  const ttsText = extractBlockText(block);
+
+  const blockContent = (() => { switch (block.type) {
     // ── Text ────────────────────────────────────────────
     case 'text': {
       const html = c.html || c.text || '';
@@ -325,7 +345,20 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           </p>
         </div>
       );
-  }
+  } })();
+
+  if (!blockContent) return null;
+
+  return (
+    <div>
+      {blockContent}
+      {ttsText && (
+        <div className="flex items-center gap-1 mt-1.5">
+          <TTSButton text={ttsText} />
+        </div>
+      )}
+    </div>
+  );
 });
 
 ViewerBlock.displayName = 'ViewerBlock';

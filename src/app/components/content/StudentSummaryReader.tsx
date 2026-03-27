@@ -19,6 +19,7 @@ import {
   ArrowLeft, ChevronRight, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
   StickyNote, BookOpen,
+  Timer, Settings,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
@@ -55,6 +56,8 @@ import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
 import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
+import { StudyTimer } from '@/app/components/student/StudyTimer';
+import ReadingSettingsPanel, { useReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
 
 // ── Props ─────────────────────────────────────────────────
 interface StudentSummaryReaderProps {
@@ -79,6 +82,9 @@ export function StudentSummaryReader({
   initialTab,
 }: StudentSummaryReaderProps) {
   const [activeTab, setActiveTab] = useState(initialTab || 'chunks');
+  const [showTimer, setShowTimer] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings(summary.id);
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -227,7 +233,7 @@ export function StudentSummaryReader({
       <XpToast amount={15} show={showXpToast} />
 
       <div className="max-w-4xl mx-auto p-6 sm:p-8">
-        {/* ── Breadcrumb + back ── */}
+        {/* ── Breadcrumb + back + tools ── */}
         <div className="flex items-center gap-2 mb-5">
           <button
             onClick={onBack}
@@ -242,7 +248,48 @@ export function StudentSummaryReader({
           <span className="text-sm text-zinc-700 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
             {summary.title || 'Sin titulo'}
           </span>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Timer toggle */}
+          <button
+            onClick={() => setShowTimer(prev => !prev)}
+            className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
+              showTimer
+                ? 'bg-teal-50 text-teal-600'
+                : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
+            }`}
+            aria-label={showTimer ? 'Fechar timer' : 'Abrir timer'}
+          >
+            <Timer className="w-4 h-4" />
+          </button>
+
+          {/* Settings toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(prev => !prev)}
+              className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
+                showSettings
+                  ? 'bg-teal-50 text-teal-600'
+                  : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
+              }`}
+              aria-label={showSettings ? 'Fechar configurações' : 'Configurações de leitura'}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            {showSettings && (
+              <ReadingSettingsPanel
+                settings={readingSettings}
+                onChange={updateReadingSettings}
+                onClose={() => setShowSettings(false)}
+              />
+            )}
+          </div>
         </div>
+
+        {/* ── Study Timer (fixed position, self-managed) ── */}
+        {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
 
         {/* ── Summary header card ── */}
         <div className="bg-white rounded-2xl border-2 border-zinc-200 shadow-sm mb-6 overflow-hidden">
@@ -311,7 +358,14 @@ export function StudentSummaryReader({
 
           {/* ── Paginated content preview ── */}
           {summary.content_markdown && (
-              <div className="px-6 sm:px-8 py-6">
+              <div
+                className="px-6 sm:px-8 py-6"
+                style={{
+                  fontSize: `${readingSettings.fontSize}px`,
+                  lineHeight: readingSettings.lineHeight,
+                  fontFamily: readingSettings.fontFamily,
+                }}
+              >
                 <div className="min-h-[180px]">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -398,6 +452,7 @@ export function StudentSummaryReader({
               hasBlocks={hasBlocks}
               blocksLoading={blocksLoading}
               onNavigateKeyword={handleNavigateKeywordWrapped}
+              readingSettings={readingSettings}
             />
           </TabsContent>
 
