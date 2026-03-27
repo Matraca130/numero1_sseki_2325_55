@@ -87,6 +87,32 @@ Sessions executed: 1
 4. Commit batch al final de cada oleada
 ```
 
+## Session 3: [2026-03-27] Lecciones de administración de oleadas
+
+### Errores cometidos y correcciones
+
+| Error | Impacto | Corrección |
+|-------|---------|-----------|
+| Oleada 2 como 1 agente secuencial (18 tareas) | 590KB de output, 2/18 completados, atascado leyendo archivos irrelevantes | **SIEMPRE** lanzar agentes en paralelo directo — 1 agente por tarea, no 1 agente para 18 |
+| Lanzar extractores Haiku para leer outputs | Duplicación de trabajo, 14 sub-agentes extra innecesarios | Usar Python en Bash para parsear JSON de outputs directamente |
+| No anticipar que sub-agentes no pueden escribir | 18 agentes bloqueados en Write/Edit/Bash | Patrón correcto: sub-agentes READ-ONLY, sesión principal aplica cambios |
+| settings.json con Write(.claude/**) no basta | Sub-agentes heredan restricciones del hook `check-agent-opus` | Aceptar que la escritura centralizada es más eficiente que permisos complejos |
+
+### Patrones óptimos descubiertos
+
+1. **Paralelismo máximo**: 18 agentes simultáneos Sonnet → todos completan en 60-90s
+2. **Extracción con Python**: `json.loads()` en Bash parse outputs 10x más rápido que sub-agentes extractor
+3. **Batch edits centralizados**: 6 archivos en paralelo con Edit tool → 1 commit → 1 push
+4. **Verificación post-oleada**: `grep -c "Especialización" *.md` confirma que todos tienen datos
+
+### Reglas para oleadas futuras
+
+- NUNCA delegar 18 tareas a 1 agente secuencial
+- SIEMPRE 1 agente = 1 archivo de memoria = 1 responsabilidad
+- Sub-agentes son READ-ONLY; sesión principal es el escritor
+- Commit batch por oleada (no por agente individual)
+- Python para parsing, no sub-agentes
+
 ## 7. Self-Improvement Notes
 
 - Next recon batch: ask agents to also report "files in my zone that are NOT in the registry" (reverse gap)
