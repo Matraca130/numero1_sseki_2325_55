@@ -168,7 +168,7 @@ function PanelContent({
       {/* CRITICAL: sticky footer for mobile */}
       <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t p-4">
         <Button
-          className="w-full rounded-full"
+          className="w-full rounded-full min-h-[44px]"
           onClick={() => onEdit?.(exam.id)}
         >
           Editar examen
@@ -261,7 +261,7 @@ export function ExamDetailsPanel({
           <button
             ref={closeButtonRef}
             onClick={onClose}
-            className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="absolute top-4 right-4 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             aria-label="Cerrar"
           >
             <X className="size-4" />

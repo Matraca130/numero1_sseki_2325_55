@@ -90,11 +90,11 @@ export type EventType = keyof typeof EVENT_COLORS;
 // Level 0 = no activity, Level 4 = max activity.
 
 export const HEATMAP_CLASSES = [
-  'bg-transparent',             // Level 0 — no activity
-  'bg-blue-100',                // Level 1 — light
-  'bg-blue-200',                // Level 2 — moderate
-  'bg-blue-400',                // Level 3 — high
-  'bg-blue-700',                // Level 4 — max
+  'bg-[var(--heat-0)]',         // Level 0 — no activity
+  'bg-[var(--heat-1)]',         // Level 1 — light
+  'bg-[var(--heat-2)]',         // Level 2 — moderate
+  'bg-[var(--heat-3)]',         // Level 3 — high
+  'bg-[var(--heat-4)]',         // Level 4 — max
 ] as const;
 
 export type HeatmapLevel = 0 | 1 | 2 | 3 | 4;

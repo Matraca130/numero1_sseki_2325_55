@@ -311,7 +311,7 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
             control={form.control}
             name="is_final"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-3 space-y-0">
+              <FormItem className="flex flex-row items-center gap-3 space-y-0 min-h-[44px]">
                 <FormControl>
                   <Checkbox
                     checked={field.value}

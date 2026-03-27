@@ -22,6 +22,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSwipeable } from 'react-swipeable';
 
 import { useCalendarEvents } from '@/app/hooks/useCalendarEvents';
 import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
@@ -162,6 +163,15 @@ export function CalendarView() {
       triggerRef.current?.focus();
     });
   }, [closeExam]);
+
+  // ── Swipe gestures (mobile only) ───────────────────────
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => { if (!isDesktop) goToNextMonth(); },
+    onSwipedRight: () => { if (!isDesktop) goToPrevMonth(); },
+    trackMouse: false,
+    preventScrollOnSwipe: true,
+  });
 
   // ── Custom Row renderer for finals week highlighting ────
 
@@ -389,45 +399,47 @@ export function CalendarView() {
               onDaySelect={handleDaySelect}
             />
           ) : (
-            <DayPicker
-              mode="single"
-              selected={selectedDate}
-              onSelect={date => date && handleDaySelect(date)}
-              month={selectedDate}
-              onMonthChange={setSelectedDate}
-              locale={es}
-              weekStartsOn={1}
-              showOutsideDays
-              components={{
-                DayContent: renderDayContent,
-                Row: FinalsWeekRow,
-              }}
-              classNames={{
-                months: 'flex flex-col',
-                month: 'space-y-2',
-                caption: 'hidden', // We use our own header
-                nav: 'hidden',     // We use our own nav
-                table: 'w-full border-collapse',
-                head_row: 'flex',
-                head_cell:
-                  'flex-1 text-center text-xs font-medium text-gray-500 py-2',
-                row: 'flex w-full',
-                cell: cn(
-                  'flex-1 relative p-0.5 text-center',
-                  'focus-within:z-20',
-                ),
-                day: cn(
-                  'w-full min-h-[60px] rounded-lg p-1',
-                  'hover:bg-gray-50 transition-colors',
-                  'focus:outline-none focus:ring-2 focus:ring-teal-400',
-                  !isDesktop && 'min-h-[72px]',
-                ),
-                day_selected:
-                  'bg-teal-50 ring-1 ring-teal-300',
-                day_today: 'font-bold',
-                day_outside: 'opacity-40',
-              }}
-            />
+            <div {...swipeHandlers}>
+              <DayPicker
+                mode="single"
+                selected={selectedDate}
+                onSelect={date => date && handleDaySelect(date)}
+                month={selectedDate}
+                onMonthChange={setSelectedDate}
+                locale={es}
+                weekStartsOn={1}
+                showOutsideDays
+                components={{
+                  DayContent: renderDayContent,
+                  Row: FinalsWeekRow,
+                }}
+                classNames={{
+                  months: 'flex flex-col',
+                  month: 'space-y-2',
+                  caption: 'hidden', // We use our own header
+                  nav: 'hidden',     // We use our own nav
+                  table: 'w-full border-collapse',
+                  head_row: 'flex',
+                  head_cell:
+                    'flex-1 text-center text-xs font-medium text-gray-500 py-2',
+                  row: 'flex w-full',
+                  cell: cn(
+                    'flex-1 relative p-0.5 text-center',
+                    'focus-within:z-20',
+                  ),
+                  day: cn(
+                    'w-full min-h-[60px] rounded-lg p-1',
+                    'hover:bg-gray-50 transition-colors',
+                    'focus:outline-none focus:ring-2 focus:ring-teal-400',
+                    !isDesktop && 'min-h-[72px]',
+                  ),
+                  day_selected:
+                    'bg-teal-50 ring-1 ring-teal-300',
+                  day_today: 'font-bold',
+                  day_outside: 'opacity-40',
+                }}
+              />
+            </div>
           )}
         </>
       )}
