@@ -76,6 +76,7 @@ const BlockEditor = React.memo(function BlockEditor({
 
   // ── Undo/Redo for block snapshots ──────────────────────
   const {
+    state: undoState,
     set: pushSnapshot,
     undo: undoSnapshot,
     redo: redoSnapshot,
@@ -83,6 +84,9 @@ const BlockEditor = React.memo(function BlockEditor({
     canRedo,
     reset: resetSnapshot,
   } = useUndoRedo<Record<string, unknown>[] | null>(null);
+
+  // Local overrides applied when undo/redo restores a snapshot
+  const [localBlockOverrides, setLocalBlockOverrides] = useState<Record<string, Record<string, unknown>>>({});
 
   // ── Mutations ────────────────────────────────────────────
   const createMutation = useCreateBlockMutation(summaryId);
@@ -96,6 +100,40 @@ const BlockEditor = React.memo(function BlockEditor({
   const [publishing, setPublishing] = useState(false);
   const [showTopSelector, setShowTopSelector] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
+
+  // ── Ref for current blocks (avoids unstable deps in callbacks) ──
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+
+  // ── Apply undo/redo state back to blocks ──────────────
+  useEffect(() => {
+    if (undoState === null) return;
+    const overrides: Record<string, Record<string, unknown>> = {};
+    blocks.forEach((block, i) => {
+      if (undoState[i]) {
+        overrides[block.id] = undoState[i];
+      }
+    });
+    setLocalBlockOverrides(overrides);
+    // Persist each changed block to server
+    blocks.forEach((block, i) => {
+      if (undoState[i] && JSON.stringify(block.content) !== JSON.stringify(undoState[i])) {
+        updateMutation.mutate({ blockId: block.id, data: { content: undoState[i] } });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoState]);
+
+  // Clear local overrides when server data refreshes (after mutation settles)
+  useEffect(() => {
+    if (Object.keys(localBlockOverrides).length === 0) return;
+    // Check if all overrides are now reflected in server data
+    const allSettled = Object.entries(localBlockOverrides).every(([id, content]) => {
+      const block = blocks.find((b) => b.id === id);
+      return block && JSON.stringify(block.content) === JSON.stringify(content);
+    });
+    if (allSettled) setLocalBlockOverrides({});
+  }, [blocks, localBlockOverrides]);
 
   // ── Flush registry: each EditableBlock registers its flush fn here ─
   const blockFlushRef = useRef<Map<string, () => void>>(new Map());
@@ -128,19 +166,28 @@ const BlockEditor = React.memo(function BlockEditor({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  // ── Merge server blocks with local undo overrides ──────
+  const mergedBlocks = useMemo(() => {
+    if (Object.keys(localBlockOverrides).length === 0) return blocks;
+    return blocks.map((b) =>
+      localBlockOverrides[b.id] ? { ...b, content: localBlockOverrides[b.id] } : b,
+    );
+  }, [blocks, localBlockOverrides]);
+
   // ── Sorted blocks (use server order, apply local drag preview) ──
   const sortedBlocks = useMemo(() => {
-    if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) return blocks;
-    const arr = [...blocks];
+    if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) return mergedBlocks;
+    const arr = [...mergedBlocks];
     const [moved] = arr.splice(dragIndex, 1);
     arr.splice(dragOverIndex, 0, moved);
     return arr;
-  }, [blocks, dragIndex, dragOverIndex]);
+  }, [mergedBlocks, dragIndex, dragOverIndex]);
 
   // ── Handlers ─────────────────────────────────────────────
 
   const handleInsert = useCallback((type: EduBlockType, afterIndex: number) => {
-    const newOrderIndex = afterIndex < 0 ? 0 : (blocks[afterIndex]?.order_index ?? 0) + 1;
+    const currentBlocks = blocksRef.current;
+    const newOrderIndex = afterIndex < 0 ? 0 : (currentBlocks[afterIndex]?.order_index ?? 0) + 1;
     createMutation.mutate({
       summary_id: summaryId,
       type,
@@ -152,14 +199,21 @@ const BlockEditor = React.memo(function BlockEditor({
         setIsPreview(false);
       },
     });
-  }, [blocks, summaryId, createMutation]);
+  }, [summaryId, createMutation]);
 
   // ── Stable ID-based callbacks for EditableBlock ─────────
   const handleBlockSave = useCallback((blockId: string, content: Record<string, unknown>) => {
-    // Push snapshot for undo before applying the update
-    pushSnapshot(blocks.map((b) => ({ ...b.content })));
+    // Push snapshot for undo before applying the update (read from ref for stable deps)
+    pushSnapshot(blocksRef.current.map((b) => ({ ...b.content })));
+    // Clear any local override for this block since we're saving new content
+    setLocalBlockOverrides((prev) => {
+      if (!prev[blockId]) return prev;
+      const next = { ...prev };
+      delete next[blockId];
+      return next;
+    });
     updateMutation.mutate({ blockId, data: { content } });
-  }, [updateMutation, blocks, pushSnapshot]);
+  }, [updateMutation, pushSnapshot]);
 
   const handleToggleEdit = useCallback((blockId: string) => {
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
@@ -204,21 +258,23 @@ const BlockEditor = React.memo(function BlockEditor({
 
   const handleMoveUp = useCallback((index: number) => {
     if (index <= 0) return;
-    const items = blocks.map((b, i) => ({
+    const currentBlocks = blocksRef.current;
+    const items = currentBlocks.map((b, i) => ({
       id: b.id,
-      order_index: i === index ? blocks[index - 1].order_index : i === index - 1 ? blocks[index].order_index : b.order_index,
+      order_index: i === index ? currentBlocks[index - 1].order_index : i === index - 1 ? currentBlocks[index].order_index : b.order_index,
     }));
     reorderMutation.mutate(items);
-  }, [blocks, reorderMutation]);
+  }, [reorderMutation]);
 
   const handleMoveDown = useCallback((index: number) => {
-    if (index >= blocks.length - 1) return;
-    const items = blocks.map((b, i) => ({
+    const currentBlocks = blocksRef.current;
+    if (index >= currentBlocks.length - 1) return;
+    const items = currentBlocks.map((b, i) => ({
       id: b.id,
-      order_index: i === index ? blocks[index + 1].order_index : i === index + 1 ? blocks[index].order_index : b.order_index,
+      order_index: i === index ? currentBlocks[index + 1].order_index : i === index + 1 ? currentBlocks[index].order_index : b.order_index,
     }));
     reorderMutation.mutate(items);
-  }, [blocks, reorderMutation]);
+  }, [reorderMutation]);
 
   // ── Drag-and-drop handlers ───────────────────────────────
 
@@ -234,7 +290,7 @@ const BlockEditor = React.memo(function BlockEditor({
   const handleDragEnd = useCallback(() => {
     if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
       // Build new order
-      const arr = [...blocks];
+      const arr = [...blocksRef.current];
       const [moved] = arr.splice(dragIndex, 1);
       arr.splice(dragOverIndex, 0, moved);
       const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
@@ -242,7 +298,7 @@ const BlockEditor = React.memo(function BlockEditor({
     }
     setDragIndex(null);
     setDragOverIndex(null);
-  }, [dragIndex, dragOverIndex, blocks, reorderMutation]);
+  }, [dragIndex, dragOverIndex, reorderMutation]);
 
   // ── Publish ──────────────────────────────────────────────
 
