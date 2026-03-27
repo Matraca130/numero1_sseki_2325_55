@@ -34,3 +34,7 @@ export type { ExamFormProps } from './ExamForm';
 // S-2: HeatmapTooltip (hover / long-press tooltip)
 export { HeatmapTooltip } from './HeatmapTooltip';
 export type { HeatmapTooltipProps } from './HeatmapTooltip';
+
+// S-3: CountdownWidget (upcoming exams countdown)
+export { CountdownWidget } from './CountdownWidget';
+export type { CountdownWidgetProps } from './CountdownWidget';

@@ -8,8 +8,9 @@
 // ============================================================
 
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { DayPicker } from 'react-day-picker';
-import type { DayContentProps } from 'react-day-picker';
+import { DayPicker, Day, useDayPicker } from 'react-day-picker';
+import type { DayContentProps, RowProps } from 'react-day-picker';
+import { getUnixTime } from 'date-fns';
 import 'react-day-picker/dist/style.css';
 import {
   startOfMonth,
@@ -28,6 +29,7 @@ import { useCalendarUI } from '@/app/hooks/useCalendarUI';
 import { useHeatmap } from '@/app/hooks/useHeatmap';
 import type { HeatmapDay } from '@/app/hooks/useHeatmap';
 import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import { useFinalsWeek, toISOWeekKey } from '@/app/hooks/useFinalsWeek';
 import {
   ZINDEX,
   EVENT_COLORS,
@@ -116,6 +118,7 @@ export function CalendarView() {
   });
 
   const { heatmapMap, currentStreak } = useHeatmap(heatmap);
+  const finalsWeeks = useFinalsWeek(events);
 
   // ── Navigation ──────────────────────────────────────────
 
@@ -159,6 +162,43 @@ export function CalendarView() {
       triggerRef.current?.focus();
     });
   }, [closeExam]);
+
+  // ── Custom Row renderer for finals week highlighting ────
+
+  const FinalsWeekRow = useMemo(() => {
+    const RowComponent = (props: RowProps) => {
+      const { styles, classNames } = useDayPicker();
+
+      const isFinalsRow = props.dates.some(date => {
+        const isoStr = formatISO(date);
+        const weekKey = toISOWeekKey(isoStr);
+        return finalsWeeks.has(weekKey);
+      });
+
+      return (
+        <tr
+          className={cn(
+            classNames.row,
+            isFinalsRow && 'bg-red-50 ring-1 ring-red-200 dark:bg-red-950/20 dark:ring-red-800',
+          )}
+          style={styles.row}
+        >
+          {props.dates.map(date => (
+            <td
+              key={getUnixTime(date)}
+              className={classNames.cell}
+              style={styles.cell}
+              role="presentation"
+            >
+              <Day displayMonth={props.displayMonth} date={date} />
+            </td>
+          ))}
+        </tr>
+      );
+    };
+    RowComponent.displayName = 'FinalsWeekRow';
+    return RowComponent;
+  }, [finalsWeeks]);
 
   // ── Custom DayContent renderer ──────────────────────────
 
@@ -360,6 +400,7 @@ export function CalendarView() {
               showOutsideDays
               components={{
                 DayContent: renderDayContent,
+                Row: FinalsWeekRow,
               }}
               classNames={{
                 months: 'flex flex-col',
