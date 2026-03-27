@@ -1,0 +1,169 @@
+/* ================================================================
+   Axon Dark Reader — CSS custom properties for dark mode
+   Scoped to `.axon-reader.dark` (compound selector — both classes
+   on the SAME element) so they only affect the reader container.
+
+   Token source: PROTOTYPE.jsx DARK map (lines 13-18)
+   ================================================================ */
+
+.axon-reader.dark {
+  /* ── Surface tokens ── */
+  --reader-page-bg: #111215;
+  --reader-card-bg: #1e1f25;
+  --reader-header-bg: #0d0e11;
+
+  /* ── Border ── */
+  --reader-border: #2d2e34;
+
+  /* ── Text ── */
+  --reader-text-primary: #e6e7eb;
+  --reader-text-secondary: #9ca3af;
+  --reader-text-tertiary: #6b7280;
+
+  /* ── Accent (teal adjusted for dark) ── */
+  --reader-teal-accent: #3cc9a8;
+  --reader-teal-50: #1a2e2a;
+
+  /* ── Apply surface colors ── */
+  background-color: var(--reader-page-bg);
+  color: var(--reader-text-primary);
+}
+
+/* ── Cards inside the dark reader ── */
+.axon-reader.dark .reader-card {
+  background-color: var(--reader-card-bg);
+  border-color: var(--reader-border);
+}
+
+/* ── Header bar ── */
+.axon-reader.dark .reader-header {
+  background-color: var(--reader-header-bg);
+}
+
+/* ── Typography overrides for axon-prose in dark mode ── */
+.axon-reader.dark .axon-prose {
+  color: var(--reader-text-primary);
+}
+
+.axon-reader.dark .axon-prose h1,
+.axon-reader.dark .axon-prose h2,
+.axon-reader.dark .axon-prose h3,
+.axon-reader.dark .axon-prose h4 {
+  color: var(--reader-text-primary);
+}
+
+.axon-reader.dark .axon-prose h1 {
+  border-bottom-color: var(--reader-teal-accent);
+}
+
+.axon-reader.dark .axon-prose h2 {
+  border-left-color: var(--reader-teal-accent);
+}
+
+.axon-reader.dark .axon-prose h3 {
+  color: var(--reader-teal-accent);
+}
+
+.axon-reader.dark .axon-prose h4 {
+  color: var(--reader-text-secondary);
+}
+
+.axon-reader.dark .axon-prose strong {
+  color: var(--reader-text-primary);
+}
+
+.axon-reader.dark .axon-prose em {
+  color: var(--reader-text-secondary);
+}
+
+/* ── Links ── */
+.axon-reader.dark .axon-prose a {
+  color: var(--reader-teal-accent);
+  text-decoration-color: rgba(60, 201, 168, 0.3);
+}
+.axon-reader.dark .axon-prose a:hover {
+  text-decoration-color: var(--reader-teal-accent);
+}
+
+/* ── Lists: bullet / counter color ── */
+.axon-reader.dark .axon-prose ul > li::before {
+  background: var(--reader-teal-accent);
+}
+.axon-reader.dark .axon-prose ol > li::before {
+  color: var(--reader-teal-accent);
+}
+
+/* ── Blockquotes ── */
+.axon-reader.dark .axon-prose blockquote {
+  border-left-color: var(--reader-teal-accent);
+  background: linear-gradient(135deg, var(--reader-teal-50), rgba(30, 31, 37, 0.5));
+  color: var(--reader-text-secondary);
+}
+
+/* ── Inline code ── */
+.axon-reader.dark .axon-prose code {
+  background: #2d2e34;
+  color: var(--reader-teal-accent);
+  border-color: #3a3b42;
+}
+
+/* ── Code blocks (already dark, minor adjustments) ── */
+.axon-reader.dark .axon-prose pre {
+  background: #16171c;
+  border-color: var(--reader-border);
+}
+
+/* ── Images ── */
+.axon-reader.dark .axon-prose img {
+  border-color: var(--reader-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Horizontal rules ── */
+.axon-reader.dark .axon-prose hr {
+  background: linear-gradient(90deg, transparent, #3a3b42 20%, #3a3b42 80%, transparent);
+}
+
+/* ── Tables ── */
+.axon-reader.dark .axon-prose thead th {
+  background: var(--reader-card-bg);
+  border-bottom-color: var(--reader-teal-accent);
+  color: var(--reader-text-primary);
+}
+.axon-reader.dark .axon-prose tbody td {
+  border-bottom-color: var(--reader-border);
+}
+.axon-reader.dark .axon-prose tbody tr:hover {
+  background: var(--reader-teal-50);
+}
+
+/* ── Mark / highlight ── */
+.axon-reader.dark .axon-prose mark {
+  background: linear-gradient(120deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.25) 100%);
+  color: var(--reader-text-primary);
+}
+
+/* ── Drop cap ── */
+.axon-reader.dark .axon-prose > p:first-of-type::first-letter {
+  color: var(--reader-teal-accent);
+}
+
+/* ── Scrollbar for dark reader ── */
+.axon-reader.dark::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.axon-reader.dark::-webkit-scrollbar-track {
+  background: var(--reader-page-bg);
+}
+.axon-reader.dark::-webkit-scrollbar-thumb {
+  background: #3a3b42;
+  border-radius: 10px;
+}
+.axon-reader.dark::-webkit-scrollbar-thumb:hover {
+  background: #4a4b52;
+}
+.axon-reader.dark {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3b42 var(--reader-page-bg);
+}

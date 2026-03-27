@@ -101,9 +101,9 @@ describe('KeywordChip', () => {
     render(<KeywordChip keyword={makeKeyword()} />);
     const chip = screen.getByRole('button');
     // The chip uses inline bg/border colors for light mode
-    expect(chip.className).toContain('bg-[#e8f5f1]');
-    expect(chip.className).toContain('text-[#1B3B36]');
-    expect(chip.className).toContain('border-[#d1f0e7]');
+    expect(chip.className).toContain('bg-axon-teal-50');
+    expect(chip.className).toContain('text-axon-dark');
+    expect(chip.className).toContain('border-axon-teal-100');
     expect(chip.className).toContain('rounded-full');
   });
 

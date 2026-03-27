@@ -37,6 +37,8 @@ import {
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
 import { useReadingTimeTracker } from '@/app/hooks/useReadingTimeTracker';
 import { useVideoListQuery } from '@/app/hooks/queries/useVideoPlayerQueries';
+import { useThemeToggle } from '@/app/hooks/useThemeToggle';
+import { ThemeToggle } from '@/app/components/student/ThemeToggle';
 
 // ── Extracted helpers (Phase B.1) ─────────────────────────
 import {
@@ -79,6 +81,8 @@ export function StudentSummaryReader({
   initialTab,
 }: StudentSummaryReaderProps) {
   const [activeTab, setActiveTab] = useState(initialTab || 'chunks');
+  const readerRef = useRef<HTMLDivElement>(null);
+  const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -219,9 +223,10 @@ export function StudentSummaryReader({
 
   return (
     <motion.div
+      ref={readerRef}
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="h-full overflow-y-auto bg-zinc-50"
+      className={`axon-reader h-full overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-zinc-50'}`}
     >
       {/* XP Toast */}
       <XpToast amount={15} show={showXpToast} />
@@ -231,7 +236,7 @@ export function StudentSummaryReader({
         <div className="flex items-center gap-2 mb-5">
           <button
             onClick={onBack}
-            className={`flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 transition-colors ${focusRing} rounded-lg px-2 py-1`}
+            className={`flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors ${focusRing} rounded-lg px-2 py-1`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span style={{ fontWeight: 500 }}>Resumenes</span>
@@ -239,18 +244,21 @@ export function StudentSummaryReader({
           <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
           <span className="text-sm text-zinc-400">{topicName}</span>
           <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-sm text-zinc-700 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
+          <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
             {summary.title || 'Sin titulo'}
           </span>
+          <div className="ml-auto">
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+          </div>
         </div>
 
         {/* ── Summary header card ── */}
-        <div className="bg-white rounded-2xl border-2 border-zinc-200 shadow-sm mb-6 overflow-hidden">
+        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-2xl border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
           {/* Accent bar */}
           <div className={`h-1 ${isCompleted ? 'bg-emerald-500' : 'bg-teal-500'}`} />
 
           {/* Title bar */}
-          <div className="px-6 sm:px-8 py-6 border-b border-zinc-100">
+          <div className="px-6 sm:px-8 py-6 border-b border-zinc-100 dark:border-[#2d2e34]">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center ${
@@ -263,7 +271,7 @@ export function StudentSummaryReader({
                   )}
                 </div>
                 <div>
-                  <h2 className="text-zinc-900 text-lg tracking-tight" style={{ fontWeight: 700 }}>
+                  <h2 className="text-zinc-900 dark:text-[#e6e7eb] text-lg tracking-tight" style={{ fontWeight: 700 }}>
                     {summary.title || 'Sin titulo'}
                   </h2>
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -366,7 +374,7 @@ export function StudentSummaryReader({
 
         {/* ── Tabs ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4 bg-white border border-zinc-200 rounded-xl p-1">
+          <TabsList className="mb-4 bg-white dark:bg-[#1e1f25] border border-zinc-200 dark:border-[#2d2e34] rounded-xl p-1">
             <TabsTrigger value="chunks" className="gap-1.5 rounded-lg">
               <Layers className="w-3.5 h-3.5" />
               Contenido
@@ -421,7 +429,7 @@ export function StudentSummaryReader({
 
           {/* ── VIDEOS TAB ── */}
           <TabsContent value="videos">
-            <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+            <div className="bg-white dark:bg-[#1e1f25] rounded-2xl border border-zinc-200 dark:border-[#2d2e34] overflow-hidden">
               <VideoPlayer summaryId={summary.id} />
             </div>
           </TabsContent>
