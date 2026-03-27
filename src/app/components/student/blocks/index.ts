@@ -9,3 +9,5 @@ export { default as CalloutBlock } from './CalloutBlock';
 export { default as ImageReferenceBlock } from './ImageReferenceBlock';
 export { default as SectionDividerBlock } from './SectionDividerBlock';
 export { default as IconByName } from './IconByName';
+export { default as KeywordChip } from './KeywordChip';
+export { default as renderTextWithKeywords } from './renderTextWithKeywords';

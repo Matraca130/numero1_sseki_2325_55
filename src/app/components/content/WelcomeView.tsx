@@ -38,6 +38,7 @@ import { useCourseMastery } from '@/app/hooks/useCourseMastery';
 import { useRecentSessions } from '@/app/hooks/useRecentSessions';
 import type { StudySessionRecord } from '@/app/services/studySessionApi';
 import {
+  Activity,
   ArrowRight,
   Zap,
   Flame,
@@ -55,6 +56,8 @@ import {
   CheckCircle,
   MoreHorizontal,
 } from 'lucide-react';
+import { EmptyState } from '@/app/components/shared/EmptyState';
+import { SkeletonList } from '@/app/components/shared/SkeletonList';
 
 // ── Tokens ─────────────────────────────────────────────────
 const tk = {
@@ -258,7 +261,7 @@ function TimeFilters({ active, onChange }: { active: 'today' | 'week' | 'month';
 
 // ── Performance Sidebar (all real data) ────────────────────────
 function PerformanceSidebar({
-  timeFilter, studyMinutes, dailyGoalMinutes, xpHistory, recentSessions, isConnected,
+  timeFilter, studyMinutes, dailyGoalMinutes, xpHistory, recentSessions, isConnected, isLoadingActivity, onStartStudy,
 }: {
   timeFilter: 'today' | 'week' | 'month';
   studyMinutes: number;
@@ -266,6 +269,8 @@ function PerformanceSidebar({
   xpHistory: XPTransaction[];
   recentSessions: StudySessionRecord[];
   isConnected: boolean;
+  isLoadingActivity?: boolean;
+  onStartStudy?: () => void;
 }) {
   const shouldReduce = useReducedMotion();
 
@@ -360,14 +365,16 @@ function PerformanceSidebar({
           <h3 className="text-xs text-gray-500 uppercase tracking-wider" style={{ ...headingStyle, fontWeight: 600 }}>Actividad Reciente</h3>
           <button onClick={() => {}} className="text-gray-300 hover:text-gray-500 transition-colors"><MoreHorizontal size={16} /></button>
         </div>
-        {unifiedFeed.length === 0 ? (
-          <div className="text-center py-6">
-            <BookOpen className="w-8 h-8 mx-auto mb-2 text-gray-200" />
-            <p className="text-sm text-gray-400" style={{ fontWeight: 500 }}>
-              {isConnected ? 'Sin actividad reciente' : 'Conecta tu cuenta para ver datos reales'}
-            </p>
-            <p className="text-[11px] text-gray-300 mt-1">Estudia para ver tu progreso aqui</p>
-          </div>
+        {isLoadingActivity ? (
+          <SkeletonList rows={3} />
+        ) : unifiedFeed.length === 0 ? (
+          <EmptyState
+            icon={Activity}
+            title="Sin actividad reciente"
+            description="Estudia para ver tu progreso aqui"
+            action={onStartStudy ? { label: 'Empezar a estudiar', onClick: onStartStudy } : undefined}
+            className="py-6"
+          />
         ) : (
           <div className="space-y-3.5">
             {unifiedFeed.map((item) => {
@@ -462,8 +469,9 @@ export function WelcomeView() {
   // ── Real data hooks ─────────────────────────────────────────
   const { data: profileData } = useGamificationProfile(institutionId);
   const { data: streak } = useStreakStatus(institutionId);
-  const { data: xpHistoryResp } = useXPHistory(institutionId);
+  const { data: xpHistoryResp, isLoading: xpHistoryLoading } = useXPHistory(institutionId);
   const { data: studyQueue } = useStudyQueue();
+  const isLoadingActivity = xpHistoryLoading;
   const checkInMutation = useDailyCheckIn(institutionId);
   const [didCheckIn, setDidCheckIn] = useState(false);
 
@@ -600,6 +608,16 @@ export function WelcomeView() {
               studiedToday={studiedToday} atRisk={atRisk} cardsDue={cardsDue}
               onNavigate={() => navigateTo('gamification')} />
 
+            {/* Empty study queue state */}
+            {!studentLoading && cardsDue === 0 && cardsNew === 0 && (
+              <EmptyState
+                icon={Clock}
+                title="Sin tareas pendientes"
+                description="Estas al dia!"
+                className="py-8"
+              />
+            )}
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="w-1 h-4 rounded-full" style={{ backgroundColor: tk.teal }} />
@@ -635,6 +653,8 @@ export function WelcomeView() {
               xpHistory={xpHistory}
               recentSessions={recentSessions ?? []}
               isConnected={isConnected}
+              isLoadingActivity={isLoadingActivity}
+              onStartStudy={() => navigateTo('study')}
             />
           </div>
         </div>

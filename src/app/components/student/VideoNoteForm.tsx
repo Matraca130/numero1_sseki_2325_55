@@ -144,14 +144,14 @@ export function VideoNoteForm({
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200 rounded-md hover:bg-zinc-700/40 transition-colors"
+          className="px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200 rounded-full hover:bg-zinc-700/40 transition-colors"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={!note.trim() || saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 text-amber-300 text-[10px] rounded-md hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 text-teal-300 text-[10px] rounded-full hover:bg-teal-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <Save size={10} />
           {saving ? 'Guardando...' : editingNote ? 'Actualizar' : 'Guardar'}

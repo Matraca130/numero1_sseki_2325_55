@@ -10,6 +10,18 @@
   --color-dark-sidebar-base: #1B3B36;
   --color-dark-sidebar-body: #1B3B36;
   --color-dark-card: #1a2e2a;
+
+  /* Axon — Block renderer tokens (from prototype LIGHT theme) */
+  --color-axon-dark-teal: #1B3B36;
+  --color-axon-teal-accent: #2a8c7a;
+  --color-axon-teal-50: #e8f5f1;
+  --color-axon-teal-100: #d1f0e7;
+  --color-axon-page-bg: #F0F2F5;
+
+  /* Axon — Short aliases for block components (TD 1.1) */
+  --color-axon-dark: #1B3B36;
+  --color-axon-accent: #2a8c7a;
+  --color-axon-mint: #3cc9a8;
 }
 
 @layer base {

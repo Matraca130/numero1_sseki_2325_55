@@ -15,7 +15,7 @@ export function DeltaBadges({ deltaStats, correctReviews, totalReviews, variant 
   const wrapperCls = isPill ? 'flex flex-wrap items-center justify-center gap-3' : 'flex flex-col gap-2';
   const badgeCls = (color: string) =>
     isPill
-      ? clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border',
+      ? clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-full border',
           color === 'emerald' && 'bg-emerald-50 border-emerald-200',
           color === 'amber' && 'bg-amber-50 border-amber-200',
           color === 'rose' && 'bg-rose-50 border-rose-200',

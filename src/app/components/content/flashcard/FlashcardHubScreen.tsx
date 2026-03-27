@@ -11,6 +11,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Section, Flashcard, Topic } from '@/app/types/content';
 import { Layers, Brain, Target, Flame, TrendingUp, Award, Sparkles } from 'lucide-react';
+import { EmptyState } from '@/app/components/shared/EmptyState';
 import { FlashcardHero } from './FlashcardHero';
 import { FlashcardDeckList, type FlashcardDeck } from './FlashcardDeckList';
 import { getMasteryColorFromPct } from './mastery-colors';
@@ -397,13 +398,11 @@ export function HubScreen({
 
         {/* Empty state */}
         {sections.length === 0 && decks.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <Layers size={40} className="mb-3 text-gray-300" />
-            <p className="text-sm" style={{ fontWeight: 500 }}>No hay secciones disponibles</p>
-            <p className="text-xs text-gray-300 mt-1">
-              Los flashcards aparecerán cuando tu profesor las publique
-            </p>
-          </div>
+          <EmptyState
+            icon={Layers}
+            title="Sin flashcards disponibles"
+            description="Tu profesor aún no ha creado flashcards para este curso"
+          />
         )}
       </div>
     </motion.div>

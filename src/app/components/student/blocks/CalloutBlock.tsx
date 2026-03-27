@@ -2,7 +2,8 @@ import type { LucideProps } from 'lucide-react';
 import {
   Lightbulb, AlertTriangle, Stethoscope, Brain, Target,
 } from 'lucide-react';
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface CalloutConfig {
   icon: React.FC<LucideProps>;
@@ -15,36 +16,36 @@ const VARIANTS: Record<string, CalloutConfig> = {
   tip: {
     icon: Lightbulb,
     label: 'Tip',
-    light: { bg: 'bg-[#f0fdf4]', border: 'border-l-emerald-500', accent: 'text-[#065f46]' },
+    light: { bg: 'bg-[#f0fdf4]', border: 'border-l-emerald-500', accent: 'text-[#10b981]' },
     dark: { bg: 'dark:bg-[#0f2a1d]', border: 'dark:border-l-emerald-500', accent: 'dark:text-emerald-300' },
   },
   warning: {
     icon: AlertTriangle,
     label: 'Atenci\u00f3n',
-    light: { bg: 'bg-[#fffbeb]', border: 'border-l-amber-500', accent: 'text-[#92400e]' },
+    light: { bg: 'bg-[#fffbeb]', border: 'border-l-amber-500', accent: 'text-[#f59e0b]' },
     dark: { bg: 'dark:bg-[#2a2010]', border: 'dark:border-l-amber-500', accent: 'dark:text-amber-300' },
   },
   clinical: {
     icon: Stethoscope,
     label: 'Correlaci\u00f3n Cl\u00ednica',
-    light: { bg: 'bg-[#eff6ff]', border: 'border-l-blue-500', accent: 'text-[#1e40af]' },
+    light: { bg: 'bg-[#eff6ff]', border: 'border-l-blue-500', accent: 'text-[#3b82f6]' },
     dark: { bg: 'dark:bg-[#0f1a2e]', border: 'dark:border-l-blue-500', accent: 'dark:text-blue-300' },
   },
   mnemonic: {
     icon: Brain,
     label: 'Mnemotecnia',
-    light: { bg: 'bg-[#f5f3ff]', border: 'border-l-violet-500', accent: 'text-[#5b21b6]' },
+    light: { bg: 'bg-[#f5f3ff]', border: 'border-l-violet-500', accent: 'text-[#8b5cf6]' },
     dark: { bg: 'dark:bg-[#1a1530]', border: 'dark:border-l-violet-500', accent: 'dark:text-violet-300' },
   },
   exam: {
     icon: Target,
     label: 'Importante para Examen',
-    light: { bg: 'bg-[#fef2f2]', border: 'border-l-red-500', accent: 'text-[#b91c1c]' },
+    light: { bg: 'bg-[#fef2f2]', border: 'border-l-red-500', accent: 'text-[#ef4444]' },
     dark: { bg: 'dark:bg-[#2a1215]', border: 'dark:border-l-red-500', accent: 'dark:text-red-300' },
   },
 };
 
-export default function CalloutBlock({ block }: { block: SummaryBlock }) {
+export default function CalloutBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const variantKey = block.content?.variant as string | undefined;
   const title = block.content?.title as string | undefined;
   const content = block.content?.content as string | undefined;
@@ -62,13 +63,13 @@ export default function CalloutBlock({ block }: { block: SummaryBlock }) {
         </span>
       </div>
       {title && (
-        <div className="font-serif text-base font-bold text-gray-900 dark:text-gray-200 mb-1.5">
+        <div className="font-serif text-[15px] font-semibold text-axon-dark dark:text-gray-200 mb-1.5">
           {title}
         </div>
       )}
       {content && (
-        <div className="text-sm leading-[1.6] text-gray-500 dark:text-gray-400 whitespace-pre-line">
-          {content}
+        <div className="text-sm leading-[1.65] text-gray-500 dark:text-gray-400">
+          {renderTextWithKeywords(content, keywords)}
         </div>
       )}
     </div>

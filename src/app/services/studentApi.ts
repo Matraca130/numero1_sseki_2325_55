@@ -71,3 +71,20 @@ export {
   getSummary,
   saveSummary,
 } from './student-api/sa-ai-legacy';
+
+// ── Study Intelligence ──────────────────────────────────────
+// Standalone function (no sub-file needed — single endpoint).
+
+import { apiCall } from '@/app/lib/api';
+import type { StudyIntelligenceResponse } from '@/app/types/student';
+
+export async function fetchStudyIntelligence(
+  courseId: string,
+  options?: { includePrerequisites?: boolean; includeSimilar?: boolean }
+): Promise<StudyIntelligenceResponse> {
+  const params = new URLSearchParams({ course_id: courseId });
+  if (options?.includePrerequisites) params.set('include_prerequisites', 'true');
+  if (options?.includeSimilar) params.set('include_similar', 'true');
+
+  return apiCall<StudyIntelligenceResponse>(`/study-intelligence?${params.toString()}`);
+}

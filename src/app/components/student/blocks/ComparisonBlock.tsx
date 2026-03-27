@@ -6,23 +6,36 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
   const rows = (block.content?.rows ?? []) as string[][];
   const highlight_column = block.content?.highlight_column as number | undefined;
 
+  if (!rows.length) {
+    return (
+      <div>
+        {title && (
+          <h3 className="font-serif text-xl font-bold text-[#1B3B36] dark:text-teal-400 mb-3 mt-0">
+            {title}
+          </h3>
+        )}
+        <p className="text-sm text-gray-400 italic py-4 text-center">Sin datos</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-3 mt-0">
+        <h3 className="font-serif text-xl font-bold text-axon-dark dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}
       <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table className="w-full border-collapse text-[13px]">
+        <table className="w-full border-collapse text-[14px]">
           <thead>
             <tr>
               {headers.map((h, i) => (
                 <th
                   key={i}
                   scope="col"
-                  className={`px-3.5 py-2.5 bg-teal-900 dark:bg-gray-950 text-xs font-bold text-left border-b-2 border-b-teal-600 ${
-                    i === highlight_column ? 'text-[#3cc9a8]' : 'text-[#d1d5db]'
+                  className={`px-3.5 py-2.5 bg-axon-dark dark:bg-gray-950 text-[13px] font-semibold text-left ${
+                    i === highlight_column ? 'text-axon-mint' : 'text-white'
                   }`}
                 >
                   {h}
@@ -32,19 +45,26 @@ export default function ComparisonBlock({ block }: { block: SummaryBlock }) {
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={ri} className={ri % 2 === 1 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}>
-                {row.map((cell, ci) => (
-                  <td
-                    key={ci}
-                    className={`px-3.5 py-2.5 border-b border-b-gray-200 dark:border-b-gray-700 ${
-                      ci === highlight_column
-                        ? 'text-teal-600 dark:text-teal-400 font-semibold bg-teal-50/40 dark:bg-teal-950/40'
-                        : 'text-gray-500 dark:text-gray-400'
-                    }`}
-                  >
-                    {cell}
-                  </td>
-                ))}
+              <tr key={ri} className={ri % 2 === 0 ? 'bg-axon-page-bg dark:bg-gray-800/50' : ''}>
+                {row.map((cell, ci) => {
+                  const isHighlight = ci === highlight_column;
+                  const isFirstCol = ci === 0;
+                  let cellClass = 'px-3.5 py-2.5 border-b border-b-gray-200 dark:border-b-gray-700';
+
+                  if (isHighlight) {
+                    cellClass += ' text-axon-accent dark:text-teal-400 font-semibold bg-axon-teal-50/60 dark:bg-teal-950/40';
+                  } else if (isFirstCol) {
+                    cellClass += ' font-semibold text-axon-dark dark:text-gray-200';
+                  } else {
+                    cellClass += ' text-gray-500 dark:text-gray-400';
+                  }
+
+                  return (
+                    <td key={ci} className={cellClass}>
+                      {cell}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

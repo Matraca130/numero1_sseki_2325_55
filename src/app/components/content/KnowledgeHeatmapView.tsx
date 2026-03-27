@@ -78,14 +78,14 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
           <h2 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Memory Timeline</h2>
           <p className="text-gray-400 text-xs mt-1">Impacto do estudo de hoje na retenção</p>
         </div>
-        <div className="w-10 h-10 flex items-center justify-center bg-white/50 rounded-xl shadow-sm border border-white"><Activity size={18} className="text-violet-500" /></div>
+        <div className="w-10 h-10 flex items-center justify-center bg-teal-50 rounded-xl shadow-sm border border-white"><Activity size={18} className="text-teal-500" /></div>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 lg:px-6 py-4 lg:py-6 space-y-6 lg:space-y-8">
-        <div className="relative pl-4 border-l-2 border-violet-500/30">
-          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-violet-500 border-4 border-[#f5f6fa]" />
+        <div className="relative pl-4 border-l-2 border-teal-500/30">
+          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-teal-500 border-4 border-[#f5f6fa]" />
           <div className="mb-6">
             <h3 className="text-sm text-gray-700 mb-2" style={{ fontWeight: 700 }}>Agora (14 Fev)</h3>
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-md ring-1 ring-violet-500/20 relative overflow-hidden">
+            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-md ring-1 ring-teal-500/20 relative overflow-hidden">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0"><Brain size={18} /></div>
                 <div className="min-w-0">
@@ -95,7 +95,7 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs"><span className="text-gray-400">{isConnected ? 'Retenção Média' : 'Aumento de Retenção Projetado'}</span><span className="text-emerald-600" style={{ fontWeight: 700 }}>{isConnected && bktStates.length > 0 ? `${Math.round(bktStates.reduce((s: number, b: any) => s + b.p_know, 0) / bktStates.length * 100)}%` : `+${TIMELINE_DATA.activeSession.retentionBoost}%`}</span></div>
-                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full" style={{ width: `${isConnected && bktStates.length > 0 ? Math.round(bktStates.reduce((s: number, b: any) => s + b.p_know, 0) / bktStates.length * 100) : TIMELINE_DATA.activeSession.progress}%` }} /></div>
+                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-teal-500 rounded-full" style={{ width: `${isConnected && bktStates.length > 0 ? Math.round(bktStates.reduce((s: number, b: any) => s + b.p_know, 0) / bktStates.length * 100) : TIMELINE_DATA.activeSession.progress}%` }} /></div>
               </div>
             </div>
           </div>
@@ -124,7 +124,7 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
           <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-red-400 border-4 border-[#f5f6fa] animate-pulse" />
           <div>
             <h3 className="text-xs text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1" style={{ fontWeight: 700 }}><AlertTriangle size={12} /> Queda Crítica</h3>
-            <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-3 lg:p-4 border border-red-100 shadow-sm">
+            <div className="bg-red-50 rounded-xl p-3 lg:p-4 border border-red-100 shadow-sm">
               <h4 className="text-sm text-red-900 mb-1" style={{ fontWeight: 700 }}>{criticalTopic ? criticalTopic.topicTitle : TIMELINE_DATA.criticalAlert.subject}</h4>
               <p className="text-xs text-red-700/80 mb-3">{criticalTopic ? `Retenção caiu para ${criticalTopic.masteryPercent}%. ${criticalTopic.flashcardsDue} cards pendentes.` : TIMELINE_DATA.criticalAlert.message}</p>
               <button onClick={() => navigateTo('review-session')} className="w-full py-2 bg-white border border-red-200 text-red-600 text-xs rounded shadow-sm hover:bg-red-50 transition-colors min-h-[44px]" style={{ fontWeight: 700 }}>Agendar Revisão de Emergência</button>
@@ -201,7 +201,7 @@ export function KnowledgeHeatmapView() {
           subtitle="Mapa de calor de conhecimento"
           onBack={() => navigateTo('schedule')}
           statsLeft={<div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs text-gray-500 bg-white/60 px-2 lg:px-3 py-1.5 rounded-full border border-gray-200/60 overflow-x-auto whitespace-nowrap"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> Alta carga<span className="w-2 h-2 rounded-full bg-orange-500 ml-1 lg:ml-2 shrink-0" /> Média<span className="w-2 h-2 rounded-full bg-emerald-500 ml-1 lg:ml-2 shrink-0" /> Baixa</div>}
-          statsRight={<div className="flex items-center gap-2"><button onClick={() => setSidebarOpen(true)} className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-gray-200/60 text-gray-600 text-sm min-h-[44px]"><Activity size={16} className="text-violet-500" /><span className="hidden sm:inline">Timeline</span></button><div className="flex items-center gap-1 bg-white/60 rounded-lg p-1 border border-gray-200/60"><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronLeft size={18} /></button><button className="px-2 lg:px-3 py-1 text-sm text-gray-700 whitespace-nowrap">{currentMonth}</button><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronRight size={18} /></button></div></div>}
+          statsRight={<div className="flex items-center gap-2"><button onClick={() => setSidebarOpen(true)} className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-gray-200/60 text-gray-600 text-sm min-h-[44px]"><Activity size={16} className="text-teal-500" /><span className="hidden sm:inline">Timeline</span></button><div className="flex items-center gap-1 bg-white/60 rounded-lg p-1 border border-gray-200/60"><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronLeft size={18} /></button><button className="px-2 lg:px-3 py-1 text-sm text-gray-700 whitespace-nowrap">{currentMonth}</button><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronRight size={18} /></button></div></div>}
         />
       </div>
       <div className="flex-1 flex overflow-hidden">
@@ -241,9 +241,9 @@ export function KnowledgeHeatmapView() {
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs"><span className="text-gray-400">Força da Memória</span><span className={clsx(retention >= 70 ? 'text-emerald-600' : 'text-pink-600')}>{retention >= 80 ? 'Forte' : retention >= 60 ? 'Moderada' : 'Enfraquecendo'}</span></div>
-                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className={clsx("h-full rounded-full", retention >= 70 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-pink-400 to-pink-600')} style={{ width: `${retention}%` }} /></div>
+                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className={clsx("h-full rounded-full", retention >= 70 ? 'bg-emerald-500' : 'bg-pink-500')} style={{ width: `${retention}%` }} /></div>
                       </div>
-                      <button onClick={() => navigateTo('review-session')} className="mt-4 w-full py-2.5 bg-pink-50 hover:bg-pink-100 text-pink-700 text-sm rounded-lg transition-colors flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><PlayCircle size={16} /> Revisar Agora</button>
+                      <button onClick={() => navigateTo('review-session')} className="mt-4 w-full py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-sm rounded-full transition-colors flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><PlayCircle size={16} /> Revisar Agora</button>
                     </motion.div>
                   );
                 })()}
@@ -256,10 +256,10 @@ export function KnowledgeHeatmapView() {
                 const hasUrgent = events.some(e => e.isUrgent);
                 return (
                   <div key={day} onClick={() => events.length > 0 && setSelectedDay(day === selectedDay ? null : day)}
-                    className={clsx("border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] relative group transition-colors cursor-pointer", isCurrentDay ? "bg-violet-500/5 ring-inset ring-2 ring-violet-500/20" : "hover:bg-white/40", heatBg(heat))}>
-                    <span className={clsx("font-mono text-[10px] lg:text-sm", isCurrentDay ? "text-violet-600" : heat === 'high' ? "text-red-500" : "text-gray-500", (isCurrentDay || heat === 'high') && "font-bold")}>{day}</span>
+                    className={clsx("border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] relative group transition-colors cursor-pointer", isCurrentDay ? "bg-teal-500/5 ring-inset ring-2 ring-teal-500/20" : "hover:bg-white/40", heatBg(heat))}>
+                    <span className={clsx("font-mono text-[10px] lg:text-sm", isCurrentDay ? "text-teal-600" : heat === 'high' ? "text-red-500" : "text-gray-500", (isCurrentDay || heat === 'high') && "font-bold")}>{day}</span>
                     {heat !== 'none' && (<div className="absolute top-1 lg:top-2 right-1 lg:right-2 flex gap-0.5 lg:gap-1"><div className={clsx("w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full", heat === 'high' ? 'bg-red-500' : 'bg-orange-500')} />{hasUrgent && <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-red-500 animate-pulse" />}</div>)}
-                    {isCurrentDay && <div className="absolute top-1 lg:top-2 right-1 lg:right-2 w-1.5 lg:w-2 h-1.5 lg:h-2 bg-violet-500 rounded-full animate-pulse" />}
+                    {isCurrentDay && <div className="absolute top-1 lg:top-2 right-1 lg:right-2 w-1.5 lg:w-2 h-1.5 lg:h-2 bg-teal-500 rounded-full animate-pulse" />}
                     <div className="mt-1 lg:mt-2 space-y-1 hidden lg:block">
                       {events.map((event, i) => (<div key={i} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer transition-all shadow-sm", CATEGORY_STYLES[event.category], event.isUrgent && "ring-2 ring-pink-400/30")}>
                         {event.title && <div className="mb-0.5 pr-4 truncate" style={{ fontWeight: 700 }}>{event.title}</div>}

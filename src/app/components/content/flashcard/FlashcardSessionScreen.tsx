@@ -21,6 +21,7 @@ import { Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
 import { CheckCircle, Brain, X, Eye, AlertTriangle, Stethoscope, Keyboard } from 'lucide-react';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { RATINGS } from '@/app/hooks/flashcard-types';
 import { getMasteryColor } from './mastery-colors';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
@@ -107,6 +108,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
     : (currentCard.frontImageUrl || currentCard.image);
 
   return (
+    <ErrorBoundary variant="section" retry={onBack}>
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -333,5 +335,6 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
         </div>
       </div>
     </motion.div>
+    </ErrorBoundary>
   );
 }

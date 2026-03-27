@@ -551,7 +551,7 @@ export function StudyPlanDashboard({
             </motion.button>
           </div>
 
-          <button className="hidden lg:flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors">
+          <button className="hidden lg:flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-full hover:bg-[#ccebe3] transition-colors">
             <Plus size={13} />
             Material personalizado
           </button>
@@ -689,7 +689,7 @@ export function StudyPlanDashboard({
                                     </span>
                                     <button
                                       onClick={() => {/* Navigate to study */}}
-                                      className="ml-auto text-[11px] font-bold text-[#2a8c7a] hover:text-[#1B3B36] bg-[#e6f5f1] px-3 py-1.5 min-h-[36px] rounded-lg transition-colors hover:bg-[#ccebe3]"
+                                      className="ml-auto text-[11px] font-bold text-[#2a8c7a] hover:text-[#1B3B36] bg-[#e6f5f1] px-3 py-1.5 min-h-[36px] rounded-full transition-colors hover:bg-[#ccebe3]"
                                     >
                                       Iniciar Estudio
                                     </button>
@@ -744,7 +744,7 @@ export function StudyPlanDashboard({
               </p>
               <button
                 onClick={() => navigateTo('organize-study')}
-                className="mt-4 flex items-center gap-1.5 text-[12px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-4 py-2 rounded-lg hover:bg-[#ccebe3] transition-colors"
+                className="mt-4 flex items-center gap-1.5 text-[12px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-4 py-2 rounded-full hover:bg-[#ccebe3] transition-colors"
               >
                 <Plus size={14} /> Crear plan
               </button>

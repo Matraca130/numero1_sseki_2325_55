@@ -47,7 +47,7 @@ export interface SectionProgress {
   nextTopicId: string | undefined;
 }
 
-/** Compute per-section stats from real sessions + courseProgress */
+/** @deprecated — use useStudyHubProgress hook instead */
 export function computeSectionProgress(
   section: TreeSection,
   sessions: StudySession[],

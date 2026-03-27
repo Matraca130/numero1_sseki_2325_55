@@ -138,11 +138,11 @@ export function KeywordClickPopover({
         style={{ maxHeight: 'min(480px, calc(100vh - 32px))' }}
       >
         {/* ── Header ─────────────────────────────────────── */}
-        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
+        <div className="bg-gradient-to-r from-teal-50 to-emerald-50 px-4 py-3 border-b border-gray-100">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">
-                <Tag size={13} className="text-violet-600" />
+              <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Tag size={13} className="text-teal-600" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm text-gray-900 truncate" style={{ fontWeight: 600 }}>
@@ -160,7 +160,7 @@ export function KeywordClickPopover({
               {onEdit && (
                 <button
                   onClick={() => { onEdit(keyword); onClose(); }}
-                  className="p-1.5 rounded-lg hover:bg-violet-100 text-gray-400 hover:text-violet-600 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-teal-100 text-gray-400 hover:text-teal-600 transition-colors"
                   title="Editar keyword"
                 >
                   <Edit3 size={13} />

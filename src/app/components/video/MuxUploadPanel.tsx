@@ -279,7 +279,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                   Subir otro
                 </Button>
                 {onClose && (
-                  <Button size="sm" onClick={onClose} className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white">
+                  <Button size="sm" onClick={onClose} className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white">
                     Cerrar
                   </Button>
                 )}
@@ -429,7 +429,7 @@ export function MuxUploadPanel({ summaryId, onUploadComplete, onClose }: MuxUplo
                       size="sm"
                       onClick={startUpload}
                       disabled={!file || !title.trim() || stage !== 'idle'}
-                      className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                      className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white"
                     >
                       <Upload size={12} className="mr-1" />
                       Subir Video

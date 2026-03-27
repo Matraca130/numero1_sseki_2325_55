@@ -1,4 +1,5 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface StageItem {
   stage?: number | string;
@@ -19,25 +20,25 @@ const SEVERITY_BORDER: Record<string, string> = {
   critical: 'border-l-red-500',
 };
 
-export default function StagesBlock({ block }: { block: SummaryBlock }) {
+export default function StagesBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const title = block.content?.title as string | undefined;
   const items = (block.content?.items ?? []) as StageItem[];
 
   return (
     <div>
       {title && (
-        <h3 className="font-serif text-xl font-bold text-teal-900 dark:text-teal-400 mb-4 mt-0">
+        <h3 className="font-serif text-xl font-bold text-axon-dark dark:text-teal-400 mb-3 mt-0">
           {title}
         </h3>
       )}
       <div className="relative pl-9">
         {/* Gradient connector line */}
         {items.length > 1 && (
-          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-600 to-red-500" />
+          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-axon-accent to-red-500" />
         )}
         {items.map((item, i) => {
-          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-teal-600') : 'bg-teal-600';
-          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-teal-600') : 'border-l-teal-600';
+          const sevBg = item.severity ? (SEVERITY_COLORS[item.severity] ?? 'bg-axon-accent') : 'bg-axon-accent';
+          const sevBorder = item.severity ? (SEVERITY_BORDER[item.severity] ?? 'border-l-axon-accent') : 'border-l-axon-accent';
 
           return (
             <div key={i} className={`relative ${i < items.length - 1 ? 'mb-5' : ''}`}>
@@ -52,13 +53,13 @@ export default function StagesBlock({ block }: { block: SummaryBlock }) {
                 className={`rounded-[10px] px-4 py-3 border border-gray-200 dark:border-gray-700 border-l-[3px] ${sevBorder} bg-white dark:bg-gray-800`}
               >
                 {item.title && (
-                  <div className="font-bold text-[15px] text-teal-900 dark:text-teal-400 mb-1">
+                  <div className="font-bold text-[15px] text-axon-dark dark:text-teal-400 mb-1">
                     {item.title}
                   </div>
                 )}
                 {item.content && (
                   <div className="text-sm text-gray-500 dark:text-gray-400 leading-[1.6]">
-                    {item.content}
+                    {renderTextWithKeywords(item.content, keywords)}
                   </div>
                 )}
               </div>

@@ -105,7 +105,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
             <button
               key={f.key}
               onClick={() => setDeckFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shrink-0 ${focusRing} ${
+              className={`px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer shrink-0 ${focusRing} ${
                 deckFilter === f.key
                   ? 'bg-[#c2e8df] text-[#1B3B36] border border-[#2a8c7a]/20'
                   : 'text-zinc-500 hover:bg-zinc-100 border border-transparent'

@@ -119,7 +119,7 @@ export function QuizQuestionsEditor({
           </div>
           <button
             onClick={crud.handleCreate}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 text-white rounded-lg text-[12px] hover:bg-purple-700 active:scale-[0.97] transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2a8c7a] text-white rounded-full text-[12px] hover:bg-[#244e47] active:scale-[0.97] transition-all shadow-sm"
             style={{ fontWeight: 600 }}
           >
             <Plus size={14} />
@@ -127,10 +127,10 @@ export function QuizQuestionsEditor({
           </button>
           <button
             onClick={() => setShowAiPanel(prev => !prev)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] active:scale-[0.97] transition-all shadow-sm ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] active:scale-[0.97] transition-all shadow-sm ${
               showAiPanel
-                ? 'bg-violet-700 text-white shadow-violet-700/25'
-                : 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-600/25'
+                ? 'bg-[#244e47] text-white shadow-[#244e47]/25'
+                : 'bg-[#2a8c7a] text-white hover:bg-[#244e47] shadow-[#2a8c7a]/25'
             }`}
             style={{ fontWeight: 600 }}
           >
@@ -216,7 +216,7 @@ export function QuizQuestionsEditor({
             {questions.length === 0 && (
               <button
                 onClick={crud.handleCreate}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-[12px] hover:bg-purple-200 transition-colors"
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-full text-[12px] hover:bg-teal-200 transition-colors"
                 style={{ fontWeight: 600 }}
               >
                 <Plus size={14} />

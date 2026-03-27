@@ -13,6 +13,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Section, Topic, Flashcard } from '@/app/types/content';
 import { ChevronLeft, ChevronRight, BookOpen, Layers, Play } from 'lucide-react';
+import { EmptyState } from '@/app/components/shared/EmptyState';
 import { headingStyle } from '@/app/design-system';
 import { getMasteryStats } from '@/app/hooks/flashcard-types';
 import { MasteryBadges } from './MasteryBadges';
@@ -81,6 +82,13 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
 
       {/* ── Deck List ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 bg-surface-dashboard">
+        {sectionCards.length === 0 ? (
+          <EmptyState
+            icon={Layers}
+            title="Sección sin flashcards"
+            description="Aún no hay tarjetas en esta sección"
+          />
+        ) : (
         <div className="max-w-4xl mx-auto space-y-2.5 sm:space-y-3">
           {section.topics.map((topic, idx) => {
             const cards = topic.flashcards || [];
@@ -145,6 +153,7 @@ export function SectionScreen({ section, sectionIdx, courseColor, onOpenDeck, on
             );
           })}
         </div>
+        )}
       </div>
     </motion.div>
   );

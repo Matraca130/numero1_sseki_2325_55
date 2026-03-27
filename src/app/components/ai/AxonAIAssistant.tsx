@@ -388,12 +388,10 @@ export function AxonAIAssistant({
             className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col"
           >
             {/* ── Header ── */}
-            <div className="shrink-0 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-5 py-4 flex items-center justify-between relative overflow-hidden">
-              {/* Ambient */}
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
+            <div className="shrink-0 bg-teal-700 px-5 py-4 flex items-center justify-between relative overflow-hidden">
 
               <div className="relative flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center border border-white/20">
                   <Sparkles size={20} className="text-white" />
                 </div>
                 <div>
@@ -432,7 +430,7 @@ export function AxonAIAssistant({
                   className={clsx(
                     "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all",
                     mode === tab.id
-                      ? "bg-violet-50 text-violet-700 shadow-sm border border-violet-200/60"
+                      ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-200/60"
                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                   )}
                 >
@@ -467,8 +465,8 @@ export function AxonAIAssistant({
         <div ref={chatScrollRef} role="log" aria-live="polite" className="flex-1 overflow-y-auto custom-scrollbar-light">
           {messages.length === 0 && (
             <div className="text-center py-8 space-y-6 px-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center border border-violet-200/60">
-                <Sparkles size={28} className="text-violet-500" />
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60">
+                <Sparkles size={28} className="text-teal-500" />
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -485,11 +483,11 @@ export function AxonAIAssistant({
                   <button
                     key={i}
                     onClick={() => sendChat(prompt.label)}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-200/60 hover:border-violet-300 hover:shadow-sm transition-all text-left group"
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-200/60 hover:border-teal-300 hover:shadow-sm transition-all text-left group"
                   >
                     <prompt.icon size={16} className={prompt.color} />
                     <span className="text-sm text-gray-600 group-hover:text-gray-800 flex-1">{prompt.label}</span>
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-violet-400 transition-colors" />
+                    <ChevronRight size={14} className="text-gray-300 group-hover:text-teal-400 transition-colors" />
                   </button>
                 ))}
               </div>
@@ -524,14 +522,14 @@ export function AxonAIAssistant({
                       className="px-4 py-2"
                     >
                       <div className="flex gap-3 justify-start">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
+                        <div className="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center shrink-0">
                           <Sparkles size={12} className="text-white" />
                         </div>
                         <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-gray-100">
                           <div className="flex gap-1.5">
-                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
                         </div>
                       </div>
@@ -563,7 +561,7 @@ export function AxonAIAssistant({
                       {msg.role !== 'user' && (
                         <div className={clsx(
                           "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
-                          msg.isError ? "bg-red-100" : "bg-gradient-to-br from-violet-500 to-purple-600"
+                          msg.isError ? "bg-red-100" : "bg-teal-600"
                         )}>
                           {msg.isError
                             ? <AlertCircle size={14} className="text-red-500" />
@@ -574,7 +572,7 @@ export function AxonAIAssistant({
                         className={clsx(
                           "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group",
                           msg.role === 'user'
-                            ? "bg-violet-600 text-white rounded-br-md"
+                            ? "bg-teal-600 text-white rounded-br-md"
                             : msg.isError
                               ? "bg-red-50 text-red-700 border border-red-100 rounded-bl-md"
                               : "bg-white text-gray-700 shadow-sm border border-gray-100 rounded-bl-md"
@@ -623,7 +621,7 @@ export function AxonAIAssistant({
                             <button
                               aria-label="Copiar respuesta"
                               onClick={() => copyText(msg.content, msg.id)}
-                              className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                              className="bg-white shadow-md border border-gray-200 rounded-lg p-1.5 text-gray-400 hover:text-teal-500 transition-colors"
                             >
                               {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
                             </button>
@@ -633,14 +631,14 @@ export function AxonAIAssistant({
                         {/* Citations (collapsible) */}
                         {msg.role === 'model' && messageSources.has(msg.id) && (
                           <details className="mt-3 border-t border-gray-100 pt-2">
-                            <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-violet-500 select-none">
+                            <summary className="text-[10px] font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-teal-500 select-none">
                               Fontes ({messageSources.get(msg.id)!.length})
                             </summary>
                             <ul className="mt-1.5 space-y-1">
                               {messageSources.get(msg.id)!.map((src, si) => (
                                 <li key={si} className="flex items-center justify-between text-[11px] text-gray-500 bg-[#F0F2F5] rounded-md px-2 py-1.5">
                                   <span className="truncate mr-2">{src.summary_title}</span>
-                                  <span className="shrink-0 text-[10px] font-mono text-violet-500">
+                                  <span className="shrink-0 text-[10px] font-mono text-teal-500">
                                     {(src.similarity * 100).toFixed(0)}%
                                   </span>
                                 </li>
@@ -663,7 +661,7 @@ export function AxonAIAssistant({
           {(currentCourse || currentTopic) && (
             <div className="flex items-center gap-2 mb-2 px-1">
               <span className="text-[10px] text-gray-400 uppercase tracking-wider">Contexto:</span>
-              <span className="text-[11px] bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full border border-violet-200/60">
+              <span className="text-[11px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full border border-teal-200/60">
                 {currentTopic?.title || currentCourse?.name}
               </span>
             </div>
@@ -677,7 +675,7 @@ export function AxonAIAssistant({
               onKeyDown={handleKeyDown}
               placeholder="Pergunte sobre medicina..."
               rows={1}
-              className="flex-1 px-4 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 resize-none"
+              className="flex-1 px-4 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-300 resize-none"
               style={{ maxHeight: '120px' }}
             />
             <button
@@ -687,7 +685,7 @@ export function AxonAIAssistant({
               className={clsx(
                 "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all",
                 input.trim() && !isLoading
-                  ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm"
+                  ? "bg-teal-600 text-white hover:bg-teal-700 shadow-sm"
                   : "bg-gray-100 text-gray-300"
               )}
             >
@@ -709,8 +707,8 @@ export function AxonAIAssistant({
         {generatedCards.length === 0 ? (
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center border border-blue-200/60 mb-3">
-                <Layers size={24} className="text-blue-500" />
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3">
+                <Layers size={24} className="text-teal-500" />
               </div>
               <h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Gerar Flashcards com IA
@@ -732,7 +730,7 @@ export function AxonAIAssistant({
               <button
                 onClick={generateFlashcardsFn}
                 disabled={isLoading || !summaryId}
-                className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-3 bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                 {isLoading ? 'Gerando...' : 'Gerar Flashcards'}
@@ -767,12 +765,12 @@ export function AxonAIAssistant({
                     "rounded-xl p-4 border transition-all min-h-[100px] flex flex-col justify-center",
                     isFlipped
                       ? "bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200"
-                      : "bg-white border-gray-200/60 hover:border-violet-300 hover:shadow-sm"
+                      : "bg-white border-gray-200/60 hover:border-teal-300 hover:shadow-sm"
                   )}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className={clsx(
                         "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                        isFlipped ? "bg-emerald-100 text-emerald-600" : "bg-violet-100 text-violet-600"
+                        isFlipped ? "bg-emerald-100 text-emerald-600" : "bg-teal-100 text-teal-600"
                       )}>
                         {isFlipped ? 'Resposta' : `Pergunta ${i + 1}`}
                       </span>
@@ -788,7 +786,7 @@ export function AxonAIAssistant({
 
             <button
               onClick={generateFlashcardsFn}
-              className="w-full py-2.5 border-2 border-dashed border-violet-300/60 text-violet-600 rounded-xl text-sm font-medium hover:bg-violet-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 border-2 border-dashed border-teal-300/60 text-teal-600 rounded-full text-sm font-medium hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
             >
               <RotateCcw size={14} /> Gerar Novos
             </button>
@@ -808,8 +806,8 @@ export function AxonAIAssistant({
         {generatedQuiz.length === 0 ? (
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center border border-amber-200/60 mb-3">
-                <GraduationCap size={24} className="text-amber-500" />
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3">
+                <GraduationCap size={24} className="text-teal-500" />
               </div>
               <h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Quiz com IA
@@ -831,7 +829,7 @@ export function AxonAIAssistant({
               <button
                 onClick={generateQuizFn}
                 disabled={isLoading || !summaryId}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-3 bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                 {isLoading ? 'Gerando...' : 'Gerar Quiz'}
@@ -924,7 +922,7 @@ export function AxonAIAssistant({
 
             <button
               onClick={generateQuizFn}
-              className="w-full py-2.5 border-2 border-dashed border-amber-300/60 text-amber-600 rounded-xl text-sm font-medium hover:bg-amber-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 border-2 border-dashed border-teal-300/60 text-teal-600 rounded-full text-sm font-medium hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
             >
               <RotateCcw size={14} /> Gerar Novo Quiz
             </button>
@@ -944,8 +942,8 @@ export function AxonAIAssistant({
         {!explanation ? (
           <div className="space-y-4">
             <div className="text-center py-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center border border-emerald-200/60 mb-3">
-                <BookOpen size={24} className="text-emerald-500" />
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3">
+                <BookOpen size={24} className="text-teal-500" />
               </div>
               <h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Explicacao Profunda
@@ -961,13 +959,13 @@ export function AxonAIAssistant({
                   onChange={e => setExplainConceptText(e.target.value)}
                   placeholder="Ex: Potencial de acao no neuronio"
                   rows={3}
-                  className="w-full px-3 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 resize-none"
+                  className="w-full px-3 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
                 />
               </div>
               <button
                 onClick={explainFn}
                 disabled={!explainConceptText.trim() || isLoading}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold text-sm shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-3 bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
                 {isLoading ? 'Analisando...' : 'Explicar Conceito'}
@@ -1001,7 +999,7 @@ export function AxonAIAssistant({
               <button
                 aria-label="Copiar respuesta"
                 onClick={() => copyText(explanation, 'explanation')}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500"
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal-500"
               >
                 {copiedId === 'explanation' ? <Check size={12} /> : <Copy size={12} />}
                 Copiar
@@ -1014,7 +1012,7 @@ export function AxonAIAssistant({
               className="bg-white rounded-xl p-5 border border-gray-200/60 shadow-sm"
             >
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center">
                   <BookOpen size={14} className="text-white" />
                 </div>
                 <div>
@@ -1029,7 +1027,7 @@ export function AxonAIAssistant({
 
             <button
               onClick={() => { setExplanation(''); setExplainConceptText(''); }}
-              className="w-full py-2.5 border-2 border-dashed border-emerald-300/60 text-emerald-600 rounded-xl text-sm font-medium hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 border-2 border-dashed border-teal-300/60 text-teal-600 rounded-full text-sm font-medium hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
             >
               <RotateCcw size={14} /> Novo Conceito
             </button>
@@ -1063,14 +1061,14 @@ function renderMarkdown(text: string) {
       );
     } else if (trimmed.startsWith('> ')) {
       elements.push(
-        <blockquote key={i} className="border-l-3 border-violet-400 pl-3 my-2 text-violet-700 bg-violet-50 py-2 pr-3 rounded-r-lg text-xs italic">
+        <blockquote key={i} className="border-l-3 border-teal-400 pl-3 my-2 text-teal-700 bg-teal-50 py-2 pr-3 rounded-r-lg text-xs italic">
           {processInline(trimmed.slice(2))}
         </blockquote>
       );
     } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       elements.push(
         <div key={i} className="flex gap-2 my-0.5">
-          <span className="text-violet-400 mt-1 shrink-0">&#8226;</span>
+          <span className="text-teal-400 mt-1 shrink-0">&#8226;</span>
           <span>{processInline(trimmed.slice(2))}</span>
         </div>
       );
@@ -1096,7 +1094,7 @@ function processInline(text: string): React.ReactNode {
     if (codeParts.length > 1) {
       return codeParts.map((cp, ci) => {
         if (cp.startsWith('`') && cp.endsWith('`')) {
-          return <code key={`${i}-${ci}`} className="bg-gray-100 text-violet-600 px-1 py-0.5 rounded text-xs font-mono">{cp.slice(1, -1)}</code>;
+          return <code key={`${i}-${ci}`} className="bg-gray-100 text-teal-600 px-1 py-0.5 rounded text-xs font-mono">{cp.slice(1, -1)}</code>;
         }
         return cp;
       });

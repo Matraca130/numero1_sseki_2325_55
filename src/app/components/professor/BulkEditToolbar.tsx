@@ -86,11 +86,11 @@ export const BulkEditToolbar = React.memo(function BulkEditToolbar({
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 border-b border-purple-200">
+    <div className="flex items-center gap-2 px-4 py-2 bg-teal-50 border-b border-teal-200">
       {/* Select/Deselect */}
       <button
         onClick={allSelected ? onDeselectAll : onSelectAll}
-        className="flex items-center gap-1.5 text-[11px] text-purple-600 hover:text-purple-800 transition-colors"
+        className="flex items-center gap-1.5 text-[11px] text-teal-600 hover:text-teal-800 transition-colors"
         style={{ fontWeight: 600 }}
       >
         {allSelected ? <CheckSquare size={13} /> : <Square size={13} />}
@@ -98,7 +98,7 @@ export const BulkEditToolbar = React.memo(function BulkEditToolbar({
       </button>
 
       {/* Count badge */}
-      <span className="text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200" style={{ fontWeight: 700 }}>
+      <span className="text-[10px] text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200" style={{ fontWeight: 700 }}>
         {count} seleccionada{count !== 1 ? 's' : ''}
       </span>
 
@@ -110,7 +110,7 @@ export const BulkEditToolbar = React.memo(function BulkEditToolbar({
           <button
             onClick={onMoveUp}
             disabled={!canMoveUp}
-            className="p-1 rounded text-purple-500 hover:bg-purple-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1 rounded text-teal-500 hover:bg-teal-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Mover arriba"
           >
             <ArrowUp size={14} />
@@ -118,7 +118,7 @@ export const BulkEditToolbar = React.memo(function BulkEditToolbar({
           <button
             onClick={onMoveDown}
             disabled={!canMoveDown}
-            className="p-1 rounded text-purple-500 hover:bg-purple-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1 rounded text-teal-500 hover:bg-teal-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Mover abajo"
           >
             <ArrowDown size={14} />
@@ -145,7 +145,7 @@ export const BulkEditToolbar = React.memo(function BulkEditToolbar({
       </button>
       <button
         onClick={onDeselectAll}
-        className="p-1 rounded text-purple-400 hover:text-purple-600 hover:bg-purple-100 transition-colors"
+        className="p-1 rounded text-teal-400 hover:text-teal-600 hover:bg-teal-100 transition-colors"
         title="Cancelar seleccion"
       >
         <X size={14} />

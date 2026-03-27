@@ -779,7 +779,7 @@ function SelectionKeywordBubble({
               onCreateKeyword(selectedText, rect);
             }
           }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-600 text-white shadow-lg shadow-violet-600/25 text-[11px] hover:bg-violet-700 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#2a8c7a] text-white shadow-lg shadow-[#2a8c7a]/25 text-[11px] hover:bg-[#244e47] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
           style={{ fontWeight: 600 }}
           title="Crear keyword desde seleccion"
         >
@@ -839,7 +839,7 @@ function ImagePopover({
             className={clsx(
               'p-1.5 rounded transition-colors',
               position === opt.value
-                ? 'bg-violet-100 text-violet-700'
+                ? 'bg-teal-100 text-teal-700'
                 : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
             )}
           >

@@ -405,7 +405,7 @@ export function TextHighlighter({
                   </Button>
                   <Button
                     size="sm"
-                    className="h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                    className="h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white"
                     onClick={handleSaveNote}
                     disabled={updateMutation.isPending}
                   >

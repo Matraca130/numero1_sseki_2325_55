@@ -77,7 +77,7 @@ export function TopicSidebar() {
         <div className="px-3 pt-3 pb-1 border-b border-gray-100">
           <button
             onClick={() => { setSidebarOpen(false); navigateTo('study-hub'); }}
-            className="flex items-center gap-2 px-2 py-2 w-full rounded-lg text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group min-h-[44px]"
+            className="flex items-center gap-2 px-2 py-2 w-full rounded-full text-axon-dark hover:text-axon-dark hover:bg-[#e6f5f1] transition-colors group min-h-[44px]"
           >
             <ArrowLeft className="w-5 h-5 text-axon-accent group-hover:text-axon-dark transition-colors" />
             <span className="text-sm" style={headingStyle}>Volver a los temas</span>
@@ -135,7 +135,7 @@ export function TopicSidebar() {
                         onClick={() => toggleNode(semester.id)}
                         className="w-full flex items-center gap-2 pl-7 pr-4 py-2 text-left hover:bg-gray-50 transition-colors min-h-[40px]"
                       >
-                        <GraduationCap size={12} className="text-blue-400 shrink-0" />
+                        <GraduationCap size={12} className="text-teal-400 shrink-0" />
                         <span className="text-xs text-gray-600 truncate flex-1">{semester.name}</span>
                         {expandedSections.has(semester.id) ? <ChevronUp size={11} className="text-gray-400" /> : <ChevronDown size={11} className="text-gray-400" />}
                       </button>
@@ -177,7 +177,7 @@ export function TopicSidebar() {
                                         transition={{ duration: 0.15 }}
                                         className="overflow-hidden"
                                       >
-                                        <div className="relative ml-10 border-l-2 border-blue-400/30">
+                                        <div className="relative ml-10 border-l-2 border-teal-400/30">
                                           {(section.topics || []).map(topic => {
                                             const isActive = activeTopicId === topic.id;
                                             return (
@@ -187,11 +187,11 @@ export function TopicSidebar() {
                                                 className={clsx(
                                                   "w-full text-left pl-4 pr-3 py-2 text-xs transition-colors flex items-center gap-1.5 min-h-[40px]",
                                                   isActive
-                                                    ? "text-blue-600 bg-blue-50/60"
+                                                    ? "text-teal-600 bg-teal-50/60"
                                                     : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                                                 )}
                                               >
-                                                <FileText size={11} className={isActive ? "text-blue-500" : "text-gray-400"} />
+                                                <FileText size={11} className={isActive ? "text-teal-500" : "text-gray-400"} />
                                                 <span className="line-clamp-2">{topic.name}</span>
                                               </button>
                                             );

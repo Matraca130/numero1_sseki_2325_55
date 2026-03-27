@@ -5,3 +5,7 @@ dist/
 *.log
 package-lock.json
 .vercel
+.claude/worktrees/
+.claude/agent-memory/
+.claude/ralph-loop.local.md
+coverage/

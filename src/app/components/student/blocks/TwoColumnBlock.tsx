@@ -1,4 +1,5 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface ColumnItem {
   label?: string;
@@ -10,32 +11,35 @@ interface Column {
   items?: ColumnItem[];
 }
 
-export default function TwoColumnBlock({ block }: { block: SummaryBlock }) {
+export default function TwoColumnBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const columns = (block.content?.columns ?? []) as Column[];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {columns.map((col, ci) => (
-        <div key={ci}>
+        <div
+          key={ci}
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+        >
           {col.title && (
-            <h4 className="font-serif text-base font-bold text-teal-900 dark:text-teal-400 mb-2.5 mt-0">
+            <h4 className="font-serif text-base font-bold text-axon-dark dark:text-teal-400 mb-2.5 mt-0 px-4 pt-3">
               {col.title}
             </h4>
           )}
-          <div className="flex flex-col gap-1.5">
+          <div>
             {(col.items ?? []).map((item, i) => (
               <div
                 key={i}
-                className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
               >
                 {item.label && (
-                  <div className="text-[13px] font-semibold text-gray-900 dark:text-gray-200">
+                  <div className="text-[13px] font-semibold text-axon-dark dark:text-gray-200">
                     {item.label}
                   </div>
                 )}
                 {item.detail && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {item.detail}
+                  <div className="text-[13px] text-gray-500 dark:text-gray-400">
+                    {renderTextWithKeywords(item.detail, keywords)}
                   </div>
                 )}
               </div>

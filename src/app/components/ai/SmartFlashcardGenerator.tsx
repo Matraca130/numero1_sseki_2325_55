@@ -113,8 +113,8 @@ export function SmartFlashcardGenerator({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ec43ef] to-[#b830e8] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-teal-500" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -138,9 +138,9 @@ export function SmartFlashcardGenerator({
           {/* Analysis Section */}
           {!generated && (
             <>
-              <div className="bg-gradient-to-br from-[#ec43ef]/5 to-[#b830e8]/5 rounded-xl p-5 border border-[#ec43ef]/20">
+              <div className="bg-teal-50/50 rounded-xl p-5 border border-teal-200">
                 <div className="flex items-start gap-3 mb-4">
-                  <Target className="w-5 h-5 text-[#ec43ef] flex-shrink-0 mt-0.5" />
+                  <Target className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-2">
                       Análise de Necessidades
@@ -179,7 +179,7 @@ export function SmartFlashcardGenerator({
               {needingCards.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-[#ec43ef]" />
+                    <TrendingUp className="w-4 h-4 text-teal-500" />
                     Keywords Prioritárias ({needingCards.length})
                   </h3>
                   <div className="space-y-2">
@@ -254,7 +254,7 @@ export function SmartFlashcardGenerator({
                 <button
                   onClick={handleGenerate}
                   disabled={generating || needingCards.length === 0}
-                  className="flex-1 py-3 px-6 rounded-xl font-medium bg-gradient-to-r from-[#ec43ef] to-[#b830e8] text-white hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-6 rounded-full font-semibold bg-[#2a8c7a] hover:bg-[#244e47] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {generating ? (
                     <>
@@ -271,7 +271,7 @@ export function SmartFlashcardGenerator({
                 {onClose && (
                   <button
                     onClick={onClose}
-                    className="px-6 py-3 rounded-xl font-medium border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-all"
+                    className="px-6 py-3 rounded-full font-medium border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-all"
                   >
                     Cancelar
                   </button>
@@ -339,7 +339,7 @@ export function SmartFlashcardGenerator({
                     className="bg-[#F0F2F5] rounded-xl p-4 border border-gray-200"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#ec43ef]/10 text-[#ec43ef] font-bold flex items-center justify-center flex-shrink-0 text-sm">
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 font-bold flex items-center justify-center flex-shrink-0 text-sm">
                         {index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -366,7 +366,7 @@ export function SmartFlashcardGenerator({
                             {card.keywords.primary?.map((kw) => (
                               <span
                                 key={kw}
-                                className="px-2 py-1 text-xs font-medium rounded bg-[#ec43ef]/10 text-[#ec43ef] border border-[#ec43ef]/20"
+                                className="px-2 py-1 text-xs font-medium rounded bg-teal-50 text-teal-600 border border-teal-200"
                               >
                                 {kw}
                               </span>
@@ -390,7 +390,7 @@ export function SmartFlashcardGenerator({
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-3 px-6 rounded-xl font-medium bg-gradient-to-r from-[#ec43ef] to-[#b830e8] text-white hover:shadow-lg transition-all"
+                  className="flex-1 py-3 px-6 rounded-full font-semibold bg-[#2a8c7a] hover:bg-[#244e47] text-white transition-colors"
                 >
                   Concluir
                 </button>

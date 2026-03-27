@@ -10,7 +10,7 @@
 //   success    → shows generated questions, start button
 //   error      → actionable error message + retry
 //
-// Design: violet/purple accent (AI features), motion animations
+// Design: teal accent (AI features), motion animations
 // ============================================================
 
 import { motion } from 'motion/react';
@@ -65,8 +65,8 @@ export function AdaptiveQuizModal({
         {/* Header */}
         <div className={MODAL_HEADER}>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-              <Brain size={18} className="text-white" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+              <Brain size={18} className="text-teal-500" />
             </div>
             <div>
               <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>Quiz Adaptativo</h3>
@@ -134,7 +134,7 @@ export function AdaptiveQuizModal({
 
               <button
                 onClick={onGenerate}
-                className="w-full py-3 rounded-xl text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-600/25 transition-all inline-flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-full text-white bg-[#2a8c7a] hover:bg-[#244e47] font-semibold transition-colors inline-flex items-center justify-center gap-2"
                 style={{ fontWeight: 700 }}
               >
                 <Sparkles size={16} />
@@ -147,11 +147,11 @@ export function AdaptiveQuizModal({
           {phase === 'generating' && (
             <div className="flex flex-col items-center py-8 gap-4">
               <div className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-violet-50 flex items-center justify-center">
-                  <Loader2 size={28} className="animate-spin text-violet-500" />
+                <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center">
+                  <Loader2 size={28} className="animate-spin text-teal-500" />
                 </div>
                 <motion.div
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center"
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center"
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
@@ -166,7 +166,7 @@ export function AdaptiveQuizModal({
               </div>
               <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
+                  className="h-full bg-teal-500 rounded-full"
                   initial={{ width: '5%' }}
                   animate={{ width: '85%' }}
                   transition={{ duration: count * 6, ease: 'easeOut' }}
@@ -199,7 +199,7 @@ export function AdaptiveQuizModal({
                     <span className="text-zinc-400" style={{ fontWeight: 600 }}>#{i + 1}</span>
                     <span className="text-zinc-600 truncate flex-1">{item.keyword_name}</span>
                     {item._smart.target_subtopic && (
-                      <span className="text-violet-500 shrink-0 truncate max-w-[120px]" style={{ fontWeight: 500 }}>
+                      <span className="text-teal-500 shrink-0 truncate max-w-[120px]" style={{ fontWeight: 500 }}>
                         {item._smart.target_subtopic}
                       </span>
                     )}
@@ -217,7 +217,7 @@ export function AdaptiveQuizModal({
 
               <button
                 onClick={onStart}
-                className="w-full py-3 rounded-xl text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-lg shadow-teal-600/25 transition-all inline-flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-full text-white bg-[#2a8c7a] hover:bg-[#244e47] font-semibold transition-colors inline-flex items-center justify-center gap-2"
                 style={{ fontWeight: 700 }}
               >
                 Empezar quiz adaptativo
@@ -238,14 +238,14 @@ export function AdaptiveQuizModal({
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-all text-sm"
+                  className="flex-1 py-2.5 rounded-full border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-all text-sm"
                   style={{ fontWeight: 600 }}
                 >
                   Cerrar
                 </button>
                 <button
                   onClick={onRetry}
-                  className="flex-1 py-2.5 rounded-xl text-white bg-violet-600 hover:bg-violet-700 transition-all text-sm inline-flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 rounded-full text-white bg-[#2a8c7a] hover:bg-[#244e47] font-semibold transition-colors text-sm inline-flex items-center justify-center gap-2"
                   style={{ fontWeight: 600 }}
                 >
                   <RotateCw size={14} /> Reintentar

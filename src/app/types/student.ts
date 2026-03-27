@@ -180,3 +180,36 @@ export interface KeywordCollectionData {
   keywords: Record<string, KeywordState>;
   lastUpdated: string; // ISO date
 }
+
+// ─── Study Intelligence (sessioncalendario) ─────────────────────
+
+export interface TopicDifficultyData {
+  id: string;
+  name: string;
+  section_name: string;
+  difficulty_estimate: number | null;  // 0.0-1.0
+  estimated_study_minutes: number | null;
+  bloom_level: number | null;         // 1-6
+  abstraction_level: number | null;   // 1-5
+  concept_density: number | null;     // 1-5
+  interrelation_score: number | null; // 1-5
+  cohort_difficulty: number | null;
+  prerequisite_topic_ids: string[];
+  similar_topics?: Array<{
+    topic_id: string;
+    name: string;
+    similarity: number;
+  }>;
+}
+
+export interface CourseStudyStats {
+  avg_difficulty: number;
+  total_estimated_minutes: number;
+  topics_analyzed: number;
+  topics_pending_analysis: number;
+}
+
+export interface StudyIntelligenceResponse {
+  topics: TopicDifficultyData[];
+  course_stats: CourseStudyStats;
+}

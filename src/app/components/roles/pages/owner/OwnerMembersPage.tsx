@@ -943,7 +943,7 @@ function AdminScopesDialog({ member, open, onOpenChange }: AdminScopesDialogProp
             <Button
               onClick={handleAddScope}
               disabled={adding || (scopeNeedsId && !newScopeId)}
-              className="w-full gap-2 bg-blue-500 hover:bg-blue-600"
+              className="w-full gap-2 bg-[#2a8c7a] hover:bg-[#244e47] rounded-full"
               size="sm"
             >
               {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}

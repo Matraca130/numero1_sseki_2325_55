@@ -12,7 +12,7 @@ npm run dev        # Start Vite dev server
 npm run build      # Production build (outputs to dist/)
 ```
 
-No test runner or linter is configured. The build (`vite build`) is the primary validation step.
+Test runner: Vitest 3.2.1 + React Testing Library. Run `npm test` (unit tests) or `npm run test:coverage` (with v8 coverage report). The build (`vite build`) is the secondary validation step.
 
 ## Tech Stack
 
@@ -194,7 +194,8 @@ import { colors, components, headingStyle } from '@/app/design-system';
 ### Forbidden
 - Glassmorphism (`backdrop-blur` on content cards)
 - Gradients on buttons or icons
-- Blue/violet/purple on interactive elements (use teal instead)
+- Blue/violet/purple on **interactive** elements (use teal instead)
+  - **Exception**: Professor role accent is violet — badges, labels, and decorative elements in professor pages MAY use violet. Only focus rings and clickable controls must be teal.
 - Font-size via Tailwind classes (`text-2xl`, etc.) — use `clamp()` or tokens
 
 ## Key Conventions
@@ -213,3 +214,52 @@ import { colors, components, headingStyle } from '@/app/design-system';
 - **Deploy**: Vercel (auto-deploys, SPA rewrite configured in `vercel.json`)
 - **Security headers**: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
 - **Asset caching**: `Cache-Control: public, max-age=31536000, immutable` for `/assets/*`
+
+## Sistema Multi-Agente (74 agentes especializados)
+
+Para tareas complejas, AXON tiene un sistema de 74 agentes especializados con memoria individual, métricas, y auto-mejora.
+
+### REGLA OBLIGATORIA — Lectura de definicion del agente
+
+**SIEMPRE que se lance un agente (via Agent tool), el prompt DEBE incluir:**
+
+1. `Lee tu definicion en .claude/agents/<nombre>.md` — el archivo de 76 que define su rol, zona de ownership, archivos permitidos, reglas y dependencias.
+2. `Lee tu memoria en .claude/agent-memory/individual/<ID>.md` — lecciones aprendidas, patrones que funcionan, errores a evitar.
+
+**Esto NO es opcional.** Los archivos `.claude/agents/*.md` son la fuente de verdad de lo que cada agente sabe y puede hacer. Sin leerlos, el agente opera a ciegas y puede:
+- Tocar archivos fuera de su zona de ownership (scope creep)
+- Repetir errores ya documentados en su memoria
+- Ignorar reglas especificas de su seccion
+- Romper contratos con otros agentes
+
+**Formato obligatorio al invocar un agente:**
+```
+Actua como [agente] ([ID]). Lee tu definicion en .claude/agents/<nombre>.md
+y tu memoria en .claude/agent-memory/individual/<ID>-<nombre>.md.
+[Tarea concreta con archivos especificos].
+```
+
+**Para orquestacion multi-agente:**
+```
+Actua como el Arquitecto (XX-01). Lee .claude/agents/architect.md.
+Necesito [descripcion de lo que quiero].
+```
+El Arquitecto lee el AGENT-REGISTRY, selecciona agentes, resuelve dependencias, genera plan, y pide confirmacion.
+
+### Archivos de referencia (en `.claude/`)
+
+| Archivo | Qué es | Cuándo leerlo |
+|---------|--------|---------------|
+| `.claude/AGENT-REGISTRY.md` | Indice de 74 agentes con ownership y dependencias | Para saber que agente usar |
+| `.claude/agents/<nombre>.md` | Definicion de cada agente (rol, zona, reglas) | **SIEMPRE** al actuar como un agente |
+| `.claude/agent-memory/individual/<ID>.md` | Memoria personal del agente (lecciones, patrones, metricas) | **SIEMPRE** al iniciar como un agente |
+| `.claude/memory/feedback_agent_isolation.md` | Reglas de aislamiento + evolucion continua | SIEMPRE antes de escribir codigo |
+| `.claude/MULTI-AGENT-PROCEDURE.md` | Procedimiento completo del sistema | Para orquestacion multi-agente |
+| `.claude/SECTION-MAP.md` | Mapa de 624 archivos asignados a agentes | Para identificar que agente toca que |
+
+### Regla de oro
+
+- Despues de cada tarea, el agente reflexiona y actualiza su memoria individual (EVOLUCION CONTINUA)
+- El Quality Gate (XX-02) audita despues de cada agente y auto-registra lecciones
+- Los agentes leen sus lecciones previas al iniciar → no repiten errores
+- **NUNCA** lanzar un agente sin que lea su `.claude/agents/<nombre>.md` primero

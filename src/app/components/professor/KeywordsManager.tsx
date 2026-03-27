@@ -141,7 +141,7 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
         <Button
           size="sm"
           onClick={openCreate}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-7 text-xs px-3"
+          className="bg-[#2a8c7a] hover:bg-[#244e47] text-white h-7 text-xs px-3 rounded-full"
         >
           <Plus size={12} className="mr-1" />
           Nuevo Keyword

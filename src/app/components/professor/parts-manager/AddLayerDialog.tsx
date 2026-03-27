@@ -34,9 +34,9 @@ export function AddLayerDialog({ existingNames, onAdd, onCancel }: AddLayerDialo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-4 space-y-3">
       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-        <Plus size={12} className="text-violet-400" />
+        <Plus size={12} className="text-teal-400" />
         Nueva Capa
       </h4>
       <div className="flex items-center gap-2">
@@ -45,7 +45,7 @@ export function AddLayerDialog({ existingNames, onAdd, onCancel }: AddLayerDialo
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Nombre (ej: Huesos, Musculos...)"
-          className="flex-1 px-2.5 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+          className="flex-1 px-2.5 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
           autoFocus
           required
         />
@@ -78,7 +78,7 @@ export function AddLayerDialog({ existingNames, onAdd, onCancel }: AddLayerDialo
         <button
           type="submit"
           disabled={!name.trim()}
-          className="px-3 py-1.5 text-[10px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors disabled:opacity-50"
+          className="px-3 py-1.5 text-[10px] font-semibold text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-full transition-colors disabled:opacity-50"
         >
           Crear Capa
         </button>

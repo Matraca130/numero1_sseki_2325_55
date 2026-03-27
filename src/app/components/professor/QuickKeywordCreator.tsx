@@ -116,8 +116,8 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center">
-            <Tag size={12} className="text-violet-600" />
+          <div className="w-6 h-6 rounded-lg bg-teal-100 flex items-center justify-center">
+            <Tag size={12} className="text-teal-600" />
           </div>
           <span className="text-sm text-gray-800" style={{ fontWeight: 600 }}>Crear Keyword</span>
         </div>
@@ -137,7 +137,7 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Nombre del keyword..."
-            className="w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 placeholder:text-gray-400 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/20"
+            className="w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 placeholder:text-gray-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20"
             autoFocus
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreate(); }
@@ -156,7 +156,7 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
             placeholder="Breve definicion..."
             rows={2}
             maxLength={500}
-            className="w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none placeholder:text-gray-400 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/20"
+            className="w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none placeholder:text-gray-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20"
           />
         </div>
 
@@ -173,7 +173,7 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
                 className={clsx(
                   'flex-1 py-1.5 rounded-lg text-xs border transition-all',
                   priority === p.value
-                    ? `${p.bg} ${p.color} ring-2 ring-offset-1 ring-violet-400/30`
+                    ? `${p.bg} ${p.color} ring-2 ring-offset-1 ring-teal-400/30`
                     : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                 )}
                 style={{ fontWeight: priority === p.value ? 600 : 400 }}
@@ -197,7 +197,7 @@ function CreateForm({ initialName, summaryId, position, onClose, onCreated, exis
             'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs transition-all',
             createMutation.isPending || !name.trim()
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-violet-600 text-white hover:bg-violet-700 shadow-sm active:scale-[0.97]'
+              : 'bg-[#2a8c7a] text-white hover:bg-[#244e47] shadow-sm active:scale-[0.97]'
           )}
           style={{ fontWeight: 600 }}
         >
@@ -227,7 +227,7 @@ function FloatingButton({ position, onClick }: FloatingButtonProps) {
       exit={{ opacity: 0, scale: 0.9, y: 4 }}
       transition={{ duration: 0.1 }}
       onClick={onClick}
-      className="fixed z-[55] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white shadow-lg shadow-violet-600/25 text-xs hover:bg-violet-700 active:scale-95 transition-all cursor-pointer"
+      className="fixed z-[55] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2a8c7a] text-white shadow-lg shadow-[#2a8c7a]/25 text-xs hover:bg-[#244e47] active:scale-95 transition-all cursor-pointer"
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,

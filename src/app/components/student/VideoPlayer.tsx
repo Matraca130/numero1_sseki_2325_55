@@ -272,7 +272,7 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
                           setEditingNote(null);
                           setShowForm(true);
                         }}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/15 text-amber-300 text-[10px] rounded-md hover:bg-amber-500/25 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-teal-500/15 text-teal-300 text-[10px] rounded-full hover:bg-teal-500/25 transition-colors"
                       >
                         <PenLine size={10} />
                         Anotar aqui
@@ -284,7 +284,7 @@ export function VideoPlayer({ summaryId, initialVideos, onVideosLoaded }: VideoP
                       <button
                         onClick={() => setShowAnnotations(prev => !prev)}
                         className={clsx(
-                          "flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] rounded-md transition-colors",
+                          "flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] rounded-full transition-colors",
                           showAnnotations
                             ? "bg-zinc-700 text-zinc-200"
                             : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"

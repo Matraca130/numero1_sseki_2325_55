@@ -53,7 +53,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
       className={clsx(
         'bg-white rounded-2xl border px-5 py-4 transition-all',
         quiz.is_active
-          ? 'border-zinc-200 hover:border-purple-200 hover:shadow-xl hover:shadow-zinc-900/5'
+          ? 'border-zinc-200 hover:border-teal-200 hover:shadow-xl hover:shadow-zinc-900/5'
           : 'border-red-200 bg-red-50/30 opacity-75'
       )}
     >
@@ -61,9 +61,9 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
         {/* Icon */}
         <div className={clsx(
           'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-          quiz.is_active ? 'bg-purple-50' : 'bg-red-50'
+          quiz.is_active ? 'bg-teal-50' : 'bg-red-50'
         )}>
-          <ClipboardList size={17} className={quiz.is_active ? 'text-purple-500' : 'text-red-400'} />
+          <ClipboardList size={17} className={quiz.is_active ? 'text-teal-500' : 'text-red-400'} />
         </div>
 
         {/* Info */}
@@ -95,7 +95,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onOpenQuestions}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-purple-600 hover:bg-purple-50 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] text-[#2a8c7a] hover:bg-teal-50 transition-colors"
             style={{ fontWeight: 600 }}
             title="Editar preguntas"
           >
@@ -106,7 +106,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
 
           <button
             onClick={onAnalytics}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title="Analytics"
           >
             <Eye size={14} />
@@ -122,7 +122,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
 
           <button
             onClick={onEdit}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title="Editar"
           >
             <Pencil size={14} />
@@ -154,14 +154,14 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onCancelDelete}
-                  className="px-2.5 py-1 rounded-lg text-[11px] text-gray-500 hover:bg-gray-100 transition-colors"
+                  className="px-2.5 py-1 rounded-full text-[11px] text-gray-500 hover:bg-gray-100 transition-colors"
                   style={{ fontWeight: 500 }}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={onConfirmDelete}
-                  className="px-2.5 py-1 rounded-lg text-[11px] text-white bg-red-500 hover:bg-red-600 transition-colors"
+                  className="px-2.5 py-1 rounded-full text-[11px] text-white bg-red-500 hover:bg-red-600 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
                   Eliminar

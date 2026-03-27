@@ -214,7 +214,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
         <button
           onClick={() => { fetchStats(); fetchReports(); }}
           disabled={statsLoading || reportsLoading}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-purple-600 hover:bg-purple-50 transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-50"
           title="Actualizar"
         >
           <RefreshCw size={14} className={clsx(statsLoading && 'animate-spin')} />
@@ -345,7 +345,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
                 className={clsx(
                   'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-colors border',
                   (filterStatus || filterReason)
-                    ? 'text-purple-600 bg-purple-50 border-purple-200'
+                    ? 'text-teal-600 bg-teal-50 border-teal-200'
                     : 'text-zinc-400 hover:text-zinc-600 border-transparent hover:border-zinc-200'
                 )}
                 style={{ fontWeight: 600 }}
