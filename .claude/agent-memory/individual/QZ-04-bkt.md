@@ -37,6 +37,16 @@ Last updated: 2026-03-25
 | Mezclar lógica de gamificación con BKT | Son concerns separados | useQuizGamificationFeedback.ts maneja gami, useQuizBkt.ts maneja BKT |
 
 ## Métricas
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `bkt-v4.ts` (backend) | `computeBktV4Update`, `calculateRecoveryMultiplier`, `getTypeMultiplier`, `updateMastery`, `calculateDisplayMastery` | Funciones puras, sin side-effects | `isCorrect` threshold es `grade >= 3`; Hard(2) INCORRECTO para BKT pero correcto para FSRS |
+| `useQuizBkt.ts` | `useQuizBkt()`, `computeBktMastery()` | Refs mutables acumulan mastery sin re-renders | BKT v3.1 inline ≠ backend v4; RECOVERY_FACTOR=0.15 aditivo |
+| `useBktStates.ts` | `useBktStates(questions)` → `{ bktStates, bktBySubtopic, hasBktData }` | Fetch batch por subtopic_ids; Map O(1) lookup | Flag `cancelled` evita setState post-unmount (FIX H5-4) |
+| `useAdaptiveQuiz.ts` | `useAdaptiveQuiz()` → `{ phase, count, result, error, quizId, generate, reset }` | State machine: `idle→config→generating→success/error` | Fases DISTINTAS a las 5 del motor BKT — dos state machines separadas |
+| `bktApi.ts` | `upsertBktState()`, `getBktStates()`, `getAllBktStates()` | graceful degradation (catch → `[]`) | `subtopic_id` y `subtopic_ids` mutuamente excluyentes; batch max 200 |
+
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
 | Sesiones ejecutadas | 0 | — |

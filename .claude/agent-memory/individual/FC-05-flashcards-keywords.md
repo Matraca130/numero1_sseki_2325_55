@@ -38,6 +38,17 @@ Agente del sistema de keywords de AXON: gestiona popups de detalle, highlighting
 | Modificar archivos fuera de zona sin coordinación | Viola aislamiento de agentes | Coordinar explícitamente via SendMessage |
 | Perder contexto de usuario en navegación cross-summary | UX degradada | Mantener estado de navegación en hook `useKeywordNavigation` |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `student/KeywordPopup.tsx` | `KeywordPopup` | Hub popup (351L, 4 secciones colapsables) | Refactorizado Phase A: 43KB→13KB delegando a sub-componentes |
+| `services/keywordConnectionsApi.ts` | `getConnections`, `createConnection`, `deleteConnection`, `searchKeywords` | Capa pura de servicio (sin React) | Canonical order `keyword_a_id < keyword_b_id` obligatorio |
+| `services/keywordMasteryApi.ts` | `fetchKeywordMasteryByTopic`, `computeLocalKeywordMastery`, `computeTopicMasterySummary` | Mastery chain: flashcard→BKT subtopic→avg keyword→topic % | `MASTERY_THRESHOLD=0.75` |
+| `hooks/queries/useKeywordPopupQueries.ts` | `useKeywordPopupQueries`, `KwProfNote` | 5 queries paralelas + 3 mutaciones; cache-first | Optimistic delete |
+| `types/keyword-connections.ts` | `KeywordConnection`, `ExternalKeyword`, `CreateConnectionInput` | Fuente de verdad de tipos conexión | — |
+| `types/keywords.ts` | `MasteryLevel` (deprecated), `KeywordCollection` | Tipos legacy + stubs | Usar `DeltaColorLevel` de mastery-helpers en su lugar |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

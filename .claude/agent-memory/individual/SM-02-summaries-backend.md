@@ -37,6 +37,19 @@ Agente backend de resúmenes: mantiene rutas API, servicios y lógica de base de
 | Omitir paginación en listas que pueden crecer (summaries, chunks) | Performance degradada con datasets grandes | Incluir paginación desde el inicio en endpoints de lista |
 | Confiar en input del cliente sin validar | Vulnerabilidades de seguridad e integridad de datos | Siempre validar con Zod antes de procesar |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `crud.ts` | `contentCrudRoutes` | 9 registerCrud calls | summaries→onSummaryWrite, blocks→onBlockWrite |
+| `publish-summary.ts` | `publishSummaryRoutes` | POST /:id/publish → flatten → embed | per-block embeddings batch 5 |
+| `reorder.ts` | `reorderRoutes` | PUT /reorder: whitelist 11 tables, max 200 | bulk_reorder RPC + parallelBatch(20) fallback |
+| `crud-factory.ts` | `registerCrud`, `CrudConfig` | Generic CRUD factory; afterWrite fire-and-forget | — |
+| `summary-hook.ts` | `onSummaryWrite` | 4 gates before autoChunkAndEmbed | Skip if active blocks exist |
+| `block-hook.ts` | `onBlockWrite` | Dirty flag: published→review | Uses admin client |
+| `block-flatten.ts` | `flattenBlocksToMarkdown` | Sort order_index → dispatch 10+2 types | Join `\n\n---\n\n` |
+| `auto-ingest.ts` | `autoChunkAndEmbed` | Advisory lock → hash check → chunk → embed | Reuses semantic chunker |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

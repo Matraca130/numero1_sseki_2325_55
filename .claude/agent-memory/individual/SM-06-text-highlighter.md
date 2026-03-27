@@ -39,6 +39,17 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 | Modificar la sección de text-annotations en `sa-content.ts` sin coordinar con SM-01 | El archivo es compartido; cambios no coordinados rompen la integración con el reader | Coordinar explícitamente con SM-01 antes de cualquier cambio en esa sección |
 | Refactorizar `TextHighlighter.tsx` en un solo commit masivo | Componente de 422L; cambios grandes aumentan el riesgo de regresión | Refactorizar incrementalmente, un bloque de lógica a la vez |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `TextHighlighter.tsx` | `TextHighlighter` (422L) | `window.getSelection()` + preRange offsets | React Query mutations para persistencia |
+| `HighlightToolbar.tsx` | `HighlightToolbar`, `HIGHLIGHT_COLORS` | Floating toolbar | — |
+| `ReaderAnnotationsTab.tsx` | `ReaderAnnotationsTab` (memo) | Backend-coupled via callbacks | ConfirmDialog |
+| `useAnnotationMutations.ts` | create/update/delete | Auto-invalidates summaryAnnotations | — |
+| `textAnnotationsApi.ts` | REST CRUD `/text-annotations` | RLS-enforced via apiCall() | — |
+| `KeywordHighlighterInline.tsx` | Inline keyword highlights | DOM scan + @floating-ui/react | Delta Mastery color system |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

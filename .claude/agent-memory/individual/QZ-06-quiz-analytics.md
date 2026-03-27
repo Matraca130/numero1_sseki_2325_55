@@ -43,6 +43,17 @@ Agente responsable de analíticas y reportes del sistema de quizzes — gestiona
 | Hooks sin manejo de estado de carga/error | UX degradada y errores silenciosos | Siempre manejar `isLoading`, `isError` en cada hook |
 | Estadísticas por pregunta desincronizadas con tipos de QZ-05 | Datos incorrectos o crashes | Respetar la estructura de tipos definida por QZ-05 |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `QuizAnalyticsPanel.tsx` | `QuizAnalyticsPanel` | UI pura, modal con motion | Delega a hook; BarChart x2 (dificultad, tipo) via Recharts |
+| `useQuizAnalytics.ts` | hook + 6 tipos/consts | useEffect + useMemo | `getQuizQuestions` + `getQuizAttempts` (allSettled) |
+| `QuizStatsBar.tsx` | `QuizStatsBar` (memo), `QuizStats` | Presentacional puro, React.memo | Solo badges de conteo, sin API calls |
+| `QuizHistoryPanel.tsx` | `QuizHistoryPanel` | Lazy-load al abrir panel | `getStudySessions` de quizApi; delega a ProgressTrendChart |
+| `ProgressTrendChart.tsx` | `ProgressTrendChart` (memo) | Presentacional, useMemo | AreaChart teal (Recharts) |
+| `quizAttemptsApi.ts` | `createQuizAttempt`, `getQuizAttempts`, `QuizAttempt` | REST wrapper apiCall | difficulty string→int; POST+GET `/quiz-attempts` |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

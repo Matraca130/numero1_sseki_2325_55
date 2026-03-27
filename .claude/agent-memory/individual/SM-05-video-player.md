@@ -40,6 +40,13 @@ Agente del sistema de video de Axon: mantiene el reproductor Mux, el panel de su
 | Omitir validación de tamaño antes del upload | El usuario espera, consume ancho de banda y falla al final | Validar ≤ 500MB antes de iniciar cualquier upload |
 | No manejar token refresh de playback | Los tokens tienen expiración; el video deja de reproducirse sin refresh | Implementar lógica de refresh antes de que el token expire |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+- 8 archivos en zona de video analizados
+- Mux player con upload polling; error suppression pattern; tracking interval
+- Upload flow: solicitar URL → backend crea asset Mux → upchunk sube → webhook → video disponible
+- A-1 cache fix documented; completion threshold configurable
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

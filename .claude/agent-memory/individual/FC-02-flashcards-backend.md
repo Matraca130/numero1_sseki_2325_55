@@ -39,6 +39,20 @@ Agente backend de la sección Flashcards de AXON: implementa y modifica CRUD de 
 | Modificar `crud-factory.ts`, `db.ts`, `auth-helpers.ts` | Infra-plumbing | Escalar al lead |
 | Rutas sin validación de input | Vulnerabilidad y datos inconsistentes | Usar `validateFields()` siempre |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Export | Ruta HTTP | Patrón | Gotcha |
+|---------|--------|-----------|--------|--------|
+| `flashcard-mappings.ts` | `flashcardMappingRoutes` | `GET /flashcard-mappings` | Read-only, paginado, JOIN memberships+flashcards | Seguridad W7-SEC04: JOIN en summaries.institution_id acota al usuario |
+| `flashcards-by-topic.ts` | `flashcardsByTopicRoutes` | `GET /flashcards-by-topic` | Read-only, 2-step query (summaries→flashcards) | `isUuid(topicId)` + `requireInstitutionRole` defensa en profundidad |
+| `flashcard-images.ts` | `flashcardImageRoutes` | `POST /flashcards/:id/generate-image` | Write + AI pipeline → Gemini → Storage | `getAdminClient()` bypasses RLS; validación de rol manual; CONTENT_WRITE_ROLES check |
+| `flashcard-image-generator.ts` | `generateFlashcardImage`, `buildImagePrompt`, `getTransformedImageUrl` | Service (no Hono) | Pipeline: prompt→Gemini→Storage upload→URL | Sin validación propia (capa ruta valida); Storage path: `flashcard-images/{instId}/{fcId}/original.png` |
+
+- **No existe** `flashcard-service.ts` separado; lógica de servicio en `flashcard-image-generator.ts`
+- CRUD base de flashcards lo maneja `crud-factory.ts` (zona infra-plumbing, solo lectura)
+- `safeErr()` de `lib/safe-error.ts` para errores de DB (oculta detalles internos)
+- Image variants via Supabase Image Transformations (sin archivos extra)
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

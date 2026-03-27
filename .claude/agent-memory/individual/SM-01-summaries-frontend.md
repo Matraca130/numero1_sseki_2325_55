@@ -44,6 +44,19 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 | Añadir atoms innecesarios a `reader-atoms.tsx` | Aumenta complejidad del estado global del reader | Usar estado local del componente cuando el scope es reducido |
 | Modificar archivos fuera de la zona de ownership sin coordinación | Rompe el aislamiento entre agentes | Escalar al Arquitecto (XX-01) antes de tocar archivos externos |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `ViewerBlock.tsx` | `ViewerBlock` (React.memo) | Switch por block.type; legacy + 9 EduBlocks | callout bifurca edu vs legacy |
+| `BlockEditor.tsx` | `BlockEditor` (React.memo) | 4 mutations + DnD HTML5 + auto-save blockFlushRef | `DEFAULT_CONTENT` crítico para bloques válidos |
+| `BlockFormRouter.tsx` | default `BlockFormRouter` | Switch → 10 forms, `{ block, onChange }` | — |
+| `useBlockEditorMutations.ts` | 4 mutation hooks | React Query; invalidan summaryBlocks | — |
+| `summariesApi.ts` | EduBlockType(10), LegacyBlockType(7), CRUD | `SummaryBlock.content` = `Record<string,any>` | — |
+| `blocks/index.ts` | 10 renderers + KeywordChip + renderTextWithKeywords | Barrel puro | — |
+
+- Publish usa `POST /summaries/:id/publish` via apiCall directo (sin mutation hook)
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

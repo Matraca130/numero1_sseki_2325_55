@@ -39,6 +39,18 @@ Agente de generación de flashcards con IA de AXON: gestiona el generador inteli
 | Duplicar lógica entre `AiGeneratePanel.tsx` y `SmartFlashcardGenerator.tsx` | Viola principio DRY | Extraer a hook compartido (`useSmartGeneration`, `useQuickGenerate`) |
 | Ignorar errores parciales en batch | Pérdida de cards ya generadas | Manejar errores parciales explícitamente |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `adaptiveGenerationApi.ts` | batch generation con `parallelWithLimit` | `MAX_CONCURRENT=3`, AbortSignal, onProgress | Manejo de errores parciales |
+| `aiFlashcardGenerator.ts` | LEGACY wrapper | Compat con SmartFlashcardGenerator | Real flow va via `aiService.generateSmart` |
+| `SmartFlashcardGenerator.tsx` | Student-facing modal | `smartGenerateFlashcards`, NeedScore urgency | `generateWithImage` toggle |
+| `AiGeneratePanel.tsx` | Professor quiz question panel | `useAiGenerate`; manual vs bulk modes | NOT flashcards — es para quiz questions |
+| `useSmartGeneration.ts` | Unified hook flashcard+quiz | Chunks of 10; abort support | Computa uniqueKeywords/uniqueSubtopics/avgPKnow |
+| `useQuickGenerate.ts` | Single flashcard hook | `isGeneratingRef` guard | Previene double-click |
+| `generate-smart.ts` (backend) | POST `/ai/generate-smart` | RPC `get_smart_generate_target`; 2h dedup window | Plan limit enforcement; adaptive Claude prompt |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|

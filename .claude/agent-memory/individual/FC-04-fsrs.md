@@ -38,6 +38,17 @@ Last updated: 2026-03-25
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `fsrs-v4.ts` (backend) | `computeFsrsV4Update`, FSRS params, scheduling logic | Funciones puras, Deno runtime | `lib/fsrs-engine.ts` en frontend NO existe — toda computación FSRS es server-side |
+| `useFlashcardEngine.ts` | `useFlashcardEngine()` — session orchestrator | Hook complejo con refs, state machine | PATH B: envía reviews al backend via submitBatch(), recibe FSRS computado |
+| `grade-mapper.ts` | SM-2 → FSRS grade translator | Puro, sin efectos | Mapeo de escala SM-2 a escala FSRS |
+| `mastery-helpers.ts` | BKT delta color scale, `DeltaColorLevel` | Utility puro | Usado por FC-05 (keywords) también |
+
+- **KEY**: Frontend no tiene motor FSRS propio; todo pasa por `useReviewBatch` + backend `batch-review.ts`
+
 | Sesiones ejecutadas | 0 | — |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |

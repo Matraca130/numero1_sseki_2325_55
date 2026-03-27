@@ -42,6 +42,20 @@ Agente frontend de la sección Flashcards de AXON: implementa y modifica compone
 | `fetch` directo | Bypass de manejo de errores centralizado | `apiCall()` de `lib/api.ts` |
 | Glassmorphism / gradientes en botones | Fuera del design system AXON | Pill-shaped buttons, teal #14b8a6, rounded-2xl cards |
 | Modificar lógica en archivos de otra zona sin escalar | Viola aislamiento de agentes | Escalar al lead via SendMessage |
+
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `FlashcardView.tsx` | `FlashcardView` | Legacy entry; delegates to flashcard/ sub-views | Being replaced by hub/deck/session screens |
+| `FlashcardsManager.tsx` | `FlashcardsManager` | Professor CRUD list | Toolbar integration |
+| `flashcard/FlashcardSessionScreen.tsx` | `FlashcardSessionScreen` | Core review session, FSRS grading | Keyboard shortcuts (1-4 for grades) |
+| `flashcard/FlashcardSummaryScreen.tsx` | `FlashcardSummaryScreen` | Post-session stats | MasteryRing, SpeedometerGauge |
+| `flashcard/FlashcardHubScreen.tsx` | `FlashcardHubScreen` | Hub navigation | Entry point for adaptive flow |
+| `flashcard/FlashcardDeckScreen.tsx` | `FlashcardDeckScreen` | Deck view with card list | Sort/filter state |
+| `flashcard/adaptive/AdaptiveGenerationScreen.tsx` | `AdaptiveGenerationScreen` | AI-powered adaptive flashcard generation | Uses adaptiveGenerationApi with progress callback |
+| `student/FlashcardCard.tsx` | `FlashcardCard` | Card flip animation | motion/react for flip; front/back content |
+| `student/FlashcardReviewer.tsx` | `FlashcardReviewer` | Review loop orchestrator | Integrates with useFlashcardEngine hook |
 | Reimplementar lógica FSRS en frontend | FSRS vive en `lib/fsrs-v4.ts` (backend) | Consumir via API |
 
 ## Métricas

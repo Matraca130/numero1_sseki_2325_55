@@ -40,6 +40,15 @@ Agente backend de la sección Quiz de AXON — implementa lógica de CRUD de qui
 | Modificar `xp-hooks.ts` | Es zona de gamification | Solo leer; escalar al Arquitecto (XX-01) |
 | Respuestas ad-hoc sin `ok()`/`err()` | Rompe consistencia de contrato de API | Siempre usar helpers de respuesta del framework |
 
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| `routes-student.ts` | `studentRoutes` (Hono) | CRUD via `registerCrud()` factory; NO lógica manual de SELECT/INSERT | `scopeToUser` en notes (student_id) — ausente en professor content; sin esto RLS no basta |
+| `routes/study/reviews.ts` | `reviewRoutes` (Hono) | CREATE-ONLY (GET+POST, sin PUT/DELETE); paginación `limit`/`offset` | `verifySessionOwnership()` obligatorio antes de cualquier op en reviews; XP hook es fire-and-forget (no awaited) |
+| `lib/bkt-v4.ts` | `computeBktV4Update`, `updateMastery`, `calculateRecoveryMultiplier`, `getTypeMultiplier`, `calculateDisplayMastery`, `updateMaxMastery` | Funciones puras sin efectos; entry point = `computeBktV4Update(BktV4Input)` | QUIZ_MULTIPLIER=0.70 reduce ganancia quiz vs flashcard; `isCorrect` requiere grade>=3 (Hard=2 es INCORRECTO para BKT) |
+| `lib/types.ts` | `BKT_PARAMS`, `BKT_WEIGHTS`, `THRESHOLDS`, interfaces `BktV4Input/Output`, `FsrsV4Input/Output` | Solo tipos + constantes, cero imports runtime | `BKT_CORRECT_MIN_GRADE=3` — Hard(2) es correcto para FSRS pero INCORRECTO para BKT; crítico no confundirlos |
+
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
