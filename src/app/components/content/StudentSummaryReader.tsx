@@ -18,8 +18,12 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, ChevronRight, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
-  StickyNote, BookOpen,
+  StickyNote, BookOpen, Search as SearchIcon,
+  Timer, Settings,
 } from 'lucide-react';
+import { ReadingProgress } from '@/app/components/student/ReadingProgress';
+import { SidebarOutline } from '@/app/components/student/SidebarOutline';
+import { SearchBar } from '@/app/components/student/SearchBar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
@@ -57,6 +61,9 @@ import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
 import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
+import { StudyTimer } from '@/app/components/student/StudyTimer';
+import ReadingSettingsPanel, { useReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
+import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 
 // ── Props ─────────────────────────────────────────────────
 interface StudentSummaryReaderProps {
@@ -83,6 +90,15 @@ export function StudentSummaryReader({
   const [activeTab, setActiveTab] = useState(initialTab || 'chunks');
   const readerRef = useRef<HTMLDivElement>(null);
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
+  const [showTimer, setShowTimer] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings(summary.id);
+
+  // ── Wave 1: Sidebar, search, reading progress ─────────
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -95,6 +111,63 @@ export function StudentSummaryReader({
     hasBlocks, blocksLoading,
     invalidateAnnotations,
   } = useSummaryReaderQueries(summary.id);
+
+  // ── Blocks for sidebar outline (shared cache — no extra fetch) ──
+  const { data: sidebarBlocks = [] } = useSummaryBlocksQuery(summary.id);
+
+  // ── Scroll-spy: track which block is currently visible ──
+  useEffect(() => {
+    if (!sidebarBlocks.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveBlockId(entry.target.getAttribute('data-block-id'));
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: 0 },
+    );
+    const elements = document.querySelectorAll('[data-block-id]');
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [sidebarBlocks, activeTab]);
+
+  // ── Sidebar block click → scroll into view ──
+  const handleSidebarBlockClick = useCallback((blockId: string) => {
+    setActiveTab('chunks');
+    setTimeout(() => {
+      const el = document.querySelector(`[data-block-id="${blockId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setActiveBlockId(blockId);
+    }, 50);
+  }, []);
+
+  // ── Search: count matches in blocks ──
+  const searchResultCount = useMemo(() => {
+    if (!searchQuery.trim()) return 0;
+    const q = searchQuery.toLowerCase();
+    return sidebarBlocks.filter((b) => {
+      const c = b.content || {};
+      const text = [c.title, c.text, c.label, c.html, c.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return text.includes(q);
+    }).length;
+  }, [searchQuery, sidebarBlocks]);
+
+  // ── Ctrl+F override to open search bar ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // ── Memoized pagination + keyword-to-page map ───────────
   const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
@@ -228,11 +301,36 @@ export function StudentSummaryReader({
       animate={{ opacity: 1, x: 0 }}
       className={`axon-reader h-full overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-zinc-50'}`}
     >
+      {/* ── Reading progress bar (Wave 1) ── */}
+      <ReadingProgress containerRef={readerRef} />
+
       {/* XP Toast */}
       <XpToast amount={15} show={showXpToast} />
 
-      <div className="max-w-4xl mx-auto p-6 sm:p-8">
-        {/* ── Breadcrumb + back ── */}
+      {/* ── Search bar (Wave 1) ── */}
+      {searchOpen && (
+        <SearchBar
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          resultCount={searchResultCount}
+          onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
+        />
+      )}
+
+      <div className="flex max-w-6xl mx-auto p-6 sm:p-8 gap-6">
+        {/* ── Sidebar outline (Wave 1) ── */}
+        {sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+          <SidebarOutline
+            blocks={sidebarBlocks}
+            activeBlockId={activeBlockId}
+            onBlockClick={handleSidebarBlockClick}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+          />
+        )}
+
+        <div className="flex-1 min-w-0 max-w-4xl">
+        {/* ── Breadcrumb + back + tools ── */}
         <div className="flex items-center gap-2 mb-5">
           <button
             onClick={onBack}
@@ -247,10 +345,59 @@ export function StudentSummaryReader({
           <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
             {summary.title || 'Sin titulo'}
           </span>
-          <div className="ml-auto">
-            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Search toggle (Wave 1) */}
+          <button
+            onClick={() => setSearchOpen((v) => !v)}
+            className={`flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors ${focusRing} rounded-lg px-2 py-1`}
+            title="Buscar (Ctrl+F)"
+          >
+            <SearchIcon className="w-4 h-4" />
+          </button>
+
+          {/* Timer toggle (Wave 4) */}
+          <button
+            onClick={() => setShowTimer(prev => !prev)}
+            className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
+              showTimer
+                ? 'bg-teal-50 text-teal-600'
+                : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800'
+            }`}
+            aria-label={showTimer ? 'Fechar timer' : 'Abrir timer'}
+          >
+            <Timer className="w-4 h-4" />
+          </button>
+
+          {/* Theme toggle (Wave 5) */}
+          <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+
+          {/* Settings toggle (Wave 4) */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(prev => !prev)}
+              className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
+                showSettings
+                  ? 'bg-teal-50 text-teal-600'
+                  : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800'
+              }`}
+              aria-label={showSettings ? 'Fechar configurações' : 'Configurações de leitura'}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            {showSettings && (
+              <ReadingSettingsPanel
+                settings={readingSettings}
+                onChange={updateReadingSettings}
+                onClose={() => setShowSettings(false)}
+              />
+            )}
           </div>
         </div>
+
+        {/* ── Study Timer (fixed position, self-managed) ── */}
+        {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
 
         {/* ── Summary header card ── */}
         <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-2xl border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
@@ -319,7 +466,14 @@ export function StudentSummaryReader({
 
           {/* ── Paginated content preview ── */}
           {summary.content_markdown && (
-              <div className="px-6 sm:px-8 py-6">
+              <div
+                className="px-6 sm:px-8 py-6"
+                style={{
+                  fontSize: `${readingSettings.fontSize}px`,
+                  lineHeight: readingSettings.lineHeight,
+                  fontFamily: readingSettings.fontFamily,
+                }}
+              >
                 <div className="min-h-[180px]">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -406,6 +560,7 @@ export function StudentSummaryReader({
               hasBlocks={hasBlocks}
               blocksLoading={blocksLoading}
               onNavigateKeyword={handleNavigateKeywordWrapped}
+              readingSettings={readingSettings}
             />
           </TabsContent>
 
@@ -445,7 +600,8 @@ export function StudentSummaryReader({
             />
           </TabsContent>
         </Tabs>
-      </div>
+        </div>{/* end flex-1 content wrapper */}
+      </div>{/* end flex layout */}
     </motion.div>
   );
 }

@@ -100,7 +100,7 @@ describe('KeywordChip', () => {
   it('applies correct styling classes', () => {
     render(<KeywordChip keyword={makeKeyword()} />);
     const chip = screen.getByRole('button');
-    // The chip uses inline bg/border colors for light mode
+    // The chip uses design token aliases for light mode
     expect(chip.className).toContain('bg-axon-teal-50');
     expect(chip.className).toContain('text-axon-dark');
     expect(chip.className).toContain('border-axon-teal-100');

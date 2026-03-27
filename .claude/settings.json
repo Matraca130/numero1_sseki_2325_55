@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/check-agent-opus.cjs",
+            "statusMessage": "Verificando model: opus..."
+          }
+        ]
+      }
+    ]
+  }
+}

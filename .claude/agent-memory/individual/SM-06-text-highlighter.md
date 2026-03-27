@@ -1,5 +1,5 @@
 # Agent Memory: SM-06 (text-highlighter)
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
 ## Rol
 Agente del sistema de highlighting de texto y anotaciones: gestiona la selección de texto, la toolbar flotante, el panel de anotaciones y la persistencia de highlights con código de colores sobre el contenido de resúmenes.
@@ -8,6 +8,7 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 | Fecha | Lección | Prevención |
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
+| 2026-03-26 | ReaderAnnotationsTab not reusable for block-level notes: different data model (backend TextAnnotation vs localStorage), color system overhead, ConfirmDialog dependency. Standalone component is the right call. | Evaluate adaptation cost before wrapping existing components |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -19,6 +20,7 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 ## Decisiones técnicas (NO re-litigar)
 | Fecha | Decisión | Por qué | Alternativas descartadas |
 |-------|----------|---------|--------------------------|
+| 2026-03-26 | BlockAnnotationsPanel: standalone component with localStorage | ReaderAnnotationsTab is backend-coupled (TextAnnotation type, API callbacks, color system, ConfirmDialog). A wrapper/adapter would add complexity without benefit. | Wrapper around ReaderAnnotationsTab with blockId filter |
 
 ## Patrones que funcionan
 - Flujo fijo e inviolable: text selection → highlight toolbar aparece → usuario elige color → POST annotation al backend
@@ -40,7 +42,7 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 0 | — |
+| Sesiones ejecutadas | 1 | 2026-03-26 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |

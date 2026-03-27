@@ -21,6 +21,11 @@ import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
+import type { ReadingSettings } from './ReadingSettingsPanel';
+import { useBookmarks } from './BookmarksPanel';
+import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
+import { BlockQuizModal } from './BlockQuizModal';
+import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -29,13 +34,16 @@ interface SummaryViewerProps {
   /** Pre-fetched blocks (seeds React Query cache, avoids fetch) */
   blocks?: SummaryBlock[];
   onKeywordClick?: (keywordId: string) => void;
+  /** Reading settings from ReadingSettingsPanel */
+  readingSettings?: ReadingSettings;
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
   const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId, prefetchedBlocks);
+  const { data: masteryLevels = {} } = useSummaryBlockMastery(summaryId);
 
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,6 +54,18 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
 
   // ── Video modal state ───────────────────────────────────
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
+  // ── Bookmarks state ───────────────────────────────────
+  const { toggle: toggleBookmark, isBookmarked } = useBookmarks(summaryId);
+
+  // ── Annotations state (per-block toggle) ──────────────
+  const [annotationsOpen, setAnnotationsOpen] = useState<Record<string, boolean>>({});
+  const toggleAnnotations = useCallback((blockId: string) => {
+    setAnnotationsOpen(prev => ({ ...prev, [blockId]: !prev[blockId] }));
+  }, []);
+
+  // ── Quiz modal state ──────────────────────────────────
+  const [quizBlockId, setQuizBlockId] = useState<string | null>(null);
 
   // ── Detect mobile ───────────────────────────────────────
   useEffect(() => {
@@ -121,7 +141,14 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       <div
         ref={containerRef}
         className={`dark:bg-[#111215] ${isMobile ? 'space-y-4 px-4 py-6' : 'relative'}`}
-        style={!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : undefined}
+        style={{
+          ...(!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
+          ...(readingSettings ? {
+            fontSize: `${readingSettings.fontSize}px`,
+            lineHeight: readingSettings.lineHeight,
+            fontFamily: readingSettings.fontFamily,
+          } : {}),
+        }}
         role="region"
         aria-label="Contenido del resumen"
       >
@@ -129,6 +156,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
           const content = (
             <motion.div
               key={block.id}
+              data-block-id={block.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
@@ -137,10 +165,20 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
               <ViewerBlock
                 block={block}
                 isMobile={isMobile}
+                masteryLevel={masteryLevels[block.id]}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
+                onBookmarkToggle={() => toggleBookmark(block.id)}
+                isBookmarked={isBookmarked(block.id)}
+                onNotesToggle={() => toggleAnnotations(block.id)}
+                onQuizTrigger={() => setQuizBlockId(block.id)}
               />
+              {annotationsOpen[block.id] && (
+                <div className="mt-2">
+                  <BlockAnnotationsPanel blockId={block.id} summaryId={summaryId} />
+                </div>
+              )}
             </motion.div>
           );
 
@@ -202,6 +240,14 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
           </div>
         </div>
       )}
+
+      {/* ── Block Quiz Modal ───────────────────────────── */}
+      <BlockQuizModal
+        blockId={quizBlockId || ''}
+        summaryId={summaryId}
+        isOpen={!!quizBlockId}
+        onClose={() => setQuizBlockId(null)}
+      />
     </>
   );
 }
