@@ -1,5 +1,5 @@
 # Agent Memory: QZ-01 (quiz-frontend)
-Last updated: 2026-03-26
+Last updated: 2026-03-27
 
 ## Rol
 Agente frontend de la sección Quiz de AXON — implementa y modifica componentes React del módulo Quiz (Student + Professor).
@@ -37,6 +37,11 @@ Agente frontend de la sección Quiz de AXON — implementa y modifica componente
 - Hooks de queries: `useQuiz*.ts`, `useQuestion*.ts` en `src/app/hooks/queries/`
 - Archivos clave de sesión: `QuizView.tsx`, `QuizSessionView.tsx`, `QuizResultsScreen.tsx`
 - Importar tokens de `quizDesignTokens.ts` para modales quiz (MODAL_OVERLAY, MODAL_CARD, FEEDBACK, etc.)
+- Promise.allSettled en handleSelectSummary: cargar quizzes+preguntas en paralelo sin bloquear si uno falla
+- Promise.all en useQuizSession init: session creation + question loading en paralelo (E16 FIX)
+- submittingRef + savedAnswersRef como ref-mirrors de state: evitan stale closures en async callbacks
+- Gamification celebrations exclusivamente en QuizResults via useQuizGamificationFeedback — nunca en QuizTaker
+- quiz-session-helpers.ts para funciones puras (loadAndNormalizeQuestions, checkAndProcessBackup)
 
 ## Patrones a evitar
 | Pattern | Por qué | Alternativa |
@@ -50,7 +55,31 @@ Agente frontend de la sección Quiz de AXON — implementa y modifica componente
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 1 | 2026-03-26 |
+| Sesiones ejecutadas | 2 | 2026-03-27 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
+
+## [2026-03-27] Especialización: Conocimiento de código
+
+| Archivo | Exports clave | Patrón | Gotcha |
+|---------|--------------|--------|--------|
+| QuizView.tsx | QuizView | State-machine thin orchestrator (selection→session) | Siempre <100 líneas; lógica en sub-components |
+| QuizSessionView.tsx | QuizSessionView | @deprecated Phase 14 — reemplazado por QuizTaker+QuizResults | No usar en código nuevo |
+| QuizResultsScreen.tsx | QuizResultsScreen | @deprecated Phase 14 — reemplazado por student/QuizResults.tsx | No usar en código nuevo |
+| QuizSelection.tsx | QuizSelection | Sidebar tree + right panel; Promise.allSettled para quizzes+questions | Filtra q.is_active; fallback si quiz_id filter falla |
+| QuizOverview.tsx | QuizOverview | PLACEHOLDER_PROGRESS decorativo — NO conectado a BKT real | Progress % es falso; no confundir con mastery real |
+| quiz-helpers.ts | checkAnswer, LETTERS, SavedAnswer | open/fill_blank usan fuzzy match bidireccional | MCQ exacto; normalizeText quita acentos antes de comparar |
+| QuizTaker.tsx | QuizTaker | Phase-based (loading/error/recovery/session/results); gamification SOLO en QuizResults | BUG-020: time_limit_seconds inerte — columna falta en DB |
+| useQuizSession.ts | useQuizSession, QuizPhase | Session init+submit+backup; Promise.all session+questions en paralelo | savedAnswersRef evita stale closures; submittingRef previene doble-submit |
+| useQuizNavigation.ts | useQuizNavigation | Extracción R2 de QuizTaker; nav+live-input+submit wrappers | Hook existe pero QuizTaker aún inlinea parte de esta lógica |
+| useQuizBackup.ts | saveQuizBackup, clearQuizBackup, validateAndReorderBackup | localStorage TTL 24h, key axon_qb_{quizId}, nunca lanza | MIN_MATCH_RATIO=0.5 para validar backup vs preguntas actuales |
+| useQuizBkt.ts | useQuizBkt | BKT v3.1 inline; fire-and-forget upsertBktState | P_TRANSIT=0.1, P_SLIP=0.1, P_GUESS=0.25, RECOVERY_FACTOR=0.15 |
+| renderers/McqRenderer.tsx | McqRenderer | React.memo; LETTERS importado de lib/quiz-utils (no content/quiz-helpers) | FeedbackBlock como sub-componente separado |
+| quiz-types.ts | SavedAnswer, GroupStat | Tipos compartidos entre QuizTaker sub-components | SavedAnswer.answer = raw string; selectedOption solo para MCQ display |
+| quizDesignTokens.ts | PROFESSOR_COLORS, STUDENT_COLORS, FEEDBACK, MODAL_*, BTN_* | Single source of truth; profesor usa #2a8c7a, student usa axon CSS vars | Siempre importar tokens, nunca hardcodear clases quiz |
+| quizApi.ts | barrel re-export | Thin barrel re-exporta 6 sub-módulos | Importar desde aquí para backwards compat |
+| quiz-student-routes.ts | quizStudentRoutes | Route única /quizzes → QuizView con lazyRetry | lazyRetry = retry automático en chunk load failure |
+| QuizFormModal.tsx (professor) | QuizFormModal | create/edit modal con time_limit_seconds UI | BUG-020: backend no tiene columna — campo se pierde en save |
+| QuizzesManager.tsx (professor) | QuizzesManager | Lista quizzes + QuizFormModal + QuizQuestionsEditor + QuizAnalyticsPanel | QuizErrorBoundary desde shared/ (no student/) |
+| AdaptiveQuizModal.tsx | AdaptivePhase re-export | 4 fases AI: config/generating/success/error | No usar como wrapper para quizzes simples |
