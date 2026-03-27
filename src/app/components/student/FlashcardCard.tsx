@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Tag, Image as ImageIcon } from 'lucide-react';
 import { ClozeInteraction } from './ClozeInteraction';
+import { FlashcardImage } from '@/app/components/content/flashcard/FlashcardImage';
 import { extractImageUrl, extractText, detectCardType } from '@/app/lib/flashcard-utils';
 import type { CardType } from '@/app/lib/flashcard-utils';
 
@@ -180,7 +181,12 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Frente</span>
           </div>
-          <div className="flex-1 flex items-center justify-center px-8 py-8">
+          <div className="flex-1 flex flex-col items-center justify-center px-8 py-8 gap-3">
+            <FlashcardImage
+              imageUrl={frontImageUrl ?? null}
+              alt={extractText(front) || "Flashcard image"}
+              size="full"
+            />
             <SideContent content={front} explicitImageUrl={frontImageUrl} cardType={cardType} side="front" onImageZoom={onImageZoom} cardId={front} onClozeComplete={onClozeComplete} />
           </div>
           <div className="pb-4 text-center"><span className="text-xs text-gray-400">{isCloze ? 'Toca cada blanco para revelar' : 'Toca o presiona espacio para voltear'}</span></div>
@@ -194,7 +200,12 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#0d9488]/70">Reverso</span>
           </div>
-          <div className="flex-1 flex items-center justify-center px-8 py-8">
+          <div className="flex-1 flex flex-col items-center justify-center px-8 py-8 gap-3">
+            <FlashcardImage
+              imageUrl={backImageUrl ?? null}
+              alt={extractText(back) || "Flashcard image"}
+              size="full"
+            />
             <SideContent content={back} explicitImageUrl={backImageUrl} cardType={cardType} side="back" onImageZoom={onImageZoom} />
           </div>
           <div className="pb-4 text-center"><span className="text-xs text-gray-400">Califica tu respuesta abajo</span></div>
