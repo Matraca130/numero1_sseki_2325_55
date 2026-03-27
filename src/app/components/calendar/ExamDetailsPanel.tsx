@@ -210,10 +210,10 @@ export function ExamDetailsPanel({
   );
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isDesktop) {
       focusManager.onOpen(closeButtonRef);
     }
-  }, [isOpen, focusManager]);
+  }, [isOpen, isDesktop, focusManager]);
 
   if (!exam) {
     return null;
