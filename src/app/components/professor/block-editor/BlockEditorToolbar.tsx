@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Eye, EyeOff, Send, Tag, Video as VideoIcon } from 'lucide-react';
+import { Plus, Eye, EyeOff, Send, Tag, Video as VideoIcon, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 
 interface BlockEditorToolbarProps {
@@ -13,6 +13,10 @@ interface BlockEditorToolbarProps {
   videosCount?: number;
   status: string;
   blockCount: number;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 const BlockEditorToolbar = React.memo(function BlockEditorToolbar({
@@ -26,6 +30,10 @@ const BlockEditorToolbar = React.memo(function BlockEditorToolbar({
   videosCount = 0,
   status,
   blockCount,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
 }: BlockEditorToolbarProps) {
   const showPublish = status === 'draft' || status === 'review';
 
@@ -33,6 +41,31 @@ const BlockEditorToolbar = React.memo(function BlockEditorToolbar({
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-2.5">
       {/* Left side */}
       <div className="flex items-center gap-2">
+        {onUndo && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Deshacer (Ctrl+Z)"
+            className={!canUndo ? 'opacity-40 cursor-not-allowed' : ''}
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+        )}
+        {onRedo && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Rehacer (Ctrl+Shift+Z)"
+            className={!canRedo ? 'opacity-40 cursor-not-allowed' : ''}
+          >
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        )}
+
         <Button variant="outline" size="sm" onClick={onAddBlock}>
           <Plus className="h-4 w-4" />
           Agregar bloque

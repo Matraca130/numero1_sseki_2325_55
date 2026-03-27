@@ -18,8 +18,12 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, ChevronRight, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
-  StickyNote, BookOpen,
+  StickyNote, BookOpen, Search as SearchIcon,
+  Timer, Settings,
 } from 'lucide-react';
+import { ReadingProgress } from '@/app/components/student/ReadingProgress';
+import { SidebarOutline } from '@/app/components/student/SidebarOutline';
+import { SearchBar } from '@/app/components/student/SearchBar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
@@ -37,6 +41,8 @@ import {
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
 import { useReadingTimeTracker } from '@/app/hooks/useReadingTimeTracker';
 import { useVideoListQuery } from '@/app/hooks/queries/useVideoPlayerQueries';
+import { useThemeToggle } from '@/app/hooks/useThemeToggle';
+import { ThemeToggle } from '@/app/components/student/ThemeToggle';
 
 // ── Extracted helpers (Phase B.1) ─────────────────────────
 import {
@@ -55,6 +61,9 @@ import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
 import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
+import { StudyTimer } from '@/app/components/student/StudyTimer';
+import ReadingSettingsPanel, { useReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
+import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 
 // ── Props ─────────────────────────────────────────────────
 interface StudentSummaryReaderProps {
@@ -79,6 +88,17 @@ export function StudentSummaryReader({
   initialTab,
 }: StudentSummaryReaderProps) {
   const [activeTab, setActiveTab] = useState(initialTab || 'chunks');
+  const readerRef = useRef<HTMLDivElement>(null);
+  const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
+  const [showTimer, setShowTimer] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings(summary.id);
+
+  // ── Wave 1: Sidebar, search, reading progress ─────────
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -91,6 +111,63 @@ export function StudentSummaryReader({
     hasBlocks, blocksLoading,
     invalidateAnnotations,
   } = useSummaryReaderQueries(summary.id);
+
+  // ── Blocks for sidebar outline (shared cache — no extra fetch) ──
+  const { data: sidebarBlocks = [] } = useSummaryBlocksQuery(summary.id);
+
+  // ── Scroll-spy: track which block is currently visible ──
+  useEffect(() => {
+    if (!sidebarBlocks.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveBlockId(entry.target.getAttribute('data-block-id'));
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: 0 },
+    );
+    const elements = document.querySelectorAll('[data-block-id]');
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [sidebarBlocks, activeTab]);
+
+  // ── Sidebar block click → scroll into view ──
+  const handleSidebarBlockClick = useCallback((blockId: string) => {
+    setActiveTab('chunks');
+    setTimeout(() => {
+      const el = document.querySelector(`[data-block-id="${blockId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setActiveBlockId(blockId);
+    }, 50);
+  }, []);
+
+  // ── Search: count matches in blocks ──
+  const searchResultCount = useMemo(() => {
+    if (!searchQuery.trim()) return 0;
+    const q = searchQuery.toLowerCase();
+    return sidebarBlocks.filter((b) => {
+      const c = b.content || {};
+      const text = [c.title, c.text, c.label, c.html, c.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return text.includes(q);
+    }).length;
+  }, [searchQuery, sidebarBlocks]);
+
+  // ── Ctrl+F override to open search bar ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // ── Memoized pagination + keyword-to-page map ───────────
   const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
@@ -219,19 +296,45 @@ export function StudentSummaryReader({
 
   return (
     <motion.div
+      ref={readerRef}
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="h-full overflow-y-auto bg-zinc-50"
+      className={`axon-reader h-full overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-zinc-50'}`}
     >
+      {/* ── Reading progress bar (Wave 1) ── */}
+      <ReadingProgress containerRef={readerRef} />
+
       {/* XP Toast */}
       <XpToast amount={15} show={showXpToast} />
 
-      <div className="max-w-4xl mx-auto p-6 sm:p-8">
-        {/* ── Breadcrumb + back ── */}
+      {/* ── Search bar (Wave 1) ── */}
+      {searchOpen && (
+        <SearchBar
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          resultCount={searchResultCount}
+          onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
+        />
+      )}
+
+      <div className="flex max-w-6xl mx-auto p-6 sm:p-8 gap-6">
+        {/* ── Sidebar outline (Wave 1) ── */}
+        {sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+          <SidebarOutline
+            blocks={sidebarBlocks}
+            activeBlockId={activeBlockId}
+            onBlockClick={handleSidebarBlockClick}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+          />
+        )}
+
+        <div className="flex-1 min-w-0 max-w-4xl">
+        {/* ── Breadcrumb + back + tools ── */}
         <div className="flex items-center gap-2 mb-5">
           <button
             onClick={onBack}
-            className={`flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 transition-colors ${focusRing} rounded-lg px-2 py-1`}
+            className={`flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors ${focusRing} rounded-lg px-2 py-1`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span style={{ fontWeight: 500 }}>Resumenes</span>
@@ -239,18 +342,70 @@ export function StudentSummaryReader({
           <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
           <span className="text-sm text-zinc-400">{topicName}</span>
           <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-sm text-zinc-700 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
+          <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
             {summary.title || 'Sin titulo'}
           </span>
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Search toggle (Wave 1) */}
+          <button
+            onClick={() => setSearchOpen((v) => !v)}
+            className={`flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors ${focusRing} rounded-lg px-2 py-1`}
+            title="Buscar (Ctrl+F)"
+          >
+            <SearchIcon className="w-4 h-4" />
+          </button>
+
+          {/* Timer toggle (Wave 4) */}
+          <button
+            onClick={() => setShowTimer(prev => !prev)}
+            className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
+              showTimer
+                ? 'bg-teal-50 text-teal-600'
+                : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800'
+            }`}
+            aria-label={showTimer ? 'Fechar timer' : 'Abrir timer'}
+          >
+            <Timer className="w-4 h-4" />
+          </button>
+
+          {/* Theme toggle (Wave 5) */}
+          <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+
+          {/* Settings toggle (Wave 4) */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(prev => !prev)}
+              className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
+                showSettings
+                  ? 'bg-teal-50 text-teal-600'
+                  : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800'
+              }`}
+              aria-label={showSettings ? 'Fechar configurações' : 'Configurações de leitura'}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            {showSettings && (
+              <ReadingSettingsPanel
+                settings={readingSettings}
+                onChange={updateReadingSettings}
+                onClose={() => setShowSettings(false)}
+              />
+            )}
+          </div>
         </div>
 
+        {/* ── Study Timer (fixed position, self-managed) ── */}
+        {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
+
         {/* ── Summary header card ── */}
-        <div className="bg-white rounded-2xl border-2 border-zinc-200 shadow-sm mb-6 overflow-hidden">
+        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-2xl border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
           {/* Accent bar */}
           <div className={`h-1 ${isCompleted ? 'bg-emerald-500' : 'bg-teal-500'}`} />
 
           {/* Title bar */}
-          <div className="px-6 sm:px-8 py-6 border-b border-zinc-100">
+          <div className="px-6 sm:px-8 py-6 border-b border-zinc-100 dark:border-[#2d2e34]">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center ${
@@ -263,7 +418,7 @@ export function StudentSummaryReader({
                   )}
                 </div>
                 <div>
-                  <h2 className="text-zinc-900 text-lg tracking-tight" style={{ fontWeight: 700 }}>
+                  <h2 className="text-zinc-900 dark:text-[#e6e7eb] text-lg tracking-tight" style={{ fontWeight: 700 }}>
                     {summary.title || 'Sin titulo'}
                   </h2>
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -311,7 +466,14 @@ export function StudentSummaryReader({
 
           {/* ── Paginated content preview ── */}
           {summary.content_markdown && (
-              <div className="px-6 sm:px-8 py-6">
+              <div
+                className="px-6 sm:px-8 py-6"
+                style={{
+                  fontSize: `${readingSettings.fontSize}px`,
+                  lineHeight: readingSettings.lineHeight,
+                  fontFamily: readingSettings.fontFamily,
+                }}
+              >
                 <div className="min-h-[180px]">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -366,7 +528,7 @@ export function StudentSummaryReader({
 
         {/* ── Tabs ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4 bg-white border border-zinc-200 rounded-xl p-1">
+          <TabsList className="mb-4 bg-white dark:bg-[#1e1f25] border border-zinc-200 dark:border-[#2d2e34] rounded-xl p-1">
             <TabsTrigger value="chunks" className="gap-1.5 rounded-lg">
               <Layers className="w-3.5 h-3.5" />
               Contenido
@@ -398,6 +560,8 @@ export function StudentSummaryReader({
               hasBlocks={hasBlocks}
               blocksLoading={blocksLoading}
               onNavigateKeyword={handleNavigateKeywordWrapped}
+              readingSettings={readingSettings}
+              keywords={keywords}
             />
           </TabsContent>
 
@@ -421,7 +585,7 @@ export function StudentSummaryReader({
 
           {/* ── VIDEOS TAB ── */}
           <TabsContent value="videos">
-            <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+            <div className="bg-white dark:bg-[#1e1f25] rounded-2xl border border-zinc-200 dark:border-[#2d2e34] overflow-hidden">
               <VideoPlayer summaryId={summary.id} />
             </div>
           </TabsContent>
@@ -437,7 +601,8 @@ export function StudentSummaryReader({
             />
           </TabsContent>
         </Tabs>
-      </div>
+        </div>{/* end flex-1 content wrapper */}
+      </div>{/* end flex layout */}
     </motion.div>
   );
 }

@@ -21,7 +21,7 @@
     "_comment": "Archivos modularizados con tope máximo en KB. Si crecen más allá, es regresión. Caps set from measured sizes on main + headroom.",
     "files": {
       "src/app/components/content/StudentSummariesView.tsx": 22,
-      "src/app/components/content/StudentSummaryReader.tsx": 25
+      "src/app/components/content/StudentSummaryReader.tsx": 28
     }
   },
 

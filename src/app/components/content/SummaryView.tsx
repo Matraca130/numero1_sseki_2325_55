@@ -43,6 +43,8 @@ import {
   useSummaryChunksQuery,
   useReadingStateQuery,
 } from '@/app/hooks/queries/useSummaryViewQueries';
+import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
+import { SummaryViewer } from '@/app/components/student/SummaryViewer';
 import {
   scrollFlashAndAutoOpen,
   NOOP_HANDLE,
@@ -123,6 +125,11 @@ export function SummaryView() {
   // Reading state: student-only, passed to StudentSummaryReader
   const readingStateQuery = useReadingStateQuery(selectedSummaryId, !isProfessor);
   const readingState = readingStateQuery.data ?? null;
+
+  // Edu blocks: student-only, determines block-based vs HTML monolithic rendering
+  const blocksQuery = useSummaryBlocksQuery(selectedSummaryId || '');
+  const blocksLoading = !isProfessor && blocksQuery.isLoading && !!selectedSummaryId;
+  const hasEduBlocks = !isProfessor && (blocksQuery.data ?? []).length > 0;
 
   const selectedSummary = summaries.find(s => s.id === selectedSummaryId) || null;
 
@@ -325,8 +332,57 @@ export function SummaryView() {
 
   // ── Single summary selected ─────────────────────────────
 
-  // ── Student path: delegate entirely to StudentSummaryReader ──
+  // ── Student path ────────────────────────────────────────
+  // If edu blocks exist → SummaryViewer (block-based enriched view)
+  // Otherwise → StudentSummaryReader (HTML monolithic fallback)
+  if (!isProfessor && selectedSummary && blocksLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-6 w-1/2" />
+        <Skeleton className="h-4 w-1/3" />
+        <div className="space-y-3 mt-4">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (!isProfessor && selectedSummary) {
+    if (hasEduBlocks) {
+      return (
+        <div className="flex flex-col h-full">
+          {/* Header with back + breadcrumb */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Button variant="ghost" size="sm" onClick={handleBack}>
+                <ArrowLeft size={14} className="mr-1" /> Voltar
+              </Button>
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                {breadcrumb.courseName && (
+                  <>
+                    <span>{breadcrumb.courseName}</span>
+                    <ChevronRight size={10} />
+                  </>
+                )}
+                <span className="text-gray-600">{breadcrumb.topicName}</span>
+              </div>
+            </div>
+            <h1
+              className="text-teal-900 dark:text-[#3cc9a8]"
+              style={{ fontSize: 'clamp(1.125rem, 2vw, 1.25rem)', fontFamily: 'Georgia, serif', fontWeight: 700 }}
+            >
+              {selectedSummary.title || 'Resumo'}
+            </h1>
+          </div>
+          {/* Block-based content */}
+          <div className="flex-1 overflow-y-auto">
+            <SummaryViewer summaryId={selectedSummary.id} />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <StudentSummaryReader
         summary={selectedSummary}
