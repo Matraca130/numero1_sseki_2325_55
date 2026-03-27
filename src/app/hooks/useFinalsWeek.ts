@@ -40,10 +40,15 @@ function toISOWeekKey(dateStr: string): string {
  */
 export function useFinalsWeek(events: CalendarEvent[]): Set<string> {
   return useMemo(() => {
+    // Filter out events with invalid/missing dates
+    const validEvents = events.filter(e =>
+      e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
+    );
+
     // Count finals per ISO week
     const weekCounts = new Map<string, number>();
 
-    for (const event of events) {
+    for (const event of validEvents) {
       if (!event.is_final) continue;
       const weekKey = toISOWeekKey(event.date);
       weekCounts.set(weekKey, (weekCounts.get(weekKey) ?? 0) + 1);

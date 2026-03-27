@@ -101,13 +101,14 @@ function formatDateISO(date: Date): string {
 export function useHeatmap(entries: HeatmapEntry[]): UseHeatmapReturn {
   return useMemo(() => {
     const days: HeatmapDay[] = entries.map(entry => {
-      const level = minutesToLevel(entry.minutes);
+      const minutes = Math.max(0, entry.minutes ?? 0);
+      const level = minutesToLevel(minutes);
       return {
         date: entry.date,
-        minutes: entry.minutes,
+        minutes,
         level,
         label: HEATMAP_LABELS[level],
-        streakDay: entry.minutes >= STREAK_THRESHOLD_MINUTES,
+        streakDay: minutes >= STREAK_THRESHOLD_MINUTES,
       };
     });
 

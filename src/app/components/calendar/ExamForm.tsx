@@ -129,6 +129,7 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
 
   const onSubmit = useCallback(
     async (values: ExamFormValues) => {
+      if (form.formState.isSubmitting) return;
       setIsSubmitting(true);
       try {
         if (isEditMode && exam) {
@@ -147,11 +148,14 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
         onClose();
       } catch (err) {
         console.error('[ExamForm] Submit error:', err);
+        form.setError('root', {
+          message: err instanceof Error ? err.message : 'Error al guardar el examen. Intenta de nuevo.',
+        });
       } finally {
         setIsSubmitting(false);
       }
     },
-    [isEditMode, exam, queryClient, onClose],
+    [isEditMode, exam, queryClient, onClose, form],
   );
 
   // ── Delete ───────────────────────────────────────────────
@@ -168,10 +172,13 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
       onClose();
     } catch (err) {
       console.error('[ExamForm] Delete error:', err);
+      form.setError('root', {
+        message: err instanceof Error ? err.message : 'Error al eliminar el examen. Intenta de nuevo.',
+      });
     } finally {
       setIsDeleting(false);
     }
-  }, [exam, queryClient, onClose]);
+  }, [exam, queryClient, onClose, form]);
 
   // ── Render ───────────────────────────────────────────────
 
@@ -324,6 +331,13 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
               </FormItem>
             )}
           />
+
+          {/* Root error message */}
+          {form.formState.errors.root && (
+            <div className="rounded-md bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-600 dark:text-red-400">
+              {form.formState.errors.root.message}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2">

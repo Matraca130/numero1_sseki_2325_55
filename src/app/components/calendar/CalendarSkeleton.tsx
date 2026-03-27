@@ -18,12 +18,12 @@ const DAY_LABELS_MOBILE = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 // ── Skeleton Cell ───────────────────────────────────────────
 
-function SkeletonCell({ isMobile }: { isMobile: boolean }) {
+function SkeletonCell({ isDesktop }: { isDesktop: boolean }) {
   return (
     <div
       className={`
         animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700
-        ${isMobile ? 'aspect-square' : 'aspect-[4/3]'}
+        ${isDesktop ? 'aspect-[4/3]' : 'aspect-square'}
       `}
     >
       {/* Simulated day number */}
@@ -32,7 +32,7 @@ function SkeletonCell({ isMobile }: { isMobile: boolean }) {
       </div>
 
       {/* Simulated event badges (desktop only) */}
-      {!isMobile && (
+      {isDesktop && (
         <div className="flex flex-col gap-1 px-1.5">
           <div className="h-2 w-3/4 rounded bg-gray-300 dark:bg-gray-600" />
           <div className="h-2 w-1/2 rounded bg-gray-300 dark:bg-gray-600" />
@@ -44,8 +44,8 @@ function SkeletonCell({ isMobile }: { isMobile: boolean }) {
 
 // ── Header Skeleton ─────────────────────────────────────────
 
-function HeaderSkeleton({ isMobile }: { isMobile: boolean }) {
-  const labels = isMobile ? DAY_LABELS_MOBILE : DAY_LABELS_DESKTOP;
+function HeaderSkeleton({ isDesktop }: { isDesktop: boolean }) {
+  const labels = isDesktop ? DAY_LABELS_DESKTOP : DAY_LABELS_MOBILE;
 
   return (
     <div className="mb-4 flex items-center justify-between">
@@ -67,9 +67,9 @@ const SKELETON_ROWS = 5;
 const SKELETON_COLS = 7;
 
 export function CalendarSkeleton() {
-  const isMobile = useMediaQuery(768);
+  const isDesktop = useMediaQuery(768);
 
-  const labels = isMobile ? DAY_LABELS_MOBILE : DAY_LABELS_DESKTOP;
+  const labels = isDesktop ? DAY_LABELS_DESKTOP : DAY_LABELS_MOBILE;
 
   return (
     <div
@@ -78,7 +78,7 @@ export function CalendarSkeleton() {
       aria-label="Cargando calendario"
     >
       {/* Header skeleton */}
-      <HeaderSkeleton isMobile={isMobile} />
+      <HeaderSkeleton isDesktop={isDesktop} />
 
       {/* Day-of-week labels */}
       <div className="mb-2 grid grid-cols-7 gap-1">
@@ -95,7 +95,7 @@ export function CalendarSkeleton() {
       {/* Calendar grid: 5 rows x 7 columns */}
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: SKELETON_ROWS * SKELETON_COLS }, (_, i) => (
-          <SkeletonCell key={i} isMobile={isMobile} />
+          <SkeletonCell key={i} isDesktop={isDesktop} />
         ))}
       </div>
 
