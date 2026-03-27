@@ -50,3 +50,26 @@ Agente responsable del CRUD de preguntas y sus renderizadores — gestiona creac
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
+
+## [2026-03-27] Especialización: Conocimiento de código
+
+- **Task**: Relevamiento exhaustivo de renderers y hooks de CRUD de preguntas
+- **Learned**: `QuestionRenderer` es dispatcher puro sin lógica de negocio; todos los renderers usan `React.memo` + `FeedbackBlock` inline para feedback visual
+- **Pattern**: Los 3 renderers comparten paleta de estados: teal (seleccionado), emerald (correcto), rose (incorrecto), gray (neutro/deshabilitado)
+
+### Tabla compacta — Renderers y Hooks
+
+| Archivo | Exports | Props clave | Patrón |
+|---------|---------|-------------|--------|
+| `renderers/McqRenderer.tsx` | `McqRenderer`, `McqRendererProps` | options, correctAnswer, selectedAnswer, showResult, isReviewing, onSelectOption | Radio-group de botones; LETTERS[i] de `quiz-utils` para etiquetas A-H |
+| `renderers/TrueFalseRenderer.tsx` | `TrueFalseRenderer`, `TrueFalseRendererProps` | correctAnswer, tfAnswer, showResult, isReviewing, onSelectTF | Botones true/false con íconos CheckCircle2/XCircle de lucide |
+| `renderers/OpenRenderer.tsx` | `OpenRenderer`, `OpenRendererProps` | questionType ('open'\|'fill_blank'), textAnswer, isCorrectResult, onChangeText, onSubmitText | Textarea; Enter sin Shift = submit; aria-describedby para a11y |
+| `student/QuestionRenderer.tsx` | `QuestionRenderer`, `QuestionRendererProps` | question, questionIndex, + todas las props de los 3 renderers | Dispatcher puro — switch por `question_type`; aria-live para screen readers |
+| `professor/useQuestionCrud.ts` | `useQuestionCrud(loadQuestions)` | showModal, editingQuestion, handlers (Delete/Restore/Edit/Create/Saved/CloseModal) | Extrae estado de modal + handlers CRUD; delega API a `quizApi` |
+| `professor/useQuestionForm.ts` | `useQuestionForm`, params/return types | summaryId, question, onSaved, quizId, keywordRequired | 284L de lógica de formulario: tipos, validación, opciones, submit |
+
+### Contratos de datos relevantes
+- `QuizQuestion` y `QuestionType` de `@/app/services/quizApi`
+- `QUESTION_TYPE_LABELS`, `DIFFICULTY_TO_INT`/`INT_TO_DIFFICULTY` de `@/app/services/quizConstants`
+- `LETTERS` (A-H) de `@/app/lib/quiz-utils`
+- **Métricas actualizadas**: Sesiones ejecutadas → 1 (2026-03-27)
