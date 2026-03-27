@@ -19,11 +19,8 @@ import {
 import { es } from 'date-fns/locale';
 
 import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
-import {
-  EVENT_COLORS,
-  type EventType,
-} from '@/app/lib/calendar-constants';
 import { cn } from '@/app/components/ui/utils';
+import { formatDateISO, getEventColor } from '@/app/lib/calendar-utils';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -34,24 +31,15 @@ export interface WeekViewProps {
   selectedDate: Date;
   /** Callback when a day column is selected */
   onDaySelect: (date: Date) => void;
-}
-
-// ── Helpers ────────────────────────────────────────────────
-
-function formatISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getEventColor(type: string) {
-  return EVENT_COLORS[type as EventType] ?? EVENT_COLORS.exam;
+  /** Callback when an event inside a day is clicked */
+  onEventClick?: (eventId: string) => void;
+  /** Whether the viewport is desktop-sized (>=768px), passed from parent */
+  isDesktop?: boolean;
 }
 
 // ── Component ──────────────────────────────────────────────
 
-export function WeekView({ events, selectedDate, onDaySelect }: WeekViewProps) {
+export function WeekView({ events, selectedDate, onDaySelect, onEventClick, isDesktop }: WeekViewProps) {
   // Compute the 7 days of the week containing selectedDate
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -82,7 +70,7 @@ export function WeekView({ events, selectedDate, onDaySelect }: WeekViewProps) {
       aria-label="Vista semanal del calendario"
     >
       {weekDays.map(day => {
-        const iso = formatISO(day);
+        const iso = formatDateISO(day);
         const dayEvents = eventsByDate.get(iso) ?? [];
         const selected = isSameDay(day, selectedDate);
         const today = isToday(day);
@@ -96,7 +84,7 @@ export function WeekView({ events, selectedDate, onDaySelect }: WeekViewProps) {
               'flex min-w-[120px] flex-shrink-0 flex-col rounded-xl border p-2',
               'snap-start transition-all',
               'focus:outline-none focus:ring-2 focus:ring-teal-400',
-              'min-h-[44px]',
+              'min-h-[44px] active:scale-[0.98]',
               // Desktop: full width in grid
               'md:min-w-0',
               // States
@@ -137,10 +125,14 @@ export function WeekView({ events, selectedDate, onDaySelect }: WeekViewProps) {
                 {dayEvents.map(evt => {
                   const colors = getEventColor(evt.exam_type);
                   return (
-                    <div
+                    <button
                       key={evt.id}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onEventClick?.(evt.id); }}
+                      aria-label={evt.title}
                       className={cn(
                         'truncate rounded px-1.5 py-0.5 text-[11px] leading-tight',
+                        'min-h-[44px] cursor-pointer active:scale-[0.98]',
                         colors.bg,
                         colors.text,
                       )}
@@ -152,7 +144,7 @@ export function WeekView({ events, selectedDate, onDaySelect }: WeekViewProps) {
                         </span>
                       )}
                       {evt.title}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
