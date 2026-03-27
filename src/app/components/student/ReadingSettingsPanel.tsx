@@ -86,13 +86,13 @@ export default function ReadingSettingsPanel({
 
   // Close on click outside
   useEffect(() => {
-    function handleMouseDown(e: MouseEvent) {
+    function handleClick(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         onClose();
       }
     }
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, [onClose]);
 
   // Close on Escape key

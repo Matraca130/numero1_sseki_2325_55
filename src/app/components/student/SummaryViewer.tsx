@@ -15,7 +15,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'motion/react';
 import { Layers } from 'lucide-react';
 import { Skeleton } from '@/app/components/ui/skeleton';
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { ViewerBlock } from './ViewerBlock';
 import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
@@ -36,9 +36,11 @@ interface SummaryViewerProps {
   onKeywordClick?: (keywordId: string) => void;
   /** Reading settings from ReadingSettingsPanel */
   readingSettings?: ReadingSettings;
+  /** Keywords for edu sub-components (ProseBlock, KeyPointBlock, etc.) */
+  keywords?: SummaryKeyword[];
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -165,6 +167,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
               <ViewerBlock
                 block={block}
                 isMobile={isMobile}
+                keywords={keywords}
                 masteryLevel={masteryLevels[block.id]}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}

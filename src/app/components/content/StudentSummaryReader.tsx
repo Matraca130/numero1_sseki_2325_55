@@ -561,6 +561,7 @@ export function StudentSummaryReader({
               blocksLoading={blocksLoading}
               onNavigateKeyword={handleNavigateKeywordWrapped}
               readingSettings={readingSettings}
+              keywords={keywords}
             />
           </TabsContent>
 
