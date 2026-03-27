@@ -21,6 +21,7 @@ import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
+import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
   const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId, prefetchedBlocks);
+  const { data: masteryLevels = {} } = useSummaryBlockMastery(summaryId);
 
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,6 +139,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
               <ViewerBlock
                 block={block}
                 isMobile={isMobile}
+                masteryLevel={masteryLevels[block.id]}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
