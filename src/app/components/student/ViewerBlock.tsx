@@ -19,6 +19,7 @@ import {
   ListDetailBlock, GridBlock, TwoColumnBlock, CalloutBlock as EduCalloutBlock,
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
+import TTSButton from './TTSButton';
 import { MasteryBar } from '@/app/components/student/MasteryBar';
 
 // ── Props ─────────────────────────────────────────────────
@@ -56,6 +57,22 @@ const calloutBg: Record<string, string> = {
   tip: 'bg-teal-50 border-teal-200',
 };
 
+// ── Plain text extraction for TTS ─────────────────────────
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extractBlockText(block: SummaryBlock): string {
+  const c = block.content || {};
+  const parts: string[] = [];
+  if (c.title) parts.push(c.title);
+  if (c.text) parts.push(c.text);
+  if (c.description) parts.push(c.description);
+  if (c.html) parts.push(stripHtml(c.html));
+  return parts.join('. ').trim();
+}
+
 // ── Component ─────────────────────────────────────────────
 
 export const ViewerBlock = React.memo(function ViewerBlock({
@@ -72,6 +89,9 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   onQuizTrigger,
 }: ViewerBlockProps) {
   const c = block.content || {};
+
+  // Extract text for TTS (only for text-bearing blocks)
+  const ttsText = extractBlockText(block);
 
   const hasActions = onBookmarkToggle || onNotesToggle || onQuizTrigger;
 
@@ -354,8 +374,9 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           <MasteryBar level={masteryLevel} size="sm" />
         </div>
       )}
-      {hasActions && (
+      {(hasActions || ttsText) && (
         <div className="flex items-center gap-1 mt-1">
+          {ttsText && <TTSButton text={ttsText} />}
           {onBookmarkToggle && (
             <BookmarkButton
               blockId={block.id}
