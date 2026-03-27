@@ -71,6 +71,22 @@ Sessions executed: 1
 | `getKeywordsNeedingCards` stub | FC-06 | Implementing real logic requires understanding NeedScore from backend — not just unstubbing |
 | `KeywordCollection` type collision | FC-06 | Two modules use same name with different shapes — refactoring requires coordinated rename |
 
+## Session 2: [2026-03-27] Oleada de Especialización (69 agentes)
+
+### Lección crítica: Sub-agentes no pueden escribir memorias
+- **Causa 1**: Hook `check-agent-opus.cjs` bloquea Agent con `model != "opus"`. Oleada 1 usó `model: sonnet` → bloqueados.
+- **Causa 2**: Sub-agentes heredan permisos restringidos. Write/Edit/Bash requieren aprobación del usuario en cada sub-agente.
+- **Solución**: Patrón "investigador centralizado" — sub-agentes SOLO leen código, sesión principal aplica memorias.
+- **Resultado**: Oleada 1 (18 agentes) completada exitosamente con este patrón. 259 líneas de conocimiento registradas.
+
+### Patrón óptimo para especialización masiva
+```
+1. Lanzar sub-agente Sonnet con READ-ONLY (no intentar escribir)
+2. Sub-agente analiza código y reporta hallazgos en su response
+3. Sesión principal (Opus) extrae hallazgos y hace Edit/Write centralizado
+4. Commit batch al final de cada oleada
+```
+
 ## 7. Self-Improvement Notes
 
 - Next recon batch: ask agents to also report "files in my zone that are NOT in the registry" (reverse gap)
