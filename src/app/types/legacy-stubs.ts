@@ -93,7 +93,11 @@ export function getSectionImage(_sectionId: string): string {
 
 // ── Keyword types + stubs ────────────────────────────────────
 
-export type MasteryLevel = 'none' | 'seen' | 'learning' | 'familiar' | 'mastered';
+// MasteryStage is the canonical stage-based mastery type from keywords.ts
+import { type MasteryStage } from '@/app/types/keywords';
+
+/** @deprecated Use MasteryStage from types/keywords.ts directly */
+export type MasteryLevel = MasteryStage;
 
 export interface AIQuestion {
   id: string;

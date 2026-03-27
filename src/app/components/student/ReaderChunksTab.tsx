@@ -24,6 +24,7 @@ import { proseClasses } from '@/app/components/design-kit';
 import { ListSkeleton } from '@/app/components/student/reader-atoms';
 import { ImageLightbox } from '@/app/components/student/ImageLightbox';
 import { useChunkImageLightbox } from '@/app/hooks/useChunkImageLightbox';
+import type { ReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ export interface ReaderChunksTabProps {
   hasBlocks: boolean;
   blocksLoading: boolean;
   onNavigateKeyword: (keywordId: string, summaryId: string) => void;
+  readingSettings?: ReadingSettings;
 }
 
 // ── Component (P-05 FIX: React.memo) ─────────────────────
@@ -45,6 +47,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
   hasBlocks,
   blocksLoading,
   onNavigateKeyword,
+  readingSettings,
 }: ReaderChunksTabProps) {
   // ── Lightbox for chunk images (P1 fix) ──────────────────
   const chunksContainerRef = useRef<HTMLDivElement>(null);
@@ -67,7 +70,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
       </div>
       <div className="p-6">
         {!blocksLoading && hasBlocks ? (
-          <SummaryViewer summaryId={summaryId} />
+          <SummaryViewer summaryId={summaryId} readingSettings={readingSettings} />
         ) : chunksLoading ? (
           <ListSkeleton />
         ) : chunks.length === 0 ? (

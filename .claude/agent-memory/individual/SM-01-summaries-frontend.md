@@ -8,6 +8,12 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 | Fecha | Lección | Prevención |
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
+| 2026-03-26 | ViewerBlock uses IIFE pattern to wrap switch-case returns when adding post-render content (MasteryBar) | Use IIFE `(() => { switch ... })()` to capture switch output, then wrap with additional elements |
+| 2026-03-26 | SidebarOutline.tsx was expected from ST-05 but not created — created it myself with mastery dot colors mirroring MasteryBar's scale | When a dependency task doesn't produce an expected file, create it within ownership zone rather than blocking indefinitely |
+| 2026-03-26 | BookmarkButton + BookmarksPanel: useBookmarks hook uses localStorage with `axon-bookmarks-{summaryId}` key; hook co-located in BookmarksPanel.tsx for colocation | Export hook from panel file so integrator imports { useBookmarks } from BookmarksPanel |
+| 2026-03-26 | Wave 3 integration: IIFE pattern reused for action bar (bookmark, notes, quiz buttons) below block content in ViewerBlock. SummaryViewer manages bookmarks/annotations/quiz state and passes handlers down. | Reuse IIFE pattern for cross-cutting block decorations; use Record<id, boolean> for per-block toggles |
+| 2026-03-26 | TTSButton: Web Speech API needs synth.cancel() before synth.speak() to reset state reliably; onend/onerror both must reset speaking state; useRef for utterance avoids stale closure issues | Always cancel before speak; always handle both onend and onerror |
+| 2026-03-26 | ReadingSettingsPanel: useReadingSettings hook co-located in same file, uses single localStorage key `axon-reading-settings` (global, not per-summary) for simplicity; exports interface + defaults + hook + component | Co-locate hook with panel; export both named (hook/types) and default (component) |
 | 2026-03-27 | useUndoRedo `state` must be consumed — pushing snapshots without reading the restored state makes undo a no-op. The hook returns `state` but BlockEditor never destructured it, so undo/redo updated internal hook state while React Query blocks remained unchanged. | Always destructure and consume `state` from useUndoRedo. When undo restores a snapshot, apply it back via localBlockOverrides that merge with server data. |
 | 2026-03-27 | Never add React Query data arrays (like `blocks`) to useCallback deps — it makes the callback reference unstable on every query refetch, defeating React.memo on child components (EditableBlock). | Use a ref (`blocksRef.current = blocks`) updated on every render, and read from the ref inside callbacks. This keeps deps stable while accessing current data. |
 
@@ -21,6 +27,8 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 ## Decisiones técnicas (NO re-litigar)
 | Fecha | Decisión | Por qué | Alternativas descartadas |
 |-------|----------|---------|--------------------------|
+| 2026-03-26 | IIFE wrapping switch in ViewerBlock to add MasteryBar below block content | Avoids duplicating MasteryBar in every case branch; keeps switch clean | Duplicating MasteryBar in each case; creating a wrapper component |
+| 2026-03-26 | SidebarOutline uses inline style for dot color (not Tailwind class) to match MasteryBar's design-system colors | Keeps mastery color logic consistent with MasteryBar; design-system hex values don't map to Tailwind classes | Using Tailwind bg-* classes with a mapping table |
 | 2026-03-27 | Undo/redo applies snapshots via `localBlockOverrides` state that merges with React Query data, then persists each changed block to server | Keeps React Query as source of truth while providing immediate UI feedback; overrides auto-clear when server data catches up | (1) Calling updateMutation only without local state — too slow, UI flickers; (2) Replacing React Query data entirely — breaks cache consistency |
 
 ## Patrones que funcionan
@@ -46,7 +54,7 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 1 | 2026-03-27 |
+| Sesiones ejecutadas | 5 | 2026-03-27 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
