@@ -9,11 +9,11 @@
 // S-1C: CalendarSkeleton (loading state)
 export { CalendarSkeleton } from './CalendarSkeleton';
 
-// S-1A: CalendarView (main monthly view) — uncomment when available
-// export { CalendarView } from './CalendarView';
+// S-1A: CalendarView (main monthly view)
+export { CalendarView } from './CalendarView';
 
-// S-1A: WeekView (weekly view) — uncomment when available
-// export { WeekView } from './WeekView';
+// S-1A: WeekView (weekly view)
+export { WeekView } from './WeekView';
 
 // S-1B: DayCell (individual day cell)
 export { DayCell } from './DayCell';
