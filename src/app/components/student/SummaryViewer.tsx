@@ -129,6 +129,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
           const content = (
             <motion.div
               key={block.id}
+              data-block-id={block.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
