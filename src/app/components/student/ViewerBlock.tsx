@@ -18,6 +18,7 @@ import {
   ListDetailBlock, GridBlock, TwoColumnBlock, CalloutBlock as EduCalloutBlock,
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
+import { MasteryBar } from '@/app/components/student/MasteryBar';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ interface ViewerBlockProps {
   block: SummaryBlock;
   isMobile: boolean;
   keywords?: SummaryKeyword[];
+  masteryLevel?: number;
   onImageClick?: (src: string, alt?: string, caption?: string) => void;
   onKeywordClick?: (keywordId: string) => void;
   onVideoPlay?: (videoId: string) => void;
@@ -52,13 +54,14 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   block,
   isMobile,
   keywords,
+  masteryLevel,
   onImageClick,
   onKeywordClick,
   onVideoPlay,
 }: ViewerBlockProps) {
   const c = block.content || {};
 
-  switch (block.type) {
+  const blockContent = (() => { switch (block.type) {
     // ── Text ────────────────────────────────────────────
     case 'text': {
       const html = c.html || c.text || '';
@@ -325,7 +328,20 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           </p>
         </div>
       );
-  }
+  } })();
+
+  if (!blockContent) return null;
+
+  return (
+    <div>
+      {blockContent}
+      {masteryLevel !== undefined && (
+        <div className="mt-1">
+          <MasteryBar level={masteryLevel} size="sm" />
+        </div>
+      )}
+    </div>
+  );
 });
 
 ViewerBlock.displayName = 'ViewerBlock';
