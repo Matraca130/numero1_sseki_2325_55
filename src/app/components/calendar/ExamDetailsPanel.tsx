@@ -167,7 +167,7 @@ function PanelContent({
       </div>
 
       {/* CRITICAL: sticky footer for mobile */}
-      <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t p-4">
+      <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t p-4 pb-[env(safe-area-inset-bottom)]">
         <Button
           className="w-full rounded-full min-h-[44px]"
           onClick={() => onEdit?.(exam.id)}
@@ -248,7 +248,7 @@ export function ExamDetailsPanel({
   // ── Mobile: Drawer ─────────────────────────────────────
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange}>
-      <DrawerContent className="max-h-[85vh] flex flex-col">
+      <DrawerContent className="max-h-[85dvh] flex flex-col">
         <DrawerHeader className="pb-2 pr-12 relative">
           <DrawerTitle
             className="font-semibold"

@@ -115,6 +115,7 @@ export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) 
                   'min-h-[44px] text-left transition-colors',
                   'hover:bg-gray-50 dark:hover:bg-gray-800',
                   'focus:outline-none focus:ring-2 focus:ring-teal-400',
+                  'active:scale-[0.98] active:opacity-80',
                 )}
                 onClick={() => onEventClick?.(exam.id)}
                 aria-label={`${exam.title}, ${daysRemaining} dias restantes`}
@@ -162,6 +163,7 @@ export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) 
             'mt-2 w-full rounded-md py-2 text-center text-sm font-medium min-h-[44px]',
             'text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-900/20',
             'focus:outline-none focus:ring-2 focus:ring-teal-400',
+            'active:scale-[0.98] active:opacity-80',
           )}
           onClick={() => setShowAll(true)}
         >
@@ -176,6 +178,7 @@ export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) 
             'mt-2 w-full rounded-md py-2 text-center text-sm font-medium min-h-[44px]',
             'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800',
             'focus:outline-none focus:ring-2 focus:ring-teal-400',
+            'active:scale-[0.98] active:opacity-80',
           )}
           onClick={() => setShowAll(false)}
         >
