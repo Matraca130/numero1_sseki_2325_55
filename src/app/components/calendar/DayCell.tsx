@@ -85,7 +85,7 @@ export function DayCell({
 
       {/* Heatmap overlay */}
       <div
-        className={`absolute inset-0 rounded-md pointer-events-none opacity-40 ${heatmapClass}`}
+        className={`absolute inset-0 rounded-md pointer-events-none opacity-40 dark:opacity-70 ${heatmapClass}`}
         style={{ zIndex: ZINDEX.overlay }}
         aria-hidden="true"
       />
