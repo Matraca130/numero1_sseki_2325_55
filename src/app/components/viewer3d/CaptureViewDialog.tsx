@@ -96,14 +96,14 @@ export function CaptureViewDialog({
           if (summaryId) {
             // Get or create "General" keyword
             const { ensureGeneralKeyword } = await import('@/app/lib/api');
-            const keyword = await ensureGeneralKeyword(summaryId);
+            const keywordId = await ensureGeneralKeyword(summaryId);
 
             // Create flashcard with image
             await apiCall('/flashcards', {
               method: 'POST',
               body: JSON.stringify({
                 summary_id: summaryId,
-                keyword_id: keyword.id,
+                keyword_id: keywordId,
                 front: front.trim(),
                 back: back.trim() || `Imagen del modelo 3D: ${modelName}`,
                 source: 'manual',

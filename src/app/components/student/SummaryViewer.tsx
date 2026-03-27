@@ -24,6 +24,7 @@ import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery
 import { useBookmarks } from './BookmarksPanel';
 import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
+import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
   const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId, prefetchedBlocks);
+  const { data: masteryLevels = {} } = useSummaryBlockMastery(summaryId);
 
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -144,6 +146,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
           const content = (
             <motion.div
               key={block.id}
+              data-block-id={block.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
@@ -152,6 +155,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
               <ViewerBlock
                 block={block}
                 isMobile={isMobile}
+                masteryLevel={masteryLevels[block.id]}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}

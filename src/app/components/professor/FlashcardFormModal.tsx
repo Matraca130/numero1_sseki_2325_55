@@ -253,7 +253,7 @@ export function FlashcardFormModal({
         });
         toast.success('Flashcard actualizada');
       } else {
-        const resolvedKeywordId = keywordId || (await ensureGeneralKeyword(summaryId)).id;
+        const resolvedKeywordId = keywordId || await ensureGeneralKeyword(summaryId);
         await flashcardApi.createFlashcard({
           summary_id: summaryId,
           keyword_id: resolvedKeywordId,

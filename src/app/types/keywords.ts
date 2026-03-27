@@ -6,10 +6,16 @@
 // Real keyword data comes from the backend API.
 // ============================================================
 
+import type { KeywordState } from '@/app/types/student';
+
 // ── Types ────────────────────────────────────────────────────
 
+/** Color-based mastery level (legacy 3-tier UI display) */
 /** @deprecated Use DeltaColorLevel from mastery-helpers.ts instead */
 export type MasteryLevel = 'red' | 'yellow' | 'green';
+
+/** Stage-based mastery level (legacy progression stages) */
+export type MasteryStage = 'none' | 'seen' | 'learning' | 'familiar' | 'mastered';
 
 export interface AIQuestion {
   question: string;
@@ -25,8 +31,8 @@ export interface KeywordData {
   category?: string;
 }
 
-/** Record<term, KeywordData> — used by SmartFlashcardGenerator */
-export type KeywordCollection = Record<string, KeywordData>;
+/** Record<normalizedKeyword, KeywordState> — canonical keyword collection type */
+export type KeywordCollection = Record<string, KeywordState>;
 
 // ── Mastery Config ───────────────────────────────────────────
 
@@ -73,9 +79,17 @@ export function getAllKeywordTerms(): string[] {
 
 // ── Stub functions (previously in services/keywordManager.ts) ─
 
+export interface KeywordNeed {
+  keyword: string;
+  coverage: number;
+  needScore: number;
+}
+
 export function getKeywordsNeedingCards(
   _keywords: KeywordCollection,
-): KeywordData[] {
+  _minCoverage?: number,
+  _maxResults?: number,
+): KeywordNeed[] {
   return [];
 }
 

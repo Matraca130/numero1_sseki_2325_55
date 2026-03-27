@@ -19,6 +19,7 @@ import {
   ListDetailBlock, GridBlock, TwoColumnBlock, CalloutBlock as EduCalloutBlock,
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
+import { MasteryBar } from '@/app/components/student/MasteryBar';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -26,6 +27,7 @@ interface ViewerBlockProps {
   block: SummaryBlock;
   isMobile: boolean;
   keywords?: SummaryKeyword[];
+  masteryLevel?: number;
   onImageClick?: (src: string, alt?: string, caption?: string) => void;
   onKeywordClick?: (keywordId: string) => void;
   onVideoPlay?: (videoId: string) => void;
@@ -60,6 +62,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   block,
   isMobile,
   keywords,
+  masteryLevel,
   onImageClick,
   onKeywordClick,
   onVideoPlay,
@@ -346,6 +349,11 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   return (
     <>
       {blockContent}
+      {masteryLevel !== undefined && (
+        <div className="mt-1">
+          <MasteryBar level={masteryLevel} size="sm" />
+        </div>
+      )}
       {hasActions && (
         <div className="flex items-center gap-1 mt-1">
           {onBookmarkToggle && (
