@@ -391,34 +391,6 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           : {}),
       }}
     >
-      {/* Mastery percentage badge — top right */}
-      {mastery && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 4,
-            right: 4,
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: mastery.border,
-            color: '#fff',
-            fontSize: 9,
-            fontWeight: 700,
-            lineHeight: 1,
-            zIndex: 2,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-          }}
-          title={mastery.label}
-          aria-label={`Dominio: ${Math.round((masteryLevel ?? 0) * 100)}%`}
-        >
-          {Math.round((masteryLevel ?? 0) * 100)}%
-        </div>
-      )}
-
       {blockContent}
 
       {(hasActions || ttsText) && (

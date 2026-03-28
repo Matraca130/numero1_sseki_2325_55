@@ -84,8 +84,8 @@ export function SidebarOutline({
 
   return (
     <aside
-      className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light transition-all duration-200"
-      style={{ width: collapsed ? 52 : 220 }}
+      className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light"
+      style={{ width: collapsed ? 44 : 220, transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)' }}
     >
       {/* ── Header ─────────────────────────────────── */}
       <div className="flex items-center justify-between px-2 py-3">

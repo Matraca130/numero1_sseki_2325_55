@@ -420,6 +420,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
             <SummaryViewer
               summaryId={summary.id}
               readingSettings={readingSettings}
+              layout="flow"
             />
           </div>
 

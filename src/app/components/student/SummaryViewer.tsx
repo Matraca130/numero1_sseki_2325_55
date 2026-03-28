@@ -39,9 +39,11 @@ interface SummaryViewerProps {
   readingSettings?: ReadingSettings;
   /** Keywords for edu sub-components (ProseBlock, KeyPointBlock, etc.) */
   keywords?: SummaryKeyword[];
+  /** Layout mode: 'canvas' = absolute positioning (default), 'flow' = vertical stack */
+  layout?: 'canvas' | 'flow';
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'canvas' }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -164,9 +166,9 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
     <>
       <div
         ref={containerRef}
-        className={`dark:bg-[#111215] ${isMobile ? 'space-y-4 px-4 py-6' : 'relative'}`}
+        className={`dark:bg-[#111215] ${(isMobile || layout === 'flow') ? 'space-y-4 px-4 py-6' : 'relative'}`}
         style={{
-          ...(!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
+          ...(!(isMobile || layout === 'flow') ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
           ...(readingSettings ? {
             fontSize: `${readingSettings.fontSize}px`,
             lineHeight: readingSettings.lineHeight,
@@ -185,6 +187,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
               aria-label={`Bloque ${block.type}`}
+              {...(layout === 'flow' ? { style: { marginBottom: 16 } } : {})}
             >
               <ViewerBlock
                 block={block}
@@ -207,11 +210,11 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
             </motion.div>
           );
 
-          if (isMobile) {
+          if (isMobile || layout === 'flow') {
             return content;
           }
 
-          // Desktop: absolute positioned
+          // Desktop: absolute positioned (canvas mode)
           return (
             <div
               key={block.id}
