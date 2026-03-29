@@ -73,7 +73,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
       </div>
       <div className="p-6">
         {!blocksLoading && hasBlocks ? (
-          <SummaryViewer summaryId={summaryId} readingSettings={readingSettings} keywords={keywords} />
+          <SummaryViewer summaryId={summaryId} layout="flow" readingSettings={readingSettings} keywords={keywords} />
         ) : chunksLoading ? (
           <ListSkeleton />
         ) : chunks.length === 0 ? (
