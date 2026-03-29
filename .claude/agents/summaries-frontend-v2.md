@@ -24,9 +24,9 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 - `components/summary/SummaryHeader.tsx`
 - `components/roles/pages/professor/SummaryDetailView.tsx` (750L)
 - `components/roles/pages/professor/SummaryFormDialog.tsx` (153L)
-- `hooks/useSummaryPersistence.ts` (190L)
-- `hooks/useSummaryViewer.ts` (137L)
-- `hooks/useSummaryTimer.ts` (47L)
+- ~~`hooks/useSummaryPersistence.ts`~~ (planned, never created — persistence handled by useSummaryReaderMutations)
+- ~~`hooks/useSummaryViewer.ts`~~ (planned, never created — viewer logic inline in StudentSummaryReader)
+- ~~`hooks/useSummaryTimer.ts`~~ (planned, never created — replaced by useReadingTimeTracker)
 - `hooks/useReadingTimeTracker.ts` (182L)
 - `hooks/useChunkImageLightbox.ts` (193L)
 - `hooks/queries/useSummaryReaderQueries.ts`
