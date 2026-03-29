@@ -192,7 +192,7 @@ function StudentShell() {
 
       {/* ── AI Assistant Floating Action Button ── */}
       <AnimatePresence>
-        {!isStudySessionActive && (
+        {!isStudySessionActive && !summaryId && (
           <motion.button
             key="ai-fab"
             initial={{ scale: 0, opacity: 0 }}
