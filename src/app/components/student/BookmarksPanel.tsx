@@ -71,7 +71,7 @@ export default function BookmarksPanel({
     <div
       role="dialog"
       aria-label="Bloques guardados"
-      className="absolute top-full right-0 mt-1.5 w-72 bg-white dark:bg-[var(--reader-card-bg,#1e1f25)] border border-gray-200 dark:border-[var(--reader-border,#2d2e34)] rounded-2xl p-3 shadow-lg z-50 max-h-[350px] overflow-y-auto"
+      className="absolute bottom-full right-0 mb-1.5 w-72 bg-white dark:bg-[var(--reader-card-bg,#1e1f25)] border border-gray-200 dark:border-[var(--reader-border,#2d2e34)] rounded-2xl p-3 shadow-lg z-50 max-h-[350px] overflow-y-auto"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
