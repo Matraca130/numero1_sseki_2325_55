@@ -20,7 +20,7 @@ import {
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
 import TTSButton from './TTSButton';
-import { getMasteryStyle } from '@/app/components/student/MasteryBar';
+import { getMasteryStyle } from '@/app/design-system';
 
 // ── Props ─────────────────────────────────────────────────
 
