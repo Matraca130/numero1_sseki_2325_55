@@ -74,25 +74,29 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
       <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
         <h3 className="text-sm text-zinc-700" style={{ fontWeight: 600 }}>Contenido del resumen</h3>
         <div className="flex items-center gap-2">
-          {!blocksLoading && hasBlocks && chunks.length > 0 && (
-            <button
-              onClick={() => setShowHighlighter(prev => !prev)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border transition-colors cursor-pointer ${
-                showHighlighter
-                  ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
-                  : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100'
-              }`}
-              style={{ fontWeight: 600 }}
-              title={showHighlighter ? 'Volver a vista enriquecida' : 'Modo subrayado: selecciona texto para crear highlights'}
-            >
-              <Highlighter size={10} />
-              {showHighlighter ? 'Vista enriquecida' : 'Subrayar'}
-            </button>
-          )}
-          {!blocksLoading && hasBlocks && !showHighlighter && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 600 }}>
-              Vista enriquecida
-            </span>
+          {!blocksLoading && hasBlocks && (
+            <>
+              {chunks.length > 0 && (
+                <button
+                  onClick={() => setShowHighlighter(prev => !prev)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border transition-colors cursor-pointer ${
+                    showHighlighter
+                      ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100'
+                  }`}
+                  style={{ fontWeight: 600 }}
+                  title={showHighlighter ? 'Volver a vista enriquecida' : 'Modo subrayado: selecciona texto para crear highlights'}
+                >
+                  <Highlighter size={10} />
+                  {showHighlighter ? 'Vista enriquecida' : 'Subrayar'}
+                </button>
+              )}
+              {!showHighlighter && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 600 }}>
+                  Vista enriquecida
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -117,12 +121,28 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
             <p className="text-xs text-zinc-400">Este resumen aun no tiene contenido</p>
           </div>
         ) : (
-          <div ref={chunksContainerRef}>
-            <TextHighlighter
-              chunks={chunks}
-              summaryId={summaryId}
-              annotations={annotations}
-            />
+          <div ref={chunksContainerRef} className="space-y-4">
+            {chunks.map((chunk, idx) => (
+              <motion.div
+                key={chunk.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.02 }}
+              >
+                {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
+                  <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>
+                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content)) }} />
+                  </KeywordHighlighterInline>
+                ) : (
+                  <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>
+                    <div className="axon-prose max-w-none">
+                      {chunk.content.split('\n').map((line, i) => renderPlainLine(line, i))}
+                    </div>
+                  </KeywordHighlighterInline>
+                )}
+                {idx < chunks.length - 1 && <div className="border-b border-zinc-100 mt-4" />}
+              </motion.div>
+            ))}
           </div>
         )}
       </div>

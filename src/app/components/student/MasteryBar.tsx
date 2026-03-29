@@ -42,7 +42,7 @@ export const MASTERY_LIGHT: Record<string, MasteryColorSet> = {
 };
 
 export const MASTERY_DARK: Record<string, MasteryColorSet> = {
-  gray:   { bg: "#27272a", border: "#71717a",                  text: "#a1a1aa", label: "Por descubrir" },
+  gray:   { bg: "#27272a", border: colors.mastery.descubrir,   text: "#a1a1aa", label: "Por descubrir" },
   red:    { bg: "#2a1215", border: colors.mastery.emergente,   text: "#fca5a5", label: "Emergente" },
   yellow: { bg: "#2a2010", border: colors.mastery.enProgreso,  text: "#fcd34d", label: "En progreso" },
   green:  { bg: "#0f2a1d", border: colors.mastery.consolidado, text: "#6ee7b7", label: "Consolidado" },
