@@ -225,18 +225,6 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
             title="Buscar (Ctrl+F)"
           />
 
-          {/* Highlight mode */}
-          <ToolbarButton icon={Highlighter} onClick={() => {}} title="Marca texto" />
-
-          {/* Annotations */}
-          <ToolbarButton icon={MessageSquare} onClick={() => {}} title="Mis notas" />
-
-          {/* Bookmarks */}
-          <ToolbarButton icon={Bookmark} onClick={() => {}} title="Marcadores" />
-
-          {/* Drawing */}
-          <ToolbarButton icon={Pencil} onClick={() => {}} title="Dibujar" />
-
           {/* Timer */}
           <ToolbarButton icon={Timer} onClick={() => {}} title="Temporizador" />
 
