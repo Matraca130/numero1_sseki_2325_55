@@ -157,12 +157,18 @@ export function StudentSummaryReader({
     }).length;
   }, [searchQuery, sidebarBlocks]);
 
-  // ── Ctrl+F override to open search bar ──
+  // ── Keyboard shortcuts (Ctrl+F, Escape) ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setSearchOpen(false);
+        setSearchQuery('');
+        setShowSettings(false);
+        setShowTimer(false);
       }
     };
     window.addEventListener('keydown', handler);
