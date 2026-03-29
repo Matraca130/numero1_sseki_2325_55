@@ -551,15 +551,9 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
       {blockContent}
 
-      {/* TTS button — absolute top-right for text-bearing blocks */}
-      {ttsText && isHighlightable && (
-        <div className="absolute top-1 right-1 opacity-20 hover:opacity-100 transition-opacity z-10">
-          <TTSButton text={ttsText} />
-        </div>
-      )}
-
-      {hasActions && (
-        <div className="flex items-center gap-1 mt-1">
+      {(hasActions || ttsText) && (
+        <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity bg-white/80 dark:bg-[#1e1f25]/80 backdrop-blur-sm rounded-lg px-1 py-0.5 z-10">
+          {ttsText && <TTSButton text={ttsText} />}
           {onBookmarkToggle && (
             <BookmarkButton
               blockId={block.id}
