@@ -278,7 +278,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       />
 
       {/* ── Bookmarks toggle + panel ──────────────────── */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-24 z-50">
         <div className="relative">
           <button
             onClick={() => setShowBookmarks(prev => !prev)}
