@@ -4,11 +4,13 @@
 
 ```
 .claude/agent-memory-seed/    ← IN GIT (templates, read-only baseline)
-.claude/agent-memory/         ← LOCAL ONLY (.gitignore'd, runtime state)
+.claude/agent-memory/         ← IN GIT (tracked, agents learn across sessions)
 ```
 
 **Seed** = initial templates tracked in git. Never modified at runtime.
-**Memory** = live runtime state. Agents read and write freely. No git conflicts.
+**Memory** = live runtime state, NOW TRACKED IN GIT so learnings persist across sessions and clones. Agents read and write freely.
+
+> **Permissions:** `.claude/settings.json` pre-approves Edit/Write on `.claude/agent-memory/**/*.md` so agents NEVER need user confirmation to write their memory. This is intentional — memory writing is a mandatory, autonomous operation.
 
 ## Bootstrap
 
@@ -33,11 +35,22 @@ This copies seed → memory. Only runs if memory/ is empty.
 - Project memory: only XX-01 (architect) writes
 - **NEVER assign the same agent ID to two concurrent sessions**
 
-## Post-Session Write Protocol (MANDATORY)
+## Post-Session Write Protocol (MANDATORY — NO CONFIRMATION NEEDED)
 
-Every agent MUST do this at session end:
+Every agent MUST do this at session end. Permissions are pre-approved in `settings.json` — **just write, never ask**.
 
-### 1. Append session log (DO NOT edit existing content)
+### Decision rules: WRITE or SKIP
+
+| Situation | Action |
+|-----------|--------|
+| Learned something new about code/architecture | WRITE lesson |
+| Made a mistake and fixed it | WRITE mistake + prevention |
+| Discovered a reusable pattern | WRITE pattern |
+| Session was trivial (typo fix, no new insight) | SKIP — don't invent lessons |
+| Unsure if a lesson is valuable | SKIP — only write what you'd want to read next time |
+| Two possible lessons but unsure which is correct | WRITE the one you're confident about, skip the other |
+
+### 1. Append session log (APPEND ONLY — never edit existing content)
 ```markdown
 ## [YYYY-MM-DD] Session: <brief description>
 - **Task**: What was done
@@ -55,6 +68,11 @@ Only add a lesson if it is genuinely new and reusable:
 ```markdown
 | YYYY-MM-DD | <lesson> | <how to prevent> |
 ```
+
+### 4. Keep it short
+- Lessons: 1-2 sentences max
+- Session logs: 5-7 lines max
+- If you can't summarize it briefly, you don't understand it well enough yet
 
 ## Format Rules
 

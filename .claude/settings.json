@@ -1,4 +1,15 @@
 {
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(/.claude/agent-memory/**/*.md)",
+      "Write(/.claude/agent-memory/**/*.md)",
+      "Edit(/.claude/agent-memory/*.md)",
+      "Write(/.claude/agent-memory/*.md)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
