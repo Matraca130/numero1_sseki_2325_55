@@ -639,6 +639,7 @@ export function StudentSummaryReader({
               onNavigateKeyword={handleNavigateKeywordWrapped}
               readingSettings={readingSettings}
               keywords={keywords}
+              annotations={textAnnotations}
             />
           </TabsContent>
 
