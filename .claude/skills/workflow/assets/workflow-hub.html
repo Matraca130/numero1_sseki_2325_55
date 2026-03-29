@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 Agent Workflow Hub</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d14;
+  --surface: #13131e;
+  --surface2: #1a1a28;
+  --surface3: #22223a;
+  --border: #2a2a40;
+  --text: #cdd6f4;
+  --text-muted: #7878aa;
+  --text-subtle: #3a3a5a;
+  --yellow: #f9e2af;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --blue: #89b4fa;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.logo { font-size: 14px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.logo-icon { font-size: 18px; }
+
+.agent-tabs { display: flex; gap: 5px; flex: 1; overflow-x: auto; padding-bottom: 1px; }
+.agent-tabs::-webkit-scrollbar { height: 3px; }
+
+.agent-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 7px;
+  cursor: pointer; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  font-size: 12px; font-weight: 500;
+  transition: all 0.15s; white-space: nowrap;
+  font-family: inherit;
+}
+.agent-tab:hover { background: var(--surface2); color: var(--text); }
+.agent-tab.active { color: var(--text); border-color: var(--ac); background: var(--surface2); box-shadow: 0 0 0 1px var(--ac) inset; }
+
+.agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ac); flex-shrink: 0; }
+.pct-badge { font-size: 10px; opacity: 0.6; background: var(--surface3); padding: 1px 5px; border-radius: 4px; }
+
+.add-agent-btn {
+  padding: 5px 11px; border-radius: 7px;
+  border: 1px dashed var(--border); background: transparent;
+  color: var(--text-muted); cursor: pointer; font-size: 17px; line-height: 1;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.add-agent-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* ── MAIN ── */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 230px; flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+
+.sb-section { padding: 12px; border-bottom: 1px solid var(--border); }
+
+.sb-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted);
+  margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;
+}
+.sb-title button {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;
+}
+.sb-title button:hover { color: var(--text); }
+
+.doc-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 7px; border-radius: 5px; cursor: pointer; margin-bottom: 1px;
+}
+.doc-item:hover { background: var(--surface2); }
+.doc-icon { font-size: 13px; flex-shrink: 0; }
+.doc-label { font-size: 11px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.del-btn { background: none; border: none; color: transparent; cursor: pointer; font-size: 13px; padding: 0 2px; }
+.doc-item:hover .del-btn { color: var(--text-subtle); }
+.del-btn:hover { color: var(--red) !important; }
+
+.prompt-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 8px 10px; margin-bottom: 5px;
+}
+.prompt-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.prompt-preview {
+  font-size: 10px; color: var(--text-muted); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.prompt-actions { display: flex; gap: 4px; margin-top: 5px; }
+.mini-btn {
+  font-size: 10px; padding: 2px 7px; background: var(--surface3);
+  border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text-muted); cursor: pointer; font-family: inherit;
+}
+.mini-btn:hover { color: var(--text); }
+
+.empty-sb { padding: 10px 4px; text-align: center; color: var(--text-subtle); font-size: 11px; }
+.empty-sb-icon { font-size: 22px; margin-bottom: 4px; }
+
+/* ── CONTENT ── */
+.content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+.view-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; background: var(--surface);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.view-tabs-inner { display: flex; }
+.vtab {
+  padding: 10px 14px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  color: var(--text-muted); background: none; border-top: none;
+  border-left: none; border-right: none;
+  transition: all 0.15s; font-family: inherit;
+}
+.vtab:hover { color: var(--text); }
+.vtab.active { color: var(--text); border-bottom-color: var(--blue); }
+
+.agent-rename {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+}
+.agent-rename input {
+  background: none; border: none; color: var(--text); font-size: 12px;
+  font-weight: 600; font-family: inherit; outline: none; width: 120px;
+}
+.agent-rename button {
+  background: none; border: none; color: var(--text-subtle);
+  cursor: pointer; font-size: 13px; padding: 0 3px;
+}
+.agent-rename button:hover { color: var(--red); }
+
+/* ── KANBAN ── */
+.kanban-view {
+  flex: 1; display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; padding: 14px; overflow-y: auto; align-content: start;
+}
+
+.column {
+  background: var(--surface); border-radius: 10px;
+  border: 1px solid var(--border); display: flex; flex-direction: column;
+  min-height: 180px; transition: border-color 0.15s, background 0.15s;
+}
+.column.drag-over { border-color: var(--blue); background: var(--surface2); }
+
+.col-head {
+  padding: 10px 12px 8px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.col-label.p { color: var(--text-muted); }
+.col-label.w { color: var(--yellow); }
+.col-label.d { color: var(--green); }
+
+.col-meta { display: flex; align-items: center; gap: 5px; }
+.col-count { font-size: 10px; background: var(--surface3); color: var(--text-muted); padding: 1px 6px; border-radius: 8px; }
+.col-add { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 2px; }
+.col-add:hover { color: var(--text); }
+
+.col-body { flex: 1; padding: 7px; min-height: 100px; }
+
+/* ── TASK CARD ── */
+.task-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px 10px; margin-bottom: 5px;
+  cursor: grab; transition: transform 0.1s, box-shadow 0.1s;
+  position: relative;
+}
+.task-card:hover { transform: translateY(-1px); box-shadow: 0 3px 12px rgba(0,0,0,0.3); border-color: var(--text-subtle); }
+.task-card.dragging { opacity: 0.35; cursor: grabbing; }
+
+.task-row { display: flex; align-items: flex-start; gap: 7px; }
+.task-chk {
+  width: 13px; height: 13px; border: 1.5px solid var(--text-subtle);
+  border-radius: 3px; flex-shrink: 0; margin-top: 1px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.task-chk.on { background: var(--green); border-color: var(--green); }
+.task-chk.on::after { content: '✓'; font-size: 9px; color: #000; font-weight: 700; }
+.task-ttl { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.4; flex: 1; }
+.task-ttl.struck { text-decoration: line-through; color: var(--text-muted); }
+.task-dsc { font-size: 11px; color: var(--text-muted); margin: 4px 0 0 20px; line-height: 1.4; }
+
+.task-foot { display: flex; align-items: center; justify-content: space-between; margin: 5px 0 0 20px; }
+.badge { font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; }
+.badge.high { background: rgba(243,139,168,.15); color: var(--red); }
+.badge.mid  { background: rgba(249,226,175,.15); color: var(--yellow); }
+.badge.low  { background: rgba(166,227,161,.15); color: var(--green); }
+
+.task-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 14px; padding: 0 2px; }
+.task-card:hover .task-del { color: var(--text-subtle); }
+.task-del:hover { color: var(--red) !important; }
+
+.col-empty { text-align: center; padding: 20px; color: var(--text-subtle); font-size: 11px; }
+.col-empty-icon { font-size: 22px; margin-bottom: 5px; }
+
+/* ── CHECKLIST VIEW ── */
+.checklist-view { flex: 1; padding: 14px; overflow-y: auto; }
+
+.cl-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cl-topbar span { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+.cl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+
+.cl-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.cl-head { padding: 11px 13px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.cl-title { font-size: 12px; font-weight: 600; }
+.cl-meta { display: flex; align-items: center; gap: 6px; }
+.cl-pct { font-size: 10px; color: var(--text-muted); }
+
+.progress-bar { height: 2px; background: var(--surface3); }
+.pbar-fill { height: 100%; background: var(--green); transition: width 0.3s; }
+
+.cl-items { padding: 6px; }
+.cl-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 7px; border-radius: 5px; cursor: pointer;
+}
+.cl-item:hover { background: var(--surface2); }
+.cl-item input[type=checkbox] { width: 12px; height: 12px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+.cl-item label { font-size: 11px; cursor: pointer; color: var(--text); line-height: 1.3; }
+.cl-item.done label { text-decoration: line-through; color: var(--text-muted); }
+
+.cl-add-item {
+  width: 100%; background: transparent; border: none;
+  border-top: 1px dashed var(--border); color: var(--text);
+  font-size: 11px; padding: 7px 13px; outline: none;
+  font-family: inherit; color: var(--text-muted);
+}
+.cl-add-item:focus { color: var(--text); border-color: var(--text-subtle); }
+.cl-add-item::placeholder { color: var(--text-subtle); }
+
+.cl-empty { grid-column: 1/-1; text-align: center; padding: 50px 20px; color: var(--text-subtle); }
+.cl-empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ── WORKFLOW VIEW ── */
+.workflow-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+.wf-topbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: var(--surface);
+  border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0;
+}
+.wf-topbar::-webkit-scrollbar { height: 3px; }
+
+.wf-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  font-size: 12px; font-weight: 500; font-family: inherit;
+  transition: all 0.15s; white-space: nowrap;
+}
+.wf-tab:hover { background: var(--surface2); color: var(--text); }
+.wf-tab.active { background: var(--surface2); color: var(--text); border-color: var(--wfc, var(--blue)); box-shadow: 0 0 0 1px var(--wfc, var(--blue)) inset; }
+.wf-tab .wf-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--wfc, var(--blue)); }
+
+.wf-new-btn {
+  padding: 5px 11px; border-radius: 7px;
+  border: 1px dashed var(--border); background: transparent;
+  color: var(--text-muted); cursor: pointer; font-size: 12px; white-space: nowrap;
+  font-family: inherit; transition: all 0.15s;
+}
+.wf-new-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+.wf-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+.wf-name-input {
+  background: none; border: none; color: var(--text);
+  font-size: 15px; font-weight: 700; font-family: inherit;
+  outline: none; flex: 1; min-width: 0;
+}
+.wf-name-input:focus { border-bottom: 1px solid var(--blue); }
+.wf-progress-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.wf-del-btn { background: none; border: none; color: var(--text-subtle); cursor: pointer; font-size: 14px; padding: 0 4px; }
+.wf-del-btn:hover { color: var(--red); }
+
+.wf-stages {
+  flex: 1; display: flex; gap: 10px;
+  padding: 14px; overflow-x: auto; overflow-y: hidden; align-items: flex-start;
+}
+.wf-stages::-webkit-scrollbar { height: 5px; }
+
+.wf-stage {
+  min-width: 200px; max-width: 220px; flex-shrink: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; display: flex; flex-direction: column;
+  max-height: calc(100vh - 220px);
+}
+.wf-stage-head {
+  padding: 10px 12px 8px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.wf-stage-name {
+  flex: 1; background: none; border: none; color: var(--text);
+  font-size: 11px; font-weight: 700; font-family: inherit;
+  outline: none; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.wf-stage-name:focus { border-bottom: 1px solid var(--blue); }
+.wf-stage-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 13px; padding: 0; }
+.wf-stage:hover .wf-stage-del { color: var(--text-subtle); }
+.wf-stage-del:hover { color: var(--red) !important; }
+
+.wf-stage-body { flex: 1; padding: 6px; overflow-y: auto; }
+.wf-stage-body::-webkit-scrollbar { width: 3px; }
+
+.wf-task {
+  display: flex; align-items: flex-start; gap: 7px;
+  padding: 5px 6px; border-radius: 5px; cursor: pointer;
+}
+.wf-task:hover { background: var(--surface2); }
+.wf-task input[type=checkbox] { width: 12px; height: 12px; margin-top: 2px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+.wf-task-text { font-size: 11px; color: var(--text); line-height: 1.4; flex: 1; }
+.wf-task.done .wf-task-text { text-decoration: line-through; color: var(--text-muted); }
+.wf-task-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 12px; padding: 0 1px; flex-shrink: 0; }
+.wf-task:hover .wf-task-del { color: var(--text-subtle); }
+.wf-task-del:hover { color: var(--red) !important; }
+
+.wf-add-task {
+  width: 100%; background: transparent; border: none;
+  border-top: 1px dashed var(--border); color: var(--text-subtle);
+  font-size: 11px; padding: 7px 10px; outline: none;
+  font-family: inherit; cursor: text; text-align: left;
+}
+.wf-add-task:focus { color: var(--text); border-color: var(--text-muted); }
+.wf-add-task::placeholder { color: var(--text-subtle); }
+
+.wf-stage-prog { height: 2px; background: var(--surface3); }
+.wf-stage-prog-fill { height: 100%; background: var(--green); transition: width 0.3s; border-radius: 0 0 0 0; }
+
+.wf-add-stage {
+  min-width: 160px; height: 60px; flex-shrink: 0;
+  background: transparent; border: 2px dashed var(--border);
+  border-radius: 10px; color: var(--text-subtle); cursor: pointer;
+  font-size: 12px; font-family: inherit; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  align-self: flex-start; margin-top: 0;
+}
+.wf-add-stage:hover { border-color: var(--blue); color: var(--blue); background: rgba(137,180,250,.04); }
+
+.wf-arrow { color: var(--text-subtle); font-size: 18px; align-self: center; flex-shrink: 0; padding-top: 0; }
+
+.wf-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px; color: var(--text-muted);
+}
+.wf-empty-icon { font-size: 44px; }
+
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: 10px;
+  padding: 22px; text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 14px; background: var(--surface);
+  color: var(--text-muted); font-size: 12px;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--blue); background: rgba(137,180,250,0.06); color: var(--text);
+}
+.drop-zone .dz-icon { font-size: 28px; margin-bottom: 6px; }
+.drop-zone .dz-hint { font-size: 10px; color: var(--text-subtle); margin-top: 4px; }
+.drop-zone input[type=file] { display: none; }
+
+/* Global drag overlay */
+.drag-overlay {
+  position: fixed; inset: 0; background: rgba(137,180,250,0.08);
+  border: 3px dashed var(--blue); border-radius: 12px; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity 0.15s;
+}
+.drag-overlay.show { opacity: 1; pointer-events: none; }
+.drag-overlay-text { font-size: 20px; font-weight: 700; color: var(--blue); text-align: center; }
+.drag-overlay-text span { font-size: 40px; display: block; margin-bottom: 8px; }
+
+/* Choice buttons (checklist vs doc) */
+.choice-btn {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 14px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); cursor: pointer; text-align: left;
+  transition: all 0.15s; font-family: inherit;
+}
+.choice-btn:hover { background: var(--surface3); border-color: var(--blue); }
+.choice-icon { font-size: 26px; flex-shrink: 0; }
+.choice-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.choice-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+/* ── MODAL ── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; backdrop-filter: blur(4px);
+}
+.modal {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; width: 400px;
+  max-width: 90vw; max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+
+.fg { margin-bottom: 11px; }
+.fg label { display: block; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.fg input, .fg textarea, .fg select {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 9px; color: var(--text);
+  font-size: 12px; font-family: inherit; resize: vertical;
+}
+.fg input:focus, .fg textarea:focus, .fg select:focus { outline: none; border-color: var(--text-muted); }
+.fg select option { background: var(--surface2); }
+
+.color-picker { display: flex; gap: 8px; margin-top: 4px; }
+.color-dot {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all 0.15s;
+}
+.color-dot.sel { border-color: #fff; transform: scale(1.15); }
+
+.modal-btns { display: flex; gap: 7px; justify-content: flex-end; margin-top: 14px; }
+.btn { padding: 6px 15px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); font-family: inherit; transition: all 0.15s; }
+.btn-primary { background: var(--blue); color: #000; border-color: transparent; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-ghost { background: transparent; color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); background: var(--surface3); }
+
+/* ── NO AGENTS ── */
+.no-agents {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  color: var(--text-muted); background: var(--bg);
+}
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 18px; right: 18px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 14px; font-size: 12px;
+  color: var(--text); z-index: 200;
+  animation: toastin 0.2s ease;
+}
+@keyframes toastin { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── SAVE/LOAD BUTTONS ── */
+.hdr-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 7px; font-size: 11px; font-weight: 600;
+  cursor: pointer; border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text-muted); font-family: inherit; transition: all 0.15s; white-space: nowrap;
+}
+.hdr-btn:hover { color: var(--text); border-color: var(--text-muted); }
+.hdr-btn.save { border-color: rgba(166,227,161,.4); color: var(--green); }
+.hdr-btn.save:hover { background: rgba(166,227,161,.08); }
+.hdr-btn.load { border-color: rgba(137,180,250,.4); color: var(--blue); }
+.hdr-btn.load:hover { background: rgba(137,180,250,.08); }
+
+.save-indicator {
+  font-size: 10px; color: var(--green); opacity: 0;
+  transition: opacity 0.3s; white-space: nowrap;
+}
+.save-indicator.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo"><span class="logo-icon">🤖</span>Agent Workflow Hub</div>
+  <div class="agent-tabs" id="agentTabs"></div>
+  <span class="save-indicator" id="saveIndicator">✓ guardado</span>
+  <button class="hdr-btn save" onclick="exportData()" title="Guardar todo en archivo JSON">💾 Exportar</button>
+  <button class="hdr-btn load" onclick="document.getElementById('jsonInput').click()" title="Cargar desde archivo JSON">📥 Importar</button>
+  <input type="file" id="jsonInput" accept=".json" style="display:none" onchange="importFromInput(event)">
+  <button class="add-agent-btn" onclick="openModal('agent')" title="Nuevo agente (máx 5)">+</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section" id="sbAgentDocs">
+      <div class="sb-title">
+        <span>📁 Docs del Agente</span>
+        <button onclick="openModal('doc','agent')">+</button>
+      </div>
+      <div id="agentDocsList"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">
+        <span>🌐 Docs Generales</span>
+        <button onclick="openModal('doc','general')">+</button>
+      </div>
+      <div id="generalDocsList"></div>
+    </div>
+
+    <div class="sb-section" style="flex:1">
+      <div class="sb-title">
+        <span>⚡ Prompts</span>
+        <button onclick="openModal('prompt')">+</button>
+      </div>
+      <div id="promptsList"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+
+    <!-- No agents -->
+    <div class="no-agents" id="noAgents" style="display:none">
+      <div style="font-size:44px">🤖</div>
+      <div style="font-size:14px;font-weight:700">Sin agentes aún</div>
+      <div style="font-size:12px;color:var(--text-subtle)">Agrega tu primer agente para comenzar</div>
+      <button class="btn btn-primary" onclick="openModal('agent')" style="margin-top:6px">+ Agregar Agente</button>
+    </div>
+
+    <!-- View bar -->
+    <div class="view-bar" id="viewBar">
+      <div class="view-tabs-inner">
+        <button class="vtab active" id="vt-kanban" onclick="setView('kanban')">📋 Kanban</button>
+        <button class="vtab" id="vt-checklist" onclick="setView('checklist')">✅ Checklists</button>
+        <button class="vtab" id="vt-workflow" onclick="setView('workflow')">🔄 Workflows</button>
+      </div>
+      <div class="agent-rename" id="agentRename">
+        <span>Agente:</span>
+        <input id="renameInput" onblur="renameAgent()" onkeydown="if(event.key==='Enter')this.blur()">
+        <button onclick="deleteCurrentAgent()" title="Eliminar agente">🗑</button>
+      </div>
+    </div>
+
+    <!-- KANBAN -->
+    <div class="kanban-view" id="kanbanView">
+      <div class="column" id="col-pendiente" ondragover="onDragOver(event)" ondrop="onDrop(event,'pendiente')" ondragleave="onDragLeave(event)">
+        <div class="col-head">
+          <span class="col-label p">⬜ Pendiente</span>
+          <div class="col-meta">
+            <span class="col-count" id="cnt-pendiente">0</span>
+            <button class="col-add" onclick="openModal('task','pendiente')">+</button>
+          </div>
+        </div>
+        <div class="col-body" id="body-pendiente"></div>
+      </div>
+
+      <div class="column" id="col-en_curso" ondragover="onDragOver(event)" ondrop="onDrop(event,'en_curso')" ondragleave="onDragLeave(event)">
+        <div class="col-head">
+          <span class="col-label w">⚙️ En Curso</span>
+          <div class="col-meta">
+            <span class="col-count" id="cnt-en_curso">0</span>
+            <button class="col-add" onclick="openModal('task','en_curso')">+</button>
+          </div>
+        </div>
+        <div class="col-body" id="body-en_curso"></div>
+      </div>
+
+      <div class="column" id="col-listo" ondragover="onDragOver(event)" ondrop="onDrop(event,'listo')" ondragleave="onDragLeave(event)">
+        <div class="col-head">
+          <span class="col-label d">✅ Listo</span>
+          <div class="col-meta">
+            <span class="col-count" id="cnt-listo">0</span>
+            <button class="col-add" onclick="openModal('task','listo')">+</button>
+          </div>
+        </div>
+        <div class="col-body" id="body-listo"></div>
+      </div>
+    </div>
+
+    <!-- CHECKLISTS -->
+    <div class="checklist-view" id="checklistView" style="display:none">
+      <div class="cl-topbar">
+        <span>Checklists interactivos</span>
+        <button class="btn btn-primary" onclick="openModal('checklist')">+ Nueva Checklist</button>
+      </div>
+
+      <!-- DROP ZONE -->
+      <div class="drop-zone" id="dropZone"
+        ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"
+        onclick="document.getElementById('fileInput').click()">
+        <div class="dz-icon">📂</div>
+        <div>Arrastra un archivo aquí o haz click para seleccionar</div>
+        <div class="dz-hint">📄 Texto → checklist &nbsp;·&nbsp; 📁 Cualquier archivo → guardar como doc &nbsp;·&nbsp; 📦 .json → restaurar sesión</div>
+        <input type="file" id="fileInput" accept="*/*" onchange="fileSelected(event)">
+      </div>
+
+      <div class="cl-grid" id="clGrid"></div>
+    </div>
+
+    <!-- WORKFLOWS -->
+    <div class="workflow-view" id="workflowView" style="display:none">
+      <!-- Workflow tabs -->
+      <div class="wf-topbar" id="wfTopbar"></div>
+      <!-- Selected workflow header -->
+      <div id="wfHeader"></div>
+      <!-- Stages -->
+      <div class="wf-stages" id="wfStages"></div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end main -->
+
+<!-- Global drag overlay (must be outside main for z-index) -->
+<div class="drag-overlay" id="dragOverlay">
+  <div class="drag-overlay-text">
+    <span>📂</span>
+    Suelta el archivo aquí
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" style="display:none" onclick="bgClose(event)">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────
+const COLORS = ['#89b4fa','#a6e3a1','#fab387','#f38ba8','#cba6f7'];
+const MAX_AGENTS = 5;
+
+// ── STATE ────────────────────────────────────────────────────────────
+let S = { agents: [], genDocs: [], workflows: [], curWf: null, cur: null, view: 'kanban' };
+let pickedColor = 0;
+let dragState = { id: null, col: null };
+let storageAvailable = true; // Will be set to false if localStorage fails
+
+function makeWorkflow(name, ci) {
+  return {
+    id: 'wf' + uid(), name, ci: ci % COLORS.length,
+    stages: []
+  };
+}
+function makeStage(name) {
+  return { id: 'st' + uid(), name, tasks: [] };
+}
+
+function makeAgent(name, ci) {
+  return {
+    id: 'ag' + uid(),
+    name, ci: ci % COLORS.length,
+    tasks: { pendiente: [], en_curso: [], listo: [] },
+    docs: [], prompts: [], lists: []
+  };
+}
+
+// ── PERSIST ──────────────────────────────────────────────────────────
+// Test localStorage availability (Edge blocks it on file:// protocol)
+function testStorage() {
+  try {
+    localStorage.setItem('__test', '1');
+    localStorage.removeItem('__test');
+    return true;
+  } catch(e) { return false; }
+}
+
+function load() {
+  storageAvailable = testStorage();
+
+  if (storageAvailable) {
+    try {
+      const raw = localStorage.getItem('awh_v2');
+      if (raw) S = JSON.parse(raw);
+    } catch(e) {}
+  }
+
+  if (!S.agents) S = { agents: [], genDocs: [], workflows: [], curWf: null, cur: null, view: 'kanban' };
+
+  // Seed with user's 3 projects on first run
+  if (S.agents.length === 0) {
+    [['Flash Card',0],['Resumen',1],['Calendario',2]].forEach(([n,i]) => {
+      S.agents.push(makeAgent(n, i));
+    });
+    S.cur = S.agents[0].id;
+  }
+  if (!S.cur && S.agents.length > 0) S.cur = S.agents[0].id;
+  if (!S.workflows) S.workflows = [];
+  if (!S.curWf && S.workflows.length > 0) S.curWf = S.workflows[0].id;
+
+  // Show warning banner if no localStorage
+  if (!storageAvailable) {
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.id = 'storageBanner';
+      banner.innerHTML = `
+        <div style="background:rgba(249,226,175,.1);border:1px solid rgba(249,226,175,.3);
+          border-radius:8px;padding:10px 14px;margin:10px 14px 0;font-size:11px;
+          color:var(--yellow);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span>⚠️ <strong>Edge bloquea el guardado automático</strong> en archivos locales.
+          Usa 💾 <strong>Exportar</strong> para guardar tu trabajo antes de cerrar.
+          O importa un .json al abrir.</span>
+          <button onclick="this.parentElement.parentElement.remove()"
+            style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;margin-left:auto">✕</button>
+        </div>`;
+      const header = document.querySelector('.header');
+      header.after(banner);
+    }, 300);
+  }
+}
+
+function save() {
+  if (storageAvailable) {
+    try { localStorage.setItem('awh_v2', JSON.stringify(S)); } catch(e) { storageAvailable = false; }
+  }
+  // Flash save indicator
+  const ind = document.getElementById('saveIndicator');
+  if (ind) {
+    ind.textContent = storageAvailable ? '✓ guardado' : '⚠️ exportar para guardar';
+    ind.style.color = storageAvailable ? 'var(--green)' : 'var(--yellow)';
+    ind.classList.add('show');
+    clearTimeout(ind._t);
+    ind._t = setTimeout(() => ind.classList.remove('show'), storageAvailable ? 1800 : 4000);
+  }
+}
+
+function ag(id) { return S.agents.find(a => a.id === (id || S.cur)); }
+
+// ── RENDER ───────────────────────────────────────────────────────────
+function render() {
+  renderTabs(); renderSidebar(); renderKanban(); renderLists(); renderWorkflows(); save();
+}
+
+function renderTabs() {
+  const hasTabs = S.agents.length > 0;
+  document.getElementById('noAgents').style.display    = hasTabs ? 'none'  : 'flex';
+  document.getElementById('viewBar').style.display     = hasTabs ? 'flex'  : 'none';
+  document.getElementById('kanbanView').style.display     = hasTabs && S.view === 'kanban'    ? 'grid'  : 'none';
+  document.getElementById('checklistView').style.display  = hasTabs && S.view === 'checklist' ? 'block' : 'none';
+  document.getElementById('workflowView').style.display   = hasTabs && S.view === 'workflow'  ? 'flex'  : 'none';
+
+  document.getElementById('agentTabs').innerHTML = S.agents.map(a => {
+    const total = a.tasks.pendiente.length + a.tasks.en_curso.length + a.tasks.listo.length;
+    const pct   = total > 0 ? Math.round(a.tasks.listo.length / total * 100) : 0;
+    return `<button class="agent-tab ${a.id===S.cur?'active':''}"
+      style="--ac:${COLORS[a.ci]}"
+      onclick="selAgent('${a.id}')">
+      <span class="agent-dot"></span>
+      <span>${esc(a.name)}</span>
+      ${total > 0 ? `<span class="pct-badge">${pct}%</span>` : ''}
+    </button>`;
+  }).join('');
+
+  const cur = ag();
+  if (cur) {
+    document.getElementById('renameInput').value = cur.name;
+  }
+}
+
+function renderSidebar() {
+  const a = ag();
+
+  // Agent docs
+  const adl = document.getElementById('agentDocsList');
+  adl.innerHTML = a && a.docs.length > 0
+    ? a.docs.map(d => docRow(d, 'agent')).join('')
+    : `<div class="empty-sb"><div class="empty-sb-icon">📄</div>Sin documentos</div>`;
+
+  // General docs
+  const gdl = document.getElementById('generalDocsList');
+  gdl.innerHTML = S.genDocs.length > 0
+    ? S.genDocs.map(d => docRow(d, 'general')).join('')
+    : `<div class="empty-sb" style="font-size:10px">Sin documentos generales</div>`;
+
+  // Prompts
+  const pl = document.getElementById('promptsList');
+  pl.innerHTML = a && a.prompts.length > 0
+    ? a.prompts.map(p => `
+      <div class="prompt-card">
+        <div class="prompt-name">${esc(p.name)}</div>
+        <div class="prompt-preview">${esc(p.text)}</div>
+        <div class="prompt-actions">
+          <button class="mini-btn" onclick="copyPrompt('${p.id}')">📋 Copiar</button>
+          <button class="mini-btn" onclick="delPrompt('${p.id}')">× Borrar</button>
+        </div>
+      </div>`).join('')
+    : `<div class="empty-sb"><div class="empty-sb-icon">💬</div>Sin prompts</div>`;
+}
+
+function docRow(d, type) {
+  return `<div class="doc-item" onclick="openDoc('${d.id}','${type}')">
+    <span class="doc-icon">${type==='general'?'🌐':'📄'}</span>
+    <span class="doc-label" title="${esc(d.name)}">${esc(d.name)}</span>
+    <button class="del-btn" onclick="delDoc(event,'${d.id}','${type}')">×</button>
+  </div>`;
+}
+
+function renderKanban() {
+  const a = ag();
+  if (!a) return;
+  ['pendiente','en_curso','listo'].forEach(col => {
+    const tasks = a.tasks[col] || [];
+    document.getElementById('cnt-' + col).textContent = tasks.length;
+    const body = document.getElementById('body-' + col);
+    if (!tasks.length) {
+      const icons = { pendiente: '📋', en_curso: '⚙️', listo: '✅' };
+      body.innerHTML = `<div class="col-empty"><div class="col-empty-icon">${icons[col]}</div>Sin tareas</div>`;
+    } else {
+      body.innerHTML = tasks.map(t => `
+        <div class="task-card" draggable="true"
+          ondragstart="dStart(event,'${t.id}','${col}')"
+          ondragend="dEnd(event)">
+          <div class="task-row">
+            <div class="task-chk ${t.done?'on':''}" onclick="togTask('${t.id}','${col}')"></div>
+            <div class="task-ttl ${t.done?'struck':''}">${esc(t.title)}</div>
+          </div>
+          ${t.desc ? `<div class="task-dsc">${esc(t.desc)}</div>` : ''}
+          <div class="task-foot">
+            ${t.pri ? `<span class="badge ${t.pri}">${t.pri==='high'?'🔴 Alta':t.pri==='mid'?'🟡 Media':'🟢 Baja'}</span>` : '<span></span>'}
+            <button class="task-del" onclick="delTask('${t.id}','${col}')">×</button>
+          </div>
+        </div>`).join('');
+    }
+  });
+}
+
+function renderLists() {
+  const a = ag();
+  const grid = document.getElementById('clGrid');
+  if (!a || !a.lists || a.lists.length === 0) {
+    grid.innerHTML = `<div class="cl-empty">
+      <div class="cl-empty-icon">✅</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">Sin checklists</div>
+      <div style="font-size:11px;color:var(--text-subtle)">Crea una o pega items de tu PDF</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = a.lists.map(cl => {
+    const total = cl.items.length;
+    const done  = cl.items.filter(i => i.done).length;
+    const pct   = total > 0 ? Math.round(done/total*100) : 0;
+    return `<div class="cl-card">
+      <div class="cl-head">
+        <div class="cl-title">${esc(cl.title)}</div>
+        <div class="cl-meta">
+          <span class="cl-pct">${done}/${total} · ${pct}%</span>
+          <button class="del-btn" style="color:var(--text-subtle)" onclick="delList('${cl.id}')">×</button>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="pbar-fill" style="width:${pct}%"></div></div>
+      <div class="cl-items">
+        ${cl.items.map(item => `
+          <div class="cl-item ${item.done?'done':''}" onclick="togItem('${cl.id}','${item.id}')">
+            <input type="checkbox" ${item.done?'checked':''} onclick="event.stopPropagation()" onchange="togItem('${cl.id}','${item.id}')">
+            <label>${esc(item.text)}</label>
+          </div>`).join('')}
+        <input class="cl-add-item" placeholder="+ Agregar item..."
+          onkeydown="if(event.key==='Enter'&&this.value.trim()){addItem('${cl.id}',this)}">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────────────
+function selAgent(id) { S.cur = id; render(); }
+
+function renameAgent() {
+  const a = ag();
+  const v = document.getElementById('renameInput').value.trim();
+  if (a && v) { a.name = v; render(); }
+}
+
+function deleteCurrentAgent() {
+  const a = ag(); if (!a) return;
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `
+    <h3>🗑 Eliminar Agente</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+      ¿Eliminar <strong style="color:var(--text)">"${esc(a.name)}"</strong> y todas sus tareas, docs y prompts? Esta acción no se puede deshacer.
+    </p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="background:var(--red)" onclick="confirmDeleteAgent()">Eliminar</button>
+    </div>`;
+  document.getElementById('overlay').style.display = 'flex';
+}
+function confirmDeleteAgent() {
+  S.agents = S.agents.filter(a => a.id !== S.cur);
+  S.cur = S.agents.length > 0 ? S.agents[0].id : null;
+  closeModal(); render();
+  toast('Agente eliminado');
+}
+
+function setView(v) {
+  S.view = v;
+  document.getElementById('vt-kanban').className    = 'vtab' + (v==='kanban'    ? ' active' : '');
+  document.getElementById('vt-checklist').className = 'vtab' + (v==='checklist' ? ' active' : '');
+  document.getElementById('vt-workflow').className  = 'vtab' + (v==='workflow'  ? ' active' : '');
+  document.getElementById('kanbanView').style.display     = v==='kanban'    ? 'grid'  : 'none';
+  document.getElementById('checklistView').style.display  = v==='checklist' ? 'block' : 'none';
+  document.getElementById('workflowView').style.display   = v==='workflow'  ? 'flex'  : 'none';
+  save();
+}
+
+function togTask(id, col) {
+  const t = ag().tasks[col].find(t => t.id === id);
+  if (t) { t.done = !t.done; render(); }
+}
+
+function delTask(id, col) {
+  const a = ag();
+  a.tasks[col] = a.tasks[col].filter(t => t.id !== id);
+  render();
+}
+
+function openDoc(id, type) {
+  const list = type === 'agent' ? ag().docs : S.genDocs;
+  const d = list.find(d => d.id === id);
+  if (d && d.url) window.open(d.url, '_blank');
+  else if (d) toast(`📄 ${d.name} — sin URL asignada`);
+}
+
+function delDoc(e, id, type) {
+  e.stopPropagation();
+  if (type === 'agent') { const a = ag(); a.docs = a.docs.filter(d => d.id !== id); }
+  else S.genDocs = S.genDocs.filter(d => d.id !== id);
+  render();
+}
+
+function copyPrompt(id) {
+  const p = ag().prompts.find(p => p.id === id);
+  if (!p) return;
+  navigator.clipboard.writeText(p.text).then(() => toast('¡Prompt copiado al portapapeles!'));
+}
+
+function delPrompt(id) {
+  const a = ag();
+  a.prompts = a.prompts.filter(p => p.id !== id);
+  render();
+}
+
+function togItem(clId, itemId) {
+  const cl = ag().lists.find(c => c.id === clId);
+  const it = cl.items.find(i => i.id === itemId);
+  if (it) { it.done = !it.done; save(); renderLists(); }
+}
+
+function addItem(clId, input) {
+  const cl = ag().lists.find(c => c.id === clId);
+  cl.items.push({ id: uid(), text: input.value.trim(), done: false });
+  input.value = '';
+  save(); renderLists();
+}
+
+function delList(id) {
+  const a = ag();
+  a.lists = a.lists.filter(c => c.id !== id);
+  render();
+}
+
+// ── DRAG & DROP ──────────────────────────────────────────────────────
+function dStart(e, id, col) {
+  dragState = { id, col };
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.classList.add('dragging'), 0);
+}
+function dEnd(e)  { e.target.classList.remove('dragging'); clearDragOver(); }
+function onDragOver(e)  { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function clearDragOver() { document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over')); }
+
+function onDrop(e, toCol) {
+  e.preventDefault(); clearDragOver();
+  if (!dragState.id || dragState.col === toCol) return;
+  const a = ag();
+  const idx = a.tasks[dragState.col].findIndex(t => t.id === dragState.id);
+  if (idx === -1) return;
+  const [task] = a.tasks[dragState.col].splice(idx, 1);
+  if (toCol === 'listo')    task.done = true;
+  if (toCol !== 'listo' && dragState.col === 'listo') task.done = false;
+  a.tasks[toCol].push(task);
+  dragState = { id: null, col: null };
+  render();
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────
+function openModal(type, extra) {
+  const box = document.getElementById('modalBox');
+  pickedColor = 0;
+
+  const forms = {
+    agent: () => `<h3>🤖 Nuevo Agente</h3>
+      <div class="fg"><label>Nombre *</label><input id="mi-name" placeholder="Ej: Análisis, Revisión..."></div>
+      <div class="fg"><label>Color</label>
+        <div class="color-picker">${COLORS.map((c,i) => `<div class="color-dot ${i===0?'sel':''}" id="cd${i}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}</div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitAgent()">Crear</button>
+      </div>`,
+
+    task: () => `<h3>📋 Nueva Tarea</h3>
+      <div class="fg"><label>Título *</label><input id="mi-title" placeholder="¿Qué hay que hacer?"></div>
+      <div class="fg"><label>Descripción</label><textarea id="mi-desc" rows="2" placeholder="Contexto opcional..."></textarea></div>
+      <div class="fg"><label>Prioridad</label>
+        <select id="mi-pri">
+          <option value="">Sin prioridad</option>
+          <option value="high">🔴 Alta</option>
+          <option value="mid">🟡 Media</option>
+          <option value="low">🟢 Baja</option>
+        </select>
+      </div>
+      <div class="fg"><label>Columna</label>
+        <select id="mi-col">
+          <option value="pendiente" ${extra==='pendiente'?'selected':''}>Pendiente</option>
+          <option value="en_curso"  ${extra==='en_curso' ?'selected':''}>En Curso</option>
+          <option value="listo"     ${extra==='listo'    ?'selected':''}>Listo</option>
+        </select>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitTask()">Agregar</button>
+      </div>`,
+
+    doc: () => `<h3>${extra==='general'?'🌐 Doc General':'📁 Doc del Agente'}</h3>
+      <div class="fg"><label>Nombre *</label><input id="mi-name" placeholder="Ej: Especificaciones, Roadmap..."></div>
+      <div class="fg"><label>URL o ruta (opcional)</label><input id="mi-url" placeholder="https://... o ruta del archivo"></div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitDoc('${extra}')">Guardar</button>
+      </div>`,
+
+    prompt: () => `<h3>⚡ Nuevo Prompt</h3>
+      <div class="fg"><label>Nombre *</label><input id="mi-name" placeholder="Ej: Resumir, Analizar..."></div>
+      <div class="fg"><label>Texto del prompt *</label><textarea id="mi-text" rows="5" placeholder="Escribe el prompt aquí..."></textarea></div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitPrompt()">Guardar</button>
+      </div>`,
+
+    workflow: () => `<h3>🔄 Nuevo Workflow</h3>
+      <div class="fg"><label>Nombre *</label><input id="mi-name" placeholder="Ej: Desarrollo Flash Card, Revisión..."></div>
+      <div class="fg"><label>Color</label>
+        <div class="color-picker">${COLORS.map((c,i) => `<div class="color-dot ${i===0?'sel':''}" id="cd${i}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}</div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitWorkflow()">Crear Workflow</button>
+      </div>`,
+
+    stage: () => `<h3>📌 Nueva Etapa</h3>
+      <div class="fg"><label>Nombre de la etapa *</label><input id="mi-name" placeholder="Ej: Investigar, Diseñar, Revisar..."></div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitStage()">Agregar Etapa</button>
+      </div>`,
+
+    checklist: () => `<h3>✅ Nueva Checklist</h3>
+      <div class="fg"><label>Título *</label><input id="mi-title" placeholder="Ej: Revisión de entregable..."></div>
+      <div class="fg"><label>Items — uno por línea (puedes pegar desde un PDF)</label>
+        <textarea id="mi-items" rows="7" placeholder="Revisar introducción&#10;Verificar referencias&#10;Corregir formato&#10;Aprobar conclusiones&#10;..."></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitList()">Crear Checklist</button>
+      </div>`
+  };
+
+  box.innerHTML = (forms[type] || (() => ''))();
+  document.getElementById('overlay').style.display = 'flex';
+
+  setTimeout(() => {
+    const first = box.querySelector('input,textarea');
+    if (first) first.focus();
+    box.querySelectorAll('input').forEach(inp => {
+      inp.onkeydown = e => { if (e.key === 'Enter') box.querySelector('.btn-primary')?.click(); };
+    });
+  }, 40);
+}
+
+function pickColor(i) {
+  pickedColor = i;
+  COLORS.forEach((_,j) => {
+    const el = document.getElementById('cd'+j);
+    if (el) el.className = 'color-dot' + (j===i?' sel':'');
+  });
+}
+
+function closeModal() { document.getElementById('overlay').style.display = 'none'; }
+function bgClose(e)   { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+function submitAgent() {
+  const name = v('mi-name'); if (!name) return;
+  if (S.agents.length >= MAX_AGENTS) { toast(`Máximo ${MAX_AGENTS} agentes`); closeModal(); return; }
+  S.agents.push(makeAgent(name, pickedColor));
+  S.cur = S.agents[S.agents.length-1].id;
+  closeModal(); render(); toast(`Agente "${name}" creado ✓`);
+}
+
+function submitTask() {
+  const title = v('mi-title'); if (!title) return;
+  ag().tasks[v('mi-col') || 'pendiente'].push({
+    id: uid(), title, desc: v('mi-desc'), pri: v('mi-pri'), done: false
+  });
+  closeModal(); render();
+}
+
+function submitDoc(type) {
+  const name = v('mi-name'); if (!name) return;
+  const doc = { id: uid(), name, url: v('mi-url') };
+  if (type === 'agent') ag().docs.push(doc);
+  else S.genDocs.push(doc);
+  closeModal(); render();
+  toast(`Documento "${name}" guardado ✓`);
+}
+
+function submitWorkflow() {
+  const name = v('mi-name'); if (!name) return;
+  const ci = pickedColor;
+  S.workflows.push(makeWorkflow(name, ci));
+  S.curWf = S.workflows[S.workflows.length-1].id;
+  closeModal();
+  if (S.view !== 'workflow') setView('workflow');
+  render();
+  toast(`Workflow "${name}" creado ✓`);
+}
+
+function submitStage() {
+  const name = v('mi-name'); if (!name) return;
+  const w = wf(); if (!w) return;
+  w.stages.push(makeStage(name));
+  closeModal(); render();
+  toast(`Etapa "${name}" agregada ✓`);
+}
+
+function submitPrompt() {
+  const name = v('mi-name'), text = v('mi-text');
+  if (!name || !text) return;
+  ag().prompts.push({ id: uid(), name, text });
+  closeModal(); render(); toast('Prompt guardado ✓');
+}
+
+function submitList() {
+  const title = v('mi-title'); if (!title) return;
+  const raw   = document.getElementById('mi-items')?.value || '';
+  const items = raw.split('\n').map(l=>l.trim()).filter(Boolean).map(text => ({ id: uid(), text, done: false }));
+  const a = ag();
+  if (!a.lists) a.lists = [];
+  a.lists.push({ id: uid(), title, items });
+  closeModal(); render();
+  if (S.view !== 'checklist') setView('checklist');
+  toast(`Checklist "${title}" creada con ${items.length} items ✓`);
+}
+
+// ── FILE DROP ────────────────────────────────────────────────────────
+let dragCounter = 0;
+
+// Global window drag events (show overlay anywhere)
+window.addEventListener('dragenter', e => {
+  if (e.dataTransfer.types.includes('Files')) {
+    dragCounter++;
+    document.getElementById('dragOverlay').classList.add('show');
+    // Switch to checklist view so drop zone is visible
+    if (S.view !== 'checklist' && S.agents.length > 0) setView('checklist');
+  }
+});
+window.addEventListener('dragleave', () => {
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    document.getElementById('dragOverlay').classList.remove('show');
+  }
+});
+window.addEventListener('drop', e => {
+  dragCounter = 0;
+  document.getElementById('dragOverlay').classList.remove('show');
+  // If drop didn't land on the drop zone, still capture the files
+  if (e.dataTransfer.files.length > 0 && e.target.id !== 'dropZone' && !e.target.closest('#dropZone')) {
+    e.preventDefault();
+    Array.from(e.dataTransfer.files).forEach(readFile);
+  }
+});
+
+function dzOver(e) {
+  e.preventDefault(); e.stopPropagation();
+  e.dataTransfer.dropEffect = 'copy';
+  e.currentTarget.classList.add('over');
+}
+function dzLeave(e) { e.currentTarget.classList.remove('over'); }
+
+function dzDrop(e) {
+  e.preventDefault(); e.stopPropagation();
+  e.currentTarget.classList.remove('over');
+  document.getElementById('dragOverlay').classList.remove('show');
+  dragCounter = 0;
+  const files = Array.from(e.dataTransfer.files);
+  files.forEach(readFile);
+}
+
+function fileSelected(e) {
+  Array.from(e.target.files).forEach(readFile);
+  e.target.value = ''; // reset so same file can be re-selected
+}
+
+function readFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  // JSON = restore full session
+  if (ext === 'json') { importData(file); return; }
+  // Text-based = can be checklist OR document
+  const textExts = ['txt','md','csv','text'];
+  const name = file.name;
+  const nameNoExt = name.replace(/\.[^.]+$/, '');
+  if (textExts.includes(ext)) {
+    fileChoiceModal(nameNoExt, file);
+  } else {
+    // Non-text files (pdf, docx, etc.) → save as document reference only
+    fileDocDirect(name, file);
+  }
+}
+
+// For non-text files: skip the choice, go straight to save as doc
+function fileDocDirect(name, file) {
+  const blobUrl = URL.createObjectURL(file);
+  const box = document.getElementById('modalBox');
+  box._pendingBlobUrl = blobUrl;
+  box.innerHTML = `
+    <h3>📁 Guardar Documento</h3>
+    <div class="fg"><label>Nombre</label><input id="mi-name" value="${esc(name)}"></div>
+    <div class="fg"><label>URL (auto-generada)</label><input id="mi-url" value="${blobUrl}" readonly style="opacity:0.6;font-size:10px"></div>
+    <div style="background:rgba(137,180,250,.07);border:1px solid rgba(137,180,250,.2);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">
+      📎 El link funciona <strong style="color:var(--text)">mientras el panel esté abierto</strong>. Si cierras y reabres, arrastra el archivo de nuevo.
+    </div>
+    <div style="background:rgba(166,227,161,.07);border:1px solid rgba(166,227,161,.2);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">
+      ✅ Excluirlo del panel <strong style="color:var(--text)">no borra</strong> el archivo de tu computadora.
+    </div>
+    <div class="fg"><label>Guardar en</label>
+      <select id="mi-doctype">
+        <option value="agent">📁 Documentos del agente activo</option>
+        <option value="general">🌐 Documentos generales</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitDoc(document.getElementById('mi-doctype').value)">Guardar ✓</button>
+    </div>`;
+  document.getElementById('overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('mi-name').focus(), 30);
+}
+
+// Step 1: ask what to do with the file
+function fileChoiceModal(name, file) {
+  const box = document.getElementById('modalBox');
+  box._pendingFile = file;
+  box._pendingName = name;
+  box.innerHTML = `
+    <h3>📂 ${esc(name)}</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">¿Qué hago con este archivo?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="choice-btn" onclick="choiceChecklist()">
+        <span class="choice-icon">✅</span>
+        <div>
+          <div class="choice-title">Crear Checklist</div>
+          <div class="choice-desc">Extrae las líneas como ítems interactivos que puedes ir marcando</div>
+        </div>
+      </button>
+      <button class="choice-btn" onclick="choiceDocument()">
+        <span class="choice-icon">📁</span>
+        <div>
+          <div class="choice-title">Guardar como Documento</div>
+          <div class="choice-desc">Guarda solo la referencia en el sidebar. Si lo excluyes del panel, el archivo original en tu computadora <strong>no se borra</strong>.</div>
+        </div>
+      </button>
+    </div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    </div>`;
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+// Choice A: create checklist
+function choiceChecklist() {
+  const box = document.getElementById('modalBox');
+  const file = box._pendingFile;
+  const name = box._pendingName;
+  closeModal();
+  const reader = new FileReader();
+  reader.onload = ev => previewFileModal(name, ev.target.result);
+  reader.readAsText(file, 'UTF-8');
+}
+
+// Choice B: save as doc reference (with auto blob URL)
+function choiceDocument() {
+  const box = document.getElementById('modalBox');
+  const name = box._pendingName;
+  const file = box._pendingFile;
+  const blobUrl = file ? URL.createObjectURL(file) : '';
+  box._pendingBlobUrl = blobUrl;
+  box.innerHTML = `
+    <h3>📁 Guardar Documento</h3>
+    <div class="fg"><label>Nombre</label><input id="mi-name" value="${esc(name)}"></div>
+    <div class="fg"><label>URL ${blobUrl ? '(auto-generada)' : '(opcional)'}</label>
+      <input id="mi-url" value="${blobUrl || ''}" ${blobUrl ? 'readonly style="opacity:0.6;font-size:10px"' : 'placeholder="https://... o deja vacío"'}>
+    </div>
+    ${blobUrl ? `<div style="background:rgba(137,180,250,.07);border:1px solid rgba(137,180,250,.2);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">
+      📎 El link funciona <strong style="color:var(--text)">mientras el panel esté abierto</strong>. Si cierras y reabres, arrastra el archivo de nuevo.
+    </div>` : ''}
+    <div style="background:rgba(166,227,161,.07);border:1px solid rgba(166,227,161,.2);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">
+      ✅ Excluirlo del panel <strong style="color:var(--text)">no borra</strong> el archivo de tu computadora.
+    </div>
+    <div class="fg"><label>Guardar en</label>
+      <select id="mi-doctype">
+        <option value="agent">📁 Documentos del agente activo</option>
+        <option value="general">🌐 Documentos generales</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitDoc(document.getElementById('mi-doctype').value)">Guardar ✓</button>
+    </div>`;
+  setTimeout(() => {
+    document.getElementById('mi-name').focus();
+    document.querySelectorAll('#modalBox input:not([readonly])').forEach(inp => {
+      inp.onkeydown = e => { if (e.key==='Enter') document.querySelector('#modalBox .btn-primary')?.click(); };
+    });
+  }, 30);
+}
+
+// Checklist preview before creating
+function previewFileModal(filename, content) {
+  const rawLines = content.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0)
+    .map(l => l.replace(/^[-*•]\s+/, '').replace(/^\d+[.)]\s+/, '').trim())
+    .filter(l => l.length > 0);
+
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `<h3>✅ Importar Checklist</h3>
+    <div class="fg">
+      <label>Título</label>
+      <input id="mi-title" value="${esc(filename)}">
+    </div>
+    <div class="fg">
+      <label>${rawLines.length} ítems detectados — edita si quieres</label>
+      <textarea id="mi-items" rows="9" style="font-size:11px;line-height:1.6">${rawLines.map(esc).join('\n')}</textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitList()">Crear Checklist ✓</button>
+    </div>`;
+  document.getElementById('overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('mi-title').focus(), 40);
+}
+
+// ── WORKFLOWS ────────────────────────────────────────────────────────
+function wf(id) { return S.workflows.find(w => w.id === (id || S.curWf)); }
+
+function renderWorkflows() {
+  // Topbar tabs
+  const tb = document.getElementById('wfTopbar');
+  tb.innerHTML = S.workflows.map(w => `
+    <button class="wf-tab ${w.id===S.curWf?'active':''}" style="--wfc:${COLORS[w.ci]}" onclick="selWf('${w.id}')">
+      <span class="wf-dot"></span>${esc(w.name)}
+    </button>`).join('') +
+    `<button class="wf-new-btn" onclick="newWorkflow()">+ Nuevo Workflow</button>`;
+
+  const w = wf();
+  const hdr = document.getElementById('wfHeader');
+  const stg = document.getElementById('wfStages');
+
+  if (!w) {
+    hdr.innerHTML = '';
+    stg.innerHTML = `<div class="wf-empty">
+      <div class="wf-empty-icon">🔄</div>
+      <div style="font-size:14px;font-weight:700">Sin workflows todavía</div>
+      <div style="font-size:12px;color:var(--text-subtle)">Crea tu primer workflow arriba</div>
+      <button class="btn btn-primary" onclick="newWorkflow()" style="margin-top:8px">+ Nuevo Workflow</button>
+    </div>`;
+    return;
+  }
+
+  // Count totals
+  const allTasks = w.stages.flatMap(s => s.tasks);
+  const done = allTasks.filter(t => t.done).length;
+  const pct  = allTasks.length > 0 ? Math.round(done/allTasks.length*100) : 0;
+
+  hdr.innerHTML = `
+    <div class="wf-header">
+      <input class="wf-name-input" value="${esc(w.name)}"
+        onblur="renameWf(this.value)" onkeydown="if(event.key==='Enter')this.blur()"
+        style="--blue:${COLORS[w.ci]}">
+      <span class="wf-progress-label">${done}/${allTasks.length} tareas · ${pct}%
+        <span style="display:inline-block;width:60px;height:4px;background:var(--surface3);border-radius:2px;margin-left:6px;vertical-align:middle">
+          <span style="display:block;width:${pct}%;height:100%;background:var(--green);border-radius:2px;transition:width .3s"></span>
+        </span>
+      </span>
+      <button class="wf-del-btn" onclick="deleteWf()" title="Eliminar workflow">🗑</button>
+    </div>`;
+
+  // Stages
+  let html = '';
+  w.stages.forEach((s, i) => {
+    const sDone = s.tasks.filter(t => t.done).length;
+    const sPct  = s.tasks.length > 0 ? Math.round(sDone/s.tasks.length*100) : 0;
+    if (i > 0) html += `<div class="wf-arrow">→</div>`;
+    html += `
+    <div class="wf-stage">
+      <div class="wf-stage-head">
+        <input class="wf-stage-name" value="${esc(s.name)}"
+          onblur="renameStage('${s.id}',this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          title="Click para renombrar">
+        <span style="font-size:10px;color:var(--text-subtle)">${sDone}/${s.tasks.length}</span>
+        <button class="wf-stage-del" onclick="deleteStage('${s.id}')" title="Eliminar etapa">×</button>
+      </div>
+      <div class="wf-stage-prog"><div class="wf-stage-prog-fill" style="width:${sPct}%"></div></div>
+      <div class="wf-stage-body">
+        ${s.tasks.map(t => `
+          <div class="wf-task ${t.done?'done':''}" onclick="togWfTask('${s.id}','${t.id}')">
+            <input type="checkbox" ${t.done?'checked':''} onclick="event.stopPropagation()" onchange="togWfTask('${s.id}','${t.id}')">
+            <span class="wf-task-text">${esc(t.text)}</span>
+            <button class="wf-task-del" onclick="event.stopPropagation();delWfTask('${s.id}','${t.id}')">×</button>
+          </div>`).join('')}
+        <input class="wf-add-task" placeholder="+ Agregar tarea..."
+          onkeydown="if(event.key==='Enter'&&this.value.trim()){addWfTask('${s.id}',this)}">
+      </div>
+    </div>`;
+  });
+  html += `<button class="wf-add-stage" onclick="addStage()">＋ Agregar Etapa</button>`;
+  stg.innerHTML = html;
+}
+
+function selWf(id) { S.curWf = id; renderWorkflows(); save(); }
+
+function newWorkflow() {
+  openModal('workflow');
+}
+
+function renameWf(val) {
+  const w = wf(); if (w && val.trim()) { w.name = val.trim(); renderWorkflows(); save(); }
+}
+
+function deleteWf() {
+  const w = wf(); if (!w) return;
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `
+    <h3>🗑 Eliminar Workflow</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+      ¿Eliminar <strong style="color:var(--text)">"${esc(w.name)}"</strong> y todas sus etapas? Esta acción no se puede deshacer.
+    </p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="background:var(--red)" onclick="confirmDeleteWf()">Eliminar</button>
+    </div>`;
+  document.getElementById('overlay').style.display = 'flex';
+}
+function confirmDeleteWf() {
+  S.workflows = S.workflows.filter(x => x.id !== S.curWf);
+  S.curWf = S.workflows.length > 0 ? S.workflows[0].id : null;
+  closeModal(); render();
+  toast('Workflow eliminado');
+}
+
+function addStage() {
+  openModal('stage');
+}
+
+function renameStage(stId, val) {
+  const w = wf(); if (!w) return;
+  const s = w.stages.find(s => s.id === stId);
+  if (s && val.trim()) { s.name = val.trim(); save(); }
+}
+
+function deleteStage(stId) {
+  const w = wf(); if (!w) return;
+  w.stages = w.stages.filter(s => s.id !== stId);
+  renderWorkflows(); save();
+}
+
+function addWfTask(stId, input) {
+  const w = wf(); if (!w) return;
+  const s = w.stages.find(s => s.id === stId); if (!s) return;
+  s.tasks.push({ id: uid(), text: input.value.trim(), done: false });
+  input.value = '';
+  renderWorkflows(); save();
+}
+
+function togWfTask(stId, taskId) {
+  const w = wf(); if (!w) return;
+  const s = w.stages.find(s => s.id === stId); if (!s) return;
+  const t = s.tasks.find(t => t.id === taskId); if (!t) return;
+  t.done = !t.done;
+  renderWorkflows(); save();
+}
+
+function delWfTask(stId, taskId) {
+  const w = wf(); if (!w) return;
+  const s = w.stages.find(s => s.id === stId); if (!s) return;
+  s.tasks = s.tasks.filter(t => t.id !== taskId);
+  renderWorkflows(); save();
+}
+
+// ── EXPORT / IMPORT ──────────────────────────────────────────────────
+function exportData() {
+  const json = JSON.stringify(S, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'workflow-data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('💾 workflow-data.json guardado en tu computadora');
+}
+
+function importFromInput(e) {
+  const file = e.target.files[0];
+  if (file) importData(file);
+  e.target.value = '';
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.agents) throw new Error('Formato inválido');
+      // Use modal instead of confirm() (blocked in Edge file://)
+      const box = document.getElementById('modalBox');
+      box.innerHTML = `
+        <h3>📦 Restaurar Sesión</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+          ¿Restaurar desde <strong style="color:var(--text)">"${esc(file.name)}"</strong>?<br>
+          Esto reemplazará el estado actual.
+        </p>
+        <div class="modal-btns">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="confirmImport()">Restaurar</button>
+        </div>`;
+      box._pendingImport = parsed;
+      document.getElementById('overlay').style.display = 'flex';
+    } catch(e) {
+      toast('⚠️ Archivo JSON inválido o corrupto');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+function confirmImport() {
+  const box = document.getElementById('modalBox');
+  S = box._pendingImport;
+  box._pendingImport = null;
+  save(); closeModal(); render();
+  toast('✅ Sesión restaurada correctamente');
+}
+
+// ── UTILS ────────────────────────────────────────────────────────────
+function uid()  { return Math.random().toString(36).slice(2,9); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toast(msg) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+load();
+render();
+if (S.view && S.view !== 'kanban') setView(S.view);
+</script>
+</body>
+</html>
