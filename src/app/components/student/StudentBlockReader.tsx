@@ -23,12 +23,15 @@ import {
   Highlighter,
   MessageSquare,
   Bookmark,
+  Pencil,
   Timer,
   Settings2,
   PanelLeftOpen,
   Sun,
   Moon,
   Activity,
+  Undo2,
+  Redo2,
   X,
 } from 'lucide-react';
 import { SummaryViewer } from './SummaryViewer';
@@ -200,7 +203,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
           </button>
           <span
             className="text-base font-bold"
-            style={{ color: isDark ? '#3cc9a8' : ICON_COLOR, fontFamily: 'Space Grotesk, Inter, sans-serif' }}
+            style={{ color: isDark ? '#3cc9a8' : TEAL_ACCENT, fontFamily: 'Space Grotesk, sans-serif' }}
           >
             AXON
           </span>
@@ -209,7 +212,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
           </span>
         </div>
 
-        {/* Right: toolbar icons */}
+        {/* Right: toolbar icons — matches prototype order (lines 1588-1696) */}
         <div className="flex items-center gap-1">
           {/* Search */}
           <ToolbarButton
@@ -222,7 +225,17 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
             title="Buscar (Ctrl+F)"
           />
 
-          <ToolbarSeparator />
+          {/* Highlight mode */}
+          <ToolbarButton icon={Highlighter} onClick={() => {}} title="Marca texto" />
+
+          {/* Annotations */}
+          <ToolbarButton icon={MessageSquare} onClick={() => {}} title="Mis notas" />
+
+          {/* Bookmarks */}
+          <ToolbarButton icon={Bookmark} onClick={() => {}} title="Marcadores" />
+
+          {/* Drawing */}
+          <ToolbarButton icon={Pencil} onClick={() => {}} title="Dibujar" />
 
           {/* Timer */}
           <ToolbarButton icon={Timer} onClick={() => {}} title="Temporizador" />
@@ -244,6 +257,8 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
             )}
           </div>
 
+          <ToolbarSeparator />
+
           {/* Sidebar toggle */}
           <ToolbarButton
             icon={PanelLeftOpen}
@@ -264,8 +279,10 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
           {/* Mastery toggle */}
           <button
             onClick={() => setShowMastery((p) => !p)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all"
+            className="flex items-center gap-1.5 rounded-full text-[11px] font-semibold transition-all"
             style={{
+              padding: '5px 12px',
+              borderRadius: 20,
               border: `1px solid ${showMastery ? TEAL_ACCENT : SEPARATOR_COLOR}`,
               background: showMastery ? 'rgba(42,140,122,0.15)' : 'transparent',
               color: showMastery ? (isDark ? '#3cc9a8' : TEAL_ACCENT) : ICON_COLOR,
