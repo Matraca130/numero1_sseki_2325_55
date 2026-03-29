@@ -19,7 +19,7 @@ import type { GroupStat } from '@/app/components/student/quiz-types';
 import { motion } from 'motion/react';
 import clsx from 'clsx';
 import { Target, Brain, AlertCircle } from 'lucide-react';
-import { getMasteryLevel } from '@/app/services/aiApi';
+import { getKeywordDeltaColorSafe, getDeltaColorClasses, getDeltaColorLabel } from '@/app/lib/mastery-helpers';
 import { useBktStates } from '@/app/components/student/useBktStates';
 
 // ── Props ────────────────────────────────────────────────
@@ -87,7 +87,8 @@ export const KeywordMasterySection = React.memo(function KeywordMasterySection({
         {keywordGroups.map((group, gi) => {
           const groupPct = group.total > 0 ? (group.correct / group.total) * 100 : 0;
           const mastery = keywordMastery.get(group.keywordId) ?? undefined;
-          const masteryInfo = mastery != null ? getMasteryLevel(mastery) : null;
+          const deltaLevel = mastery != null ? getKeywordDeltaColorSafe(mastery) : null;
+          const deltaClasses = deltaLevel ? getDeltaColorClasses(deltaLevel) : null;
 
           return (
             <div key={group.keywordId} className="flex items-center gap-3 px-4 py-2.5 bg-white rounded-xl border border-zinc-200">
@@ -98,18 +99,15 @@ export const KeywordMasterySection = React.memo(function KeywordMasterySection({
                       {group.label}
                     </span>
                     {/* BKT mastery badge */}
-                    {masteryInfo && (
+                    {deltaClasses && deltaLevel && (
                       <span
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0"
-                        style={{
-                          fontWeight: 700,
-                          color: masteryInfo.color,
-                          backgroundColor: `${masteryInfo.color}10`,
-                          borderColor: `${masteryInfo.color}30`,
-                        }}
+                        className={clsx(
+                          'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0 font-bold',
+                          deltaClasses.text, deltaClasses.bg, deltaClasses.border,
+                        )}
                       >
                         <Brain size={9} />
-                        {masteryInfo.label} ({Math.round(mastery! * 100)}%)
+                        {getDeltaColorLabel(deltaLevel)} ({Math.round(mastery! * 100)}%)
                       </span>
                     )}
                   </div>

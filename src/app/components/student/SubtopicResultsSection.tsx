@@ -17,7 +17,7 @@ import {
   Layers, Brain, ChevronDown, ChevronRight,
   CheckCircle2, XCircle,
 } from 'lucide-react';
-import { getMasteryLevel } from '@/app/services/aiApi';
+import { getKeywordDeltaColorSafe, getDeltaColorClasses, getDeltaColorLabel } from '@/app/lib/mastery-helpers';
 import { useBktStates } from '@/app/components/student/useBktStates';
 
 // ── Types ────────────────────────────────────────────────
@@ -106,7 +106,8 @@ export const SubtopicResultsSection = React.memo(function SubtopicResultsSection
         {groups.map((group, gi) => {
           const pct = group.total > 0 ? (group.correct / group.total) * 100 : 0;
           const mastery = bktBySubtopic.get(group.subtopicId);
-          const masteryInfo = mastery != null ? getMasteryLevel(mastery) : null;
+          const deltaLevel = mastery != null ? getKeywordDeltaColorSafe(mastery) : null;
+          const deltaClasses = deltaLevel ? getDeltaColorClasses(deltaLevel) : null;
           const isExpanded = expandedId === group.subtopicId;
 
           return (
@@ -132,18 +133,15 @@ export const SubtopicResultsSection = React.memo(function SubtopicResultsSection
                         </span>
                       )}
                       {/* BKT mastery badge */}
-                      {masteryInfo && (
+                      {deltaClasses && deltaLevel && (
                         <span
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0"
-                          style={{
-                            fontWeight: 700,
-                            color: masteryInfo.color,
-                            backgroundColor: `${masteryInfo.color}10`,
-                            borderColor: `${masteryInfo.color}30`,
-                          }}
+                          className={clsx(
+                            'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border shrink-0 font-bold',
+                            deltaClasses.text, deltaClasses.bg, deltaClasses.border,
+                          )}
                         >
                           <Brain size={9} />
-                          {masteryInfo.label} ({Math.round(mastery! * 100)}%)
+                          {getDeltaColorLabel(deltaLevel)} ({Math.round(mastery! * 100)}%)
                         </span>
                       )}
                     </div>

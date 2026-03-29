@@ -13,6 +13,7 @@ import {
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
+import { colors } from '@/app/design-system';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,6 +50,16 @@ const ICON_BY_TYPE: Record<string, LucideIcon> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Maps a mastery level (0–1+) to the Delta Mastery Scale color token.
+ *  Logic mirrors MasteryBar's getMasteryInfo so colors stay consistent. */
+function getMasteryDotColor(level: number): string {
+  if (level > 1.0) return colors.mastery.maestria;      // blue
+  if (level === 1.0) return colors.mastery.consolidado;  // green
+  if (level >= 0.85) return colors.mastery.enProgreso;   // amber
+  if (level >= 0.5) return colors.mastery.emergente;     // red
+  return colors.mastery.descubrir;                        // gray
+}
+
 function getBlockLabel(block: { type: string; content?: Record<string, unknown> }): string {
   const title = block.content?.title;
   if (typeof title === 'string' && title.length > 0) return title;
@@ -57,15 +68,6 @@ function getBlockLabel(block: { type: string; content?: Record<string, unknown> 
   if (typeof label === 'string' && label.length > 0) return label;
 
   return block.type.replace(/_/g, ' ');
-}
-
-/** Map mastery level to dot color */
-function getMasteryDotColor(level: number): string {
-  if (level > 1.0) return '#3b82f6';   // blue
-  if (level >= 1.0) return '#10b981';   // green
-  if (level >= 0.85) return '#f59e0b';  // yellow
-  if (level >= 0.5) return '#ef4444';   // red
-  return '#a1a1aa';                      // gray
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +157,7 @@ export function SidebarOutline({
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
               )}
 
-              {/* Mastery dot */}
+              {/* Mastery dot — Delta Mastery Scale */}
               {mastery !== undefined && (
                 <span
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full"
