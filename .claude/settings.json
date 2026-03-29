@@ -1,13 +1,21 @@
 {
   "permissions": {
     "allow": [
+      "Bash(npm run build)",
+      "Bash(npm run test)",
+      "Bash(npx vitest*)",
+      "Bash(git *)",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(echo *)",
       "Read",
+      "Write",
+      "Edit",
       "Glob",
       "Grep",
-      "Edit(/.claude/agent-memory/**/*.md)",
-      "Write(/.claude/agent-memory/**/*.md)",
-      "Edit(/.claude/agent-memory/*.md)",
-      "Write(/.claude/agent-memory/*.md)"
+      "Agent"
     ]
   },
   "hooks": {
