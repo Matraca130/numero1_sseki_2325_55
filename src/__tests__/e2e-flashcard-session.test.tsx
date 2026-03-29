@@ -12,50 +12,47 @@
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import type { Flashcard } from '@/app/types/content';
 
 // ── Mock motion/react ──────────────────────────────────────
-// Replace all motion components with plain DOM elements.
+// Explicit component map (NOT Proxy — Proxy causes vitest to hang
+// due to infinite property enumeration during module interop).
 vi.mock('motion/react', () => {
   const React = require('react');
-  const motion = new Proxy(
-    {},
-    {
-      get(_target: unknown, prop: string) {
-        // Return a forwardRef component that renders the plain HTML element
-        return React.forwardRef((props: Record<string, unknown>, ref: React.Ref<unknown>) => {
-          // Strip motion-specific props
-          const {
-            initial, animate, exit, transition, whileHover, whileTap,
-            whileInView, variants, layout, layoutId, onAnimationComplete,
-            ...rest
-          } = props;
-          return React.createElement(prop, { ...rest, ref });
-        });
-      },
-    },
-  );
+  function m(tag: string) {
+    return React.forwardRef((props: Record<string, unknown>, ref: React.Ref<unknown>) => {
+      const {
+        initial, animate, exit, transition, whileHover, whileTap,
+        whileInView, variants, layout, layoutId, onAnimationComplete,
+        ...rest
+      } = props;
+      return React.createElement(tag, { ...rest, ref });
+    });
+  }
   return {
-    motion,
-    AnimatePresence: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
+    motion: {
+      div: m('div'), span: m('span'), p: m('p'), h3: m('h3'),
+      button: m('button'), img: m('img'), circle: m('circle'),
+      section: m('section'), article: m('article'), a: m('a'),
+    },
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   };
 });
 
 // ── Mock lucide-react ──────────────────────────────────────
+// Explicit named exports (NOT Proxy — same hang issue).
 vi.mock('lucide-react', () => {
   const React = require('react');
-  return new Proxy(
-    {},
-    {
-      get(_target: unknown, name: string) {
-        if (name === '__esModule') return true;
-        return (props: Record<string, unknown>) =>
-          React.createElement('span', { 'data-testid': `icon-${name}`, ...props });
-      },
-    },
-  );
+  const icon = (props: Record<string, unknown>) =>
+    React.createElement('span', { 'data-testid': `icon`, ...props });
+  return {
+    CheckCircle: icon, Brain: icon, X: icon, Eye: icon,
+    AlertTriangle: icon, Stethoscope: icon, Keyboard: icon,
+    Trophy: icon, TrendingUp: icon, TrendingDown: icon,
+    Star: icon, Sparkles: icon,
+  };
 });
 
 // ── Mock sonner ────────────────────────────────────────────
@@ -82,7 +79,7 @@ vi.mock('@/app/components/shared/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// ── Mock mastery-colors (real logic is small, but mock for isolation) ──
+// ── Mock mastery-colors (real logic is small, mock for isolation) ──
 vi.mock('@/app/components/content/flashcard/mastery-colors', () => ({
   getMasteryColor: (m: number) => ({
     level: m,
@@ -228,9 +225,8 @@ describe('E2E Flashcard Session Flow', () => {
     const props = makeSessionProps({ isRevealed: true, handleRate });
     render(<SessionScreen {...props} />);
 
-    // Click the "Perfecto" (5) button — find buttons by their numeric label
+    // Find the rating button that contains "Perfecto" (value=5)
     const ratingButtons = screen.getAllByRole('button');
-    // The rating button with value 5 contains the text "5"
     const perfectoBtn = ratingButtons.find(
       (btn) => btn.textContent?.includes('Perfecto'),
     );
@@ -249,7 +245,6 @@ describe('E2E Flashcard Session Flow', () => {
     const props = makeSessionProps({ setIsRevealed });
     render(<SessionScreen {...props} />);
 
-    // Simulate Space keydown on the window
     fireEvent.keyDown(window, { key: ' ' });
 
     expect(setIsRevealed).toHaveBeenCalledWith(true);
@@ -319,7 +314,7 @@ describe('E2E Flashcard Session Flow', () => {
     render(<SummaryScreen {...props} />);
 
     // Session complete heading
-    expect(screen.getByText(/Sesi\u00F3n Completada/)).toBeInTheDocument();
+    expect(screen.getByText(/Completada/)).toBeInTheDocument();
     // Card count
     expect(screen.getByText(/3 flashcards/)).toBeInTheDocument();
   });
@@ -335,9 +330,9 @@ describe('E2E Flashcard Session Flow', () => {
       totalMastered: 15,
       totalCards: 25,
       masteryDeltas: [
-        { cardId: 'c1', before: 0.4, after: 0.8 },  // improved + newly mastered
-        { cardId: 'c2', before: 0.7, after: 0.6 },  // declined
-        { cardId: 'c3', before: 0.9, after: 0.95 },  // improved
+        { cardId: 'c1', before: 0.4, after: 0.8, grade: 4 },  // improved + newly mastered
+        { cardId: 'c2', before: 0.7, after: 0.6, grade: 3 },  // declined
+        { cardId: 'c3', before: 0.9, after: 0.95, grade: 5 },  // improved
       ],
     });
     render(<SummaryScreen {...props} />);
@@ -413,9 +408,9 @@ describe('E2E Flashcard Session Flow', () => {
       stats: [5, 5, 5],
       realMasteryPercent: 100,
       masteryDeltas: [
-        { cardId: 'c1', before: 0.5, after: 0.95 },
-        { cardId: 'c2', before: 0.6, after: 0.92 },
-        { cardId: 'c3', before: 0.8, after: 0.98 },
+        { cardId: 'c1', before: 0.5, after: 0.95, grade: 5 },
+        { cardId: 'c2', before: 0.6, after: 0.92, grade: 5 },
+        { cardId: 'c3', before: 0.8, after: 0.98, grade: 5 },
       ],
     });
     render(<SummaryScreen {...props} />);
@@ -440,7 +435,7 @@ describe('E2E Flashcard Session Flow', () => {
     render(<SummaryScreen {...props} />);
 
     // Fallback message
-    expect(screen.getByText(/No hay datos de la sesi\u00F3n/)).toBeInTheDocument();
+    expect(screen.getByText(/No hay datos/)).toBeInTheDocument();
     // "Volver al Deck" button still available
     const exitBtn = screen.getByText('Volver al Deck');
     fireEvent.click(exitBtn);

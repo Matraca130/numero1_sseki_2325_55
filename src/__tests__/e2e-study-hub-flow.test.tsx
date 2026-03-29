@@ -46,18 +46,29 @@ vi.mock('motion/react', () => {
 });
 
 // ── Mock lucide-react ─────────────────────────────────────────
+// NOTE: Do NOT use a Proxy here -- it causes vitest to hang during
+// module resolution. Explicitly list every icon used by the components.
 vi.mock('lucide-react', () => {
   const React = require('react');
-  return new Proxy(
-    {},
-    {
-      get(_target: unknown, name: string) {
-        if (name === '__esModule') return true;
-        return (props: Record<string, unknown>) =>
-          React.createElement('span', { 'data-testid': `icon-${name}`, 'data-icon': name, ...props }, name);
-      },
-    },
-  );
+  const iconFactory = (name: string) =>
+    (props: Record<string, unknown>) =>
+      React.createElement('span', { 'data-testid': `icon-${name}`, 'data-icon': name, ...props }, name);
+  return {
+    BookOpen: iconFactory('BookOpen'),
+    Clock: iconFactory('Clock'),
+    Sparkles: iconFactory('Sparkles'),
+    Play: iconFactory('Play'),
+    ArrowRight: iconFactory('ArrowRight'),
+    Video: iconFactory('Video'),
+    FileText: iconFactory('FileText'),
+    ChevronLeft: iconFactory('ChevronLeft'),
+    Folder: iconFactory('Folder'),
+    CheckCircle2: iconFactory('CheckCircle2'),
+    AlertCircle: iconFactory('AlertCircle'),
+    BarChart3: iconFactory('BarChart3'),
+    TrendingUp: iconFactory('TrendingUp'),
+    Target: iconFactory('Target'),
+  };
 });
 
 // ── Mock sonner ───────────────────────────────────────────────

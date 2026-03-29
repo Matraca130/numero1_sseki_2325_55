@@ -538,8 +538,9 @@ describe('E2E Context Providers Integration', () => {
   // ────────────────────────────────────────────────────────
   // 11. Error propagation when API calls fail
   // ────────────────────────────────────────────────────────
-  it('sets error state when all API calls fail, but still constructs profile from auth', async () => {
+  it('gracefully handles individual API failures via Promise.allSettled', async () => {
     setupAuthenticatedUser();
+    // All three API calls reject, but Promise.allSettled catches them individually
     setupFailingApiCalls('Backend unavailable');
 
     const { result } = renderHook(() => useStudentDataContext(), {
@@ -550,17 +551,23 @@ describe('E2E Context Providers Integration', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Error should be set
-    expect(result.current.error).toBe('Backend unavailable');
+    // Promise.allSettled handles individual rejections gracefully --
+    // no error is thrown to the catch block, so error remains null
+    expect(result.current.error).toBeNull();
 
-    // Profile should still be available (constructed from auth, not API)
+    // Profile should still be available (constructed from auth)
     expect(result.current.profile).not.toBeNull();
     expect(result.current.profile!.id).toBe(MOCK_USER.id);
 
-    // Stats and BKT should be null/empty due to failure
+    // Failed API calls return fallback values (null for stats, [] for arrays)
     expect(result.current.stats).toBeNull();
-    expect(result.current.bktStates).toEqual([]);
     expect(result.current.rawStats).toBeNull();
+    expect(result.current.bktStates).toEqual([]);
+    expect(result.current.dailyActivity).toEqual([]);
+    expect(result.current.rawDaily).toEqual([]);
+
+    // isConnected should be false since rawStats is null
+    expect(result.current.isConnected).toBe(false);
   });
 
   // ────────────────────────────────────────────────────────

@@ -19,6 +19,65 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
 
+// ── Mock @supabase/supabase-js (prevents network init) ─────
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: () => ({
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
+    },
+    from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ data: [], error: null }) }),
+  }),
+}));
+
+// ── Mock supabase singleton ────────────────────────────────
+vi.mock('@/app/lib/supabase', () => ({
+  SUPABASE_URL: 'https://test.supabase.co',
+  SUPABASE_ANON_KEY: 'test-anon-key',
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+    },
+  },
+}));
+
+// ── Mock AuthContext ────────────────────────────────────────
+vi.mock('@/app/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1' },
+    institutionId: 'inst-1',
+    role: 'student',
+    loading: false,
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+// ── Mock contexts used by useStudyPlanBridge ────────────────
+vi.mock('@/app/context/NavigationContext', () => ({
+  useNavigation: () => ({
+    currentTopic: null,
+    currentCourse: null,
+    navigateTo: vi.fn(),
+  }),
+}));
+
+vi.mock('@/app/context/StudyPlansContext', () => ({
+  useStudyPlansContext: () => ({
+    findPendingTask: vi.fn().mockReturnValue(null),
+    toggleTaskComplete: vi.fn(),
+  }),
+}));
+
+// ── Mock gamificationApi (used by GamificationContext) ──────
+vi.mock('@/app/services/gamificationApi', () => ({
+  getProfile: vi.fn().mockResolvedValue({ total_xp: 100, level: 3 }),
+  getStreakStatus: vi.fn().mockResolvedValue(null),
+  checkBadges: vi.fn().mockResolvedValue([]),
+}));
+
 // ── Mock motion/react ──────────────────────────────────────
 vi.mock('motion/react', () => {
   const React = require('react');
@@ -44,19 +103,22 @@ vi.mock('motion/react', () => {
   };
 });
 
-// ── Mock lucide-react ──────────────────────────────────────
+// ── Mock lucide-react (explicit, not Proxy — Proxy causes infinite loop) ──
 vi.mock('lucide-react', () => {
   const React = require('react');
-  return new Proxy(
-    {},
-    {
-      get(_target: unknown, name: string) {
-        if (name === '__esModule') return true;
-        return (props: Record<string, unknown>) =>
-          React.createElement('span', { 'data-testid': `icon-${name}`, ...props });
-      },
-    },
-  );
+  const i = (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': 'icon', ...props });
+  return {
+    __esModule: true,
+    AlertCircle: i, AlertTriangle: i, BookOpen: i, Bookmark: i, BookmarkCheck: i,
+    Brain: i, Check: i, CheckCircle2: i, ChevronDown: i, ChevronLeft: i,
+    ChevronRight: i, Clock: i, Eye: i, Flame: i, Highlighter: i, Image: i,
+    ImageIcon: i, Layers: i, Lightbulb: i, Link2: i, Loader2: i,
+    MessageSquare: i, Minus: i, Moon: i, Pause: i, Play: i, PlayCircle: i,
+    Plus: i, RotateCcw: i, RotateCw: i, Save: i, Search: i, Sparkles: i,
+    StickyNote: i, Sun: i, Tag: i, Target: i, Trash2: i, TrendingDown: i,
+    TrendingUp: i, Trophy: i, Volume2: i, VolumeX: i, X: i, XCircle: i,
+    ZoomIn: i, ZoomOut: i,
+  };
 });
 
 // ── Mock sonner ────────────────────────────────────────────
@@ -362,6 +424,8 @@ describe('E2E Quiz Session Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupDefaultMocks();
+    // Fix Math.random to prevent Fisher-Yates shuffle: 0.999 means j=i always (no swap)
+    vi.spyOn(Math, 'random').mockReturnValue(0.999);
   });
 
   // ════════════════════════════════════════════════════════
@@ -519,8 +583,8 @@ describe('E2E Quiz Session Flow', () => {
       expect(screen.getByText('Respondida')).toBeInTheDocument();
     });
 
-    // Click next to finish (last question)
-    const finishBtn = screen.getByText('Siguiente');
+    // Click "Ver resultados" to finish (only question, all answered)
+    const finishBtn = screen.getByText('Ver resultados');
     fireEvent.click(finishBtn);
 
     // Wait for results screen
@@ -862,7 +926,7 @@ describe('E2E Quiz Session Flow', () => {
         answeredCount={3}
       />,
     );
-    expect(screen.getByText('Puedes mejorar. Revisa los temas debiles.')).toBeInTheDocument();
+    expect(screen.getByText('Necesitas repasar este tema.')).toBeInTheDocument();
     u2();
   });
 });

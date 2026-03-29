@@ -205,7 +205,6 @@ describe('ContentTreeContext — lifecycle and state', () => {
 
   // ── Test 2 ─────────────────────────────────────────────
   it('selectTopic updates selectedTopicId', async () => {
-    const user = userEvent.setup();
     renderWithProvider();
 
     await waitFor(() => {
@@ -214,16 +213,15 @@ describe('ContentTreeContext — lifecycle and state', () => {
 
     expect(screen.getByTestId('selectedTopicId').textContent).toBe('null');
 
-    await user.click(screen.getByTestId('select-t1'));
+    fireEvent.click(screen.getByTestId('select-t1'));
     expect(screen.getByTestId('selectedTopicId').textContent).toBe('t1');
 
-    await user.click(screen.getByTestId('select-null'));
+    fireEvent.click(screen.getByTestId('select-null'));
     expect(screen.getByTestId('selectedTopicId').textContent).toBe('null');
   });
 
   // ── Test 3 ─────────────────────────────────────────────
   it('refresh() re-fetches the content tree', async () => {
-    const user = userEvent.setup();
     renderWithProvider();
 
     await waitFor(() => {
@@ -232,7 +230,9 @@ describe('ContentTreeContext — lifecycle and state', () => {
 
     expect(mockGetContentTree).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByTestId('refresh'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('refresh'));
+    });
 
     await waitFor(() => {
       expect(mockGetContentTree).toHaveBeenCalledTimes(2);
@@ -264,14 +264,15 @@ describe('ContentTreeContext — lifecycle and state', () => {
 
   // ── Test 5 ─────────────────────────────────────────────
   it('CRUD: addCourse calls createCourse API with correct params and refreshes', async () => {
-    const user = userEvent.setup();
     renderWithProvider();
 
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
 
-    await user.click(screen.getByTestId('add-course'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-course'));
+    });
 
     await waitFor(() => {
       expect(mockCreateCourse).toHaveBeenCalledWith({
@@ -289,24 +290,29 @@ describe('ContentTreeContext — lifecycle and state', () => {
 
   // ── Test 6 ─────────────────────────────────────────────
   it('CRUD: addTopic, editCourse, removeCourse call correct APIs', async () => {
-    const user = userEvent.setup();
     renderWithProvider();
 
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
 
-    await user.click(screen.getByTestId('add-topic'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-topic'));
+    });
     await waitFor(() => {
       expect(mockCreateTopic).toHaveBeenCalledWith({ section_id: 'sec1', name: 'New Topic' });
     });
 
-    await user.click(screen.getByTestId('edit-course'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('edit-course'));
+    });
     await waitFor(() => {
       expect(mockUpdateCourse).toHaveBeenCalledWith('c1', { name: 'Renamed', description: undefined });
     });
 
-    await user.click(screen.getByTestId('remove-course'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('remove-course'));
+    });
     await waitFor(() => {
       expect(mockDeleteCourse).toHaveBeenCalledWith('c1');
     });
