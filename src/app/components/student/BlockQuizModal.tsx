@@ -5,13 +5,16 @@
 // Shows one multiple-choice question at a time with immediate
 // feedback (correct/incorrect + explanation).
 //
-// Uses mock questions until the backend endpoint exists.
+// Calls POST /ai/generate with type: 'quiz' to fetch real
+// questions. Falls back to MOCK_QUESTIONS if the API fails.
 // Design: teal accent, Georgia headings, Inter body, pill buttons.
 // ============================================================
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, X, Check, ChevronRight } from 'lucide-react';
+import { Brain, X, Check, ChevronRight, Loader2 } from 'lucide-react';
+import { apiCall } from '@/app/lib/api';
+
 // ── Design tokens (inlined from design system) ──────────────
 
 const MODAL_OVERLAY =
@@ -43,7 +46,7 @@ const FEEDBACK = {
 
 // ── Types ────────────────────────────────────────────────
 
-interface MockQuestion {
+interface QuizQuestion {
   text: string;
   options: string[];
   correctIndex: number;
@@ -57,62 +60,124 @@ export interface BlockQuizModalProps {
   onClose: () => void;
 }
 
-// ── Mock data ────────────────────────────────────────────
+// ── Mock data (fallback) ────────────────────────────────
 
-const MOCK_QUESTIONS: MockQuestion[] = [
+const MOCK_QUESTIONS: QuizQuestion[] = [
   {
-    text: '¿Cuál es la principal característica de la aterosclerosis?',
+    text: '¿Cual es la principal caracteristica de la aterosclerosis?',
     options: [
-      'Es una enfermedad exclusivamente genética',
-      'Es un depósito pasivo de grasa en las arterias',
-      'Es un proceso inflamatorio crónico de las arterias',
+      'Es una enfermedad exclusivamente genetica',
+      'Es un deposito pasivo de grasa en las arterias',
+      'Es un proceso inflamatorio cronico de las arterias',
       'Afecta solo a las venas de gran calibre',
     ],
     correctIndex: 2,
     explanation:
-      'La aterosclerosis es un proceso inflamatorio crónico activo, no un simple depósito de grasa.',
+      'La aterosclerosis es un proceso inflamatorio cronico activo, no un simple deposito de grasa.',
   },
   {
-    text: '¿Qué tipo de células participan en la formación de la placa ateromatosa?',
+    text: '¿Que tipo de celulas participan en la formacion de la placa ateromatosa?',
     options: [
       'Exclusivamente eritrocitos',
-      'Macrófagos y células musculares lisas',
+      'Macrofagos y celulas musculares lisas',
       'Solo plaquetas',
       'Neuronas y astrocitos',
     ],
     correctIndex: 1,
     explanation:
-      'Los macrófagos fagocitan lípidos (células espumosas) y las células musculares lisas migran para estabilizar la placa.',
+      'Los macrofagos fagocitan lipidos (celulas espumosas) y las celulas musculares lisas migran para estabilizar la placa.',
   },
   {
-    text: '¿Cuál es el principal factor de riesgo modificable para enfermedades cardiovasculares?',
+    text: '¿Cual es el principal factor de riesgo modificable para enfermedades cardiovasculares?',
     options: [
       'Edad avanzada',
       'Sexo masculino',
-      'Hipertensión arterial',
+      'Hipertension arterial',
       'Antecedentes familiares',
     ],
     correctIndex: 2,
     explanation:
-      'La hipertensión arterial es el principal factor de riesgo modificable. Edad, sexo y antecedentes familiares no son modificables.',
+      'La hipertension arterial es el principal factor de riesgo modificable. Edad, sexo y antecedentes familiares no son modificables.',
   },
 ];
+
+// ── Helpers ─────────────────────────────────────────────
+
+function parseApiQuestions(data: any): QuizQuestion[] | null {
+  try {
+    // The AI generate endpoint returns different shapes; try common ones
+    const items = data?.questions ?? data?.items ?? data?.quiz ?? (Array.isArray(data) ? data : null);
+    if (!Array.isArray(items) || items.length === 0) return null;
+
+    return items.map((q: any) => ({
+      text: q.text || q.question || '',
+      options: q.options || q.choices || [],
+      correctIndex: typeof q.correctIndex === 'number'
+        ? q.correctIndex
+        : typeof q.correct_index === 'number'
+          ? q.correct_index
+          : (q.options || q.choices || []).indexOf(q.correct_answer ?? ''),
+      explanation: q.explanation || q.rationale || '',
+    })).filter((q: QuizQuestion) => q.text && q.options.length >= 2);
+  } catch {
+    return null;
+  }
+}
 
 // ── Component ────────────────────────────────────────────
 
 export function BlockQuizModal({
-  blockId: _blockId,
-  summaryId: _summaryId,
+  blockId,
+  summaryId,
   isOpen,
   onClose,
 }: BlockQuizModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(MOCK_QUESTIONS);
+  const [loading, setLoading] = useState(false);
+  const [fetchedFor, setFetchedFor] = useState<string | null>(null);
 
-  const questions = MOCK_QUESTIONS;
+  // Fetch quiz from AI when modal opens with a new blockId
+  useEffect(() => {
+    if (!isOpen || !blockId || !summaryId) return;
+    const key = `${summaryId}-${blockId}`;
+    if (fetchedFor === key) return; // Already fetched for this block
+
+    let cancelled = false;
+    setLoading(true);
+    setFetchedFor(key);
+
+    apiCall('/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ summary_id: summaryId, block_id: blockId, type: 'quiz' }),
+      timeoutMs: 30_000,
+    })
+      .then((result: any) => {
+        if (cancelled) return;
+        const parsed = parseApiQuestions(result);
+        if (parsed && parsed.length > 0) {
+          setQuestions(parsed);
+        } else {
+          // API returned but data wasn't parseable — use mocks
+          setQuestions(MOCK_QUESTIONS);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // API failed — fallback to mock questions
+        setQuestions(MOCK_QUESTIONS);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isOpen, blockId, summaryId, fetchedFor]);
+
   const question = useMemo(() => questions[currentIndex], [questions, currentIndex]);
-  const isCorrect = selected === question.correctIndex;
+  const isCorrect = selected === question?.correctIndex;
   const isLastQuestion = currentIndex >= questions.length - 1;
 
   const handleConfirm = useCallback(() => {
@@ -142,6 +207,7 @@ export function BlockQuizModal({
     setCurrentIndex(0);
     setSelected(null);
     setAnswered(false);
+    setFetchedFor(null);
     onClose();
   }, [onClose]);
 
@@ -179,9 +245,11 @@ export function BlockQuizModal({
                 >
                   Quiz del Bloque
                 </h3>
-                <p className="text-[11px] text-zinc-400">
-                  Pregunta {currentIndex + 1} de {questions.length}
-                </p>
+                {!loading && (
+                  <p className="text-[11px] text-zinc-400">
+                    Pregunta {currentIndex + 1} de {questions.length}
+                  </p>
+                )}
               </div>
             </div>
             <button onClick={handleClose} className={BTN_CLOSE}>
@@ -191,127 +259,139 @@ export function BlockQuizModal({
 
           {/* Body */}
           <div className="px-6 py-5 space-y-4">
-            {/* Question text */}
-            <p
-              className="text-zinc-800 font-sans"
-              style={{ fontSize: 14, lineHeight: 1.65 }}
-            >
-              {question.text}
-            </p>
-
-            {/* Options */}
-            <div className="flex flex-col gap-2">
-              {question.options.map((opt, i) => {
-                const isSelected = i === selected;
-                const isCorrectOption = i === question.correctIndex;
-
-                let borderClass = 'border-zinc-200';
-                let bgClass = 'bg-white';
-                let textClass = 'text-zinc-700';
-                let letterBg = 'bg-transparent';
-                let letterBorder = 'border-zinc-300';
-                let letterText = 'text-zinc-500';
-
-                if (answered) {
-                  if (isCorrectOption) {
-                    borderClass = FEEDBACK.correct.border;
-                    bgClass = FEEDBACK.correct.bg;
-                    textClass = FEEDBACK.correct.text;
-                    letterBg = 'bg-emerald-500';
-                    letterBorder = 'border-emerald-500';
-                    letterText = 'text-white';
-                  } else if (isSelected) {
-                    borderClass = FEEDBACK.incorrect.border;
-                    bgClass = FEEDBACK.incorrect.bg;
-                    textClass = FEEDBACK.incorrect.text;
-                    letterBg = 'bg-rose-500';
-                    letterBorder = 'border-rose-500';
-                    letterText = 'text-white';
-                  }
-                } else if (isSelected) {
-                  borderClass = 'border-teal-400';
-                  bgClass = 'bg-teal-50';
-                  textClass = 'text-teal-700';
-                  letterBorder = 'border-teal-400';
-                  letterText = 'text-teal-600';
-                }
-
-                return (
-                  <button
-                    key={i}
-                    onClick={() => { if (!answered) setSelected(i); }}
-                    disabled={answered}
-                    className={`flex items-center gap-3 px-4 py-3 border-2 rounded-xl ${borderClass} ${bgClass} text-left transition-all ${answered ? 'cursor-default' : 'cursor-pointer hover:border-teal-300'}`}
-                  >
-                    <span
-                      className={`w-7 h-7 rounded-full border-2 ${letterBorder} ${letterBg} ${letterText} flex items-center justify-center shrink-0`}
-                      style={{ fontSize: 12, fontWeight: 700 }}
-                    >
-                      {answered && isCorrectOption ? (
-                        <Check size={14} />
-                      ) : answered && isSelected ? (
-                        <X size={14} />
-                      ) : (
-                        optionLetter(i)
-                      )}
-                    </span>
-                    <span className={`${textClass} font-sans`} style={{ fontSize: 13 }}>
-                      {opt}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Confirm button — shown when option selected but not confirmed */}
-            {!answered && selected !== null && (
-              <motion.button
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={handleConfirm}
-                className="w-full py-3 rounded-full text-white bg-teal-600 hover:bg-teal-700 transition-colors"
-                style={{ fontSize: 14, fontWeight: 700 }}
-              >
-                Confirmar Respuesta
-              </motion.button>
-            )}
-
-            {/* Feedback after answering */}
-            {answered && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`p-4 rounded-xl border ${isCorrect ? `${FEEDBACK.correct.bg} ${FEEDBACK.correct.border}` : `${FEEDBACK.incorrect.bg} ${FEEDBACK.incorrect.border}`}`}
-              >
+            {/* Loading state */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 size={28} className="text-teal-500 animate-spin" />
+                <p className="text-zinc-500 font-sans" style={{ fontSize: 13 }}>
+                  Generando preguntas...
+                </p>
+              </div>
+            ) : question ? (
+              <>
+                {/* Question text */}
                 <p
-                  className={isCorrect ? FEEDBACK.correct.textBold : FEEDBACK.incorrect.textBold}
-                  style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}
+                  className="text-zinc-800 font-sans"
+                  style={{ fontSize: 14, lineHeight: 1.65 }}
                 >
-                  {isCorrect ? '¡Correcto!' : 'Incorrecto'}
+                  {question.text}
                 </p>
-                <p className="text-zinc-600 font-sans" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  {question.explanation}
-                </p>
-              </motion.div>
-            )}
 
-            {/* Next / Close button after feedback */}
-            {answered && (
-              <motion.button
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={handleNext}
-                className="w-full py-3 rounded-full text-white bg-teal-600 hover:bg-teal-700 transition-colors inline-flex items-center justify-center gap-2"
-                style={{ fontSize: 14, fontWeight: 700 }}
-              >
-                {isLastQuestion ? 'Cerrar' : (
-                  <>
-                    Siguiente
-                    <ChevronRight size={16} />
-                  </>
+                {/* Options */}
+                <div className="flex flex-col gap-2">
+                  {question.options.map((opt, i) => {
+                    const isSelected = i === selected;
+                    const isCorrectOption = i === question.correctIndex;
+
+                    let borderClass = 'border-zinc-200';
+                    let bgClass = 'bg-white';
+                    let textClass = 'text-zinc-700';
+                    let letterBg = 'bg-transparent';
+                    let letterBorder = 'border-zinc-300';
+                    let letterText = 'text-zinc-500';
+
+                    if (answered) {
+                      if (isCorrectOption) {
+                        borderClass = FEEDBACK.correct.border;
+                        bgClass = FEEDBACK.correct.bg;
+                        textClass = FEEDBACK.correct.text;
+                        letterBg = 'bg-emerald-500';
+                        letterBorder = 'border-emerald-500';
+                        letterText = 'text-white';
+                      } else if (isSelected) {
+                        borderClass = FEEDBACK.incorrect.border;
+                        bgClass = FEEDBACK.incorrect.bg;
+                        textClass = FEEDBACK.incorrect.text;
+                        letterBg = 'bg-rose-500';
+                        letterBorder = 'border-rose-500';
+                        letterText = 'text-white';
+                      }
+                    } else if (isSelected) {
+                      borderClass = 'border-teal-400';
+                      bgClass = 'bg-teal-50';
+                      textClass = 'text-teal-700';
+                      letterBorder = 'border-teal-400';
+                      letterText = 'text-teal-600';
+                    }
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => { if (!answered) setSelected(i); }}
+                        disabled={answered}
+                        className={`flex items-center gap-3 px-4 py-3 border-2 rounded-xl ${borderClass} ${bgClass} text-left transition-all ${answered ? 'cursor-default' : 'cursor-pointer hover:border-teal-300'}`}
+                      >
+                        <span
+                          className={`w-7 h-7 rounded-full border-2 ${letterBorder} ${letterBg} ${letterText} flex items-center justify-center shrink-0`}
+                          style={{ fontSize: 12, fontWeight: 700 }}
+                        >
+                          {answered && isCorrectOption ? (
+                            <Check size={14} />
+                          ) : answered && isSelected ? (
+                            <X size={14} />
+                          ) : (
+                            optionLetter(i)
+                          )}
+                        </span>
+                        <span className={`${textClass} font-sans`} style={{ fontSize: 13 }}>
+                          {opt}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Confirm button */}
+                {!answered && selected !== null && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={handleConfirm}
+                    className="w-full py-3 rounded-full text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                    style={{ fontSize: 14, fontWeight: 700 }}
+                  >
+                    Confirmar Respuesta
+                  </motion.button>
                 )}
-              </motion.button>
-            )}
+
+                {/* Feedback after answering */}
+                {answered && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-xl border ${isCorrect ? `${FEEDBACK.correct.bg} ${FEEDBACK.correct.border}` : `${FEEDBACK.incorrect.bg} ${FEEDBACK.incorrect.border}`}`}
+                  >
+                    <p
+                      className={isCorrect ? FEEDBACK.correct.textBold : FEEDBACK.incorrect.textBold}
+                      style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}
+                    >
+                      {isCorrect ? '¡Correcto!' : 'Incorrecto'}
+                    </p>
+                    <p className="text-zinc-600 font-sans" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      {question.explanation}
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Next / Close button after feedback */}
+                {answered && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={handleNext}
+                    className="w-full py-3 rounded-full text-white bg-teal-600 hover:bg-teal-700 transition-colors inline-flex items-center justify-center gap-2"
+                    style={{ fontSize: 14, fontWeight: 700 }}
+                  >
+                    {isLastQuestion ? 'Cerrar' : (
+                      <>
+                        Siguiente
+                        <ChevronRight size={16} />
+                      </>
+                    )}
+                  </motion.button>
+                )}
+              </>
+            ) : null}
           </div>
         </motion.div>
       </motion.div>

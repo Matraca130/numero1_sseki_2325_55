@@ -22,7 +22,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import type { ReadingSettings } from './ReadingSettingsPanel';
-import { useBookmarks } from './BookmarksPanel';
+import { useBlockBookmarks } from '@/app/hooks/queries/useBlockBookmarks';
 import BookmarksPanel from './BookmarksPanel';
 import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
@@ -61,7 +61,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   // ── Bookmarks state ───────────────────────────────────
-  const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBookmarks(summaryId);
+  const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBlockBookmarks(summaryId);
   const [showBookmarks, setShowBookmarks] = useState(false);
 
   // ── Annotations state (per-block toggle) ──────────────
@@ -194,6 +194,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
                 isMobile={isMobile}
                 keywords={keywords}
                 masteryLevel={masteryLevels[block.id]}
+                summaryId={summaryId}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
