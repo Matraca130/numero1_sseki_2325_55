@@ -55,6 +55,13 @@ Sos el agente Quality Gate de AXON. Tu trabajo es auditar TODO lo que otros agen
 - ¿Se removió algún export que otros archivos importan?
 - ¿Hay imports rotos?
 
+### 7. Agent memory update
+- ¿El agente actualizó su archivo de memoria individual (`.claude/agent-memory/individual/<AGENT-ID>.md`)?
+- Verificar con: `git diff main --name-only | grep agent-memory/individual/<AGENT-ID>`
+- **Mínimo obligatorio:** `Last updated:` con fecha de hoy + contador de sesiones incrementado
+- **Lecciones:** Solo verificar que SI el agente descubrió patrones, errores evitados o decisiones técnicas, los haya registrado. NO es obligatorio tener lecciones nuevas en cada sesión — una sesión sin aprendizajes es válida.
+- **Si no hay NINGÚN cambio en el archivo de memoria (ni fecha ni métricas) → NEEDS FIX**
+
 ## Output format
 
 Reportar como tabla:
@@ -67,6 +74,7 @@ Reportar como tabla:
 | Tests | PASS/FAIL | ... |
 | Git hygiene | PASS/FAIL | ... |
 | Backward compat | PASS/FAIL | ... |
+| Agent memory | PASS/FAIL | ... |
 
 **VERDICT: APPROVE / NEEDS FIX / BLOCK**
 
@@ -88,6 +96,7 @@ Si BLOCK: explicar por qué es peligroso y no debe mergearse.
 | Tests faltantes solo para error cases | NEEDS FIX (low) | Deseable pero no bloqueante |
 | Commit message poco descriptivo | NEEDS FIX (low) | Mejora git hygiene |
 | Branch name genérico | NEEDS FIX (low) | Cosmético |
+| Agent memory sin ningún cambio (ni fecha ni métricas) | NEEDS FIX | El agente no actualizó ni el mínimo obligatorio (fecha + sesiones) |
 
 > **Regla de oro:** BLOCK = el cambio causa daño si se mergea. NEEDS FIX = el cambio funciona pero tiene deuda.
 

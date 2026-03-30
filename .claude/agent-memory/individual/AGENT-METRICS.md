@@ -1,5 +1,5 @@
 # AXON Agent Metrics
-Last updated: 2026-03-25 | Total sessions: 1
+Last updated: 2026-03-30 | Total sessions: 2
 
 > El Arquitecto lee este archivo al inicio de cada sesión y lo actualiza después de cada post-mortem.
 
@@ -13,8 +13,8 @@ Last updated: 2026-03-25 | Total sessions: 1
 | Scope creep incidents        | 0         | —         | =     |
 | Repeat errors (post-lesson)  | 1         | —         | --    |
 | Merge conflicts              | 0         | —         | =     |
-| Avg agents per session       | 4         | —         | =     |
-| Lessons registered           | 8         | —         | +++   |
+| Avg agents per session       | 3.5       | —         | =     |
+| Lessons registered           | 14        | —         | +++   |
 
 > Trend: `+++` mejora fuerte, `++` mejora, `=` estable, `--` declive, `---` declive fuerte
 
@@ -35,7 +35,7 @@ Last updated: 2026-03-25 | Total sessions: 1
 |----------------|--------|--------|--------------|-----------|---------|---------|--------|
 | Quiz (QZ)      | 6      | 0      | —            | —         | 0       | 0       | NEW    |
 | Flashcards (FC)| 6      | 0      | —            | —         | 0       | 0       | NEW    |
-| Summaries (SM) | 6      | 2      | 100%         | severity-mismatch | 8       | 0       | ACTIVE |
+| Summaries (SM) | 6      | 4      | 100%         | severity-mismatch | 14      | 0       | ACTIVE |
 | Study (ST)     | 5      | 0      | —            | —         | 0       | 0       | NEW    |
 | Dashboard (DG) | 5      | 0      | —            | —         | 0       | 0       | NEW    |
 | Admin (AO)     | 5      | 0      | —            | —         | 0       | 0       | NEW    |
@@ -77,12 +77,12 @@ Last updated: 2026-03-25 | Total sessions: 1
 ### Summaries (SM)
 | ID    | Sessions | QG L5  | Fails By Type (L5) | Scope | Last Run | Trend | Health |
 |-------|----------|--------|---------------------|-------|----------|-------|--------|
-| SM-01 | 0        | —      | —                   | 0     | —        | —     | NEW    |
+| SM-01 | 1        | 100%   | —                   | 0     | 2026-03-30 | +++   | GREEN  |
 | SM-02 | 0        | —      | —                   | 0     | —        | —     | NEW    |
 | SM-03 | 0        | —      | —                   | 0     | —        | —     | NEW    |
 | SM-04 | 0        | —      | —                   | 0     | —        | —     | NEW    |
 | SM-05 | 0        | —      | —                   | 0     | —        | —     | NEW    |
-| SM-06 | 0        | —      | —                   | 0     | —        | —     | NEW    |
+| SM-06 | 1        | 100%   | —                   | 0     | 2026-03-30 | +++   | GREEN  |
 
 ### Study (ST)
 | ID    | Sessions | QG L5  | Fails By Type (L5) | Scope | Last Run | Trend | Health |
@@ -195,7 +195,7 @@ Last updated: 2026-03-25 | Total sessions: 1
 ### XX-02 quality-gate
 | Runs | APPROVE | NEEDS FIX | BLOCK | False Pos | False Neg | Accuracy |
 |------|---------|-----------|-------|-----------|-----------|----------|
-| 0    | 0       | 0         | 0     | 0         | 0         | —        |
+| 1    | 1       | 0         | 0     | 0         | 0         | 100%     |
 
 ### XX-06 test-orchestrator
 | Runs | Tests Exec | Tests Failed | Flaky Detected | Slow (>5s) | .only/.skip |

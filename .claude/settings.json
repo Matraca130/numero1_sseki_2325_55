@@ -31,6 +31,8 @@
       "Bash(ls *)",
       "Bash(grep *)",
       "Read",
+      "Write(.claude/agent-memory/**)",
+      "Edit(.claude/agent-memory/**)",
       "Glob",
       "Grep",
       "Agent"
