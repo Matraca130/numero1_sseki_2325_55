@@ -219,6 +219,10 @@ import { colors, components, headingStyle } from '@/app/design-system';
 
 Para tareas complejas, AXON tiene un sistema de 74 agentes especializados con memoria individual, métricas, y auto-mejora.
 
+### REGLA OBLIGATORIA — Modelo y lectura del agente
+
+**Modelo:** SIEMPRE usar `model: "opus"` para todos los agentes. NUNCA usar sonnet ni haiku para agentes que escriben código. Haiku solo se permite para tareas de scoring/verificación triviales.
+
 ### REGLA OBLIGATORIA — Lectura de definicion del agente
 
 **SIEMPRE que se lance un agente (via Agent tool), el prompt DEBE incluir:**
