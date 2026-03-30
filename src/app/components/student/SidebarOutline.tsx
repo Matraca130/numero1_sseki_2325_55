@@ -86,6 +86,8 @@ export function SidebarOutline({
 
   return (
     <aside
+      role="navigation"
+      aria-label="Summary outline"
       className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light bg-white dark:bg-[#1e1f25] border-r border-gray-200 dark:border-[#2d2e34]"
       style={{
         width: collapsed ? 44 : 220,
@@ -136,6 +138,8 @@ export function SidebarOutline({
               type="button"
               onClick={() => onBlockClick(block.id)}
               title={collapsed ? label : undefined}
+              aria-current={isActive ? 'true' : undefined}
+              aria-label={collapsed ? label : undefined}
               className={[
                 'relative flex items-center gap-2 text-left transition-all',
                 'border-l-[3px]',

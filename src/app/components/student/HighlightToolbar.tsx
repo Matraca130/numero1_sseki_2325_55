@@ -36,6 +36,8 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
       transition={{ duration: 0.12 }}
       style={{ top, left, position: 'absolute', zIndex: 60 }}
       className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-700 rounded-full px-2.5 py-1.5 shadow-xl"
+      role="toolbar"
+      aria-label="Highlight color options"
     >
       {HIGHLIGHT_COLORS.map(c => (
         <button
@@ -46,14 +48,14 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
             "hover:scale-110 hover:border-zinc-500 active:scale-95",
             c.bg,
           )}
-          title={`Subrayar ${c.key}`}
+          aria-label={`Highlight ${c.key}`}
         />
       ))}
       <div className="w-px h-4 bg-zinc-700 mx-0.5" />
       <button
         onClick={onAnnotate}
         className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors px-1"
-        title="Subrayar + agregar nota"
+        aria-label="Add annotation"
       >
         <StickyNote size={11} />
         <span>Anotar</span>
