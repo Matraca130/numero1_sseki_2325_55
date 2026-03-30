@@ -2,9 +2,79 @@ import React from 'react';
 import KeywordChip from './KeywordChip';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
 
+/** Parse inline markdown (bold, italic, code, image ref) — no external libs. */
+function parseInlineMarkdown(text: string): React.ReactNode[] {
+  // Handle horizontal rule: paragraph is exactly "---"
+  if (text.trim() === '---') {
+    return [<hr key="hr" className="my-2 border-slate-200 dark:border-slate-700" />];
+  }
+
+  const nodes: React.ReactNode[] = [];
+  // 1. Split by backtick code spans first
+  const codeParts = text.split(/(`[^`]+`)/g);
+  codeParts.forEach((codePart, ci) => {
+    const codeMatch = codePart.match(/^`([^`]+)`$/);
+    if (codeMatch) {
+      nodes.push(
+        <code key={`c${ci}`} className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-mono">
+          {codeMatch[1]}
+        </code>,
+      );
+      return;
+    }
+    // 2. Split by bold **...**
+    const boldParts = codePart.split(/(\*\*[^*]+\*\*)/g);
+    boldParts.forEach((boldPart, bi) => {
+      const boldMatch = boldPart.match(/^\*\*([^*]+)\*\*$/);
+      if (boldMatch) {
+        // Parse italic inside bold
+        const inner = parseItalicAndImage(boldMatch[1], `${ci}-${bi}`);
+        nodes.push(<strong key={`b${ci}-${bi}`}>{inner}</strong>);
+        return;
+      }
+      // 3. Parse italic and image refs in remaining text
+      nodes.push(...parseItalicAndImage(boldPart, `${ci}-${bi}`));
+    });
+  });
+  return nodes;
+}
+
+/** Parse *italic* and [Imagen: ...] in a text fragment. */
+function parseItalicAndImage(text: string, keyPrefix: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  // Split by italic *...* (single asterisk, not double)
+  const italicParts = text.split(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g);
+  for (let ii = 0; ii < italicParts.length; ii++) {
+    if (ii % 2 === 1) {
+      nodes.push(<em key={`i${keyPrefix}-${ii}`}>{italicParts[ii]}</em>);
+    } else {
+      // Parse [Imagen: ...] in remaining text
+      nodes.push(...parseImageRef(italicParts[ii], `${keyPrefix}-${ii}`));
+    }
+  }
+  return nodes;
+}
+
+/** Parse [Imagen: descripción] references. */
+function parseImageRef(text: string, keyPrefix: string): React.ReactNode[] {
+  if (!text) return [];
+  const parts = text.split(/(\[Imagen:\s*[^\]]+\])/g);
+  return parts.map((part, idx) => {
+    if (/^\[Imagen:\s*[^\]]+\]$/.test(part)) {
+      return (
+        <span key={`img${keyPrefix}-${idx}`} className="text-xs text-slate-400 italic">
+          {part}
+        </span>
+      );
+    }
+    return part || null;
+  }).filter(Boolean) as React.ReactNode[];
+}
+
 /**
  * Parses text containing {{keyword_name}} markers and renders them as KeywordChip components.
- * Non-matching text is rendered with paragraph break support (\n\n -> <br/><br/>).
+ * Non-matching text is rendered with paragraph break support (\n\n -> <br/><br/>)
+ * and inline markdown (bold, italic, code, hr, image refs).
  */
 export default function renderTextWithKeywords(
   text: string | undefined,
@@ -20,14 +90,13 @@ export default function renderTextWithKeywords(
         k => k.name.toLowerCase() === kwName.toLowerCase() && k.is_active !== false,
       );
       if (kw) return <KeywordChip key={i} keyword={kw} />;
-      // Fallback: render raw text if keyword not found
       return <span key={i}>{kwName}</span>;
     }
-    // Preserve paragraph breaks
+    // Preserve paragraph breaks + apply inline markdown
     return part.split('\n\n').map((p, j) => (
       <React.Fragment key={`${i}-${j}`}>
         {j > 0 && <><br /><br /></>}
-        {p}
+        {parseInlineMarkdown(p)}
       </React.Fragment>
     ));
   });
