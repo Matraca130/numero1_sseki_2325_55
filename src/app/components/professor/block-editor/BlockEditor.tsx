@@ -119,11 +119,9 @@ const BlockEditor = React.memo(function BlockEditor({
       }
     });
     // Cancel all pending debounce timers to prevent stale overwrites
-    Object.keys(overrides).forEach(id => {
-      if (debounceTimers.current[id]) {
-        clearTimeout(debounceTimers.current[id]);
-        delete debounceTimers.current[id];
-      }
+    Object.keys(debounceTimers.current).forEach(id => {
+      clearTimeout(debounceTimers.current[id]);
+      delete debounceTimers.current[id];
       delete pendingContent.current[id];
     });
     setLocalBlockOverrides(overrides);
@@ -262,6 +260,7 @@ const BlockEditor = React.memo(function BlockEditor({
     debounceTimers.current = {};
 
     // Save all pending content immediately (merge with full block content)
+    const flushedIds = Object.keys(pendingContent.current);
     const promises: Promise<unknown>[] = [];
     for (const [blockId, partial] of Object.entries(pendingContent.current)) {
       const block = blocksRef.current.find((b) => b.id === blockId);
@@ -277,7 +276,11 @@ const BlockEditor = React.memo(function BlockEditor({
     }
     if (promises.length > 0) await Promise.all(promises);
     pendingContent.current = {};
-    setLocalBlockOverrides({});
+    setLocalBlockOverrides(prev => {
+      const next = { ...prev };
+      flushedIds.forEach(id => delete next[id]);
+      return next;
+    });
   }, [updateMutation]);
 
   const handleDeleteConfirm = useCallback(() => {
