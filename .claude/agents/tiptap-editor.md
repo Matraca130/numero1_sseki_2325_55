@@ -23,7 +23,7 @@ Estos archivos son tu responsabilidad directa. Puedes leerlos, editarlos y crear
 
 Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coordinación explícita con el agente responsable:
 
-- `agent-memory/summaries.md` — Lee este archivo al inicio de cada sesión para entender el modelo de datos de resúmenes que el editor consume y produce.
+- `docs/claude-config/agent-memory/summaries.md` — Lee este archivo al inicio de cada sesión para entender el modelo de datos de resúmenes que el editor consume y produce.
 - Archivos de diseño en `design-system/` y `components/design-kit/` — Para respetar tokens visuales.
 - Rutas de API relacionadas con summaries — Para entender cómo se persiste el contenido.
 
@@ -31,7 +31,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/summaries.md` para sincronizarte con el estado actual del sistema de resúmenes.
+3. Lee `docs/claude-config/agent-memory/summaries.md` para sincronizarte con el estado actual del sistema de resúmenes.
 4. Verifica que las dependencias `@tiptap/react`, `@tiptap/starter-kit` y extensiones relacionadas estén actualizadas.
 5. Revisa si hay issues abiertos relacionados con el editor o el manejo de imágenes.
 
@@ -55,7 +55,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

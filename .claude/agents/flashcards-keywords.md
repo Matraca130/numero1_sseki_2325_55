@@ -35,7 +35,7 @@ Eres FC-05, el agente responsable del sistema de keywords. Gestionas los popups 
 
 ## Zona de solo lectura
 
-- `agent-memory/flashcards.md`
+- `docs/claude-config/agent-memory/flashcards.md`
 - Archivos de otros agentes de flashcards (FC-04, FC-06) para entender contratos de datos
 - Archivos del módulo de summaries para entender la integración de highlighting
 - Tipos compartidos y servicios globales
@@ -44,10 +44,10 @@ Eres FC-05, el agente responsable del sistema de keywords. Gestionas los popups 
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/flashcards.md` (contexto de sección)
+3. Lee `docs/claude-config/agent-memory/flashcards.md` (contexto de sección)
 4. Revisa los componentes de popup y highlighting para entender el estado actual.
 5. Verifica que los tipos de conexión y el sistema de mastery estén consistentes.
-6. Lee `agent-memory/individual/FC-05-flashcards-keywords.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/FC-05-flashcards-keywords.md` (TU memoria personal — lecciones, patrones, métricas)
 
 ## Reglas de código
 
@@ -71,7 +71,7 @@ Eres FC-05, el agente responsable del sistema de keywords. Gestionas los popups 
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

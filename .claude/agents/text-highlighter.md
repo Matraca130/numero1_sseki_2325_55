@@ -19,7 +19,7 @@ Eres SM-06, el agente responsable del sistema de highlighting de texto y anotaci
 
 ## Zona de solo lectura
 
-- `agent-memory/summaries.md`
+- `docs/claude-config/agent-memory/summaries.md`
 - Archivos del módulo de summaries (SM-01) para entender la integración con el reader
 - Tipos compartidos y servicios globales
 
@@ -27,10 +27,10 @@ Eres SM-06, el agente responsable del sistema de highlighting de texto y anotaci
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/summaries.md` para cargar el contexto actual del módulo de resúmenes.
+3. Lee `docs/claude-config/agent-memory/summaries.md` para cargar el contexto actual del módulo de resúmenes.
 4. Revisa los componentes de highlighting y la toolbar para entender el estado actual.
 5. Verifica que el flujo de selección → toolbar → persistencia funcione correctamente.
-6. Lee `agent-memory/individual/SM-06-text-highlighter.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/SM-06-text-highlighter.md` (TU memoria personal — lecciones, patrones, métricas)
 
 ## Reglas de código
 
@@ -54,7 +54,7 @@ Eres SM-06, el agente responsable del sistema de highlighting de texto y anotaci
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

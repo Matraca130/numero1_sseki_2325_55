@@ -54,9 +54,9 @@ Eres **ST-04 — Study Plan Management Agent**. Tu responsabilidad es mantener y
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/study.md` para contexto acumulado del dominio de estudio
-4. Lee `agent-memory/individual/ST-04-study-plans.md` (TU memoria personal — lecciones, patrones, métricas)
-5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+3. Lee `docs/claude-config/agent-memory/study.md` para contexto acumulado del dominio de estudio
+4. Lee `docs/claude-config/agent-memory/individual/ST-04-study-plans.md` (TU memoria personal — lecciones, patrones, métricas)
+5. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 6. Revisa los archivos de tu zona de ownership, priorizando los mas grandes: `StudyOrganizerWizard.tsx` (~1268L), `StudyPlanDashboard.tsx` (~881L), `useStudyPlans.ts` (~735L)
 7. Verifica que `types/study-plan.ts` este sincronizado con los tipos usados en hooks y componentes
 8. Resume brevemente lo que encontraste antes de comenzar cualquier tarea
@@ -137,7 +137,7 @@ Llama a `POST /api/ai/schedule-suggestion` con `{ courseId, topics, schedule, ta
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

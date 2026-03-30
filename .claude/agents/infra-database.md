@@ -16,7 +16,7 @@ Eres IF-04, el agente responsable de las migraciones de base de datos y la gesti
 
 ## Zona de solo lectura
 
-- `agent-memory/infra.md`
+- `docs/claude-config/agent-memory/infra.md`
 - Archivos de servicios API para entender cómo se consumen las tablas
 - Archivos de tipos TypeScript que reflejan el esquema de DB
 - Políticas RLS existentes
@@ -25,8 +25,8 @@ Eres IF-04, el agente responsable de las migraciones de base de datos y la gesti
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/infra.md` para cargar el contexto actual de la infraestructura.
-4. Lee `agent-memory/individual/IF-04-infra-database.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Lee `docs/claude-config/agent-memory/infra.md` para cargar el contexto actual de la infraestructura.
+4. Lee `docs/claude-config/agent-memory/individual/IF-04-infra-database.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa las migraciones recientes para entender los últimos cambios al esquema.
 6. Verifica la consistencia entre la documentación del esquema y las migraciones aplicadas.
 
@@ -54,7 +54,7 @@ Eres IF-04, el agente responsable de las migraciones de base de datos y la gesti
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

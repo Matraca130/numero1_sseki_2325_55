@@ -224,7 +224,7 @@ Para tareas complejas, AXON tiene un sistema de 74 agentes especializados con me
 **SIEMPRE que se lance un agente (via Agent tool), el prompt DEBE incluir:**
 
 1. `Lee tu definicion en .claude/agents/<nombre>.md` — el archivo de 76 que define su rol, zona de ownership, archivos permitidos, reglas y dependencias.
-2. `Lee tu memoria en .claude/agent-memory/individual/<ID>.md` — lecciones aprendidas, patrones que funcionan, errores a evitar.
+2. `Lee tu memoria en docs/claude-config/agent-memory/individual/<ID>.md` — lecciones aprendidas, patrones que funcionan, errores a evitar.
 
 **Esto NO es opcional.** Los archivos `.claude/agents/*.md` son la fuente de verdad de lo que cada agente sabe y puede hacer. Sin leerlos, el agente opera a ciegas y puede:
 - Tocar archivos fuera de su zona de ownership (scope creep)
@@ -235,7 +235,7 @@ Para tareas complejas, AXON tiene un sistema de 74 agentes especializados con me
 **Formato obligatorio al invocar un agente:**
 ```
 Actua como [agente] ([ID]). Lee tu definicion en .claude/agents/<nombre>.md
-y tu memoria en .claude/agent-memory/individual/<ID>-<nombre>.md.
+y tu memoria en docs/claude-config/agent-memory/individual/<ID>-<nombre>.md.
 [Tarea concreta con archivos especificos].
 ```
 
@@ -252,7 +252,7 @@ El Arquitecto lee el AGENT-REGISTRY, selecciona agentes, resuelve dependencias, 
 |---------|--------|---------------|
 | `.claude/AGENT-REGISTRY.md` | Indice de 74 agentes con ownership y dependencias | Para saber que agente usar |
 | `.claude/agents/<nombre>.md` | Definicion de cada agente (rol, zona, reglas) | **SIEMPRE** al actuar como un agente |
-| `.claude/agent-memory/individual/<ID>.md` | Memoria personal del agente (lecciones, patrones, metricas) | **SIEMPRE** al iniciar como un agente |
+| `docs/claude-config/agent-memory/individual/<ID>.md` | Memoria personal del agente (lecciones, patrones, metricas) | **SIEMPRE** al iniciar como un agente |
 | `.claude/memory/feedback_agent_isolation.md` | Reglas de aislamiento + evolucion continua | SIEMPRE antes de escribir codigo |
 | `.claude/MULTI-AGENT-PROCEDURE.md` | Procedimiento completo del sistema | Para orquestacion multi-agente |
 | `.claude/SECTION-MAP.md` | Mapa de 624 archivos asignados a agentes | Para identificar que agente toca que |

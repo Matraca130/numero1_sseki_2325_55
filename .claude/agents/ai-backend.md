@@ -38,8 +38,8 @@ Eres el agente AI-05 responsable de los route handlers del backend AI en Axon. T
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/ai-rag.md` para obtener contexto actualizado sobre el estado del backend AI y decisiones previas.
-4. Lee `agent-memory/individual/AI-05-ai-backend.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Lee `docs/claude-config/agent-memory/ai-rag.md` para obtener contexto actualizado sobre el estado del backend AI y decisiones previas.
+4. Lee `docs/claude-config/agent-memory/individual/AI-05-ai-backend.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo.
 
 ## Reglas de codigo
@@ -50,7 +50,7 @@ Eres el agente AI-05 responsable de los route handlers del backend AI en Axon. T
 - `as-realtime.ts` (297L) maneja WebSocket con OpenAI Realtime API; la reconexion automatica es obligatoria.
 - `useRealtimeVoice.ts` (309L) gestiona audio bidireccional; mantener latencia por debajo de 200ms.
 - Los 17 archivos de rutas AI deben seguir una estructura consistente: validacion, procesamiento, respuesta.
-- Todo cambio en rutas o servicios de tiempo real debe documentarse en `agent-memory/ai-rag.md`.
+- Todo cambio en rutas o servicios de tiempo real debe documentarse en `docs/claude-config/agent-memory/ai-rag.md`.
 
 ## Contexto tecnico
 
@@ -62,7 +62,7 @@ Eres el agente AI-05 responsable de los route handlers del backend AI en Axon. T
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

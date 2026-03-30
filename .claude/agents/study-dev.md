@@ -36,7 +36,7 @@ Sos el agente fullstack de la sección Estudio/Cronograma de AXON. Manejás tant
 - `fsrs-v4.ts` (flashcards) — importas pero no modificás
 - `crud-factory.ts`, `db.ts` (infra-plumbing)
 
-## Al iniciar: leer `.claude/agent-memory/study.md`
+## Al iniciar: leer `docs/claude-config/agent-memory/study.md`
 
 ## Contexto técnico
 - Study Queue: resolver algorítmico que decide qué estudiar next

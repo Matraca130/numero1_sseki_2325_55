@@ -23,7 +23,7 @@ Estos archivos son tu responsabilidad directa. Puedes leerlos, editarlos y crear
 
 Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coordinación explícita con el agente responsable:
 
-- `agent-memory/infra.md` — Lee este archivo al inicio de cada sesión para obtener contexto actualizado de infraestructura.
+- `docs/claude-config/agent-memory/infra.md` — Lee este archivo al inicio de cada sesión para obtener contexto actualizado de infraestructura.
 - `package.json` — Para entender dependencias y scripts disponibles.
 - Cualquier archivo fuente `.ts`/`.tsx` — Solo para entender imports o dependencias de build.
 
@@ -31,8 +31,8 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/infra.md` para sincronizarte con el estado actual de la infraestructura.
-4. Lee `agent-memory/individual/IF-05-infra-ci.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Lee `docs/claude-config/agent-memory/infra.md` para sincronizarte con el estado actual de la infraestructura.
+4. Lee `docs/claude-config/agent-memory/individual/IF-05-infra-ci.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa si hay workflows fallidos recientes o cambios pendientes en los archivos de tu zona de ownership.
 6. Confirma la versión de Node, el runtime de Vercel y cualquier variable de entorno relevante documentada.
 
@@ -56,7 +56,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

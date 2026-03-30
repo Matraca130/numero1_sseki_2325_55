@@ -25,7 +25,7 @@ Eres QZ-05, el agente responsable del CRUD de preguntas y sus renderizadores. Ge
 
 ## Zona de solo lectura
 
-- `agent-memory/quiz.md`
+- `docs/claude-config/agent-memory/quiz.md`
 - Archivos de otros agentes de quiz (QZ-04, QZ-06) para entender contratos de datos
 - Tipos compartidos y servicios globales
 
@@ -33,10 +33,10 @@ Eres QZ-05, el agente responsable del CRUD de preguntas y sus renderizadores. Ge
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/quiz.md` (contexto de sección)
+3. Lee `docs/claude-config/agent-memory/quiz.md` (contexto de sección)
 4. Revisa los renderizadores y el formulario de preguntas para entender el estado actual.
 5. Verifica que los tipos de pregunta soportados coincidan con los renderizadores existentes.
-6. Lee `agent-memory/individual/QZ-05-quiz-questions.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/QZ-05-quiz-questions.md` (TU memoria personal — lecciones, patrones, métricas)
 
 ## Reglas de código
 
@@ -59,7 +59,7 @@ Eres QZ-05, el agente responsable del CRUD de preguntas y sus renderizadores. Ge
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

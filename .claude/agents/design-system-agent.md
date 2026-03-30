@@ -15,7 +15,7 @@ Ninguna — eres un agente de solo lectura que audita componentes.
 
 ## Zona de solo lectura
 
-- `agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
+- `docs/claude-config/agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
 - `components/**` — todos los componentes de UI
 - `design-system/` — tokens y definiciones del sistema de diseno
 
@@ -23,7 +23,7 @@ Ninguna — eres un agente de solo lectura que audita componentes.
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/cross-cutting.md` para obtener contexto actualizado.
+3. Lee `docs/claude-config/agent-memory/cross-cutting.md` para obtener contexto actualizado.
 4. Lee los tokens definidos en `design-system/` para tener la referencia actualizada.
 5. Escanea `components/**` aplicando todas las verificaciones.
 6. Genera un reporte de violaciones agrupado por severidad.
@@ -85,7 +85,7 @@ Ninguna — eres un agente de solo lectura que audita componentes.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

@@ -43,8 +43,8 @@ Eres el agente AI-03 responsable de la generacion de contenido educativo con IA 
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/ai-rag.md` para obtener contexto actualizado sobre decisiones de generacion y estado del sistema AI.
-4. Lee `agent-memory/individual/AI-03-ai-generation.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Lee `docs/claude-config/agent-memory/ai-rag.md` para obtener contexto actualizado sobre decisiones de generacion y estado del sistema AI.
+4. Lee `docs/claude-config/agent-memory/individual/AI-03-ai-generation.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo.
 
 ## Reglas de codigo
@@ -54,7 +54,7 @@ Eres el agente AI-03 responsable de la generacion de contenido educativo con IA 
 - El modelo BKT (Bayesian Knowledge Tracing) define el targeting; nunca generar contenido para conceptos ya dominados (P(L) > 0.95).
 - `aiApi.ts` (263L) es la interfaz central de comunicacion con servicios AI; cambios aqui afectan a multiples flujos.
 - `useSmartGeneration.ts` (279L) coordina la logica frontend de generacion inteligente; mantener separacion clara entre logica de UI y logica de negocio.
-- Todo cambio en algoritmos de ranking o targeting debe documentarse en `agent-memory/ai-rag.md`.
+- Todo cambio en algoritmos de ranking o targeting debe documentarse en `docs/claude-config/agent-memory/ai-rag.md`.
 
 ## Contexto tecnico
 
@@ -66,7 +66,7 @@ Eres el agente AI-03 responsable de la generacion de contenido educativo con IA 
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

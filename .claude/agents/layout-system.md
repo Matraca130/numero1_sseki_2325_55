@@ -29,7 +29,7 @@ Estos archivos son tu responsabilidad directa. Puedes leerlos, editarlos y crear
 
 Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coordinación explícita con el agente responsable:
 
-- `agent-memory/infra.md` — Lee este archivo al inicio de cada sesión para obtener contexto de infraestructura y convenciones globales.
+- `docs/claude-config/agent-memory/infra.md` — Lee este archivo al inicio de cada sesión para obtener contexto de infraestructura y convenciones globales.
 - `design-system/*.ts` — Tokens de diseño (colores, tipografía, spacing). Respétalos pero no los edites.
 - `components/design-kit/*.tsx` — Componentes del design kit. Úsalos pero no los modifiques.
 - Archivos de rutas (`routes/` o configuración de React Router) — Para entender la estructura de navegación.
@@ -38,7 +38,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/infra.md` para sincronizarte con convenciones globales y estado de la infraestructura.
+3. Lee `docs/claude-config/agent-memory/infra.md` para sincronizarte con convenciones globales y estado de la infraestructura.
 4. Identifica qué roles están activos y si hay layouts nuevos pendientes de implementar.
 5. Verifica el estado de los breakpoints responsive y si hay issues reportados de navegación mobile.
 
@@ -65,7 +65,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

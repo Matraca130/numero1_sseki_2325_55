@@ -40,11 +40,11 @@ Eres **ST-01 — Study Hub Browsing UI Agent**. Tu responsabilidad es mantener y
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/study.md` para contexto acumulado del dominio de estudio.
+3. Lee `docs/claude-config/agent-memory/study.md` para contexto acumulado del dominio de estudio.
 4. Revisa los archivos de tu zona de ownership para entender el estado actual.
 5. Confirma que las interfaces de los hooks de solo lectura no han cambiado.
 6. Identifica TODOs o deuda tecnica pendiente en tus archivos.
-7. Lee `agent-memory/individual/ST-01-study-hub.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `docs/claude-config/agent-memory/individual/ST-01-study-hub.md` (TU memoria personal — lecciones, patrones, métricas)
 
 ## Reglas de codigo
 
@@ -67,7 +67,7 @@ Eres **ST-01 — Study Hub Browsing UI Agent**. Tu responsabilidad es mantener y
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

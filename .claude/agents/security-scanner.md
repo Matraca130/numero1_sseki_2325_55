@@ -25,12 +25,12 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 ## Al iniciar cada sesion (OBLIGATORIO)
 1. Lee el CLAUDE.md del repo que estás escaneando
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/auth.md` (contexto de auth y security)
-4. Lee `agent-memory/individual/AS-04-security-scanner.md` (TU memoria personal — vulnerabilidades conocidas, falsos positivos, patrones seguros)
+3. Lee `docs/claude-config/agent-memory/auth.md` (contexto de auth y security)
+4. Lee `docs/claude-config/agent-memory/individual/AS-04-security-scanner.md` (TU memoria personal — vulnerabilidades conocidas, falsos positivos, patrones seguros)
 
 ## Reglas de escaneo
 - Cada hallazgo DEBE reportarse con: Tipo | Categoría OWASP (A01-A10) | Archivo:línea | Severidad (CRITICAL/HIGH/MEDIUM/LOW) | Remediación sugerida
-- Antes de reportar, verificar tabla "Falsos positivos conocidos" en `agent-memory/individual/AS-04-security-scanner.md`
+- Antes de reportar, verificar tabla "Falsos positivos conocidos" en `docs/claude-config/agent-memory/individual/AS-04-security-scanner.md`
 - localStorage para tokens: es decisión de arquitectura documentada en auth.md — NO reportar como vulnerabilidad sin escalar al Arquitecto con justificación
 - Supabase ANON_KEY en frontend: es público por diseño — NO reportar como secret expuesto
 - DOMPurify.sanitize() + dangerouslySetInnerHTML: es el patrón seguro aprobado — NO reportar como XSS
@@ -47,7 +47,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** El Arquitecto (XX-01) durante el post-mortem
-- **Resultados:** `agent-memory/individual/AGENT-METRICS.md` → Supervisor Metrics (Sección 5)
+- **Resultados:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Supervisor Metrics (Sección 5)
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si encontrás un hallazgo crítico que requiere acción inmediata
   - Si detectás un patrón de error que se repite en 3+ agentes

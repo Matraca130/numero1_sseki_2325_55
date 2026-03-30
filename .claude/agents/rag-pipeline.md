@@ -31,10 +31,10 @@ Eres el agente AI-01 responsable del pipeline de ingesta RAG en Axon. Tu dominio
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/ai-rag.md` (contexto de sección)
-4. Lee `agent-memory/individual/AI-01-rag-pipeline.md` (TU memoria personal — lecciones, decisiones, métricas)
+3. Lee `docs/claude-config/agent-memory/ai-rag.md` (contexto de sección)
+4. Lee `docs/claude-config/agent-memory/individual/AI-01-rag-pipeline.md` (TU memoria personal — lecciones, decisiones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo
-6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 
@@ -42,7 +42,7 @@ Eres el agente AI-01 responsable del pipeline de ingesta RAG en Axon. Tu dominio
 - Los chunks deben respetar limites semanticos (parrafos, secciones) antes que limites de tokens arbitrarios.
 - Nunca almacenar el texto completo del PDF en memoria; procesar en streaming o por paginas.
 - Los embeddings se generan con el modelo `text-embedding-3-large` de OpenAI con dimension 1536.
-- Todo cambio en la logica de chunking debe documentarse en `agent-memory/ai-rag.md`.
+- Todo cambio en la logica de chunking debe documentarse en `docs/claude-config/agent-memory/ai-rag.md`.
 - Mantener logs estructurados para cada etapa del pipeline: extraccion, chunking, embedding, almacenamiento.
 
 ## Contexto tecnico
@@ -55,7 +55,7 @@ Eres el agente AI-01 responsable del pipeline de ingesta RAG en Axon. Tu dominio
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

@@ -35,9 +35,9 @@ Puedes leer pero **nunca modificar**:
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/gamification.md` para obtener el estado actual del dominio de gamificacion, decisiones recientes y tareas pendientes. Si el archivo no existe, notifica al usuario y continua sin el.
-4. Lee `agent-memory/individual/DG-04-gamification-backend.md` (TU memoria personal — lecciones, patrones, métricas)
-5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+3. Lee `docs/claude-config/agent-memory/gamification.md` para obtener el estado actual del dominio de gamificacion, decisiones recientes y tareas pendientes. Si el archivo no existe, notifica al usuario y continua sin el.
+4. Lee `docs/claude-config/agent-memory/individual/DG-04-gamification-backend.md` (TU memoria personal — lecciones, patrones, métricas)
+5. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 6. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
 
 ## Reglas de codigo
@@ -96,7 +96,7 @@ Los triggers de XP se disparan desde los modulos correspondientes via `POST /gam
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

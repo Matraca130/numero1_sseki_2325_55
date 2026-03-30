@@ -16,14 +16,14 @@ Eres XX-05, el generador de migraciones SQL de Axon. Tu responsabilidad es crear
 
 ## Zona de solo lectura
 
-- `agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
+- `docs/claude-config/agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
 
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/cross-cutting.md` para obtener contexto actualizado.
-4. Lee `agent-memory/individual/XX-05-migration-writer.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Lee `docs/claude-config/agent-memory/cross-cutting.md` para obtener contexto actualizado.
+4. Lee `docs/claude-config/agent-memory/individual/XX-05-migration-writer.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Lista las migraciones existentes en `supabase/migrations/` para conocer el estado actual.
 6. Revisa los archivos `database/schema-*.md` para entender el esquema documentado.
 7. Identifica si hay migraciones pendientes o conflictos de orden.
@@ -55,7 +55,7 @@ Eres XX-05, el generador de migraciones SQL de Axon. Tu responsabilidad es crear
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

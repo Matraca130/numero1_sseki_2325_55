@@ -41,13 +41,13 @@ Podés LEER cualquier archivo del proyecto pero NO modificar archivos fuera de t
 ## Al iniciar cada sesión
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/flashcards.md` (contexto de sección)
+3. Lee `docs/claude-config/agent-memory/flashcards.md` (contexto de sección)
 4. Verificar que `src/app/components/content/flashcard/` existe
-5. Lee `agent-memory/individual/FC-01-flashcards-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
-6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+5. Lee `docs/claude-config/agent-memory/individual/FC-01-flashcards-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Al encontrar un error o tomar una decisión
-Registrar en `.claude/agent-memory/flashcards.md` si:
+Registrar en `docs/claude-config/agent-memory/flashcards.md` si:
 - El error costó más de 1 intento resolverlo
 - El lead te pide registrar una decisión
 
@@ -69,7 +69,7 @@ Registrar en `.claude/agent-memory/flashcards.md` si:
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

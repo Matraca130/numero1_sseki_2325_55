@@ -56,10 +56,10 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/study.md` para contexto acumulado del dominio de estudio.
+3. Lee `docs/claude-config/agent-memory/study.md` para contexto acumulado del dominio de estudio.
 4. Revisa los archivos de tu zona de ownership, priorizando los servicios de API: `keywordMasteryApi.ts` (~529L), `topicProgressApi.ts` (~270L), `bktApi.ts` (~110L).
 5. Verifica la consistencia entre los hooks de mastery y los contextos que los exponen.
-6. Lee `agent-memory/individual/ST-05-study-progress.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/ST-05-study-progress.md` (TU memoria personal — lecciones, patrones, métricas)
 
 ## Reglas de codigo
 
@@ -86,7 +86,7 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
