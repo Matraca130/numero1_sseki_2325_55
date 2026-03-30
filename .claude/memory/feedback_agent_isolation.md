@@ -40,17 +40,20 @@ type: feedback
 - **Nunca crear archivos huérfanos** (sin dueño en el AGENT-REGISTRY).
 - Si durante tu trabajo descubrís un archivo existente que no tiene dueño en el registry → registrarlo en tu memoria individual como "archivo huérfano detectado" para que el Arquitecto lo asigne.
 
-## MEMORY UPDATE (BLOQUEANTE — antes de reportar éxito)
+## MEMORY UPDATE (antes de reportar éxito)
 
-9. **OBLIGATORIO:** Antes de reportar que tu tarea está completa, DEBÉS actualizar tu memoria individual:
+9. **Antes de reportar que tu tarea está completa**, evaluá tu sesión usando los criterios de "Evolución Continua" (más abajo). El proceso es:
    - Abrir `.claude/agent-memory/individual/<TU-ID>.md`
-   - Agregar lecciones aprendidas (si las hay)
-   - Actualizar métricas (sesiones, QG pass/fail)
-   - Actualizar `Last updated:` con la fecha actual
+   - **SIEMPRE** actualizar: `Last updated:` con fecha actual + incrementar contador de sesiones en Métricas
+   - **SOLO SI APLICA** registrar lecciones — evaluá con las preguntas de la sección "Evolución Continua":
+     - ¿Descubriste algo nuevo sobre el código? → Agregar a "Patrones que funcionan"
+     - ¿Casi cometiste un error? → Agregar a "Patrones a evitar"
+     - ¿Tomaste una decisión técnica entre opciones? → Agregar a "Decisiones técnicas"
+     - ¿Una lección previa te ayudó? → Actualizar "Efectividad de lecciones"
+   - Si ninguna pregunta aplica → solo actualizá fecha y métricas, sin inventar lecciones
    - `git add .claude/agent-memory/individual/<TU-ID>.md`
    - Commitear junto con tu último commit de código O como commit separado
-10. **Si no actualizaste tu memoria, tu tarea NO está completa.** El Quality Gate verificará que `git diff` incluya cambios en tu archivo de memoria. Si no los hay → NEEDS FIX automático.
-11. **Qué registrar:** Solo lecciones REALES (patrones descubiertos, errores evitados, decisiones técnicas). NO inventar lecciones si no aprendiste nada — pero SÍ actualizar métricas siempre.
+10. **El Quality Gate verificará** que `git diff` incluya cambios en tu archivo de memoria (al menos fecha y métricas). Si no los hay → NEEDS FIX.
 
 ## POST-EXECUTION
 
