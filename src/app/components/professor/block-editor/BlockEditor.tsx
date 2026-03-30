@@ -140,8 +140,7 @@ const BlockEditor = React.memo(function BlockEditor({
     if (allSettled) setLocalBlockOverrides({});
   }, [blocks, localBlockOverrides]);
 
-  // ── Flush registry: each EditableBlock registers its flush fn here ─
-  const blockFlushRef = useRef<Map<string, () => void>>(new Map());
+  // ── Debounce state for handleFieldChange ─────────────────
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingContent = useRef<Record<string, Record<string, unknown>>>({});
 
@@ -177,7 +176,7 @@ const BlockEditor = React.memo(function BlockEditor({
   const mergedBlocks = useMemo(() => {
     if (Object.keys(localBlockOverrides).length === 0) return blocks;
     return blocks.map((b) =>
-      localBlockOverrides[b.id] ? { ...b, content: localBlockOverrides[b.id] } : b,
+      localBlockOverrides[b.id] ? { ...b, content: { ...b.content, ...localBlockOverrides[b.id] } } : b,
     );
   }, [blocks, localBlockOverrides]);
 
@@ -208,25 +207,16 @@ const BlockEditor = React.memo(function BlockEditor({
     });
   }, [summaryId, createMutation]);
 
-  // ── Stable ID-based callbacks for EditableBlock ─────────
-  const handleBlockSave = useCallback((blockId: string, content: Record<string, unknown>) => {
-    // Push snapshot for undo before applying the update (read from ref for stable deps)
-    pushSnapshot(Object.fromEntries(blocksRef.current.map((b) => [b.id, { ...b.content }])));
-    // Clear any local override for this block since we're saving new content
-    setLocalBlockOverrides((prev) => {
-      if (!prev[blockId]) return prev;
-      const next = { ...prev };
-      delete next[blockId];
-      return next;
-    });
-    updateMutation.mutate({ blockId, data: { content } });
-  }, [updateMutation, pushSnapshot]);
-
   const handleToggleEdit = useCallback((blockId: string) => {
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
   }, []);
 
   const handleFieldChange = useCallback((blockId: string, field: string, value: unknown) => {
+    // Push undo snapshot before first edit on this block (debounced to avoid spam)
+    if (!pendingContent.current[blockId]) {
+      pushSnapshot(Object.fromEntries(blocksRef.current.map((b) => [b.id, { ...b.content }])));
+    }
+
     // Immediate local override for responsive UI
     setLocalBlockOverrides((prev) => ({
       ...prev,
@@ -237,13 +227,15 @@ const BlockEditor = React.memo(function BlockEditor({
       [field]: value,
     };
 
-    // Debounce 2s
+    // Debounce 2s — merge with full block content before saving
     if (debounceTimers.current[blockId]) {
       clearTimeout(debounceTimers.current[blockId]);
     }
     debounceTimers.current[blockId] = setTimeout(() => {
-      const content = pendingContent.current[blockId];
-      if (content) {
+      const partial = pendingContent.current[blockId];
+      if (partial) {
+        const block = blocksRef.current.find((b) => b.id === blockId);
+        const content = { ...(block?.content ?? {}), ...partial };
         updateMutation.mutate({ blockId, data: { content } }, {
           onSuccess: () => {
             delete pendingContent.current[blockId];
@@ -251,7 +243,7 @@ const BlockEditor = React.memo(function BlockEditor({
         });
       }
     }, 2000);
-  }, [updateMutation]);
+  }, [updateMutation, pushSnapshot]);
 
   // ── Flush all pending saves immediately (async — await before publish) ─
   const flushPending = useCallback(async () => {
@@ -261,9 +253,11 @@ const BlockEditor = React.memo(function BlockEditor({
     }
     debounceTimers.current = {};
 
-    // Save all pending content immediately
+    // Save all pending content immediately (merge with full block content)
     const promises: Promise<unknown>[] = [];
-    for (const [blockId, content] of Object.entries(pendingContent.current)) {
+    for (const [blockId, partial] of Object.entries(pendingContent.current)) {
+      const block = blocksRef.current.find((b) => b.id === blockId);
+      const content = { ...(block?.content ?? {}), ...partial };
       promises.push(
         new Promise((resolve, reject) => {
           updateMutation.mutate({ blockId, data: { content } }, {
@@ -279,9 +273,18 @@ const BlockEditor = React.memo(function BlockEditor({
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deletingBlockId) return;
-    // Flush then discard any pending saves for the block being deleted
-    const flushFn = blockFlushRef.current.get(deletingBlockId);
-    if (flushFn) blockFlushRef.current.delete(deletingBlockId);
+    // Clear any pending debounced save for this block
+    if (debounceTimers.current[deletingBlockId]) {
+      clearTimeout(debounceTimers.current[deletingBlockId]);
+      delete debounceTimers.current[deletingBlockId];
+    }
+    delete pendingContent.current[deletingBlockId];
+    setLocalBlockOverrides((prev) => {
+      if (!prev[deletingBlockId]) return prev;
+      const next = { ...prev };
+      delete next[deletingBlockId];
+      return next;
+    });
     if (editingBlockId === deletingBlockId) setEditingBlockId(null);
     deleteMutation.mutate(deletingBlockId, {
       onSuccess: () => setDeletingBlockId(null),
