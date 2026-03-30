@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
+import { MasteryLegend } from '@/app/components/student/MasteryLegend';
 import { SearchBar } from '@/app/components/student/SearchBar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
@@ -117,7 +118,7 @@ export function StudentSummaryReader({
   const { data: sidebarBlocks = [] } = useSummaryBlocksQuery(summary.id);
 
   // ── Block mastery levels (Delta scale) ──
-  const { data: masteryLevels } = useSummaryBlockMastery(summary.id);
+  const { data: masteryLevels = {} } = useSummaryBlockMastery(summary.id);
 
   // ── Scroll-spy: track which block is currently visible ──
   useEffect(() => {
@@ -331,14 +332,22 @@ export function StudentSummaryReader({
       <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: 1100 }}>
         {/* ── Sidebar outline (Wave 1) ── */}
         {sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <SidebarOutline
-            blocks={sidebarBlocks}
-            activeBlockId={activeBlockId}
-            onBlockClick={handleSidebarBlockClick}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-            masteryLevels={masteryLevels}
-          />
+          <div className="flex flex-col gap-3">
+            <SidebarOutline
+              blocks={sidebarBlocks}
+              activeBlockId={activeBlockId}
+              onBlockClick={handleSidebarBlockClick}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+              masteryLevels={masteryLevels}
+            />
+            {!sidebarCollapsed && Object.keys(masteryLevels).length > 0 && (
+              <MasteryLegend
+                masteryLevels={masteryLevels}
+                totalBlocks={sidebarBlocks.length}
+              />
+            )}
+          </div>
         )}
 
         <div className="flex-1 min-w-0" style={{ maxWidth: 800 }}>
