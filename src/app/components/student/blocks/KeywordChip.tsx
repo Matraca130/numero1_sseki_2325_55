@@ -103,11 +103,6 @@ export default function KeywordChip({ keyword, onClick, onNavigateSummary }: Key
               onNavigate={onNavigateSummary}
             />
 
-            <KeywordCrossSummaryPanel
-              keywordName={keyword.name}
-              currentSummaryId={keyword.summary_id}
-            />
-
             {/* Arrow pointer */}
             <span
               className={[
