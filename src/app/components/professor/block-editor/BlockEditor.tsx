@@ -162,9 +162,8 @@ const BlockEditor = React.memo(function BlockEditor({
         redoSnapshot();
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [undoSnapshot, redoSnapshot]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateMutation]);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -244,9 +243,9 @@ const BlockEditor = React.memo(function BlockEditor({
     for (const flushFn of blockFlushRef.current.values()) {
       flushFn();
     }
-    // Give mutations a tick to fire
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }, []);
+    if (promises.length > 0) await Promise.all(promises);
+    pendingContent.current = {};
+  }, [updateMutation]);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deletingBlockId) return;
@@ -366,7 +365,7 @@ const BlockEditor = React.memo(function BlockEditor({
       <BlockEditorToolbar
         onAddBlock={() => setShowTopSelector(true)}
         isPreview={isPreview}
-        onTogglePreview={() => { if (!isPreview) flushPending(); setIsPreview(prev => !prev); }}
+        onTogglePreview={async () => { if (!isPreview) await flushPending(); setIsPreview(prev => !prev); }}
         onPublish={handlePublish}
         status={summaryStatus}
         blockCount={blocks.length}
