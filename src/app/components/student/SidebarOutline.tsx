@@ -87,7 +87,7 @@ export function SidebarOutline({
   return (
     <aside
       role="navigation"
-      aria-label="Estrutura do resumo"
+      aria-label="Estructura del resumen"
       className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light bg-white dark:bg-[#1e1f25] border-r border-gray-200 dark:border-[#2d2e34]"
       style={{
         width: collapsed ? 44 : 220,

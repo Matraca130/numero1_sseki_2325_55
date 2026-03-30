@@ -92,4 +92,16 @@ describe('useUndoRedo', () => {
     act(() => result.current.redo());
     expect(result.current.state).toBe('C');
   });
+
+  it('reset clears undo/redo stacks and sets new state', () => {
+    const { result } = renderHook(() => useUndoRedo('init'));
+
+    act(() => result.current.set('A'));
+    act(() => result.current.set('B'));
+    act(() => result.current.reset('fresh'));
+
+    expect(result.current.state).toBe('fresh');
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+  });
 });

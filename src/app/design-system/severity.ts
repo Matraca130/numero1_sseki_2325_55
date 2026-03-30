@@ -10,21 +10,21 @@ export const SEVERITY = {
     text: 'text-amber-700',
     border: 'border-amber-200',
     icon: 'text-amber-500',
-    label: 'Mild',
+    label: 'Leve',
   },
   moderate: {
     bg: 'bg-orange-50',
     text: 'text-orange-700',
     border: 'border-orange-200',
     icon: 'text-orange-500',
-    label: 'Moderate',
+    label: 'Moderado',
   },
   critical: {
     bg: 'bg-red-50',
     text: 'text-red-700',
     border: 'border-red-200',
     icon: 'text-red-500',
-    label: 'Critical',
+    label: 'Crítico',
   },
 } as const;
 
