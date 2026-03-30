@@ -141,6 +141,8 @@ const BlockEditor = React.memo(function BlockEditor({
 
   // ── Flush registry: each EditableBlock registers its flush fn here ─
   const blockFlushRef = useRef<Map<string, () => void>>(new Map());
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingContent = useRef<Record<string, Record<string, unknown>>>({});
 
   // ── Clear local state when summaryId changes ─────────────
   useEffect(() => {
@@ -221,6 +223,17 @@ const BlockEditor = React.memo(function BlockEditor({
   const handleToggleEdit = useCallback((blockId: string) => {
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
   }, []);
+
+  const handleFieldChange = useCallback((blockId: string, field: string, value: unknown) => {
+    // Immediate local override for responsive UI
+    setLocalBlockOverrides((prev) => ({
+      ...prev,
+      [blockId]: { ...(prev[blockId] ?? {}), [field]: value },
+    }));
+    pendingContent.current[blockId] = {
+      ...(pendingContent.current[blockId] ?? {}),
+      [field]: value,
+    };
 
     // Debounce 2s
     if (debounceTimers.current[blockId]) {
@@ -435,75 +448,48 @@ const BlockEditor = React.memo(function BlockEditor({
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`transition-opacity duration-150 ${dragIndex === index ? 'opacity-50' : ''}`}
+                className={dragIndex === index ? 'opacity-50' : ''}
               >
-                <EditableBlock
-                  block={block}
-                  index={index}
-                  isEditing={editingBlockId === block.id}
-                  isPreview={isPreview}
-                  isFirst={index === 0}
-                  isLast={index === sortedBlocks.length - 1}
-                  onToggleEdit={handleToggleEdit}
-                  onDelete={handleSetDeleting}
-                  onDuplicate={handleDuplicate}
-                  onMoveUp={handleMoveUp}
-                  onMoveDown={handleMoveDown}
-                  onSave={handleBlockSave}
-                  onFlushRef={blockFlushRef}
-                />
+                {isPreview ? (
+                  // Preview mode — use student renderer
+                  <div className="py-2">
+                    <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                      <ViewerBlock block={block} isMobile={false} />
+                    </ErrorBoundary>
+                  </div>
+                ) : (
+                  // Edit mode — use BlockCard with form/preview toggle
+                  <BlockCard
+                    block={block}
+                    isEditing={editingBlockId === block.id}
+                    onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
+                    onDelete={() => setDeletingBlockId(block.id)}
+                    onDuplicate={() => handleDuplicate(block)}
+                    onMoveUp={() => handleMoveUp(index)}
+                    onMoveDown={() => handleMoveDown(index)}
+                    isFirst={index === 0}
+                    isLast={index === sortedBlocks.length - 1}
+                  >
+                    {editingBlockId === block.id ? (
+                      <BlockFormRouter
+                        block={block}
+                        onChange={(field, value) => handleFieldChange(block.id, field, value)}
+                      />
+                    ) : (
+                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                        <ViewerBlock block={block} isMobile={false} />
+                      </ErrorBoundary>
+                    )}
+                  </BlockCard>
+                )}
               </div>
 
-            return (
-              <React.Fragment key={block.id}>
-                <div
-                  draggable={!isPreview}
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={dragIndex === index ? 'opacity-50' : ''}
-                >
-                  {isPreview ? (
-                    // Preview mode — use student renderer
-                    <div className="py-2">
-                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
-                        <ViewerBlock block={mergedBlock} isMobile={false} />
-                      </ErrorBoundary>
-                    </div>
-                  ) : (
-                    // Edit mode — use BlockCard with form/preview toggle
-                    <BlockCard
-                      block={mergedBlock}
-                      isEditing={editingBlockId === block.id}
-                      onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
-                      onDelete={() => setDeletingBlockId(block.id)}
-                      onDuplicate={() => handleDuplicate(block)}
-                      onMoveUp={() => handleMoveUp(index)}
-                      onMoveDown={() => handleMoveDown(index)}
-                      isFirst={index === 0}
-                      isLast={index === sortedBlocks.length - 1}
-                    >
-                      {editingBlockId === block.id ? (
-                        <BlockFormRouter
-                          block={mergedBlock}
-                          onChange={(field, value) => handleFieldChange(block.id, field, value)}
-                        />
-                      ) : (
-                        <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
-                          <ViewerBlock block={mergedBlock} isMobile={false} />
-                        </ErrorBoundary>
-                      )}
-                    </BlockCard>
-                  )}
-                </div>
-
-                {/* Add block between */}
-                {!isPreview && (
-                  <AddBlockButton afterIndex={index} onInsert={handleInsert} />
-                )}
-              </React.Fragment>
-            );
-          })}
+              {/* Add block between */}
+              {!isPreview && (
+                <AddBlockButton afterIndex={index} onInsert={handleInsert} />
+              )}
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
