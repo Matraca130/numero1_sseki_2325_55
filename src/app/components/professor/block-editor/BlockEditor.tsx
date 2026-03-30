@@ -24,6 +24,8 @@ import {
 } from '@/app/hooks/queries/useBlockEditorMutations';
 import type { SummaryBlock, EduBlockType } from '@/app/services/summariesApi';
 import { apiCall } from '@/app/lib/api';
+import { ViewerBlock } from '@/app/components/student/ViewerBlock';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import BlockEditorToolbar from './BlockEditorToolbar';
 import AddBlockButton from './AddBlockButton';
 import EditableBlock from './EditableBlock';
@@ -160,9 +162,8 @@ const BlockEditor = React.memo(function BlockEditor({
         redoSnapshot();
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [undoSnapshot, redoSnapshot]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateMutation]);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -221,18 +222,30 @@ const BlockEditor = React.memo(function BlockEditor({
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
   }, []);
 
-  const handleSetDeleting = useCallback((blockId: string) => {
-    setDeletingBlockId(blockId);
-  }, []);
+    // Debounce 2s
+    if (debounceTimers.current[blockId]) {
+      clearTimeout(debounceTimers.current[blockId]);
+    }
+    debounceTimers.current[blockId] = setTimeout(() => {
+      const content = pendingContent.current[blockId];
+      if (content) {
+        updateMutation.mutate({ blockId, data: { content } }, {
+          onSuccess: () => {
+            delete pendingContent.current[blockId];
+          },
+        });
+      }
+    }, 2000);
+  }, [blocks, updateMutation]);
 
   // ── Flush all pending saves immediately (async — await before publish) ─
   const flushPending = useCallback(async () => {
     for (const flushFn of blockFlushRef.current.values()) {
       flushFn();
     }
-    // Give mutations a tick to fire
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }, []);
+    if (promises.length > 0) await Promise.all(promises);
+    pendingContent.current = {};
+  }, [updateMutation]);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deletingBlockId) return;
@@ -260,21 +273,21 @@ const BlockEditor = React.memo(function BlockEditor({
 
   const handleMoveUp = useCallback((index: number) => {
     if (index <= 0) return;
-    const currentBlocks = blocksRef.current;
-    const items = currentBlocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? currentBlocks[index - 1].order_index : i === index - 1 ? currentBlocks[index].order_index : b.order_index,
-    }));
+    // Swap adjacent blocks and assign sequential order_index
+    const arr = [...blocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index - 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
   }, [reorderMutation]);
 
   const handleMoveDown = useCallback((index: number) => {
-    const currentBlocks = blocksRef.current;
-    if (index >= currentBlocks.length - 1) return;
-    const items = currentBlocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? currentBlocks[index + 1].order_index : i === index + 1 ? currentBlocks[index].order_index : b.order_index,
-    }));
+    if (index >= blocks.length - 1) return;
+    // Swap adjacent blocks and assign sequential order_index
+    const arr = [...blocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index + 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
   }, [reorderMutation]);
 
@@ -305,9 +318,9 @@ const BlockEditor = React.memo(function BlockEditor({
   // ── Publish ──────────────────────────────────────────────
 
   const handlePublish = useCallback(async () => {
-    await flushPending();
     setPublishing(true);
     try {
+      await flushPending();
       await apiCall(`/summaries/${summaryId}/publish`, { method: 'POST' });
       toast.success('Resumen publicado');
       onStatusChange?.('published');
@@ -352,7 +365,7 @@ const BlockEditor = React.memo(function BlockEditor({
       <BlockEditorToolbar
         onAddBlock={() => setShowTopSelector(true)}
         isPreview={isPreview}
-        onTogglePreview={() => { if (!isPreview) flushPending(); setIsPreview(prev => !prev); }}
+        onTogglePreview={async () => { if (!isPreview) await flushPending(); setIsPreview(prev => !prev); }}
         onPublish={handlePublish}
         status={summaryStatus}
         blockCount={blocks.length}
@@ -441,12 +454,56 @@ const BlockEditor = React.memo(function BlockEditor({
                 />
               </div>
 
-              {/* Add block between */}
-              {!isPreview && (
-                <AddBlockButton afterIndex={index} onInsert={handleInsert} />
-              )}
-            </React.Fragment>
-          ))}
+            return (
+              <React.Fragment key={block.id}>
+                <div
+                  draggable={!isPreview}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={dragIndex === index ? 'opacity-50' : ''}
+                >
+                  {isPreview ? (
+                    // Preview mode — use student renderer
+                    <div className="py-2">
+                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                        <ViewerBlock block={mergedBlock} isMobile={false} />
+                      </ErrorBoundary>
+                    </div>
+                  ) : (
+                    // Edit mode — use BlockCard with form/preview toggle
+                    <BlockCard
+                      block={mergedBlock}
+                      isEditing={editingBlockId === block.id}
+                      onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
+                      onDelete={() => setDeletingBlockId(block.id)}
+                      onDuplicate={() => handleDuplicate(block)}
+                      onMoveUp={() => handleMoveUp(index)}
+                      onMoveDown={() => handleMoveDown(index)}
+                      isFirst={index === 0}
+                      isLast={index === sortedBlocks.length - 1}
+                    >
+                      {editingBlockId === block.id ? (
+                        <BlockFormRouter
+                          block={mergedBlock}
+                          onChange={(field, value) => handleFieldChange(block.id, field, value)}
+                        />
+                      ) : (
+                        <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                          <ViewerBlock block={mergedBlock} isMobile={false} />
+                        </ErrorBoundary>
+                      )}
+                    </BlockCard>
+                  )}
+                </div>
+
+                {/* Add block between */}
+                {!isPreview && (
+                  <AddBlockButton afterIndex={index} onInsert={handleInsert} />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
 

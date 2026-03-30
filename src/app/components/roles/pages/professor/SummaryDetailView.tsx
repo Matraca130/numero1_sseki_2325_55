@@ -45,9 +45,8 @@ import {
 } from '@/app/components/professor/QuickKeywordCreator';
 import { KeywordClickPopover } from '@/app/components/professor/KeywordClickPopover';
 import { extractItems } from '@/app/lib/api-helpers';
-
-// Lazy-load BlockEditor (58 KB) — only needed when summary has blocks
-const BlockEditor = React.lazy(() => import('@/app/components/professor/block-editor/BlockEditor'));
+import BlockEditor from '@/app/components/professor/block-editor/BlockEditor';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 // ── Keyword list priority config (module-scope — no per-render/per-item allocation) ──
 const KW_PRIORITY_CONFIG: Record<number, { border: string; dot: string; label: string }> = {
@@ -296,11 +295,11 @@ export function SummaryDetailView({
       )}
 
       {resolvedMode === 'blocks' ? (
-        /* ── Block Editor (Fase 5) — lazy-loaded ──────────── */
-        <Suspense fallback={
-          <div className="flex h-full flex-col items-center justify-center gap-3">
-            <Loader2 className="h-6 w-6 animate-spin text-teal-500" />
-            <p className="text-sm text-gray-400">Cargando editor...</p>
+        /* ── Block Editor (Fase 5) ───────────────────────── */
+        <ErrorBoundary fallback={
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-sm text-gray-500 font-medium">Error al cargar el editor de bloques</p>
+            <button onClick={onBack} className="mt-3 text-xs text-teal-500 hover:underline">Volver</button>
           </div>
         }>
           <BlockEditor
@@ -314,7 +313,7 @@ export function SummaryDetailView({
             summaryTitle={summary.title || 'Sin titulo'}
             summaryStatus={summary.status}
           />
-        </Suspense>
+        </ErrorBoundary>
       ) : (
         /* ── TipTap Editor (legacy) ──────────────────────── */
         <TipTapEditor
