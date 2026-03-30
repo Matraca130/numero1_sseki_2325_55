@@ -156,7 +156,7 @@ All API calls go through `apiCall()` in `src/app/lib/api.ts`:
 | API service | `platformApi.ts` | `studentApi.ts` |
 | Types | `types/platform.ts` | `types/student.ts` |
 | Accent color | amber/blue/purple | teal |
-| UI language | Spanish | Brazilian Portuguese |
+| UI language | Spanish | Spanish (argentino) |
 | Page location | `roles/pages/{role}/` | `content/` |
 | Toaster | Yes (per page) | No |
 | Shared header | `PageHeader` | `AxonPageHeader` |

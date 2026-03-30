@@ -25,12 +25,12 @@ import { adjustTimeByDifficulty, classifyDifficulty } from '@/app/lib/scheduling
 const TOTAL_STEPS = 6;
 
 const STEP_INFO = [
-  { title: 'Matérias', desc: 'Vamos montar seu plano de estudo.' },
-  { title: 'Recursos', desc: 'Escolha como você quer estudar.' },
-  { title: 'Conteúdos', desc: 'Selecione os tópicos específicos.' },
-  { title: 'Data Limite', desc: 'Defina quando concluir.' },
-  { title: 'Horas Semanais', desc: 'Organize seu tempo.' },
-  { title: 'Revisão', desc: 'Confirme e gere seu plano.' },
+  { title: 'Materias', desc: 'Vamos a armar tu plan de estudio.' },
+  { title: 'Recursos', desc: 'Elegí cómo querés estudiar.' },
+  { title: 'Contenidos', desc: 'Seleccioná los tópicos específicos.' },
+  { title: 'Fecha Límite', desc: 'Definí cuándo completar.' },
+  { title: 'Horas Semanales', desc: 'Organizá tu tiempo.' },
+  { title: 'Revisión', desc: 'Confirmá y generá tu plan.' },
 ];
 
 const SUBJECT_ICONS: Record<string, React.ReactNode> = {
@@ -48,7 +48,7 @@ const STUDY_METHODS = [
   { id: '3d', label: 'Atlas 3D', icon: <Box size={28} />, color: 'bg-orange-100 text-orange-600 border-orange-200', avgMinutes: 15 },
 ];
 
-const DAY_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const DAY_LABELS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 // ──────────── Main Component ────────────
 export function StudyOrganizerWizard() {
@@ -413,7 +413,7 @@ export function StudyOrganizerWizard() {
 
     const plan: StudyPlan = {
       id: `plan-${Date.now()}`,
-      name: `Plano de Estudo ${studyPlans.length + 1}`,
+      name: `Plan de Estudio ${studyPlans.length + 1}`,
       subjects: selectedSubjects.map(id => ({ id, name: getSubjectName(id), color: getSubjectColor(id) })),
       methods: selectedMethods,
       selectedTopics,
@@ -532,8 +532,8 @@ export function StudyOrganizerWizard() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl text-gray-900" style={headingStyle}>Quais matérias você vai estudar?</h2>
-          <p className="text-sm text-teal-600 font-medium cursor-pointer hover:text-teal-700">Selecionar todas →</p>
+          <h2 className="text-3xl text-gray-900" style={headingStyle}>¿Qué materias vas a estudiar?</h2>
+          <p className="text-sm text-teal-600 font-medium cursor-pointer hover:text-teal-700">Seleccionar todas →</p>
         </div>
 
         <div className="grid grid-cols-2 gap-5">
@@ -596,8 +596,8 @@ export function StudyOrganizerWizard() {
 
                 {/* Progress row */}
                 <div className="flex items-center justify-between px-5 pt-2 pb-3">
-                  <span className="text-sm text-gray-500">Progresso</span>
-                  <span className="text-sm text-gray-500">{getCourseStudiedTopics(course.id)}/{totalTopics} Aulas</span>
+                  <span className="text-sm text-gray-500">Progreso</span>
+                  <span className="text-sm text-gray-500">{getCourseStudiedTopics(course.id)}/{totalTopics} Clases</span>
                 </div>
 
                 {/* Button */}
@@ -611,7 +611,7 @@ export function StudyOrganizerWizard() {
                         : "bg-teal-600 text-white hover:bg-teal-700"
                     )}
                   >
-                    {isSelected ? '✓ Selecionado' : 'Selecionar Matéria'}
+                    {isSelected ? '✓ Seleccionado' : 'Seleccionar Materia'}
                   </button>
                 </div>
               </div>
@@ -627,12 +627,12 @@ export function StudyOrganizerWizard() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl text-gray-900" style={headingStyle}>Quais recursos você prefere?</h2>
+          <h2 className="text-3xl text-gray-900" style={headingStyle}>¿Qué recursos preferís?</h2>
           <p className="text-sm text-teal-600 font-medium cursor-pointer hover:text-teal-700" onClick={() => {
             if (selectedMethods.length === STUDY_METHODS.length) setSelectedMethods([]);
             else setSelectedMethods(STUDY_METHODS.map(m => m.id));
           }}>
-            {selectedMethods.length === STUDY_METHODS.length ? 'Desmarcar todas' : 'Selecionar todas →'}
+            {selectedMethods.length === STUDY_METHODS.length ? 'Desmarcar todas' : 'Seleccionar todas →'}
           </p>
         </div>
 
@@ -663,14 +663,14 @@ export function StudyOrganizerWizard() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">~{method.avgMinutes} MIN POR SESSÃO</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">~{method.avgMinutes} MIN POR SESIÓN</p>
                   </div>
                 </div>
 
                 {/* Info row */}
                 <div className="flex items-center justify-between px-5 pt-4 pb-3">
                   <span className="text-sm text-gray-500">Tipo</span>
-                  <span className="text-sm text-gray-500">Recurso de Estudo</span>
+                  <span className="text-sm text-gray-500">Recurso de Estudio</span>
                 </div>
 
                 {/* Button */}
@@ -684,7 +684,7 @@ export function StudyOrganizerWizard() {
                         : "bg-teal-600 text-white hover:bg-teal-700"
                     )}
                   >
-                    {isSelected ? '✓ Selecionado' : 'Selecionar Recurso'}
+                    {isSelected ? '✓ Seleccionado' : 'Seleccionar Recurso'}
                   </button>
                 </div>
               </div>
@@ -702,8 +702,8 @@ export function StudyOrganizerWizard() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl text-gray-900" style={headingStyle}>Selecione os conteúdos</h2>
-          <span className="text-sm text-gray-500">{selectedTopics.length} tópico{selectedTopics.length !== 1 ? 's' : ''} selecionado{selectedTopics.length !== 1 ? 's' : ''}</span>
+          <h2 className="text-3xl text-gray-900" style={headingStyle}>Seleccioná los contenidos</h2>
+          <span className="text-sm text-gray-500">{selectedTopics.length} tópico{selectedTopics.length !== 1 ? 's' : ''} seleccionado{selectedTopics.length !== 1 ? 's' : ''}</span>
         </div>
 
         <div className="space-y-5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
@@ -717,7 +717,7 @@ export function StudyOrganizerWizard() {
                 <div className="flex-1">
                   <h3 className="font-bold text-gray-900">{course.name}</h3>
                   <p className="text-xs text-gray-400 uppercase tracking-wider">
-                    {course.semesters.reduce((s, sem) => s + sem.sections.reduce((s2, sec) => s2 + sec.topics.length, 0), 0)} tópicos disponíveis
+                    {course.semesters.reduce((s, sem) => s + sem.sections.reduce((s2, sec) => s2 + sec.topics.length, 0), 0)} tópicos disponibles
                   </p>
                 </div>
               </div>
@@ -797,8 +797,8 @@ export function StudyOrganizerWizard() {
 
         {selectedTopics.length > 0 && (
           <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 text-sm text-teal-700 font-medium flex items-center justify-between">
-            <span>{selectedTopics.length} tópico{selectedTopics.length !== 1 ? 's' : ''} selecionado{selectedTopics.length !== 1 ? 's' : ''}</span>
-            <button onClick={() => setSelectedTopics([])} className="text-xs text-teal-500 hover:text-teal-700 font-semibold">Limpar</button>
+            <span>{selectedTopics.length} tópico{selectedTopics.length !== 1 ? 's' : ''} seleccionado{selectedTopics.length !== 1 ? 's' : ''}</span>
+            <button onClick={() => setSelectedTopics([])} className="text-xs text-teal-500 hover:text-teal-700 font-semibold">Limpiar</button>
           </div>
         )}
       </div>
@@ -814,8 +814,8 @@ export function StudyOrganizerWizard() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl text-gray-900 mb-2" style={headingStyle}>Quando deseja concluir?</h2>
-          <p className="text-gray-500">Defina uma data limite para completar todo o conteúdo selecionado.</p>
+          <h2 className="text-3xl text-gray-900 mb-2" style={headingStyle}>¿Cuándo querés completar?</h2>
+          <p className="text-gray-500">Definí una fecha límite para completar todo el contenido seleccionado.</p>
         </div>
 
         <div className={`${components.card.base} p-8`}>
@@ -831,7 +831,7 @@ export function StudyOrganizerWizard() {
                 onChange={(e) => setCompletionDate(e.target.value)}
                 min="2026-02-08"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-teal-500 focus:outline-none transition-colors bg-white text-center"
-                placeholder="Escolher data"
+                placeholder="Elegir fecha"
               />
             </div>
 
@@ -839,7 +839,7 @@ export function StudyOrganizerWizard() {
               <div className="flex items-center gap-4">
                 <div className="bg-teal-50 border border-teal-200 rounded-xl px-5 py-3 text-center">
                   <p className="text-2xl font-bold text-teal-700">{daysRemaining}</p>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">Dias</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">Días</p>
                 </div>
                 <div className="bg-[#F0F2F5] border border-gray-200 rounded-xl px-5 py-3 text-center">
                   <p className="text-2xl font-bold text-gray-800">{Math.ceil(daysRemaining / 7)}</p>
@@ -858,23 +858,23 @@ export function StudyOrganizerWizard() {
     // Phase 4: Confidence label for time estimate source
     const confidenceLabel = hasTimeData
       ? timeConfidence === 'high'
-        ? `Baseado em ${timeSummary.totalSessionsAnalyzed} sessões reais`
+        ? `Basado en ${timeSummary.totalSessionsAnalyzed} sesiones reales`
         : timeConfidence === 'medium'
-        ? `Baseado em ${timeSummary.totalSessionsAnalyzed} sessões`
-        : `Baseado em ${timeSummary.daysOfActivityAnalyzed} dias de atividade`
-      : 'Estimativa padrão';
+        ? `Basado en ${timeSummary.totalSessionsAnalyzed} sesiones`
+        : `Basado en ${timeSummary.daysOfActivityAnalyzed} días de actividad`
+      : 'Estimación por defecto';
 
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-3xl text-gray-900 mb-2" style={headingStyle}>
-            Organize sua semana de estudos
+            Organizá tu semana de estudio
           </h2>
           <p className="text-gray-500">
             {estimatedWeeklyHours !== null ? (
-              <>Estimamos <span className="font-semibold text-teal-600">{estimatedHours}h/semana</span> para concluir no prazo ({estimatedTotalHours}h total).</>
+              <>Estimamos <span className="font-semibold text-teal-600">{estimatedHours}h/semana</span> para completar en el plazo ({estimatedTotalHours}h total).</>
             ) : (
-              <>Estimamos <span className="font-semibold text-teal-600">{estimatedTotalHours} horas</span> de estudo no total. Ajuste as horas diárias abaixo.</>
+              <>Estimamos <span className="font-semibold text-teal-600">{estimatedTotalHours} horas</span> de estudio en total. Ajustá las horas diarias abajo.</>
             )}
           </p>
         </div>
@@ -884,7 +884,7 @@ export function StudyOrganizerWizard() {
           <div className={`${components.card.base} px-5 py-4`}>
             <div className="flex items-center gap-2 mb-3">
               <Clock size={16} className="text-teal-600" />
-              <span className="text-sm font-semibold text-gray-700">Tempo por recurso</span>
+              <span className="text-sm font-semibold text-gray-700">Tiempo por recurso</span>
               <span className={clsx(
                 "text-xs px-2 py-0.5 rounded-full font-medium ml-auto",
                 hasTimeData
@@ -971,7 +971,7 @@ export function StudyOrganizerWizard() {
           <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm">
             <div className="flex items-center gap-2 text-amber-700">
               <AlertTriangle size={16} />
-              <span className="font-medium">Total de horas entre todos os planos:</span>
+              <span className="font-medium">Total de horas entre todos los planes:</span>
             </div>
             <span className="font-bold text-amber-800">{existingPlanHours + totalWeeklyHours} horas por semana</span>
           </div>
@@ -987,7 +987,7 @@ export function StudyOrganizerWizard() {
         <div className="flex items-center justify-between">
           <h2 className="text-3xl text-gray-900 flex items-center gap-2" style={headingStyle}>
             <Sparkles size={24} className="text-teal-500" />
-            Seu plano está pronto!
+            ¡Tu plan está listo!
           </h2>
           {aiPowered && (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-xs font-semibold text-teal-700">
@@ -1005,8 +1005,8 @@ export function StudyOrganizerWizard() {
                 <BookOpen size={20} />
               </div>
               <div>
-                <h4 className="font-bold text-gray-900">Matérias</h4>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">{selectedSubjects.length} SELECIONADAS</p>
+                <h4 className="font-bold text-gray-900">Materias</h4>
+                <p className="text-xs text-gray-400 uppercase tracking-wider">{selectedSubjects.length} SELECCIONADAS</p>
               </div>
             </div>
             <div className="px-5 py-4 flex flex-wrap gap-2">
@@ -1026,7 +1026,7 @@ export function StudyOrganizerWizard() {
               </div>
               <div>
                 <h4 className="font-bold text-gray-900">Recursos</h4>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">{selectedMethods.length} SELECIONADOS</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wider">{selectedMethods.length} SELECCIONADOS</p>
               </div>
             </div>
             <div className="px-5 py-4 flex flex-wrap gap-2">
@@ -1049,7 +1049,7 @@ export function StudyOrganizerWizard() {
               </div>
               <div>
                 <h4 className="font-bold text-gray-900">Tópicos</h4>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">{selectedTopics.length} SELECIONADOS</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wider">{selectedTopics.length} SELECCIONADOS</p>
               </div>
             </div>
             <div className="px-5 py-4 max-h-36 overflow-y-auto space-y-1.5">
@@ -1091,11 +1091,11 @@ export function StudyOrganizerWizard() {
             </div>
             <div className="px-5 py-4 space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Data limite</span>
-                <span className="font-bold text-gray-800">{completionDate ? new Date(completionDate).toLocaleDateString('pt-BR') : '-'}</span>
+                <span className="text-gray-500">Fecha límite</span>
+                <span className="font-bold text-gray-800">{completionDate ? new Date(completionDate).toLocaleDateString('es-AR') : '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Horas semanais</span>
+                <span className="text-gray-500">Horas semanales</span>
                 <span className="font-bold text-gray-800">{totalWeeklyHours}h</span>
               </div>
               <div className="flex justify-between">
@@ -1119,7 +1119,7 @@ export function StudyOrganizerWizard() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-500">Total de tarefas</span>
+                <span className="text-gray-500">Total de tareas</span>
                 <span className="font-bold text-gray-800">{selectedTopics.length * selectedMethods.length}</span>
               </div>
             </div>
@@ -1146,7 +1146,7 @@ export function StudyOrganizerWizard() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-1">
-                <h4 className="font-bold text-gray-900">Mastery Atual</h4>
+                <h4 className="font-bold text-gray-900">Mastery Actual</h4>
                 <span className={clsx(
                   "text-sm font-bold px-2.5 py-0.5 rounded-full",
                   selectedMasteryStats.avgMastery >= 70 ? "bg-emerald-100 text-emerald-700" :
@@ -1157,15 +1157,15 @@ export function StudyOrganizerWizard() {
                 </span>
               </div>
               <p className="text-sm text-gray-600">
-                {selectedMasteryStats.withData} de {selectedTopics.length} tópicos com dados de estudo.
+                {selectedMasteryStats.withData} de {selectedTopics.length} tópicos con datos de estudio.
                 {selectedMasteryStats.needsReview > 0 && (
                   <span className="font-semibold text-amber-700">
-                    {' '}{selectedMasteryStats.needsReview} tópico{selectedMasteryStats.needsReview !== 1 ? 's' : ''} precisa{selectedMasteryStats.needsReview !== 1 ? 'm' : ''} de revisão prioritária.
+                    {' '}{selectedMasteryStats.needsReview} tópico{selectedMasteryStats.needsReview !== 1 ? 's' : ''} necesita{selectedMasteryStats.needsReview !== 1 ? 'n' : ''} de revisión prioritaria.
                   </span>
                 )}
                 {selectedMasteryStats.withoutData > 0 && (
                   <span className="text-gray-500">
-                    {' '}{selectedMasteryStats.withoutData} tópico{selectedMasteryStats.withoutData !== 1 ? 's' : ''} ainda sem dados.
+                    {' '}{selectedMasteryStats.withoutData} tópico{selectedMasteryStats.withoutData !== 1 ? 's' : ''} todavía sin datos.
                   </span>
                 )}
               </p>
@@ -1251,7 +1251,7 @@ export function StudyOrganizerWizard() {
               className="flex items-center gap-2 px-6 py-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
             >
               <ChevronLeft size={18} />
-              Voltar
+              Volver
             </button>
 
             {step < TOTAL_STEPS - 1 ? (
@@ -1287,7 +1287,7 @@ export function StudyOrganizerWizard() {
                 ) : (
                   <>
                     <Sparkles size={18} />
-                    Gerar Plano de Estudo
+                    Generar Plan de Estudio
                   </>
                 )}
               </button>
