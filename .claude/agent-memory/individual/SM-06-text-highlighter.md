@@ -1,5 +1,5 @@
 # Agent Memory: SM-06 (text-highlighter)
-Last updated: 2026-03-26
+Last updated: 2026-03-30
 
 ## Rol
 Agente del sistema de highlighting de texto y anotaciones: gestiona la selección de texto, la toolbar flotante, el panel de anotaciones y la persistencia de highlights con código de colores sobre el contenido de resúmenes.
@@ -9,6 +9,8 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 |-------|---------|------------|
 | 2026-03-25 | (inicial) Archivo creado | — |
 | 2026-03-26 | ReaderAnnotationsTab not reusable for block-level notes: different data model (backend TextAnnotation vs localStorage), color system overhead, ConfirmDialog dependency. Standalone component is the right call. | Evaluate adaptation cost before wrapping existing components |
+| 2026-03-30 | KeywordChip popover interactive hover: needs `leaveTimer` + `cancelClose` pattern. Mouse leaving chip should NOT close if mouse enters popover within 100ms grace period. `pointer-events-auto` required on popover for interaction. | When making tooltips/popovers interactive, always add grace period timer + mouse handlers on BOTH trigger AND popover elements |
+| 2026-03-30 | SafeBoundary error boundary in KeywordCrossSummaryPanel: wraps React Query hook usage so component degrades gracefully in tests without QueryClientProvider. Pragmatic but could mask real errors. | Use error boundaries around components that depend on context providers and may be rendered in isolation (tests, storybook) |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -21,6 +23,7 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 | Fecha | Decisión | Por qué | Alternativas descartadas |
 |-------|----------|---------|--------------------------|
 | 2026-03-26 | BlockAnnotationsPanel: standalone component with localStorage | ReaderAnnotationsTab is backend-coupled (TextAnnotation type, API callbacks, color system, ConfirmDialog). A wrapper/adapter would add complexity without benefit. | Wrapper around ReaderAnnotationsTab with blockId filter |
+| 2026-03-30 | KeywordCrossSummaryPanel uses existing useKeywordSearchQuery hook — no new API needed. Deduplicates by summary_id since same keyword can appear multiple times in one summary. | Always check existing hooks/queries before creating new API calls. useKeywordSearchQuery already handles cross-summary keyword search. |
 
 ## Patrones que funcionan
 - Flujo fijo e inviolable: text selection → highlight toolbar aparece → usuario elige color → POST annotation al backend
@@ -29,6 +32,8 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 - Persistencia inmediata tras la creación: no usar buffers locales ni debounce para anotaciones
 - `ReaderAnnotationsTab` sincronizado con los highlights visibles en el texto (misma fuente de verdad)
 - `TextHighlighter.tsx` (422L) es el componente principal; refactorizar de forma incremental
+- Interactive popover pattern: `leaveTimer` (100ms) + `cancelClose` on both chip and popover elements keeps popover open during mouse transition
+- KeywordCrossSummaryPanel: compact cross-summary list reusing existing `useKeywordSearchQuery` — no new API, dedup by summary_id, graceful empty state
 
 ## Patrones a evitar
 | Pattern | Por qué | Alternativa |
@@ -42,7 +47,7 @@ Agente del sistema de highlighting de texto y anotaciones: gestiona la selecció
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 1 | 2026-03-26 |
-| Quality-gate PASS | 0 | — |
+| Sesiones ejecutadas | 2 | 2026-03-30 |
+| Quality-gate PASS | 1 | 2026-03-30 |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |

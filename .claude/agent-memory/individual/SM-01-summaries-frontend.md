@@ -1,5 +1,5 @@
 # Agent Memory: SM-01 (summaries-frontend-v2)
-Last updated: 2026-03-27
+Last updated: 2026-03-30
 
 ## Rol
 Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de profesores, paginación HTML, keyword highlighting inline, tracking de tiempo de lectura y CRUD de anotaciones de texto.
@@ -16,6 +16,8 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 | 2026-03-26 | ReadingSettingsPanel: useReadingSettings hook co-located in same file, uses single localStorage key `axon-reading-settings` (global, not per-summary) for simplicity; exports interface + defaults + hook + component | Co-locate hook with panel; export both named (hook/types) and default (component) |
 | 2026-03-27 | useUndoRedo `state` must be consumed — pushing snapshots without reading the restored state makes undo a no-op. The hook returns `state` but BlockEditor never destructured it, so undo/redo updated internal hook state while React Query blocks remained unchanged. | Always destructure and consume `state` from useUndoRedo. When undo restores a snapshot, apply it back via localBlockOverrides that merge with server data. |
 | 2026-03-27 | Never add React Query data arrays (like `blocks`) to useCallback deps — it makes the callback reference unstable on every query refetch, defeating React.memo on child components (EditableBlock). | Use a ref (`blocksRef.current = blocks`) updated on every render, and read from the ref inside callbacks. This keeps deps stable while accessing current data. |
+| 2026-03-30 | renderTextWithKeywords inline markdown: custom regex parser (code→bold→italic→image→hr order) avoids conflicts. Code backticks split FIRST to protect content from bold/italic parsing. | Process markdown patterns in specificity order: most-specific delimiters first. Never use a full markdown library for 5 inline patterns — regex is sufficient and keeps the function <100 lines. |
+| 2026-03-30 | keyword-block-mapping.ts: SummaryBlock.type field is `type` not `block_type`. Content field structure varies by type — always handle missing/undefined content fields with `?? {}` and typeof checks. | Always verify actual type definitions before implementing — prompt descriptions may use different field names than the codebase. |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -30,6 +32,7 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 | 2026-03-26 | IIFE wrapping switch in ViewerBlock to add MasteryBar below block content | Avoids duplicating MasteryBar in every case branch; keeps switch clean | Duplicating MasteryBar in each case; creating a wrapper component |
 | 2026-03-26 | SidebarOutline uses inline style for dot color (not Tailwind class) to match MasteryBar's design-system colors | Keeps mastery color logic consistent with MasteryBar; design-system hex values don't map to Tailwind classes | Using Tailwind bg-* classes with a mapping table |
 | 2026-03-27 | Undo/redo applies snapshots via `localBlockOverrides` state that merges with React Query data, then persists each changed block to server | Keeps React Query as source of truth while providing immediate UI feedback; overrides auto-clear when server data catches up | (1) Calling updateMutation only without local state — too slow, UI flickers; (2) Replacing React Query data entirely — breaks cache consistency |
+| 2026-03-30 | Custom regex inline markdown parser vs react-markdown library | renderTextWithKeywords runs hundreds of times per summary. 5 inline patterns don't justify a 50KB+ library. Regex parser is O(n), <100 lines, no deps. | react-markdown (overkill + bundle), marked (needs dangerouslySetInnerHTML), remark (AST overhead) |
 
 ## Patrones que funcionan
 - Use `blocksRef` pattern: keep a ref synced with React Query data (`blocksRef.current = blocks`) and read from ref inside useCallback to avoid unstable deps
@@ -40,6 +43,8 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 - Reading time tracker que no cuenta tiempo inactivo (`useSummaryTimer` + `useReadingTimeTracker`)
 - Lightbox de imágenes en chunks funcional para cualquier formato de imagen (`useChunkImageLightbox`)
 - Mutations de anotaciones invalidan correctamente los queries relacionados
+- renderTextWithKeywords inline markdown: split-by-delimiter pattern (code→bold→italic→image) avoids regex conflicts. Each level processes only non-matched segments from the previous level.
+- keyword-block-mapping.ts: pure utility with `findKeywords(text)` helper + type-based field extraction. Bidirectional Map construction in single pass.
 
 ## Patrones a evitar
 | Pattern | Por qué | Alternativa |
@@ -54,7 +59,7 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 5 | 2026-03-27 |
-| Quality-gate PASS | 0 | — |
+| Sesiones ejecutadas | 6 | 2026-03-30 |
+| Quality-gate PASS | 1 | 2026-03-30 |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
