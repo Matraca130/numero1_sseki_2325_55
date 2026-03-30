@@ -48,7 +48,7 @@ export interface StudentProfile {
 
 export interface StudentPreferences {
   theme: 'dark' | 'light';
-  language: string; // 'pt-BR', 'en', 'es'
+  language: string; // 'es-AR', 'en', 'es'
   dailyGoalMinutes: number;
   notificationsEnabled: boolean;
   spacedRepetitionAlgorithm: 'sm2' | 'fsrs' | 'simple';

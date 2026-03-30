@@ -27,6 +27,9 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 - `package.json` — Para entender dependencias y scripts disponibles.
 - Cualquier archivo fuente `.ts`/`.tsx` — Solo para entender imports o dependencias de build.
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -35,6 +38,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 4. Lee `agent-memory/individual/IF-05-infra-ci.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa si hay workflows fallidos recientes o cambios pendientes en los archivos de tu zona de ownership.
 6. Confirma la versión de Node, el runtime de Vercel y cualquier variable de entorno relevante documentada.
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

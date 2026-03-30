@@ -31,6 +31,9 @@ Puedes leer pero **nunca modificar**:
 - `hooks/useGamification.ts` — hook principal (ownership de DG-03).
 - `lib/xp-constants.ts` — constantes frontend (ownership de DG-03).
 
+## Depends On
+- **AS-01** (auth-backend) — la API de gamificación necesita autenticación
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar

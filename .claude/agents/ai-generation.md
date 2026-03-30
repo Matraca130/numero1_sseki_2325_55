@@ -39,6 +39,9 @@ Eres el agente AI-03 responsable de la generacion de contenido educativo con IA 
 - `services/ai-service/as-chat.ts` — Chat RAG que puede alimentar la generacion
 - `services/ai-service/as-analytics.ts` — Estadisticas de embeddings usadas en targeting
 
+## Depends On
+- **AI-01** (rag-pipeline) — generation uses RAG context
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -46,6 +49,7 @@ Eres el agente AI-03 responsable de la generacion de contenido educativo con IA 
 3. Lee `agent-memory/ai-rag.md` para obtener contexto actualizado sobre decisiones de generacion y estado del sistema AI.
 4. Lee `agent-memory/individual/AI-03-ai-generation.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

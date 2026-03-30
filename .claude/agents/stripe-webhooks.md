@@ -13,6 +13,9 @@ Eres el agente BL-02 especializado en los webhook handlers de Stripe de AXON. Tu
 **Por directorio:**
 - Backend: `routes/webhooks/stripe*.ts`
 
+## Depends On
+- **BL-01** (stripe-checkout) — webhooks process checkout events
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -31,6 +34,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/billing.md`
 4. Lee `agent-memory/individual/BL-02-stripe-webhooks.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `routes/webhooks/stripe*.ts` existe en el backend
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

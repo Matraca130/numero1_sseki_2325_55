@@ -16,6 +16,9 @@ Eres el agente MG-01 especializado en la integracion con Telegram de AXON. Tu re
 - Backend: `lib/telegram/*.ts`
 - Backend: `routes/telegram*.ts`
 
+## Depends On
+- **AS-01** (auth-backend) — bot needs user auth for linking
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -34,12 +37,17 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/messaging.md`
 4. Lee `agent-memory/individual/MG-01-telegram-bot.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `sa-telegram.ts` existe
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
 - Usar `apiCall()` de `lib/api.ts`, nunca fetch directo
 - Nunca hardcodear tokens de bot — usar variables de entorno
 - Commits atomicos: 1 commit por cambio logico
+- Webhook endpoint: validar signature del request (Telegram secret token) antes de procesar
+- Bot token: NUNCA hardcodear — siempre desde config/env
+- Rate limiting: respetar límites de Telegram API (30 msgs/sec global, 1 msg/sec por chat)
+- Link codes: generar códigos únicos y expirar después de 15 minutos
 
 ## Contexto tecnico
 - Flujo de vinculacion: estudiante solicita codigo → bot recibe codigo → backend valida y vincula cuenta

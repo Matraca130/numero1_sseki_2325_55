@@ -15,6 +15,9 @@ Eres el agente MG-04 especializado en la logica backend compartida de mensajeria
 - `src/app/services/platform-api/pa-messaging.ts` (78L)
 - `src/app/components/roles/pages/admin/AdminMessagingSettingsPage.tsx` (521L)
 
+## Depends On
+- **AS-01** (auth-backend) — messaging routes need auth
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -33,6 +36,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/messaging.md`
 4. Lee `agent-memory/individual/MG-04-messaging-backend.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `lib/messaging/` existe en el backend
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

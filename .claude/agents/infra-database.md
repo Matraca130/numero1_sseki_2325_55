@@ -21,6 +21,9 @@ Eres IF-04, el agente responsable de las migraciones de base de datos y la gesti
 - Archivos de tipos TypeScript que reflejan el esquema de DB
 - Políticas RLS existentes
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -29,6 +32,7 @@ Eres IF-04, el agente responsable de las migraciones de base de datos y la gesti
 4. Lee `agent-memory/individual/IF-04-infra-database.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa las migraciones recientes para entender los últimos cambios al esquema.
 6. Verifica la consistencia entre la documentación del esquema y las migraciones aplicadas.
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

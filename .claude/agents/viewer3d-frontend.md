@@ -28,12 +28,16 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 - Cambiar interfaces publicas de archivos compartidos
 - Modificar rutas de API del backend
 
+## Depends On
+- **3D-02** (viewer3d-backend) — el visor consume la API de modelos para cargar GLB y metadata
+
 ## Al iniciar cada sesion
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
 3. Leer `.claude/agent-memory/3d-viewer.md`
 4. Lee `agent-memory/individual/3D-01-viewer3d-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `src/app/components/viewer3d/` existe
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (métricas globales y Error Ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
@@ -41,6 +45,9 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 - Design system: Georgia headings, Inter body, teal #14b8a6, pill-shaped buttons, rounded-2xl cards
 - Dispose correctamente geometrias, materiales y texturas de Three.js para evitar memory leaks
 - Commits atomicos: 1 commit por cambio logico
+- Three.js: siempre disponer geometrías, materiales y texturas en cleanup (useEffect return). Memory leaks son el error #1 en 3D.
+- WebGL context: verificar soporte antes de renderizar (`renderer.capabilities`)
+- Raycasting: usar throttle (16ms) para evitar lag en hover/click sobre modelos grandes
 
 ## Contexto tecnico
 - Three.js como motor de renderizado 3D, integrado via React

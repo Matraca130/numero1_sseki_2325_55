@@ -43,9 +43,9 @@ const COURSE_VISUALS = [
 ];
 
 const ACTIVITY_VISUALS = [
-  { icon: <Play size={16} />, bg: 'bg-blue-100', color: 'text-blue-600', label: 'Vídeo de Anatomia', sub: 'Sistema Cardiovascular' },
-  { icon: <CheckCircle size={16} />, bg: 'bg-teal-100', color: 'text-teal-600', label: 'Quiz de Histologia', sub: 'Nota: 9.5/10' },
-  { icon: <FileText size={16} />, bg: 'bg-amber-100', color: 'text-amber-600', label: 'Novo resumo', sub: 'Ciclo de Krebs' },
+  { icon: <Play size={16} />, bg: 'bg-blue-100', color: 'text-blue-600', label: 'Video de Anatomía', sub: 'Sistema Cardiovascular' },
+  { icon: <CheckCircle size={16} />, bg: 'bg-teal-100', color: 'text-teal-600', label: 'Quiz de Histología', sub: 'Nota: 9.5/10' },
+  { icon: <FileText size={16} />, bg: 'bg-amber-100', color: 'text-amber-600', label: 'Nuevo resumen', sub: 'Ciclo de Krebs' },
 ];
 
 export function StudentDataPanel() {
@@ -121,7 +121,7 @@ export function StudentDataPanel() {
         <nav className="flex-1 p-4 space-y-2">
           <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active variant="panel" />
           <NavItem icon={<Sparkles size={20} />} label="IA Mentor" variant="panel" />
-          <NavItem icon={<ClipboardCheck size={20} />} label="Avaliações" variant="panel" />
+          <NavItem icon={<ClipboardCheck size={20} />} label="Evaluaciones" variant="panel" />
           <NavItem icon={<Library size={20} />} label="Biblioteca" variant="panel" />
           <NavItem icon={<Video size={20} />} label="Masterclasses" variant="panel" />
           <NavItem icon={<Image size={20} />} label="Atlas Visual" variant="panel" />
@@ -131,7 +131,7 @@ export function StudentDataPanel() {
         <div className="p-4">
           <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 rounded-lg transition-colors">
             <LogOut size={18} />
-            <span>Encerrar Sessão</span>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>
@@ -147,7 +147,7 @@ export function StudentDataPanel() {
                 <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Pesquisar no acervo acadêmico..."
+                  placeholder="Buscar en el acervo académico..."
                   className="w-full pl-10 pr-4 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
               </div>
@@ -196,14 +196,14 @@ export function StudentDataPanel() {
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-sm text-gray-900">
-                  {loading ? 'Conectando ao Supabase...' : error ? 'Erro de Conexão' : 'Banco de Dados Vazio'}
+                  {loading ? 'Conectando a Supabase...' : error ? 'Error de Conexión' : 'Base de Datos Vacía'}
                 </h3>
                 <p className="text-xs text-gray-600 mt-0.5">
                   {loading
-                    ? 'Verificando dados do estudante...'
+                    ? 'Verificando datos del estudiante...'
                     : error
                     ? error
-                    : 'Clique em "Carregar Dados Demo" para popular o banco'}
+                    : 'Hacé clic en "Cargar Datos Demo" para poblar la base'}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -214,7 +214,7 @@ export function StudentDataPanel() {
                     className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
                     {seeding ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                    Carregar Dados Demo
+                    Cargar Datos Demo
                   </button>
                 )}
                 <button
@@ -237,10 +237,10 @@ export function StudentDataPanel() {
               {/* Welcome Section */}
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                  Bem-vindo de volta, {profile?.name?.split(' ')[0] || 'Dr. Reed'}
+                  Bienvenido de vuelta, {profile?.name?.split(' ')[0] || 'Dr. Reed'}
                 </h1>
                 <p className="text-gray-500 italic text-sm">
-                  "A excelência não é um ato, mas um hábito." — Aristóteles
+                  "La excelencia no es un acto, sino un hábito." — Aristóteles
                 </p>
               </div>
 
@@ -257,7 +257,7 @@ export function StudentDataPanel() {
                           : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      {f === 'today' ? 'Hoje' : f === 'week' ? 'Semana' : 'Mês'}
+                      {f === 'today' ? 'Hoy' : f === 'week' ? 'Semana' : 'Mes'}
                     </button>
                   ))}
                 </div>
@@ -265,7 +265,7 @@ export function StudentDataPanel() {
 
               {/* Section Header */}
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Disciplinas em Curso</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Disciplinas en Curso</h2>
                 <button className="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center gap-1">
                   Ver currículo completo →
                 </button>
@@ -282,7 +282,7 @@ export function StudentDataPanel() {
                         title={course.courseName}
                         module={('topicName' in course ? course.topicName : course.topicProgress?.[0]?.topicTitle) || `MÓDULO ${['IV', 'FINAL', 'II', 'I'][idx % 4]}`}
                         progress={course.masteryPercent}
-                        progressText={`${course.lessonsCompleted}/${course.lessonsTotal} ${realCourseCards.length > 0 ? 'Tópicos' : 'Aulas'}`}
+                        progressText={`${course.lessonsCompleted}/${course.lessonsTotal} ${realCourseCards.length > 0 ? 'Temas' : 'Clases'}`}
                         icon={v.icon}
                         iconBg={v.bg}
                         progressColor={v.progress}
@@ -295,9 +295,9 @@ export function StudentDataPanel() {
               ) : (
                 <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
                   <Database size={48} className="mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum dado disponível</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay datos disponibles</h3>
                   <p className="text-gray-500 mb-6">
-                    Carregue os dados de demonstração para visualizar o painel completo
+                    Cargá los datos de demostración para visualizar el panel completo
                   </p>
                   <button
                     onClick={handleSeed}
@@ -305,7 +305,7 @@ export function StudentDataPanel() {
                     className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 mx-auto disabled:opacity-50"
                   >
                     {seeding ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                    Carregar Dados Demo
+                    Cargar Datos Demo
                   </button>
                 </div>
               )}
@@ -316,7 +316,7 @@ export function StudentDataPanel() {
               <div className="w-80 space-y-6 flex-shrink-0">
                 {/* Daily Performance Card */}
                 <div className="bg-[#1a2e2a] rounded-2xl p-6 text-white">
-                  <h3 className="text-xl font-bold mb-6">Desempenho Diário</h3>
+                  <h3 className="text-xl font-bold mb-6">Desempeño Diario</h3>
                   
                   {/* Circular Progress */}
                   <div className="relative w-48 h-48 mx-auto mb-6">
@@ -344,20 +344,20 @@ export function StudentDataPanel() {
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-5xl font-bold">{dailyProgress}%</span>
-                      <span className="text-xs text-gray-400 mt-1 uppercase tracking-wide">CONCLUÍDO</span>
+                      <span className="text-xs text-gray-400 mt-1 uppercase tracking-wide">COMPLETADO</span>
                     </div>
                   </div>
 
                   <div className="text-center">
                     <p className="text-xl font-bold mb-1">{hoursCompleted} de {totalHoursGoal} Horas</p>
-                    <p className="text-sm text-gray-400">Você está próximo da excelência.</p>
+                    <p className="text-sm text-gray-400">Estás cerca de la excelencia.</p>
                   </div>
                 </div>
 
                 {/* Recent Activity Card */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-200">
                   <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-lg font-bold text-gray-900">Atividade Recente</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Actividad Reciente</h3>
                     <button className="text-gray-400 hover:text-gray-600">
                       <MoreHorizontal size={20} />
                     </button>
@@ -368,7 +368,7 @@ export function StudentDataPanel() {
                       dailyActivity.slice(0, 3).map((day, idx) => {
                         const a = ACTIVITY_VISUALS[idx % ACTIVITY_VISUALS.length];
                         const date = new Date(day.date + 'T12:00:00');
-                        const timeStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                        const timeStr = date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
                         return (
                           <ActivityItem
                             key={day.date}
@@ -376,7 +376,7 @@ export function StudentDataPanel() {
                             iconColor={a.color}
                             iconBg={a.bg}
                             title={`${day.cardsReviewed} cards • ${day.studyMinutes} min`}
-                            subtitle={`${day.sessionsCount} sessão(ões) • ${timeStr}`}
+                            subtitle={`${day.sessionsCount} sesión(es) • ${timeStr}`}
                           />
                         );
                       })
@@ -384,7 +384,7 @@ export function StudentDataPanel() {
                       sessions.slice(0, 3).map((session, idx) => {
                         const a = ACTIVITY_VISUALS[idx % ACTIVITY_VISUALS.length];
                         const date = new Date(session.startedAt);
-                        const timeStr = `Há ${date.getHours()}h ${date.getMinutes()} min`;
+                        const timeStr = `Hace ${date.getHours()}h ${date.getMinutes()} min`;
                         return (
                           <ActivityItem
                             key={session.id}

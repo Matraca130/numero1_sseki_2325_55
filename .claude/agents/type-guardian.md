@@ -26,6 +26,9 @@ Eres XX-04, el guardian del sistema de tipos TypeScript de Axon. Tu responsabili
 
 - `agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar

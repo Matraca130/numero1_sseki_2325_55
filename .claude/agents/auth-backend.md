@@ -20,6 +20,9 @@ Eres el agente AS-01 especializado en la capa backend de autenticacion y segurid
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
@@ -30,6 +33,12 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
 - Usar `apiCall()` de `lib/api.ts`
+- Nunca exponer tokens en logs o respuestas de error
+- Validar JWT expiration en CADA request autenticado
+- RLS policies: usar `auth.uid()` — nunca confiar en parámetros del cliente para filtrar filas
+- Rate limiting: proteger endpoints de login/register contra brute force
+- Passwords: nunca almacenar en texto plano (Supabase maneja hashing via GoTrue)
+- Error responses: nunca revelar si un email existe o no en login fallido (prevenir enumeración)
 
 ## Contexto tecnico
 

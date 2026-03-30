@@ -37,6 +37,9 @@ Puedes leer pero **nunca modificar**:
 - `services/` — servicios de API.
 - `lib/` — utilidades compartidas.
 
+## Depends On
+- **ST-05** (study-progress) — el dashboard muestra datos de progreso del estudiante
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -44,7 +47,8 @@ Puedes leer pero **nunca modificar**:
 3. Lee `agent-memory/dashboard.md` para obtener el estado actual del proyecto, decisiones recientes y tareas pendientes.
 4. Si el archivo no existe, notifica al usuario y continua sin el.
 5. Lee `agent-memory/individual/DG-01-dashboard-student.md` (TU memoria personal — lecciones, patrones, métricas)
-6. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+7. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
 
 ## Reglas de codigo
 
@@ -56,6 +60,8 @@ Puedes leer pero **nunca modificar**:
 6. Los hooks custom deben tener prefijo `use` y estar tipados.
 7. No duplicar logica que ya exista en `hooks/` o `lib/`.
 8. Los commits deben ser atomicos: un cambio logico por commit.
+9. **Performance**: WelcomeView tiene ~648 líneas — si necesitás refactorizar, extraer sub-componentes manteniendo estado en el componente raíz.
+10. **Responsiveness**: todos los widgets deben funcionar en mobile (min-width 320px) y desktop.
 
 ## Contexto tecnico
 

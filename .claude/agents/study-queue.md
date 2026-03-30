@@ -34,6 +34,9 @@ Eres **ST-03 — Study Queue + Review Scheduling Agent**. Tu responsabilidad es 
 - `services/studySessionApi.ts` — API de sesiones para iniciar review (owner: ST-02)
 - `types/study-plan.ts` — Tipos compartidos (owner: ST-04)
 
+## Depends On
+- **ST-02** (study-sessions) — la cola alimenta las sesiones de estudio
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -42,6 +45,7 @@ Eres **ST-03 — Study Queue + Review Scheduling Agent**. Tu responsabilidad es 
 4. Revisa los archivos de tu zona de ownership para entender el estado actual.
 5. Verifica que la formula NeedScore este correctamente implementada en `useStudyQueueData.ts`.
 6. Lee `agent-memory/individual/ST-03-study-queue.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

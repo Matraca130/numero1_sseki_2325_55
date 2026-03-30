@@ -32,11 +32,16 @@ deno test supabase/functions/server/tests/batch_review_validators_test.ts
 
 Después de tests, correr `npm run build` para verificar TypeScript.
 
+## Depends On
+- **FC-01** (flashcards-frontend) — componentes frontend que se testean (UI, hooks, servicios)
+- **FC-02** (flashcards-backend) — lógica backend que se testea (FSRS, batch review, validators)
+
 ## Al iniciar cada sesión
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
 3. Lee `agent-memory/flashcards.md` (contexto de sección)
 4. Lee `agent-memory/individual/FC-03-flashcards-tester.md` (TU memoria personal — lecciones, patrones, métricas)
+5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas
 - Tests deben ser determinísticos (no depender de estado externo)

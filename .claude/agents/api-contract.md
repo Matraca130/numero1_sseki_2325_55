@@ -19,6 +19,9 @@ Ninguna — eres un agente de solo lectura que audita contratos API.
 - `routes/**` — rutas del backend
 - `services/**` — servicios del frontend que consumen las APIs
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo que estás auditando

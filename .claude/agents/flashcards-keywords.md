@@ -40,6 +40,9 @@ Eres FC-05, el agente responsable del sistema de keywords. Gestionas los popups 
 - Archivos del módulo de summaries para entender la integración de highlighting
 - Tipos compartidos y servicios globales
 
+## Depends On
+- **FC-01** (flashcards-frontend) — UI de flashcards donde se integran los popups de keywords y el highlighting inline
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -48,6 +51,7 @@ Eres FC-05, el agente responsable del sistema de keywords. Gestionas los popups 
 4. Revisa los componentes de popup y highlighting para entender el estado actual.
 5. Verifica que los tipos de conexión y el sistema de mastery estén consistentes.
 6. Lee `agent-memory/individual/FC-05-flashcards-keywords.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

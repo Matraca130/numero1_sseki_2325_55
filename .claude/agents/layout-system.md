@@ -34,6 +34,9 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 - `components/design-kit/*.tsx` — Componentes del design kit. Úsalos pero no los modifiques.
 - Archivos de rutas (`routes/` o configuración de React Router) — Para entender la estructura de navegación.
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -41,6 +44,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 3. Lee `agent-memory/infra.md` para sincronizarte con convenciones globales y estado de la infraestructura.
 4. Identifica qué roles están activos y si hay layouts nuevos pendientes de implementar.
 5. Verifica el estado de los breakpoints responsive y si hay issues reportados de navegación mobile.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

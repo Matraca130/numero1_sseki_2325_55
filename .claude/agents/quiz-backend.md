@@ -21,6 +21,9 @@ Sos el agente QZ-02, responsable del backend del modulo Quiz de AXON. Mantenes e
 - `crud-factory.ts` (infra-plumbing) — read-only
 - `xp-hooks.ts` (gamification) — read-only
 
+## Depends On
+- **AS-01** (auth-backend) — Provee auth-helpers.ts y validación dual-token que todas las rutas de quiz requieren
+
 ## Al iniciar cada sesión
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)

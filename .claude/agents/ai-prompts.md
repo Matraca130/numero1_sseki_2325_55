@@ -30,6 +30,9 @@ Eres el agente AI-06 responsable de la ingenieria de prompts y plantillas en Axo
 - `services/ai-service/as-generate-smart.ts` — Generacion smart que usa templates especializados
 - `services/ai-service/as-schedule.ts` — Agente de horarios con sus propios prompts
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -37,6 +40,7 @@ Eres el agente AI-06 responsable de la ingenieria de prompts y plantillas en Axo
 3. Lee `agent-memory/ai-rag.md` para obtener contexto actualizado sobre decisiones de prompts y estado del sistema AI.
 4. Lee `agent-memory/individual/AI-06-ai-prompts.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

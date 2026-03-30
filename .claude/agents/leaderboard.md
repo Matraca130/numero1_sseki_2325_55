@@ -27,6 +27,9 @@ Puedes leer pero **nunca modificar**:
 - `components/gamification/*.tsx` — otros componentes de gamificacion (ownership de DG-03).
 - `components/dashboard/` — componentes del dashboard (ownership de DG-01).
 
+## Depends On
+- **DG-04** (gamification-backend) — el leaderboard lee datos de gamificación
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -34,7 +37,8 @@ Puedes leer pero **nunca modificar**:
 3. Lee `agent-memory/dashboard.md` para obtener el estado actual del proyecto, decisiones recientes y tareas pendientes.
 4. Si el archivo no existe, notifica al usuario y continua sin el.
 5. Lee `agent-memory/individual/DG-05-leaderboard.md` (TU memoria personal — lecciones, patrones, métricas)
-6. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+7. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
 
 ## Reglas de codigo
 

@@ -25,6 +25,9 @@ Eres SM-05, el agente del sistema de video de Axon. Tu responsabilidad es manten
 
 - `agent-memory/summaries.md` — resumen de estado del proyecto
 
+## Depends On
+- **SM-02** (summaries-backend-v2) — Provee los endpoints API de videos y la infraestructura backend (Mux webhooks, upload URLs, signed tokens) que el reproductor consume
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -34,6 +37,7 @@ Eres SM-05, el agente del sistema de video de Axon. Tu responsabilidad es manten
 5. Verifica que `muxApi.ts` tenga los endpoints correctos.
 6. Comprueba que las queries de React Query esten alineadas con los endpoints del backend.
 7. Lee `agent-memory/individual/SM-05-video-player.md` (TU memoria personal — lecciones, patrones, métricas)
+8. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

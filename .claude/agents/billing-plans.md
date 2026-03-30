@@ -14,6 +14,9 @@ Eres el agente BL-04 especializado en la gestion de planes de suscripcion de AXO
 - `src/app/services/platform-api/pa-plans.ts` (127L)
 - `src/app/components/roles/pages/owner/OwnerPlansPage.tsx` (844L)
 
+## Depends On
+- **BL-01** (stripe-checkout) — plans API builds on Stripe integration
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -32,6 +35,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/billing.md`
 4. Lee `agent-memory/individual/BL-04-billing-plans.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `pa-plans.ts` y `OwnerPlansPage.tsx` existen
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
@@ -48,6 +52,10 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 - Cada plan define: nombre, descripcion, precio mensual/anual, limites (usuarios, storage, modelos), features habilitadas
 - React 18 + TypeScript strict + Tailwind v4
 - TanStack Query para server state de planes
+- Stripe integration: los planes se sincronizan con Stripe Products + Prices
+- Webhook sync: cuando Stripe notifica cambios (via BL-02), los planes locales se actualizan
+- Currency: todos los precios en USD por defecto, convertir con la API del owner si necesario
+- Limites de plan: validar en backend antes de permitir acciones que exceden el plan (ej: max usuarios, max storage)
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión

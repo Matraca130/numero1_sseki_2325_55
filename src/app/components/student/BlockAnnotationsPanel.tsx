@@ -188,7 +188,7 @@ export const BlockAnnotationsPanel = React.memo(function BlockAnnotationsPanel({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-zinc-600">{note.text}</p>
                       <span className="text-[10px] text-zinc-400 mt-1 inline-block">
-                        {new Date(note.createdAt).toLocaleDateString('pt-BR', {
+                        {new Date(note.createdAt).toLocaleDateString('es-AR', {
                           day: '2-digit',
                           month: 'short',
                           hour: '2-digit',
@@ -199,7 +199,7 @@ export const BlockAnnotationsPanel = React.memo(function BlockAnnotationsPanel({
                     <button
                       onClick={() => handleDelete(note.id)}
                       className={`p-1.5 rounded hover:bg-red-50 text-zinc-400 hover:text-red-500 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity shrink-0 ${focusRing}`}
-                      aria-label="Excluir nota"
+                      aria-label="Eliminar nota"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
