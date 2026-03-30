@@ -14,6 +14,19 @@ npm run build      # Production build (outputs to dist/)
 
 Test runner: Vitest 3.2.1 + React Testing Library. Run `npm test` (unit tests) or `npm run test:coverage` (with v8 coverage report). The build (`vite build`) is the secondary validation step.
 
+### Sistema de Agentes (usar siempre para tareas complejas)
+
+| Qué necesitás | Archivo |
+|----------------|---------|
+| **Lanzar agentes** | `.claude/agents/<nombre>.md` — 74 definiciones con rol, zona, reglas |
+| **Saber qué agente usar** | `.claude/AGENT-REGISTRY.md` — índice maestro con ownership |
+| **Orquestar multi-agente** | `.claude/MULTI-AGENT-PROCEDURE.md` — procedimiento completo |
+| **Ver métricas/salud** | `.claude/agent-memory/individual/AGENT-METRICS.md` |
+| **Qué agente toca qué archivo** | `.claude/SECTION-MAP.md` — mapa de 624 archivos |
+| **Reglas de aislamiento** | `.claude/memory/feedback_agent_isolation.md` |
+
+> **Atajo rápido:** Para cualquier tarea, decí *"actuá como Arquitecto (XX-01)"* y él selecciona los agentes correctos.
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript (ES modules)
