@@ -42,9 +42,9 @@ Eres AO-03, el agente frontend del rol owner. Mantenés todas las páginas del o
 ## Al iniciar cada sesion
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `.claude/agent-memory/owner.md` (contexto de seccion owner — estado, decisiones, tareas pendientes)
-4. Lee `agent-memory/individual/AO-03-owner-frontend.md` (TU memoria personal — lecciones, patrones, metricas)
-5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+3. Lee `docs/claude-config/agent-memory/owner.md` (contexto de seccion owner — estado, decisiones, tareas pendientes)
+4. Lee `docs/claude-config/agent-memory/individual/AO-03-owner-frontend.md` (TU memoria personal — lecciones, patrones, metricas)
+5. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 - TypeScript strict, sin `any`, sin `console.log`, sin `// @ts-ignore`
@@ -79,7 +79,7 @@ Eres AO-03, el agente frontend del rol owner. Mantenés todas las páginas del o
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
