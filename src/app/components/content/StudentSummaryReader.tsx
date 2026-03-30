@@ -31,6 +31,7 @@ import { VideoPlayer } from '@/app/components/student/VideoPlayer';
 import { useSummaryReaderQueries } from '@/app/hooks/queries/useSummaryReaderQueries';
 import { useKeywordDetailQueries } from '@/app/hooks/queries/useKeywordDetailQueries';
 import { useSummaryReaderMutations } from '@/app/hooks/queries/useSummaryReaderMutations';
+import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import {
   PageNavigation,
   CompletionCard,
@@ -114,6 +115,9 @@ export function StudentSummaryReader({
 
   // ── Blocks for sidebar outline (shared cache — no extra fetch) ──
   const { data: sidebarBlocks = [] } = useSummaryBlocksQuery(summary.id);
+
+  // ── Block mastery levels (Delta scale) ──
+  const { data: masteryLevels } = useSummaryBlockMastery(summary.id);
 
   // ── Scroll-spy: track which block is currently visible ──
   useEffect(() => {
@@ -333,6 +337,7 @@ export function StudentSummaryReader({
             onBlockClick={handleSidebarBlockClick}
             collapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+            masteryLevels={masteryLevels}
           />
         )}
 
