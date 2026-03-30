@@ -40,13 +40,25 @@ type: feedback
 - **Nunca crear archivos huérfanos** (sin dueño en el AGENT-REGISTRY).
 - Si durante tu trabajo descubrís un archivo existente que no tiene dueño en el registry → registrarlo en tu memoria individual como "archivo huérfano detectado" para que el Arquitecto lo asigne.
 
+## MEMORY UPDATE (BLOQUEANTE — antes de reportar éxito)
+
+9. **OBLIGATORIO:** Antes de reportar que tu tarea está completa, DEBÉS actualizar tu memoria individual:
+   - Abrir `.claude/agent-memory/individual/<TU-ID>.md`
+   - Agregar lecciones aprendidas (si las hay)
+   - Actualizar métricas (sesiones, QG pass/fail)
+   - Actualizar `Last updated:` con la fecha actual
+   - `git add .claude/agent-memory/individual/<TU-ID>.md`
+   - Commitear junto con tu último commit de código O como commit separado
+10. **Si no actualizaste tu memoria, tu tarea NO está completa.** El Quality Gate verificará que `git diff` incluya cambios en tu archivo de memoria. Si no los hay → NEEDS FIX automático.
+11. **Qué registrar:** Solo lecciones REALES (patrones descubiertos, errores evitados, decisiones técnicas). NO inventar lecciones si no aprendiste nada — pero SÍ actualizar métricas siempre.
+
 ## POST-EXECUTION
 
-9. Quality-gate Opus IMMEDIATELY when each agent completes (in background, don't wait for others)
-10. Verify `git diff main..<branch> --stat` — only authorized files
-11. If contamination: rebuild clean branch from main
-12. Merge PRs ONE at a time; rebase remaining branches after each merge
-13. Never `git commit --amend` on branches with open PRs
+12. Quality-gate Opus IMMEDIATELY when each agent completes (in background, don't wait for others)
+13. Verify `git diff main..<branch> --stat` — only authorized files
+14. If contamination: rebuild clean branch from main
+15. Merge PRs ONE at a time; rebase remaining branches after each merge
+16. Never `git commit --amend` on branches with open PRs
 
 ## PATTERNS
 
