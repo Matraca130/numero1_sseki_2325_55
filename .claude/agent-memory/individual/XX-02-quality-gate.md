@@ -45,9 +45,17 @@ Last updated: 2026-03-30
 ## Métricas de auditoría
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Total auditorías ejecutadas | 1 | 2026-03-30 |
-| Veredictos APPROVE | 1 | 2026-03-30 |
+| Total auditorías ejecutadas | 2 | 2026-03-30 |
+| Veredictos APPROVE | 2 | 2026-03-30 |
 | Veredictos NEEDS FIX | 0 | — |
 | Veredictos BLOCK | 0 | — |
 | Falsos positivos reportados | 0 | — |
 | Falsos negativos descubiertos | 0 | — |
+
+## Session Log: 2026-03-30 (Audit #2) — feat/block-mastery-visual
+| Agent | Veredicto | Issues |
+|-------|-----------|--------|
+| SM-02 (Backend) | APPROVE | 0 critical, 0 warning, 1 suggestion |
+| SM-01 (Frontend) | APPROVE | 0 critical, 0 warning, 0 suggestions |
+- Backend: 3 files touched, all in-zone. Auth uses getUserClient (RLS). 3 queries max. Case-insensitive matching. Tests pass (deno not available on this machine but logic tests are unit-pure).
+- Frontend: 4 files touched, all in-zone. Hook URL matches backend route. MasteryLegend imports MASTERY_LIGHT from MasteryBar (same colors). TypeScript clean (only pre-existing tsconfig deprecation warnings). Vitest 6/6 pass.

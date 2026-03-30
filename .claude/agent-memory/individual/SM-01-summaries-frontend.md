@@ -18,6 +18,8 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 | 2026-03-27 | Never add React Query data arrays (like `blocks`) to useCallback deps — it makes the callback reference unstable on every query refetch, defeating React.memo on child components (EditableBlock). | Use a ref (`blocksRef.current = blocks`) updated on every render, and read from the ref inside callbacks. This keeps deps stable while accessing current data. |
 | 2026-03-30 | renderTextWithKeywords inline markdown: custom regex parser (code→bold→italic→image→hr order) avoids conflicts. Code backticks split FIRST to protect content from bold/italic parsing. | Process markdown patterns in specificity order: most-specific delimiters first. Never use a full markdown library for 5 inline patterns — regex is sufficient and keeps the function <100 lines. |
 | 2026-03-30 | keyword-block-mapping.ts: SummaryBlock.type field is `type` not `block_type`. Content field structure varies by type — always handle missing/undefined content fields with `?? {}` and typeof checks. | Always verify actual type definitions before implementing — prompt descriptions may use different field names than the codebase. |
+| 2026-03-30 | useSummaryBlockMastery hook URL had `/content/` prefix but backend endpoint is `/summaries/:id/block-mastery` (no prefix). Always verify backend endpoint paths before wiring hooks. | Check actual edge function routes, not assumed URL patterns. |
+| 2026-03-30 | JSDOM normalizes hex colors to `rgb(r, g, b)` in style.backgroundColor — never compare with hex strings in tests. Use a `hexToRgb()` helper. | Always use rgb() format when asserting inline style colors in vitest/JSDOM tests. |
 
 ## Efectividad de lecciones
 | Lección | Veces aplicada | Previno error? | Confianza |
@@ -59,7 +61,7 @@ Agente frontend de resúmenes: gestiona el visor de estudiantes, el editor de pr
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 6 | 2026-03-30 |
+| Sesiones ejecutadas | 7 | 2026-03-30 |
 | Quality-gate PASS | 1 | 2026-03-30 |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
