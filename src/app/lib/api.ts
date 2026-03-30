@@ -73,8 +73,10 @@ export async function apiCall<T = any>(
   }
 
   const doFetch = async (): Promise<T> => {
+    const isFormData = fetchOptions.body instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      // Skip Content-Type for FormData — browser sets multipart boundary automatically
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'Authorization': `Bearer ${ANON_KEY}`,
       ...((fetchOptions.headers as Record<string, string>) || {}),
     };
