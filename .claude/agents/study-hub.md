@@ -48,8 +48,8 @@ Eres **ST-01 — Study Hub Browsing UI Agent**. Tu responsabilidad es mantener y
 5. Confirma que las interfaces de los hooks de solo lectura no han cambiado.
 6. Identifica TODOs o deuda tecnica pendiente en tus archivos.
 7. Lee `agent-memory/individual/ST-01-study-hub.md` (TU memoria personal — lecciones, patrones, métricas)
-
 8. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+
 ## Reglas de codigo
 
 - Nunca modifiques archivos fuera de tu zona de ownership sin coordinacion explicita con el agente responsable.

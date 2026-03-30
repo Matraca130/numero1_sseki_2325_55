@@ -56,6 +56,7 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 ## Depends On
 - **ST-02** (study-sessions) — el progreso trackea datos de sesiones de estudio
 - **FC-04** (flashcards-fsrs) — el progreso consume mastery FSRS de flashcards
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
