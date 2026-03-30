@@ -1,4 +1,41 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(npm run test)",
+      "Bash(npx vitest*)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git branch *)",
+      "Bash(git add src/*)",
+      "Bash(git add tests/*)",
+      "Bash(git add .claude/*)",
+      "Bash(git add public/*)",
+      "Bash(git add package.json)",
+      "Bash(git add package-lock.json)",
+      "Bash(git add vite.config.ts)",
+      "Bash(git add tsconfig.json)",
+      "Bash(git commit *)",
+      "Bash(git checkout -b *)",
+      "Bash(git worktree *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "Bash(gh repo view *)",
+      "Bash(gh api *)",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Read",
+      "Glob",
+      "Grep",
+      "Agent"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

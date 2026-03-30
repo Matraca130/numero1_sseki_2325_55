@@ -4,11 +4,13 @@
 
 ```
 .claude/agent-memory-seed/    ← IN GIT (templates, read-only baseline)
-.claude/agent-memory/         ← LOCAL ONLY (.gitignore'd, runtime state)
+.claude/agent-memory/         ← IN GIT (tracked, agents learn across sessions)
 ```
 
 **Seed** = initial templates tracked in git. Never modified at runtime.
-**Memory** = live runtime state. Agents read and write freely. No git conflicts.
+**Memory** = live runtime state, NOW TRACKED IN GIT so learnings persist across sessions and clones. Agents read and write freely.
+
+> **Permissions:** `.claude/settings.json` (tracked in git) pre-approves specific read-only `gh` operations (`gh pr view/list/diff/checks`, `gh issue view/list`, `gh repo view`, `gh api`) so agents never trigger destructive GitHub actions. Edit/Write are NOT blanket-approved — agents use them under normal tool-approval flow. This replaces the old `settings.local.json` approach which was gitignored and didn't work in web sessions or worktrees.
 
 ## Bootstrap
 
