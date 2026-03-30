@@ -1,5 +1,5 @@
 # Agent Memory: SM-02 (summaries-backend-v2)
-Last updated: 2026-03-25
+Last updated: 2026-03-30
 
 ## Rol
 Agente backend de resúmenes: mantiene rutas API, servicios y lógica de base de datos para el CRUD completo de summaries, chunks, keywords, subtopics, videos y summary-blocks en Axon Medical Academy.
@@ -40,7 +40,12 @@ Agente backend de resúmenes: mantiene rutas API, servicios y lógica de base de
 ## Métricas
 | Métrica | Valor | Última sesión |
 |---------|-------|---------------|
-| Sesiones ejecutadas | 0 | — |
+| Sesiones ejecutadas | 1 | 2026-03-30 |
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
+
+## Session — 2026-03-30
+- **Task:** Crear endpoint GET /summaries/:id/block-mastery
+- **Files touched:** routes/content/block-mastery.ts (created), routes/content/index.ts (edited), tests/block_mastery_test.ts (created)
+- **Result:** Exito — endpoint creado con 3 queries (blocks, keywords+subtopics, bkt_states), keyword extraction por tipo de bloque, case-insensitive matching, 14 unit tests. Committed y pushed a feat/block-mastery-visual.
