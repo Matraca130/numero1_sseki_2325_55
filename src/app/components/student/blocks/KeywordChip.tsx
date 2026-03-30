@@ -75,7 +75,7 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
       <Tag size={10} className="shrink-0" />
       {keyword.name}
 
-      {showPopover && keyword.definition && (
+      {showPopover && (
         <>
           {/* Popover card */}
           <span
@@ -90,13 +90,16 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
             <span className="block font-serif text-sm font-bold text-axon-dark dark:text-teal-400 mb-1.5">
               {keyword.name}
             </span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              {keyword.definition}
-            </span>
+            {keyword.definition && (
+              <span className="block text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                {keyword.definition}
+              </span>
+            )}
 
             <KeywordCrossSummaryPanel
               keywordName={keyword.name}
               currentSummaryId={keyword.summary_id}
+              onNavigate={(summaryId) => onClick?.(summaryId)}
             />
 
             {/* Arrow pointer */}

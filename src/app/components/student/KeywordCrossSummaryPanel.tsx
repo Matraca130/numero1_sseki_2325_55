@@ -8,7 +8,7 @@ interface KeywordCrossSummaryPanelProps {
   onNavigate?: (summaryId: string) => void;
 }
 
-/** Silently swallow errors (e.g. missing QueryClientProvider in tests). */
+/** Gracefully degrade if QueryClientProvider is missing (e.g. in tests). */
 class SafeBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean }
@@ -16,6 +16,9 @@ class SafeBoundary extends Component<
   state = { hasError: false };
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.error('[KeywordCrossSummaryPanel]', error);
   }
   render() {
     return this.state.hasError ? null : this.props.children;
