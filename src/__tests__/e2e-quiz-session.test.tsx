@@ -79,30 +79,28 @@ vi.mock('@/app/services/gamificationApi', () => ({
 }));
 
 // ── Mock motion/react ──────────────────────────────────────
-vi.mock('motion/react', () => {
-  const React = require('react');
-  const motion = new Proxy(
-    {},
-    {
-      get(_target: unknown, prop: string) {
-        return React.forwardRef((props: Record<string, unknown>, ref: React.Ref<unknown>) => {
-          const {
-            initial, animate, exit, transition, whileHover, whileTap,
-            whileInView, variants, layout, layoutId, onAnimationComplete,
-            ...rest
-          } = props;
-          return React.createElement(prop, { ...rest, ref });
-        });
-      },
-    },
-  );
-  return {
-    motion,
-    AnimatePresence: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
-  };
-});
-
+// Use simple string element names instead of Proxy to avoid
+// infinite module resolution loops in vitest.
+vi.mock('motion/react', () => ({
+  __esModule: true,
+  motion: {
+    div: 'div',
+    button: 'button',
+    span: 'span',
+    p: 'p',
+    h1: 'h1',
+    h2: 'h2',
+    a: 'a',
+    section: 'section',
+    form: 'form',
+    input: 'input',
+    label: 'label',
+    img: 'img',
+    li: 'li',
+    ul: 'ul',
+  },
+  AnimatePresence: ({ children }: { children: any }) => children,
+}));
 // ── Mock lucide-react (explicit, not Proxy — Proxy causes infinite loop) ──
 vi.mock('lucide-react', () => {
   const React = require('react');
