@@ -5,6 +5,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { extractItems } from '@/app/lib/api-helpers';
 import type {
   UUID,
   Institution,
@@ -24,7 +25,8 @@ export { ApiError as PlatformApiError } from '@/app/lib/error-utils';
 // ============================================================
 
 export async function getInstitutions(): Promise<Institution[]> {
-  return request<Institution[]>('/institutions');
+  const result = await request('/institutions');
+  return extractItems<Institution>(result);
 }
 
 export async function getInstitution(instId: UUID): Promise<Institution> {
@@ -46,7 +48,7 @@ export async function getInstitutionDashboardStats(instId: UUID): Promise<Instit
       request<Institution>(`/institutions/${instId}`),
     ]);
 
-    const memberList: any[] = members.status === 'fulfilled' ? (Array.isArray(members.value) ? members.value : []) : [];
+    const memberList: any[] = members.status === 'fulfilled' ? extractItems<any>(members.value) : [];
     const inst = institution.status === 'fulfilled' ? institution.value : null;
 
     const membersByRole: Record<string, number> = {};
@@ -111,7 +113,8 @@ export async function deleteInstitution(instId: UUID): Promise<{ id: UUID; is_ac
 // ============================================================
 
 export async function getMembers(institutionId: UUID): Promise<MemberListItem[]> {
-  return request<MemberListItem[]>(`/memberships?institution_id=${institutionId}`);
+  const result = await request(`/memberships?institution_id=${institutionId}`);
+  return extractItems<MemberListItem>(result);
 }
 
 export async function createMember(data: CreateMemberPayload): Promise<MemberListItem> {
