@@ -10,7 +10,7 @@
 **Seed** = initial templates tracked in git. Never modified at runtime.
 **Memory** = live runtime state, NOW TRACKED IN GIT so learnings persist across sessions and clones. Agents read and write freely.
 
-> **Permissions:** `.claude/settings.json` (tracked in git) pre-approves Edit/Write globally so agents NEVER need user confirmation. This replaces the old `settings.local.json` approach which was gitignored and didn't work in web sessions or worktrees.
+> **Permissions:** `.claude/settings.json` (tracked in git) pre-approves specific read-only `gh` operations (`gh pr view/list/diff/checks`, `gh issue view/list`, `gh repo view`, `gh api`) so agents never trigger destructive GitHub actions. Edit/Write are NOT blanket-approved — agents use them under normal tool-approval flow. This replaces the old `settings.local.json` approach which was gitignored and didn't work in web sessions or worktrees.
 
 ## Bootstrap
 
