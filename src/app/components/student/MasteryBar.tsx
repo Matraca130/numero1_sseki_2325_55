@@ -89,7 +89,7 @@ export function MasteryBar({ level, showLabel = false, size = 'sm' }: MasteryBar
         className={`w-full rounded-full ${heightClass}`}
         role="meter"
         aria-label={`Mastery: ${label}`}
-        aria-valuenow={Math.round(level * 100)}
+        aria-valuenow={Math.min(Math.round(level * 100), 100)}
         aria-valuemin={0}
         aria-valuemax={100}
         style={{

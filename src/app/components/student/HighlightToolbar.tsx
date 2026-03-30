@@ -49,6 +49,7 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
             c.bg,
           )}
           aria-label={`Highlight ${c.key}`}
+          title={`Highlight ${c.key}`}
         />
       ))}
       <div className="w-px h-4 bg-zinc-700 mx-0.5" />
