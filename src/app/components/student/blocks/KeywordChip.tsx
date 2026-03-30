@@ -6,9 +6,10 @@ import KeywordCrossSummaryPanel from '@/app/components/student/KeywordCrossSumma
 interface KeywordChipProps {
   keyword: SummaryKeyword;
   onClick?: (keywordId: string) => void;
+  onNavigateSummary?: (summaryId: string) => void;
 }
 
-export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
+export default function KeywordChip({ keyword, onClick, onNavigateSummary }: KeywordChipProps) {
   const [showPopover, setShowPopover] = useState(false);
   const [positionAbove, setPositionAbove] = useState(true);
   const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,7 +100,7 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
             <KeywordCrossSummaryPanel
               keywordName={keyword.name}
               currentSummaryId={keyword.summary_id}
-              onNavigate={(summaryId) => onClick?.(summaryId)}
+              onNavigate={onNavigateSummary}
             />
 
             {/* Arrow pointer */}
