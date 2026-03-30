@@ -11,10 +11,10 @@ import { StickyNote } from 'lucide-react';
 import clsx from 'clsx';
 
 const HIGHLIGHT_COLORS = [
-  { key: 'yellow', bg: 'bg-yellow-400', ring: 'ring-yellow-500' },
-  { key: 'green',  bg: 'bg-emerald-400', ring: 'ring-emerald-500' },
-  { key: 'blue',   bg: 'bg-blue-400',   ring: 'ring-blue-500' },
-  { key: 'pink',   bg: 'bg-pink-400',   ring: 'ring-pink-500' },
+  { key: 'yellow', label: 'amarillo', bg: 'bg-yellow-400', ring: 'ring-yellow-500' },
+  { key: 'green',  label: 'verde',    bg: 'bg-emerald-400', ring: 'ring-emerald-500' },
+  { key: 'blue',   label: 'azul',     bg: 'bg-blue-400',   ring: 'ring-blue-500' },
+  { key: 'pink',   label: 'rosa',     bg: 'bg-pink-400',   ring: 'ring-pink-500' },
 ] as const;
 
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink';
@@ -49,8 +49,8 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
             "hover:scale-110 hover:border-zinc-500 active:scale-95",
             c.bg,
           )}
-          aria-label={`Subrayar ${c.key}`}
-          title={`Subrayar ${c.key}`}
+          aria-label={`Subrayar ${c.label}`}
+          title={`Subrayar ${c.label}`}
         />
       ))}
       <div className="w-px h-4 bg-zinc-700 mx-0.5" />

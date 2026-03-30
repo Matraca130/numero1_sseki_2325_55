@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Upload, X, ImagePlus } from 'lucide-react';
-import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
+import { apiCall, API_BASE } from '@/app/lib/api';
 import ResizableImage from '../ResizableImage';
 import { type BlockFormProps, inputClass } from './shared';
 
@@ -37,58 +37,12 @@ export default function ImageReferenceForm({ block, onChange }: BlockFormProps) 
         formData.append('file', file);
         formData.append('folder', 'summaries');
 
-        // Use raw fetch — apiCall forces Content-Type: application/json
-        // which breaks FormData (browser must set multipart boundary).
-        const headers: Record<string, string> = {
-          Authorization: `Bearer ${ANON_KEY}`,
-        };
-        const token = getAccessToken();
-        if (token) {
-          headers['X-Access-Token'] = token;
-        }
-
-        const res = await fetch(`${API_BASE}/storage/upload`, {
+        const result = await apiCall<{ path: string }>('/storage/upload', {
           method: 'POST',
-          headers,
           body: formData,
         });
 
-        if (!res.ok) {
-          const text = await res.text();
-          let msg = `Error ${res.status}`;
-          try {
-            const json: unknown = JSON.parse(text);
-            if (
-              typeof json === 'object' &&
-              json !== null &&
-              'error' in json &&
-              typeof (json as Record<string, unknown>).error === 'string'
-            ) {
-              msg = (json as Record<string, string>).error;
-            }
-          } catch {
-            /* non-JSON response */
-          }
-          throw new Error(msg);
-        }
-
-        const json: unknown = await res.json();
-        let path: string | undefined;
-
-        // Unwrap { data: { path } } or { path }
-        if (typeof json === 'object' && json !== null) {
-          const obj = json as Record<string, unknown>;
-          if (
-            typeof obj.data === 'object' &&
-            obj.data !== null &&
-            typeof (obj.data as Record<string, unknown>).path === 'string'
-          ) {
-            path = (obj.data as Record<string, string>).path;
-          } else if (typeof obj.path === 'string') {
-            path = obj.path;
-          }
-        }
-
+        const path = result?.path;
         if (!path) {
           throw new Error('Upload succeeded but no path returned');
         }

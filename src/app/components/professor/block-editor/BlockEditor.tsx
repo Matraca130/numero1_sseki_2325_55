@@ -118,6 +118,14 @@ const BlockEditor = React.memo(function BlockEditor({
         overrides[block.id] = restored;
       }
     });
+    // Cancel all pending debounce timers to prevent stale overwrites
+    Object.keys(overrides).forEach(id => {
+      if (debounceTimers.current[id]) {
+        clearTimeout(debounceTimers.current[id]);
+        delete debounceTimers.current[id];
+      }
+      delete pendingContent.current[id];
+    });
     setLocalBlockOverrides(overrides);
     // Persist each changed block to server
     blocks.forEach((block) => {
@@ -269,6 +277,7 @@ const BlockEditor = React.memo(function BlockEditor({
     }
     if (promises.length > 0) await Promise.all(promises);
     pendingContent.current = {};
+    setLocalBlockOverrides({});
   }, [updateMutation]);
 
   const handleDeleteConfirm = useCallback(() => {
