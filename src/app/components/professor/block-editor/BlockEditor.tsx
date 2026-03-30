@@ -28,7 +28,8 @@ import { ViewerBlock } from '@/app/components/student/ViewerBlock';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import BlockEditorToolbar from './BlockEditorToolbar';
 import AddBlockButton from './AddBlockButton';
-import EditableBlock from './EditableBlock';
+import BlockCard from './BlockCard';
+import BlockFormRouter from './BlockFormRouter';
 import BlockTypeSelector from './BlockTypeSelector';
 
 // ── Props ─────────────────────────────────────────────────
@@ -164,8 +165,9 @@ const BlockEditor = React.memo(function BlockEditor({
         redoSnapshot();
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateMutation]);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undoSnapshot, redoSnapshot]);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -249,12 +251,27 @@ const BlockEditor = React.memo(function BlockEditor({
         });
       }
     }, 2000);
-  }, [blocks, updateMutation]);
+  }, [updateMutation]);
 
   // ── Flush all pending saves immediately (async — await before publish) ─
   const flushPending = useCallback(async () => {
-    for (const flushFn of blockFlushRef.current.values()) {
-      flushFn();
+    // Clear all debounce timers
+    for (const timer of Object.values(debounceTimers.current)) {
+      clearTimeout(timer);
+    }
+    debounceTimers.current = {};
+
+    // Save all pending content immediately
+    const promises: Promise<unknown>[] = [];
+    for (const [blockId, content] of Object.entries(pendingContent.current)) {
+      promises.push(
+        new Promise((resolve, reject) => {
+          updateMutation.mutate({ blockId, data: { content } }, {
+            onSuccess: resolve,
+            onError: reject,
+          });
+        }),
+      );
     }
     if (promises.length > 0) await Promise.all(promises);
     pendingContent.current = {};

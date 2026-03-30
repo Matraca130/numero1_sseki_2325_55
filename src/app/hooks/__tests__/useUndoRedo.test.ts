@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useUndoRedo } from '../useUndoRedo';
+import { useUndoRedo } from '@/app/hooks/useUndoRedo';
 
 describe('useUndoRedo', () => {
   it('push → undo → returns to previous state', () => {
