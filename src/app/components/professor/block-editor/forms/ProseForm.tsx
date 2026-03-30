@@ -1,4 +1,13 @@
+import { useState, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
+import { Loader2, Upload, AlertCircle } from 'lucide-react';
+import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
 import { type BlockFormProps, inputClass } from './shared';
+
+const SUPABASE_URL = API_BASE.replace('/functions/v1/server', '');
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function ProseForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
