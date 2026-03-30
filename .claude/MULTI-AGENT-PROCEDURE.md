@@ -43,7 +43,7 @@ Todo fuera de tu zona. Escalar al lead para modificar lógica de otra zona.
 
 ## Al iniciar cada sesión (OBLIGATORIO)
 1. Leer el CLAUDE.md del repo donde vas a trabajar (ROOT, FRONTEND, o BACKEND)
-2. Leer `.claude/agent-memory/[section].md`
+2. Leer `docs/claude-config/agent-memory/[section].md`
 3. Leer `.claude/memory/feedback_agent_isolation.md`
 
 ## Reglas de código
@@ -58,7 +58,7 @@ Todo fuera de tu zona. Escalar al lead para modificar lógica de otra zona.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
@@ -97,7 +97,7 @@ Crear por sección, en este orden (de más a menos impacto):
 Cada sección necesita un archivo de memoria compartida:
 
 ```
-claude-config/agent-memory/
+docs/claude-config/agent-memory/
 ├── quiz.md          ← ya existe
 ├── flashcards.md    ← ya existe
 ├── summaries.md     ← ya existe
@@ -265,10 +265,10 @@ Después de CADA sesión multi-agente, el Arquitecto ejecuta un post-mortem:
 
 | Tipo de lección | Destino | Quién lo hace |
 |----------------|---------|---------------|
-| Error específico de un agente | `agent-memory/individual/<AGENT-ID>.md` → "Lecciones aprendidas" | **XX-02 (automático)** |
+| Error específico de un agente | `docs/claude-config/agent-memory/individual/<AGENT-ID>.md` → "Lecciones aprendidas" | **XX-02 (automático)** |
 | Error en Error Ledger | `AGENT-METRICS.md` → Sección 4 | **XX-02 (automático)** |
 | Error de aislamiento/coordinación | `memory/feedback_agent_isolation.md` → HISTORICAL ERRORS | Arquitecto (manual) |
-| Error específico de sección | `agent-memory/<section>.md` → "Errores conocidos" | Arquitecto (manual) |
+| Error específico de sección | `docs/claude-config/agent-memory/<section>.md` → "Errores conocidos" | Arquitecto (manual) |
 | Cambio en ownership de archivos | `AGENT-REGISTRY.md` → actualizar "Files Owned" | Arquitecto (manual) |
 
 ### Métricas (actualizar SIEMPRE — seguir Update Protocol)
@@ -317,8 +317,8 @@ Fase 1 — Diagnóstico:
      ▼
 Fase 2 — Registrar lecciones:
   → Global: feedback_agent_isolation.md
-  → Sección: agent-memory/<section>.md
-  → Individual: agent-memory/individual/<AGENT-ID>.md
+  → Sección: docs/claude-config/agent-memory/<section>.md
+  → Individual: docs/claude-config/agent-memory/individual/<AGENT-ID>.md
      │
      ▼
 Fase 3 — Actualizar métricas (5 pasos):
@@ -344,7 +344,7 @@ Fase 5 — Reportar al usuario:
 
 ### Agentes con memoria individual
 
-Los siguientes agentes tienen archivo propio en `agent-memory/individual/`:
+Los siguientes agentes tienen archivo propio en `docs/claude-config/agent-memory/individual/`:
 
 #### Implementadores (7)
 | Agent ID | Archivo | Razón |
@@ -369,7 +369,7 @@ Los siguientes agentes tienen archivo propio en `agent-memory/individual/`:
 
 > **Total: 13 agentes con memoria individual** (7 implementadores + 6 supervisores)
 
-Para agregar memoria individual a otro agente: crear archivo en `agent-memory/individual/<AGENT-ID>-<name>.md` y agregar lectura a su definición en `agents/<agent>.md`.
+Para agregar memoria individual a otro agente: crear archivo en `docs/claude-config/agent-memory/individual/<AGENT-ID>-<name>.md` y agregar lectura a su definición en `agents/<agent>.md`.
 
 ---
 
