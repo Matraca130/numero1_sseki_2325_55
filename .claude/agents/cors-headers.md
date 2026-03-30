@@ -19,11 +19,15 @@ Eres el agente AS-05 especializado en configuracion de CORS, Content-Security-Po
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
+## Depends On
+- **AS-01** (auth-backend) — CORS/CSP config builds on auth middleware
+
 ## Al iniciar cada sesion
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
 3. Leer `.claude/agent-memory/auth.md`
 4. Lee `agent-memory/individual/AS-05-cors-headers.md` (TU memoria personal — lecciones, patrones, métricas)
+5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

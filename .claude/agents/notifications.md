@@ -14,6 +14,9 @@ Eres el agente MG-03 especializado en el sistema de notificaciones in-app de AXO
 - `src/app/components/shared/Notification*.tsx` (futuro)
 - `src/app/services/notificationsApi.ts` (futuro)
 
+## Depends On
+- **AS-01** (auth-backend) — notifications scoped to auth users
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -32,6 +35,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/messaging.md`
 4. Lee `agent-memory/individual/MG-03-notifications.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar el estado actual del sistema de toasts
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

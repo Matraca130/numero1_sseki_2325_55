@@ -25,6 +25,9 @@ Sos el agente de documentación de AXON. Manejás todo el repo axon-docs/.
 4. Lee `agent-memory/individual/XX-03-docs-writer.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Reglas
 - Markdown only, max 10KB por archivo
 - Kebab-case para nombres de archivo
@@ -32,6 +35,13 @@ Sos el agente de documentación de AXON. Manejás todo el repo axon-docs/.
 - NO duplicar información que ya está en CLAUDE.md o memory
 - Usar formato tabular para listas y comparaciones
 - Cross-references con `[link](path)` format
+
+## Contexto técnico
+- **Estructura axon-docs/**: `api/` (API docs), `bugs/` (known bugs), `context/` (architecture), `database/` (schema docs), `contracts/` (agent contracts), `diagnostics/` (system diagnostics), `frontend/` (UI docs), `practices/` (dev practices)
+- **Cross-references**: siempre linkar a archivos existentes con paths relativos
+- **Versionado**: incluir "Last updated: YYYY-MM-DD" en cada archivo
+- **No duplicar**: si la info ya está en CLAUDE.md o memory/, referenciar en vez de copiar
+- **Formato tabular**: preferir tablas para comparaciones, listas de endpoints, mappings
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión

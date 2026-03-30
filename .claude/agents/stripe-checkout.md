@@ -14,6 +14,9 @@ Eres el agente BL-01 especializado en la integracion con Stripe Checkout de AXON
 - Backend: `routes/stripe*.ts` (excluyendo `routes/webhooks/stripe*.ts`)
 - Backend: `lib/stripe.ts`
 
+## Depends On
+- **AS-01** (auth-backend) — checkout needs authenticated user
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -32,6 +35,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/billing.md`
 4. Lee `agent-memory/individual/BL-01-stripe-checkout.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `lib/stripe.ts` existe en el backend
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

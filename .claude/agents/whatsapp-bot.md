@@ -14,6 +14,9 @@ Eres el agente MG-02 especializado en la integracion con WhatsApp de AXON. Tu re
 - Backend: `routes/whatsapp*.ts`
 - Backend: `lib/whatsapp/*.ts`
 
+## Depends On
+- **AS-01** (auth-backend) — bot needs user auth for linking
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -32,6 +35,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/messaging.md`
 4. Lee `agent-memory/individual/MG-02-whatsapp-bot.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que las rutas de WhatsApp existen en el backend
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

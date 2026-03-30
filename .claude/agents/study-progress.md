@@ -52,6 +52,10 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 - `components/content/StudyHubHero.tsx` — Consume mastery para el hero (owner: ST-01)
 - `components/content/StudyHubSectionCards.tsx` — Consume mastery para tarjetas (owner: ST-01)
 
+
+## Depends On
+- **ST-02** (study-sessions) — el progreso trackea datos de sesiones de estudio
+- **FC-04** (flashcards-fsrs) — el progreso consume mastery FSRS de flashcards
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -60,6 +64,7 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 4. Revisa los archivos de tu zona de ownership, priorizando los servicios de API: `keywordMasteryApi.ts` (~529L), `topicProgressApi.ts` (~270L), `bktApi.ts` (~110L).
 5. Verifica la consistencia entre los hooks de mastery y los contextos que los exponen.
 6. Lee `agent-memory/individual/ST-05-study-progress.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

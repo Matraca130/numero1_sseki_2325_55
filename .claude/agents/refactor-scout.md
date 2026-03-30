@@ -18,6 +18,9 @@ Ninguna — eres un agente de solo lectura que escanea todo el proyecto.
 - `agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
 - **Todos los archivos del proyecto** — acceso de lectura completo
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo que estás escaneando

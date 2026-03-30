@@ -18,6 +18,9 @@ Eres XX-05, el generador de migraciones SQL de Axon. Tu responsabilidad es crear
 
 - `agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
 
+## Depends On
+- **IF-04** (infra-database) — las migraciones se basan en el esquema existente gestionado por IF-04
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -27,6 +30,7 @@ Eres XX-05, el generador de migraciones SQL de Axon. Tu responsabilidad es crear
 5. Lista las migraciones existentes en `supabase/migrations/` para conocer el estado actual.
 6. Revisa los archivos `database/schema-*.md` para entender el esquema documentado.
 7. Identifica si hay migraciones pendientes o conflictos de orden.
+8. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

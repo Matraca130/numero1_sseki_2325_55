@@ -24,6 +24,11 @@ Sos el agente frontend de la sección Quiz de AXON.
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar lógica de otra zona.
 
+## Depends On
+- **QZ-02** (quiz-backend) — Provee los endpoints de CRUD de quizzes/questions y scoring que el frontend consume
+- **SM-04** (content-tree) — Provee el árbol de contenido donde se insertan y navegan los quizzes
+- **DG-04** (gamification-backend) — Provee los endpoints de XP y logros que se muestran en la UI de quiz
+
 ## Al iniciar cada sesión
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)

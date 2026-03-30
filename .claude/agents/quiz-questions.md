@@ -29,6 +29,10 @@ Eres QZ-05, el agente responsable del CRUD de preguntas y sus renderizadores. Ge
 - Archivos de otros agentes de quiz (QZ-04, QZ-06) para entender contratos de datos
 - Tipos compartidos y servicios globales
 
+## Depends On
+- **QZ-01** (quiz-frontend) — Provee el contexto de UI donde se renderizan las preguntas y el dispatcher QuestionRenderer
+- **AS-02** (auth-frontend) — Provee el contexto de autenticación y tokens para las llamadas CRUD de preguntas
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -37,6 +41,7 @@ Eres QZ-05, el agente responsable del CRUD de preguntas y sus renderizadores. Ge
 4. Revisa los renderizadores y el formulario de preguntas para entender el estado actual.
 5. Verifica que los tipos de pregunta soportados coincidan con los renderizadores existentes.
 6. Lee `agent-memory/individual/QZ-05-quiz-questions.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

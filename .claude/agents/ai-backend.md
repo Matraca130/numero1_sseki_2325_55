@@ -34,6 +34,9 @@ Eres el agente AI-05 responsable de los route handlers del backend AI en Axon. T
 - `services/ai-service/as-generate.ts` — Generacion AI expuesta via rutas
 - `services/ai-service/as-analytics.ts` — Analiticas expuestas via rutas
 
+## Depends On
+- **AS-01** (auth-backend) — AI routes need auth
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -41,6 +44,7 @@ Eres el agente AI-05 responsable de los route handlers del backend AI en Axon. T
 3. Lee `agent-memory/ai-rag.md` para obtener contexto actualizado sobre el estado del backend AI y decisiones previas.
 4. Lee `agent-memory/individual/AI-05-ai-backend.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

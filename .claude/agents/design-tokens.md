@@ -45,6 +45,9 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 - `components/layout/*.tsx` — Para ver cómo se consumen los tokens en layouts reales.
 - `tailwind.config.ts` o configuración de CSS — Para verificar que los tokens estén sincronizados.
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -52,6 +55,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 3. Lee `agent-memory/infra.md` para sincronizarte con el estado actual de la infraestructura.
 4. Verifica que no haya tokens duplicados o inconsistencias entre archivos del design-system.
 5. Confirma que los componentes del design-kit importen tokens desde `design-system/`, nunca valores hardcodeados.
+6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

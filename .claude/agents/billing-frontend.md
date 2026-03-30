@@ -13,6 +13,9 @@ Eres el agente BL-03 especializado en la interfaz de facturacion de AXON. Tu res
 **Por directorio:**
 - `src/app/components/roles/pages/owner/OwnerSubscriptionsPage.tsx` (373L)
 
+## Depends On
+- **BL-01** (stripe-checkout) — UI consumes billing API
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -31,6 +34,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 3. Leer `.claude/agent-memory/billing.md`
 4. Lee `agent-memory/individual/BL-03-billing-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `OwnerSubscriptionsPage.tsx` existe
+6. Lee `agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log

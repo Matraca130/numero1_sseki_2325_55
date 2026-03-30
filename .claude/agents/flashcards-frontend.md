@@ -38,6 +38,11 @@ Podés LEER cualquier archivo del proyecto pero NO modificar archivos fuera de t
 - Renombrar o mover archivos
 - Cambiar interfaces públicas de archivos compartidos
 
+## Depends On
+- **FC-02** (flashcards-backend) — provee los endpoints de CRUD y FSRS que el frontend consume
+- **SM-04** (content-tree) — estructura de contenido que organiza las flashcards en el árbol de navegación
+- **DG-04** (gamification-backend) — sistema de XP y recompensas que se muestra en la UI de flashcards
+
 ## Al iniciar cada sesión
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)

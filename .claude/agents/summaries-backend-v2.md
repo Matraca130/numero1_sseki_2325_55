@@ -27,6 +27,9 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 - `supabase/` — Configuración de Supabase, pero no modificar sin coordinación.
 - Componentes frontend que consumen las APIs — Para entender cómo se usan los endpoints.
 
+## Depends On
+- **AS-01** (auth-backend) — Provee el middleware de autenticación JWT y el contexto de usuario que todas las rutas de resúmenes requieren
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -35,6 +38,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 4. Revisa las rutas existentes en `routes/summaries*.ts` para tener un mapa mental de los endpoints disponibles.
 5. Verifica si hay endpoints pendientes de implementar o deprecar.
 6. Lee `agent-memory/individual/SM-02-summaries-backend.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

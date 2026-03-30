@@ -33,6 +33,9 @@ Eres **ST-02 — Study Session Flow + API Agent**. Tu responsabilidad es mantene
 - `types/study-plan.ts` — Tipos compartidos (owner: ST-04)
 - `services/bktApi.ts` — API de BKT para actualizacion post-review (owner: ST-05)
 
+## Depends On
+- **ST-01** (study-hub) — las sesiones se lanzan desde el hub de estudio
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -41,6 +44,7 @@ Eres **ST-02 — Study Session Flow + API Agent**. Tu responsabilidad es mantene
 4. Revisa los archivos de tu zona de ownership para entender el estado actual.
 5. Verifica la consistencia entre `studySessionApi.ts` y `sa-activity-sessions.ts`.
 6. Lee `agent-memory/individual/ST-02-study-sessions.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

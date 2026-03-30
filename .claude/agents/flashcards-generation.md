@@ -25,6 +25,10 @@ Eres FC-06, el agente responsable de la generación de flashcards con IA. Gestio
 - Servicios BKT del módulo de quizzes para entender el modelo de conocimiento
 - Tipos compartidos y servicios globales
 
+## Depends On
+- **FC-02** (flashcards-backend) — endpoints backend de CRUD de flashcards donde se persisten las cards generadas
+- **AI-01** (rag-pipeline) — pipeline de IA/RAG que genera el contenido de las flashcards
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -33,6 +37,7 @@ Eres FC-06, el agente responsable de la generación de flashcards con IA. Gestio
 4. Revisa el generador y los hooks de generación para entender el estado actual.
 5. Verifica que el ranking NeedScore y el targeting BKT estén funcionando correctamente.
 6. Lee `agent-memory/individual/FC-06-flashcards-generation.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
