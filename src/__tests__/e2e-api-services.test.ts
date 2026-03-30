@@ -78,13 +78,17 @@ function mockErrorResponse(error: string, status: number): Response {
 
 // ── Setup / Teardown ────────────────────────────────────────
 
+let originalFetch: typeof globalThis.fetch;
+
 beforeEach(() => {
+  originalFetch = globalThis.fetch;
   mockFetch.mockReset();
   globalThis.fetch = mockFetch;
   setAccessToken(null);
 });
 
 afterEach(() => {
+  globalThis.fetch = originalFetch;
   vi.restoreAllMocks();
 });
 
