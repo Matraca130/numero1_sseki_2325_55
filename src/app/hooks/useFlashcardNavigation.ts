@@ -603,5 +603,6 @@ export function useFlashcardNavigation() {
     reloadTopicCards,
     kwMasteryCache,
     kwProgressVersion,
+    sqData,
   };
 }
