@@ -318,6 +318,18 @@ export function useFlashcardNavigation() {
     });
   }, []); // Stable — no dependencies that change
 
+  // Force-reload flashcards for a topic (clears cache entry first)
+  const reloadTopicCards = useCallback(async (topicId: string) => {
+    cachedTopicIds.current.delete(topicId);
+    pendingLoads.current.delete(topicId);
+    setCardCache(prev => {
+      const newData = new Map(prev.data);
+      newData.delete(topicId);
+      return { data: newData, order: prev.order.filter(k => k !== topicId) };
+    });
+    await loadTopicCards(topicId);
+  }, [loadTopicCards]);
+
   // ── Load keyword mastery for a topic (lazy, non-blocking) ──
   const loadKeywordMastery = useCallback(async (topicId: string) => {
     if (kwMasteryCache.current.has(topicId)) return;
@@ -561,6 +573,7 @@ export function useFlashcardNavigation() {
     studySelectedTopic,
     loadKeywordMastery,
     invalidateKeywordMastery,
+    reloadTopicCards,
     kwMasteryCache,
     kwProgressVersion,
   };

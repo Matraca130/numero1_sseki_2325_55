@@ -82,6 +82,25 @@ export function FlashcardView() {
     navigate(`/student/adaptive-session?${params.toString()}`);
   }, [nav.selectedTopic, nav.currentCourse.id, navigate]);
 
+  // ── Derived props for StudentCreateModal ──
+  const currentSummaryId = useMemo(() => {
+    const cards = nav.selectedTopic?.flashcards || [];
+    return cards[0]?.summary_id || '';
+  }, [nav.selectedTopic?.flashcards]);
+
+  const currentKeywords = useMemo((): Array<{ id: string; name: string }> => {
+    const topicId = nav.selectedTopic?.id;
+    if (!topicId) return [];
+    const summary = nav.kwMasteryCache.current.get(topicId);
+    if (!summary) return [];
+    return summary.allKeywordsByMastery.map(kw => ({ id: kw.keyword_id, name: kw.name }));
+  }, [nav.selectedTopic?.id, nav.kwProgressVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCardCreated = useCallback(() => {
+    const topicId = nav.selectedTopic?.id;
+    if (topicId) nav.reloadTopicCards(topicId);
+  }, [nav]);
+
   // Keyword progress for DeckScreen (Fase 6)
   const currentKeywordProgress = useMemo((): KeywordProgress | undefined => {
     const topicId = nav.selectedTopic?.id;
@@ -120,7 +139,7 @@ export function FlashcardView() {
               <SectionScreen key="section" section={nav.selectedSection} sectionIdx={nav.selectedSectionIdx} courseColor={nav.currentCourse.color} onOpenDeck={nav.openDeck} onStartSection={handleStartSection} onBack={nav.goBack} />
             )}
             {nav.viewState === 'deck' && nav.selectedTopic && (
-              <DeckScreen key="deck" topic={nav.selectedTopic} sectionIdx={nav.selectedSectionIdx} sectionName={nav.selectedSection?.title || ''} courseColor={nav.currentCourse.color} onStart={handleStartDeck} onBack={nav.goBack} onStudyTopic={nav.studySelectedTopic} onStartAdaptive={handleStartAdaptive} keywordProgress={currentKeywordProgress} />
+              <DeckScreen key="deck" topic={nav.selectedTopic} sectionIdx={nav.selectedSectionIdx} sectionName={nav.selectedSection?.title || ''} courseColor={nav.currentCourse.color} onStart={handleStartDeck} onBack={nav.goBack} onStudyTopic={nav.studySelectedTopic} onStartAdaptive={handleStartAdaptive} keywordProgress={currentKeywordProgress} summaryId={currentSummaryId} keywords={currentKeywords} onCardCreated={handleCardCreated} />
             )}
             {nav.viewState === 'session' && engine.sessionCards.length > 0 && (
               <SessionScreen key="session" cards={engine.sessionCards} currentIndex={engine.currentIndex} isRevealed={engine.isRevealed} setIsRevealed={engine.setIsRevealed} handleRate={engine.handleRate} sessionStats={engine.sessionStats} courseColor={nav.currentCourse.color} onBack={nav.goBack} masteryMap={nav.masteryMap} />
