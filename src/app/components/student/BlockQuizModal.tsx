@@ -135,8 +135,8 @@ export function BlockQuizModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [questions, setQuestions] = useState<QuizQuestion[]>(MOCK_QUESTIONS);
-  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchedFor, setFetchedFor] = useState<string | null>(null);
 
   // Fetch quiz from AI when modal opens with a new blockId
