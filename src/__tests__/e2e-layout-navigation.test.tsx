@@ -297,8 +297,6 @@ vi.mock('@/app/context/StudentDataContext', () => ({
     isConnected: true,
     studentId: 'user-001',
     refresh: vi.fn(),
-    seedAndLoad: vi.fn(),
-    updateProfile: vi.fn(),
   }),
 }));
 

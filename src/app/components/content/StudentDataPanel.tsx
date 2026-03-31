@@ -49,7 +49,7 @@ const ACTIVITY_VISUALS = [
 ];
 
 export function StudentDataPanel() {
-  const { profile, stats, courseProgress, dailyActivity, sessions, loading, error, isConnected, refresh, seedAndLoad, bktStates } = useStudentDataContext();
+  const { profile, stats, courseProgress, dailyActivity, sessions, loading, error, isConnected, refresh, bktStates } = useStudentDataContext();
   const { user } = useAuth();
   const { tree } = useContentTree();
   const [seeding, setSeeding] = useState(false);
@@ -57,7 +57,7 @@ export function StudentDataPanel() {
 
   const handleSeed = async () => {
     setSeeding(true);
-    await seedAndLoad();
+    await refresh();
     setSeeding(false);
   };
 

@@ -147,16 +147,6 @@ interface StudentDataContextType extends StudentDataState {
   /** The resolved student ID being used (real user or fallback) */
   studentId: string | null;
   refresh: () => Promise<void>;
-  /** @deprecated Legacy — does nothing in v2 (no /seed endpoint) */
-  seedAndLoad: () => Promise<void>;
-  /** @deprecated Legacy — profile comes from AuthContext now */
-  updateProfile: (data: Partial<StudentProfile>) => Promise<void>;
-  /** @deprecated Legacy — stats come from platformApi now */
-  updateStats: (data: Partial<StudentStats>) => Promise<void>;
-  /** @deprecated Legacy — use recordSessionComplete instead */
-  logSession: (data: Omit<StudySession, 'studentId'>) => Promise<void>;
-  /** @deprecated Legacy — reviews are submitted via platformApi.submitReview */
-  saveReviews: (reviews: FlashcardReview[]) => Promise<void>;
   // ── NEW (v2) ──
   /** Signals a session is complete; triggers data refresh (DB triggers handle writes) */
   recordSessionComplete: (session: {
@@ -186,11 +176,6 @@ const StudentDataContext = createContext<StudentDataContextType>({
   isConnected: false,
   studentId: null,
   refresh: async () => {},
-  seedAndLoad: async () => {},
-  updateProfile: async () => {},
-  updateStats: async () => {},
-  logSession: async () => {},
-  saveReviews: async () => {},
   recordSessionComplete: async () => {},
 });
 
@@ -314,44 +299,6 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
     [fetchAll]
   );
 
-  // ── Legacy mutator stubs (backwards compat, no-op) ──
-  const seedAndLoad = useCallback(async () => {
-    if (import.meta.env.DEV) console.warn(
-      '[StudentDataContext] seedAndLoad() is deprecated in v2. /seed endpoint does not exist in real backend.'
-    );
-    await fetchAll();
-  }, [fetchAll]);
-
-  const updateProfileFn = useCallback(
-    async (_data: Partial<StudentProfile>) => {
-      if (import.meta.env.DEV) console.warn(
-        '[StudentDataContext] updateProfile() is deprecated in v2. Profile is derived from AuthContext.'
-      );
-    },
-    []
-  );
-
-  const updateStatsFn = useCallback(async (_data: Partial<StudentStats>) => {
-    if (import.meta.env.DEV) console.warn(
-      '[StudentDataContext] updateStats() is deprecated in v2. Stats are managed by DB triggers.'
-    );
-  }, []);
-
-  const logSessionFn = useCallback(
-    async (_session: Omit<StudySession, 'studentId'>) => {
-      if (import.meta.env.DEV) console.warn(
-        '[StudentDataContext] logSession() is deprecated in v2. Use recordSessionComplete() or platformApi.createStudySession().'
-      );
-    },
-    []
-  );
-
-  const saveReviewsFn = useCallback(async (_reviews: FlashcardReview[]) => {
-    if (import.meta.env.DEV) console.warn(
-      '[StudentDataContext] saveReviews() is deprecated in v2. Use platformApi.submitReview() directly.'
-    );
-  }, []);
-
   // ── Auto-load on auth change ──
   useEffect(() => {
     if (status === 'loading') return;
@@ -403,16 +350,10 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
     isConnected,
     studentId: userId || null,
     refresh: fetchAll,
-    seedAndLoad,
-    updateProfile: updateProfileFn,
-    updateStats: updateStatsFn,
-    logSession: logSessionFn,
-    saveReviews: saveReviewsFn,
     recordSessionComplete,
   }), [
     data, loading, error, isConnected, userId,
-    fetchAll, seedAndLoad, updateProfileFn, updateStatsFn,
-    logSessionFn, saveReviewsFn, recordSessionComplete,
+    fetchAll, recordSessionComplete,
   ]);
 
   return (
