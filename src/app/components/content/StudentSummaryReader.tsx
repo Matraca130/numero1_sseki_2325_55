@@ -352,10 +352,17 @@ export function StudentSummaryReader({
         </button>
       )}
 
-      <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
+      <div className="relative xl:flex xl:gap-6 mx-auto p-6 sm:p-8" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
         {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div className="flex flex-col gap-3">
+          <div
+            className={[
+              'flex flex-col gap-3 z-30 transition-all duration-200',
+              sidebarCollapsed
+                ? 'relative flex-shrink-0'
+                : 'absolute top-6 left-6 bottom-0 bg-white dark:bg-[#1e1f25] shadow-xl rounded-xl xl:relative xl:shadow-none xl:rounded-none xl:bg-transparent',
+            ].join(' ')}
+          >
             <SidebarOutline
               blocks={sidebarBlocks}
               activeBlockId={activeBlockId}
@@ -373,7 +380,26 @@ export function StudentSummaryReader({
           </div>
         )}
 
-        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
+        {/* Backdrop for sidebar overlay */}
+        {!sidebarCollapsed && !readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+          <div
+            className="absolute inset-0 bg-black/10 z-20 xl:hidden"
+            onClick={() => setSidebarCollapsed(true)}
+          />
+        )}
+
+        {/* Content — always full width, add left margin only when sidebar is collapsed (icon strip) */}
+        <div
+          className={`min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`}
+          style={{
+            maxWidth: readingSettings.focusMode ? 680 : 800,
+            marginLeft: (!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks')
+              ? (sidebarCollapsed ? 64 : 0)
+              : 0,
+            marginInline: readingSettings.focusMode ? 'auto' : undefined,
+            transition: 'margin-left 0.2s ease',
+          }}
+        >
 
         {/* ── Immersive header toolbar (V1+V2+V6) ── */}
         <header
@@ -727,8 +753,8 @@ export function StudentSummaryReader({
             />
           </TabsContent>
         </Tabs>
-        </div>{/* end flex-1 content wrapper */}
-      </div>{/* end flex layout */}
+        </div>{/* end content wrapper */}
+      </div>{/* end layout wrapper */}
     </motion.div>
   );
 }
