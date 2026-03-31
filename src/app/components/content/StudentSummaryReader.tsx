@@ -373,7 +373,7 @@ export function StudentSummaryReader({
           </div>
         )}
 
-        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
+        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={readingSettings.focusMode ? { maxWidth: 680 } : undefined}>
 
         {/* ── Immersive header toolbar (V1+V2+V6) ── */}
         <header
