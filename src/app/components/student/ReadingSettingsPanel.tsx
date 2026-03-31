@@ -133,8 +133,8 @@ export default function ReadingSettingsPanel({
       {/* Font size */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-gray-400 font-semibold uppercase">
-            Tamanho da fonte
+          <span className="text-gray-400 font-semibold uppercase" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+            Tamaño de fuente
           </span>
           <span className="text-xs text-gray-500 tabular-nums">
             {settings.fontSize}px
@@ -156,8 +156,8 @@ export default function ReadingSettingsPanel({
 
       {/* Line spacing */}
       <div className="space-y-1.5">
-        <span className="text-[11px] text-gray-400 font-semibold uppercase block">
-          Espaçamento
+        <span className="text-gray-400 font-semibold uppercase block" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+          Espaciado
         </span>
         <div className="grid grid-cols-4 gap-1.5">
           {LINE_HEIGHTS.map((lh) => {
@@ -182,8 +182,8 @@ export default function ReadingSettingsPanel({
 
       {/* Font family */}
       <div className="space-y-1.5">
-        <span className="text-[11px] text-gray-400 font-semibold uppercase block">
-          Fonte
+        <span className="text-gray-400 font-semibold uppercase block" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+          Fuente
         </span>
         <div className="grid grid-cols-3 gap-1.5">
           {FONT_FAMILIES.map((ff) => {
@@ -218,7 +218,7 @@ export default function ReadingSettingsPanel({
           ) : (
             <Eye size={14} className="text-gray-400" />
           )}
-          <span className="text-[11px] text-gray-400 font-semibold uppercase">
+          <span className="text-gray-400 font-semibold uppercase" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
             Modo enfocado
           </span>
         </div>

@@ -81,7 +81,7 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
           body: JSON.stringify({ completed_at: new Date().toISOString() }),
         }).catch(() => {});
       }
-      toast('Tempo de estudo finalizado!');
+      toast('Tiempo de estudio finalizado!');
       setMode('break');
       setSeconds(BREAK_SECONDS);
     } else {
@@ -94,29 +94,26 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   // ── Handlers ─────────────────────────────────────────
 
   const toggleRunning = useCallback(() => {
-    setRunning((prev) => {
-      if (!prev && mode === 'study' && !sessionIdRef.current) {
-        // Starting a study session — fire-and-forget API call
-        apiCall<{ id: string }>('/study-sessions', {
-          method: 'POST',
-          body: JSON.stringify({
-            session_type: 'reading',
-            started_at: new Date().toISOString(),
-          }),
+    // Fire API call outside state updater to avoid double-fire in StrictMode
+    if (!running && mode === 'study' && !sessionIdRef.current) {
+      apiCall<{ id: string }>('/study-sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          session_type: 'reading',
+          started_at: new Date().toISOString(),
+        }),
+      })
+        .then((res) => {
+          if (res?.id) sessionIdRef.current = res.id;
         })
-          .then((res) => {
-            if (res?.id) sessionIdRef.current = res.id;
-          })
-          .catch(() => {
-            // fire-and-forget — don't block UX
-          });
-      }
-      return !prev;
-    });
-  }, [mode]);
+        .catch(() => {});
+    }
+    setRunning((prev) => !prev);
+  }, [mode, running]);
 
   const handleReset = useCallback(() => {
     setRunning(false);
+    sessionIdRef.current = null;
     setSeconds(mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
   }, [mode]);
 
@@ -138,17 +135,17 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
     <div
       className="fixed bottom-5 right-5 z-[400] min-w-[180px] rounded-2xl border border-gray-200 bg-white shadow-lg"
       role="timer"
-      aria-label={`${mode === 'study' ? 'Estudo' : 'Descanso'} ${display}`}
+      aria-label={`${mode === 'study' ? 'Estudio' : 'Descanso'} ${display}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-1">
         <span className={`text-xs font-semibold uppercase tracking-wide ${labelColor}`}>
-          {mode === 'study' ? 'Estudo' : 'Descanso'}
+          {mode === 'study' ? 'Estudio' : 'Descanso'}
         </span>
         <button
           onClick={onClose}
           className="rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          aria-label="Fechar timer"
+          aria-label="Cerrar timer"
         >
           <X size={14} />
         </button>
