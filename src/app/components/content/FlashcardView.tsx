@@ -5,10 +5,11 @@
 //   DeckScreen "Con IA" button navigates to /student/adaptive-session.
 // ============================================================
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AnimatePresence } from 'motion/react';
 import { useFlashcardNavigation, type KeywordProgress } from '@/app/hooks/useFlashcardNavigation';
+import { apiCall } from '@/app/lib/api';
 import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
 import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
@@ -83,10 +84,24 @@ export function FlashcardView() {
   }, [nav.selectedTopic, nav.currentCourse.id, navigate]);
 
   // ── Derived props for StudentCreateModal ──
-  const currentSummaryId = useMemo(() => {
-    const cards = nav.selectedTopic?.flashcards || [];
-    return cards[0]?.summary_id || '';
-  }, [nav.selectedTopic?.flashcards]);
+  // Prefer summary_id from existing cards; fallback to fetching for empty decks
+  const [fetchedSummaryId, setFetchedSummaryId] = useState<string>('');
+  const cardSummaryId = nav.selectedTopic?.flashcards?.[0]?.summary_id || '';
+  const currentSummaryId = cardSummaryId || fetchedSummaryId;
+
+  useEffect(() => {
+    const topicId = nav.selectedTopic?.id;
+    if (!topicId || cardSummaryId) { return; }
+    let cancelled = false;
+    apiCall<any>(`/summaries?topic_id=${topicId}`)
+      .then(data => {
+        if (cancelled) return;
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (items[0]?.id) setFetchedSummaryId(items[0].id);
+      })
+      .catch(() => { /* non-fatal: button stays hidden */ });
+    return () => { cancelled = true; };
+  }, [nav.selectedTopic?.id, cardSummaryId]);
 
   const currentKeywords = useMemo((): Array<{ id: string; name: string }> => {
     const topicId = nav.selectedTopic?.id;
