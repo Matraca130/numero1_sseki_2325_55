@@ -15,7 +15,7 @@ import React from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { RenderOptions } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import type { AuthUser, UserInstitution } from '@/app/context/AuthContext';
 
 // ── Re-exports ───────────────────────────────────────────
