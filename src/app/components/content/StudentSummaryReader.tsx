@@ -325,7 +325,8 @@ export function StudentSummaryReader({
       {/* ── Skip to content link (a11y) ── */}
       <a
         href="#reader-main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:border focus:border-teal-200 focus:text-sm focus:font-semibold"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:border focus:border-teal-200 focus:font-semibold"
+        style={{ fontSize: 'clamp(0.8rem, 1.5vw, 0.875rem)' }}
       >
         Saltar al contenido
       </a>
@@ -373,12 +374,15 @@ export function StudentSummaryReader({
               masteryLevels={masteryLevels}
             />
             {Object.keys(masteryLevels).length > 0 && (
-              <div style={{
-                opacity: sidebarCollapsed ? 0 : 1,
-                maxHeight: sidebarCollapsed ? 0 : 300,
-                overflow: 'hidden',
-                transition: 'opacity 200ms ease, max-height 200ms ease',
-              }}>
+              <div
+                aria-hidden={sidebarCollapsed ? "true" : undefined}
+                style={{
+                  opacity: sidebarCollapsed ? 0 : 1,
+                  maxHeight: sidebarCollapsed ? 0 : 300,
+                  overflow: 'hidden',
+                  transition: 'opacity 200ms ease, max-height 200ms ease',
+                }}
+              >
                 <MasteryLegend
                   masteryLevels={masteryLevels}
                   totalBlocks={sidebarBlocks.length}
