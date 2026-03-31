@@ -15,7 +15,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
-import type { StudyQueueResponse } from '@/app/types/gamification';
+import type { StudyQueueResponse, XPTransaction, StreakStatus } from '@/app/types/gamification';
 
 // ── Types ─────────────────────────────────────────────
 
@@ -37,19 +37,7 @@ export interface GamificationProfile {
   badges_earned: number;
 }
 
-export interface XPTransaction {
-  id: string;
-  student_id: string;
-  institution_id: string;
-  action: string;
-  xp_base: number;
-  xp_final: number;
-  multiplier: number;
-  bonus_type: string | null;
-  source_type: string | null;
-  source_id: string | null;
-  created_at: string;
-}
+export type { XPTransaction } from '@/app/types/gamification';
 
 export interface XPHistoryResponse {
   items: XPTransaction[];
@@ -72,16 +60,7 @@ export interface LeaderboardResponse {
   period: string;
 }
 
-export interface StreakStatus {
-  current_streak: number;
-  longest_streak: number;
-  last_study_date: string | null;
-  freezes_available: number;
-  repair_eligible: boolean;
-  streak_at_risk: boolean;
-  studied_today: boolean;
-  days_since_last_study: number | null;
-}
+export type { StreakStatus } from '@/app/types/gamification';
 
 export interface CheckInEvent {
   type: 'streak_started' | 'streak_incremented' | 'freeze_consumed' | 'streak_broken' | 'already_checked_in';
