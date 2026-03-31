@@ -47,7 +47,7 @@ export interface FlashcardDeck {
 }
 
 export interface FlashcardDeckListProps {
-  decks: FlashcardDeck[];
+  decks: FlashcardDeck[] | null | undefined;
   onDeckClick: (deckId: string) => void;
 }
 
@@ -57,10 +57,37 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
   const shouldReduce = useReducedMotion();
   const [deckFilter, setDeckFilter] = useState<'all' | 'due' | 'mastered'>('due');
 
-  const totalCards = decks.reduce((a, d) => a + d.totalCards, 0);
-  const totalDue = decks.reduce((a, d) => a + d.dueToday, 0);
+  // Guard: handle null, undefined, or empty decks gracefully
+  const safeDecks = decks ?? [];
 
-  const filteredDecks = decks.filter(d => {
+  if (safeDecks.length === 0) {
+    return (
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mb-4">
+            <Layers className="w-7 h-7 text-teal-500" />
+          </div>
+          <h3
+            className="text-sm text-zinc-900 mb-2"
+            style={{ fontFamily: 'Georgia, serif', fontWeight: 700 }}
+          >
+            Todav&iacute;a no ten&eacute;s mazos
+          </h3>
+          <p
+            className="text-xs text-zinc-500 max-w-xs"
+            style={{ fontWeight: 400 }}
+          >
+            Empez&aacute; a estudiar un tema para que se generen tus mazos de flashcards autom&aacute;ticamente.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalCards = safeDecks.reduce((a, d) => a + d.totalCards, 0);
+  const totalDue = safeDecks.reduce((a, d) => a + d.dueToday, 0);
+
+  const filteredDecks = safeDecks.filter(d => {
     if (deckFilter === 'due') return d.dueToday > 0;
     if (deckFilter === 'mastered') return d.masteredCards === d.totalCards;
     return true;
@@ -88,7 +115,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
               Tus Mazos
             </h3>
             <p className="text-xs text-zinc-500" style={{ fontWeight: 400 }}>
-              {decks.length} mazos {'\u00B7'} {totalCards} cards en total
+              {safeDecks.length} mazos {'\u00B7'} {totalCards} cards en total
             </p>
           </div>
         </div>
