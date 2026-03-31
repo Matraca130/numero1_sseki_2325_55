@@ -21,6 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import * as gamificationApi from '@/app/services/gamificationApi';
 import * as gamificationTypes from '@/app/types/gamification';
+import * as gamificationHelpers from '@/app/utils/gamification-helpers';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -55,7 +56,7 @@ describe('Welcome v4 module exports', () => {
   });
 
   it('getLevelInfo exists and returns expected shape', () => {
-    const info = gamificationTypes.getLevelInfo(500);
+    const info = gamificationHelpers.getLevelInfo(500);
     expect(info).toHaveProperty('level');
     expect(info).toHaveProperty('title');
     expect(info).toHaveProperty('progress');

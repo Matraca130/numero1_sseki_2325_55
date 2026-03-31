@@ -33,7 +33,8 @@ import {
   useXPHistory,
   useStudyQueue,
 } from '@/app/hooks/useGamification';
-import { getLevelInfo, XP_DAILY_CAP } from '@/app/types/gamification';
+import { getLevelInfo } from '@/app/utils/gamification-helpers';
+import { XP_DAILY_CAP } from '@/app/types/gamification';
 import { StreakPanel } from '@/app/components/student/gamification/StreakPanel';
 import { LeaderboardCard } from '@/app/components/student/gamification/LeaderboardCard';
 import { BadgeShowcase } from '@/app/components/student/gamification/BadgeShowcase';

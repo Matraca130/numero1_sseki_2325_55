@@ -16,11 +16,8 @@ import {
   ZapOff,
   Play,
 } from 'lucide-react';
-import {
-  KeywordCollection,
-  getKeywordsNeedingCards,
-  getKeywordStats,
-} from '@/app/types/keywords';
+import type { KeywordCollection } from '@/app/types/keywords';
+import { getKeywordsNeedingCards, getKeywordStats } from '@/app/utils/keyword-helpers';
 import {
   smartGenerateFlashcards,
   estimateFlashcardNeeds,

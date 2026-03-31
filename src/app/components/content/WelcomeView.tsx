@@ -26,7 +26,8 @@ import {
   useXPHistory,
   useStudyQueue,
 } from '@/app/hooks/useGamification';
-import { getLevelInfo, LEVEL_THRESHOLDS } from '@/app/types/gamification';
+import { getLevelInfo } from '@/app/utils/gamification-helpers';
+import { LEVEL_THRESHOLDS } from '@/app/types/gamification';
 import type { XPTransaction } from '@/app/types/gamification';
 import { headingStyle } from '@/app/design-system';
 import { CourseCard } from '@/app/components/shared/CourseCard';

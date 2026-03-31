@@ -15,7 +15,7 @@
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { getProfile, getStreakStatus, checkBadges } from '@/app/services/gamificationApi';
-import { getLevelInfo } from '@/app/types/gamification';
+import { getLevelInfo } from '@/app/utils/gamification-helpers';
 import type { StreakStatus, BadgeWithEarnedStatus } from '@/app/types/gamification';
 import type { BadgeWithStatus } from '@/app/services/gamificationApi';
 

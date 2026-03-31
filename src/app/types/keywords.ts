@@ -67,35 +67,3 @@ export const masteryConfig: Record<MasteryColor, {
   },
 };
 
-// ── Stub functions (previously in data/keywords.ts) ──────────
-
-export function findKeyword(_term: string): KeywordData | null {
-  return null;
-}
-
-export function getAllKeywordTerms(): string[] {
-  return [];
-}
-
-// ── Stub functions (previously in services/keywordManager.ts) ─
-
-export interface KeywordNeed {
-  keyword: string;
-  coverage: number;
-  needScore: number;
-}
-
-export function getKeywordsNeedingCards(
-  _keywords: KeywordCollection,
-  _minCoverage?: number,
-  _maxResults?: number,
-): KeywordNeed[] {
-  return [];
-}
-
-export function getKeywordStats(
-  keywords: KeywordCollection,
-): { total: number; covered: number; uncovered: number } {
-  const total = Object.keys(keywords).length;
-  return { total, covered: 0, uncovered: total };
-}
