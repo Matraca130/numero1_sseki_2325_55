@@ -15,9 +15,10 @@ const HIGHLIGHT_COLORS = [
   { key: 'green',  label: 'verde',    bg: 'bg-emerald-400', ring: 'ring-emerald-500' },
   { key: 'blue',   label: 'azul',     bg: 'bg-blue-400',   ring: 'ring-blue-500' },
   { key: 'pink',   label: 'rosa',     bg: 'bg-pink-400',   ring: 'ring-pink-500' },
+  { key: 'orange', label: 'naranja',  bg: 'bg-orange-400',  ring: 'ring-orange-500' },
 ] as const;
 
-export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink';
+export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'orange';
 
 interface HighlightToolbarProps {
   /** Absolute position (relative to the scroll container) */
