@@ -28,7 +28,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
-import { useStudyQueueData, invalidateStudyQueueCache } from '@/app/hooks/useStudyQueueData';
+import { useStudyQueueData, invalidateStudyQueueCache, STUDY_QUEUE_ALL_COURSES } from '@/app/hooks/useStudyQueueData';
 import { apiCall } from '@/app/lib/api';
 import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
 import {
@@ -173,13 +173,10 @@ function buildCourseFromTree(tree: any): Course {
     };
   }
 
-  const firstCourse = tree.courses[0];
-  return {
-    id: firstCourse.id,
-    name: firstCourse.name || 'Curso',
-    color: 'bg-[#2a8c7a]',
-    accentColor: 'text-[#2a8c7a]',
-    semesters: (firstCourse.semesters || []).map((sem: any) => ({
+  // Merge ALL courses into one virtual course for the flashcard hub.
+  // The hub displays everything together — no need to separate by course.
+  const allSemesters = tree.courses.flatMap((course: any) =>
+    (course.semesters || []).map((sem: any) => ({
       id: sem.id,
       title: sem.name || 'Semestre',
       sections: (sem.sections || []).map((sec: any) => ({
@@ -193,7 +190,25 @@ function buildCourseFromTree(tree: any): Course {
           flashcards: [], // will be loaded lazily
         })),
       })),
-    })),
+    }))
+  );
+
+  // Use first course with actual content for ID (study-queue compatibility).
+  // Skip empty courses so mastery data loads for the right course.
+  const firstCourseWithContent = tree.courses.find((c: any) =>
+    (c.semesters || []).some((s: any) =>
+      (s.sections || []).some((sec: any) =>
+        (sec.topics || []).length > 0
+      )
+    )
+  ) || tree.courses[0];
+
+  return {
+    id: firstCourseWithContent.id,
+    name: firstCourseWithContent.name || 'Curso',
+    color: 'bg-[#2a8c7a]',
+    accentColor: 'text-[#2a8c7a]',
+    semesters: allSemesters,
   };
 }
 
@@ -277,11 +292,27 @@ export function useFlashcardNavigation() {
   const kwMasteryPending = useRef(new Set<string>());
   const [kwProgressVersion, setKwProgressVersion] = useState(0);
 
-  // Build course from tree
+  // Build course from tree (merges all courses' semesters)
   const currentCourse = useMemo(() => buildCourseFromTree(tree), [tree]);
 
-  // ── Shared study-queue data (single fetch for the course) ──
-  const sqData = useStudyQueueData(currentCourse.id === 'empty' ? null : currentCourse.id);
+  // ── Shared study-queue data ──
+  // When multiple courses have content, fetch ALL study-queue data (no course filter)
+  // so mastery is displayed for every course's flashcards in the merged hub.
+  // NOTE: coursesWithContentCount is a primitive (number), so studyQueueCourseId
+  // won't recompute on unstable tree object reference changes.
+  const coursesWithContentCount = useMemo(() => {
+    if (!tree?.courses) return 0;
+    return tree.courses.filter((c: any) =>
+      (c.semesters || []).some((s: any) =>
+        (s.sections || []).some((sec: any) => (sec.topics || []).length > 0)
+      )
+    ).length;
+  }, [tree]);
+  const studyQueueCourseId = useMemo(() => {
+    if (currentCourse.id === 'empty') return null;
+    return coursesWithContentCount > 1 ? STUDY_QUEUE_ALL_COURSES : currentCourse.id;
+  }, [currentCourse.id, coursesWithContentCount]);
+  const sqData = useStudyQueueData(studyQueueCourseId);
 
   // Backward-compat: expose masteryMap as flashcard_id → StudyQueueItem
   const masteryMap = sqData.byFlashcardId;
@@ -424,6 +455,7 @@ export function useFlashcardNavigation() {
     setViewState('hub');
     setSelectedSection(null);
     setSelectedTopic(null);
+    enrichedTopicCache.current.clear();
   }, [currentCourse.id]);
 
   // ── Actions ──
@@ -576,5 +608,6 @@ export function useFlashcardNavigation() {
     reloadTopicCards,
     kwMasteryCache,
     kwProgressVersion,
+    sqData,
   };
 }
