@@ -21,6 +21,10 @@ export interface ChatSendResult {
   logId?: string;
   isError?: boolean;
   errorMessage?: string;
+  /** true when streaming succeeded and the message was progressively rendered */
+  streamCompleted?: boolean;
+  /** The placeholder msgId from onStreamStart (needs cleanup on fallback path) */
+  streamingPlaceholderId?: string;
 }
 
 /**
@@ -66,12 +70,12 @@ export async function sendChatMessage(
     onStreamChunk(streamingMsgId, accumulated);
     onStreamEnd();
 
-    return { msgId: streamingMsgId, content: accumulated };
+    return { msgId: streamingMsgId, content: accumulated, streamCompleted: true };
   } catch (streamErr) {
     if (rafId != null) cancelAnimationFrame(rafId);
     onStreamEnd();
 
-    // Fallback to non-streaming
+    // Fallback to non-streaming — streaming placeholder needs cleanup by caller
     try {
       const result: RagChatResponse = await chat(msg, { history, summaryId });
       const fallbackMsgId = `msg-${Date.now()}-${Math.random()}`;
@@ -80,6 +84,8 @@ export async function sendChatMessage(
         content: result.response,
         sources: result.sources,
         logId: result.log_id,
+        streamCompleted: false,
+        streamingPlaceholderId: streamingMsgId,
       };
     } catch (err: unknown) {
       return {
@@ -87,6 +93,8 @@ export async function sendChatMessage(
         content: `Erro: ${(err as Error).message}`,
         isError: true,
         errorMessage: (err as Error).message,
+        streamCompleted: false,
+        streamingPlaceholderId: streamingMsgId,
       };
     }
   }

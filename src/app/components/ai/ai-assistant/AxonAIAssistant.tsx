@@ -70,27 +70,34 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
 
     const history: ChatHistoryEntry[] = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
 
-    // Track whether streaming path handled the message (to avoid stale-closure duplicate)
-    let streamHandled = false;
-
     setIsStreaming(true);
     const result = await sendChatMessage(msg, {
       summaryId, history,
-      onStreamStart: (id) => { setMessages(prev => [...prev, { id, role: 'model', content: '', timestamp: new Date() }]); streamHandled = true; setIsLoading(false); },
+      onStreamStart: (id) => { setMessages(prev => [...prev, { id, role: 'model', content: '', timestamp: new Date() }]); setIsLoading(false); },
       onStreamChunk: (id, acc) => { setMessages(prev => prev.map(m => m.id === id ? { ...m, content: acc } : m)); },
       onStreamSources: (id, sources) => { setMessageSources(prev => new Map(prev).set(id, sources)); },
       onStreamDone: (id, logId) => { setMessageLogIds(prev => new Map(prev).set(id, logId)); },
       onStreamEnd: () => { setIsStreaming(false); },
     });
 
-    if (result.isError) {
+    if (result.streamCompleted) {
+      // Streaming succeeded — message was progressively rendered, nothing more to do
+    } else if (result.isError) {
+      // Remove orphaned streaming placeholder, then show error
+      if (result.streamingPlaceholderId) {
+        setMessages(prev => prev.filter(m => m.id !== result.streamingPlaceholderId));
+      }
       addMessage('system', result.content, true);
-    } else if (!streamHandled) {
-      // Fallback path — streaming didn't handle the message, add it now
+    } else {
+      // Fallback path — replace streaming placeholder with the real response
+      if (result.streamingPlaceholderId) {
+        setMessages(prev => prev.filter(m => m.id !== result.streamingPlaceholderId));
+      }
       setMessages(prev => [...prev, { id: result.msgId, role: 'model', content: result.content, timestamp: new Date() }]);
       if (result.sources?.length) setMessageSources(prev => new Map(prev).set(result.msgId, result.sources!));
       if (result.logId) setMessageLogIds(prev => new Map(prev).set(result.msgId, result.logId!));
     }
+    setIsStreaming(false); // Defensive: ensure isStreaming is always reset
     setIsLoading(false);
   }, [input, isLoading, messages, summaryId]);
 
