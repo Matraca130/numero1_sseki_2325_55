@@ -23,7 +23,6 @@
 // Types
 export type {
   ChatHistoryEntry,
-  ChatMessage,
   RagChatResponse,
   GeneratedFlashcard,
   GeneratedQuestion,

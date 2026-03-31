@@ -29,13 +29,6 @@ export function getAxonToday(): Date {
   return new Date(2026, 1, 7); // Feb 7, 2026
 }
 
-/**
- * @deprecated Use `getAxonToday()` instead. Retained for backward compatibility
- * with any code that imports the const directly.
- * WARNING: This is a FROZEN date. Do NOT mutate it.
- */
-export const AXON_TODAY = new Date(2026, 1, 7);
-
 // ── Method Time Defaults ─────────────────────────────────────
 // Single source of truth for per-method time estimates (minutes).
 // Used by: wizard, useStudyPlans (backend mapping), rescheduleEngine,

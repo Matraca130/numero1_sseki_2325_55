@@ -121,7 +121,6 @@ export type { DeltaColorLevel, BktState } from '@/app/lib/mastery-helpers';
 // 8. NAVIGATION
 // ─────────────────────────────────────────────
 export { navigation } from './navigation';
-export type { ViewType } from './navigation';
 
 // ─────────────────────────────────────────────
 // 9. SPACING & LAYOUT
