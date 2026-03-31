@@ -27,9 +27,11 @@ vi.mock('../useReviewBatch', () => ({
   }),
 }));
 
+const mockCloseStudySession = vi.fn().mockResolvedValue(undefined);
+
 vi.mock('@/app/services/studySessionApi', () => ({
   createStudySession: vi.fn().mockResolvedValue({ id: 'session-123' }),
-  closeStudySession: vi.fn().mockResolvedValue(undefined),
+  closeStudySession: (...args: any[]) => mockCloseStudySession(...args),
 }));
 
 vi.mock('@/app/services/keywordMasteryApi', () => ({
@@ -42,13 +44,22 @@ vi.mock('@/app/services/keywordMasteryApi', () => ({
   }),
 }));
 
+const mockGenerateAdaptiveBatch = vi.fn().mockResolvedValue({
+  cards: [],
+  errors: [],
+  stats: { requested: 0, generated: 0, failed: 0, uniqueKeywords: 0, avgPKnow: 0, totalTokens: 0, elapsedMs: 0 },
+});
+const mockMapBatchToFlashcards = vi.fn().mockReturnValue([]);
+
 vi.mock('@/app/services/adaptiveGenerationApi', () => ({
-  generateAdaptiveBatch: vi.fn().mockResolvedValue({ cards: [], weakKeywords: [] }),
-  mapBatchToFlashcards: vi.fn().mockReturnValue([]),
+  generateAdaptiveBatch: (...args: any[]) => mockGenerateAdaptiveBatch(...args),
+  mapBatchToFlashcards: (...args: any[]) => mockMapBatchToFlashcards(...args),
 }));
 
+const mockPostSessionAnalytics = vi.fn().mockResolvedValue(undefined);
+
 vi.mock('@/app/lib/sessionAnalytics', () => ({
-  postSessionAnalytics: vi.fn().mockResolvedValue(undefined),
+  postSessionAnalytics: (...args: any[]) => mockPostSessionAnalytics(...args),
 }));
 
 vi.mock('@/app/lib/session-stats', () => ({
@@ -234,5 +245,174 @@ describe('useAdaptiveSession', () => {
     });
 
     expect(result.current.isRevealed).toBe(true);
+  });
+
+  // ── finishSession: partial-summary → completed ──
+
+  it('finishSession transitions to completed and submits batch', async () => {
+    const { result } = renderHook(() => useAdaptiveSession(defaultOpts));
+
+    // Start session and complete one round → partial-summary
+    await act(async () => {
+      await result.current.startSession([makeCard('c1')]);
+    });
+    act(() => {
+      result.current.handleRate(4);
+    });
+    await waitFor(() => {
+      expect(result.current.phase).toBe('partial-summary');
+    });
+
+    // Now finish the session
+    await act(async () => {
+      await result.current.finishSession();
+    });
+
+    expect(result.current.phase).toBe('completed');
+    expect(mockSubmitBatch).toHaveBeenCalledWith('session-123');
+    expect(mockCloseStudySession).toHaveBeenCalledWith(
+      'session-123',
+      expect.objectContaining({
+        total_reviews: expect.any(Number),
+        correct_reviews: expect.any(Number),
+      }),
+    );
+    expect(mockPostSessionAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        totalReviews: expect.any(Number),
+        correctReviews: expect.any(Number),
+        durationSeconds: expect.any(Number),
+      }),
+    );
+  });
+
+  it('finishSession does nothing when already finishing', async () => {
+    const { result } = renderHook(() => useAdaptiveSession(defaultOpts));
+
+    // idle phase — finishSession should be a no-op
+    await act(async () => {
+      await result.current.finishSession();
+    });
+
+    expect(result.current.phase).toBe('idle');
+    expect(mockSubmitBatch).not.toHaveBeenCalled();
+  });
+
+  // ── generateMore: partial-summary → generating → reviewing(ai) ──
+
+  it('generateMore transitions through generating to reviewing with AI cards', async () => {
+    const aiCard = makeCard('ai-1', { source: 'ai' as any });
+    mockMapBatchToFlashcards.mockReturnValueOnce([aiCard]);
+    mockGenerateAdaptiveBatch.mockResolvedValueOnce({
+      cards: [{ id: 'ai-1', front: 'AI Q', back: 'AI A' }],
+      errors: [],
+      stats: { requested: 1, generated: 1, failed: 0, uniqueKeywords: 1, avgPKnow: 0.3, totalTokens: 100, elapsedMs: 500 },
+    });
+
+    const { result } = renderHook(() => useAdaptiveSession(defaultOpts));
+
+    // Complete first round → partial-summary
+    await act(async () => {
+      await result.current.startSession([makeCard('c1')]);
+    });
+    act(() => {
+      result.current.handleRate(4);
+    });
+    await waitFor(() => {
+      expect(result.current.phase).toBe('partial-summary');
+    });
+
+    // Generate more
+    await act(async () => {
+      await result.current.generateMore(3);
+    });
+
+    // Should now be reviewing AI cards
+    await waitFor(() => {
+      expect(result.current.phase).toBe('reviewing');
+    });
+    expect(result.current.currentCard?.id).toBe('ai-1');
+    expect(mockGenerateAdaptiveBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 3 }),
+    );
+  });
+
+  it('generateMore shows error and returns to partial-summary when no cards generated', async () => {
+    mockMapBatchToFlashcards.mockReturnValueOnce([]);
+    mockGenerateAdaptiveBatch.mockResolvedValueOnce({
+      cards: [],
+      errors: [],
+      stats: { requested: 3, generated: 0, failed: 3, uniqueKeywords: 0, avgPKnow: 0, totalTokens: 0, elapsedMs: 100 },
+    });
+
+    const { result } = renderHook(() => useAdaptiveSession(defaultOpts));
+
+    await act(async () => {
+      await result.current.startSession([makeCard('c1')]);
+    });
+    act(() => {
+      result.current.handleRate(4);
+    });
+    await waitFor(() => {
+      expect(result.current.phase).toBe('partial-summary');
+    });
+
+    await act(async () => {
+      await result.current.generateMore(3);
+    });
+
+    expect(result.current.phase).toBe('partial-summary');
+    expect(result.current.generationError).toBeTruthy();
+  });
+
+  it('generateMore does nothing when not in partial-summary phase', async () => {
+    const { result } = renderHook(() => useAdaptiveSession(defaultOpts));
+
+    // idle phase
+    await act(async () => {
+      await result.current.generateMore(3);
+    });
+
+    expect(result.current.phase).toBe('idle');
+    expect(mockGenerateAdaptiveBatch).not.toHaveBeenCalled();
+  });
+
+  // ── abortGeneration ──
+
+  it('abortGeneration returns to partial-summary and clears progress', async () => {
+    // Make generateAdaptiveBatch hang indefinitely
+    mockGenerateAdaptiveBatch.mockImplementationOnce(
+      () => new Promise(() => {}), // never resolves
+    );
+
+    const { result } = renderHook(() => useAdaptiveSession(defaultOpts));
+
+    await act(async () => {
+      await result.current.startSession([makeCard('c1')]);
+    });
+    act(() => {
+      result.current.handleRate(4);
+    });
+    await waitFor(() => {
+      expect(result.current.phase).toBe('partial-summary');
+    });
+
+    // Start generation (won't resolve)
+    act(() => {
+      result.current.generateMore(3);
+    });
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe('generating');
+    });
+
+    // Abort
+    act(() => {
+      result.current.abortGeneration();
+    });
+
+    expect(result.current.phase).toBe('partial-summary');
+    expect(result.current.generationProgress).toBeNull();
+    expect(result.current.generationError).toBeNull();
   });
 });

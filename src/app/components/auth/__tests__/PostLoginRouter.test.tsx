@@ -8,7 +8,7 @@
  * Run: npx vitest run src/app/components/auth/__tests__/PostLoginRouter.test.tsx
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { PostLoginRouter } from '../PostLoginRouter';
 import { createMockAuthValue, createMockInstitution } from '@/test/test-utils';
@@ -155,6 +155,41 @@ describe('PostLoginRouter', () => {
 
     await waitFor(() => {
       expect(logoutFn).toHaveBeenCalled();
+    });
+  });
+
+  // ── loggingOut + authError: logout is called and navigates to /login ──
+  // Commit 7ae7e85: logout must happen in useEffect (not during render).
+  // The component sets loggingOut=true → renders null → logout resolves → navigates to /login.
+  it('navigates to /login after logout completes on authError path', async () => {
+    let resolveLogout!: () => void;
+    const logoutPromise = new Promise<void>((r) => { resolveLogout = r; });
+    const logoutFn = vi.fn().mockReturnValue(logoutPromise);
+
+    mockAuth = createMockAuthValue({
+      institutions: [],
+      selectedInstitution: null,
+      authError: 'Failed to load institutions',
+    });
+    mockAuth.status = 'authenticated';
+    mockAuth.institutions = [];
+    mockAuth.memberships = [];
+    mockAuth.logout = logoutFn;
+
+    renderRouter();
+
+    // useEffect fires logout
+    await waitFor(() => {
+      expect(logoutFn).toHaveBeenCalled();
+    });
+
+    // Resolve the logout promise → navigate('/login')
+    await act(async () => {
+      resolveLogout();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('login-page')).toBeInTheDocument();
     });
   });
 

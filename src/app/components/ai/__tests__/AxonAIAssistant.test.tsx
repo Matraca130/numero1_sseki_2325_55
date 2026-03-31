@@ -60,10 +60,10 @@ describe('AxonAIAssistant', () => {
     expect(container).toBeTruthy();
   });
 
-  it('renders nothing (or minimal) when closed', () => {
+  it('renders no interactive elements when closed', () => {
     render(<AxonAIAssistant {...defaultProps} isOpen={false} />);
-    // When closed, the component should either not render or render with display:none
-    // We just verify it doesn't crash
+    // Component uses {isOpen && (...)} — nothing renders when closed
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 
   it('shows close button when open', () => {
@@ -75,14 +75,13 @@ describe('AxonAIAssistant', () => {
 
   it('calls onClose when close button is clicked', () => {
     render(<AxonAIAssistant {...defaultProps} />);
-    // Find a button that could be the close button
     const buttons = screen.getAllByRole('button');
-    // The first button in the header is typically close
-    if (buttons.length > 0) {
-      fireEvent.click(buttons[0]);
-      // onClose may or may not have been called depending on which button
-      // This is a smoke test — we just verify no crash
+    // Click each button until onClose fires (close button position may vary)
+    for (const btn of buttons) {
+      fireEvent.click(btn);
+      if (defaultProps.onClose.mock.calls.length > 0) break;
     }
+    expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
   it('renders mode selector buttons', () => {
