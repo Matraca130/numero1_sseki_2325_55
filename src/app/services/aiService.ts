@@ -18,7 +18,6 @@
 // ├── as-analytics.ts        — submitRagFeedback, getRagAnalytics, getEmbeddingCoverage
 // ├── as-ingest.ts           — ingestPdf, ingestEmbeddings, reChunk
 // ├── as-schedule.ts          — aiDistributeTasks, aiRecommendToday, aiReschedule, aiWeeklyInsight
-// └── as-legacy.ts           — deprecated aliases (listModels, generateFlashcards, generateQuiz)
 // ============================================================
 
 // Types
@@ -93,6 +92,3 @@ export type {
   AiScheduleMeta,
   AiScheduleResponse,
 } from './ai-service/as-schedule';
-
-// Legacy (deprecated)
-export { listModels, generateFlashcards, generateQuiz } from './ai-service/as-legacy';
