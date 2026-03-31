@@ -19,7 +19,7 @@ import {
   ChevronLeft, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
   StickyNote, BookOpen, Search as SearchIcon,
-  Timer, Settings, PanelLeftOpen,
+  Timer, Settings, PanelLeftOpen, Minimize2,
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
@@ -162,14 +162,23 @@ export function StudentSummaryReader({
     }).length;
   }, [searchQuery, sidebarBlocks]);
 
-  // ── Keyboard shortcuts (Ctrl+F, Escape) ──
+  // ── Keyboard shortcuts (Ctrl+F, Ctrl+Shift+F, Escape) ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        updateReadingSettings({ ...readingSettings, focusMode: !readingSettings.focusMode });
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setSearchOpen(true);
       }
       if (e.key === 'Escape') {
+        if (readingSettings.focusMode) {
+          updateReadingSettings({ ...readingSettings, focusMode: false });
+          return;
+        }
         setSearchOpen(false);
         setSearchQuery('');
         setShowSettings(false);
@@ -178,7 +187,7 @@ export function StudentSummaryReader({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [readingSettings, updateReadingSettings]);
 
   // ── Memoized pagination + keyword-to-page map ───────────
   const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
@@ -329,9 +338,23 @@ export function StudentSummaryReader({
         />
       )}
 
-      <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: 1100 }}>
-        {/* ── Sidebar outline (Wave 1) ── */}
-        {sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+      {/* ── Focus mode floating exit button ── */}
+      {readingSettings.focusMode && (
+        <button
+          onClick={() => updateReadingSettings({ ...readingSettings, focusMode: false })}
+          title="Salir de modo enfocado (Esc)"
+          aria-label="Salir de modo enfocado"
+          className="fixed top-4 right-4 z-[500] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 hover:bg-white/90 text-gray-500 hover:text-gray-700 border border-gray-200/50 shadow-sm backdrop-blur-sm transition-all"
+          style={{ fontSize: 'clamp(0.6875rem, 1.5vw, 0.75rem)' }}
+        >
+          <Minimize2 size={13} />
+          Salir
+        </button>
+      )}
+
+      <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
+        {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
+        {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
           <div className="flex flex-col gap-3">
             <SidebarOutline
               blocks={sidebarBlocks}
@@ -350,7 +373,7 @@ export function StudentSummaryReader({
           </div>
         )}
 
-        <div className="flex-1 min-w-0" style={{ maxWidth: 800 }}>
+        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
 
         {/* ── Immersive header toolbar (V1+V2+V6) ── */}
         <header
@@ -365,6 +388,11 @@ export function StudentSummaryReader({
             zIndex: 100,
             borderBottom: isDark ? '1px solid #2d2e34' : '1px solid transparent',
             borderRadius: '12px 12px 0 0',
+            opacity: readingSettings.focusMode ? 0 : 1,
+            pointerEvents: readingSettings.focusMode ? 'none' : 'auto',
+            maxHeight: readingSettings.focusMode ? 0 : 200,
+            overflow: 'hidden',
+            transition: 'opacity 200ms ease, max-height 200ms ease',
           }}
         >
           {/* Left side: back + brand */}

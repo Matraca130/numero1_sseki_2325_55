@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 
 // ── Types & defaults ────────────────────────────────
 
@@ -16,12 +16,14 @@ export interface ReadingSettings {
   fontSize: number;
   lineHeight: number;
   fontFamily: string;
+  focusMode: boolean;
 }
 
 export const DEFAULT_READING_SETTINGS: ReadingSettings = {
   fontSize: 16,
   lineHeight: 1.6,
   fontFamily: 'Inter, sans-serif',
+  focusMode: false,
 };
 
 // ── Persistence hook ────────────────────────────────
@@ -203,6 +205,38 @@ export default function ReadingSettingsPanel({
             );
           })}
         </div>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-100" />
+
+      {/* Focus mode */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {settings.focusMode ? (
+            <EyeOff size={14} className="text-teal-500" />
+          ) : (
+            <Eye size={14} className="text-gray-400" />
+          )}
+          <span className="text-[11px] text-gray-400 font-semibold uppercase">
+            Modo enfocado
+          </span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={settings.focusMode}
+          onClick={() => onChange({ ...settings, focusMode: !settings.focusMode })}
+          className={`relative w-9 h-5 rounded-full transition-colors ${
+            settings.focusMode ? 'bg-teal-500' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+              settings.focusMode ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
       </div>
     </div>
   );

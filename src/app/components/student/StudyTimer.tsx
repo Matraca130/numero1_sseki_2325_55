@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCw, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiCall } from '@/app/lib/api';
 
 // ── Constants ────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   const [seconds, setSeconds] = useState(STUDY_SECONDS);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   const totalSeconds = mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS;
   const progress = 1 - seconds / totalSeconds;
@@ -70,6 +72,15 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
     setRunning(false);
 
     if (mode === 'study') {
+      // Complete the study session via API (fire-and-forget)
+      if (sessionIdRef.current) {
+        const sid = sessionIdRef.current;
+        sessionIdRef.current = null;
+        apiCall(`/study-sessions/${sid}`, {
+          method: 'PUT',
+          body: JSON.stringify({ completed_at: new Date().toISOString() }),
+        }).catch(() => {});
+      }
       toast('Tempo de estudo finalizado!');
       setMode('break');
       setSeconds(BREAK_SECONDS);
@@ -83,8 +94,26 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   // ── Handlers ─────────────────────────────────────────
 
   const toggleRunning = useCallback(() => {
-    setRunning((r) => !r);
-  }, []);
+    setRunning((prev) => {
+      if (!prev && mode === 'study' && !sessionIdRef.current) {
+        // Starting a study session — fire-and-forget API call
+        apiCall<{ id: string }>('/study-sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            session_type: 'reading',
+            started_at: new Date().toISOString(),
+          }),
+        })
+          .then((res) => {
+            if (res?.id) sessionIdRef.current = res.id;
+          })
+          .catch(() => {
+            // fire-and-forget — don't block UX
+          });
+      }
+      return !prev;
+    });
+  }, [mode]);
 
   const handleReset = useCallback(() => {
     setRunning(false);
