@@ -19,28 +19,6 @@ export interface Topic {
   imageUrl?: string;
 }
 
-export interface Section {
-  id: string;
-  title: string;
-  imageUrl?: string;
-  topics: Topic[];
-}
-
-export interface Semester {
-  id: string;
-  title: string;
-  sections: Section[];
-}
-
-export interface Course {
-  id: string;
-  name: string;
-  color: string;
-  icon?: string;
-  accentColor?: string;
-  semesters: Semester[];
-}
-
 export interface Lesson {
   id: string;
   title: string;
@@ -50,45 +28,10 @@ export interface Lesson {
   topicId: string;
 }
 
-export interface Model3D {
-  id: string;
-  name: string;
-  url?: string;
-}
-
-// ── Empty data arrays ────────────────────────────────────────
-
-export const courses: Course[] = [];
-
 // ── Stub functions (lessonData) ──────────────────────────────
 
 export function getLessonsForTopic(_topicId: string): Lesson[] {
   return [];
-}
-
-// ── Stub functions (studyContent) ────────────────────────────
-
-export interface StudyContentChunk {
-  id: string;
-  type: 'text' | 'heading' | 'image' | 'list';
-  content: string;
-  keywords?: string[];
-}
-
-export interface StudyContent {
-  topicId: string;
-  title: string;
-  chunks: StudyContentChunk[];
-}
-
-export function getStudyContent(_topicId: string): StudyContent | null {
-  return null;
-}
-
-// ── Stub functions (sectionImages) ───────────────────────────
-
-export function getSectionImage(_sectionId: string): string {
-  return '';
 }
 
 // ── Keyword types + stubs ────────────────────────────────────
@@ -112,7 +55,6 @@ export interface KeywordData {
   category?: string;
   relatedTerms?: string[];
   aiQuestions?: AIQuestion[];
-  model3d?: Model3D;
   masteryLevel?: MasteryLevel;
 }
 
@@ -124,10 +66,3 @@ export const masteryConfig: Record<MasteryLevel, { label: string; color: string;
   mastered:  { label: 'Dominado',   color: 'green',  bgColor: 'bg-green-100',  textColor: 'text-green-600',  borderColor: 'border-green-200', icon: '●' },
 };
 
-export function findKeyword(_term: string): KeywordData | undefined {
-  return undefined;
-}
-
-export function getAllKeywordTerms(): string[] {
-  return [];
-}
