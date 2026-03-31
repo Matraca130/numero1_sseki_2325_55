@@ -9,7 +9,7 @@
 // to the API (one-time), then clears the localStorage key.
 // ============================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { queryKeys } from './queryKeys';
 import * as api from '@/app/services/studentSummariesApi';
@@ -26,7 +26,7 @@ export function useBlockBookmarks(summaryId: string) {
   });
 
   const bookmarkItems = data?.items ?? [];
-  const bookmarkBlockIds = bookmarkItems.map(b => b.block_id);
+  const bookmarkBlockIds = useMemo(() => bookmarkItems.map(b => b.block_id), [bookmarkItems]);
 
   // One-time migration from localStorage
   useEffect(() => {
@@ -51,7 +51,8 @@ export function useBlockBookmarks(summaryId: string) {
         localStorage.removeItem(storageKey);
       }
     } catch { /* ignore migration errors */ }
-  }, [data, summaryId, bookmarkBlockIds, queryClient]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- bookmarkBlockIds covered by `data`
+  }, [data, summaryId, queryClient]);
 
   // Create mutation (optimistic)
   const createMutation = useMutation({

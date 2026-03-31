@@ -13,9 +13,6 @@ import {
 } from 'lucide-react';
 import { HighlightToolbar } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
-import {
-  useCreateAnnotationMutation,
-} from '@/app/hooks/queries/useAnnotationMutations';
 import BookmarkButton from './BookmarkButton';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
@@ -49,6 +46,8 @@ interface ViewerBlockProps {
   onQuizTrigger?: () => void;
   /** Summary ID for text annotation persistence (highlighting) */
   summaryId?: string;
+  /** Shared annotation mutation (lifted from parent to avoid N instances) */
+  createAnnotationMutation?: { mutate: Function; isPending?: boolean };
 }
 
 // ── Callout icon map ──────────────────────────────────────
@@ -99,6 +98,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   onNotesToggle,
   onQuizTrigger,
   summaryId,
+  createAnnotationMutation,
 }: ViewerBlockProps) {
   const c = block.content || {};
 
@@ -112,8 +112,8 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
 
-  // Always call hooks unconditionally (React rules). Use empty string fallback.
-  const createMutation = useCreateAnnotationMutation(summaryId || '');
+  // Use shared mutation from parent (avoids N instances per block)
+  const createMutation = createAnnotationMutation;
 
   // Text-bearing block types that support highlighting
   const isHighlightable = ['prose', 'key_point', 'callout', 'list_detail', 'two_column', 'stages', 'text'].includes(block.type);
@@ -155,7 +155,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   }, [highlightEnabled]);
 
   const handleSelectColor = useCallback((color: HighlightColor) => {
-    if (!selectionRange || !summaryId) return;
+    if (!selectionRange || !summaryId || !createMutation) return;
     createMutation.mutate(
       {
         summary_id: summaryId,
@@ -174,7 +174,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   }, [selectionRange, createMutation, summaryId]);
 
   const handleAnnotate = useCallback(() => {
-    if (!selectionRange || !summaryId) return;
+    if (!selectionRange || !summaryId || !createMutation) return;
     createMutation.mutate(
       {
         summary_id: summaryId,

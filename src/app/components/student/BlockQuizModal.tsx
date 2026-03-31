@@ -174,7 +174,8 @@ export function BlockQuizModal({
       });
 
     return () => { cancelled = true; };
-  }, [isOpen, blockId, summaryId, fetchedFor]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchedFor is a guard, not a trigger
+  }, [isOpen, blockId, summaryId]);
 
   const question = useMemo(() => questions[currentIndex], [questions, currentIndex]);
   const isCorrect = selected === question?.correctIndex;
