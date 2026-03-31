@@ -8,10 +8,9 @@ import type { SmartTargetMeta } from '@/app/services/aiService';
 import type { Flashcard } from '@/app/types/content';
 import { parallelWithLimit } from '@/app/lib/concurrency';
 
-export const MAX_CONCURRENT_GENERATIONS = 3;
-export const RECOMMENDED_MAX_BATCH = 10;
+const MAX_CONCURRENT_GENERATIONS = 3;
 
-export type SmartMetadata = Required<SmartTargetMeta>;
+type SmartMetadata = Required<SmartTargetMeta>;
 
 export interface GenerationMeta {
   model: string;

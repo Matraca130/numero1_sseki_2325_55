@@ -1,0 +1,181 @@
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+import renderTextWithKeywords from '../renderTextWithKeywords';
+import type { SummaryKeyword } from '@/app/services/summariesApi';
+
+function makeKeyword(overrides: Partial<SummaryKeyword> = {}): SummaryKeyword {
+  return {
+    id: 'kw-1',
+    summary_id: 'sum-1',
+    name: 'aterosclerosis',
+    definition: 'Enfermedad inflamatoria crónica.',
+    priority: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+/** Helper to render the ReactNode returned by renderTextWithKeywords */
+function renderResult(text: string | undefined, keywords: SummaryKeyword[] = []) {
+  const result = renderTextWithKeywords(text, keywords);
+  return render(<div data-testid="wrapper">{result}</div>);
+}
+
+describe('renderTextWithKeywords', () => {
+  it('renders plain text when there are no keyword markers', () => {
+    renderResult('Texto sin keywords.');
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('Texto sin keywords.');
+  });
+
+  it('returns null for undefined input', () => {
+    const result = renderTextWithKeywords(undefined);
+    expect(result).toBeNull();
+  });
+
+  it('returns null for empty string input', () => {
+    const result = renderTextWithKeywords('');
+    expect(result).toBeNull();
+  });
+
+  it('parses {{keyword}} and renders KeywordChip when keyword exists', () => {
+    const kw = makeKeyword({ name: 'aterosclerosis' });
+    renderResult('La {{aterosclerosis}} es grave.', [kw]);
+    // The KeywordChip renders the keyword name as chip text
+    expect(screen.getByText('aterosclerosis')).toBeInTheDocument();
+    // Surrounding text is also present
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('La');
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('es grave.');
+  });
+
+  it('renders keyword name as plain span fallback when keyword not in list', () => {
+    renderResult('La {{desconocido}} es rara.', []);
+    // Falls back to plain span with keyword name
+    expect(screen.getByText('desconocido')).toBeInTheDocument();
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('La desconocido es rara.');
+  });
+
+  it('handles multiple keywords in one string', () => {
+    const kw1 = makeKeyword({ id: 'k1', name: 'endotelio' });
+    const kw2 = makeKeyword({ id: 'k2', name: 'macrofagos' });
+    renderResult(
+      'El {{endotelio}} y los {{macrofagos}} participan.',
+      [kw1, kw2],
+    );
+    expect(screen.getByText('endotelio')).toBeInTheDocument();
+    expect(screen.getByText('macrofagos')).toBeInTheDocument();
+  });
+
+  it('handles adjacent keywords {{one}}{{two}}', () => {
+    const kw1 = makeKeyword({ id: 'k1', name: 'alfa' });
+    const kw2 = makeKeyword({ id: 'k2', name: 'beta' });
+    renderResult('{{alfa}}{{beta}}', [kw1, kw2]);
+    expect(screen.getByText('alfa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+  });
+
+  it('is case-insensitive when matching keyword names', () => {
+    const kw = makeKeyword({ name: 'Endotelio' });
+    renderResult('El {{endotelio}} regula el tono.', [kw]);
+    // Should match despite case difference
+    expect(screen.getByText('Endotelio')).toBeInTheDocument();
+  });
+
+  it('skips inactive keywords (is_active = false)', () => {
+    const kw = makeKeyword({ name: 'inactivo', is_active: false });
+    renderResult('El {{inactivo}} no aparece.', [kw]);
+    // Falls back to plain span since keyword is inactive
+    const span = screen.getByText('inactivo');
+    // Should NOT be a KeywordChip (no role="button")
+    expect(span.closest('[role="button"]')).toBeNull();
+  });
+
+  it('preserves paragraph breaks (double newlines)', () => {
+    const { container } = renderResult('Párrafo uno.\n\nPárrafo dos.');
+    const brs = container.querySelectorAll('br');
+    expect(brs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // --- Inline markdown tests ---
+
+  it('renders **bold** as <strong>', () => {
+    const { container } = renderResult('Texto **importante** aquí.');
+    const strong = container.querySelector('strong');
+    expect(strong).not.toBeNull();
+    expect(strong!.textContent).toBe('importante');
+  });
+
+  it('renders *italic* as <em>', () => {
+    const { container } = renderResult('Texto *cursiva* aquí.');
+    const em = container.querySelector('em');
+    expect(em).not.toBeNull();
+    expect(em!.textContent).toBe('cursiva');
+  });
+
+  it('renders `code` as <code>', () => {
+    const { container } = renderResult('Usa `console.log` para depurar.');
+    const code = container.querySelector('code');
+    expect(code).not.toBeNull();
+    expect(code!.textContent).toBe('console.log');
+  });
+
+  it('renders --- as <hr>', () => {
+    const { container } = renderResult('Antes\n\n---\n\nDespués');
+    const hr = container.querySelector('hr');
+    expect(hr).not.toBeNull();
+  });
+
+  it('renders [Imagen: foto del corazón] as styled placeholder', () => {
+    const { container } = renderResult('Ver [Imagen: foto del corazón] aquí.');
+    const span = container.querySelector('span.text-xs.italic');
+    expect(span).not.toBeNull();
+    expect(span!.textContent).toBe('[Imagen: foto del corazón]');
+  });
+
+  it('does NOT parse markdown inside keyword markers', () => {
+    // {{**keyword**}} should look for a keyword named "**keyword**", not parse bold
+    renderResult('La {{**keyword**}} es especial.', []);
+    // Falls back to plain span with the raw name including asterisks
+    expect(screen.getByText('**keyword**')).toBeInTheDocument();
+  });
+
+  it('renders mixed bold + keyword chip + text correctly', () => {
+    const kw = makeKeyword({ name: 'aterosclerosis' });
+    const { container } = renderResult(
+      'La **aterosclerosis** es {{aterosclerosis}} crónica.',
+      [kw],
+    );
+    const strong = container.querySelector('strong');
+    expect(strong).not.toBeNull();
+    expect(strong!.textContent).toBe('aterosclerosis');
+    // Both bold text and keyword chip contain "aterosclerosis"
+    const matches = screen.getAllByText('aterosclerosis');
+    expect(matches.length).toBe(2);
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('crónica.');
+  });
+
+  it('code protects content from bold parsing', () => {
+    const { container } = renderResult('Esto es `**not bold**` texto.');
+    const code = container.querySelector('code');
+    expect(code).not.toBeNull();
+    expect(code!.textContent).toBe('**not bold**');
+    // No <strong> should exist
+    expect(container.querySelector('strong')).toBeNull();
+  });
+
+  it('renders bold and italic in same text', () => {
+    const { container } = renderResult('**bold** and *italic* together.');
+    expect(container.querySelector('strong')!.textContent).toBe('bold');
+    expect(container.querySelector('em')!.textContent).toBe('italic');
+  });
+
+  it('handles ***text*** gracefully (bold wrapping italic)', () => {
+    const { container } = renderResult('Esto es ***texto*** especial.');
+    // Should render as <strong><em>texto</em></strong> or at least not crash
+    const strong = container.querySelector('strong');
+    expect(strong).not.toBeNull();
+    expect(container.textContent).toContain('texto');
+  });
+});

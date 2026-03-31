@@ -15,12 +15,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Topic, Flashcard } from '@/app/types/content';
 import clsx from 'clsx';
-import { ChevronLeft, ChevronRight, BookOpen, Play, GraduationCap, ChevronDown, Layers, Sparkles, Brain } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, FileText, Play, GraduationCap, ChevronDown, Layers, Sparkles, Brain, Plus } from 'lucide-react';
+import { EmptyState } from '@/app/components/shared/EmptyState';
 import { getMasteryStats, filterCardsByMastery, type MasteryFilter } from '@/app/hooks/flashcard-types';
 import type { KeywordProgress } from '@/app/hooks/useFlashcardNavigation';
 import { FlashcardMiniCard } from './FlashcardMiniCard';
 import { CARD_GRID_CLASSES, GROUP_COLORS } from './constants';
 import { getMasteryColorFromPct } from './mastery-colors';
+import { StudentCreateModal } from './StudentCreateModal';
 
 const FILTER_PILLS = [
   { key: 'all' as const, label: 'Todos', color: 'text-gray-700 bg-gray-100' },
@@ -29,7 +31,7 @@ const FILTER_PILLS = [
   { key: 'mastered' as const, label: 'Dominados', color: 'text-emerald-600 bg-emerald-50' },
 ] as const;
 
-export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStart, onBack, onStudyTopic, onStartAdaptive, keywordProgress }: {
+export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStart, onBack, onStudyTopic, onStartAdaptive, keywordProgress, summaryId, keywords, onCardCreated }: {
   topic: Topic;
   sectionIdx: number;
   sectionName: string;
@@ -40,12 +42,16 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
   onStudyTopic: () => void;
   onStartAdaptive?: () => void;
   keywordProgress?: KeywordProgress;
+  summaryId?: string;
+  keywords?: Array<{ id: string; name: string }>;
+  onCardCreated?: () => void;
 }) {
   const cards = topic.flashcards || [];
   const stats = getMasteryStats(cards);
   const deckColor = getMasteryColorFromPct(stats.pct / 100);
   const [filterMastery, setFilterMastery] = useState<MasteryFilter>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const filteredCards = useMemo(
     () => filterCardsByMastery(cards, filterMastery),
@@ -100,6 +106,11 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {summaryId && (
+                <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-1.5 px-3 py-2 bg-[#F0F2F5] hover:bg-gray-100 rounded-xl text-xs font-medium text-gray-600 transition-colors border border-gray-200">
+                  <Plus size={14} /> Crear
+                </button>
+              )}
               <button onClick={onStudyTopic} className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-[#F0F2F5] hover:bg-gray-100 rounded-xl text-xs font-medium text-gray-600 transition-colors border border-gray-200">
                 <GraduationCap size={14} /> Ver T\u00F3pico
               </button>
@@ -164,10 +175,11 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 sm:py-5 bg-surface-dashboard">
         <div className="h-full">
           {filteredCards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <BookOpen size={48} className="mb-3 text-gray-300" />
-              <p className="text-sm font-medium">{cards.length === 0 ? 'No hay flashcards en este mazo' : 'No hay cards en esta categor\u00EDa'}</p>
-            </div>
+            <EmptyState
+              icon={cards.length === 0 ? FileText : BookOpen}
+              title={cards.length === 0 ? 'Deck vacío' : 'No hay tarjetas en esta categoría'}
+              description={cards.length === 0 ? 'No hay tarjetas en este deck' : 'Prueba con otro filtro de dominio'}
+            />
           ) : cardGroups.length <= 1 ? (
             <div className={CARD_GRID_CLASSES}>{filteredCards.map((card, idx) => <FlashcardMiniCard key={card.id} card={card} idx={idx} onClick={() => onStart([card])} />)}</div>
           ) : (
@@ -219,6 +231,15 @@ export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStar
             <Play size={16} fill="currentColor" /> Estudiar{filterMastery !== 'all' ? ` (${filteredCards.length})` : ` (${cards.length})`}
           </button>
         </div>
+      )}
+      {summaryId && (
+        <StudentCreateModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={() => onCardCreated?.()}
+          summaryId={summaryId}
+          keywords={keywords || []}
+        />
       )}
     </motion.div>
   );

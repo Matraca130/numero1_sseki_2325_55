@@ -12,6 +12,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Check } from 'lucide-react';
+import { useUndoRedo } from '@/app/hooks/useUndoRedo';
 import { ConfirmDialog } from '@/app/components/shared/ConfirmDialog';
 import { Button } from '@/app/components/ui/button';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
@@ -23,9 +24,12 @@ import {
 } from '@/app/hooks/queries/useBlockEditorMutations';
 import type { SummaryBlock, EduBlockType } from '@/app/services/summariesApi';
 import { apiCall } from '@/app/lib/api';
+import { ViewerBlock } from '@/app/components/student/ViewerBlock';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import BlockEditorToolbar from './BlockEditorToolbar';
 import AddBlockButton from './AddBlockButton';
-import EditableBlock from './EditableBlock';
+import BlockCard from './BlockCard';
+import BlockFormRouter from './BlockFormRouter';
 import BlockTypeSelector from './BlockTypeSelector';
 
 // ── Props ─────────────────────────────────────────────────
@@ -73,6 +77,20 @@ const BlockEditor = React.memo(function BlockEditor({
   // ── Data fetching ─────────────────────────────────────────
   const { data: blocks = [], isLoading } = useSummaryBlocksQuery(summaryId);
 
+  // ── Undo/Redo for block snapshots ──────────────────────
+  const {
+    state: undoState,
+    set: pushSnapshot,
+    undo: undoSnapshot,
+    redo: redoSnapshot,
+    canUndo,
+    canRedo,
+    reset: resetSnapshot,
+  } = useUndoRedo<Record<string, Record<string, unknown>> | null>(null);
+
+  // Local overrides applied when undo/redo restores a snapshot
+  const [localBlockOverrides, setLocalBlockOverrides] = useState<Record<string, Record<string, unknown>>>({});
+
   // ── Mutations ────────────────────────────────────────────
   const createMutation = useCreateBlockMutation(summaryId);
   const updateMutation = useUpdateBlockMutation(summaryId);
@@ -86,33 +104,102 @@ const BlockEditor = React.memo(function BlockEditor({
   const [showTopSelector, setShowTopSelector] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
 
-  // ── Flush registry: each EditableBlock registers its flush fn here ─
-  const blockFlushRef = useRef<Map<string, () => void>>(new Map());
+  // ── Ref for current blocks (avoids unstable deps in callbacks) ──
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+
+  // ── Apply undo/redo state back to blocks ──────────────
+  useEffect(() => {
+    if (undoState === null) return;
+    const overrides: Record<string, Record<string, unknown>> = {};
+    blocks.forEach((block) => {
+      const restored = undoState[block.id];
+      if (restored) {
+        overrides[block.id] = restored;
+      }
+    });
+    // Cancel all pending debounce timers to prevent stale overwrites
+    Object.keys(debounceTimers.current).forEach(id => {
+      clearTimeout(debounceTimers.current[id]);
+      delete debounceTimers.current[id];
+      delete pendingContent.current[id];
+    });
+    setLocalBlockOverrides(overrides);
+    // Persist each changed block to server
+    blocks.forEach((block) => {
+      const restored = undoState[block.id];
+      if (restored && JSON.stringify(block.content) !== JSON.stringify(restored)) {
+        updateMutation.mutate({ blockId: block.id, data: { content: restored } });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoState]);
+
+  // Clear local overrides when server data refreshes (after mutation settles)
+  useEffect(() => {
+    if (Object.keys(localBlockOverrides).length === 0) return;
+    // Check if all overrides are now reflected in server data
+    const allSettled = Object.entries(localBlockOverrides).every(([id, content]) => {
+      const block = blocks.find((b) => b.id === id);
+      return block && JSON.stringify(block.content) === JSON.stringify(content);
+    });
+    if (allSettled) setLocalBlockOverrides({});
+  }, [blocks, localBlockOverrides]);
+
+  // ── Debounce state for handleFieldChange ─────────────────
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingContent = useRef<Record<string, Record<string, unknown>>>({});
 
   // ── Clear local state when summaryId changes ─────────────
   useEffect(() => {
     setEditingBlockId(null);
     setIsPreview(false);
     setDeletingBlockId(null);
-  }, [summaryId]);
+    resetSnapshot(null);
+  }, [summaryId, resetSnapshot]);
+
+  // ── Keyboard shortcuts for undo/redo ──────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoSnapshot();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redoSnapshot();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undoSnapshot, redoSnapshot]);
 
   // ── Drag state ───────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  // ── Merge server blocks with local undo overrides ──────
+  const mergedBlocks = useMemo(() => {
+    if (Object.keys(localBlockOverrides).length === 0) return blocks;
+    return blocks.map((b) =>
+      localBlockOverrides[b.id] ? { ...b, content: { ...b.content, ...localBlockOverrides[b.id] } } : b,
+    );
+  }, [blocks, localBlockOverrides]);
+
   // ── Sorted blocks (use server order, apply local drag preview) ──
   const sortedBlocks = useMemo(() => {
-    if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) return blocks;
-    const arr = [...blocks];
+    if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) return mergedBlocks;
+    const arr = [...mergedBlocks];
     const [moved] = arr.splice(dragIndex, 1);
     arr.splice(dragOverIndex, 0, moved);
     return arr;
-  }, [blocks, dragIndex, dragOverIndex]);
+  }, [mergedBlocks, dragIndex, dragOverIndex]);
 
   // ── Handlers ─────────────────────────────────────────────
 
   const handleInsert = useCallback((type: EduBlockType, afterIndex: number) => {
-    const newOrderIndex = afterIndex < 0 ? 0 : (blocks[afterIndex]?.order_index ?? 0) + 1;
+    const currentBlocks = blocksRef.current;
+    const newOrderIndex = afterIndex < 0 ? 0 : (currentBlocks[afterIndex]?.order_index ?? 0) + 1;
     createMutation.mutate({
       summary_id: summaryId,
       type,
@@ -124,35 +211,92 @@ const BlockEditor = React.memo(function BlockEditor({
         setIsPreview(false);
       },
     });
-  }, [blocks, summaryId, createMutation]);
-
-  // ── Stable ID-based callbacks for EditableBlock ─────────
-  const handleBlockSave = useCallback((blockId: string, content: Record<string, unknown>) => {
-    updateMutation.mutate({ blockId, data: { content } });
-  }, [updateMutation]);
+  }, [summaryId, createMutation]);
 
   const handleToggleEdit = useCallback((blockId: string) => {
     setEditingBlockId((prev) => (prev === blockId ? null : blockId));
   }, []);
 
-  const handleSetDeleting = useCallback((blockId: string) => {
-    setDeletingBlockId(blockId);
-  }, []);
+  const handleFieldChange = useCallback((blockId: string, field: string, value: unknown) => {
+    // Push undo snapshot before first edit on this block (debounced to avoid spam)
+    if (!pendingContent.current[blockId]) {
+      pushSnapshot(Object.fromEntries(blocksRef.current.map((b) => [b.id, { ...b.content }])));
+    }
+
+    // Immediate local override for responsive UI
+    setLocalBlockOverrides((prev) => ({
+      ...prev,
+      [blockId]: { ...(prev[blockId] ?? {}), [field]: value },
+    }));
+    pendingContent.current[blockId] = {
+      ...(pendingContent.current[blockId] ?? {}),
+      [field]: value,
+    };
+
+    // Debounce 2s — merge with full block content before saving
+    if (debounceTimers.current[blockId]) {
+      clearTimeout(debounceTimers.current[blockId]);
+    }
+    debounceTimers.current[blockId] = setTimeout(() => {
+      const partial = pendingContent.current[blockId];
+      if (partial) {
+        const block = blocksRef.current.find((b) => b.id === blockId);
+        const content = { ...(block?.content ?? {}), ...partial };
+        updateMutation.mutate({ blockId, data: { content } }, {
+          onSuccess: () => {
+            delete pendingContent.current[blockId];
+          },
+        });
+      }
+    }, 2000);
+  }, [updateMutation, pushSnapshot]);
 
   // ── Flush all pending saves immediately (async — await before publish) ─
   const flushPending = useCallback(async () => {
-    for (const flushFn of blockFlushRef.current.values()) {
-      flushFn();
+    // Clear all debounce timers
+    for (const timer of Object.values(debounceTimers.current)) {
+      clearTimeout(timer);
     }
-    // Give mutations a tick to fire
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }, []);
+    debounceTimers.current = {};
+
+    // Save all pending content immediately (merge with full block content)
+    const flushedIds = Object.keys(pendingContent.current);
+    const promises: Promise<unknown>[] = [];
+    for (const [blockId, partial] of Object.entries(pendingContent.current)) {
+      const block = blocksRef.current.find((b) => b.id === blockId);
+      const content = { ...(block?.content ?? {}), ...partial };
+      promises.push(
+        new Promise((resolve, reject) => {
+          updateMutation.mutate({ blockId, data: { content } }, {
+            onSuccess: resolve,
+            onError: reject,
+          });
+        }),
+      );
+    }
+    if (promises.length > 0) await Promise.all(promises);
+    pendingContent.current = {};
+    setLocalBlockOverrides(prev => {
+      const next = { ...prev };
+      flushedIds.forEach(id => delete next[id]);
+      return next;
+    });
+  }, [updateMutation]);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deletingBlockId) return;
-    // Flush then discard any pending saves for the block being deleted
-    const flushFn = blockFlushRef.current.get(deletingBlockId);
-    if (flushFn) blockFlushRef.current.delete(deletingBlockId);
+    // Clear any pending debounced save for this block
+    if (debounceTimers.current[deletingBlockId]) {
+      clearTimeout(debounceTimers.current[deletingBlockId]);
+      delete debounceTimers.current[deletingBlockId];
+    }
+    delete pendingContent.current[deletingBlockId];
+    setLocalBlockOverrides((prev) => {
+      if (!prev[deletingBlockId]) return prev;
+      const next = { ...prev };
+      delete next[deletingBlockId];
+      return next;
+    });
     if (editingBlockId === deletingBlockId) setEditingBlockId(null);
     deleteMutation.mutate(deletingBlockId, {
       onSuccess: () => setDeletingBlockId(null),
@@ -174,21 +318,23 @@ const BlockEditor = React.memo(function BlockEditor({
 
   const handleMoveUp = useCallback((index: number) => {
     if (index <= 0) return;
-    const items = blocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? blocks[index - 1].order_index : i === index - 1 ? blocks[index].order_index : b.order_index,
-    }));
+    const currentBlocks = blocksRef.current;
+    const arr = [...currentBlocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index - 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
-  }, [blocks, reorderMutation]);
+  }, [reorderMutation]);
 
   const handleMoveDown = useCallback((index: number) => {
-    if (index >= blocks.length - 1) return;
-    const items = blocks.map((b, i) => ({
-      id: b.id,
-      order_index: i === index ? blocks[index + 1].order_index : i === index + 1 ? blocks[index].order_index : b.order_index,
-    }));
+    const currentBlocks = blocksRef.current;
+    if (index >= currentBlocks.length - 1) return;
+    const arr = [...currentBlocks];
+    const [moved] = arr.splice(index, 1);
+    arr.splice(index + 1, 0, moved);
+    const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
     reorderMutation.mutate(items);
-  }, [blocks, reorderMutation]);
+  }, [reorderMutation]);
 
   // ── Drag-and-drop handlers ───────────────────────────────
 
@@ -204,7 +350,7 @@ const BlockEditor = React.memo(function BlockEditor({
   const handleDragEnd = useCallback(() => {
     if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
       // Build new order
-      const arr = [...blocks];
+      const arr = [...blocksRef.current];
       const [moved] = arr.splice(dragIndex, 1);
       arr.splice(dragOverIndex, 0, moved);
       const items = arr.map((b, i) => ({ id: b.id, order_index: i }));
@@ -212,14 +358,14 @@ const BlockEditor = React.memo(function BlockEditor({
     }
     setDragIndex(null);
     setDragOverIndex(null);
-  }, [dragIndex, dragOverIndex, blocks, reorderMutation]);
+  }, [dragIndex, dragOverIndex, reorderMutation]);
 
   // ── Publish ──────────────────────────────────────────────
 
   const handlePublish = useCallback(async () => {
-    await flushPending();
     setPublishing(true);
     try {
+      await flushPending();
       await apiCall(`/summaries/${summaryId}/publish`, { method: 'POST' });
       toast.success('Resumen publicado');
       onStatusChange?.('published');
@@ -264,7 +410,7 @@ const BlockEditor = React.memo(function BlockEditor({
       <BlockEditorToolbar
         onAddBlock={() => setShowTopSelector(true)}
         isPreview={isPreview}
-        onTogglePreview={() => { if (!isPreview) flushPending(); setIsPreview(prev => !prev); }}
+        onTogglePreview={async () => { if (!isPreview) await flushPending(); setIsPreview(prev => !prev); }}
         onPublish={handlePublish}
         status={summaryStatus}
         blockCount={blocks.length}
@@ -272,6 +418,10 @@ const BlockEditor = React.memo(function BlockEditor({
         onVideosClick={onVideosClick}
         keywordsCount={keywordsCount}
         videosCount={videosCount}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undoSnapshot}
+        onRedo={redoSnapshot}
       />
 
       {/* Block type selector (from toolbar "Agregar bloque") */}
@@ -330,23 +480,40 @@ const BlockEditor = React.memo(function BlockEditor({
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`transition-opacity duration-150 ${dragIndex === index ? 'opacity-50' : ''}`}
+                className={dragIndex === index ? 'opacity-50' : ''}
               >
-                <EditableBlock
-                  block={block}
-                  index={index}
-                  isEditing={editingBlockId === block.id}
-                  isPreview={isPreview}
-                  isFirst={index === 0}
-                  isLast={index === sortedBlocks.length - 1}
-                  onToggleEdit={handleToggleEdit}
-                  onDelete={handleSetDeleting}
-                  onDuplicate={handleDuplicate}
-                  onMoveUp={handleMoveUp}
-                  onMoveDown={handleMoveDown}
-                  onSave={handleBlockSave}
-                  onFlushRef={blockFlushRef}
-                />
+                {isPreview ? (
+                  // Preview mode — use student renderer
+                  <div className="py-2">
+                    <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                      <ViewerBlock block={block} isMobile={false} />
+                    </ErrorBoundary>
+                  </div>
+                ) : (
+                  // Edit mode — use BlockCard with form/preview toggle
+                  <BlockCard
+                    block={block}
+                    isEditing={editingBlockId === block.id}
+                    onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
+                    onDelete={() => setDeletingBlockId(block.id)}
+                    onDuplicate={() => handleDuplicate(block)}
+                    onMoveUp={() => handleMoveUp(index)}
+                    onMoveDown={() => handleMoveDown(index)}
+                    isFirst={index === 0}
+                    isLast={index === sortedBlocks.length - 1}
+                  >
+                    {editingBlockId === block.id ? (
+                      <BlockFormRouter
+                        block={block}
+                        onChange={(field, value) => handleFieldChange(block.id, field, value)}
+                      />
+                    ) : (
+                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
+                        <ViewerBlock block={block} isMobile={false} />
+                      </ErrorBoundary>
+                    )}
+                  </BlockCard>
+                )}
               </div>
 
               {/* Add block between */}

@@ -27,6 +27,10 @@ import { motion } from 'motion/react';
 import type { TreeSection } from '@/app/services/contentTreeApi';
 import { useLastStudiedTopic } from '@/app/hooks/useLastStudiedTopic';
 import { useStudyHubProgress } from '@/app/hooks/queries/useStudyHubProgress';
+import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
+import { SkeletonChart } from '@/app/components/shared/SkeletonChart';
+import { EmptyState } from '@/app/components/shared/EmptyState';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 // ── Extracted sub-components ─────────────────────────────────
 import { StudyHubHero } from './StudyHubHero';
@@ -214,17 +218,12 @@ export function StudyHubView() {
             <div className="h-4 w-48 bg-white/10 rounded animate-pulse" />
           </div>
         </section>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <motion.div
-              className="w-8 h-8 rounded-full border-4 border-t-transparent"
-              style={{ borderColor: `${axon.tealAccent} transparent ${axon.tealAccent} ${axon.tealAccent}` }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            />
-            <p className="text-sm" style={{ color: tint.subtitleText }}>Cargando plan de estudios...</p>
+        <main className="max-w-[210mm] mx-auto px-6 py-10">
+          <SkeletonCard variant="content" count={6} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" />
+          <div className="mt-10">
+            <SkeletonChart type="bar" height="h-64" />
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -264,15 +263,12 @@ export function StudyHubView() {
             <h1 className="text-xl text-white" style={{ fontWeight: 700 }}>Plan de Estudios</h1>
           </div>
         </section>
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{ backgroundColor: tint.tealBg }}
-          >
-            <BookOpen className="w-7 h-7" style={{ color: tint.tealBorder }} />
-          </div>
-          <p className="text-sm" style={{ color: tint.subtitleText, fontWeight: 500 }}>El profesor aun no ha creado resumenes</p>
-          <p className="text-xs" style={{ color: tint.neutralText }}>Vuelve mas tarde para ver los resumenes del curso</p>
+        <div className="flex-1">
+          <EmptyState
+            icon={BookOpen}
+            title="Sin contenido de estudio"
+            description="Selecciona un curso con contenido disponible para empezar a estudiar"
+          />
         </div>
       </div>
     );
@@ -312,29 +308,31 @@ export function StudyHubView() {
         dailyGoalMinutes={profile?.preferences?.dailyGoalMinutes ?? 120}
       />
 
-      <main className="max-w-[210mm] mx-auto px-6 py-10">
-        <StudyHubSectionCards
-          semesterGroups={semesterGroups}
-          allSections={allSections}
-          sectionProgressMap={sectionProgressMap}
-          topicStatusMap={topicStatusMap}
-          totalSections={totalSections}
-          totalTopics={totalTopics}
-          selectTopic={selectTopic}
-          navigate={navigate}
-        />
-
-        {/* Spacer — section cards are primary; chart is secondary context */}
-        <div className="mt-10">
-          <WeeklyActivityChart
-            weeklyActivity={weeklyActivity}
-            weeklyTotalMin={weeklyTotalMin}
-            maxBarValue={maxBarValue}
-            goalMinutes={goalMinutes}
-            todayMinutes={todayMinutes}
+      <ErrorBoundary variant="section" retry={() => window.location.reload()}>
+        <main className="max-w-[210mm] mx-auto px-6 py-10">
+          <StudyHubSectionCards
+            semesterGroups={semesterGroups}
+            allSections={allSections}
+            sectionProgressMap={sectionProgressMap}
+            topicStatusMap={topicStatusMap}
+            totalSections={totalSections}
+            totalTopics={totalTopics}
+            selectTopic={selectTopic}
+            navigate={navigate}
           />
-        </div>
-      </main>
+
+          {/* Spacer — section cards are primary; chart is secondary context */}
+          <div className="mt-10">
+            <WeeklyActivityChart
+              weeklyActivity={weeklyActivity}
+              weeklyTotalMin={weeklyTotalMin}
+              maxBarValue={maxBarValue}
+              goalMinutes={goalMinutes}
+              todayMinutes={todayMinutes}
+            />
+          </div>
+        </main>
+      </ErrorBoundary>
     </div>
   );
 }

@@ -70,6 +70,16 @@ export function MuxVideoPlayer({
   const completedRef = useRef(false);
   const trackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playerRef = useRef<any>(null);
+  const playStartTimeRef = useRef<number | null>(null);
+
+  // ── Flush accumulated play time ─────────────────────────
+  const flushPlayTime = useCallback(() => {
+    if (playStartTimeRef.current !== null) {
+      const delta = (Date.now() - playStartTimeRef.current) / 1000;
+      watchTimeRef.current += delta;
+      playStartTimeRef.current = null;
+    }
+  }, []);
 
   // ── Fetch playback token ────────────────────────────────
   const fetchToken = useCallback(async () => {
@@ -97,8 +107,18 @@ export function MuxVideoPlayer({
 
   // ── Track view helper ───────────────────────────────────
   const sendTracking = useCallback(async () => {
+    // Flush any in-progress play segment before reading watchTimeRef
+    flushPlayTime();
+
     if (!durationRef.current || durationRef.current <= 0) return;
     if (watchTimeRef.current === 0) return;
+
+    // If the player is still playing, restart the timer for the next interval
+    const el = playerRef.current as HTMLMediaElement | undefined;
+    if (el && !el.paused) {
+      playStartTimeRef.current = Date.now();
+    }
+
     const completionPct = Math.min(
       100,
       Math.round((lastPositionRef.current / durationRef.current) * 100)
@@ -126,7 +146,7 @@ export function MuxVideoPlayer({
     } catch {
       // Silently fail tracking — not critical
     }
-  }, [videoId, institutionId, sessionId, onComplete]);
+  }, [videoId, institutionId, sessionId, onComplete, flushPlayTime]);
 
   // ── Tracking interval (every 30s) ──────────────────────
   useEffect(() => {
@@ -157,8 +177,17 @@ export function MuxVideoPlayer({
   }, []);
 
   const handlePlay = useCallback(() => {
-    // Track cumulative watch time via intervals
+    // Mark the start of a play segment for watch-time accumulation
+    playStartTimeRef.current = Date.now();
   }, []);
+
+  const handlePause = useCallback(() => {
+    flushPlayTime();
+  }, [flushPlayTime]);
+
+  const handleEnded = useCallback(() => {
+    flushPlayTime();
+  }, [flushPlayTime]);
 
   const handleLoadedMetadata = useCallback((e: any) => {
     const el = e?.target as HTMLMediaElement | undefined;
@@ -214,6 +243,8 @@ export function MuxVideoPlayer({
           title={title || undefined}
           onTimeUpdate={handleTimeUpdate}
           onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={handleEnded}
           onLoadedMetadata={handleLoadedMetadata}
           style={{ width: '100%', aspectRatio: '16/9', borderRadius: '0.75rem' }}
         />

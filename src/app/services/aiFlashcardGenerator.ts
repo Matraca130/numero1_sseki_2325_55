@@ -9,10 +9,9 @@
 // ============================================================
 
 import { aiGenerateFlashcards } from '@/app/services/studentApi';
-import type { KeywordState } from '@/app/types/student';
+import type { KeywordCollection } from '@/app/types/keywords';
 
-/** Record<normalizedKeyword, KeywordState> */
-export type KeywordCollection = Record<string, KeywordState>;
+export type { KeywordCollection } from '@/app/types/keywords';
 
 export interface GeneratedFlashcard {
   question: string;

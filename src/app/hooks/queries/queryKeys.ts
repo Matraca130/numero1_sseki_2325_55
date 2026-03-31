@@ -45,6 +45,12 @@ export const queryKeys = {
   summaryBlocks: (summaryId: string) =>
     ['summary-blocks', summaryId] as const,
 
+  blockBookmarks: (summaryId: string) =>
+    ['block-bookmarks', summaryId] as const,
+
+  blockNotes: (summaryId: string) =>
+    ['block-notes', summaryId] as const,
+
   summaryVideos: (summaryId: string) =>
     ['summary-videos', summaryId] as const,
 

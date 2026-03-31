@@ -33,7 +33,8 @@
  *   ├── navigation.ts        ← Vistas, sidebar items, shortcuts
  *   ├── layout.ts            ← Dimensiones, spacing, grids
  *   ├── animation.ts         ← Presets de Motion
- *   └── rules.ts             ← Reglas obligatorias y prohibidas
+ *   ├── rules.ts             ← Reglas obligatorias y prohibidas
+ *   └── severity.ts          ← Tokens de severidad (mild/moderate/critical)
  */
 
 // ─────────────────────────────────────────────
@@ -43,7 +44,7 @@ export { brand } from './brand';
 export type { LogoSize, LogoTheme } from './brand';
 
 // ─────────────────────────────────────────────
-// 2. COLORS
+// 2. COLORS (includes mastery 5-level Delta scale)
 // ─────────────────────────────────────────────
 export { colors } from './colors';
 
@@ -81,6 +82,42 @@ export type { ButtonSize, IconSize } from './components';
 export { sectionColors } from './section-colors';
 
 // ─────────────────────────────────────────────
+// 7b. MASTERY CONVENIENCE RE-EXPORTS
+// ─────────────────────────────────────────────
+// The canonical 5-level Delta Mastery Scale lives in colors.mastery.
+// These re-exports give consumers a shorter import path:
+//
+//   import { MASTERY_LIGHT, MASTERY_DARK, getMasteryStyle } from '@/app/design-system';
+//
+// Note: The 6-tier flashcard rating scale in
+//   components/content/flashcard/mastery-colors.ts
+// is a DIFFERENT concept and is intentionally NOT re-exported here.
+export {
+  MASTERY_LIGHT,
+  MASTERY_DARK,
+  getMasteryStyle,
+  getMasteryInfo,
+} from '@/app/components/student/MasteryBar';
+export type { MasteryColorSet as MasteryBarColorSet } from '@/app/components/student/MasteryBar';
+
+// ─────────────────────────────────────────────
+// 7c. MASTERY HELPERS RE-EXPORTS (Delta color scale logic)
+// ─────────────────────────────────────────────
+// The mastery-helpers module computes delta-based mastery colors
+// using the canonical 5-level scale from colors.mastery.
+// Re-exported here so consumers can import from '@/app/design-system'.
+export {
+  getDeltaColor,
+  getDeltaColorClasses,
+  getDeltaColorLabel,
+  getDominationThreshold,
+  getKeywordDeltaColor,
+  getKeywordDeltaColorSafe,
+  getKeywordMastery,
+} from '@/app/lib/mastery-helpers';
+export type { DeltaColorLevel, BktState } from '@/app/lib/mastery-helpers';
+
+// ─────────────────────────────────────────────
 // 8. NAVIGATION
 // ─────────────────────────────────────────────
 export { navigation } from './navigation';
@@ -100,3 +137,9 @@ export { animation } from './animation';
 // 11. DESIGN RULES
 // ─────────────────────────────────────────────
 export { designRules } from './rules';
+
+// ─────────────────────────────────────────────
+// 12. SEVERITY TOKENS
+// ─────────────────────────────────────────────
+export { SEVERITY } from './severity';
+export type { SeverityLevel } from './severity';

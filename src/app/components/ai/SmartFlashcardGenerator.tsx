@@ -35,7 +35,8 @@ interface SmartFlashcardGeneratorProps {
   keywords: KeywordCollection;
   onFlashcardsGenerated?: (
     flashcards: GeneratedFlashcard[],
-    updatedKeywords: KeywordCollection
+    updatedKeywords: KeywordCollection,
+    options?: { generateWithImage?: boolean }
   ) => void;
   onClose?: () => void;
 }
@@ -53,6 +54,7 @@ export function SmartFlashcardGenerator({
   const [generated, setGenerated] = useState<GeneratedFlashcard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
+  const [generateWithImage, setGenerateWithImage] = useState(false);
 
   const estimate = estimateFlashcardNeeds(keywords);
   const keywordStats = getKeywordStats(keywords);
@@ -76,7 +78,9 @@ export function SmartFlashcardGenerator({
 
       setGenerated(result.flashcards);
       setStats(result.stats);
-      onFlashcardsGenerated?.(result.flashcards, result.updatedCollection);
+      onFlashcardsGenerated?.(result.flashcards, result.updatedCollection, {
+        generateWithImage,
+      });
     } catch (err: any) {
       console.error('[SmartFlashcardGenerator] Error:', err);
       setError(err.message || 'Erro ao gerar flashcards');
@@ -248,6 +252,17 @@ export function SmartFlashcardGenerator({
                   </div>
                 </div>
               </div>
+
+              {/* Image generation toggle */}
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={generateWithImage}
+                  onChange={(e) => setGenerateWithImage(e.target.checked)}
+                  className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                />
+                <span className="text-gray-700">Generar con imagen</span>
+              </label>
 
               {/* Action button */}
               <div className="flex gap-3">

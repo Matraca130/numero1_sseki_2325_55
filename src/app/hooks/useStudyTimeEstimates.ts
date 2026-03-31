@@ -51,7 +51,7 @@ export interface MethodTimeEstimate {
   confidence: EstimateConfidence;
   /** Number of real sessions this estimate is based on */
   sampleSize: number;
-  /** Human-readable source description (pt-BR) */
+  /** Human-readable source description (es-AR) */
   sourceLabel: string;
 }
 
@@ -273,7 +273,7 @@ function buildMethodEstimates(input: EstimationInput): {
         estimatedMinutes: Math.round(typeData.avg),
         confidence: 'high',
         sampleSize: typeData.sampleSize,
-        sourceLabel: `${typeData.sampleSize} sessões reais`,
+        sourceLabel: `${typeData.sampleSize} sesiones reales`,
       };
     } else if (typeData && typeData.sampleSize >= MEDIUM_CONFIDENCE_THRESHOLD) {
       // MEDIUM: 2-4 real sessions of matching type
@@ -282,7 +282,7 @@ function buildMethodEstimates(input: EstimationInput): {
         estimatedMinutes: Math.round(typeData.avg),
         confidence: 'medium',
         sampleSize: typeData.sampleSize,
-        sourceLabel: `${typeData.sampleSize} sessões`,
+        sourceLabel: `${typeData.sampleSize} sesiones`,
       };
     } else if (typeData && typeData.sampleSize === 1) {
       // LOW: Only 1 session — blend with static default (70% real, 30% static)
@@ -292,7 +292,7 @@ function buildMethodEstimates(input: EstimationInput): {
         estimatedMinutes: Math.round(blended),
         confidence: 'low',
         sampleSize: 1,
-        sourceLabel: '1 sessão + estimativa',
+        sourceLabel: '1 sesión + estimativa',
       };
     } else if (globalAvg !== null) {
       // LOW: No specific sessions but global average available

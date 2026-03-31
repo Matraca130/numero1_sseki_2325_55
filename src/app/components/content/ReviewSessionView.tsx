@@ -59,15 +59,15 @@ const MOCK_STATS = {
 const MOCK_DECKS: Deck[] = [
   {
     id: '1',
-    name: 'Fisiologia II: Integração',
-    category: 'Fisiologia - 142 Cards',
+    name: 'Fisiología II: Integración',
+    category: 'Fisiología - 142 Cards',
     totalCards: 142,
     cardsDue: 42,
     dueUrgency: 'critical',
     easeFactor: 180,
     easeColor: 'text-orange-500',
     easeBarPct: 45,
-    nextReview: 'Hoje',
+    nextReview: 'Hoy',
     nextReviewSub: 'Atrasado 2h',
     nextReviewColor: 'text-red-600',
     icon: <Calculator size={18} />,
@@ -75,23 +75,23 @@ const MOCK_DECKS: Deck[] = [
   },
   {
     id: '2',
-    name: 'Anatomia Patológica',
-    category: 'Patologia - 89 Cards',
+    name: 'Anatomía Patológica',
+    category: 'Patología - 89 Cards',
     totalCards: 89,
     cardsDue: 24,
     dueUrgency: 'warning',
     easeFactor: 210,
     easeColor: 'text-amber-600',
     easeBarPct: 65,
-    nextReview: 'Hoje',
-    nextReviewSub: 'Em 4h',
+    nextReview: 'Hoy',
+    nextReviewSub: 'En 4h',
     nextReviewColor: 'text-gray-800',
     icon: <Palette size={18} />,
     iconBg: 'bg-pink-500',
   },
   {
     id: '3',
-    name: 'Bioquímica Orgânica',
+    name: 'Bioquímica Orgánica',
     category: 'Bioquímica - 312 Cards',
     totalCards: 312,
     cardsDue: 12,
@@ -99,7 +99,7 @@ const MOCK_DECKS: Deck[] = [
     easeFactor: 250,
     easeColor: 'text-emerald-600',
     easeBarPct: 85,
-    nextReview: 'Amanhã',
+    nextReview: 'Mañana',
     nextReviewSub: '09:00',
     nextReviewColor: 'text-gray-800',
     icon: <FlaskConical size={18} />,
@@ -107,32 +107,32 @@ const MOCK_DECKS: Deck[] = [
   },
   {
     id: '4',
-    name: 'Terminologia Médica',
-    category: 'Geral - 560 Cards',
+    name: 'Terminología Médica',
+    category: 'General - 560 Cards',
     totalCards: 560,
     cardsDue: 8,
     dueUrgency: 'none',
     easeFactor: 280,
     easeColor: 'text-emerald-600',
     easeBarPct: 95,
-    nextReview: '17 Fev',
-    nextReviewSub: 'Manhã',
+    nextReview: '17 Feb',
+    nextReviewSub: 'Mañana',
     nextReviewColor: 'text-gray-800',
     icon: <Languages size={18} />,
     iconBg: 'bg-gray-500',
   },
   {
     id: '5',
-    name: 'Farmacologia Geral',
-    category: 'Farmacologia - 210 Cards',
+    name: 'Farmacología General',
+    category: 'Farmacología - 210 Cards',
     totalCards: 210,
     cardsDue: 0,
     dueUrgency: 'none',
     easeFactor: 300,
     easeColor: 'text-blue-600',
     easeBarPct: 100,
-    nextReview: '19 Fev',
-    nextReviewSub: 'Revisão',
+    nextReview: '19 Feb',
+    nextReviewSub: 'Revisión',
     nextReviewColor: 'text-gray-800',
     icon: <Scale size={18} />,
     iconBg: 'bg-teal-500',
@@ -206,28 +206,28 @@ function buildDecksFromFsrs(
       .filter(d => d > now)
       .sort((a, b) => a.getTime() - b.getTime());
     const nextDate = futureReviews[0];
-    let nextReview = 'Sem revisão';
+    let nextReview = 'Sin revisión';
     let nextReviewSub = '';
     let nextReviewColor = 'text-gray-800';
 
     if (cardsDue > 0) {
-      nextReview = 'Hoje';
+      nextReview = 'Hoy';
       const overdue = due.sort((a, b) =>
         new Date(a.next_review).getTime() - new Date(b.next_review).getTime()
       );
       const oldestDue = overdue[0];
       if (oldestDue) {
         const hoursOverdue = Math.round((now.getTime() - new Date(oldestDue.next_review).getTime()) / 3600000);
-        nextReviewSub = hoursOverdue > 0 ? `Atrasado ${hoursOverdue}h` : 'Agora';
+        nextReviewSub = hoursOverdue > 0 ? `Atrasado ${hoursOverdue}h` : 'Ahora';
         nextReviewColor = hoursOverdue > 2 ? 'text-red-600' : 'text-gray-800';
       }
     } else if (nextDate) {
       const diffDays = Math.round((nextDate.getTime() - now.getTime()) / 86400000);
-      if (diffDays === 0) { nextReview = 'Hoje'; nextReviewSub = nextDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
-      else if (diffDays === 1) { nextReview = 'Amanhã'; nextReviewSub = nextDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+      if (diffDays === 0) { nextReview = 'Hoy'; nextReviewSub = nextDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }); }
+      else if (diffDays === 1) { nextReview = 'Mañana'; nextReviewSub = nextDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }); }
       else {
-        nextReview = nextDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-        nextReviewSub = 'Revisão';
+        nextReview = nextDate.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+        nextReviewSub = 'Revisión';
       }
     }
 
@@ -317,15 +317,15 @@ export function ReviewSessionView() {
       {/* Header */}
       <div className="shrink-0">
         <AxonPageHeader
-          title="Centro de Revisão"
-          subtitle="Gerencie seus decks de repetição espaçada e otimize a retenção"
+          title="Centro de Revisión"
+          subtitle="Gestioná tus decks de repetición espaciada y optimizá la retención"
           onBack={() => navigateTo('schedule')}
           actionButton={
             <button
               onClick={() => navigateTo('review-session')}
               className="flex items-center gap-2 px-4 lg:px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-full text-sm shadow-sm transition-all active:scale-95 min-h-[44px]"
             >
-              <PlayCircle size={16} /> <span className="hidden sm:inline">Revisão Rápida</span><span className="sm:hidden">Revisar</span>
+              <PlayCircle size={16} /> <span className="hidden sm:inline">Revisión Rápida</span><span className="sm:hidden">Revisar</span>
             </button>
           }
         />
@@ -346,7 +346,7 @@ export function ReviewSessionView() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <KPICard
               icon={<Layers size={20} />}
-              label="Carga de Hoje"
+              label="Carga de Hoy"
               value={effectiveStats.todayLoad}
               trendSlot={<span className="text-xs text-teal-700" style={{ fontWeight: 600 }}>{effectiveStats.todayDone}/{effectiveStats.todayLoad}</span>}
             >
@@ -358,9 +358,9 @@ export function ReviewSessionView() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <KPICard
               icon={<Brain size={20} />}
-              label="Taxa de Retenção"
+              label="Tasa de Retención"
               value={`${effectiveStats.avgRetention}%`}
-              trendSlot={<TrendBadge label="Ótimo" up icon={<CheckCircle2 size={12} />} />}
+              trendSlot={<TrendBadge label="Óptimo" up icon={<CheckCircle2 size={12} />} />}
             />
           </motion.div>
         </div>
@@ -374,7 +374,7 @@ export function ReviewSessionView() {
         >
           {/* Table header bar */}
           <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-base lg:text-lg text-gray-900" style={{ ...headingStyle, fontWeight: 600 }}>Decks & Matérias Ativos</h3>
+            <h3 className="text-base lg:text-lg text-gray-900" style={{ ...headingStyle, fontWeight: 600 }}>Decks & Materias Activos</h3>
             <div className="flex gap-2">
               <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <Filter size={18} />
@@ -390,11 +390,11 @@ export function ReviewSessionView() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-[#F0F2F5]/80 sticky top-0 z-10">
                 <tr>
-                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono">Matéria</th>
-                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-center">Cards Pendentes</th>
-                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-center">Fator de Facilidade</th>
-                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-right">Próxima Revisão</th>
-                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-right">Ação</th>
+                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono">Materia</th>
+                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-center">Cards Pendientes</th>
+                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-center">Factor de Facilidad</th>
+                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-right">Próxima Revisión</th>
+                  <th className="py-3 px-6 text-xs text-gray-400 uppercase tracking-wider font-mono text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -419,7 +419,7 @@ export function ReviewSessionView() {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className={clsx("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs", DUE_BADGE_STYLES[deck.dueUrgency])} style={{ fontWeight: 500 }}>
-                        {deck.cardsDue} Pendentes
+                        {deck.cardsDue} Pendientes
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
@@ -447,7 +447,7 @@ export function ReviewSessionView() {
                         </button>
                       ) : (
                         <button className="text-gray-400 hover:text-teal-600 text-sm transition-colors" style={{ fontWeight: 500 }}>
-                          Detalhes
+                          Detalles
                         </button>
                       )}
                     </td>
@@ -485,7 +485,7 @@ export function ReviewSessionView() {
                 <div className="flex items-center justify-between gap-4 mb-3">
                   {/* Ease factor */}
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="text-[10px] text-gray-400 uppercase">Facilidade</span>
+                    <span className="text-[10px] text-gray-400 uppercase">Facilidad</span>
                     <span className={clsx("text-xs font-mono", deck.easeColor)} style={{ fontWeight: 600 }}>{deck.easeFactor}%</span>
                     <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
                       <div
@@ -509,14 +509,14 @@ export function ReviewSessionView() {
                     className="w-full py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-sm rounded-lg transition-colors min-h-[44px] flex items-center justify-center gap-2"
                     style={{ fontWeight: 600 }}
                   >
-                    <PlayCircle size={14} /> Revisar Agora
+                    <PlayCircle size={14} /> Revisar Ahora
                   </button>
                 ) : (
                   <button
                     className="w-full py-2.5 bg-[#F0F2F5] hover:bg-gray-100 text-gray-500 text-sm rounded-lg transition-colors min-h-[44px]"
                     style={{ fontWeight: 500 }}
                   >
-                    Ver Detalhes
+                    Ver Detalles
                   </button>
                 )}
               </motion.div>
@@ -526,7 +526,7 @@ export function ReviewSessionView() {
           {/* Table footer — RESPONSIVE */}
           <div className="px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-xs text-gray-400">
-              <span className="hidden sm:inline">Mostrando </span>{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, decks.length)} de {decks.length}
+              <span className="hidden sm:inline">Mostrando</span>{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, decks.length)} de {decks.length}
             </p>
             <div className="flex gap-1">
               <button

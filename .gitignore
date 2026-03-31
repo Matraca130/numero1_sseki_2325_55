@@ -6,6 +6,12 @@ dist/
 package-lock.json
 .vercel
 .claude/worktrees/
-.claude/agent-memory/
+.claude/settings.local.json
 .claude/ralph-loop.local.md
 coverage/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example

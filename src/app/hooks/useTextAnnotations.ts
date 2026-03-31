@@ -1,103 +1,44 @@
 // ============================================================
-// Axon — useTextAnnotations Hook
+// Axon — useTextAnnotations (block-scoped annotation management)
 //
-// Manages text annotations (highlights + notes) on summaries.
-// CRUD operations with optimistic updates.
+// Wraps the existing useAnnotationMutations (which handles API calls)
+// with block-specific filtering and offset management.
 //
-// Backend: text-annotations CRUD via textAnnotationsApi.ts
-// UI Consumer: TextAnnotationsPanel.tsx
+// Flow: student selects text -> calculates offsets within block
+//       -> POST annotation -> re-render highlights
 // ============================================================
-
-import { useState, useCallback, useRef } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from './queries/queryKeys';
+import * as studentApi from '@/app/services/studentSummariesApi';
 import {
-  getAnnotationsBySummary,
-  createAnnotation,
-  updateAnnotation,
-  deleteAnnotation,
-  type TextAnnotation,
-  type CreateAnnotationInput,
-  type UpdateAnnotationInput,
-} from '@/app/services/textAnnotationsApi';
+  useCreateAnnotationMutation,
+  useDeleteAnnotationMutation,
+} from './queries/useAnnotationMutations';
+import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 
-export type AnnotationsPhase = 'idle' | 'loading' | 'ready' | 'error';
+export function useTextAnnotations(summaryId: string, _blockId?: string) {
+  // Fetch all annotations for this summary
+  const { data } = useQuery({
+    queryKey: queryKeys.summaryAnnotations(summaryId),
+    queryFn: () => studentApi.getTextAnnotations(summaryId),
+    staleTime: 30_000,
+    enabled: !!summaryId,
+  });
 
-export function useTextAnnotations() {
-  const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
-  const [phase, setPhase] = useState<AnnotationsPhase>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const activeSummaryRef = useRef<string | null>(null);
+  // Filter to active (non-deleted) annotations
+  const allAnnotations: TextAnnotation[] = useMemo(() => {
+    const items = data?.items ?? [];
+    return items.filter(a => !a.deleted_at);
+  }, [data]);
 
-  // ── Load annotations for a summary ──────────────────────
-  const loadAnnotations = useCallback(async (summaryId: string) => {
-    activeSummaryRef.current = summaryId;
-    setPhase('loading');
-    setError(null);
-    try {
-      const result = await getAnnotationsBySummary(summaryId);
-      if (activeSummaryRef.current !== summaryId) return;
-      setAnnotations(result);
-      setPhase('ready');
-    } catch (err: any) {
-      if (activeSummaryRef.current !== summaryId) return;
-      setError(err.message || 'Error al cargar anotaciones');
-      setPhase('error');
-    }
-  }, []);
-
-  // ── Create annotation ───────────────────────────────
-  const addAnnotation = useCallback(async (input: CreateAnnotationInput): Promise<TextAnnotation | null> => {
-    try {
-      const newAnnotation = await createAnnotation(input);
-      setAnnotations(prev => [newAnnotation, ...prev]);
-      return newAnnotation;
-    } catch (err: any) {
-      console.error('[useTextAnnotations] Create error:', err);
-      return null;
-    }
-  }, []);
-
-  // ── Update annotation ───────────────────────────────
-  const editAnnotation = useCallback(async (id: string, input: UpdateAnnotationInput): Promise<boolean> => {
-    try {
-      const updated = await updateAnnotation(id, input);
-      setAnnotations(prev => prev.map(a => a.id === id ? updated : a));
-      return true;
-    } catch (err: any) {
-      console.error('[useTextAnnotations] Update error:', err);
-      return false;
-    }
-  }, []);
-
-  // ── Delete annotation ───────────────────────────────
-  const removeAnnotation = useCallback(async (id: string): Promise<boolean> => {
-    const previous = annotations;
-    setAnnotations(prev => prev.filter(a => a.id !== id));
-    try {
-      await deleteAnnotation(id);
-      return true;
-    } catch (err: any) {
-      console.error('[useTextAnnotations] Delete error:', err);
-      setAnnotations(previous);
-      return false;
-    }
-  }, [annotations]);
-
-  // ── Reset ───────────────────────────────────────────────
-  const reset = useCallback(() => {
-    setAnnotations([]);
-    setPhase('idle');
-    setError(null);
-    activeSummaryRef.current = null;
-  }, []);
+  const createMutation = useCreateAnnotationMutation(summaryId);
+  const deleteMutation = useDeleteAnnotationMutation(summaryId);
 
   return {
-    annotations,
-    phase,
-    error,
-    loadAnnotations,
-    addAnnotation,
-    editAnnotation,
-    removeAnnotation,
-    reset,
+    annotations: allAnnotations,
+    createAnnotation: createMutation.mutate,
+    deleteAnnotation: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
   };
 }

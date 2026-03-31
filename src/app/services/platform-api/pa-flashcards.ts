@@ -4,6 +4,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { extractItems } from '@/app/lib/api-helpers';
 import type { UUID, ISODate } from '@/app/types/platform';
 
 const request = apiCall;
@@ -28,7 +29,8 @@ export interface FlashcardCard {
 }
 
 export async function getFlashcardsBySummary(summaryId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/flashcards?summary_id=${summaryId}`);
+  const result = await request(`/flashcards?summary_id=${summaryId}`);
+  return extractItems<FlashcardCard>(result);
 }
 
 /** Fetch all flashcards, optionally filtered by subtopic_id or status.
@@ -45,13 +47,13 @@ export async function getFlashcards(options?: {
   if (options?.limit) params.set('limit', String(options.limit));
   if (options?.offset) params.set('offset', String(options.offset));
   const qs = params.toString() ? `?${params}` : '';
-  const result = await request<{ items: FlashcardCard[] } | FlashcardCard[]>(`/flashcards${qs}`);
-  if (Array.isArray(result)) return result;
-  return (result as any)?.items || [];
+  const result = await request(`/flashcards${qs}`);
+  return extractItems<FlashcardCard>(result);
 }
 
 export async function getFlashcardsByKeyword(keywordId: UUID): Promise<FlashcardCard[]> {
-  return request<FlashcardCard[]>(`/flashcards?keyword_id=${keywordId}`);
+  const result = await request(`/flashcards?keyword_id=${keywordId}`);
+  return extractItems<FlashcardCard>(result);
 }
 
 export async function getFlashcard(cardId: UUID): Promise<FlashcardCard> {

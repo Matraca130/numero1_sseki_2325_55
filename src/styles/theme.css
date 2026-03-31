@@ -17,9 +17,37 @@
   --color-axon-teal-50: #e8f5f1;
   --color-axon-teal-100: #d1f0e7;
   --color-axon-page-bg: #F0F2F5;
+
+  /* Axon — Short aliases for block components (TD 1.1) */
+  --color-axon-dark: #1B3B36;
+  --color-axon-accent: #2a8c7a;
+  --color-axon-mint: #3cc9a8;
+
+  /* Calendar tokens (moved from @layer base :root) */
+  --cal-exam: #C0392B; --cal-recov: #E67E22;
+  --cal-review: #2980B9; --cal-study: #27AE60;
+  --cal-quiz: #F39C12; --cal-reading: #16A085;
+  --heat-0: transparent;
+  --heat-1: #F0FDFA;
+  --heat-2: #99F6E4;
+  --heat-3: #2DD4BF;
+  --heat-4: #0F766E;
+  --streak-active: #22C55E; --streak-freeze: #F59E0B;
 }
 
 @layer base {
+  .dark {
+    --cal-exam: #F87171; --cal-recov: #FB923C;
+    --cal-review: #60A5FA; --cal-study: #4ADE80;
+    --cal-quiz: #FBBF24; --cal-reading: #2DD4BF;
+    --heat-0: transparent;
+    --heat-1: #042F2E;
+    --heat-2: #115E59;
+    --heat-3: #0D9488;
+    --heat-4: #14B8A6;
+    --streak-active: #4ADE80; --streak-freeze: #FBBF24;
+  }
+
   body {
     @apply antialiased text-gray-900;
     background-color: #F0F2F5;
