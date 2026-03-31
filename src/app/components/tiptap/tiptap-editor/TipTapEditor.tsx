@@ -82,7 +82,7 @@ export function TipTapEditor({
           const file = event.dataTransfer.files[0];
           if (file.type.startsWith('image/')) {
             event.preventDefault();
-            handleDrop(file, view.state.view?.editor || editor!, userId);
+            handleDrop(file, editor!, userId);
             return true;
           }
         }

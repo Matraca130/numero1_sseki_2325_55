@@ -108,9 +108,15 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
   }, [user?.id, authStatus, fetchAll]);
 
   // ── Reschedule helper ─────────────────────────────────────
+  // NOTE: Receives pre-applied tasksSnapshot directly from toggleTaskComplete
+  // (which already contains the optimistic status flip) instead of reading
+  // from the derived `plans` state, which requires a React re-render cycle
+  // to propagate. This eliminates the race condition where `plans` might
+  // be stale at the time of invocation.
 
   const runReschedule = useCallback(async (
     planId: string,
+    /** Pre-applied tasks snapshot (already contains the status flip) */
     tasksSnapshot: StudyPlanTaskRecord[],
   ): Promise<void> => {
     if (!opts?.topicMastery || !opts?.getTimeEstimate) {

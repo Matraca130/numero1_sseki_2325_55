@@ -66,13 +66,17 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
     if (!msg || isLoading) return;
     setInput('');
     addMessage('user', msg);
+    setIsLoading(true);
 
     const history: ChatHistoryEntry[] = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
+
+    // Track whether streaming path handled the message (to avoid stale-closure duplicate)
+    let streamHandled = false;
 
     setIsStreaming(true);
     const result = await sendChatMessage(msg, {
       summaryId, history,
-      onStreamStart: (id) => { setMessages(prev => [...prev, { id, role: 'model', content: '', timestamp: new Date() }]); setIsLoading(false); },
+      onStreamStart: (id) => { setMessages(prev => [...prev, { id, role: 'model', content: '', timestamp: new Date() }]); streamHandled = true; setIsLoading(false); },
       onStreamChunk: (id, acc) => { setMessages(prev => prev.map(m => m.id === id ? { ...m, content: acc } : m)); },
       onStreamSources: (id, sources) => { setMessageSources(prev => new Map(prev).set(id, sources)); },
       onStreamDone: (id, logId) => { setMessageLogIds(prev => new Map(prev).set(id, logId)); },
@@ -81,8 +85,8 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
 
     if (result.isError) {
       addMessage('system', result.content, true);
-    } else if (!messages.some(m => m.id === result.msgId)) {
-      // Fallback path — add the message
+    } else if (!streamHandled) {
+      // Fallback path — streaming didn't handle the message, add it now
       setMessages(prev => [...prev, { id: result.msgId, role: 'model', content: result.content, timestamp: new Date() }]);
       if (result.sources?.length) setMessageSources(prev => new Map(prev).set(result.msgId, result.sources!));
       if (result.logId) setMessageLogIds(prev => new Map(prev).set(result.msgId, result.logId!));
