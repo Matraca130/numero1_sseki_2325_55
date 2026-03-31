@@ -521,17 +521,39 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         )}
       </AnimatePresence>
 
-      {blockContent}
-
-      {/* TTS button — absolute top-right for text-bearing blocks */}
-      {ttsText && isHighlightable && (
-        <div className="absolute top-1 right-1 opacity-20 hover:opacity-100 transition-opacity z-10">
-          <TTSButton text={ttsText} />
+      {/* Mastery percentage badge — top right */}
+      {mastery && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: mastery.border,
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 700,
+            lineHeight: 1,
+            zIndex: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+          }}
+          title={mastery.label}
+          aria-label={`Dominio: ${Math.round((masteryLevel ?? 0) * 100)}%`}
+        >
+          {Math.round((masteryLevel ?? 0) * 100)}%
         </div>
       )}
 
-      {hasActions && (
+      {blockContent}
+
+      {(hasActions || ttsText) && (
         <div className="flex items-center gap-1 mt-1">
+          {ttsText && <TTSButton text={ttsText} />}
           {onBookmarkToggle && (
             <BookmarkButton
               blockId={block.id}
