@@ -24,7 +24,8 @@ import {
 } from '@/app/hooks/queries/useBlockEditorMutations';
 import type { SummaryBlock, EduBlockType } from '@/app/services/summariesApi';
 import { apiCall } from '@/app/lib/api';
-// ViewerBlock and ErrorBoundary are used inside EditableBlock
+import { ViewerBlock } from '@/app/components/student/ViewerBlock';
+import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import BlockEditorToolbar from './BlockEditorToolbar';
 import AddBlockButton from './AddBlockButton';
 import BlockCard from './BlockCard';
