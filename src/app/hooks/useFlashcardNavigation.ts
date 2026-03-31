@@ -298,16 +298,20 @@ export function useFlashcardNavigation() {
   // ── Shared study-queue data ──
   // When multiple courses have content, fetch ALL study-queue data (no course filter)
   // so mastery is displayed for every course's flashcards in the merged hub.
-  const studyQueueCourseId = useMemo(() => {
-    if (currentCourse.id === 'empty') return null;
-    if (!tree?.courses) return currentCourse.id;
-    const coursesWithContent = tree.courses.filter((c: any) =>
+  // NOTE: coursesWithContentCount is a primitive (number), so studyQueueCourseId
+  // won't recompute on unstable tree object reference changes.
+  const coursesWithContentCount = useMemo(() => {
+    if (!tree?.courses) return 0;
+    return tree.courses.filter((c: any) =>
       (c.semesters || []).some((s: any) =>
         (s.sections || []).some((sec: any) => (sec.topics || []).length > 0)
       )
-    );
-    return coursesWithContent.length > 1 ? STUDY_QUEUE_ALL_COURSES : currentCourse.id;
-  }, [currentCourse.id, tree]);
+    ).length;
+  }, [tree]);
+  const studyQueueCourseId = useMemo(() => {
+    if (currentCourse.id === 'empty') return null;
+    return coursesWithContentCount > 1 ? STUDY_QUEUE_ALL_COURSES : currentCourse.id;
+  }, [currentCourse.id, coursesWithContentCount]);
   const sqData = useStudyQueueData(studyQueueCourseId);
 
   // Backward-compat: expose masteryMap as flashcard_id → StudyQueueItem
@@ -451,6 +455,7 @@ export function useFlashcardNavigation() {
     setViewState('hub');
     setSelectedSection(null);
     setSelectedTopic(null);
+    enrichedTopicCache.current.clear();
   }, [currentCourse.id]);
 
   // ── Actions ──
