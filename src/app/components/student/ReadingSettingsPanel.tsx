@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 
 // ── Types & defaults ────────────────────────────────
 
@@ -16,12 +16,14 @@ export interface ReadingSettings {
   fontSize: number;
   lineHeight: number;
   fontFamily: string;
+  focusMode: boolean;
 }
 
 export const DEFAULT_READING_SETTINGS: ReadingSettings = {
   fontSize: 16,
   lineHeight: 1.6,
   fontFamily: 'Inter, sans-serif',
+  focusMode: false,
 };
 
 // ── Persistence hook ────────────────────────────────
@@ -131,8 +133,8 @@ export default function ReadingSettingsPanel({
       {/* Font size */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-gray-400 font-semibold uppercase">
-            Tamanho da fonte
+          <span className="text-gray-400 font-semibold uppercase" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+            Tamaño de fuente
           </span>
           <span className="text-xs text-gray-500 tabular-nums">
             {settings.fontSize}px
@@ -154,8 +156,8 @@ export default function ReadingSettingsPanel({
 
       {/* Line spacing */}
       <div className="space-y-1.5">
-        <span className="text-[11px] text-gray-400 font-semibold uppercase block">
-          Espaçamento
+        <span className="text-gray-400 font-semibold uppercase block" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+          Espaciado
         </span>
         <div className="grid grid-cols-4 gap-1.5">
           {LINE_HEIGHTS.map((lh) => {
@@ -180,8 +182,8 @@ export default function ReadingSettingsPanel({
 
       {/* Font family */}
       <div className="space-y-1.5">
-        <span className="text-[11px] text-gray-400 font-semibold uppercase block">
-          Fonte
+        <span className="text-gray-400 font-semibold uppercase block" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+          Fuente
         </span>
         <div className="grid grid-cols-3 gap-1.5">
           {FONT_FAMILIES.map((ff) => {
@@ -203,6 +205,38 @@ export default function ReadingSettingsPanel({
             );
           })}
         </div>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-100" />
+
+      {/* Focus mode */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {settings.focusMode ? (
+            <EyeOff size={14} className="text-teal-500" />
+          ) : (
+            <Eye size={14} className="text-gray-400" />
+          )}
+          <span className="text-gray-400 font-semibold uppercase" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.6875rem)' }}>
+            Modo enfocado
+          </span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={settings.focusMode}
+          onClick={() => onChange({ ...settings, focusMode: !settings.focusMode })}
+          className={`relative w-9 h-5 rounded-full transition-colors ${
+            settings.focusMode ? 'bg-teal-500' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+              settings.focusMode ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
       </div>
     </div>
   );

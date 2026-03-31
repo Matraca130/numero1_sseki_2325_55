@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCw, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiCall } from '@/app/lib/api';
 
 // ── Constants ────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   const [seconds, setSeconds] = useState(STUDY_SECONDS);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   const totalSeconds = mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS;
   const progress = 1 - seconds / totalSeconds;
@@ -70,7 +72,16 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
     setRunning(false);
 
     if (mode === 'study') {
-      toast('Tempo de estudo finalizado!');
+      // Complete the study session via API (fire-and-forget)
+      if (sessionIdRef.current) {
+        const sid = sessionIdRef.current;
+        sessionIdRef.current = null;
+        apiCall(`/study-sessions/${sid}`, {
+          method: 'PUT',
+          body: JSON.stringify({ completed_at: new Date().toISOString() }),
+        }).catch(() => {});
+      }
+      toast('Tiempo de estudio finalizado!');
       setMode('break');
       setSeconds(BREAK_SECONDS);
     } else {
@@ -83,11 +94,26 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   // ── Handlers ─────────────────────────────────────────
 
   const toggleRunning = useCallback(() => {
-    setRunning((r) => !r);
-  }, []);
+    // Fire API call outside state updater to avoid double-fire in StrictMode
+    if (!running && mode === 'study' && !sessionIdRef.current) {
+      apiCall<{ id: string }>('/study-sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          session_type: 'reading',
+          started_at: new Date().toISOString(),
+        }),
+      })
+        .then((res) => {
+          if (res?.id) sessionIdRef.current = res.id;
+        })
+        .catch(() => {});
+    }
+    setRunning((prev) => !prev);
+  }, [mode, running]);
 
   const handleReset = useCallback(() => {
     setRunning(false);
+    sessionIdRef.current = null;
     setSeconds(mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
   }, [mode]);
 
@@ -109,17 +135,17 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
     <div
       className="fixed bottom-5 right-5 z-[400] min-w-[180px] rounded-2xl border border-gray-200 bg-white shadow-lg"
       role="timer"
-      aria-label={`${mode === 'study' ? 'Estudo' : 'Descanso'} ${display}`}
+      aria-label={`${mode === 'study' ? 'Estudio' : 'Descanso'} ${display}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-1">
         <span className={`text-xs font-semibold uppercase tracking-wide ${labelColor}`}>
-          {mode === 'study' ? 'Estudo' : 'Descanso'}
+          {mode === 'study' ? 'Estudio' : 'Descanso'}
         </span>
         <button
           onClick={onClose}
           className="rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          aria-label="Fechar timer"
+          aria-label="Cerrar timer"
         >
           <X size={14} />
         </button>
