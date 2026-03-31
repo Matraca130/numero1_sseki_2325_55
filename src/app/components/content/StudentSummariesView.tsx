@@ -7,13 +7,13 @@
 // This file is now a ~210-line orchestrator.
 // ============================================================
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   FileText, RefreshCw, BookOpen, Clock, AlertCircle,
 } from 'lucide-react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { StudentSummaryReader } from './StudentSummaryReader';
-import { SummaryCard } from './SummaryCard';
+import { TopicSessionGrid } from '@/app/components/student/TopicSessionGrid';
 import { getMotivation } from './summary-helpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTopicProgressRawQuery } from '@/app/hooks/queries/useTopicProgressRawQuery';
@@ -27,13 +27,13 @@ import {
   focusRing,
   useFadeUp,
 } from '@/app/components/design-kit';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigation } from '@/app/context/NavigationContext';
 import { useKeywordNavigation } from '@/app/hooks/useKeywordNavigation';
 import { axon, tint } from '@/app/lib/palette';
 
 export function StudentSummariesView() {
   const { selectedTopicId, tree, selectTopic } = useContentTree();
-  const { currentTopic } = useApp();
+  const { currentTopic } = useNavigation();
 
   const effectiveTopicId = selectedTopicId || currentTopic?.id || null;
 
@@ -43,6 +43,21 @@ export function StudentSummariesView() {
       selectTopic(currentTopic.id);
     }
   }, [selectedTopicId, currentTopic?.id, selectTopic]);
+
+  // Auto-select first topic when entering with nothing selected
+  React.useEffect(() => {
+    if (effectiveTopicId || !tree) return;
+    for (const c of tree.courses) {
+      for (const s of c.semesters) {
+        for (const sec of s.sections) {
+          if (sec.topics.length > 0) {
+            selectTopic(sec.topics[0].id);
+            return;
+          }
+        }
+      }
+    }
+  }, [effectiveTopicId, tree, selectTopic]);
 
   // ── React Query: topic progress (summaries + reading states) ──
   const { summaries, readingStates, isLoading, error, refetch } = useTopicProgressRawQuery(effectiveTopicId);
@@ -54,6 +69,7 @@ export function StudentSummariesView() {
     effectiveTopicId,
     selectTopic,
   });
+  const [initialTab, setInitialTab] = React.useState<string | undefined>(undefined);
   const fadeUp = useFadeUp();
 
   // Resolve topic & section name
@@ -79,7 +95,7 @@ export function StudentSummariesView() {
         summary={selectedSummary}
         topicName={topicName}
         readingState={readingStates[selectedSummary.id] || null}
-        onBack={() => setSelectedSummaryId(null)}
+        onBack={() => { setSelectedSummaryId(null); setInitialTab(undefined); }}
         onReadingStateChanged={(rs) => {
           queryClient.setQueryData<TopicProgressResponse>(
             queryKeys.topicProgress(effectiveTopicId!),
@@ -87,6 +103,7 @@ export function StudentSummariesView() {
           );
         }}
         onNavigateKeyword={handleNavigateKeyword}
+        initialTab={initialTab}
       />
     );
   }
@@ -294,22 +311,17 @@ export function StudentSummariesView() {
           </div>
         )}
 
-        {/* Summaries list — delegated to SummaryCard */}
+        {/* Summaries grid — premium split cards (summary / video) */}
         {!isLoading && !error && summaries.length > 0 && (
-          <div className="space-y-3">
-            <AnimatePresence mode="popLayout">
-              {summaries.map((s, index) => (
-                <SummaryCard
-                  key={s.id}
-                  summary={s}
-                  readingState={readingStates[s.id] || null}
-                  isNextToRead={nextSummary?.id === s.id && !readingStates[s.id]?.completed}
-                  index={index}
-                  onSelect={setSelectedSummaryId}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
+          <TopicSessionGrid
+            summaries={summaries}
+            readingStates={readingStates}
+            nextSummaryId={nextSummary?.id ?? null}
+            onSelectSummary={(id, tab) => {
+              setInitialTab(tab);
+              setSelectedSummaryId(id);
+            }}
+          />
         )}
       </div>
     </div>
