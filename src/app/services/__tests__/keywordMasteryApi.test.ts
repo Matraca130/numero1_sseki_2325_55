@@ -55,7 +55,7 @@ import {
 } from '@/app/services/keywordMasteryApi';
 
 beforeEach(() => {
-  mockApiCall.mockClear();
+  mockApiCall.mockReset().mockResolvedValue([]);
 });
 
 // ── Helpers ──────────────────────────────────────────────
@@ -543,7 +543,7 @@ describe('computeLocalKeywordMastery', () => {
   it('marks keyword as mastered when avg p_know >= threshold', () => {
     const subtopics = [
       makeSubtopicInfo({ id: 'st-1', keyword_id: 'kw-1', p_know: 0.5 }),
-      makeSubtopicInfo({ id: 'st-2', keyword_id: 'kw-1', p_know: 0.8 }),
+      makeSubtopicInfo({ id: 'st-2', keyword_id: 'kw-1', p_know: 0.8, isMastered: true }),
     ];
     const existing: KeywordMasteryMap = new Map();
     existing.set('kw-1', makeKeywordMasteryInfo({
