@@ -60,6 +60,15 @@ function getMasteryDotColor(level: number): string {
   return colors.mastery.descubrir;                        // gray
 }
 
+/** Maps a mastery level to a human-readable label for screen readers. */
+function getMasteryLabel(level: number): string {
+  if (level > 1.0) return 'Maestría';
+  if (level === 1.0) return 'Consolidado';
+  if (level >= 0.85) return 'En progreso';
+  if (level >= 0.5) return 'Emergente';
+  return 'Por descubrir';
+}
+
 function getBlockLabel(block: { type: string; content?: Record<string, unknown> }): string {
   const title = block.content?.title;
   if (typeof title === 'string' && title.length > 0) return title;
@@ -95,8 +104,8 @@ export function SidebarOutline({
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
         {!collapsed && (
           <span
-            className="uppercase select-none text-gray-400 dark:text-gray-500"
-            style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, paddingLeft: 4, whiteSpace: 'nowrap' }}
+            className="uppercase select-none text-gray-500 dark:text-gray-400"
+            style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, paddingLeft: 4, whiteSpace: 'nowrap' }}
           >
             Estructura
           </span>
@@ -127,12 +136,15 @@ export function SidebarOutline({
               onClick={() => onBlockClick(block.id)}
               title={collapsed ? label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              aria-label={collapsed ? label : undefined}
+              aria-label={collapsed
+                ? `${label}${mastery !== undefined ? ` – ${getMasteryLabel(mastery)}` : ''}`
+                : undefined}
               className={[
                 'relative flex items-center gap-2 text-left transition-all',
                 'border-l-[3px]',
+                'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
                 isActive
-                  ? 'border-l-[#2a8c7a] bg-teal-50 dark:bg-[#1a2e2a] font-semibold text-[#2a8c7a]'
+                  ? 'border-l-[#2a8c7a] bg-teal-50 dark:bg-[#1a2e2a] font-semibold text-[#1a7566]'
                   : 'border-l-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1a2e2a]',
                 collapsed ? 'justify-center' : '',
               ].join(' ')}

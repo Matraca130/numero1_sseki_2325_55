@@ -258,15 +258,20 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             src={src}
             alt={alt}
             loading="lazy"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onImageClick?.(src, alt, caption); } }}
             onClick={() => onImageClick?.(src, alt, caption)}
             className={clsx(
               'rounded-xl border border-gray-200 shadow-sm cursor-zoom-in transition-shadow hover:shadow-md',
+              'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none',
               isMobile ? 'w-full h-auto' : 'max-w-full h-auto',
             )}
+            aria-label={`Ver imagen: ${alt || caption || 'sin descripción'}`}
             style={!isMobile && c.objectFit ? { objectFit: c.objectFit } : undefined}
           />
           {caption && (
-            <figcaption className="mt-2 text-center text-xs text-gray-400 italic">
+            <figcaption className="mt-2 text-center text-xs text-gray-500 italic">
               {caption}
             </figcaption>
           )}
@@ -341,7 +346,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-gray-700 truncate">{title}</p>
-              <p className="text-[10px] text-gray-400">Toca para abrir PDF</p>
+              <p className="text-xs text-gray-500">Toca para abrir PDF</p>
             </div>
             <ExternalLink size={14} className="text-gray-400 shrink-0" />
           </a>
