@@ -12,7 +12,7 @@ import type { KeywordState } from '@/app/types/student';
 
 /** Color-based mastery level (legacy 3-tier UI display) */
 /** @deprecated Use DeltaColorLevel from mastery-helpers.ts instead */
-export type MasteryLevel = 'red' | 'yellow' | 'green';
+export type MasteryColor = 'red' | 'yellow' | 'green';
 
 /** Stage-based mastery level (legacy progression stages) */
 export type MasteryStage = 'none' | 'seen' | 'learning' | 'familiar' | 'mastered';
@@ -26,7 +26,7 @@ export interface KeywordData {
   term: string;
   definition: string;
   relatedTerms: string[];
-  masteryLevel: MasteryLevel;
+  masteryLevel: MasteryColor;
   aiQuestions: AIQuestion[];
   category?: string;
 }
@@ -37,7 +37,7 @@ export type KeywordCollection = Record<string, KeywordState>;
 // ── Mastery Config ───────────────────────────────────────────
 
 /** @deprecated Use getDeltaColorClasses + getDeltaColorLabel from mastery-helpers.ts instead */
-export const masteryConfig: Record<MasteryLevel, {
+export const masteryConfig: Record<MasteryColor, {
   label: string;
   color: string;
   bg: string;
