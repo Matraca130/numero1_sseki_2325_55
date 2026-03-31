@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
+import { CATEGORY_STYLES } from '@/app/utils/categoryStyles';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft,
@@ -60,11 +61,6 @@ const TIMELINE_DATA = {
   criticalAlert: { subject: 'Anatomia Patológica: Neoplasias', retention: 45, message: 'Salteaste la última revisión. La retención cayó a 45%.' },
 };
 
-const CATEGORY_STYLES = {
-  science: 'bg-blue-500/15 border-l-4 border-l-blue-500 text-blue-900',
-  arts: 'bg-pink-500/15 border-l-4 border-l-pink-500 text-pink-900',
-  core: 'bg-emerald-500/15 border-l-4 border-l-emerald-500 text-emerald-900',
-};
 
 // ── Memory Timeline Sidebar Content (extracted for reuse in drawer) ──
 function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, overallRetention, criticalTopic }: {
