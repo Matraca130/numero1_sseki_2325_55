@@ -1,8 +1,8 @@
 {
-  "iteration": 0,
+  "iteration": 1,
   "total_planned": 8,
   "plan": [
-    "0: PostLoginRouter.tsx tests",
+    "0: PostLoginRouter.tsx tests ✅ (11 tests)",
     "1: useFlashcardNavigation.ts tests",
     "2: useAdaptiveSession.ts tests",
     "3: flashcardApi.ts tests",
@@ -11,9 +11,9 @@
     "6: AxonAIAssistant.tsx smoke tests",
     "7: Suite completa + push"
   ],
-  "completed": [],
-  "tests_added": 0,
-  "bugs_found": [],
+  "completed": ["PostLoginRouter.test.tsx — 11 tests"],
+  "tests_added": 11,
+  "bugs_found": ["test-utils.tsx imported from react-router-dom instead of react-router (fixed)"],
   "skipped": [],
-  "notes": "P0 files (api.ts, scheduling-intelligence.ts, mastery-helpers.ts) already tested. fsrs-engine.ts does not exist. RequireAuth (3 tests), RequireRole (6 tests), useStudyPlans (27 tests), useCourseMastery (13 tests), StudentDataContext (12 tests), GamificationContext (17 tests), gamificationApi (40 tests), quizApi (13 tests), useStudyTimeEstimates (23 tests) all have tests. 1 failing test: sprint-preflight size regression (prod file grew)."
+  "notes": "Also fixed src/test/test-utils.tsx react-router-dom → react-router import bug."
 }
