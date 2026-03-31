@@ -42,7 +42,7 @@ describe('StudyTimer', () => {
   it('renders with 25:00 in study mode', () => {
     render(<StudyTimer onClose={onClose} />);
     expect(screen.getByText('25:00')).toBeTruthy();
-    expect(screen.getByText('Estudo')).toBeTruthy();
+    expect(screen.getByText('Estudio')).toBeTruthy();
   });
 
   it('POST /study-sessions on first play in study mode', async () => {
@@ -108,7 +108,7 @@ describe('StudyTimer', () => {
   it('calls onClose when X button clicked', () => {
     render(<StudyTimer onClose={onClose} />);
 
-    fireEvent.click(screen.getByLabelText('Fechar timer'));
+    fireEvent.click(screen.getByLabelText('Cerrar timer'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
