@@ -1,0 +1,19 @@
+{
+  "iteration": 0,
+  "total_planned": 8,
+  "plan": [
+    "0: PostLoginRouter.tsx tests",
+    "1: useFlashcardNavigation.ts tests",
+    "2: useAdaptiveSession.ts tests",
+    "3: flashcardApi.ts tests",
+    "4: studentApi.ts tests",
+    "5: summariesApi.ts tests",
+    "6: AxonAIAssistant.tsx smoke tests",
+    "7: Suite completa + push"
+  ],
+  "completed": [],
+  "tests_added": 0,
+  "bugs_found": [],
+  "skipped": [],
+  "notes": "P0 files (api.ts, scheduling-intelligence.ts, mastery-helpers.ts) already tested. fsrs-engine.ts does not exist. RequireAuth (3 tests), RequireRole (6 tests), useStudyPlans (27 tests), useCourseMastery (13 tests), StudentDataContext (12 tests), GamificationContext (17 tests), gamificationApi (40 tests), quizApi (13 tests), useStudyTimeEstimates (23 tests) all have tests. 1 failing test: sprint-preflight size regression (prod file grew)."
+}
