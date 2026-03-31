@@ -97,7 +97,7 @@ export function SidebarOutline({
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
         <span
           className="uppercase select-none text-gray-500 dark:text-gray-400"
-          aria-hidden={collapsed}
+          aria-hidden={collapsed ? true : undefined}
           style={{
             fontSize: 11,
             fontWeight: 700,
@@ -159,7 +159,7 @@ export function SidebarOutline({
             >
               <Icon size={collapsed ? 16 : 12} className="flex-shrink-0" />
 
-              <span aria-hidden={collapsed} style={{
+              <span aria-hidden={collapsed ? true : undefined} style={{
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
