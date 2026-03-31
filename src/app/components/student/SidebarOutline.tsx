@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { colors } from '@/app/design-system';
+import { getMasteryInfo } from '@/app/components/student/MasteryBar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,14 +61,6 @@ function getMasteryDotColor(level: number): string {
   return colors.mastery.descubrir;                        // gray
 }
 
-/** Maps a mastery level to a human-readable label for screen readers. */
-function getMasteryLabel(level: number): string {
-  if (level > 1.0) return 'Maestría';
-  if (level === 1.0) return 'Consolidado';
-  if (level >= 0.85) return 'En progreso';
-  if (level >= 0.5) return 'Emergente';
-  return 'Por descubrir';
-}
 
 function getBlockLabel(block: { type: string; content?: Record<string, unknown> }): string {
   const title = block.content?.title;
@@ -104,6 +97,7 @@ export function SidebarOutline({
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
         <span
           className="uppercase select-none text-gray-500 dark:text-gray-400"
+          aria-hidden={collapsed}
           style={{
             fontSize: 11,
             fontWeight: 700,
@@ -145,7 +139,7 @@ export function SidebarOutline({
               title={collapsed ? label : undefined}
               aria-current={isActive ? 'page' : undefined}
               aria-label={collapsed
-                ? `${label}${mastery !== undefined ? ` – ${getMasteryLabel(mastery)}` : ''}`
+                ? `${label}${mastery !== undefined ? ` – ${getMasteryInfo(mastery).label}` : ''}`
                 : undefined}
               className={[
                 'relative flex items-center gap-2 text-left transition-all',
@@ -165,7 +159,7 @@ export function SidebarOutline({
             >
               <Icon size={collapsed ? 16 : 12} className="flex-shrink-0" />
 
-              <span style={{
+              <span aria-hidden={collapsed} style={{
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
