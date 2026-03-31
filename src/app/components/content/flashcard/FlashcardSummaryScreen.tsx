@@ -14,7 +14,7 @@
 // STANDALONE: depends on react, motion/react, lucide-react.
 // ============================================================
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Trophy, TrendingUp, TrendingDown, Star, Sparkles } from 'lucide-react';
 import type { CardMasteryDelta } from '@/app/hooks/useFlashcardEngine';
@@ -64,6 +64,19 @@ export function SummaryScreen({
   masteryDeltas,
   onStartAdaptive,
 }: SummaryScreenProps) {
+  // ── Keyboard shortcuts ──────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'r' || e.key === 'R') {
+        onRestart();
+      } else if (e.key === 'Escape') {
+        onExit();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onRestart, onExit]);
+
   // [F1 FIX] Guard against empty stats (prevents NaN from division by zero)
   if (stats.length === 0) {
     return (
