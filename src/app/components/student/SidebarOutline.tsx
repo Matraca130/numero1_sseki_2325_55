@@ -102,14 +102,22 @@ export function SidebarOutline({
     >
       {/* -- Header -- */}
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
-        {!collapsed && (
-          <span
-            className="uppercase select-none text-gray-500 dark:text-gray-400"
-            style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, paddingLeft: 4, whiteSpace: 'nowrap' }}
-          >
-            Estructura
-          </span>
-        )}
+        <span
+          className="uppercase select-none text-gray-500 dark:text-gray-400"
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 1,
+            paddingLeft: 4,
+            whiteSpace: 'nowrap',
+            opacity: collapsed ? 0 : 1,
+            width: collapsed ? 0 : 'auto',
+            overflow: 'hidden',
+            transition: 'opacity 150ms ease, width 150ms ease',
+          }}
+        >
+          Estructura
+        </span>
 
         <button
           type="button"
@@ -157,9 +165,14 @@ export function SidebarOutline({
             >
               <Icon size={collapsed ? 16 : 12} className="flex-shrink-0" />
 
-              {!collapsed && (
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-              )}
+              <span style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                opacity: collapsed ? 0 : 1,
+                width: collapsed ? 0 : 'auto',
+                transition: 'opacity 150ms ease, width 150ms ease',
+              }}>{label}</span>
 
               {/* Mastery dot -- Delta Mastery Scale */}
               {mastery !== undefined && (

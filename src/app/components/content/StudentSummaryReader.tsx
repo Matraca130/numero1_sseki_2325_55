@@ -372,16 +372,23 @@ export function StudentSummaryReader({
               onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
               masteryLevels={masteryLevels}
             />
-            {!sidebarCollapsed && Object.keys(masteryLevels).length > 0 && (
-              <MasteryLegend
-                masteryLevels={masteryLevels}
-                totalBlocks={sidebarBlocks.length}
-              />
+            {Object.keys(masteryLevels).length > 0 && (
+              <div style={{
+                opacity: sidebarCollapsed ? 0 : 1,
+                maxHeight: sidebarCollapsed ? 0 : 300,
+                overflow: 'hidden',
+                transition: 'opacity 200ms ease, max-height 200ms ease',
+              }}>
+                <MasteryLegend
+                  masteryLevels={masteryLevels}
+                  totalBlocks={sidebarBlocks.length}
+                />
+              </div>
             )}
           </div>
         )}
 
-        <div id="reader-main-content" className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
+        <div id="reader-main-content" className={`flex-1 min-w-0 transition-all duration-200 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : undefined }}>
 
         {/* ── Immersive header toolbar (V1+V2+V6) ── */}
         <header
