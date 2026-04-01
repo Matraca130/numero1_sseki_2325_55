@@ -12,11 +12,12 @@
 //
 // Consumer: StudentSummaryReader.tsx (orchestrator)
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as studentApi from '@/app/services/studentSummariesApi';
 import type { ReadingState, TextAnnotation, KwStudentNote } from '@/app/services/studentSummariesApi';
+import { createStudySession, closeStudySession } from '@/app/services/studySessionApi';
 import { queryKeys } from '@/app/hooks/queries/queryKeys';
 import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
 
@@ -79,6 +80,33 @@ export function useSummaryReaderMutations({
   const rqClient = useQueryClient();
   const { markSessionComplete } = useStudyPlanBridge();
 
+  // ── Study session lifecycle ─────────────────────────────
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionClosedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    createStudySession({ session_type: 'reading' })
+      .then((session) => {
+        if (!cancelled) sessionIdRef.current = session.id;
+      })
+      .catch((err) => {
+        if (import.meta.env.DEV) console.warn('[SummaryReader] Failed to create study session:', err);
+      });
+
+    return () => {
+      cancelled = true;
+      if (sessionIdRef.current && !sessionClosedRef.current) {
+        sessionClosedRef.current = true;
+        closeStudySession(sessionIdRef.current, {
+          completed_at: new Date().toISOString(),
+          total_reviews: 0,
+          correct_reviews: 0,
+        }).catch(() => {});
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── XP Toast state (mutation side effect) ───────────────
   const [showXpToast, setShowXpToast] = useState(false);
 
@@ -102,6 +130,15 @@ export function useSummaryReaderMutations({
       toast.success('Resumen marcado como leido');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
       markSessionComplete('reading');
+      // Close the study session so it appears in history with XP
+      if (sessionIdRef.current && !sessionClosedRef.current) {
+        sessionClosedRef.current = true;
+        closeStudySession(sessionIdRef.current, {
+          completed_at: new Date().toISOString(),
+          total_reviews: 0,
+          correct_reviews: 0,
+        }).catch(() => {});
+      }
     },
     onError: (err: any) => toast.error(err.message || 'Error al marcar como leido'),
   });
