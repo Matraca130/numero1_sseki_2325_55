@@ -53,7 +53,7 @@ function StudentShell() {
   const { summaryId } = useParams<{ summaryId?: string }>();
   const isMobile = useIsMobile();
 
-  const showTopicSidebar = isView('study-hub', 'study', 'flashcards') && !isStudySessionActive;
+  const showTopicSidebar = isView('study-hub', 'study', 'summaries', 'flashcards') && !isStudySessionActive;
 
   // AI Assistant state
   const [isAIOpen, setAIOpen] = useState(false);
