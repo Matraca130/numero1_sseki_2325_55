@@ -357,10 +357,10 @@ export function StudentSummaryReader({
         {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
           <div
             className={[
-              'flex flex-col gap-3 z-30 transition-all duration-200',
+              'flex flex-col gap-3 z-[110] transition-all duration-200',
               sidebarCollapsed
                 ? 'relative flex-shrink-0'
-                : 'absolute top-6 left-6 bottom-0 bg-white dark:bg-[#1e1f25] shadow-xl rounded-xl xl:relative xl:shadow-none xl:rounded-none xl:bg-transparent',
+                : 'absolute top-6 left-6 bottom-0 bg-white dark:bg-[#1e1f25] shadow-xl rounded-xl xl:relative xl:flex-shrink-0 xl:shadow-none xl:rounded-none xl:bg-transparent',
             ].join(' ')}
           >
             <SidebarOutline
@@ -383,21 +383,22 @@ export function StudentSummaryReader({
         {/* Backdrop for sidebar overlay */}
         {!sidebarCollapsed && !readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
           <div
-            className="absolute inset-0 bg-black/10 z-20 xl:hidden"
+            className="absolute inset-0 bg-black/10 z-[105] xl:hidden"
             onClick={() => setSidebarCollapsed(true)}
           />
         )}
 
-        {/* Content — always full width, add left margin only when sidebar is collapsed (icon strip) */}
+        {/* Content — full width on <xl with left margin for collapsed sidebar; flex child on xl+ */}
         <div
-          className={`min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`}
+          className={[
+            'min-w-0 transition-[margin-left] duration-200',
+            readingSettings.focusMode ? 'mx-auto' : 'xl:flex-1',
+            (!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && sidebarCollapsed)
+              ? 'ml-16 xl:ml-0'
+              : '',
+          ].join(' ')}
           style={{
             maxWidth: readingSettings.focusMode ? 680 : 800,
-            marginLeft: (!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks')
-              ? (sidebarCollapsed ? 64 : 0)
-              : 0,
-            marginInline: readingSettings.focusMode ? 'auto' : undefined,
-            transition: 'margin-left 0.2s ease',
           }}
         >
 
