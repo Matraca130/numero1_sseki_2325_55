@@ -14,10 +14,6 @@ import { logger } from '@/app/lib/logger';
 // ── Backend URLs ──────────────────────────────────────
 
 export const API_BASE_URL = API_BASE;
-/** @deprecated Use API_BASE_URL instead — this is the same value */
-export const REAL_BACKEND_URL = API_BASE;
-/** @deprecated Use API_BASE_URL instead — this is the same value */
-export const FIGMA_BACKEND_URL = API_BASE;
 export const publicAnonKey = ANON_KEY;
 
 // ── Auth tokens ───────────────────────────────────────

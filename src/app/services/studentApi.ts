@@ -59,17 +59,10 @@ export {
   saveCourseKeywords,
 } from './student-api/sa-content';
 
-// AI (deprecated) + Backward Compat Aliases
+// AI chat + explain (live functions from sa-ai-legacy)
 export {
   aiChat,
-  aiGenerateFlashcards,
-  aiGenerateQuiz,
   aiExplain,
-  seedDemoData,
-  getCourseKeywords,
-  saveTopicKeywords,
-  getSummary,
-  saveSummary,
 } from './student-api/sa-ai-legacy';
 
 // ── Study Intelligence ──────────────────────────────────────

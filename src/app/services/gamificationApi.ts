@@ -318,24 +318,6 @@ export async function onboarding(institutionId: string): Promise<{
   }
 }
 
-/** @deprecated Use getProfile() instead */
-export async function getMyXP(institutionId: string) {
-  const profile = await getProfile(institutionId);
-  if (!profile) return null;
-  return {
-    total_xp: profile.xp.total,
-    current_level: profile.xp.level,
-    xp_today: profile.xp.today,
-    xp_this_week: profile.xp.this_week,
-    daily_goal: profile.xp.daily_goal_minutes, // B-001: reads from daily_goal_minutes
-    daily_cap: profile.xp.daily_cap,
-    streak_freezes_owned: profile.xp.streak_freezes_owned,
-    current_streak: profile.streak.current,
-    longest_streak: profile.streak.longest,
-    badges_earned: profile.badges_earned,
-  };
-}
-
 // ── Study Queue (separate backend route, not under /gamification) ─
 
 export async function getStudyQueue(

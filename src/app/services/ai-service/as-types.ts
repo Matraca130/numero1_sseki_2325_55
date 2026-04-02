@@ -9,8 +9,6 @@ export interface ChatHistoryEntry {
   content: string;
 }
 
-/** @deprecated Old type name — use ChatHistoryEntry instead */
-export type ChatMessage = ChatHistoryEntry;
 
 /** Response from POST /ai/rag-chat */
 export interface RagChatResponse {

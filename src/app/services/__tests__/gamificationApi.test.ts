@@ -29,7 +29,6 @@ import {
   updateDailyGoal,
   completeGoal,
   onboarding,
-  getMyXP,
   getStudyQueue,
   getGamificationProfile,
   getGamificationNotifications,
@@ -353,47 +352,6 @@ describe('onboarding', () => {
   it('returns null on error', async () => {
     mockApiCall.mockRejectedValue(new Error('fail'));
     expect(await onboarding('inst-001')).toBeNull();
-  });
-});
-
-// ══════════════════════════════════════════════════════════════
-// SUITE 14: getMyXP (deprecated wrapper)
-// ══════════════════════════════════════════════════════════════
-
-describe('getMyXP (deprecated)', () => {
-  it('maps profile fields to legacy shape', async () => {
-    mockApiCall.mockResolvedValue({
-      xp: {
-        total: 1500,
-        today: 100,
-        this_week: 400,
-        level: 6,
-        daily_goal_minutes: 30,
-        daily_cap: 500,
-        streak_freezes_owned: 2,
-      },
-      streak: { current: 5, longest: 10, last_study_date: '2026-03-25' },
-      badges_earned: 8,
-    });
-
-    const result = await getMyXP('inst-001');
-    expect(result).toEqual({
-      total_xp: 1500,
-      current_level: 6,
-      xp_today: 100,
-      xp_this_week: 400,
-      daily_goal: 30,
-      daily_cap: 500,
-      streak_freezes_owned: 2,
-      current_streak: 5,
-      longest_streak: 10,
-      badges_earned: 8,
-    });
-  });
-
-  it('returns null when profile fetch fails', async () => {
-    mockApiCall.mockRejectedValue(new Error('fail'));
-    expect(await getMyXP('inst-001')).toBeNull();
   });
 });
 
