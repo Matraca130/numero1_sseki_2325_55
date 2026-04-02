@@ -60,8 +60,14 @@ export function StudentSummariesView() {
   }, [effectiveTopicId, tree, selectTopic]);
 
   // ── React Query: topic progress (summaries + reading states) ──
-  const { summaries, readingStates, isLoading, error, refetch } = useTopicProgressRawQuery(effectiveTopicId);
+  const { summaries: rawSummaries, readingStates, isLoading, error, refetch } = useTopicProgressRawQuery(effectiveTopicId);
   const queryClient = useQueryClient();
+
+  // Sort summaries by order_index for consistent grid ordering
+  const summaries = React.useMemo(
+    () => [...rawSummaries].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
+    [rawSummaries],
+  );
 
   // ── Keyword navigation (SRP-3: extracted to hook) ──
   const { selectedSummaryId, setSelectedSummaryId, handleNavigateKeyword, isPendingNav } = useKeywordNavigation({
