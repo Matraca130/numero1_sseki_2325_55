@@ -16,10 +16,10 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
-  ChevronLeft, Layers, Tag, Video as VideoIcon,
+  Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
-  StickyNote, BookOpen, Search as SearchIcon,
-  Timer, Settings, PanelLeftOpen, Minimize2,
+  StickyNote, BookOpen,
+  Minimize2,
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
@@ -44,7 +44,6 @@ import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighli
 import { useReadingTimeTracker } from '@/app/hooks/useReadingTimeTracker';
 import { useVideoListQuery } from '@/app/hooks/queries/useVideoPlayerQueries';
 import { useThemeToggle } from '@/app/hooks/useThemeToggle';
-import { ThemeToggle } from '@/app/components/student/ThemeToggle';
 
 // ── Extracted helpers (Phase B.1) ─────────────────────────
 import {
@@ -63,8 +62,9 @@ import { ListSkeleton, TabBadge } from '@/app/components/student/reader-atoms';
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
 import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
+import { ReaderToolbar } from '@/app/components/student/ReaderToolbar';
 import { StudyTimer } from '@/app/components/student/StudyTimer';
-import ReadingSettingsPanel, { useReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
+import { useReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 
 // ── Props ─────────────────────────────────────────────────
@@ -402,147 +402,23 @@ export function StudentSummaryReader({
           }}
         >
 
-        {/* ── Immersive header toolbar (V1+V2+V6) ── */}
+        {/* ── Immersive header toolbar (Phase B.6 — extracted) ── */}
         {!readingSettings.focusMode && (
-        <header
-          role="banner"
-          aria-label="Barra de herramientas del resumen"
-          className="flex items-center justify-between"
-          style={{
-            background: isDark ? '#0d0e11' : '#1B3B36',
-            padding: '10px 20px',
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            borderBottom: isDark ? '1px solid #2d2e34' : '1px solid transparent',
-            borderRadius: '12px 12px 0 0',
-          }}
-        >
-          {/* Left side: back + brand */}
-          <div className="flex items-center" style={{ gap: 12 }}>
-            <button
-              onClick={onBack}
-              aria-label="Volver a resúmenes"
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 6,
-                cursor: 'pointer',
-                color: '#b4d9d1',
-                display: 'flex',
-                borderRadius: 6,
-              }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: '#2a8c7a',
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}
-            >
-              AXON
-            </span>
-            <span style={{ color: '#b4d9d1', fontSize: 13, fontWeight: 300 }}>
-              Resúmenes
-            </span>
-          </div>
-
-          {/* Right side: tool icons */}
-          <div className="flex items-center" style={{ gap: 6 }}>
-            {/* Search toggle */}
-            <button
-              onClick={() => setSearchOpen((v) => !v)}
-              title="Buscar (Ctrl+F)"
-              aria-label="Buscar"
-              style={{
-                background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none',
-                border: 'none',
-                padding: 6,
-                cursor: 'pointer',
-                color: searchOpen ? '#2a8c7a' : '#b4d9d1',
-                display: 'flex',
-                borderRadius: 6,
-              }}
-            >
-              <SearchIcon size={16} />
-            </button>
-
-            {/* Timer toggle */}
-            <button
-              onClick={() => setShowTimer((prev) => !prev)}
-              title="Temporizador de estudio"
-              aria-label={showTimer ? 'Cerrar timer' : 'Abrir timer'}
-              style={{
-                background: showTimer ? 'rgba(42,140,122,0.15)' : 'none',
-                border: 'none',
-                padding: 6,
-                cursor: 'pointer',
-                color: showTimer ? '#2a8c7a' : '#b4d9d1',
-                display: 'flex',
-                borderRadius: 6,
-              }}
-            >
-              <Timer size={16} />
-            </button>
-
-            {/* Separator */}
-            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
-
-            {/* Theme toggle */}
-            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
-
-            {/* Settings toggle */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSettings((prev) => !prev)}
-                title="Configuración de lectura"
-                aria-label={showSettings ? 'Cerrar configuración' : 'Configuración de lectura'}
-                style={{
-                  background: showSettings ? 'rgba(42,140,122,0.15)' : 'none',
-                  border: 'none',
-                  padding: 6,
-                  cursor: 'pointer',
-                  color: showSettings ? '#2a8c7a' : '#b4d9d1',
-                  display: 'flex',
-                  borderRadius: 6,
-                }}
-              >
-                <Settings size={16} />
-              </button>
-              {showSettings && (
-                <ReadingSettingsPanel
-                  settings={readingSettings}
-                  onChange={updateReadingSettings}
-                  onClose={() => setShowSettings(false)}
-                />
-              )}
-            </div>
-
-            {/* Separator */}
-            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
-
-            {/* Sidebar toggle */}
-            <button
-              onClick={() => setSidebarCollapsed((v) => !v)}
-              title="Outline"
-              aria-label={sidebarCollapsed ? 'Mostrar panel de estructura' : 'Ocultar panel de estructura'}
-              style={{
-                background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none',
-                border: 'none',
-                padding: 6,
-                cursor: 'pointer',
-                color: !sidebarCollapsed ? '#2a8c7a' : '#b4d9d1',
-                display: 'flex',
-                borderRadius: 6,
-              }}
-            >
-              <PanelLeftOpen size={16} />
-            </button>
-          </div>
-        </header>
+          <ReaderToolbar
+            isDark={isDark}
+            onBack={onBack}
+            searchOpen={searchOpen}
+            onToggleSearch={() => setSearchOpen((v) => !v)}
+            showTimer={showTimer}
+            onToggleTimer={() => setShowTimer((prev) => !prev)}
+            onToggleTheme={toggleTheme}
+            showSettings={showSettings}
+            onToggleSettings={() => setShowSettings((prev) => !prev)}
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+            readingSettings={readingSettings}
+            onReadingSettingsChange={updateReadingSettings}
+          />
         )}
 
         {/* ── Study Timer (fixed position, self-managed) ── */}
