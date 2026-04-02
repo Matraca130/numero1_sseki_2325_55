@@ -10,12 +10,15 @@ import type { KeywordState } from '@/app/types/student';
 
 // ── Types ────────────────────────────────────────────────────
 
-/** Color-based mastery level (legacy 3-tier UI display) */
-/** @deprecated Use DeltaColorLevel from mastery-helpers.ts instead */
-export type MasteryLevel = 'red' | 'yellow' | 'green';
-
-/** Stage-based mastery level (legacy progression stages) */
+/** Stage-based mastery level (canonical 5-tier progression) */
 export type MasteryStage = 'none' | 'seen' | 'learning' | 'familiar' | 'mastered';
+
+/**
+ * Canonical mastery level type — alias for MasteryStage.
+ * Previously had a divergent 3-tier color definition ('red'|'yellow'|'green').
+ * Unified to MasteryStage in BH-ERR-021.
+ */
+export type MasteryLevel = MasteryStage;
 
 export interface AIQuestion {
   question: string;
@@ -44,27 +47,11 @@ export const masteryConfig: Record<MasteryLevel, {
   border: string;
   description: string;
 }> = {
-  red: {
-    label: 'Nao sei',
-    color: 'text-rose-600',
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-    description: 'Precisa de revisao urgente',
-  },
-  yellow: {
-    label: 'Mais ou menos',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    description: 'Conhecimento parcial',
-  },
-  green: {
-    label: 'Sei bem',
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    description: 'Dominio consolidado',
-  },
+  none:      { label: 'Nuevo',       color: 'text-gray-600',    bg: 'bg-gray-50',    border: 'border-gray-200',   description: 'Sin revisar' },
+  seen:      { label: 'Visto',       color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',   description: 'Visto una vez' },
+  learning:  { label: 'Aprendiendo', color: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200',  description: 'Conocimiento parcial' },
+  familiar:  { label: 'Familiar',    color: 'text-teal-600',    bg: 'bg-teal-50',    border: 'border-teal-200',   description: 'Buen dominio' },
+  mastered:  { label: 'Dominado',    color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', description: 'Dominio consolidado' },
 };
 
 // ── Stub functions (previously in data/keywords.ts) ──────────
