@@ -57,19 +57,23 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 
 ## Zona de solo lectura
 
-- `agent-memory/summaries.md`
+- `docs/claude-config/agent-memory/summaries.md`
 - Archivos del sistema de keywords (FC-05) para entender la integración de highlighting
 - Archivos del text highlighter (SM-06) para entender anotaciones
 - Tipos compartidos y servicios globales
+
+## Depends On
+- **SM-02** (summaries-backend-v2) — Provee las rutas API y servicios backend que el frontend de resúmenes consume para CRUD, paginación y datos de lectura
 
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/summaries.md` para cargar el contexto actual del módulo de resúmenes.
+3. Lee `docs/claude-config/agent-memory/summaries.md` para cargar el contexto actual del módulo de resúmenes.
 4. Revisa los componentes principales del reader y el visor para entender el estado actual.
 5. Verifica que la paginación HTML y el tracking de lectura funcionen correctamente.
-6. Lee `agent-memory/individual/SM-01-summaries-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/SM-01-summaries-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
@@ -95,7 +99,7 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

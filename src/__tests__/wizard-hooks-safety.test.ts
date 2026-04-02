@@ -26,7 +26,7 @@ import { resolve } from 'path';
 
 const WIZARD_PATH = resolve(
   __dirname,
-  '../app/components/content/StudyOrganizerWizard.tsx',
+  '../app/components/content/study-organizer-wizard/StudyOrganizerWizard.tsx',
 );
 
 const source = readFileSync(WIZARD_PATH, 'utf-8');

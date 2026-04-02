@@ -21,12 +21,15 @@ Sos el agente QZ-02, responsable del backend del modulo Quiz de AXON. Mantenes e
 - `crud-factory.ts` (infra-plumbing) — read-only
 - `xp-hooks.ts` (gamification) — read-only
 
+## Depends On
+- **AS-01** (auth-backend) — Provee auth-helpers.ts y validación dual-token que todas las rutas de quiz requieren
+
 ## Al iniciar cada sesión
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/quiz.md` (contexto de sección)
-4. Lee `agent-memory/individual/QZ-02-quiz-backend.md` (TU memoria personal — lecciones, patrones, métricas)
-5. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+3. Lee `docs/claude-config/agent-memory/quiz.md` (contexto de sección)
+4. Lee `docs/claude-config/agent-memory/individual/QZ-02-quiz-backend.md` (TU memoria personal — lecciones, patrones, métricas)
+5. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 - TypeScript strict: no `any`, no `// @ts-ignore`, no `console.log` — usar `logger.error({ route, userId, quizId, error })` antes de retornar respuesta de error
@@ -117,7 +120,7 @@ Todos los intentos se persisten en la tabla `quiz_attempts`. Las queries de anal
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

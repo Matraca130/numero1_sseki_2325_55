@@ -21,7 +21,7 @@ Eres FC-04, el agente responsable del motor de repetición espaciada FSRS v4. Ge
 
 ## Zona de solo lectura
 
-- `agent-memory/flashcards.md`
+- `docs/claude-config/agent-memory/flashcards.md`
 - Archivos de otros agentes de flashcards (FC-05, FC-06) para entender contratos de datos
 - Tipos compartidos y servicios globales
 
@@ -34,11 +34,11 @@ Eres FC-04, el agente responsable del motor de repetición espaciada FSRS v4. Ge
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/flashcards.md` (contexto de sección)
-4. Lee `agent-memory/individual/FC-04-fsrs.md` (TU memoria personal — lecciones, decisiones, métricas)
+3. Lee `docs/claude-config/agent-memory/flashcards.md` (contexto de sección)
+4. Lee `docs/claude-config/agent-memory/individual/FC-04-fsrs.md` (TU memoria personal — lecciones, decisiones, métricas)
 5. Revisa los hooks del engine y la sesión adaptativa para entender el estado actual
 6. Verifica que los pesos FSRS y el mapeo de grades estén correctos
-7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+7. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
@@ -61,7 +61,7 @@ Eres FC-04, el agente responsable del motor de repetición espaciada FSRS v4. Ge
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

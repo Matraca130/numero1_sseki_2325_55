@@ -61,7 +61,7 @@ const SUBJECTS: SubjectCard[] = [
     ringOffset: 10,
     consistency: 'Alta',
     consistencyColor: 'text-blue-600',
-    nextReview: 'Em 2 dias',
+    nextReview: 'En 2 días',
     nextReviewColor: 'text-gray-700',
     progressPct: 80,
     progressColor: 'bg-blue-500',
@@ -86,7 +86,7 @@ const SUBJECTS: SubjectCard[] = [
     ringOffset: 90,
     consistency: 'Volátil',
     consistencyColor: 'text-red-500',
-    nextReview: 'Agora (Atrasado)',
+    nextReview: 'Ahora (Atrasado)',
     nextReviewColor: 'text-red-500 font-bold uppercase',
     progressPct: 100,
     progressColor: 'bg-red-500 animate-pulse',
@@ -112,7 +112,7 @@ const SUBJECTS: SubjectCard[] = [
     ringOffset: 40,
     consistency: 'Moderada',
     consistencyColor: 'text-pink-600',
-    nextReview: 'Amanhã',
+    nextReview: 'Mañana',
     nextReviewColor: 'text-gray-700',
     progressPct: 45,
     progressColor: 'bg-pink-500',
@@ -135,9 +135,9 @@ const SUBJECTS: SubjectCard[] = [
     retentionColor: 'text-indigo-600',
     ringStroke: '#4F46E5',
     ringOffset: 20,
-    consistency: 'Crescente',
+    consistency: 'Creciente',
     consistencyColor: 'text-indigo-600',
-    nextReview: 'Em 5 dias',
+    nextReview: 'En 5 días',
     nextReviewColor: 'text-gray-700',
     progressPct: 25,
     progressColor: 'bg-indigo-500',
@@ -155,14 +155,14 @@ const SUBJECTS: SubjectCard[] = [
   {
     id: '5',
     name: 'Bioquímica',
-    department: 'Ciências Básicas',
+    department: 'Ciencias Básicas',
     retention: 88,
     retentionColor: 'text-emerald-600',
     ringStroke: '#10B981',
     ringOffset: 15,
-    consistency: 'Estável',
+    consistency: 'Estable',
     consistencyColor: 'text-emerald-600',
-    nextReview: 'Em 4 dias',
+    nextReview: 'En 4 días',
     nextReviewColor: 'text-gray-700',
     progressPct: 30,
     progressColor: 'bg-emerald-500',
@@ -180,8 +180,8 @@ const SUBJECTS: SubjectCard[] = [
 ];
 
 const TABS = [
-  { id: 'overview', label: 'Visão Geral' },
-  { id: 'subjects', label: 'Matérias' },
+  { id: 'overview', label: 'Visión General' },
+  { id: 'subjects', label: 'Materias' },
   { id: 'settings', label: 'Config. Algoritmo' },
 ] as const;
 
@@ -221,8 +221,8 @@ export function StudyDashboardsView() {
     bktStates.forEach(b => {
       const lookup = topicLookup.get(b.subtopic_id);
       const sectionId = lookup?.sectionId || 'unknown';
-      const sectionName = lookup?.sectionName || `Seção ${b.subtopic_id.slice(0, 6)}`;
-      const courseName = lookup?.courseName || 'Curso';
+      const sectionName = lookup?.sectionName || `Sección ${b.subtopic_id.slice(0, 6)}`;
+      const courseName = lookup?.courseName || 'Materia';
       if (!sectionGroups.has(sectionId)) {
         sectionGroups.set(sectionId, { name: sectionName, department: courseName, states: [] });
       }
@@ -254,7 +254,7 @@ export function StudyDashboardsView() {
         .slice(0, 20);
 
       const variance = group.states.reduce((s, b) => s + Math.abs(b.p_know - avgPKnow), 0) / group.states.length;
-      const consistency = variance < 0.1 ? 'Estável' : variance < 0.2 ? 'Moderada' : 'Volátil';
+      const consistency = variance < 0.1 ? 'Estable' : variance < 0.2 ? 'Moderada' : 'Volátil';
       const hasDue = group.states.some(b => b.p_know < 0.5);
 
       return {
@@ -267,7 +267,7 @@ export function StudyDashboardsView() {
         ringOffset,
         consistency,
         consistencyColor: retention >= 80 ? `text-${c}-600` : variance >= 0.2 ? 'text-red-500' : `text-${c}-600`,
-        nextReview: hasDue ? 'Agora (Atrasado)' : retention >= 80 ? 'Em 5 dias' : 'Amanhã',
+        nextReview: hasDue ? 'Ahora (Atrasado)' : retention >= 80 ? 'En 5 días' : 'Mañana',
         nextReviewColor: hasDue ? 'text-red-500 font-bold uppercase' : 'text-gray-700',
         progressPct: hasDue ? 100 : Math.min(retention, 50),
         progressColor: hasDue ? `bg-${c}-500 animate-pulse` : `bg-${c}-500`,
@@ -289,7 +289,7 @@ export function StudyDashboardsView() {
       <div className="shrink-0">
         <AxonPageHeader
           title="Memory Mastery Hub"
-          subtitle="Visualize sua retenção e otimize intervalos de estudo"
+          subtitle="Visualizá tu retención y optimizá intervalos de estudio"
           onBack={() => navigateTo('schedule')}
           statsRight={
             /* RESPONSIVE: overflow-x-auto para tabs, min-h touch target */
@@ -329,19 +329,19 @@ export function StudyDashboardsView() {
               >
                 {/* RESPONSIVE: flex-col sm:flex-row, legend flex-wrap */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 lg:mb-6">
-                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Curva de Esquecimento Global</h3>
+                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Curva de Olvido Global</h3>
                   <div className="flex flex-wrap gap-2 lg:gap-4">
                     <div className="flex items-center gap-1.5 lg:gap-2">
                       <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-teal-500" />
-                      <span className="text-[10px] lg:text-xs text-gray-400">Retenção Real</span>
+                      <span className="text-[10px] lg:text-xs text-gray-400">Retención Real</span>
                     </div>
                     <div className="flex items-center gap-1.5 lg:gap-2">
                       <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-blue-500" />
-                      <span className="text-[10px] lg:text-xs text-gray-400">Decaimento Previsto</span>
+                      <span className="text-[10px] lg:text-xs text-gray-400">Decaimiento Previsto</span>
                     </div>
                     <div className="flex items-center gap-1.5 lg:gap-2">
                       <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-gray-300 border border-gray-400" />
-                      <span className="text-[10px] lg:text-xs text-gray-400">Limite Ideal</span>
+                      <span className="text-[10px] lg:text-xs text-gray-400">Límite Ideal</span>
                     </div>
                   </div>
                 </div>
@@ -367,7 +367,7 @@ export function StudyDashboardsView() {
                       {/* Threshold line */}
                       <div className="w-full border-b-2 border-dashed border-red-200 absolute group" style={{ top: '20%' }}>
                         <span className="absolute right-0 -top-6 bg-red-50 text-red-500 text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                          Limite de Revisão
+                          Límite de Revisión
                         </span>
                       </div>
 
@@ -397,11 +397,11 @@ export function StudyDashboardsView() {
 
                     {/* X axis labels */}
                     <div className="absolute left-12 right-4 bottom-2 flex justify-between text-xs text-gray-400 font-mono">
-                      <span>Dia 0</span>
-                      <span>Dia 3</span>
-                      <span>Dia 7</span>
-                      <span>Dia 14</span>
-                      <span>Dia 30</span>
+                      <span>Día 0</span>
+                      <span>Día 3</span>
+                      <span>Día 7</span>
+                      <span>Día 14</span>
+                      <span>Día 30</span>
                     </div>
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export function StudyDashboardsView() {
 
               {/* Subject Performance Header */}
               <div className="flex items-center justify-between">
-                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Desempenho por Matéria</h3>
+                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Desempeño por Materia</h3>
                 <div className="flex gap-1 lg:gap-2">
                   <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <Filter size={18} />
@@ -471,7 +471,7 @@ export function StudyDashboardsView() {
                   {/* Consistency */}
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs text-gray-400 mb-1">
-                      <span>Consistência de Estudo</span>
+                      <span>Consistencia de Estudio</span>
                       <span className={clsx("font-mono", subject.consistencyColor)}>{subject.consistency}</span>
                     </div>
 
@@ -488,7 +488,7 @@ export function StudyDashboardsView() {
                     {/* Next review + progress */}
                     <div className="pt-3 border-t border-gray-100">
                       <p className="text-xs text-gray-400 mb-2">
-                        Próxima Revisão: <span className={clsx(subject.nextReviewColor)}>{subject.nextReview}</span>
+                        Próxima Revisión: <span className={clsx(subject.nextReviewColor)}>{subject.nextReview}</span>
                       </p>
                       <div className="w-full bg-gray-100 rounded-full h-1.5">
                         <div
@@ -511,7 +511,7 @@ export function StudyDashboardsView() {
                 <div className="w-14 h-14 rounded-full bg-white/50 flex items-center justify-center text-gray-400 group-hover:bg-teal-50 group-hover:text-teal-500 transition-colors">
                   <Plus size={28} />
                 </div>
-                <span className="text-gray-400 group-hover:text-teal-500 transition-colors" style={{ fontWeight: 700 }}>Adicionar Matéria</span>
+                <span className="text-gray-400 group-hover:text-teal-500 transition-colors" style={{ fontWeight: 700 }}>Agregar Materia</span>
               </motion.button>
             </div>
           )}
@@ -525,22 +525,22 @@ export function StudyDashboardsView() {
             >
               <div className="flex items-center gap-3 mb-6">
                 <Settings size={20} className="text-teal-500" />
-                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Configurações do Algoritmo</h3>
+                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Configuraciones del Algoritmo</h3>
               </div>
               <div className="space-y-6">
                 <div>
-                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Intervalo Mínimo de Revisão</label>
-                  <p className="text-xs text-gray-400 mb-2">Tempo mínimo entre revisões de um mesmo card.</p>
+                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Intervalo Mínimo de Revisión</label>
+                  <p className="text-xs text-gray-400 mb-2">Tiempo mínimo entre revisiones de un mismo card.</p>
                   <select className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:ring-teal-500 focus:border-teal-500 min-h-[44px]">
                     <option>15 minutos</option>
                     <option>1 hora</option>
                     <option>4 horas</option>
-                    <option>1 dia</option>
+                    <option>1 día</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Limite de Retenção</label>
-                  <p className="text-xs text-gray-400 mb-2">Nível de retenção abaixo do qual o sistema agenda revisão automática.</p>
+                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Límite de Retención</label>
+                  <p className="text-xs text-gray-400 mb-2">Nivel de retención bajo el cual el sistema agenda revisión automática.</p>
                   <input
                     type="range"
                     min="50"
@@ -555,8 +555,8 @@ export function StudyDashboardsView() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Cards por Sessão</label>
-                  <p className="text-xs text-gray-400 mb-2">Número máximo de cards por sessão de revisão.</p>
+                  <label className="text-sm text-gray-600 mb-2 block" style={{ fontWeight: 700 }}>Cards por Sesión</label>
+                  <p className="text-xs text-gray-400 mb-2">Número máximo de cards por sesión de revisión.</p>
                   <input
                     type="number"
                     defaultValue={20}
@@ -564,7 +564,7 @@ export function StudyDashboardsView() {
                   />
                 </div>
                 <button className="w-full sm:w-auto px-6 py-2.5 bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm rounded-full shadow-md font-semibold transition-colors min-h-[44px]" style={{ fontWeight: 700 }}>
-                  Salvar Configurações
+                  Guardar Configuraciones
                 </button>
               </div>
             </motion.div>
@@ -574,21 +574,21 @@ export function StudyDashboardsView() {
           {!isConnected && (
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
               <p className="text-xs text-blue-600">
-                Conecte ao backend para ver dados reais do seu estudo.
+                Conectate al backend para ver datos reales de tu estudio.
               </p>
             </div>
           )}
           {isConnected && bktStates.length > 0 && (
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
               <p className="text-xs text-emerald-600">
-                Dados conectados ao backend — {bktStates.length} estados de conhecimento, {dailyActivity.length} dias de atividade.
+                Datos conectados al backend — {bktStates.length} estados de conocimiento, {dailyActivity.length} días de actividad.
               </p>
             </div>
           )}
           {isConnected && bktStates.length === 0 && (
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 text-center">
               <p className="text-xs text-amber-600">
-                Backend conectado, mas ainda sem dados de progresso. Estude para gerar dados reais.
+                Backend conectado, pero todavía sin datos de progreso. Estudiá para generar datos reales.
               </p>
             </div>
           )}

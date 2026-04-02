@@ -154,8 +154,8 @@ vi.mock('@/app/context/AuthContext', () => ({
   useAuth: () => ({
     user: MOCK_USER,
     selectedInstitution: MOCK_INSTITUTION,
-    isLoading: false,
-    isAuthenticated: true,
+    loading: false,
+    status: 'authenticated',
   }),
 }));
 

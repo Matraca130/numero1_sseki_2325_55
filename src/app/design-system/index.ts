@@ -33,7 +33,8 @@
  *   ├── navigation.ts        ← Vistas, sidebar items, shortcuts
  *   ├── layout.ts            ← Dimensiones, spacing, grids
  *   ├── animation.ts         ← Presets de Motion
- *   └── rules.ts             ← Reglas obligatorias y prohibidas
+ *   ├── rules.ts             ← Reglas obligatorias y prohibidas
+ *   └── severity.ts          ← Tokens de severidad (mild/moderate/critical)
  */
 
 // ─────────────────────────────────────────────
@@ -136,3 +137,9 @@ export { animation } from './animation';
 // 11. DESIGN RULES
 // ─────────────────────────────────────────────
 export { designRules } from './rules';
+
+// ─────────────────────────────────────────────
+// 12. SEVERITY TOKENS
+// ─────────────────────────────────────────────
+export { SEVERITY } from './severity';
+export type { SeverityLevel } from './severity';

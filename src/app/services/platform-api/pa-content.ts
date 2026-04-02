@@ -5,6 +5,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { extractItems } from '@/app/lib/api-helpers';
 import type {
   UUID,
   Course,
@@ -21,7 +22,8 @@ const request = apiCall;
 
 export async function getCourses(institutionId?: UUID): Promise<Course[]> {
   const qs = institutionId ? `?institution_id=${institutionId}` : '';
-  return request<Course[]>(`/courses${qs}`);
+  const result = await request(`/courses${qs}`);
+  return extractItems<Course>(result);
 }
 
 export async function createCourse(data: {
@@ -52,7 +54,8 @@ export async function deleteCourse(courseId: UUID): Promise<void> {
 // ============================================================
 
 export async function getTopicSummaries(topicId: UUID): Promise<Summary[]> {
-  return request<Summary[]>(`/summaries?topic_id=${topicId}`);
+  const result = await request(`/summaries?topic_id=${topicId}`);
+  return extractItems<Summary>(result);
 }
 
 export async function createSummary(topicId: UUID, data: {
@@ -84,7 +87,8 @@ export async function deleteSummary(summaryId: UUID): Promise<void> {
 
 export async function getKeywords(institutionId?: UUID): Promise<Keyword[]> {
   const qs = institutionId ? `?institution_id=${institutionId}` : '';
-  return request<Keyword[]>(`/keywords${qs}`);
+  const result = await request(`/keywords${qs}`);
+  return extractItems<Keyword>(result);
 }
 
 export async function createKeyword(data: {

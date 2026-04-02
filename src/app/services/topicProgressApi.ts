@@ -82,7 +82,7 @@ async function fetchTopicProgressFallback(topicId: string): Promise<TopicProgres
 
   // Published + active only (matching backend endpoint logic)
   const published = allSummaries.filter(
-    (s) => s.status === 'published' && s.is_active && !s.deleted_at
+    (s) => s.status === 'published' && s.is_active !== false && !s.deleted_at
   );
 
   // Fetch reading states + flashcard counts in parallel per summary
@@ -191,7 +191,7 @@ async function fetchTopicsOverviewFallback(topicIds: string[]): Promise<TopicsOv
         const allItems = unwrapPaginated<Summary>(result);
 
         // Filter to match unified endpoint behavior: active + not deleted
-        const items = allItems.filter(s => s.is_active && !s.deleted_at);
+        const items = allItems.filter(s => s.is_active !== false && !s.deleted_at);
         summariesByTopic[topicId] = items;
 
         // Fetch keyword counts per summary in parallel

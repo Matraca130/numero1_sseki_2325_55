@@ -5,7 +5,7 @@ type: user
 ---
 
 - Developer and founder of Axon educational platform (medical education LMS)
-- Works primarily in Spanish (some content in Brazilian Portuguese for student-facing UI)
+- Works primarily in Spanish (all UI in Spanish argentino)
 - Uses Figma Make for component prototyping — docs are designed to be copy-pasted as Figma Make context
 - Manages all 3 repos (frontend, backend, docs) — solo developer
 - Uses Obsidian for notes (MI VAULT CLAUDINHO)
