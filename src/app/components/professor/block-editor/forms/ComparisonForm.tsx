@@ -1,12 +1,4 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
-
-interface BlockFormProps {
-  block: SummaryBlock;
-  onChange: (field: string, value: unknown) => void;
-}
-
-const inputClass =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-600';
+import { type BlockFormProps, inputClass } from './shared';
 
 export default function ComparisonForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
@@ -20,32 +12,54 @@ export default function ComparisonForm({ block, onChange }: BlockFormProps) {
   };
 
   const addColumn = () => {
-    onChange('headers', [...headers, '']);
-    const updatedRows = rows.map((row) => [...row, '']);
+    const newHeaders = [...headers, ''];
+    // Ensure all rows are extended to match new header count, padding any sparse rows
+    const updatedRows = rows.map((row) => {
+      const paddedRow = Array.from({ length: headers.length }, (_, i) => row[i] ?? '');
+      return [...paddedRow, ''];
+    });
+    onChange('headers', newHeaders);
     onChange('rows', updatedRows);
   };
 
   const removeColumn = (colIdx: number) => {
-    onChange('headers', headers.filter((_, i) => i !== colIdx));
-    onChange('rows', rows.map((row) => row.filter((_, i) => i !== colIdx)));
+    const newHeaders = headers.filter((_, i) => i !== colIdx);
+    const newRows = rows.map((row) => row.filter((_, i) => i !== colIdx));
+    
+    // Ensure all rows have correct length after removal
+    const validatedRows = newRows.map((row) =>
+      Array.from({ length: newHeaders.length }, (_, i) => row[i] ?? '')
+    );
+    
+    onChange('headers', newHeaders);
+    onChange('rows', validatedRows);
+    
+    // Handle highlight_column: invalidate if it references the removed column or beyond
     if (highlightColumn === colIdx) {
       onChange('highlight_column', null);
     } else if (highlightColumn != null && highlightColumn > colIdx) {
       onChange('highlight_column', highlightColumn - 1);
+    } else if (highlightColumn != null && highlightColumn >= newHeaders.length) {
+      // If highlight_column is now beyond the valid range, clear it
+      onChange('highlight_column', null);
     }
   };
 
   const updateCell = (rowIdx: number, colIdx: number, value: string) => {
-    const updated = rows.map((row, ri) =>
-      ri === rowIdx
-        ? row.map((cell, ci) => (ci === colIdx ? value : cell))
-        : row,
-    );
+    const updated = rows.map((row, ri) => {
+      if (ri !== rowIdx) return row;
+      
+      // Ensure row is padded to match headers length
+      const paddedRow = Array.from({ length: headers.length }, (_, i) => row[i] ?? '');
+      paddedRow[colIdx] = value;
+      return paddedRow;
+    });
     onChange('rows', updated);
   };
 
   const addRow = () => {
-    const newRow = headers.map(() => '');
+    // Always create rows with length matching headers, even if headers is empty
+    const newRow = Array.from({ length: headers.length }, () => '');
     onChange('rows', [...rows, newRow]);
   };
 

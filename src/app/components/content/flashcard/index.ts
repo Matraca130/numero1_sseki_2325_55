@@ -13,6 +13,10 @@ export { DeckScreen } from './FlashcardDeckScreen';
 export { SessionScreen } from './FlashcardSessionScreen';
 export { SummaryScreen } from './FlashcardSummaryScreen';
 
+// ── Student ──
+export { StudentCreateModal } from './StudentCreateModal';
+export type { StudentCreateModalProps } from './StudentCreateModal';
+
 // ── Shared UI Primitives ──
 export { ProgressBar } from './ProgressBar';
 export { MasteryRing } from './MasteryRing';

@@ -20,7 +20,7 @@
 // ============================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/app/lib/supabase';
-import { extractItems } from './api-helpers';
+import { extractItems } from '@/app/lib/api-helpers';
 
 export const API_BASE = `${SUPABASE_URL}/functions/v1/server`;
 export const ANON_KEY = SUPABASE_ANON_KEY;
@@ -73,8 +73,10 @@ export async function apiCall<T = any>(
   }
 
   const doFetch = async (): Promise<T> => {
+    const isFormData = fetchOptions.body instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      // Skip Content-Type for FormData — browser sets multipart boundary automatically
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'Authorization': `Bearer ${ANON_KEY}`,
       ...((fetchOptions.headers as Record<string, string>) || {}),
     };
@@ -286,10 +288,10 @@ interface KeywordRow {
  */
 export async function ensureGeneralKeyword(summaryId: string): Promise<string> {
   // 1. Fetch existing keywords for this summary
-  const res = await apiCall<KeywordRow[] | { items: KeywordRow[] }>(
+  const raw = await apiCall(
     `/keywords?summary_id=${encodeURIComponent(summaryId)}`
   );
-  const keywords = extractItems<KeywordRow>(res);
+  const keywords = extractItems<KeywordRow>(raw);
 
   // 2. Look for an existing "General" keyword (case-insensitive)
   const general = keywords.find(

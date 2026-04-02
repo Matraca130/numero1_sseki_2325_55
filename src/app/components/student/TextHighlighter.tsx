@@ -39,6 +39,7 @@ const colorMap: Record<string, { bg: string; bgHover: string; border: string }> 
   green:  { bg: 'bg-emerald-200/50', bgHover: 'bg-emerald-200/70', border: 'border-emerald-300' },
   blue:   { bg: 'bg-blue-200/50',   bgHover: 'bg-blue-200/70',   border: 'border-blue-300' },
   pink:   { bg: 'bg-pink-200/50',   bgHover: 'bg-pink-200/70',   border: 'border-pink-300' },
+  orange: { bg: 'bg-orange-200/50', bgHover: 'bg-orange-200/70', border: 'border-orange-300' },
 };
 
 // ── Build plain text from chunks ──────────────────────────

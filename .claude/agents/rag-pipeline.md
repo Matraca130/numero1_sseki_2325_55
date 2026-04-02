@@ -27,6 +27,9 @@ Eres el agente AI-01 responsable del pipeline de ingesta RAG en Axon. Tu dominio
 - `services/ai-service/as-analytics.ts` — Estadisticas de embeddings relacionadas
 - `hooks/useRagAnalytics.ts` — Metricas de cobertura de embeddings
 
+## Depends On
+- **AS-01** (auth-backend) — RAG ingest needs auth for file access
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar

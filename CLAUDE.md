@@ -14,6 +14,19 @@ npm run build      # Production build (outputs to dist/)
 
 Test runner: Vitest 3.2.1 + React Testing Library. Run `npm test` (unit tests) or `npm run test:coverage` (with v8 coverage report). The build (`vite build`) is the secondary validation step.
 
+### Sistema de Agentes (usar siempre para tareas complejas)
+
+| Qué necesitás | Archivo |
+|----------------|---------|
+| **Lanzar agentes** | `.claude/agents/<nombre>.md` — 74 definiciones con rol, zona, reglas |
+| **Saber qué agente usar** | `.claude/AGENT-REGISTRY.md` — índice maestro con ownership |
+| **Orquestar multi-agente** | `.claude/MULTI-AGENT-PROCEDURE.md` — procedimiento completo |
+| **Ver métricas/salud** | `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` |
+| **Qué agente toca qué archivo** | `.claude/SECTION-MAP.md` — mapa de 624 archivos |
+| **Reglas de aislamiento** | `.claude/memory/feedback_agent_isolation.md` |
+
+> **Atajo rápido:** Para cualquier tarea, decí *"actuá como Arquitecto (XX-01)"* y él selecciona los agentes correctos.
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript (ES modules)
@@ -156,7 +169,7 @@ All API calls go through `apiCall()` in `src/app/lib/api.ts`:
 | API service | `platformApi.ts` | `studentApi.ts` |
 | Types | `types/platform.ts` | `types/student.ts` |
 | Accent color | amber/blue/purple | teal |
-| UI language | Spanish | Brazilian Portuguese |
+| UI language | Spanish | Spanish (argentino) |
 | Page location | `roles/pages/{role}/` | `content/` |
 | Toaster | Yes (per page) | No |
 | Shared header | `PageHeader` | `AxonPageHeader` |
@@ -218,6 +231,10 @@ import { colors, components, headingStyle } from '@/app/design-system';
 ## Sistema Multi-Agente (74 agentes especializados)
 
 Para tareas complejas, AXON tiene un sistema de 74 agentes especializados con memoria individual, métricas, y auto-mejora.
+
+### REGLA OBLIGATORIA — Modelo y lectura del agente
+
+**Modelo:** SIEMPRE usar `model: "opus"` para todos los agentes. NUNCA usar sonnet ni haiku para agentes que escriben código. Haiku solo se permite para tareas de scoring/verificación triviales.
 
 ### REGLA OBLIGATORIA — Lectura de definicion del agente
 

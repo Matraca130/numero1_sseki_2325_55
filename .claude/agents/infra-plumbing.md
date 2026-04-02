@@ -28,6 +28,9 @@ Tus archivos son importados por TODOS los otros agentes backend. Cambios aquí t
 - Cambios en `validate.ts` → low risk, podés hacer sin escalar
 - Cambios en `index.ts` (routes registration) → avisar al lead
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar

@@ -97,4 +97,85 @@ describe('renderTextWithKeywords', () => {
     const brs = container.querySelectorAll('br');
     expect(brs.length).toBeGreaterThanOrEqual(2);
   });
+
+  // --- Inline markdown tests ---
+
+  it('renders **bold** as <strong>', () => {
+    const { container } = renderResult('Texto **importante** aquí.');
+    const strong = container.querySelector('strong');
+    expect(strong).not.toBeNull();
+    expect(strong!.textContent).toBe('importante');
+  });
+
+  it('renders *italic* as <em>', () => {
+    const { container } = renderResult('Texto *cursiva* aquí.');
+    const em = container.querySelector('em');
+    expect(em).not.toBeNull();
+    expect(em!.textContent).toBe('cursiva');
+  });
+
+  it('renders `code` as <code>', () => {
+    const { container } = renderResult('Usa `console.log` para depurar.');
+    const code = container.querySelector('code');
+    expect(code).not.toBeNull();
+    expect(code!.textContent).toBe('console.log');
+  });
+
+  it('renders --- as <hr>', () => {
+    const { container } = renderResult('Antes\n\n---\n\nDespués');
+    const hr = container.querySelector('hr');
+    expect(hr).not.toBeNull();
+  });
+
+  it('renders [Imagen: foto del corazón] as styled placeholder', () => {
+    const { container } = renderResult('Ver [Imagen: foto del corazón] aquí.');
+    const span = container.querySelector('span.text-xs.italic');
+    expect(span).not.toBeNull();
+    expect(span!.textContent).toBe('[Imagen: foto del corazón]');
+  });
+
+  it('does NOT parse markdown inside keyword markers', () => {
+    // {{**keyword**}} should look for a keyword named "**keyword**", not parse bold
+    renderResult('La {{**keyword**}} es especial.', []);
+    // Falls back to plain span with the raw name including asterisks
+    expect(screen.getByText('**keyword**')).toBeInTheDocument();
+  });
+
+  it('renders mixed bold + keyword chip + text correctly', () => {
+    const kw = makeKeyword({ name: 'aterosclerosis' });
+    const { container } = renderResult(
+      'La **aterosclerosis** es {{aterosclerosis}} crónica.',
+      [kw],
+    );
+    const strong = container.querySelector('strong');
+    expect(strong).not.toBeNull();
+    expect(strong!.textContent).toBe('aterosclerosis');
+    // Both bold text and keyword chip contain "aterosclerosis"
+    const matches = screen.getAllByText('aterosclerosis');
+    expect(matches.length).toBe(2);
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('crónica.');
+  });
+
+  it('code protects content from bold parsing', () => {
+    const { container } = renderResult('Esto es `**not bold**` texto.');
+    const code = container.querySelector('code');
+    expect(code).not.toBeNull();
+    expect(code!.textContent).toBe('**not bold**');
+    // No <strong> should exist
+    expect(container.querySelector('strong')).toBeNull();
+  });
+
+  it('renders bold and italic in same text', () => {
+    const { container } = renderResult('**bold** and *italic* together.');
+    expect(container.querySelector('strong')!.textContent).toBe('bold');
+    expect(container.querySelector('em')!.textContent).toBe('italic');
+  });
+
+  it('handles ***text*** gracefully (bold wrapping italic)', () => {
+    const { container } = renderResult('Esto es ***texto*** especial.');
+    // Should render as <strong><em>texto</em></strong> or at least not crash
+    const strong = container.querySelector('strong');
+    expect(strong).not.toBeNull();
+    expect(container.textContent).toContain('texto');
+  });
 });

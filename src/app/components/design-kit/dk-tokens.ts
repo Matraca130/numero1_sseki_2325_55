@@ -50,7 +50,9 @@ export const tokens = {
     inProgress: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", accent: "bg-teal-500" },
     notStarted: { bg: "bg-zinc-100", text: "text-zinc-500", border: "border-zinc-200", accent: "bg-zinc-300" },
   },
-  // Colores de mastery (Delta Mastery Scale — aligned with mastery-helpers.ts)
+  // Colores de mastery (Delta Mastery Scale — Tailwind-class representation)
+  // Canonical hex values: design-system/colors.ts → colors.mastery
+  // This object provides Tailwind utility classes for the same 5-level scale.
   mastery: {
     gray:   { bg: "bg-zinc-100",    text: "text-zinc-600",    border: "border-zinc-300",    label: "Por descubrir" },
     red:    { bg: "bg-red-100",     text: "text-red-700",     border: "border-red-300",     label: "Emergente" },

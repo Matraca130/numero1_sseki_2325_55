@@ -12,9 +12,9 @@
 // Uses useChunkImageLightbox hook (event delegation + MutationObserver).
 // P-05 FIX: React.memo to prevent unnecessary re-renders.
 // ============================================================
-import React, { useRef } from 'react';
-import { motion } from 'motion/react';
-import { Layers } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Layers, Highlighter } from 'lucide-react';
 import type { Chunk } from '@/app/services/summariesApi';
 import { SummaryViewer } from '@/app/components/student/SummaryViewer';
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
@@ -26,6 +26,8 @@ import { ImageLightbox } from '@/app/components/student/ImageLightbox';
 import { useChunkImageLightbox } from '@/app/hooks/useChunkImageLightbox';
 import type { ReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
+import type { TextAnnotation } from '@/app/services/studentSummariesApi';
+import { TextHighlighter } from '@/app/components/student/TextHighlighter';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -38,6 +40,8 @@ export interface ReaderChunksTabProps {
   onNavigateKeyword: (keywordId: string, summaryId: string) => void;
   readingSettings?: ReadingSettings;
   keywords?: SummaryKeyword[];
+  /** Text annotations for highlighting (from useSummaryReaderQueries) */
+  annotations?: TextAnnotation[];
 }
 
 // ── Component (P-05 FIX: React.memo) ─────────────────────
@@ -51,6 +55,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
   onNavigateKeyword,
   readingSettings,
   keywords,
+  annotations = [],
 }: ReaderChunksTabProps) {
   // ── Lightbox for chunk images (P1 fix) ──────────────────
   const chunksContainerRef = useRef<HTMLDivElement>(null);
@@ -61,19 +66,53 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
     closeLightbox,
   } = useChunkImageLightbox(chunks, chunksContainerRef);
 
+  // Toggle for text highlighting mode alongside blocks view
+  const [showHighlighter, setShowHighlighter] = useState(false);
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
         <h3 className="text-sm text-zinc-700" style={{ fontWeight: 600 }}>Contenido del resumen</h3>
-        {!blocksLoading && hasBlocks && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 600 }}>
-            Vista enriquecida
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!blocksLoading && hasBlocks && (
+            <>
+              {chunks.length > 0 && (
+                <button
+                  onClick={() => setShowHighlighter(prev => !prev)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border transition-colors cursor-pointer ${
+                    showHighlighter
+                      ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100'
+                  }`}
+                  style={{ fontWeight: 600 }}
+                  title={showHighlighter ? 'Volver a vista enriquecida' : 'Modo subrayado: selecciona texto para crear highlights'}
+                >
+                  <Highlighter size={10} />
+                  {showHighlighter ? 'Vista enriquecida' : 'Subrayar'}
+                </button>
+              )}
+              {!showHighlighter && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-violet-50 text-violet-600 border border-violet-200" style={{ fontWeight: 600 }}>
+                  Vista enriquecida
+                </span>
+              )}
+            </>
+          )}
+        </div>
       </div>
       <div className="p-6">
         {!blocksLoading && hasBlocks ? (
-          <SummaryViewer summaryId={summaryId} readingSettings={readingSettings} keywords={keywords} />
+          showHighlighter ? (
+            <div ref={chunksContainerRef}>
+              <TextHighlighter
+                chunks={chunks}
+                summaryId={summaryId}
+                annotations={annotations}
+              />
+            </div>
+          ) : (
+            <SummaryViewer summaryId={summaryId} layout="flow" readingSettings={readingSettings} keywords={keywords} />
+          )
         ) : chunksLoading ? (
           <ListSkeleton />
         ) : chunks.length === 0 ? (

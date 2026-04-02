@@ -50,6 +50,9 @@ Eres **ST-04 — Study Plan Management Agent**. Tu responsabilidad es mantener y
 - `services/studySessionApi.ts` — API de sesiones para vincular plan con sesion (owner: ST-02)
 - `lib/studyQueueApi.ts` — Cola de estudio consultada para planificacion (owner: ST-03)
 
+## Depends On
+- **ST-02** (study-sessions) — los planes organizan y agrupan sesiones de estudio
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar

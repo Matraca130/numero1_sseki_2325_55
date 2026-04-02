@@ -24,9 +24,9 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 - `components/summary/SummaryHeader.tsx`
 - `components/roles/pages/professor/SummaryDetailView.tsx` (750L)
 - `components/roles/pages/professor/SummaryFormDialog.tsx` (153L)
-- `hooks/useSummaryPersistence.ts` (190L)
-- `hooks/useSummaryViewer.ts` (137L)
-- `hooks/useSummaryTimer.ts` (47L)
+- ~~`hooks/useSummaryPersistence.ts`~~ (planned, never created — persistence handled by useSummaryReaderMutations)
+- ~~`hooks/useSummaryViewer.ts`~~ (planned, never created — viewer logic inline in StudentSummaryReader)
+- ~~`hooks/useSummaryTimer.ts`~~ (planned, never created — replaced by useReadingTimeTracker)
 - `hooks/useReadingTimeTracker.ts` (182L)
 - `hooks/useChunkImageLightbox.ts` (193L)
 - `hooks/queries/useSummaryReaderQueries.ts`
@@ -62,6 +62,9 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 - Archivos del text highlighter (SM-06) para entender anotaciones
 - Tipos compartidos y servicios globales
 
+## Depends On
+- **SM-02** (summaries-backend-v2) — Provee las rutas API y servicios backend que el frontend de resúmenes consume para CRUD, paginación y datos de lectura
+
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -70,6 +73,7 @@ Eres SM-01, el agente responsable del frontend de resúmenes. Gestionas el visor
 4. Revisa los componentes principales del reader y el visor para entender el estado actual.
 5. Verifica que la paginación HTML y el tracking de lectura funcionen correctamente.
 6. Lee `docs/claude-config/agent-memory/individual/SM-01-summaries-frontend.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 

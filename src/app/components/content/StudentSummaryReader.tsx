@@ -16,13 +16,14 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ChevronRight, Layers, Tag, Video as VideoIcon,
+  ChevronLeft, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
   StickyNote, BookOpen, Search as SearchIcon,
-  Timer, Settings,
+  Timer, Settings, PanelLeftOpen, Minimize2,
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
+import { MasteryLegend } from '@/app/components/student/MasteryLegend';
 import { SearchBar } from '@/app/components/student/SearchBar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
@@ -31,6 +32,7 @@ import { VideoPlayer } from '@/app/components/student/VideoPlayer';
 import { useSummaryReaderQueries } from '@/app/hooks/queries/useSummaryReaderQueries';
 import { useKeywordDetailQueries } from '@/app/hooks/queries/useKeywordDetailQueries';
 import { useSummaryReaderMutations } from '@/app/hooks/queries/useSummaryReaderMutations';
+import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import {
   PageNavigation,
   CompletionCard,
@@ -92,7 +94,7 @@ export function StudentSummaryReader({
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
   const [showTimer, setShowTimer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings(summary.id);
+  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings();
 
   // ── Wave 1: Sidebar, search, reading progress ─────────
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -114,6 +116,9 @@ export function StudentSummaryReader({
 
   // ── Blocks for sidebar outline (shared cache — no extra fetch) ──
   const { data: sidebarBlocks = [] } = useSummaryBlocksQuery(summary.id);
+
+  // ── Block mastery levels (Delta scale) ──
+  const { data: masteryLevels = {} } = useSummaryBlockMastery(summary.id);
 
   // ── Scroll-spy: track which block is currently visible ──
   useEffect(() => {
@@ -157,17 +162,32 @@ export function StudentSummaryReader({
     }).length;
   }, [searchQuery, sidebarBlocks]);
 
-  // ── Ctrl+F override to open search bar ──
+  // ── Keyboard shortcuts (Ctrl+F, Ctrl+Shift+F, Escape) ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        updateReadingSettings({ ...readingSettings, focusMode: !readingSettings.focusMode });
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setSearchOpen(true);
       }
+      if (e.key === 'Escape') {
+        if (readingSettings.focusMode) {
+          updateReadingSettings({ ...readingSettings, focusMode: false });
+          return;
+        }
+        setSearchOpen(false);
+        setSearchQuery('');
+        setShowSettings(false);
+        setShowTimer(false);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [readingSettings, updateReadingSettings]);
 
   // ── Memoized pagination + keyword-to-page map ───────────
   const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
@@ -299,7 +319,8 @@ export function StudentSummaryReader({
       ref={readerRef}
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
-      className={`axon-reader h-full overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-zinc-50'}`}
+      className={`axon-reader overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-[#F0F2F5]'}`}
+      style={{ minHeight: '100vh' }}
     >
       {/* ── Reading progress bar (Wave 1) ── */}
       <ReadingProgress containerRef={readerRef} />
@@ -317,90 +338,191 @@ export function StudentSummaryReader({
         />
       )}
 
-      <div className="flex max-w-6xl mx-auto p-6 sm:p-8 gap-6">
-        {/* ── Sidebar outline (Wave 1) ── */}
-        {sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <SidebarOutline
-            blocks={sidebarBlocks}
-            activeBlockId={activeBlockId}
-            onBlockClick={handleSidebarBlockClick}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-          />
-        )}
+      {/* ── Focus mode floating exit button ── */}
+      {readingSettings.focusMode && (
+        <button
+          onClick={() => updateReadingSettings({ ...readingSettings, focusMode: false })}
+          title="Salir de modo enfocado (Esc)"
+          aria-label="Salir de modo enfocado"
+          className="fixed top-4 right-4 z-[500] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 border border-gray-200 shadow-sm transition-all"
+          style={{ fontSize: 'clamp(0.6875rem, 1.5vw, 0.75rem)' }}
+        >
+          <Minimize2 size={13} />
+          Salir
+        </button>
+      )}
 
-        <div className="flex-1 min-w-0 max-w-4xl">
-        {/* ── Breadcrumb + back + tools ── */}
-        <div className="flex items-center gap-2 mb-5">
-          <button
-            onClick={onBack}
-            className={`flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors ${focusRing} rounded-lg px-2 py-1`}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span style={{ fontWeight: 500 }}>Resumenes</span>
-          </button>
-          <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-sm text-zinc-400">{topicName}</span>
-          <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
-            {summary.title || 'Sin titulo'}
-          </span>
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Search toggle (Wave 1) */}
-          <button
-            onClick={() => setSearchOpen((v) => !v)}
-            className={`flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors ${focusRing} rounded-lg px-2 py-1`}
-            title="Buscar (Ctrl+F)"
-          >
-            <SearchIcon className="w-4 h-4" />
-          </button>
-
-          {/* Timer toggle (Wave 4) */}
-          <button
-            onClick={() => setShowTimer(prev => !prev)}
-            className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
-              showTimer
-                ? 'bg-teal-50 text-teal-600'
-                : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800'
-            }`}
-            aria-label={showTimer ? 'Fechar timer' : 'Abrir timer'}
-          >
-            <Timer className="w-4 h-4" />
-          </button>
-
-          {/* Theme toggle (Wave 5) */}
-          <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
-
-          {/* Settings toggle (Wave 4) */}
-          <div className="relative">
-            <button
-              onClick={() => setShowSettings(prev => !prev)}
-              className={`p-1.5 rounded-lg transition-colors ${focusRing} ${
-                showSettings
-                  ? 'bg-teal-50 text-teal-600'
-                  : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800'
-              }`}
-              aria-label={showSettings ? 'Fechar configurações' : 'Configurações de leitura'}
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-            {showSettings && (
-              <ReadingSettingsPanel
-                settings={readingSettings}
-                onChange={updateReadingSettings}
-                onClose={() => setShowSettings(false)}
+      <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
+        {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
+        {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+          <div className="flex flex-col gap-3">
+            <SidebarOutline
+              blocks={sidebarBlocks}
+              activeBlockId={activeBlockId}
+              onBlockClick={handleSidebarBlockClick}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+              masteryLevels={masteryLevels}
+            />
+            {!sidebarCollapsed && Object.keys(masteryLevels).length > 0 && (
+              <MasteryLegend
+                masteryLevels={masteryLevels}
+                totalBlocks={sidebarBlocks.length}
               />
             )}
           </div>
-        </div>
+        )}
+
+        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
+
+        {/* ── Immersive header toolbar (V1+V2+V6) ── */}
+        {!readingSettings.focusMode && (
+        <header
+          role="banner"
+          aria-label="Barra de herramientas del resumen"
+          className="flex items-center justify-between"
+          style={{
+            background: isDark ? '#0d0e11' : '#1B3B36',
+            padding: '10px 20px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            borderBottom: isDark ? '1px solid #2d2e34' : '1px solid transparent',
+            borderRadius: '12px 12px 0 0',
+          }}
+        >
+          {/* Left side: back + brand */}
+          <div className="flex items-center" style={{ gap: 12 }}>
+            <button
+              onClick={onBack}
+              aria-label="Volver a resúmenes"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 6,
+                cursor: 'pointer',
+                color: '#b4d9d1',
+                display: 'flex',
+                borderRadius: 6,
+              }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: '#2a8c7a',
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}
+            >
+              AXON
+            </span>
+            <span style={{ color: '#b4d9d1', fontSize: 13, fontWeight: 300 }}>
+              Resúmenes
+            </span>
+          </div>
+
+          {/* Right side: tool icons */}
+          <div className="flex items-center" style={{ gap: 6 }}>
+            {/* Search toggle */}
+            <button
+              onClick={() => setSearchOpen((v) => !v)}
+              title="Buscar (Ctrl+F)"
+              aria-label="Buscar"
+              style={{
+                background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none',
+                border: 'none',
+                padding: 6,
+                cursor: 'pointer',
+                color: searchOpen ? '#2a8c7a' : '#b4d9d1',
+                display: 'flex',
+                borderRadius: 6,
+              }}
+            >
+              <SearchIcon size={16} />
+            </button>
+
+            {/* Timer toggle */}
+            <button
+              onClick={() => setShowTimer((prev) => !prev)}
+              title="Temporizador de estudio"
+              aria-label={showTimer ? 'Cerrar timer' : 'Abrir timer'}
+              style={{
+                background: showTimer ? 'rgba(42,140,122,0.15)' : 'none',
+                border: 'none',
+                padding: 6,
+                cursor: 'pointer',
+                color: showTimer ? '#2a8c7a' : '#b4d9d1',
+                display: 'flex',
+                borderRadius: 6,
+              }}
+            >
+              <Timer size={16} />
+            </button>
+
+            {/* Separator */}
+            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
+
+            {/* Theme toggle */}
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+
+            {/* Settings toggle */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSettings((prev) => !prev)}
+                title="Configuración de lectura"
+                aria-label={showSettings ? 'Cerrar configuración' : 'Configuración de lectura'}
+                style={{
+                  background: showSettings ? 'rgba(42,140,122,0.15)' : 'none',
+                  border: 'none',
+                  padding: 6,
+                  cursor: 'pointer',
+                  color: showSettings ? '#2a8c7a' : '#b4d9d1',
+                  display: 'flex',
+                  borderRadius: 6,
+                }}
+              >
+                <Settings size={16} />
+              </button>
+              {showSettings && (
+                <ReadingSettingsPanel
+                  settings={readingSettings}
+                  onChange={updateReadingSettings}
+                  onClose={() => setShowSettings(false)}
+                />
+              )}
+            </div>
+
+            {/* Separator */}
+            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
+
+            {/* Sidebar toggle */}
+            <button
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              title="Outline"
+              aria-label={sidebarCollapsed ? 'Mostrar panel de estructura' : 'Ocultar panel de estructura'}
+              style={{
+                background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none',
+                border: 'none',
+                padding: 6,
+                cursor: 'pointer',
+                color: !sidebarCollapsed ? '#2a8c7a' : '#b4d9d1',
+                display: 'flex',
+                borderRadius: 6,
+              }}
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+          </div>
+        </header>
+        )}
 
         {/* ── Study Timer (fixed position, self-managed) ── */}
         {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
 
         {/* ── Summary header card ── */}
-        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-2xl border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
+        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-[20px] border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
           {/* Accent bar */}
           <div className={`h-1 ${isCompleted ? 'bg-emerald-500' : 'bg-teal-500'}`} />
 
@@ -418,7 +540,7 @@ export function StudentSummaryReader({
                   )}
                 </div>
                 <div>
-                  <h2 className="text-zinc-900 dark:text-[#e6e7eb] text-lg tracking-tight" style={{ fontWeight: 700 }}>
+                  <h2 className="text-zinc-900 dark:text-[#e6e7eb] tracking-tight" style={{ fontWeight: 700, fontFamily: 'Georgia, serif', fontSize: 30 }}>
                     {summary.title || 'Sin titulo'}
                   </h2>
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -562,6 +684,7 @@ export function StudentSummaryReader({
               onNavigateKeyword={handleNavigateKeywordWrapped}
               readingSettings={readingSettings}
               keywords={keywords}
+              annotations={textAnnotations}
             />
           </TabsContent>
 

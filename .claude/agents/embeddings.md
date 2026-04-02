@@ -27,6 +27,9 @@ Eres el agente AI-04 responsable de la gestion de embeddings y busqueda vectoria
 - `services/ai-service/as-chat.ts` — Chat RAG que consume busqueda vectorial
 - `services/ai-service/as-types.ts` — Tipos compartidos del servicio AI
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar

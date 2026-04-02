@@ -91,7 +91,7 @@
 - `components/tiptap/TipTapEditor.tsx` (861L) — editor WYSIWYG
 - `components/video/MuxVideoPlayer.tsx`, `MuxUploadPanel.tsx`
 - `context/ContentTreeContext.tsx` (242L) — árbol de contenido
-- `hooks/useContentTree.ts`, `useSummaryPersistence.ts`, `useSummaryTimer.ts`
+- `hooks/useContentTree.ts`, `useReadingTimeTracker.ts`
 - `hooks/queries/useSummaryReaderQueries.ts`, `useSummaryReaderMutations.ts`
 - `services/contentTreeApi.ts`, `summariesApi.ts`, `studentSummariesApi.ts`
 - `lib/summary-content-helpers.tsx`, `content-tree-helpers.ts`

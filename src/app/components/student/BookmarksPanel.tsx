@@ -1,52 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
 import { Bookmark, BookmarkCheck, X } from 'lucide-react';
-
-// ─────────────────────────────────────────────
-// useBookmarks hook — localStorage persistence
-// ─────────────────────────────────────────────
-
-function getStorageKey(summaryId: string) {
-  return `axon-bookmarks-${summaryId}`;
-}
-
-export function useBookmarks(summaryId: string) {
-  const [bookmarks, setBookmarks] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(getStorageKey(summaryId));
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Sync to localStorage on change
-  useEffect(() => {
-    localStorage.setItem(getStorageKey(summaryId), JSON.stringify(bookmarks));
-  }, [summaryId, bookmarks]);
-
-  const toggle = useCallback((blockId: string) => {
-    setBookmarks(prev =>
-      prev.includes(blockId)
-        ? prev.filter(id => id !== blockId)
-        : [...prev, blockId]
-    );
-  }, []);
-
-  const remove = useCallback((blockId: string) => {
-    setBookmarks(prev => prev.filter(id => id !== blockId));
-  }, []);
-
-  const isBookmarked = useCallback(
-    (blockId: string) => bookmarks.includes(blockId),
-    [bookmarks]
-  );
-
-  return { bookmarks, toggle, remove, isBookmarked };
-}
-
-// ─────────────────────────────────────────────
-// BookmarksPanel component
-// ─────────────────────────────────────────────
 
 interface BookmarkItem {
   blockId: string;
@@ -71,7 +23,7 @@ export default function BookmarksPanel({
     <div
       role="dialog"
       aria-label="Bloques guardados"
-      className="absolute top-full right-0 mt-1.5 w-72 bg-white dark:bg-[var(--reader-card-bg,#1e1f25)] border border-gray-200 dark:border-[var(--reader-border,#2d2e34)] rounded-2xl p-3 shadow-lg z-50 max-h-[350px] overflow-y-auto"
+      className="absolute bottom-full right-0 mb-1.5 w-72 bg-white dark:bg-[var(--reader-card-bg,#1e1f25)] border border-gray-200 dark:border-[var(--reader-border,#2d2e34)] rounded-2xl p-3 shadow-lg z-50 max-h-[350px] overflow-y-auto"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">

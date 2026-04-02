@@ -22,11 +22,12 @@ import { useAuth } from '@/app/context/AuthContext';
 import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import type { ReadingSettings } from './ReadingSettingsPanel';
-import { useBookmarks } from './BookmarksPanel';
+import { useBlockBookmarks } from '@/app/hooks/queries/useBlockBookmarks';
 import BookmarksPanel from './BookmarksPanel';
 import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
+import { useCreateAnnotationMutation } from '@/app/hooks/queries/useAnnotationMutations';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -39,9 +40,11 @@ interface SummaryViewerProps {
   readingSettings?: ReadingSettings;
   /** Keywords for edu sub-components (ProseBlock, KeyPointBlock, etc.) */
   keywords?: SummaryKeyword[];
+  /** Layout mode: 'canvas' = absolute positioning (default), 'flow' = vertical stack */
+  layout?: 'canvas' | 'flow';
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'canvas' }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -59,8 +62,11 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   // ── Bookmarks state ───────────────────────────────────
-  const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBookmarks(summaryId);
+  const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBlockBookmarks(summaryId);
   const [showBookmarks, setShowBookmarks] = useState(false);
+
+  // ── Text annotation mutation (single instance for all blocks) ──
+  const createAnnotationMutation = useCreateAnnotationMutation(summaryId);
 
   // ── Annotations state (per-block toggle) ──────────────
   const [annotationsOpen, setAnnotationsOpen] = useState<Record<string, boolean>>({});
@@ -164,9 +170,9 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
     <>
       <div
         ref={containerRef}
-        className={`dark:bg-[#111215] ${isMobile ? 'space-y-4 px-4 py-6' : 'relative'}`}
+        className={`dark:bg-[#111215] ${(isMobile || layout === 'flow') ? 'space-y-4 px-4 py-6' : 'relative'}`}
         style={{
-          ...(!isMobile ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
+          ...(!(isMobile || layout === 'flow') ? { height: `${canvasHeight}px`, minHeight: '400px' } : {}),
           ...(readingSettings ? {
             fontSize: `${readingSettings.fontSize}px`,
             lineHeight: readingSettings.lineHeight,
@@ -185,12 +191,15 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
               aria-label={`Bloque ${block.type}`}
+              {...(layout === 'flow' ? { style: { marginBottom: 16 } } : {})}
             >
               <ViewerBlock
                 block={block}
                 isMobile={isMobile}
                 keywords={keywords}
                 masteryLevel={masteryLevels[block.id]}
+                summaryId={summaryId}
+                createAnnotationMutation={createAnnotationMutation}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
@@ -207,11 +216,11 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
             </motion.div>
           );
 
-          if (isMobile) {
+          if (isMobile || layout === 'flow') {
             return content;
           }
 
-          // Desktop: absolute positioned
+          // Desktop: absolute positioned (canvas mode)
           return (
             <div
               key={block.id}
@@ -275,7 +284,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       />
 
       {/* ── Bookmarks toggle + panel ──────────────────── */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-24 z-50">
         <div className="relative">
           <button
             onClick={() => setShowBookmarks(prev => !prev)}

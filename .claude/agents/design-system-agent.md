@@ -19,6 +19,9 @@ Ninguna — eres un agente de solo lectura que audita componentes.
 - `components/**` — todos los componentes de UI
 - `design-system/` — tokens y definiciones del sistema de diseno
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -27,6 +30,11 @@ Ninguna — eres un agente de solo lectura que audita componentes.
 4. Lee los tokens definidos en `design-system/` para tener la referencia actualizada.
 5. Escanea `components/**` aplicando todas las verificaciones.
 6. Genera un reporte de violaciones agrupado por severidad.
+4. Lee `docs/claude-config/agent-memory/individual/XX-08-design-system-agent.md` (TU memoria personal — violaciones recurrentes, tokens actualizados, componentes auditados)
+5. Lee los tokens definidos en `design-system/` para tener la referencia actualizada.
+6. Escanea `components/**` aplicando todas las verificaciones.
+7. Genera un reporte de violaciones agrupado por severidad.
+8. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

@@ -36,6 +36,9 @@ Eres **ST-01 — Study Hub Browsing UI Agent**. Tu responsabilidad es mantener y
 - `services/bktApi.ts` — API de BKT (owner: ST-05)
 - `types/study-plan.ts` — Tipos compartidos (owner: ST-04)
 
+## Depends On
+- **SM-04** (content-tree) — necesita la jerarquía de contenido para navegación y browsing del árbol
+
 ## Al iniciar cada sesion
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
@@ -45,6 +48,7 @@ Eres **ST-01 — Study Hub Browsing UI Agent**. Tu responsabilidad es mantener y
 5. Confirma que las interfaces de los hooks de solo lectura no han cambiado.
 6. Identifica TODOs o deuda tecnica pendiente en tus archivos.
 7. Lee `docs/claude-config/agent-memory/individual/ST-01-study-hub.md` (TU memoria personal — lecciones, patrones, métricas)
+8. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 

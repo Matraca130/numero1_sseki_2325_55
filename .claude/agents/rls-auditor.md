@@ -18,6 +18,9 @@ Eres el agente AS-03 especializado en auditoria de politicas Row Level Security.
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 1. Lee el CLAUDE.md del repo que estás auditando
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
