@@ -24,7 +24,6 @@
 // Types
 export type {
   ChatHistoryEntry,
-  ChatMessage,
   RagChatResponse,
   GeneratedFlashcard,
   GeneratedQuestion,
@@ -93,6 +92,3 @@ export type {
   AiScheduleMeta,
   AiScheduleResponse,
 } from './ai-service/as-schedule';
-
-// Legacy (deprecated)
-export { listModels, generateFlashcards, generateQuiz } from './ai-service/as-legacy';
