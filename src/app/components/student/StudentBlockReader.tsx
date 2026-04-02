@@ -87,7 +87,9 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   // UI state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMastery, setShowMastery] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -178,7 +180,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   return (
     <div className="fixed inset-0 z-40 flex flex-col" style={{ background: pageBg }}>
       {/* ── Reading progress bar ─────────────────────────────── */}
-      <ReadingProgress />
+      <ReadingProgress containerRef={contentRef} />
 
       {/* ── Sticky compact header ────────────────────────────── */}
       <header
@@ -485,17 +487,19 @@ function ToolbarSeparator() {
 
 // ── Reading progress bar ─────────────────────────────────────
 
-function ReadingProgress() {
+function ReadingProgress({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
     const handleScroll = () => {
-      const winH = document.documentElement.scrollHeight - window.innerHeight;
-      setProgress(winH > 0 ? (window.scrollY / winH) * 100 : 0);
+      const scrollable = el.scrollHeight - el.clientHeight;
+      setProgress(scrollable > 0 ? (el.scrollTop / scrollable) * 100 : 0);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [containerRef]);
 
   return (
     <div

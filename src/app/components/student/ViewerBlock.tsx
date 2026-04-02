@@ -464,7 +464,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     case 'list_detail':
       return <ListDetailBlock block={block} keywords={keywords} />;
     case 'grid':
-      return <GridBlock block={block} />;
+      return <GridBlock block={block} keywords={keywords} />;
     case 'two_column':
       return <TwoColumnBlock block={block} keywords={keywords} />;
     case 'image_reference':

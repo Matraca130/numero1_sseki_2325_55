@@ -1,5 +1,6 @@
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import IconByName from './IconByName';
+import renderTextWithKeywords from './renderTextWithKeywords';
 
 interface GridItem {
   icon?: string;
@@ -7,11 +8,13 @@ interface GridItem {
   detail?: string;
 }
 
-export default function GridBlock({ block }: { block: SummaryBlock }) {
+export default function GridBlock({ block, keywords }: { block: SummaryBlock; keywords?: SummaryKeyword[] }) {
   const title = block.content?.title as string | undefined;
   const columns = (block.content?.columns ?? 3) as number;
   const items = (block.content?.items ?? []) as GridItem[];
-  const gridCols = columns === 2 ? 'grid-cols-2' : 'grid-cols-3';
+  const gridCols = columns === 2
+    ? 'grid-cols-1 sm:grid-cols-2'
+    : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3';
 
   if (!items.length) {
     return (
@@ -49,7 +52,7 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
             )}
             {item.detail && (
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {item.detail}
+                {renderTextWithKeywords(item.detail, keywords)}
               </div>
             )}
           </div>
