@@ -14,14 +14,14 @@ export default function ProseBlock({ block, keywords }: { block: SummaryBlock; k
         </h3>
       )}
       {content && (
-        <div className="text-[15px] leading-[1.75] text-gray-500 dark:text-gray-400">
+        <div className="text-[15px] leading-[1.75] text-gray-600 dark:text-gray-300">
           {renderTextWithKeywords(content, keywords)}
         </div>
       )}
       {image && (
         <img
           src={image}
-          alt={title ?? ''}
+          alt={title || 'Ilustración del contenido'}
           loading="lazy"
           className="max-w-full rounded-[10px] border border-gray-200 dark:border-gray-700 mt-3"
         />

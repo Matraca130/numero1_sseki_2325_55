@@ -323,6 +323,15 @@ export function StudentSummaryReader({
       className={`axon-reader overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-[#F0F2F5]'}`}
       style={{ minHeight: '100vh' }}
     >
+      {/* ── Skip to content link (a11y) ── */}
+      <a
+        href="#reader-main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:border focus:border-teal-200 focus:font-semibold"
+        style={{ fontSize: 'clamp(0.8rem, 1.5vw, 0.875rem)' }}
+      >
+        Saltar al contenido
+      </a>
+
       {/* ── Reading progress bar (Wave 1) ── */}
       <ReadingProgress containerRef={readerRef} />
 
@@ -379,7 +388,7 @@ export function StudentSummaryReader({
           </div>
         )}
 
-        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
+        <div id="reader-main-content" className={`flex-1 min-w-0 transition-all duration-200 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
 
         {/* ── Compact header toolbar with title ── */}
         {!readingSettings.focusMode && (
@@ -405,10 +414,14 @@ export function StudentSummaryReader({
               style={{
                 background: 'none',
                 border: 'none',
-                padding: 6,
+                padding: 10,
                 cursor: 'pointer',
                 color: '#b4d9d1',
                 display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                minHeight: 44,
                 borderRadius: 6,
                 flexShrink: 0,
               }}
@@ -477,10 +490,14 @@ export function StudentSummaryReader({
               style={{
                 background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none',
                 border: 'none',
-                padding: 6,
+                padding: 10,
                 cursor: 'pointer',
                 color: searchOpen ? '#2a8c7a' : '#b4d9d1',
                 display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                minHeight: 44,
                 borderRadius: 6,
               }}
             >
@@ -495,10 +512,14 @@ export function StudentSummaryReader({
               style={{
                 background: showTimer ? 'rgba(42,140,122,0.15)' : 'none',
                 border: 'none',
-                padding: 6,
+                padding: 10,
                 cursor: 'pointer',
                 color: showTimer ? '#2a8c7a' : '#b4d9d1',
                 display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                minHeight: 44,
                 borderRadius: 6,
               }}
             >
@@ -506,7 +527,7 @@ export function StudentSummaryReader({
             </button>
 
             {/* Separator */}
-            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
+            <div role="separator" aria-hidden="true" style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
 
             {/* Theme toggle */}
             <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
@@ -520,10 +541,14 @@ export function StudentSummaryReader({
                 style={{
                   background: showSettings ? 'rgba(42,140,122,0.15)' : 'none',
                   border: 'none',
-                  padding: 6,
+                  padding: 10,
                   cursor: 'pointer',
                   color: showSettings ? '#2a8c7a' : '#b4d9d1',
                   display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 44,
+                  minHeight: 44,
                   borderRadius: 6,
                 }}
               >
@@ -539,7 +564,7 @@ export function StudentSummaryReader({
             </div>
 
             {/* Separator */}
-            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
+            <div role="separator" aria-hidden="true" style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
 
             {/* Sidebar toggle */}
             <button
@@ -549,10 +574,14 @@ export function StudentSummaryReader({
               style={{
                 background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none',
                 border: 'none',
-                padding: 6,
+                padding: 10,
                 cursor: 'pointer',
                 color: !sidebarCollapsed ? '#2a8c7a' : '#b4d9d1',
                 display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                minHeight: 44,
                 borderRadius: 6,
               }}
             >
@@ -651,12 +680,12 @@ export function StudentSummaryReader({
             <TabsList className="mb-4 bg-white dark:bg-[#1e1f25] border border-zinc-200 dark:border-[#2d2e34] rounded-xl p-1">
               <TabsTrigger value="keywords" className="gap-1.5 rounded-lg">
                 <Tag className="w-3.5 h-3.5" />
-                Keywords
+                <span lang="en">Keywords</span>
                 {!keywordsLoading && <TabBadge count={keywords.length} active={activeTab === 'keywords'} />}
               </TabsTrigger>
               <TabsTrigger value="videos" className="gap-1.5 rounded-lg">
                 <VideoIcon className="w-3.5 h-3.5" />
-                Videos
+                <span lang="en">Videos</span>
                 {!videosLoading && <TabBadge count={videosCount} active={activeTab === 'videos'} />}
               </TabsTrigger>
               <TabsTrigger value="annotations" className="gap-1.5 rounded-lg">

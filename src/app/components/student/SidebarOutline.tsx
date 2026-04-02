@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { colors } from '@/app/design-system';
+import { getMasteryInfo } from '@/app/components/student/MasteryBar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,6 +70,7 @@ function getMasteryDotColor(level: number): string {
   if (level >= 0.5) return colors.mastery.emergente;     // red
   return colors.mastery.descubrir;                        // gray
 }
+
 
 function getBlockLabel(block: { type: string; content?: Record<string, unknown> }): string {
   const title = block.content?.title;
@@ -150,6 +152,7 @@ export function SidebarOutline({
           {!collapsed && (
             <span
               className="uppercase select-none text-gray-400 dark:text-gray-500"
+              aria-hidden={collapsed ? true : undefined}
               style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, paddingLeft: 4, whiteSpace: 'nowrap' }}
             >
               Estructura
@@ -159,7 +162,7 @@ export function SidebarOutline({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-50 dark:bg-[#1a2e2a] text-teal-500 hover:bg-teal-100 dark:hover:bg-[#224038] transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-50 dark:bg-[#1a2e2a] text-teal-500 hover:bg-teal-100 dark:hover:bg-[#224038] transition-colors focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none"
             aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
           >
             <ToggleIcon size={14} className="text-teal-500" />
@@ -174,7 +177,7 @@ export function SidebarOutline({
                 type="button"
                 onClick={() => onViewModeChange(viewMode === 'enriched' ? 'reading' : 'enriched')}
                 title={viewMode === 'enriched' ? 'Cambiar a lectura limpia' : 'Cambiar a vista enriquecida'}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2d2e34] transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2d2e34] transition-colors focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none"
               >
                 {viewMode === 'enriched' ? <Layers size={14} /> : <FileText size={14} />}
               </button>
@@ -186,6 +189,7 @@ export function SidebarOutline({
                 onClick={() => onViewModeChange('reading')}
                 className={[
                   'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium transition-all',
+                  'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
                   viewMode === 'reading'
                     ? 'bg-white dark:bg-[#1e1f25] text-teal-600 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
@@ -198,6 +202,7 @@ export function SidebarOutline({
                 onClick={() => onViewModeChange('enriched')}
                 className={[
                   'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium transition-all',
+                  'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
                   viewMode === 'enriched'
                     ? 'bg-white dark:bg-[#1e1f25] text-teal-600 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
@@ -224,10 +229,13 @@ export function SidebarOutline({
                 onClick={() => onBlockClick(block.id)}
                 title={collapsed ? label : undefined}
                 aria-current={isActive ? 'page' : undefined}
-                aria-label={collapsed ? label : undefined}
+                aria-label={collapsed
+                  ? `${label}${mastery !== undefined ? ` – ${getMasteryInfo(mastery).label}` : ''}`
+                  : undefined}
                 className={[
                   'relative flex items-center gap-2 text-left transition-all',
                   'border-l-[3px]',
+                  'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
                   isActive
                     ? 'border-l-[#2a8c7a] bg-teal-50 dark:bg-[#1a2e2a] font-semibold text-[#2a8c7a]'
                     : 'border-l-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1a2e2a]',
