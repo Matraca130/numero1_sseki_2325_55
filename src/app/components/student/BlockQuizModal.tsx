@@ -18,7 +18,7 @@ import { apiCall } from '@/app/lib/api';
 // ── Design tokens (inlined from design system) ──────────────
 
 const MODAL_OVERLAY =
-  'fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm';
+  'fixed inset-0 z-50 flex items-center justify-center bg-black/50';
 
 const MODAL_CARD =
   'bg-white rounded-2xl shadow-2xl border border-gray-200';

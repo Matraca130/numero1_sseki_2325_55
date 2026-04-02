@@ -132,7 +132,7 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
           </div>
         </div>
       </div>
-      <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-md shrink-0">
+      <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-white shrink-0">
         <div className="bg-white/60 rounded-lg p-3 border border-white/60 flex items-center justify-between">
           <div><div className="text-[10px] text-gray-400 uppercase tracking-wider" style={{ fontWeight: 700 }}>Retención General</div><div className="text-2xl text-gray-800" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>{overallRetention}%</div></div>
           <div className="h-10 w-24"><svg className="w-full h-full text-emerald-500" preserveAspectRatio="none" viewBox="0 0 100 40"><path d="M0 30 Q 10 35, 20 25 T 40 20 T 60 15 T 80 5 L 100 10 L 100 40 L 0 40 Z" fill="currentColor" opacity="0.2" /><path d="M0 30 Q 10 35, 20 25 T 40 20 T 60 15 T 80 5 L 100 10" fill="none" stroke="currentColor" strokeWidth="2" /></svg></div>
@@ -210,7 +210,7 @@ export function KnowledgeHeatmapView() {
             {daysOfWeek.map(day => (<div key={day} className="text-center text-[10px] lg:text-xs font-mono text-gray-400 uppercase tracking-wider">{day}</div>))}
           </div>
           <div className="flex-1 px-2 lg:px-8 pb-4 lg:pb-8 overflow-y-auto custom-scrollbar-light relative">
-            <div className="grid grid-cols-7 h-full min-h-[400px] lg:min-h-[600px] border-l border-t border-gray-200 rounded-bl-xl rounded-br-xl bg-white/30 backdrop-blur-sm relative">
+            <div className="grid grid-cols-7 h-full min-h-[400px] lg:min-h-[600px] border-l border-t border-gray-200 rounded-bl-xl rounded-br-xl bg-white relative">
               <AnimatePresence>
                 {selectedDay !== null && selectedDay > 0 && selectedDay <= daysInMonth && (() => {
                   const dayData = activityMap.get(selectedDay);
@@ -226,7 +226,7 @@ export function KnowledgeHeatmapView() {
                   const leftPx = Math.min(col * 140 + 60, 500);
                   return (
                     <motion.div key={`popover-${selectedDay}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                      className={clsx("absolute z-50 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/80 p-4", "left-2 right-2 bottom-2 lg:bottom-auto lg:left-auto lg:right-auto lg:w-72")}
+                      className={clsx("absolute z-50 bg-white rounded-xl shadow-xl border border-zinc-200 p-4", "left-2 right-2 bottom-2 lg:bottom-auto lg:left-auto lg:right-auto lg:w-72")}
                       style={{ ...(window.matchMedia('(min-width: 1024px)').matches ? { top: `${topPx}px`, left: `${leftPx}px` } : {}) }}>
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-pink-700" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>{dayEvents[0]?.title || `Día ${selectedDay}`}</h4>
@@ -276,7 +276,7 @@ export function KnowledgeHeatmapView() {
             </div>
           </div>
         </div>
-        <aside className="hidden lg:flex w-[360px] h-full bg-white/65 backdrop-blur-xl border-l border-white/60 flex-col relative shadow-xl overflow-hidden shrink-0">
+        <aside className="hidden lg:flex w-[360px] h-full bg-white border-l border-zinc-200 flex-col relative shadow-xl overflow-hidden shrink-0">
           <MemoryTimelineSidebar navigateTo={navigateTo} isConnected={isConnected} stats={stats} bktStates={bktStates} overallRetention={overallRetention} criticalTopic={criticalTopic} />
         </aside>
         <MobileDrawer isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} width={340}>

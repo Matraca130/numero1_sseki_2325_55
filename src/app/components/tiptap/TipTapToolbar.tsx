@@ -114,7 +114,7 @@ export function TipTapToolbar({
   const status = summaryStatus ? statusStyles[summaryStatus] || statusStyles.draft : null;
 
   return (
-    <div className="flex items-center gap-0.5 px-3 py-2 border-b border-gray-200 bg-white/95 backdrop-blur-sm flex-wrap">
+    <div className="flex items-center gap-0.5 px-3 py-2 border-b border-gray-200 bg-white flex-wrap">
       {/* ── Back + Title + Status ──────────────────────── */}
       {onBack && (
         <button

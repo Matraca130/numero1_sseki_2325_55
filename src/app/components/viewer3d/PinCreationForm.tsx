@@ -70,7 +70,7 @@ export function PinCreationForm({
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-80">
       <form
         onSubmit={handleSubmit}
-        className="bg-zinc-900/95 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-2xl space-y-3"
+        className="bg-zinc-900 rounded-xl border border-white/10 p-4 shadow-2xl space-y-3"
       >
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-white flex items-center gap-1.5">

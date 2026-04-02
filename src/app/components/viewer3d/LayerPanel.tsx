@@ -103,7 +103,7 @@ export function LayerPanel({ partLoader, layers, updateKey, onClose }: LayerPane
   if (layerGroups.length === 0) return null;
 
   return (
-    <div className="absolute top-0 left-0 z-20 w-64 h-full bg-zinc-900/95 backdrop-blur-xl border-r border-white/10 flex flex-col overflow-hidden">
+    <div className="absolute top-0 left-0 z-20 w-64 h-full bg-zinc-900 border-r border-white/10 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
         <h4 className="text-xs font-bold text-white flex items-center gap-1.5">

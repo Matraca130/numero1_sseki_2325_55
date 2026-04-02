@@ -367,7 +367,7 @@ export function QuizSessionView({
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col h-full bg-zinc-50 overflow-hidden">
 
       {/* Top Bar — Glass */}
-      <div className="h-14 flex items-center justify-between px-5 border-b border-zinc-200 shrink-0 bg-white/80 backdrop-blur-xl z-10">
+      <div className="h-14 flex items-center justify-between px-5 border-b border-zinc-200 shrink-0 bg-white z-10">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="flex items-center gap-1 p-1.5 -ml-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
             <ChevronLeft size={18} />

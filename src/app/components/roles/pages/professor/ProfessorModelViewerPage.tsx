@@ -96,7 +96,7 @@ export function ProfessorModelViewerPage() {
   return (
     <div className="h-full flex flex-col bg-zinc-950 overflow-hidden">
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/80 border-b border-white/[0.06] backdrop-blur-sm z-30 shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900 border-b border-white/[0.06] z-30 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/professor/curriculum')}

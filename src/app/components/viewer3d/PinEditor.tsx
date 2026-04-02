@@ -144,7 +144,7 @@ export function PinEditor({ modelId, onPinsChanged, camera, controls, onClose }:
   }, [onPinsChanged]);
 
   return (
-    <div className="absolute top-0 right-0 z-20 w-72 h-full bg-zinc-900/95 backdrop-blur-xl border-l border-white/10 flex flex-col overflow-hidden">
+    <div className="absolute top-0 right-0 z-20 w-72 h-full bg-zinc-900 border-l border-white/10 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
         <h4 className="text-xs font-bold text-white flex items-center gap-1.5">

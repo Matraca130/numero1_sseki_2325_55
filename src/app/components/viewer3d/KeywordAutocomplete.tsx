@@ -189,7 +189,7 @@ export function KeywordAutocomplete({ topicId, value, onChange, compact }: Keywo
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg bg-zinc-800/95 backdrop-blur-xl border border-white/10 shadow-2xl">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg bg-zinc-800 border border-white/10 shadow-2xl">
           {results.length === 0 && !loading && (
             <div className="px-3 py-2 text-[9px] text-gray-500 text-center">
               {query ? 'Sin resultados' : 'Escribe para buscar keywords'}

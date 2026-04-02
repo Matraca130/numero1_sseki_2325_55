@@ -161,7 +161,7 @@ export function CaptureViewDialog({
       {/* Capture button (always visible in professor mode) */}
       <button
         onClick={captureView}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
         title="Capturar vista actual"
       >
         <Camera size={12} />
@@ -170,8 +170,8 @@ export function CaptureViewDialog({
 
       {/* Dialog overlay */}
       {showDialog && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl w-96 max-h-[90%] overflow-y-auto">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-zinc-900 rounded-xl border border-white/10 shadow-2xl w-96 max-h-[90%] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <h4 className="text-xs font-bold text-white flex items-center gap-1.5">

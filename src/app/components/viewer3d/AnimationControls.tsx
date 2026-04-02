@@ -78,7 +78,7 @@ export function AnimationControls({
 
   return (
     <div className="absolute bottom-3 right-3 z-20 w-64">
-      <div className="bg-zinc-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-zinc-900 rounded-xl border border-white/10 shadow-2xl overflow-hidden">
         {/* Header: animation selector */}
         <div className="px-3 py-2 border-b border-white/5">
           <div className="relative">

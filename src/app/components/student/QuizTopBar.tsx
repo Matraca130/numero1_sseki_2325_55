@@ -79,7 +79,7 @@ export const QuizTopBar = React.memo(function QuizTopBar({
   onCountdownTimeout,
 }: QuizTopBarProps) {
   return (
-    <header className="h-14 flex items-center justify-between px-5 border-b border-zinc-200 shrink-0 bg-white/80 backdrop-blur-xl z-10" aria-label="Barra del quiz">
+    <header className="h-14 flex items-center justify-between px-5 border-b border-zinc-200 shrink-0 bg-white z-10" aria-label="Barra del quiz">
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}

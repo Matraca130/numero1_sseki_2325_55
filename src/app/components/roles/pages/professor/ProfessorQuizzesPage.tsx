@@ -187,7 +187,7 @@ export function ProfessorQuizzesPage() {
           ) : (
             <>
               {/* ── Header with breadcrumb ── */}
-              <div className="bg-white/80 backdrop-blur-xl border-b border-zinc-200 px-5 py-3">
+              <div className="bg-white border-b border-zinc-200 px-5 py-3">
                 {/* Breadcrumb */}
                 <Breadcrumb
                   items={breadcrumbItems}
