@@ -116,15 +116,14 @@ export function SidebarOutline({
         className={[
           'max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light',
           'bg-white dark:bg-[#1e1f25]',
-          'border-r border-gray-200 dark:border-[#2d2e34]',
           'transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
           collapsed
-            ? 'sticky top-[72px] flex-shrink-0'
-            : 'fixed top-[72px] left-0 z-40 shadow-2xl rounded-r-2xl border-r-0',
+            ? 'sticky top-[72px] border-r border-gray-200 dark:border-[#2d2e34]'
+            : 'absolute top-0 left-0 z-40 shadow-2xl rounded-2xl border border-gray-200 dark:border-[#2d2e34]',
         ].join(' ')}
         style={{
-          width: collapsed ? 52 : 264,
-          padding: collapsed ? '0 0 0 0' : '0 4px 0 0',
+          width: collapsed ? 52 : 272,
+          padding: collapsed ? 0 : '4px 0',
         }}
       >
         {/* -- Header -- */}

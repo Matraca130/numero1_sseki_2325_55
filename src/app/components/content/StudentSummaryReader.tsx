@@ -354,9 +354,9 @@ export function StudentSummaryReader({
 
       <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
-        {/* Collapsed: 52px in normal flow. Expanded: fixed overlay, content stays put */}
+        {/* Wrapper is relative so expanded sidebar overlays from its own position */}
         {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div className="flex flex-col gap-3" style={{ width: 52, flexShrink: 0 }}>
+          <div className="relative" style={{ width: 52, flexShrink: 0 }}>
             <SidebarOutline
               blocks={sidebarBlocks}
               activeBlockId={activeBlockId}

@@ -318,7 +318,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
       <div className="flex flex-1 overflow-hidden" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         {/* Sidebar — collapsed (52px) stays in flow, expanded overlays */}
         {sidebarOpen && (
-          <div style={{ width: 52, flexShrink: 0 }}>
+          <div className="relative" style={{ width: 52, flexShrink: 0 }}>
             <SidebarOutline
               blocks={sortedBlocks.map((b) => ({
                 id: b.id,
