@@ -354,8 +354,9 @@ export function StudentSummaryReader({
 
       <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
+        {/* Collapsed: 52px in normal flow. Expanded: fixed overlay, content stays put */}
         {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3" style={{ width: 52, flexShrink: 0 }}>
             <SidebarOutline
               blocks={sidebarBlocks}
               activeBlockId={activeBlockId}
@@ -363,13 +364,15 @@ export function StudentSummaryReader({
               collapsed={sidebarCollapsed}
               onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
               masteryLevels={masteryLevels}
+              masteryLegend={
+                Object.keys(masteryLevels).length > 0 ? (
+                  <MasteryLegend
+                    masteryLevels={masteryLevels}
+                    totalBlocks={sidebarBlocks.length}
+                  />
+                ) : undefined
+              }
             />
-            {!sidebarCollapsed && Object.keys(masteryLevels).length > 0 && (
-              <MasteryLegend
-                masteryLevels={masteryLevels}
-                totalBlocks={sidebarBlocks.length}
-              />
-            )}
           </div>
         )}
 
