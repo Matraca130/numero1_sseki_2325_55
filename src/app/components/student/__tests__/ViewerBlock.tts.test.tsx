@@ -36,8 +36,8 @@ describe('ViewerBlock — TTSButton filtering', () => {
       const { container } = render(
         <ViewerBlock block={block} isMobile={false} summaryId="test-summary" />
       );
-      // TTSButton renders a <button> with aria-label "Ler em voz alta"
-      const ttsButton = container.querySelector('button[aria-label="Ler em voz alta"]');
+      // TTSButton renders a <button> with aria-label "Leer en voz alta"
+      const ttsButton = container.querySelector('button[aria-label="Leer en voz alta"]');
       expect(ttsButton).toBeTruthy();
     });
   });
@@ -48,7 +48,7 @@ describe('ViewerBlock — TTSButton filtering', () => {
       const { container } = render(
         <ViewerBlock block={block} isMobile={false} summaryId="test-summary" />
       );
-      const ttsButton = container.querySelector('button[aria-label="Ler em voz alta"]');
+      const ttsButton = container.querySelector('button[aria-label="Leer en voz alta"]');
       expect(ttsButton).toBeFalsy();
     });
   });
