@@ -31,7 +31,7 @@ export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) 
         {description ?? 'Imagen por agregar'}
       </div>
       {caption && (
-        <div className="text-xs text-gray-400 dark:text-gray-500 italic mt-1.5">
+        <div className="text-xs text-gray-500 dark:text-gray-400 italic mt-1.5">
           {caption}
         </div>
       )}
