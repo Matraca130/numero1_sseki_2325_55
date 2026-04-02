@@ -613,8 +613,8 @@ export function StudentSummaryReader({
             </div>
           </div>
 
-          {/* ── Paginated content preview ── */}
-          {summary.content_markdown && (
+          {/* ── Paginated content preview (only when no edu blocks) ── */}
+          {summary.content_markdown && !hasBlocks && (
               <div
                 className="px-6 sm:px-8 py-6"
                 style={{
@@ -681,7 +681,7 @@ export function StudentSummaryReader({
             <TabsTrigger value="chunks" className="gap-1.5 rounded-lg">
               <Layers className="w-3.5 h-3.5" />
               Contenido
-              {!chunksLoading && <TabBadge count={chunks.length} active={activeTab === 'chunks'} />}
+              {!chunksLoading && <TabBadge count={hasBlocks ? sidebarBlocks.length : chunks.length} active={activeTab === 'chunks'} />}
             </TabsTrigger>
             <TabsTrigger value="keywords" className="gap-1.5 rounded-lg">
               <Tag className="w-3.5 h-3.5" />

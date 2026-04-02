@@ -43,8 +43,6 @@ import {
   useSummaryChunksQuery,
   useReadingStateQuery,
 } from '@/app/hooks/queries/useSummaryViewQueries';
-import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
-import { StudentBlockReader } from '@/app/components/student/StudentBlockReader';
 import {
   scrollFlashAndAutoOpen,
   NOOP_HANDLE,
@@ -125,11 +123,6 @@ export function SummaryView() {
   // Reading state: student-only, passed to StudentSummaryReader
   const readingStateQuery = useReadingStateQuery(selectedSummaryId, !isProfessor);
   const readingState = readingStateQuery.data ?? null;
-
-  // Edu blocks: student-only, determines block-based vs HTML monolithic rendering
-  const blocksQuery = useSummaryBlocksQuery(selectedSummaryId || '');
-  const blocksLoading = !isProfessor && blocksQuery.isLoading && !!selectedSummaryId;
-  const hasEduBlocks = !isProfessor && (blocksQuery.data ?? []).length > 0;
 
   const selectedSummary = summaries.find(s => s.id === selectedSummaryId) || null;
 
@@ -332,33 +325,8 @@ export function SummaryView() {
 
   // ── Single summary selected ─────────────────────────────
 
-  // ── Student path ────────────────────────────────────────
-  // If edu blocks exist → SummaryViewer (block-based enriched view)
-  // Otherwise → StudentSummaryReader (HTML monolithic fallback)
-  if (!isProfessor && selectedSummary && blocksLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-6 w-1/2" />
-        <Skeleton className="h-4 w-1/3" />
-        <div className="space-y-3 mt-4">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-28 w-full rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // ── Student path — always uses unified StudentSummaryReader ──
   if (!isProfessor && selectedSummary) {
-    if (hasEduBlocks) {
-      return (
-        <StudentBlockReader
-          summary={selectedSummary}
-          topicName={breadcrumb.topicName}
-          onBack={handleBack}
-        />
-      );
-    }
-
     return (
       <StudentSummaryReader
         summary={selectedSummary}

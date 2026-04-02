@@ -44,7 +44,7 @@ interface SummaryViewerProps {
   layout?: 'canvas' | 'flow';
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'canvas' }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'flow' }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
