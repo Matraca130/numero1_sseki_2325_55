@@ -47,7 +47,7 @@ export default function TTSButton({ text }: TTSButtonProps) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={speaking ? 'Parar leitura' : 'Ler em voz alta'}
+      aria-label={speaking ? 'Detener lectura' : 'Leer en voz alta'}
       className={`w-7 h-7 inline-flex items-center justify-center rounded transition-colors ${
         speaking
           ? 'bg-teal-50 text-teal-500'
