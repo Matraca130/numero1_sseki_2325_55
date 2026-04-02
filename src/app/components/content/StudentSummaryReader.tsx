@@ -19,10 +19,11 @@ import {
   ChevronLeft, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
   StickyNote, BookOpen, Search as SearchIcon,
-  Timer, Settings, PanelLeftOpen,
+  Timer, Settings, PanelLeftOpen, Minimize2,
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
+import { MasteryLegend } from '@/app/components/student/MasteryLegend';
 import { SearchBar } from '@/app/components/student/SearchBar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
@@ -31,6 +32,7 @@ import { VideoPlayer } from '@/app/components/student/VideoPlayer';
 import { useSummaryReaderQueries } from '@/app/hooks/queries/useSummaryReaderQueries';
 import { useKeywordDetailQueries } from '@/app/hooks/queries/useKeywordDetailQueries';
 import { useSummaryReaderMutations } from '@/app/hooks/queries/useSummaryReaderMutations';
+import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import {
   PageNavigation,
   CompletionCard,
@@ -92,7 +94,7 @@ export function StudentSummaryReader({
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
   const [showTimer, setShowTimer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings(summary.id);
+  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings();
 
   // ── Wave 1: Sidebar, search, reading progress ─────────
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -114,6 +116,9 @@ export function StudentSummaryReader({
 
   // ── Blocks for sidebar outline (shared cache — no extra fetch) ──
   const { data: sidebarBlocks = [] } = useSummaryBlocksQuery(summary.id);
+
+  // ── Block mastery levels (Delta scale) ──
+  const { data: masteryLevels = {} } = useSummaryBlockMastery(summary.id);
 
   // ── Scroll-spy: track which block is currently visible ──
   useEffect(() => {
@@ -157,14 +162,23 @@ export function StudentSummaryReader({
     }).length;
   }, [searchQuery, sidebarBlocks]);
 
-  // ── Keyboard shortcuts (Ctrl+F, Escape) ──
+  // ── Keyboard shortcuts (Ctrl+F, Ctrl+Shift+F, Escape) ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        updateReadingSettings({ ...readingSettings, focusMode: !readingSettings.focusMode });
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setSearchOpen(true);
       }
       if (e.key === 'Escape') {
+        if (readingSettings.focusMode) {
+          updateReadingSettings({ ...readingSettings, focusMode: false });
+          return;
+        }
         setSearchOpen(false);
         setSearchQuery('');
         setShowSettings(false);
@@ -173,7 +187,7 @@ export function StudentSummaryReader({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [readingSettings, updateReadingSettings]);
 
   // ── Memoized pagination + keyword-to-page map ───────────
   const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
@@ -324,21 +338,45 @@ export function StudentSummaryReader({
         />
       )}
 
-      <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: 1100 }}>
-        {/* ── Sidebar outline (Wave 1) ── */}
-        {sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <SidebarOutline
-            blocks={sidebarBlocks}
-            activeBlockId={activeBlockId}
-            onBlockClick={handleSidebarBlockClick}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-          />
+      {/* ── Focus mode floating exit button ── */}
+      {readingSettings.focusMode && (
+        <button
+          onClick={() => updateReadingSettings({ ...readingSettings, focusMode: false })}
+          title="Salir de modo enfocado (Esc)"
+          aria-label="Salir de modo enfocado"
+          className="fixed top-4 right-4 z-[500] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 border border-gray-200 shadow-sm transition-all"
+          style={{ fontSize: 'clamp(0.6875rem, 1.5vw, 0.75rem)' }}
+        >
+          <Minimize2 size={13} />
+          Salir
+        </button>
+      )}
+
+      <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
+        {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
+        {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+          <div className="flex flex-col gap-3">
+            <SidebarOutline
+              blocks={sidebarBlocks}
+              activeBlockId={activeBlockId}
+              onBlockClick={handleSidebarBlockClick}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+              masteryLevels={masteryLevels}
+            />
+            {!sidebarCollapsed && Object.keys(masteryLevels).length > 0 && (
+              <MasteryLegend
+                masteryLevels={masteryLevels}
+                totalBlocks={sidebarBlocks.length}
+              />
+            )}
+          </div>
         )}
 
-        <div className="flex-1 min-w-0" style={{ maxWidth: 800 }}>
+        <div className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
 
         {/* ── Immersive header toolbar (V1+V2+V6) ── */}
+        {!readingSettings.focusMode && (
         <header
           role="banner"
           aria-label="Barra de herramientas del resumen"
@@ -478,6 +516,7 @@ export function StudentSummaryReader({
             </button>
           </div>
         </header>
+        )}
 
         {/* ── Study Timer (fixed position, self-managed) ── */}
         {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}

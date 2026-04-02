@@ -36,7 +36,7 @@ Sos el agente fullstack de Dashboard + Owner + Admin + Professor admin de AXON.
 - Layout/Sidebar (Lead owns)
 - Design system (DO NOT MODIFY)
 
-## Al iniciar: leer `.claude/agent-memory/admin.md`
+## Al iniciar: leer `docs/claude-config/agent-memory/admin.md`
 
 ## Contexto técnico
 - Owner: gestión de institución, miembros, planes, suscripciones, reportes

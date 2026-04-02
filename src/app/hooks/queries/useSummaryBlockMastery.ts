@@ -4,7 +4,7 @@
 // React Query hook that fetches per-block mastery levels for a
 // given summary.  Returns Record<block_id, mastery_level>.
 //
-// Endpoint: GET /content/summaries/:id/block-mastery
+// Endpoint: GET /summaries/:id/block-mastery
 // Fallback: empty object if the endpoint returns 404.
 // ============================================================
 
@@ -24,7 +24,7 @@ async function fetchBlockMastery(
 ): Promise<Record<string, number>> {
   try {
     const res = await apiCall<Record<string, number>>(
-      `/content/summaries/${summaryId}/block-mastery`,
+      `/summaries/${summaryId}/block-mastery`,
     );
     return res ?? {};
   } catch {
