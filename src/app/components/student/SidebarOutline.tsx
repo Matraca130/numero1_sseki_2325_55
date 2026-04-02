@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { colors } from '@/app/design-system';
+import { getMasteryInfo } from '@/app/components/student/MasteryBar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,6 +61,7 @@ function getMasteryDotColor(level: number): string {
   return colors.mastery.descubrir;                        // gray
 }
 
+
 function getBlockLabel(block: { type: string; content?: Record<string, unknown> }): string {
   const title = block.content?.title;
   if (typeof title === 'string' && title.length > 0) return title;
@@ -93,14 +95,23 @@ export function SidebarOutline({
     >
       {/* -- Header -- */}
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
-        {!collapsed && (
-          <span
-            className="uppercase select-none text-gray-400 dark:text-gray-500"
-            style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, paddingLeft: 4, whiteSpace: 'nowrap' }}
-          >
-            Estructura
-          </span>
-        )}
+        <span
+          className="uppercase select-none text-gray-500 dark:text-gray-400"
+          aria-hidden={collapsed ? true : undefined}
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 1,
+            paddingLeft: 4,
+            whiteSpace: 'nowrap',
+            opacity: collapsed ? 0 : 1,
+            width: collapsed ? 0 : 'auto',
+            overflow: 'hidden',
+            transition: 'opacity 150ms ease, width 150ms ease',
+          }}
+        >
+          Estructura
+        </span>
 
         <button
           type="button"
@@ -127,12 +138,15 @@ export function SidebarOutline({
               onClick={() => onBlockClick(block.id)}
               title={collapsed ? label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              aria-label={collapsed ? label : undefined}
+              aria-label={collapsed
+                ? `${label}${mastery !== undefined ? ` – ${getMasteryInfo(mastery).label}` : ''}`
+                : undefined}
               className={[
                 'relative flex items-center gap-2 text-left transition-all',
                 'border-l-[3px]',
+                'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
                 isActive
-                  ? 'border-l-[#2a8c7a] bg-teal-50 dark:bg-[#1a2e2a] font-semibold text-[#2a8c7a]'
+                  ? 'border-l-[#2a8c7a] bg-teal-50 dark:bg-[#1a2e2a] font-semibold text-[#1a7566]'
                   : 'border-l-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1a2e2a]',
                 collapsed ? 'justify-center' : '',
               ].join(' ')}
@@ -145,9 +159,14 @@ export function SidebarOutline({
             >
               <Icon size={collapsed ? 16 : 12} className="flex-shrink-0" />
 
-              {!collapsed && (
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-              )}
+              <span aria-hidden={collapsed ? true : undefined} style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                opacity: collapsed ? 0 : 1,
+                width: collapsed ? 0 : 'auto',
+                transition: 'opacity 150ms ease, width 150ms ease',
+              }}>{label}</span>
 
               {/* Mastery dot -- Delta Mastery Scale */}
               {mastery !== undefined && (
