@@ -25,7 +25,6 @@ const TEXT_BEARING_TYPES = [
 // - non-text types (image, section_divider) are not isHighlightable
 // - two_column is isHighlightable but has no extractable text (no title/text/html fields)
 const NO_TTS_TYPES = [
-  { name: 'image_reference', fixture: FIXTURES.image_reference },
   { name: 'section_divider', fixture: FIXTURES.section_divider },
   { name: 'two_column (no extractable text)', fixture: FIXTURES.two_column },
 ] as const;
@@ -37,9 +36,9 @@ describe('ViewerBlock — TTSButton filtering', () => {
       const { container } = render(
         <ViewerBlock block={block} isMobile={false} summaryId="test-summary" />
       );
-      // TTSButton is wrapped in a div with opacity-20 class (hover reveals it)
-      const ttsWrapper = container.querySelector('.opacity-20');
-      expect(ttsWrapper).toBeTruthy();
+      // TTSButton renders a <button> with aria-label "Ler em voz alta"
+      const ttsButton = container.querySelector('button[aria-label="Ler em voz alta"]');
+      expect(ttsButton).toBeTruthy();
     });
   });
 
@@ -49,8 +48,8 @@ describe('ViewerBlock — TTSButton filtering', () => {
       const { container } = render(
         <ViewerBlock block={block} isMobile={false} summaryId="test-summary" />
       );
-      const ttsWrapper = container.querySelector('.opacity-20');
-      expect(ttsWrapper).toBeFalsy();
+      const ttsButton = container.querySelector('button[aria-label="Ler em voz alta"]');
+      expect(ttsButton).toBeFalsy();
     });
   });
 });
