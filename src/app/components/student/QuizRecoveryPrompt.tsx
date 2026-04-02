@@ -34,7 +34,7 @@ export function QuizRecoveryPrompt({ backup, onAccept, onDismiss, onBack }: Quiz
         <div className="bg-white rounded-2xl shadow-xl border border-zinc-100 overflow-hidden">
           <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
                 <RotateCw size={20} className="text-white" />
               </div>
               <div>

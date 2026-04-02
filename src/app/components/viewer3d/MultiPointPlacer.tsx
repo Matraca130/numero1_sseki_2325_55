@@ -278,14 +278,14 @@ export function MultiPointPlacer({
         <>
           <button
             onClick={() => setMode('line-a')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border bg-white/5 text-gray-400 border-white/10 hover:bg-violet-500/20 hover:text-violet-300 hover:border-violet-500/30"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border bg-white/5 text-gray-400 border-white/10 hover:bg-violet-500/20 hover:text-violet-300 hover:border-violet-500/30"
           >
             <Ruler size={12} />
             Medicion
           </button>
           <button
             onClick={() => setMode('area-placing')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border bg-white/5 text-gray-400 border-white/10 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/30"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border bg-white/5 text-gray-400 border-white/10 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/30"
           >
             <Hexagon size={12} />
             Area
@@ -295,7 +295,7 @@ export function MultiPointPlacer({
 
       {/* Active placement status */}
       {mode !== 'idle' && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg backdrop-blur-sm border bg-zinc-900/90 border-white/10">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-zinc-900 border-white/10">
           {/* Status text */}
           <span className={clsx(
             'text-[10px] font-semibold animate-pulse',

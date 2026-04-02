@@ -111,7 +111,7 @@ export function ImageLightbox({ images, initialIndex, open, onClose }: ImageLigh
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90"
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
@@ -218,7 +218,7 @@ export function ImageLightbox({ images, initialIndex, open, onClose }: ImageLigh
 
           {/* Thumbnail strip for multiple images */}
           {hasMultiple && (
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/50 backdrop-blur-sm z-10">
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/60 z-10">
               {images.map((img, idx) => (
                 <button
                   key={idx}

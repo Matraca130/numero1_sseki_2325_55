@@ -315,7 +315,7 @@ export function StudyHubHero({
           {effectiveTopic ? (
             <motion.button
               onClick={onContinue}
-              className={`w-full text-left mt-8 bg-white/[0.07] backdrop-blur-md border border-amber-400/15 rounded-2xl p-6 hover:bg-white/[0.12] hover:border-amber-400/30 transition-all group cursor-pointer relative overflow-hidden ${focusRing}`}
+              className={`w-full text-left mt-8 bg-zinc-800/80 border border-amber-400/15 rounded-2xl p-6 hover:bg-zinc-800 hover:border-amber-400/30 transition-all group cursor-pointer relative overflow-hidden ${focusRing}`}
               {...fadeUp(0.4)}
               whileHover={shouldReduce ? undefined : { y: -3 }}
             >
@@ -405,7 +405,7 @@ export function StudyHubHero({
           ) : (
             /* Fallback: no topic — prompt to explore */
             <motion.div
-              className="mt-8 bg-white/[0.07] backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center"
+              className="mt-8 bg-zinc-800/80 border border-white/10 rounded-2xl p-6 text-center"
               {...fadeUp(0.4)}
             >
               <BookOpen className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
@@ -424,7 +424,7 @@ export function StudyHubHero({
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}
-                className="bg-white/[0.05] backdrop-blur-sm border border-white/[0.10] rounded-xl px-4 py-3.5"
+                className="bg-zinc-800/80 border border-white/[0.10] rounded-xl px-4 py-3.5"
                 initial={shouldReduce ? false : { y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5 + i * 0.05 }}

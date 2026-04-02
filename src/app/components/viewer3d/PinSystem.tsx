@@ -314,7 +314,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
           <button
             onClick={() => { setIsPlacing(!isPlacing); setShowForm(false); setPlacementPoint(null); }}
             className={clsx(
-              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
               isPlacing
                 ? 'bg-[#2a8c7a]/30 text-[#5cbdaa] border-[#2a8c7a]/40 animate-pulse'
                 : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white',
@@ -336,7 +336,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
       {/* ── Student: Pin visibility toggle ── */}
       {mode === 'view' && pins.length > 0 && (
         <div className="absolute top-3 left-3 z-20">
-          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 backdrop-blur-sm">
+          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
             <MapPin size={12} />
             {pins.length} punto{pins.length !== 1 ? 's' : ''} de referencia
           </span>
@@ -345,7 +345,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
 
       {/* ── Loading ── */}
       {loading && (
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm text-[10px] text-gray-300">
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/60 text-[10px] text-gray-300">
           <Loader2 size={12} className="animate-spin" />
           Cargando pins...
         </div>
@@ -366,7 +366,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
             {/* Label on hover */}
             {(isHovered && !isActive && pin.title) && (
               <div className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none">
-                <div className="px-2 py-1 rounded-md bg-black/80 backdrop-blur-sm text-[9px] text-white border border-white/10">
+                <div className="px-2 py-1 rounded-md bg-black/90 text-[9px] text-white border border-white/10">
                   {pin.title}
                 </div>
               </div>
@@ -375,7 +375,7 @@ export function PinSystem({ modelId, topicId, mode, scene, camera, containerRef,
             {/* Active popup */}
             {isActive && (
               <div
-                className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-auto bg-black/90 backdrop-blur-xl rounded-lg border border-white/15 p-3 min-w-[220px] max-w-[280px] shadow-2xl z-30"
+                className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-auto bg-black/90 rounded-lg border border-white/15 p-3 min-w-[220px] max-w-[280px] shadow-2xl z-30"
                 style={{ borderLeftColor: pin.color || '#60a5fa', borderLeftWidth: 3 }}
               >
                 <div className="flex items-center justify-between mb-1.5">

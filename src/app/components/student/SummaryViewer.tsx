@@ -250,7 +250,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       {/* ── Video Modal ──────────────────────────────────── */}
       {activeVideoId && (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90"
           onClick={() => setActiveVideoId(null)}
         >
           <div

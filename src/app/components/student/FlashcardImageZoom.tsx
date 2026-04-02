@@ -79,7 +79,7 @@ export function FlashcardImageZoom({ imageUrl, onClose }: FlashcardImageZoomProp
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col"
+        className="fixed inset-0 z-[100] bg-black/90 flex flex-col"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         {/* Controls */}

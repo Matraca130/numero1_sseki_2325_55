@@ -188,7 +188,7 @@ export function ExplodeControl({ partLoader, scene, modelMeshes }: ExplodeContro
       <button
         onClick={handleToggle}
         className={clsx(
-          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
           enabled
             ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
             : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
@@ -201,7 +201,7 @@ export function ExplodeControl({ partLoader, scene, modelMeshes }: ExplodeContro
 
       {/* Slider (visible when enabled) */}
       {enabled && (
-        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-zinc-900/90 backdrop-blur-sm border border-white/10">
+        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-zinc-900 border border-white/10">
           <input
             type="range"
             min={0}

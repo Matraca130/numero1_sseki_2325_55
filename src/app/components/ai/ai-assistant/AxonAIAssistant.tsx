@@ -149,7 +149,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]" onClick={onClose} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} />
           <motion.div initial={{ x: '100%', opacity: 0.5 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} role="dialog" aria-label="Asistente AI Axon" aria-modal="true" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col">
             {/* Header */}
             <div className="shrink-0 bg-teal-700 px-5 py-4 flex items-center justify-between relative overflow-hidden">

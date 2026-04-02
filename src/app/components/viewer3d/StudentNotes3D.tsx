@@ -232,7 +232,7 @@ export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMesh
       <button
         onClick={() => setShowPanel(!showPanel)}
         className={clsx(
-          'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+          'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
           showPanel
             ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
             : 'bg-white/5 text-gray-500 border-white/10 hover:bg-white/10',
@@ -254,7 +254,7 @@ export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMesh
           className="absolute left-0 top-0 z-10 pointer-events-none"
           style={{ display: 'none' /* initial hidden, projectNotes will show */ }}
         >
-          <div className="pointer-events-auto px-2 py-1 rounded-md bg-amber-500/20 backdrop-blur-sm text-[8px] text-amber-300 border border-amber-500/20 max-w-[140px] truncate cursor-default">
+          <div className="pointer-events-auto px-2 py-1 rounded-md bg-amber-500/20 text-[8px] text-amber-300 border border-amber-500/20 max-w-[140px] truncate cursor-default">
             {note.note}
           </div>
         </div>
@@ -262,7 +262,7 @@ export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMesh
 
       {/* ── Notes panel ── */}
       {showPanel && (
-        <div className="absolute top-12 right-3 z-20 w-72 max-h-[65vh] bg-zinc-900/95 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden flex flex-col">
+        <div className="absolute top-12 right-3 z-20 w-72 max-h-[65vh] bg-zinc-900 rounded-xl border border-white/10 overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
             <h4 className="text-xs font-bold text-white flex items-center gap-1.5">

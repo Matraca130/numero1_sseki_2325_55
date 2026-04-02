@@ -156,7 +156,7 @@ export function ClippingPlaneControls({
       <button
         onClick={() => setEnabled(!enabled)}
         className={clsx(
-          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
           enabled
             ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
             : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
@@ -168,7 +168,7 @@ export function ClippingPlaneControls({
 
       {/* Controls panel */}
       {enabled && (
-        <div className="mt-2 w-52 bg-zinc-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl p-3 space-y-3">
+        <div className="mt-2 w-52 bg-zinc-900 rounded-xl border border-white/10 shadow-2xl p-3 space-y-3">
           {/* Orientation selector */}
           <div className="flex gap-1">
             {ORIENTATIONS.map(o => (

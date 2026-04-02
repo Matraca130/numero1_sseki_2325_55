@@ -239,7 +239,7 @@ function ModelViewerErrorFallback({ modelName, onBack }: { modelName: string; on
   return (
     <div className="flex flex-col h-full bg-[#111118] relative overflow-hidden">
       {/* Header */}
-      <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118]/80 backdrop-blur-lg border-b border-white/10">
+      <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118] border-b border-white/10">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
@@ -389,7 +389,7 @@ function ViewerScreen({
   return (
     <div className="flex flex-col h-full bg-[#111118] relative overflow-hidden">
       {/* Header */}
-      <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118]/80 backdrop-blur-lg border-b border-white/10">
+      <div className="relative z-20 h-12 flex items-center justify-between px-5 bg-[#111118] border-b border-white/10">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}

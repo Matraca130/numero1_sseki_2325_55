@@ -433,7 +433,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
         <button
           onClick={() => { setShowPinEditor(!showPinEditor); if (!showPinEditor) handlePinsChanged(); }}
           className={clsx(
-            'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+            'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
             showPinEditor
               ? 'bg-[#2a8c7a]/20 text-[#5cbdaa] border-[#2a8c7a]/30'
               : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10',
@@ -461,7 +461,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
         <button
           onClick={() => setShowLayerPanel(!showLayerPanel)}
           className={clsx(
-            'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all backdrop-blur-sm border',
+            'absolute top-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
             showLayerPanel
               ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
               : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10',
@@ -551,7 +551,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
 
       {/* ── Keyboard shortcut hint overlay ── */}
       {showShortcutHint && (
-        <div className="absolute bottom-12 left-3 z-30 p-3 rounded-lg bg-black/80 backdrop-blur-sm border border-white/10 text-[10px] space-y-1.5">
+        <div className="absolute bottom-12 left-3 z-30 p-3 rounded-lg bg-black/90 border border-white/10 text-[10px] space-y-1.5">
           <p className="text-gray-300 font-semibold mb-2">Atajos de teclado</p>
           <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-gray-400">
             <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-center">R</kbd>
@@ -577,7 +577,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
       {/* ── GLB loading overlay ── */}
       {glbLoading && (
         <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-          <div className="text-center space-y-2 p-5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10">
+          <div className="text-center space-y-2 p-5 rounded-xl bg-black/80 border border-white/10">
             <Loader2 size={24} className="animate-spin text-[#2dd4a8] mx-auto" />
             <p className="text-[10px] text-gray-300">Cargando modelo 3D...</p>
             {fileUrl && (
@@ -589,7 +589,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
 
       {/* ── WebGL context loss overlay ── */}
       {contextLost && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90">
           <div className="text-center space-y-3 p-6 rounded-xl bg-zinc-900/90 border border-white/10 max-w-xs">
             <AlertTriangle size={28} className="mx-auto text-amber-400" />
             <h4 className="text-xs font-bold text-white">Error de GPU</h4>

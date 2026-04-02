@@ -158,7 +158,7 @@ export const BulkEditToolbar = React.memo(function BulkEditToolbar({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
             onClick={() => !processing && setConfirmAction(null)}
           >
             <motion.div
