@@ -142,7 +142,6 @@ export function StudentSummaryReader({
 
   // ── Sidebar block click → scroll into view ──
   const handleSidebarBlockClick = useCallback((blockId: string) => {
-    setActiveTab('chunks');
     setTimeout(() => {
       const el = document.querySelector(`[data-block-id="${blockId}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -357,7 +356,7 @@ export function StudentSummaryReader({
       <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
         {/* Wrapper is relative so expanded sidebar overlays from its own position */}
-        {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
+        {!readingSettings.focusMode && sidebarBlocks.length > 0 && (
           <div className="relative" style={{ width: 52, flexShrink: 0 }}>
             <SidebarOutline
               blocks={sidebarBlocks}
