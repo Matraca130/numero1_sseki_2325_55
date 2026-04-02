@@ -12,6 +12,7 @@ import {
   Minus,
   ChevronLeft,
   ChevronRight,
+  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import { colors } from '@/app/design-system';
@@ -19,6 +20,8 @@ import { colors } from '@/app/design-system';
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+type ViewMode = 'enriched' | 'reading';
 
 interface SidebarOutlineProps {
   blocks: Array<{ id: string; type: string; content?: Record<string, unknown> }>;
@@ -30,6 +33,10 @@ interface SidebarOutlineProps {
   masteryLevels?: Record<string, number>;
   /** Optional mastery legend rendered inside the overlay when expanded. */
   masteryLegend?: ReactNode;
+  /** Current view mode */
+  viewMode?: ViewMode;
+  /** Callback to change view mode */
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,6 +92,8 @@ export function SidebarOutline({
   onToggleCollapse,
   masteryLevels,
   masteryLegend,
+  viewMode = 'enriched',
+  onViewModeChange,
 }: SidebarOutlineProps) {
   const ToggleIcon = collapsed ? ChevronRight : ChevronLeft;
 
@@ -156,6 +165,49 @@ export function SidebarOutline({
             <ToggleIcon size={14} className="text-teal-500" />
           </button>
         </div>
+
+        {/* -- View mode toggle -- */}
+        {onViewModeChange && (
+          collapsed ? (
+            <div className="flex justify-center pb-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => onViewModeChange(viewMode === 'enriched' ? 'reading' : 'enriched')}
+                title={viewMode === 'enriched' ? 'Cambiar a lectura limpia' : 'Cambiar a vista enriquecida'}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2d2e34] transition-colors"
+              >
+                {viewMode === 'enriched' ? <Layers size={14} /> : <FileText size={14} />}
+              </button>
+            </div>
+          ) : (
+            <div className="flex mx-2 mb-2 p-0.5 rounded-lg bg-gray-100 dark:bg-[#2a2b31]">
+              <button
+                type="button"
+                onClick={() => onViewModeChange('reading')}
+                className={[
+                  'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium transition-all',
+                  viewMode === 'reading'
+                    ? 'bg-white dark:bg-[#1e1f25] text-teal-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
+                ].join(' ')}
+              >
+                <FileText size={12} /> Lectura
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewModeChange('enriched')}
+                className={[
+                  'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium transition-all',
+                  viewMode === 'enriched'
+                    ? 'bg-white dark:bg-[#1e1f25] text-teal-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
+                ].join(' ')}
+              >
+                <Layers size={12} /> Enriquecido
+              </button>
+            </div>
+          )
+        )}
 
         {/* -- Block list -- */}
         <nav className="flex flex-col gap-0.5 px-1">
