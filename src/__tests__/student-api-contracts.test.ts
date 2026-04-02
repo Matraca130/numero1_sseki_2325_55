@@ -542,24 +542,4 @@ describe('getAllCourseProgress -- URL construction', () => {
   });
 });
 
-// ======================================================================
-// SUITE 11: getTopicKeywords -- URL construction (sa-content.ts)
-// ======================================================================
-
-describe('getTopicKeywords -- URL construction', () => {
-  let getTopicKeywords: typeof import('@/app/services/student-api/sa-content').getTopicKeywords;
-
-  beforeEach(async () => {
-    const mod = await import('@/app/services/student-api/sa-content');
-    getTopicKeywords = mod.getTopicKeywords;
-    _keywordCache.clear();
-  });
-
-  it('calls /topic-progress with topic_id query param', async () => {
-    mockApiCall.mockResolvedValueOnce({ summaries: [] });
-    await getTopicKeywords('course-1', 'topic-abc');
-
-    const url: string = mockApiCall.mock.calls[0][0];
-    expect(url).toBe('/topic-progress?topic_id=topic-abc');
-  });
-});
+// SUITE 11: getTopicKeywords — REMOVED (dead code, replaced by useKeywordMasteryQuery hook)

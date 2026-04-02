@@ -11,7 +11,7 @@
 //
 // Phase C additions:
 //   - getBktStates() fetch on mount for mastery indicators
-//   - getMasteryLevel() color mapping from aiApi
+//   - mastery color mapping via Delta Mastery Scale (mastery-helpers.ts)
 //   - AiPracticeModal for post-error practice
 //
 // P1-S01: AdaptiveQuizModal extracted to AdaptiveQuizModal.tsx

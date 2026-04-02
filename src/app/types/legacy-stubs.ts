@@ -93,41 +93,9 @@ export function getSectionImage(_sectionId: string): string {
 
 // ── Keyword types + stubs ────────────────────────────────────
 
-// MasteryStage is the canonical stage-based mastery type from keywords.ts
-import { type MasteryStage } from '@/app/types/keywords';
-
-/** @deprecated Use MasteryStage from types/keywords.ts directly */
-export type MasteryLevel = MasteryStage;
-
 export interface AIQuestion {
   id: string;
   question: string;
   answer: string;
 }
 
-export interface KeywordData {
-  id: string;
-  term: string;
-  definition: string;
-  category?: string;
-  relatedTerms?: string[];
-  aiQuestions?: AIQuestion[];
-  model3d?: Model3D;
-  masteryLevel?: MasteryLevel;
-}
-
-export const masteryConfig: Record<MasteryLevel, { label: string; color: string; bgColor: string; textColor: string; borderColor: string; icon: string }> = {
-  none:      { label: 'Nuevo',      color: 'gray',   bgColor: 'bg-gray-100',   textColor: 'text-gray-600',   borderColor: 'border-gray-200', icon: '○' },
-  seen:      { label: 'Visto',      color: 'blue',   bgColor: 'bg-blue-100',   textColor: 'text-blue-600',   borderColor: 'border-blue-200', icon: '◔' },
-  learning:  { label: 'Aprendiendo', color: 'amber',  bgColor: 'bg-amber-100',  textColor: 'text-amber-600',  borderColor: 'border-amber-200', icon: '◑' },
-  familiar:  { label: 'Familiar',   color: 'teal',   bgColor: 'bg-teal-100',   textColor: 'text-teal-600',   borderColor: 'border-teal-200', icon: '◕' },
-  mastered:  { label: 'Dominado',   color: 'green',  bgColor: 'bg-green-100',  textColor: 'text-green-600',  borderColor: 'border-green-200', icon: '●' },
-};
-
-export function findKeyword(_term: string): KeywordData | undefined {
-  return undefined;
-}
-
-export function getAllKeywordTerms(): string[] {
-  return [];
-}

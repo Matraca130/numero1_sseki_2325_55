@@ -227,17 +227,6 @@ export function getReasonLabel(
   return base;
 }
 
-// ── Utility: Mastery color (delegates to Delta Mastery Scale) ──
-
-import { getKeywordDeltaColorSafe, getDeltaColorClasses, getDeltaColorLabel } from '@/app/lib/mastery-helpers';
-
-/** @deprecated Use getKeywordDeltaColorSafe + getDeltaColorClasses directly */
-export function getMasteryLevel(pKnow: number): { level: string; color: string; label: string } {
-  const deltaLevel = getKeywordDeltaColorSafe(pKnow, 1); // default priority
-  const classes = getDeltaColorClasses(deltaLevel);
-  return { level: deltaLevel, color: classes.hex, label: getDeltaColorLabel(deltaLevel) };
-}
-
 // ── Fase D: AI Content Reports (re-exported from aiReportApi.ts) ──
 
 export {
