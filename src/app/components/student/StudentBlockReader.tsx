@@ -130,10 +130,10 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        setSearchOpen((p) => !p);
-        if (!searchOpen) {
-          setTimeout(() => searchInputRef.current?.focus(), 50);
-        }
+        setSearchOpen((prev) => {
+          if (!prev) setTimeout(() => searchInputRef.current?.focus(), 50);
+          return !prev;
+        });
       }
       if (e.key === 'Escape') {
         setSearchOpen(false);
@@ -143,7 +143,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [searchOpen]);
+  }, []);
 
   // ── Block click from sidebar ───────────────────────────────
   const scrollToBlock = useCallback((blockId: string) => {
@@ -335,7 +335,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
         {/* Content area */}
         <div className="flex-1 min-w-0 overflow-y-auto" ref={contentRef}>
           {/* Summary header */}
-          <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px 20px 0' }}>
+          <div style={{ margin: '0 auto', padding: '20px 20px 0' }}>
             {/* Tags */}
             <div className="flex gap-2 mb-2.5 flex-wrap">
               {topicName && (
@@ -413,7 +413,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
           {/* Block content (wrapped in card) */}
           <div
             style={{
-              maxWidth: 800,
+              maxWidth: 'none',
               margin: '12px auto 0',
               padding: '28px 32px 48px',
               background: isDark ? '#1e1f25' : '#FFFFFF',

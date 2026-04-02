@@ -15,3 +15,6 @@ coverage/
 .dev.vars*
 !.dev.vars.example
 !.env.example
+
+# Loop state (Claude Code session artifact)
+.loop-state.json
