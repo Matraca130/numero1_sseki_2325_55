@@ -50,10 +50,12 @@ const ICON_BY_TYPE: Record<string, LucideIcon> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+const MASTERY_EPSILON = 0.001;
+
 /** Maps a mastery level (0-1+) to a human-readable label for a11y. */
 function getMasteryLabel(level: number): string {
-  if (level > 1.0) return 'Maestría';
-  if (level === 1.0) return 'Consolidado';
+  if (level > 1.0 + MASTERY_EPSILON) return 'Maestría';
+  if (Math.abs(level - 1.0) <= MASTERY_EPSILON) return 'Consolidado';
   if (level >= 0.85) return 'En progreso';
   if (level >= 0.5) return 'Emergente';
   return 'Por descubrir';
@@ -62,8 +64,8 @@ function getMasteryLabel(level: number): string {
 /** Maps a mastery level (0-1+) to the Delta Mastery Scale color token.
  *  Logic mirrors MasteryBar's getMasteryInfo so colors stay consistent. */
 function getMasteryDotColor(level: number): string {
-  if (level > 1.0) return colors.mastery.maestria;      // blue
-  if (level === 1.0) return colors.mastery.consolidado;  // green
+  if (level > 1.0 + MASTERY_EPSILON) return colors.mastery.maestria;      // blue
+  if (Math.abs(level - 1.0) <= MASTERY_EPSILON) return colors.mastery.consolidado;  // green
   if (level >= 0.85) return colors.mastery.enProgreso;   // amber
   if (level >= 0.5) return colors.mastery.emergente;     // red
   return colors.mastery.descubrir;                        // gray
@@ -136,12 +138,10 @@ export function SidebarOutline({
               onClick={() => onBlockClick(block.id)}
               title={collapsed ? label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              aria-label={collapsed
-                ? `${label}${mastery !== undefined ? ` – ${getMasteryLabel(mastery)}` : ''}`
-                : undefined}
+              aria-label={`${label}${mastery !== undefined ? ` – ${getMasteryLabel(mastery)}` : ''}`}
               className={[
                 'relative flex items-center gap-2 text-left transition-all',
-                'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
+                'focus-visible:ring-2 focus-visible:ring-teal-400 dark:focus-visible:ring-teal-300 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-[#1e1f25] focus-visible:outline-none',
                 'border-l-[3px]',
                 isActive
                   ? 'border-l-[#2a8c7a] bg-teal-50 dark:bg-[#1a2e2a] font-semibold text-[#2a8c7a]'
