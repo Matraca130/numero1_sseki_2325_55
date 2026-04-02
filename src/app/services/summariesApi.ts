@@ -10,6 +10,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { extractItems } from '@/app/lib/api-helpers';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -23,11 +24,14 @@ export interface PaginatedList<T> {
 export interface Summary {
   id: string;
   topic_id: string;
+  institution_id?: string;
+  course_id?: string;
   title: string | null;
   content_markdown: string | null;
   status: 'draft' | 'published' | 'rejected';
   order_index: number;
   is_active: boolean;
+  version?: number;
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -321,7 +325,9 @@ export async function getSummaryBlocks(summaryId: string): Promise<PaginatedList
 // ═══ Block-based Summary CRUD (Fase 2) ═══
 
 export async function fetchSummaryBlocks(summaryId: string): Promise<SummaryBlock[]> {
-  return apiCall<SummaryBlock[]>(`/summary-blocks?summary_id=${summaryId}`);
+  return extractItems<SummaryBlock>(
+    await apiCall<{ items: SummaryBlock[]; count: number }>(`/summary-blocks?summary_id=${summaryId}`)
+  );
 }
 
 export async function createSummaryBlock(data: {

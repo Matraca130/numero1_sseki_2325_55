@@ -20,19 +20,24 @@ Eres FC-06, el agente responsable de la generación de flashcards con IA. Gestio
 
 ## Zona de solo lectura
 
-- `agent-memory/flashcards.md`
+- `docs/claude-config/agent-memory/flashcards.md`
 - Archivos de otros agentes de flashcards (FC-04, FC-05) para entender contratos de datos
 - Servicios BKT del módulo de quizzes para entender el modelo de conocimiento
 - Tipos compartidos y servicios globales
+
+## Depends On
+- **FC-02** (flashcards-backend) — endpoints backend de CRUD de flashcards donde se persisten las cards generadas
+- **AI-01** (rag-pipeline) — pipeline de IA/RAG que genera el contenido de las flashcards
 
 ## Al iniciar cada sesión
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/flashcards.md` (contexto de sección)
+3. Lee `docs/claude-config/agent-memory/flashcards.md` (contexto de sección)
 4. Revisa el generador y los hooks de generación para entender el estado actual.
 5. Verifica que el ranking NeedScore y el targeting BKT estén funcionando correctamente.
-6. Lee `agent-memory/individual/FC-06-flashcards-generation.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Lee `docs/claude-config/agent-memory/individual/FC-06-flashcards-generation.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
@@ -55,7 +60,7 @@ Eres FC-06, el agente responsable de la generación de flashcards con IA. Gestio
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

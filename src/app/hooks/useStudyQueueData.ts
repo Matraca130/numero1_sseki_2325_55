@@ -51,6 +51,9 @@ interface CacheEntry {
 /** TTL in ms — data older than this triggers a background refresh */
 const CACHE_TTL_MS = 60_000; // 60 seconds
 
+/** Sentinel: pass as courseId to fetch ALL courses (no course_id filter) */
+export const STUDY_QUEUE_ALL_COURSES = '__all__';
+
 /** Page size for future paginated fetching */
 const PAGE_SIZE = 200;
 
@@ -85,7 +88,7 @@ async function fetchStudyQueue(
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
     const resp = await getStudyQueue({
-      course_id: courseId,
+      course_id: courseId === STUDY_QUEUE_ALL_COURSES ? undefined : courseId,
       limit: PAGE_SIZE,
       include_future: true,
     });
