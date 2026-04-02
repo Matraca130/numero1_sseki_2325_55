@@ -24,11 +24,14 @@ export interface PaginatedList<T> {
 export interface Summary {
   id: string;
   topic_id: string;
+  institution_id?: string;
+  course_id?: string;
   title: string | null;
   content_markdown: string | null;
   status: 'draft' | 'published' | 'rejected';
   order_index: number;
   is_active: boolean;
+  version?: number;
   created_by?: string;
   created_at: string;
   updated_at: string;
