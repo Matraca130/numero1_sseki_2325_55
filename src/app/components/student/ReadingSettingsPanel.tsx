@@ -112,19 +112,19 @@ export default function ReadingSettingsPanel({
     <div
       ref={panelRef}
       role="dialog"
-      aria-label="Configuração de leitura"
+      aria-label="Configuración de lectura"
       className="absolute top-full right-0 w-[260px] bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-4 space-y-4"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-700">
-          Configuração de leitura
+          Configuración de lectura
         </span>
         <button
           type="button"
           onClick={onClose}
           className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label="Fechar"
+          aria-label="Cerrar"
         >
           <X size={16} />
         </button>
