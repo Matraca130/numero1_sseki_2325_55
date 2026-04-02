@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
+import { CATEGORY_STYLES } from '@/app/utils/categoryStyles';
 import { motion } from 'motion/react';
 import {
   ChevronLeft,
@@ -50,11 +51,6 @@ const TODAY_TASKS = [
   { id: '5', type: 'session' as const, subject: 'General', title: 'Diario de Estudio', time: '20:30' },
 ];
 
-const CATEGORY_STYLES = {
-  science: 'bg-blue-500/15 border-l-4 border-l-blue-500 text-blue-900',
-  arts: 'bg-pink-500/15 border-l-4 border-l-pink-500 text-pink-900',
-  core: 'bg-emerald-500/15 border-l-4 border-l-emerald-500 text-emerald-900',
-};
 
 const SUBJECT_BADGE_STYLES: Record<string, string> = {
   'Psicología Cognitiva': 'bg-red-50 text-red-600',

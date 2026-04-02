@@ -67,11 +67,3 @@ export const navigation = {
 
 // ─────────────────────────────────────────────
 // TYPES — Derived from views array (convenience)
-// The canonical definition is in AppContext.tsx.
-// ─────────────────────────────────────────────
-
-/**
- * @deprecated Import ViewType from '@/app/context/AppContext' instead.
- * Kept temporarily for backward compatibility.
- */
-export type ViewType = (typeof navigation.views)[number];

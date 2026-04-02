@@ -18,7 +18,6 @@
 // ├── as-analytics.ts        — submitRagFeedback, getRagAnalytics, getEmbeddingCoverage
 // ├── as-ingest.ts           — ingestPdf, ingestEmbeddings, reChunk
 // ├── as-schedule.ts          — aiDistributeTasks, aiRecommendToday, aiReschedule, aiWeeklyInsight
-// └── as-legacy.ts           — deprecated aliases (listModels, generateFlashcards, generateQuiz)
 // ============================================================
 
 // Types

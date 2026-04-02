@@ -4,7 +4,7 @@
 
 import { motion, useReducedMotion } from 'motion/react';
 import { Trophy, TrendingUp, Crown, Medal } from 'lucide-react';
-import { getLevelInfo } from '@/app/types/gamification';
+import { getLevelInfo } from '@/app/utils/gamification-helpers';
 import type { LeaderboardResponse, LeaderboardEntry } from '@/app/services/gamificationApi';
 
 interface LeaderboardCardProps {

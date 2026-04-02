@@ -9,7 +9,6 @@ export interface ChatHistoryEntry {
   content: string;
 }
 
-
 /** Response from POST /ai/rag-chat */
 export interface RagChatResponse {
   response: string;

@@ -252,40 +252,7 @@ describe('StudentDataContext', () => {
     expect(result.current.bktStates).toHaveLength(1);
   });
 
-  // -- Test 6: Legacy stubs are no-ops ---------------------
-
-  it('legacy updateProfile is a no-op', async () => {
-    const { result } = renderHook(() => useStudentDataContext(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Should not throw
-    await act(async () => {
-      await result.current.updateProfile({ name: 'New Name' });
-    });
-
-    // Profile unchanged (built from auth)
-    expect(result.current.profile?.name).toBe('Test Student');
-  });
-
-  it('legacy updateStats is a no-op', async () => {
-    const { result } = renderHook(() => useStudentDataContext(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.updateStats({ totalStudyMinutes: 999 });
-    });
-
-    // Stats unchanged
-    expect(result.current.stats?.totalStudyMinutes).toBe(120);
-  });
-
-  // -- Test 7: recordSessionComplete triggers refresh ------
+  // -- Test 6: recordSessionComplete triggers refresh ------
 
   it('recordSessionComplete calls fetchAll to refresh data', async () => {
     const { result } = renderHook(() => useStudentDataContext(), { wrapper });

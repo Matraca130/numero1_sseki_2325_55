@@ -18,10 +18,10 @@ import { describe, it, expect } from 'vitest';
 import * as gamificationApi from '@/app/services/gamificationApi';
 import {
   LEVEL_THRESHOLDS,
-  getLevelInfo,
   XP_TABLE,
   XP_DAILY_CAP,
 } from '@/app/types/gamification';
+import { getLevelInfo } from '@/app/utils/gamification-helpers';
 import type { XPAction } from '@/app/types/gamification';
 
 // ══════════════════════════════════════════════════════════════

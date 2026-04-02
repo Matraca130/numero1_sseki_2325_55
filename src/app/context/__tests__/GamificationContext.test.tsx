@@ -97,7 +97,7 @@ vi.mock('@/app/services/gamificationApi', () => ({
 
 // ── Mock getLevelInfo ─────────────────────────────────────
 
-vi.mock('@/app/types/gamification', () => ({
+vi.mock('@/app/utils/gamification-helpers', () => ({
   getLevelInfo: (totalXP: number) => {
     // Simplified level calculation for tests
     if (totalXP >= 300) return { level: 3, xp: 300, title: 'Practicante' };

@@ -31,12 +31,10 @@ const FILTER_PILLS = [
   { key: 'mastered' as const, label: 'Dominados', color: 'text-emerald-600 bg-emerald-50' },
 ] as const;
 
-export function DeckScreen({ topic, sectionIdx, sectionName, courseColor, onStart, onBack, onStudyTopic, onStartAdaptive, keywordProgress, summaryId, keywords, onCardCreated }: {
+export function DeckScreen({ topic, sectionIdx, sectionName, onStart, onBack, onStudyTopic, onStartAdaptive, keywordProgress, summaryId, keywords, onCardCreated }: {
   topic: Topic;
   sectionIdx: number;
   sectionName: string;
-  /** @deprecated */
-  courseColor: string;
   onStart: (cards: Flashcard[]) => void;
   onBack: () => void;
   onStudyTopic: () => void;
