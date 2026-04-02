@@ -103,7 +103,8 @@ export function SidebarOutline({
       {/* ── Click-away layer — transparent, no visual effect ── */}
       {!collapsed && (
         <div
-          className="fixed inset-0 z-30"
+          className="fixed inset-0"
+          style={{ zIndex: 110 }}
           onClick={onToggleCollapse}
           aria-hidden="true"
         />
@@ -120,7 +121,7 @@ export function SidebarOutline({
           collapsed
             ? 'sticky top-[72px] max-h-[calc(100vh-88px)] border-r border-gray-200 dark:border-[#2d2e34]'
             : [
-                'absolute left-0 z-40',
+                'absolute left-0',
                 'shadow-xl rounded-2xl',
                 'border border-gray-200/80 dark:border-[#2d2e34]',
               ].join(' '),
@@ -129,7 +130,7 @@ export function SidebarOutline({
           width: collapsed ? 52 : 280,
           ...(collapsed
             ? {}
-            : { top: 0, maxHeight: 'calc(100vh - 120px)' }),
+            : { top: 0, maxHeight: 'calc(100vh - 120px)', zIndex: 120 }),
         }}
       >
         {/* -- Header -- */}
