@@ -167,7 +167,7 @@ export function MobileDrawer({
                 <div className="absolute top-3 right-3 z-10">
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    className="p-2 rounded-lg bg-black/10 hover:bg-black/20 text-gray-500 transition-colors"
                     aria-label="Cerrar"
                   >
                     <X size={18} />

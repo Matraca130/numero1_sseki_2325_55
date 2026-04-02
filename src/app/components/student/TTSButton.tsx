@@ -25,7 +25,7 @@ export default function TTSButton({ text }: TTSButtonProps) {
 
     const cleaned = stripKeywordMarkup(text);
     const utterance = new SpeechSynthesisUtterance(cleaned);
-    utterance.lang = 'pt-BR';
+    utterance.lang = 'es-AR';
     utterance.rate = 0.95;
 
     utterance.onend = () => setSpeaking(false);

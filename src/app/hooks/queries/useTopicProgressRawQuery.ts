@@ -48,7 +48,7 @@ export function useTopicProgressRawQuery(
   const summaries = useMemo(() => {
     if (!data) return [];
     return data.summaries
-      .filter(s => s.status === 'published' && s.is_active)
+      .filter(s => s.status === 'published' && s.is_active !== false)
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   }, [data]);
 

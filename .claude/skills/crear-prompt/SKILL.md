@@ -17,7 +17,7 @@ description: >
 
 Transforma planes de alto nivel en prompts ejecutables optimizados para Claude Opus 4.6, diseñados para el ecosistema multi-agente de Axon con 74 agentes organizados en 12 dominios + 9 agentes cross-cutting.
 
-Cada prompt generado respeta: las zonas de ownership de los agentes, sus dependencias, el sistema de memoria de 3 capas, y las 6 verificaciones del Quality Gate.
+Cada prompt generado respeta: las zonas de ownership de los agentes, sus dependencias, el sistema de memoria de 3 capas, las 6 verificaciones del Quality Gate, y las **prácticas de ingeniería** (testing, architecture decisions, code review, debug protocol, documentación).
 
 ## Principio Rector
 
@@ -42,7 +42,7 @@ La complejidad del prompt escala con la **ambigüedad de la tarea**, no con el n
 
 ---
 
-## Las 6 Fases de Generación
+## Las 7 Fases de Generación
 
 ### Fase 1: Análisis del Plan
 
@@ -111,7 +111,31 @@ Fase 4: [XX-02]                    ← Quality Gate (secuencial)
 - Solo se paralelizan agentes SIN dependencias mutuas
 - El Quality Gate (XX-02) SIEMPRE es secuencial después de cada fase
 
-### Fase 3: Generación de Prompts
+### Fase 3: Selección de Prácticas de Ingeniería
+
+**NUEVA FASE — leer `references/engineering-practices.md` para el detalle completo.**
+
+Antes de escribir los prompts, identificar qué prácticas de ingeniería aplican. Consultar la **Matriz de Aplicación** en `references/engineering-practices.md`:
+
+| Tipo de tarea | Testing | ADR | Code Review | Debug | Docs |
+|---------------|---------|-----|-------------|-------|------|
+| Feature nueva (backend) | unit + integration | Si hay decisión | Siempre | Si falla | endpoints + lógica |
+| Feature nueva (frontend) | component + interaction | Rara vez | Siempre | Si falla | props + componente |
+| Hotfix | test de regresión | No | Reducido | Siempre | inline comment |
+| Refactor | tests existentes pasan | Si cambia arq. | Siempre | Si falla | actualizar docs |
+| Migración DB | integration test | Siempre | Siempre | Si falla | SQL comments |
+| Cambio cross-cutting | todos los tests afectados | Usualmente | Siempre | Si falla | README update |
+
+**Regla clave:** Solo incluye en el prompt los bloques de las prácticas que aplican. Un hotfix no necesita `<architecture_decisions>`. Una migración sí necesita `<testing_strategy>` + `<documentation_requirements>`. Mantén el prompt lean.
+
+Los bloques XML disponibles para inyectar son:
+- `<testing_strategy>` — Qué testear, a qué nivel, qué no testear
+- `<architecture_decisions>` — Cuándo y cómo documentar ADRs (solo para XX-01 o decisiones multi-dominio)
+- `<code_review_dimensions>` — Dimensiones expandidas para el Quality Gate (seguridad, performance, correctness, maintainability)
+- `<debug_protocol>` — Protocolo RIDE (Reproduce → Isolate → Diagnose → Execute fix)
+- `<documentation_requirements>` — Qué documentar según tipo de cambio
+
+### Fase 4: Generación de Prompts
 
 Para cada agente seleccionado, generar un prompt siguiendo el **Axon Prompt Pattern**. Leer `references/patterns/axon-prompt-pattern.md` para el template completo.
 
@@ -154,6 +178,13 @@ Cualquier cambio fuera de esta zona será RECHAZADO por el Quality Gate.
 </output_format>
 </task>
 
+<!-- PRÁCTICAS DE INGENIERÍA: incluir solo las que aplican según Fase 3 -->
+{<testing_strategy>...</testing_strategy> si aplica}
+{<debug_protocol>...</debug_protocol> si aplica}
+{<documentation_requirements>...</documentation_requirements> si aplica}
+{<architecture_decisions>...</architecture_decisions> solo para XX-01}
+{<code_review_dimensions>...</code_review_dimensions> solo para XX-02}
+
 <examples>
 {1-3 ejemplos de outputs esperados si aplica}
 </examples>
@@ -195,7 +226,7 @@ Si encuentras alguna de estas situaciones, DETENTE y reporta al Arquitecto (XX-0
 </escalation>
 ```
 
-### Fase 3b: Decisión de Aislamiento (Worktree vs Directo)
+### Fase 4b: Decisión de Aislamiento (Worktree vs Directo)
 
 **Problema real:** Cuando los agentes corren en worktrees temporales (`isolation: "worktree"`), la memoria se pierde al destruir el worktree. Esto ya pasó en producción — agentes completaron su trabajo pero no persistieron sus lecciones.
 
@@ -221,7 +252,7 @@ De lo contrario, todo lo que aprendiste se pierde al destruir el worktree.
 
 **Preferencia del sistema Axon:** Ejecutar en modo **directo** siempre que sea posible. La memoria en GitHub es la fuente de verdad — si no se commitea, no existe.
 
-### Fase 4: Calibración por Escala
+### Fase 5: Calibración por Escala
 
 El nivel de detalle del prompt CAMBIA según la cantidad de agentes:
 
@@ -229,16 +260,18 @@ El nivel de detalle del prompt CAMBIA según la cantidad de agentes:
 - Prompts completos con todo el contexto inline
 - No necesita plan de fases
 - Extended Thinking habilitado para razonamiento
+- Prácticas de ingeniería inline en el prompt
 
 **Medio (4-10 agentes):**
 - Prompts modulares con contexto referenciado (no inline)
 - Plan de fases explícito con dependencias
 - Cada prompt incluye solo SU contexto + interfaces con vecinos
 - Quality Gate después de cada fase
+- Prácticas de ingeniería por referencia (`references/engineering-practices.md`)
 
 **Macro (10+ agentes / 74 agent teams):**
-- El Arquitecto (XX-01) recibe el plan maestro
-- El Arquitecto genera los prompts individuales
+- El Arquitecto (XX-01) recibe el plan maestro + `<architecture_decisions>`
+- El Arquitecto genera los prompts individuales con las prácticas apropiadas
 - Ejecución por oleadas (waves) con checkpoints
 - Memory compaction entre oleadas
 - Post-mortem automático con métricas
@@ -261,69 +294,62 @@ de ejecución multi-agente para el sistema Axon.
 <deliverable>
 1. Lista de agentes necesarios con justificación
 2. Plan de fases con dependencias
-3. Prompt individual para cada agente
+3. Prompt individual para cada agente (con prácticas de ingeniería según Fase 3)
 4. Criterios de éxito por fase
 5. Rollback plan si algún agente falla
+6. ADR si hay decisiones arquitectónicas pendientes
 </deliverable>
 </task>
+
+<architecture_decisions>
+{bloque de ADR — ver references/engineering-practices.md}
+</architecture_decisions>
 ```
 
-### Fase 5: Optimización Claude Opus 2026
+### Fase 6: Optimización Claude Opus 2026
 
-Aplicar estas optimizaciones específicas para Claude Opus 4.6:
+Leer `references/patterns/claude-opus-2026.md` para el detalle completo. Resumen:
 
-**1. XML Tags (OBLIGATORIO)**
-Claude Opus procesa mejor con tags XML. Toda estructura debe usar `<tag>contenido</tag>`.
+1. **XML Tags** obligatorio — toda estructura usa `<tag>contenido</tag>`
+2. **4-Block Pattern** — `INSTRUCTIONS → CONTEXT → TASK → OUTPUT FORMAT`, documentos largos al inicio
+3. **Extended Thinking** para tareas Opus — NO usar Chain-of-Thought manual
+4. **Tono** directo y amable — explicar razones, no imponer reglas
+5. **Prefilling** para guiar formato de respuesta
+6. **Few-Shot Examples** (2-3) cuando la tarea tiene formato específico
+7. **Anti over-engineering** — `<constraint>Implementa la solución más simple que cumpla los criterios.</constraint>`
 
-**2. 4-Block Pattern de Anthropic**
-```
-INSTRUCTIONS → CONTEXT → TASK → OUTPUT FORMAT
-```
-Siempre en este orden. Documentos largos al INICIO del prompt, query al FINAL.
-
-**3. Extended Thinking**
-- Para tareas Opus que requieren razonamiento → habilitar Extended Thinking
-- NO usar Chain-of-Thought manual (Claude lo hace nativamente)
-- Configurar budget de thinking tokens según complejidad
-
-**4. Tono y estilo**
-- Directo y amable, nunca agresivo
-- "YOU MUST" → causa over-triggering, usar explicaciones del "por qué"
-- Explicar razones detrás de restricciones, no solo imponer reglas
-
-**5. Prefilling**
-Para guiar formato de respuesta, usar prefill del assistant:
-```json
-{"role": "assistant", "content": "## Plan de Ejecución\n\n### Fase 1:"}
-```
-
-**6. Few-Shot Examples**
-Incluir 2-3 ejemplos en `<examples>` cuando la tarea tiene formato específico.
-
-**7. Anti over-engineering**
-Claude Opus tiende a crear abstracciones innecesarias. Agregar:
-```xml
-<constraint>Implementa la solución más simple que cumpla los criterios.
-No crees abstracciones adicionales a menos que se soliciten explícitamente.</constraint>
-```
-
-### Fase 6: Validación
+### Fase 7: Validación
 
 Antes de entregar los prompts, verificar:
 
+**Orquestación:**
 - [ ] ¿Cada prompt tiene zona de aislamiento explícita?
 - [ ] ¿Las dependencias entre agentes están resueltas en el orden de fases?
 - [ ] ¿Ningún agente modifica archivos fuera de su zona?
 - [ ] ¿Los mandatory reads están incluidos?
+- [ ] ¿El plan total respeta max 20 agentes paralelos?
+
+**Calidad de Prompt:**
 - [ ] ¿Los criterios de aceptación son verificables por el Quality Gate?
 - [ ] ¿El modelo asignado (Sonnet/Opus) es apropiado para la complejidad?
 - [ ] ¿Se usa XML tags + 4-Block Pattern?
 - [ ] ¿El tono es directo sin ser agresivo?
 - [ ] ¿Hay escalation criteria para cada agente?
-- [ ] ¿El plan total respeta max 20 agentes paralelos?
-- [ ] **¿Cada prompt incluye `<post_session_memory>`?** (CRÍTICO — sin esto ni el session log se escribe. El bloque permite que el agente decida si hay lecciones o no)
-- [ ] **¿Se decidió worktree vs directo?** (directo preferido si no hay solapamiento de archivos)
-- [ ] **Si usa worktree, ¿incluye `<worktree_memory_protocol>`?** (commit + push de memoria antes de destruir)
+
+**Memoria:**
+- [ ] ¿Cada prompt incluye `<post_session_memory>`?
+- [ ] ¿Se decidió worktree vs directo?
+- [ ] Si usa worktree, ¿incluye `<worktree_memory_protocol>`?
+
+**Prácticas de Ingeniería:**
+- [ ] ¿Se consultó la Matriz de Aplicación (Fase 3) para seleccionar prácticas?
+- [ ] ¿Los agentes backend incluyen `<testing_strategy>` con tests apropiados?
+- [ ] ¿Los agentes frontend incluyen `<testing_strategy>` con component tests?
+- [ ] ¿El Quality Gate (XX-02) incluye `<code_review_dimensions>`?
+- [ ] ¿El Arquitecto (XX-01) incluye `<architecture_decisions>` si hay decisiones?
+- [ ] ¿Cada agente incluye `<debug_protocol>` para auto-resolución de errores?
+- [ ] ¿Los agentes incluyen `<documentation_requirements>` según tipo de cambio?
+- [ ] ¿Los prompts NO incluyen prácticas que no aplican? (lean, no inflado)
 
 ---
 
@@ -337,7 +363,8 @@ Antes de entregar los prompts, verificar:
     "objective": "...",
     "scale": "micro",
     "model": "opus|sonnet",
-    "agents": ["ID-nombre"]
+    "agents": ["ID-nombre"],
+    "engineering_practices": ["testing", "debug"]
   },
   "prompts": [
     {
@@ -346,6 +373,7 @@ Antes de entregar los prompts, verificar:
       "model": "sonnet",
       "system_prompt": "...",
       "task_prompt": "...",
+      "engineering_blocks": ["testing_strategy", "debug_protocol", "documentation_requirements"],
       "expected_output": ["archivos a crear/modificar"],
       "depends_on": []
     }
@@ -355,101 +383,74 @@ Antes de entregar los prompts, verificar:
 
 ### Para plan Medio/Macro:
 
-```json
-{
-  "plan": {
-    "objective": "...",
-    "scale": "medio|macro",
-    "total_agents": 12,
-    "total_phases": 4,
-    "estimated_cost": "~$X.XX"
-  },
-  "phases": [
-    {
-      "phase": 1,
-      "name": "Infraestructura Base",
-      "type": "sequential",
-      "agents": [
-        {
-          "agent_id": "IF-01",
-          "agent_name": "infra-plumbing",
-          "model": "sonnet",
-          "system_prompt": "...",
-          "task_prompt": "...",
-          "expected_output": ["..."],
-          "depends_on": []
-        }
-      ],
-      "quality_gate": true,
-      "success_criteria": ["..."]
-    },
-    {
-      "phase": 2,
-      "name": "Auth Layer",
-      "type": "parallel_team",
-      "max_parallel": 2,
-      "agents": [
-        { "agent_id": "AS-01", "..." : "..." },
-        { "agent_id": "AS-02", "..." : "..." }
-      ],
-      "quality_gate": true,
-      "success_criteria": ["..."]
-    }
-  ],
-  "rollback_plan": "...",
-  "total_estimated_tokens": "...",
-  "total_estimated_cost": "$..."
-}
-```
+Mismo formato que Micro, pero con `phases[]` en lugar de `prompts[]`. Cada fase incluye: `phase`, `name`, `type` (sequential|parallel_team), `agents[]` (mismo formato que arriba con `engineering_blocks`), `quality_gate: true`, `quality_gate_dimensions[]`, y `success_criteria[]`. El plan incluye además: `rollback_plan`, `adrs_needed[]`, `total_estimated_tokens`, `total_estimated_cost`.
 
 ---
 
 ## Patrones Especiales
 
-### Patrón: Cambio Cross-Cutting
-
-Cuando un cambio afecta múltiples dominios (ej: renombrar un tipo compartido):
-
-1. XX-03 (code-standards) identifica todos los archivos afectados
-2. Mapea archivo → agente owner
-3. Genera prompt para cada agente con el cambio específico en su zona
-4. Los agentes ejecutan en paralelo
-5. XX-02 (quality-gate) verifica coherencia global
-
 ### Patrón: Feature Nueva End-to-End
 
-Para features que tocan backend + frontend + tests:
+Para features que tocan backend + frontend + tests, ahora con prácticas integradas:
 
 ```
 Fase 1: IF-01 (migración DB si necesario)
+         → <testing_strategy> integration test de migración
+         → <documentation_requirements> SQL comments
+
 Fase 2: {DOMAIN}-backend (API endpoints)
+         → <testing_strategy> unit + integration tests
+         → <debug_protocol> auto-resolución de errores
+         → <documentation_requirements> JSDoc en endpoints
+
 Fase 3: {DOMAIN}-frontend (UI components)
-Fase 4: {DOMAIN}-tests (test coverage)
+         → <testing_strategy> component + interaction tests
+         → <debug_protocol> auto-resolución de errores
+         → <documentation_requirements> typed props
+
+Fase 4: {DOMAIN}-tests (test coverage completo)
+         → Ownership de toda la suite de tests del dominio
+
 Fase 5: XX-02 (quality gate completo)
+         → <code_review_dimensions> security + performance + correctness + maintainability
 ```
 
 ### Patrón: Hotfix Urgente
 
-Para correcciones críticas que no pueden esperar el flujo completo:
+```
+Fase 1: {AGENT-owner} del archivo con el bug
+         → <debug_protocol> (este patrón ES debugging)
+         → <testing_strategy> test de regresión obligatorio
+         → Skip <architecture_decisions> y <documentation_requirements> extensiva
 
-1. Identificar el agente owner del archivo con el bug
-2. Generar prompt con contexto mínimo + fix específico
-3. Skip fase de planificación del Arquitecto
-4. Quality Gate reducido (solo zone compliance + tests)
+Fase 2: XX-02 (quality gate reducido)
+         → Solo zone compliance + tests + security check
+```
+
+### Patrón: Cambio Cross-Cutting
+
+1. XX-03 (code-standards) identifica todos los archivos afectados
+2. Mapea archivo → agente owner
+3. Genera prompt para cada agente con el cambio específico en su zona + `<testing_strategy>` (todos los tests afectados deben pasar)
+4. Los agentes ejecutan en paralelo
+5. XX-02 (quality-gate) con `<code_review_dimensions>` completas
 
 ---
 
 ## Anti-patrones (qué NO hacer)
 
-1. **"Prompt dump"** — volcar todo el contexto del proyecto en cada prompt. Cada agente solo necesita SU contexto.
-2. **"Agent spam"** — involucrar agentes que no necesitan participar. Si un archivo no cambia, su agente no participa.
-3. **"Dependency ignore"** — ejecutar agentes sin respetar el grafo de dependencias. Causa merge conflicts.
-4. **"Manual CoT"** — agregar "piensa paso a paso" en prompts para Claude Opus. Extended Thinking lo hace nativamente.
-5. **"Zone violation"** — generar prompts que pidan a un agente modificar archivos fuera de su zona. El Quality Gate lo rechazará.
-6. **"Over-specification"** — dictar la implementación exacta en lugar de los criterios de aceptación. Los agentes saben cómo implementar en su dominio.
-7. **"Memory amnesia"** — generar prompts sin `<post_session_memory>`. El agente completa su tarea pero no registra ni el session log. En la siguiente sesión repite los mismos errores. Ya ocurrió en producción y es el anti-patrón más costoso a largo plazo.
-8. **"Worktree sin memoria"** — usar `isolation: "worktree"` sin incluir `<worktree_memory_protocol>`. Al destruir el worktree, la memoria se evapora. El agente DEBE commitear su memoria antes de terminar.
-9. **"Lesson inflation"** — forzar al agente a escribir lecciones cuando no aprendió nada nuevo. Genera ruido que diluye las lecciones reales. El session log (Task + Files touched) siempre se escribe, pero las lecciones (Learned/Pattern/Mistake) solo cuando son genuinamente nuevas y reusables. Una sesión sin lecciones es perfectamente válida.
+1. **"Prompt dump"** — volcar todo el contexto del proyecto en cada prompt
+2. **"Agent spam"** — involucrar agentes que no necesitan participar
+3. **"Dependency ignore"** — ejecutar agentes sin respetar el grafo de dependencias
+4. **"Manual CoT"** — agregar "piensa paso a paso" en prompts para Claude Opus
+5. **"Zone violation"** — generar prompts que pidan a un agente modificar archivos fuera de su zona
+6. **"Over-specification"** — dictar la implementación exacta en lugar de los criterios de aceptación
+7. **"Memory amnesia"** — generar prompts sin `<post_session_memory>`
+8. **"Worktree sin memoria"** — usar worktree sin `<worktree_memory_protocol>`
+9. **"Lesson inflation"** — forzar al agente a escribir lecciones cuando no aprendió nada
+10. **"Engineering blanket"** — incluir TODOS los bloques de prácticas de ingeniería en TODOS los prompts. Cada agente recibe solo las prácticas relevantes según la Matriz de Aplicación. Un prompt inflado con prácticas irrelevantes distrae al agente y desperdicia tokens.
+11. **"Test afterthought"** — dejar los tests como "algo que se hace al final si queda tiempo". Los tests se piensan ANTES de implementar (qué necesita ser verificable) y se escriben como parte del entregable del agente, no como fase separada opcional.
+12. **"Undocumented decision"** — tomar decisiones arquitectónicas sin ADR. Si un agente elige entre 2+ opciones técnicas y esa elección afecta a otros dominios, necesita un ADR. De lo contrario, el próximo agente que toque ese código no sabrá por qué se hizo así.
 
 ---
 
@@ -458,6 +459,7 @@ Para correcciones críticas que no pueden esperar el flujo completo:
 | Archivo | Propósito |
 |---------|-----------|
 | `references/agent-registry.md` | Índice completo de los 74 agentes con zonas y dependencias |
+| `references/engineering-practices.md` | **Prácticas de ingeniería: testing, ADRs, code review, debug, docs** |
 | `references/patterns/axon-prompt-pattern.md` | Template detallado del prompt pattern |
 | `references/patterns/team-patterns.md` | Patrones de agent teams por caso de uso |
 | `references/templates/micro.md` | Template para planes de 1-3 agentes |

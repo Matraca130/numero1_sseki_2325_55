@@ -5,14 +5,14 @@
 //   DeckScreen "Con IA" button navigates to /student/adaptive-session.
 // ============================================================
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AnimatePresence } from 'motion/react';
 import { useFlashcardNavigation, type KeywordProgress } from '@/app/hooks/useFlashcardNavigation';
+import { apiCall } from '@/app/lib/api';
 import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
 import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { useStudyQueueData } from '@/app/hooks/useStudyQueueData';
 import { useFlashcardCoverage } from '@/app/hooks/useFlashcardCoverage';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
@@ -27,9 +27,8 @@ export function FlashcardView() {
   const { selectedTopicId } = useContentTree();
 
   // T-01: Topic mastery from flashcard-mappings + FSRS
-  const courseId = nav.currentCourse.id === 'empty' ? null : nav.currentCourse.id;
-  const sqData = useStudyQueueData(courseId);
-  const coverage = useFlashcardCoverage(sqData.queue, sqData.loading);
+  // Reuse nav hook's sqData (already handles multi-course fetch)
+  const coverage = useFlashcardCoverage(nav.sqData.queue, nav.sqData.loading);
 
   const engine = useFlashcardEngine({
     studentId,
@@ -82,6 +81,39 @@ export function FlashcardView() {
     navigate(`/student/adaptive-session?${params.toString()}`);
   }, [nav.selectedTopic, nav.currentCourse.id, navigate]);
 
+  // ── Derived props for StudentCreateModal ──
+  // Prefer summary_id from existing cards; fallback to fetching for empty decks
+  const [fetchedSummaryId, setFetchedSummaryId] = useState<string>('');
+  const cardSummaryId = nav.selectedTopic?.flashcards?.[0]?.summary_id || '';
+  const currentSummaryId = cardSummaryId || fetchedSummaryId;
+
+  useEffect(() => {
+    const topicId = nav.selectedTopic?.id;
+    if (!topicId || cardSummaryId) { return; }
+    let cancelled = false;
+    apiCall<any>(`/summaries?topic_id=${topicId}`)
+      .then(data => {
+        if (cancelled) return;
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (items[0]?.id) setFetchedSummaryId(items[0].id);
+      })
+      .catch(() => { /* non-fatal: button stays hidden */ });
+    return () => { cancelled = true; };
+  }, [nav.selectedTopic?.id, cardSummaryId]);
+
+  const currentKeywords = useMemo((): Array<{ id: string; name: string }> => {
+    const topicId = nav.selectedTopic?.id;
+    if (!topicId) return [];
+    const summary = nav.kwMasteryCache.current.get(topicId);
+    if (!summary) return [];
+    return summary.allKeywordsByMastery.map(kw => ({ id: kw.keyword_id, name: kw.name }));
+  }, [nav.selectedTopic?.id, nav.kwProgressVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCardCreated = useCallback(() => {
+    const topicId = nav.selectedTopic?.id;
+    if (topicId) nav.reloadTopicCards(topicId);
+  }, [nav]);
+
   // Keyword progress for DeckScreen (Fase 6)
   const currentKeywordProgress = useMemo((): KeywordProgress | undefined => {
     const topicId = nav.selectedTopic?.id;
@@ -120,7 +152,7 @@ export function FlashcardView() {
               <SectionScreen key="section" section={nav.selectedSection} sectionIdx={nav.selectedSectionIdx} courseColor={nav.currentCourse.color} onOpenDeck={nav.openDeck} onStartSection={handleStartSection} onBack={nav.goBack} />
             )}
             {nav.viewState === 'deck' && nav.selectedTopic && (
-              <DeckScreen key="deck" topic={nav.selectedTopic} sectionIdx={nav.selectedSectionIdx} sectionName={nav.selectedSection?.title || ''} courseColor={nav.currentCourse.color} onStart={handleStartDeck} onBack={nav.goBack} onStudyTopic={nav.studySelectedTopic} onStartAdaptive={handleStartAdaptive} keywordProgress={currentKeywordProgress} />
+              <DeckScreen key="deck" topic={nav.selectedTopic} sectionIdx={nav.selectedSectionIdx} sectionName={nav.selectedSection?.title || ''} courseColor={nav.currentCourse.color} onStart={handleStartDeck} onBack={nav.goBack} onStudyTopic={nav.studySelectedTopic} onStartAdaptive={handleStartAdaptive} keywordProgress={currentKeywordProgress} summaryId={currentSummaryId} keywords={currentKeywords} onCardCreated={handleCardCreated} />
             )}
             {nav.viewState === 'session' && engine.sessionCards.length > 0 && (
               <SessionScreen key="session" cards={engine.sessionCards} currentIndex={engine.currentIndex} isRevealed={engine.isRevealed} setIsRevealed={engine.setIsRevealed} handleRate={engine.handleRate} sessionStats={engine.sessionStats} courseColor={nav.currentCourse.color} onBack={nav.goBack} masteryMap={nav.masteryMap} />

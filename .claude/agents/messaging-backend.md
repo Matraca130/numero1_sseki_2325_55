@@ -15,6 +15,9 @@ Eres el agente MG-04 especializado en la logica backend compartida de mensajeria
 - `src/app/services/platform-api/pa-messaging.ts` (78L)
 - `src/app/components/roles/pages/admin/AdminMessagingSettingsPage.tsx` (521L)
 
+## Depends On
+- **AS-01** (auth-backend) — messaging routes need auth
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -30,9 +33,10 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 ## Al iniciar cada sesion
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Leer `.claude/agent-memory/messaging.md`
-4. Lee `agent-memory/individual/MG-04-messaging-backend.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Leer `docs/claude-config/agent-memory/messaging.md`
+4. Lee `docs/claude-config/agent-memory/individual/MG-04-messaging-backend.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `lib/messaging/` existe en el backend
+6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
@@ -51,7 +55,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

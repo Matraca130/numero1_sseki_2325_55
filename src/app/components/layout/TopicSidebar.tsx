@@ -24,7 +24,7 @@ import { headingStyle } from '@/app/design-system';
 export function TopicSidebar() {
   const { currentTopic, setCurrentTopic } = useNavigation();
   const { setSidebarOpen } = useUI();
-  const { navigateTo } = useStudentNav();
+  const { navigateTo, currentView } = useStudentNav();
   const { tree, loading, selectedTopicId, selectTopic } = useContentTree();
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -57,7 +57,11 @@ export function TopicSidebar() {
   const handleTopicClick = (topicId: string, topicName: string) => {
     selectTopic(topicId);
     setCurrentTopic({ id: topicId, title: topicName } as any);
-    navigateTo('study');
+    // Don't navigate away from flashcards — FlashcardView syncs
+    // selectedTopicId and calls openDeck() via useEffect
+    if (currentView !== 'flashcards') {
+      navigateTo('study');
+    }
   };
 
   // Loading state

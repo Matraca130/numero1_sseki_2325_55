@@ -1,22 +1,13 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
-import type { SummaryBlock } from '@/app/services/summariesApi';
+import { Loader2, Upload, AlertCircle } from 'lucide-react';
+import { apiCall, API_BASE } from '@/app/lib/api';
+import { type BlockFormProps, inputClass } from './shared';
 
-// ── Constants ─────────────────────────────────────────────
-const STORAGE_BASE =
-  'https://xdnciktarvxyhkrokbng.supabase.co/storage/v1/object/public/axon-images';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const SUPABASE_URL = API_BASE.replace('/functions/v1/server', '');
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-interface BlockFormProps {
-  block: SummaryBlock;
-  onChange: (field: string, value: unknown) => void;
-}
-
-const inputClass =
-  'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-600';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function ProseForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
@@ -54,56 +45,12 @@ export default function ProseForm({ block, onChange }: BlockFormProps) {
         formData.append('file', file);
         formData.append('folder', 'summaries');
 
-        // Use raw fetch — apiCall forces Content-Type: application/json
-        // which breaks FormData (browser must set multipart boundary).
-        const headers: Record<string, string> = {
-          Authorization: `Bearer ${ANON_KEY}`,
-        };
-        const token = getAccessToken();
-        if (token) {
-          headers['X-Access-Token'] = token;
-        }
-
-        const res = await fetch(`${API_BASE}/storage/upload`, {
+        const result = await apiCall<{ path: string }>('/storage/upload', {
           method: 'POST',
-          headers,
           body: formData,
         });
 
-        if (!res.ok) {
-          const text = await res.text();
-          let msg = `Error ${res.status}`;
-          try {
-            const json: unknown = JSON.parse(text);
-            if (
-              typeof json === 'object' &&
-              json !== null &&
-              typeof (json as Record<string, unknown>).error === 'string'
-            ) {
-              msg = (json as Record<string, string>).error;
-            }
-          } catch {
-            /* non-JSON response */
-          }
-          throw new Error(msg);
-        }
-
-        const json: unknown = await res.json();
-        let path: string | undefined;
-
-        if (typeof json === 'object' && json !== null) {
-          const obj = json as Record<string, unknown>;
-          if (
-            typeof obj.data === 'object' &&
-            obj.data !== null &&
-            typeof (obj.data as Record<string, unknown>).path === 'string'
-          ) {
-            path = (obj.data as Record<string, string>).path;
-          } else if (typeof obj.path === 'string') {
-            path = obj.path;
-          }
-        }
-
+        const path = result?.path;
         if (!path) {
           throw new Error('Upload succeeded but no path returned');
         }

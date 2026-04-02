@@ -84,7 +84,7 @@ export function mapProfileFromBackend(raw: any): StudentProfile {
     createdAt: raw.created_at || new Date().toISOString(),
     preferences: raw.preferences || {
       theme: 'light' as const,
-      language: 'pt-BR',
+      language: 'es-AR',
       dailyGoalMinutes: 60,
       notificationsEnabled: true,
       spacedRepetitionAlgorithm: 'fsrs' as const,

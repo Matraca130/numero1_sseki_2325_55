@@ -1,13 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
 import { Tag } from 'lucide-react';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
+import KeywordCrossSummaryPanel from '@/app/components/student/KeywordCrossSummaryPanel';
 
 interface KeywordChipProps {
   keyword: SummaryKeyword;
   onClick?: (keywordId: string) => void;
+  onNavigateSummary?: (summaryId: string) => void;
 }
 
-export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
+export default function KeywordChip({ keyword, onClick, onNavigateSummary }: KeywordChipProps) {
   const [showPopover, setShowPopover] = useState(false);
   const [positionAbove, setPositionAbove] = useState(true);
   const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -22,17 +24,33 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
     setShowPopover(true);
   }, []);
 
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleClose = useCallback(() => {
+    leaveTimer.current = setTimeout(() => {
+      setShowPopover(false);
+    }, 100);
+  }, []);
+
+  const cancelClose = useCallback(() => {
+    if (leaveTimer.current) {
+      clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
+  }, []);
+
   const handleMouseEnter = useCallback(() => {
+    cancelClose();
     enterTimer.current = setTimeout(openPopover, 150);
-  }, [openPopover]);
+  }, [openPopover, cancelClose]);
 
   const handleMouseLeave = useCallback(() => {
     if (enterTimer.current) {
       clearTimeout(enterTimer.current);
       enterTimer.current = null;
     }
-    setShowPopover(false);
-  }, []);
+    scheduleClose();
+  }, [scheduleClose]);
 
   const handleFocus = useCallback(() => {
     openPopover();
@@ -58,22 +76,32 @@ export default function KeywordChip({ keyword, onClick }: KeywordChipProps) {
       <Tag size={10} className="shrink-0" />
       {keyword.name}
 
-      {showPopover && keyword.definition && (
+      {showPopover && (
         <>
           {/* Popover card */}
           <span
             role="tooltip"
             className={[
-              'absolute left-1/2 -translate-x-1/2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50 pointer-events-none',
+              'absolute left-1/2 -translate-x-1/2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50 pointer-events-auto',
               positionAbove ? 'bottom-full mb-2' : 'top-full mt-2',
             ].join(' ')}
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
           >
             <span className="block font-serif text-sm font-bold text-axon-dark dark:text-teal-400 mb-1.5">
               {keyword.name}
             </span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              {keyword.definition}
-            </span>
+            {keyword.definition && (
+              <span className="block text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                {keyword.definition}
+              </span>
+            )}
+
+            <KeywordCrossSummaryPanel
+              keywordName={keyword.name}
+              currentSummaryId={keyword.summary_id}
+              onNavigate={onNavigateSummary}
+            />
 
             {/* Arrow pointer */}
             <span

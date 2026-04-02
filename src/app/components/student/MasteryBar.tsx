@@ -87,6 +87,11 @@ export function MasteryBar({ level, showLabel = false, size = 'sm' }: MasteryBar
     <div className="flex items-center gap-2">
       <div
         className={`w-full rounded-full ${heightClass}`}
+        role="meter"
+        aria-label={`Dominio: ${label}`}
+        aria-valuenow={Math.max(0, Math.min(Math.round(level * 100), 100))}
+        aria-valuemin={0}
+        aria-valuemax={100}
         style={{
           backgroundColor: color,
           transition: 'background-color 300ms ease',

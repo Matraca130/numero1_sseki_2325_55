@@ -1,47 +1,21 @@
 // ============================================================
-// Axon — BlockAnnotationsPanel (per-block notes with localStorage)
+// Axon — BlockAnnotationsPanel (per-block notes with API)
 //
 // Wave 3: Student interaction — block-level annotations panel.
-// Persists notes to localStorage keyed by summaryId + blockId.
+// Persists notes via the block-notes API endpoint (React Query).
 // ============================================================
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, StickyNote } from 'lucide-react';
 import { Textarea } from '@/app/components/ui/textarea';
 import { focusRing } from '@/app/components/design-kit';
+import { useBlockNotes } from '@/app/hooks/queries/useBlockNotes';
 
 // ── Types ─────────────────────────────────────────────────
-
-interface BlockNote {
-  id: string;
-  text: string;
-  createdAt: string;
-}
 
 export interface BlockAnnotationsPanelProps {
   blockId: string;
   summaryId: string;
-}
-
-// ── localStorage helpers ──────────────────────────────────
-
-function storageKey(summaryId: string, blockId: string): string {
-  return `axon-block-notes-${summaryId}-${blockId}`;
-}
-
-function loadNotes(summaryId: string, blockId: string): BlockNote[] {
-  try {
-    const raw = localStorage.getItem(storageKey(summaryId, blockId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveNotes(summaryId: string, blockId: string, notes: BlockNote[]): void {
-  localStorage.setItem(storageKey(summaryId, blockId), JSON.stringify(notes));
 }
 
 // ── Component ─────────────────────────────────────────────
@@ -50,37 +24,28 @@ export const BlockAnnotationsPanel = React.memo(function BlockAnnotationsPanel({
   blockId,
   summaryId,
 }: BlockAnnotationsPanelProps) {
-  const [notes, setNotes] = useState<BlockNote[]>(() => loadNotes(summaryId, blockId));
+  const { notes, create, remove } = useBlockNotes(summaryId, blockId);
   const [draft, setDraft] = useState('');
   const [showForm, setShowForm] = useState(false);
 
   const sortedNotes = useMemo(
-    () => [...notes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    () => [...notes].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     [notes],
   );
 
   const handleAdd = useCallback(() => {
     const text = draft.trim();
     if (!text) return;
-    const newNote: BlockNote = {
-      id: crypto.randomUUID(),
-      text,
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...notes, newNote];
-    setNotes(updated);
-    saveNotes(summaryId, blockId, updated);
+    create(text);
     setDraft('');
     setShowForm(false);
-  }, [draft, notes, summaryId, blockId]);
+  }, [draft, create]);
 
   const handleDelete = useCallback(
     (id: string) => {
-      const updated = notes.filter((n) => n.id !== id);
-      setNotes(updated);
-      saveNotes(summaryId, blockId, updated);
+      remove(id);
     },
-    [notes, summaryId, blockId],
+    [remove],
   );
 
   const handleCancel = useCallback(() => {
@@ -188,7 +153,7 @@ export const BlockAnnotationsPanel = React.memo(function BlockAnnotationsPanel({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-zinc-600">{note.text}</p>
                       <span className="text-[10px] text-zinc-400 mt-1 inline-block">
-                        {new Date(note.createdAt).toLocaleDateString('pt-BR', {
+                        {new Date(note.created_at).toLocaleDateString('es-AR', {
                           day: '2-digit',
                           month: 'short',
                           hour: '2-digit',
@@ -199,7 +164,7 @@ export const BlockAnnotationsPanel = React.memo(function BlockAnnotationsPanel({
                     <button
                       onClick={() => handleDelete(note.id)}
                       className={`p-1.5 rounded hover:bg-red-50 text-zinc-400 hover:text-red-500 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity shrink-0 ${focusRing}`}
-                      aria-label="Excluir nota"
+                      aria-label="Eliminar nota"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
