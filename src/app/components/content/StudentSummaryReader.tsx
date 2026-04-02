@@ -89,7 +89,7 @@ export function StudentSummaryReader({
   onNavigateKeyword,
   initialTab,
 }: StudentSummaryReaderProps) {
-  const [activeTab, setActiveTab] = useState(initialTab || 'chunks');
+  const [activeTab, setActiveTab] = useState(initialTab === 'chunks' ? 'keywords' : (initialTab || 'keywords'));
   const readerRef = useRef<HTMLDivElement>(null);
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
   const [showTimer, setShowTimer] = useState(false);
@@ -101,6 +101,8 @@ export function StudentSummaryReader({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  /** View mode: 'enriched' shows structured blocks, 'reading' shows plain markdown */
+  const [viewMode, setViewMode] = useState<'enriched' | 'reading'>('enriched');
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -140,7 +142,6 @@ export function StudentSummaryReader({
 
   // ── Sidebar block click → scroll into view ──
   const handleSidebarBlockClick = useCallback((blockId: string) => {
-    setActiveTab('chunks');
     setTimeout(() => {
       const el = document.querySelector(`[data-block-id="${blockId}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -363,8 +364,9 @@ export function StudentSummaryReader({
 
       <div className="flex mx-auto p-6 sm:p-8 gap-6" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
-        {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div className="flex flex-col gap-3">
+        {/* Wrapper is relative so expanded sidebar overlays from its own position */}
+        {!readingSettings.focusMode && sidebarBlocks.length > 0 && (
+          <div className="relative" style={{ width: 52, flexShrink: 0 }}>
             <SidebarOutline
               blocks={sidebarBlocks}
               activeBlockId={activeBlockId}
@@ -372,29 +374,23 @@ export function StudentSummaryReader({
               collapsed={sidebarCollapsed}
               onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
               masteryLevels={masteryLevels}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              masteryLegend={
+                Object.keys(masteryLevels).length > 0 ? (
+                  <MasteryLegend
+                    masteryLevels={masteryLevels}
+                    totalBlocks={sidebarBlocks.length}
+                  />
+                ) : undefined
+              }
             />
-            {Object.keys(masteryLevels).length > 0 && (
-              <div
-                aria-hidden={sidebarCollapsed ? "true" : undefined}
-                style={{
-                  opacity: sidebarCollapsed ? 0 : 1,
-                  maxHeight: sidebarCollapsed ? 0 : 300,
-                  overflow: 'hidden',
-                  transition: 'opacity 200ms ease, max-height 200ms ease',
-                }}
-              >
-                <MasteryLegend
-                  masteryLevels={masteryLevels}
-                  totalBlocks={sidebarBlocks.length}
-                />
-              </div>
-            )}
           </div>
         )}
 
         <div id="reader-main-content" className={`flex-1 min-w-0 transition-all duration-200 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
 
-        {/* ── Immersive header toolbar (V1+V2+V6) ── */}
+        {/* ── Compact header toolbar with title ── */}
         {!readingSettings.focusMode && (
         <header
           role="banner"
@@ -410,8 +406,8 @@ export function StudentSummaryReader({
             borderRadius: '12px 12px 0 0',
           }}
         >
-          {/* Left side: back + brand */}
-          <div className="flex items-center" style={{ gap: 12 }}>
+          {/* Left side: back + title */}
+          <div className="flex items-center min-w-0" style={{ gap: 10 }}>
             <button
               onClick={onBack}
               aria-label="Volver a resúmenes"
@@ -427,27 +423,65 @@ export function StudentSummaryReader({
                 minWidth: 44,
                 minHeight: 44,
                 borderRadius: 6,
+                flexShrink: 0,
               }}
             >
               <ChevronLeft size={20} />
             </button>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: '#2a8c7a',
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}
-            >
-              AXON
-            </span>
-            <span style={{ color: '#b4d9d1', fontSize: 13, fontWeight: 300 }}>
-              Resúmenes
-            </span>
+            <div className="min-w-0">
+              <h1
+                className="truncate"
+                style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: '#fff',
+                  fontFamily: 'Georgia, serif',
+                  lineHeight: 1.2,
+                  margin: 0,
+                }}
+              >
+                {summary.title || 'Sin titulo'}
+              </h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span style={{ color: '#8cb8af', fontSize: 11 }}>
+                  {new Date(summary.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+                {readingState?.time_spent_seconds != null && readingState.time_spent_seconds > 0 && (
+                  <span className="flex items-center gap-1" style={{ color: '#8cb8af', fontSize: 11 }}>
+                    <Clock className="w-3 h-3" />
+                    {Math.round(readingState.time_spent_seconds / 60)} min
+                  </span>
+                )}
+                {isCompleted && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7' }}>
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Leido
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right side: tool icons */}
           <div className="flex items-center" style={{ gap: 6 }}>
+            {/* Mark complete */}
+            <button
+              onClick={isCompleted ? handleUnmarkCompleted : handleMarkCompleted}
+              disabled={markingRead}
+              title={isCompleted ? 'Marcar no leido' : 'Marcar como leido'}
+              aria-label={isCompleted ? 'Marcar no leido' : 'Marcar como leido'}
+              style={{
+                background: isCompleted ? 'rgba(16,185,129,0.2)' : 'none',
+                border: 'none',
+                padding: 6,
+                cursor: 'pointer',
+                color: isCompleted ? '#6ee7b7' : '#b4d9d1',
+                display: 'flex',
+                borderRadius: 6,
+              }}
+            >
+              {markingRead ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+            </button>
+
             {/* Search toggle */}
             <button
               onClick={() => setSearchOpen((v) => !v)}
@@ -560,117 +594,69 @@ export function StudentSummaryReader({
         {/* ── Study Timer (fixed position, self-managed) ── */}
         {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
 
-        {/* ── Summary header card ── */}
-        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-[20px] border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
-          {/* Accent bar */}
-          <div className={`h-1 ${isCompleted ? 'bg-emerald-500' : 'bg-teal-500'}`} />
+        {/* ── Main content area (white card) ── */}
+        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-b-[20px] border-2 border-t-0 border-zinc-200 dark:border-[#2d2e34] shadow-sm overflow-hidden">
 
-          {/* Title bar */}
-          <div className="px-6 sm:px-8 py-6 border-b border-zinc-100 dark:border-[#2d2e34]">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center ${
-                  isCompleted ? 'bg-emerald-50 border-emerald-200' : 'bg-teal-50 border-teal-200'
-                }`}>
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+          {/* ── Reading mode: plain markdown ── */}
+          {viewMode === 'reading' && summary.content_markdown && (
+            <div
+              className="px-6 sm:px-8 py-8"
+              style={{
+                fontSize: `${readingSettings.fontSize}px`,
+                lineHeight: readingSettings.lineHeight,
+                fontFamily: readingSettings.fontFamily,
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={safePage}
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {isHtmlContent ? (
+                    <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
+                      <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPages[safePage] || '') }} />
+                    </KeywordHighlighterInline>
                   ) : (
-                    <BookOpen className="w-6 h-6 text-teal-600" />
+                    <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
+                      <div className="axon-prose max-w-none">
+                        {textPages[safePage]?.map((line, i) => renderPlainLine(line, i))}
+                      </div>
+                    </KeywordHighlighterInline>
                   )}
-                </div>
-                <div>
-                  <h2 className="text-zinc-900 dark:text-[#e6e7eb] tracking-tight" style={{ fontWeight: 700, fontFamily: 'Georgia, serif', fontSize: 30 }}>
-                    {summary.title || 'Sin titulo'}
-                  </h2>
-                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                    {isCompleted && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-700 border border-emerald-200" style={{ fontWeight: 600 }}>
-                        <CheckCircle2 className="w-3 h-3" /> Completado
-                      </span>
-                    )}
-                    <span className="text-[11px] text-zinc-500">
-                      {new Date(summary.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                    {readingState?.time_spent_seconds != null && readingState.time_spent_seconds > 0 && (
-                      <span className="text-[11px] text-zinc-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {Math.round(readingState.time_spent_seconds / 60)} min de lectura
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              </AnimatePresence>
 
-              {/* Mark as read/unread */}
-              <motion.button
-                onClick={isCompleted ? handleUnmarkCompleted : handleMarkCompleted}
-                disabled={markingRead}
-                aria-busy={markingRead}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm shrink-0 transition-all cursor-pointer ${focusRing} ${
-                  isCompleted
-                    ? 'bg-white border-2 border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/25'
-                }`}
-                style={{ fontWeight: 600 }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                {markingRead ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /><span className="sr-only" role="status">Guardando...</span></>
-                ) : isCompleted ? (
-                  <><CheckCircle2 className="w-4 h-4" /> Marcar no leido</>
-                ) : (
-                  <><CheckCircle2 className="w-4 h-4" /> Marcar como leido</>
-                )}
-              </motion.button>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <PageNavigation
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  onPrev={() => setContentPage(Math.max(0, safePage - 1))}
+                  onNext={() => setContentPage(Math.min(totalPages - 1, safePage + 1))}
+                  onPageClick={(i) => setContentPage(i)}
+                />
+              )}
             </div>
-          </div>
+          )}
 
-          {/* ── Paginated content preview ── */}
-          {summary.content_markdown && (
-              <div
-                className="px-6 sm:px-8 py-6"
-                style={{
-                  fontSize: `${readingSettings.fontSize}px`,
-                  lineHeight: readingSettings.lineHeight,
-                  fontFamily: readingSettings.fontFamily,
-                }}
-              >
-                <div className="min-h-[180px]">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={safePage}
-                      initial={{ opacity: 0, x: 8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -8 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {isHtmlContent ? (
-                        <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
-                          <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPages[safePage] || '') }} />
-                        </KeywordHighlighterInline>
-                      ) : (
-                        <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={handleNavigateKeywordWrapped}>
-                          <div className="axon-prose max-w-none">
-                            {textPages[safePage]?.map((line, i) => renderPlainLine(line, i))}
-                          </div>
-                        </KeywordHighlighterInline>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <PageNavigation
-                    currentPage={safePage}
-                    totalPages={totalPages}
-                    onPrev={() => setContentPage(Math.max(0, safePage - 1))}
-                    onNext={() => setContentPage(Math.min(totalPages - 1, safePage + 1))}
-                    onPageClick={(i) => setContentPage(i)}
-                  />
-                )}
-              </div>
+          {/* ── Enriched mode: structured blocks ── */}
+          {viewMode === 'enriched' && (
+            <div className="py-4">
+              <ReaderChunksTab
+                summaryId={summary.id}
+                chunks={chunks}
+                chunksLoading={chunksLoading}
+                hasBlocks={hasBlocks}
+                blocksLoading={blocksLoading}
+                onNavigateKeyword={handleNavigateKeywordWrapped}
+                readingSettings={readingSettings}
+                keywords={keywords}
+                annotations={textAnnotations}
+              />
+            </div>
           )}
 
           {/* Completion card when read */}
@@ -688,82 +674,64 @@ export function StudentSummaryReader({
           )}
         </div>
 
-        {/* ── Tabs ── */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4 bg-white dark:bg-[#1e1f25] border border-zinc-200 dark:border-[#2d2e34] rounded-xl p-1">
-            <TabsTrigger value="chunks" className="gap-1.5 rounded-lg">
-              <Layers className="w-3.5 h-3.5" />
-              Contenido
-              {!chunksLoading && <TabBadge count={chunks.length} active={activeTab === 'chunks'} />}
-            </TabsTrigger>
-            <TabsTrigger value="keywords" className="gap-1.5 rounded-lg">
-              <Tag className="w-3.5 h-3.5" />
-              <span lang="en">Keywords</span>
-              {!keywordsLoading && <TabBadge count={keywords.length} active={activeTab === 'keywords'} />}
-            </TabsTrigger>
-            <TabsTrigger value="videos" className="gap-1.5 rounded-lg">
-              <VideoIcon className="w-3.5 h-3.5" />
-              <span lang="en">Videos</span>
-              {!videosLoading && <TabBadge count={videosCount} active={activeTab === 'videos'} />}
-            </TabsTrigger>
-            <TabsTrigger value="annotations" className="gap-1.5 rounded-lg">
-              <StickyNote className="w-3.5 h-3.5" />
-              Mis Notas
-              {!annotationsLoading && textAnnotations.length > 0 && <TabBadge count={textAnnotations.length} active={activeTab === 'annotations'} />}
-            </TabsTrigger>
-          </TabsList>
+        {/* ── Secondary tabs: Keywords, Videos, Notes (below content) ── */}
+        <div className="mt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4 bg-white dark:bg-[#1e1f25] border border-zinc-200 dark:border-[#2d2e34] rounded-xl p-1">
+              <TabsTrigger value="keywords" className="gap-1.5 rounded-lg">
+                <Tag className="w-3.5 h-3.5" />
+                <span lang="en">Keywords</span>
+                {!keywordsLoading && <TabBadge count={keywords.length} active={activeTab === 'keywords'} />}
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="gap-1.5 rounded-lg">
+                <VideoIcon className="w-3.5 h-3.5" />
+                <span lang="en">Videos</span>
+                {!videosLoading && <TabBadge count={videosCount} active={activeTab === 'videos'} />}
+              </TabsTrigger>
+              <TabsTrigger value="annotations" className="gap-1.5 rounded-lg">
+                <StickyNote className="w-3.5 h-3.5" />
+                Mis Notas
+                {!annotationsLoading && textAnnotations.length > 0 && <TabBadge count={textAnnotations.length} active={activeTab === 'annotations'} />}
+              </TabsTrigger>
+            </TabsList>
 
-          {/* ── CHUNKS TAB (delegated to ReaderChunksTab) ── */}
-          <TabsContent value="chunks">
-            <ReaderChunksTab
-              summaryId={summary.id}
-              chunks={chunks}
-              chunksLoading={chunksLoading}
-              hasBlocks={hasBlocks}
-              blocksLoading={blocksLoading}
-              onNavigateKeyword={handleNavigateKeywordWrapped}
-              readingSettings={readingSettings}
-              keywords={keywords}
-              annotations={textAnnotations}
-            />
-          </TabsContent>
+            {/* ── KEYWORDS TAB ── */}
+            <TabsContent value="keywords">
+              <ReaderKeywordsTab
+                keywords={keywords}
+                keywordsLoading={keywordsLoading}
+                expandedKeyword={expandedKeyword}
+                onToggleExpand={toggleKeywordExpand}
+                subtopics={subtopics}
+                subtopicsLoading={subtopicsLoading}
+                kwNotes={kwNotes}
+                kwNotesLoading={kwNotesLoading}
+                onCreateKwNote={handleCreateKwNote}
+                onUpdateKwNote={handleUpdateKwNote}
+                onDeleteKwNote={handleDeleteKwNote}
+                savingKwNote={savingKwNote}
+              />
+            </TabsContent>
 
-          {/* ── KEYWORDS TAB (Phase B.5 — delegated) ── */}
-          <TabsContent value="keywords">
-            <ReaderKeywordsTab
-              keywords={keywords}
-              keywordsLoading={keywordsLoading}
-              expandedKeyword={expandedKeyword}
-              onToggleExpand={toggleKeywordExpand}
-              subtopics={subtopics}
-              subtopicsLoading={subtopicsLoading}
-              kwNotes={kwNotes}
-              kwNotesLoading={kwNotesLoading}
-              onCreateKwNote={handleCreateKwNote}
-              onUpdateKwNote={handleUpdateKwNote}
-              onDeleteKwNote={handleDeleteKwNote}
-              savingKwNote={savingKwNote}
-            />
-          </TabsContent>
+            {/* ── VIDEOS TAB ── */}
+            <TabsContent value="videos">
+              <div className="bg-white dark:bg-[#1e1f25] rounded-2xl border border-zinc-200 dark:border-[#2d2e34] overflow-hidden">
+                <VideoPlayer summaryId={summary.id} />
+              </div>
+            </TabsContent>
 
-          {/* ── VIDEOS TAB ── */}
-          <TabsContent value="videos">
-            <div className="bg-white dark:bg-[#1e1f25] rounded-2xl border border-zinc-200 dark:border-[#2d2e34] overflow-hidden">
-              <VideoPlayer summaryId={summary.id} />
-            </div>
-          </TabsContent>
-
-          {/* ── ANNOTATIONS TAB (Phase B.4 — delegated) ── */}
-          <TabsContent value="annotations">
-            <ReaderAnnotationsTab
-              annotations={textAnnotations}
-              annotationsLoading={annotationsLoading}
-              onCreateAnnotation={handleCreateAnnotation}
-              onDeleteAnnotation={handleDeleteAnnotation}
-              savingAnnotation={savingAnnotation}
-            />
-          </TabsContent>
-        </Tabs>
+            {/* ── ANNOTATIONS TAB ── */}
+            <TabsContent value="annotations">
+              <ReaderAnnotationsTab
+                annotations={textAnnotations}
+                annotationsLoading={annotationsLoading}
+                onCreateAnnotation={handleCreateAnnotation}
+                onDeleteAnnotation={handleDeleteAnnotation}
+                savingAnnotation={savingAnnotation}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
         </div>{/* end flex-1 content wrapper */}
       </div>{/* end flex layout */}
     </motion.div>
