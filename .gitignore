@@ -6,7 +6,15 @@ dist/
 package-lock.json
 .vercel
 .claude/worktrees/
-# .claude/agent-memory/ — now tracked (agents learn across sessions)
 .claude/settings.local.json
 .claude/ralph-loop.local.md
 coverage/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
+
+# Loop state (Claude Code session artifact)
+.loop-state.json

@@ -15,7 +15,7 @@ export function makeBlock(overrides: Partial<SummaryBlock> & { type: string; con
 }
 
 export const FORM_FIXTURES = {
-  prose: { type: 'prose', content: { title: 'Test Title', content: 'Test content paragraph', image: 'https://example.com/img.jpg' } },
+  prose: { type: 'prose', content: { title: 'Test Title', content: 'Test content paragraph' } },
   key_point: { type: 'key_point', content: { title: 'Key Concept', content: 'Important info', importance: 'critical' } },
   stages: { type: 'stages', content: { title: 'Process Steps', items: [{ stage: 1, title: 'Step 1', content: 'Do this', severity: 'mild' }, { stage: 2, title: 'Step 2', content: 'Then this', severity: 'critical' }] } },
   comparison: { type: 'comparison', content: { title: 'Comparison Table', headers: ['Feature', 'Option A', 'Option B'], rows: [['Speed', 'Fast', 'Slow'], ['Cost', 'High', 'Low']], highlight_column: 1 } },
