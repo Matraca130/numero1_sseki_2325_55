@@ -162,7 +162,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
         )}
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-zinc-200 bg-white/80 backdrop-blur-xl">
+        <div className="px-5 py-4 border-b border-zinc-200 bg-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-[#2a8c7a] flex items-center justify-center shadow-sm">

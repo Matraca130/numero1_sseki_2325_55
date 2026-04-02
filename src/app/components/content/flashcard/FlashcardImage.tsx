@@ -65,7 +65,7 @@ export function FlashcardImage({
       </picture>
       {onRegenerate && (
         <button onClick={onRegenerate} disabled={isRegenerating}
-          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white transition-colors"
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-white transition-colors"
           title="Regenerar imagen">
           <RefreshCw size={14} className={`text-gray-600 ${isRegenerating ? "animate-spin" : ""}`} />
         </button>

@@ -42,7 +42,7 @@ export function AppNavbar({
 
   return (
     <nav
-      className={`${compact ? "h-12" : "h-14"} bg-white/80 backdrop-blur-xl border-b border-zinc-200 px-6 flex items-center gap-4 sticky top-0 z-50`}
+      className={`${compact ? "h-12" : "h-14"} bg-white border-b border-zinc-200 px-6 flex items-center gap-4 sticky top-0 z-50`}
     >
       {leftAction || (
         <button

@@ -203,7 +203,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
           </button>
           <span
             className="text-base font-bold"
-            style={{ color: isDark ? '#3cc9a8' : TEAL_ACCENT, fontFamily: 'Space Grotesk, sans-serif' }}
+            style={{ color: isDark ? '#3cc9a8' : TEAL_ACCENT, fontFamily: 'Georgia, serif' }}
           >
             AXON
           </span>

@@ -49,7 +49,7 @@ export function QuizRightPanel({
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-50">
       {/* Top bar */}
-      <div className="h-14 flex items-center justify-between px-6 border-b border-zinc-200 shrink-0 bg-white/80 backdrop-blur-xl">
+      <div className="h-14 flex items-center justify-between px-6 border-b border-zinc-200 shrink-0 bg-white">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-teal-600 flex items-center justify-center shadow-sm">
             <ClipboardList size={15} className="text-white" />
@@ -78,7 +78,7 @@ export function QuizRightPanel({
         <div className="max-w-3xl mx-auto px-6 py-6">
           {/* Filters bar */}
           {selectedSummary && (
-            <div className="flex items-center gap-3 mb-5 flex-wrap bg-white/70 backdrop-blur-sm rounded-xl border border-zinc-200 px-4 py-2.5 shadow-sm">
+            <div className="flex items-center gap-3 mb-5 flex-wrap bg-white rounded-xl border border-zinc-200 px-4 py-2.5 shadow-sm">
               <div className="flex items-center gap-1.5 text-zinc-400">
                 <Filter size={12} />
                 <span className="text-[9px] uppercase tracking-wider" style={{ fontWeight: 700 }}>Filtros</span>

@@ -293,7 +293,7 @@ export function StudyDashboardsView() {
           onBack={() => navigateTo('schedule')}
           statsRight={
             /* RESPONSIVE: overflow-x-auto para tabs, min-h touch target */
-            <div className="flex bg-white/60 p-1 rounded-xl border border-gray-200/60 backdrop-blur-sm overflow-x-auto">
+            <div className="flex bg-white p-1 rounded-xl border border-gray-200 overflow-x-auto">
               {TABS.map(tab => (
                 <button
                   key={tab.id}
@@ -325,11 +325,11 @@ export function StudyDashboardsView() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/65 backdrop-blur-xl rounded-2xl p-4 lg:p-6 shadow-md border border-white/60 relative overflow-hidden"
+                className="bg-white rounded-2xl p-4 lg:p-6 shadow-sm border border-zinc-200 relative overflow-hidden"
               >
                 {/* RESPONSIVE: flex-col sm:flex-row, legend flex-wrap */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 lg:mb-6">
-                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Curva de Olvido Global</h3>
+                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: 'Georgia, serif' }}>Curva de Olvido Global</h3>
                   <div className="flex flex-wrap gap-2 lg:gap-4">
                     <div className="flex items-center gap-1.5 lg:gap-2">
                       <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-teal-500" />
@@ -409,7 +409,7 @@ export function StudyDashboardsView() {
 
               {/* Subject Performance Header */}
               <div className="flex items-center justify-between">
-                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Desempeño por Materia</h3>
+                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: 'Georgia, serif' }}>Desempeño por Materia</h3>
                 <div className="flex gap-1 lg:gap-2">
                   <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <Filter size={18} />
@@ -432,7 +432,7 @@ export function StudyDashboardsView() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   className={clsx(
-                    "bg-white/65 backdrop-blur-xl rounded-2xl p-4 lg:p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden border border-white/60",
+                    "bg-white rounded-2xl p-4 lg:p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden border border-zinc-200 shadow-sm",
                     subject.isUrgent && "ring-2 ring-red-100"
                   )}
                 >
@@ -506,7 +506,7 @@ export function StudyDashboardsView() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: displaySubjects.length * 0.05 }}
-                className="bg-white/40 backdrop-blur-xl rounded-2xl p-5 hover:shadow-lg transition-all duration-300 relative group flex flex-col items-center justify-center border-dashed border-2 border-gray-300/50 hover:border-teal-500/50 gap-3 min-h-[220px]"
+                className="bg-white rounded-2xl p-5 hover:shadow-lg transition-all duration-300 relative group flex flex-col items-center justify-center border-dashed border-2 border-gray-300 hover:border-teal-500/50 gap-3 min-h-[220px]"
               >
                 <div className="w-14 h-14 rounded-full bg-white/50 flex items-center justify-center text-gray-400 group-hover:bg-teal-50 group-hover:text-teal-500 transition-colors">
                   <Plus size={28} />
@@ -521,11 +521,11 @@ export function StudyDashboardsView() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white/65 backdrop-blur-xl rounded-2xl p-4 lg:p-8 shadow-md border border-white/60 max-w-2xl"
+              className="bg-white rounded-2xl p-4 lg:p-8 shadow-sm border border-zinc-200 max-w-2xl"
             >
               <div className="flex items-center gap-3 mb-6">
                 <Settings size={20} className="text-teal-500" />
-                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Configuraciones del Algoritmo</h3>
+                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: 'Georgia, serif' }}>Configuraciones del Algoritmo</h3>
               </div>
               <div className="space-y-6">
                 <div>

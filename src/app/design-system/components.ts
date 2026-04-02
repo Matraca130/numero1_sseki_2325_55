@@ -142,7 +142,7 @@ export const components = {
     iconRadius:   'rounded-lg',
     courseLabel:   'font-medium tracking-wide uppercase text-[14px] font-sans',
     courseName:   'font-semibold leading-none text-[16px] font-sans',
-    dropdown:     'bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl',
+    dropdown:     'bg-white border border-zinc-200 shadow-2xl rounded-2xl',
   },
 
   /** Quick access shortcut cards (WelcomeView) */

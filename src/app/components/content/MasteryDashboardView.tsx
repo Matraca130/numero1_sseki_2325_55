@@ -83,7 +83,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
     <div className="flex flex-col h-full">
       <div className="px-4 lg:px-6 py-4 lg:py-6 border-b border-gray-200/50 flex items-start justify-between shrink-0">
         <div>
-          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Viernes, 14</h2>
+          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: 'Georgia, serif' }}>Viernes, 14</h2>
           <p className="text-gray-400 text-sm mt-1">{remainingTasks} tareas restantes</p>
         </div>
         <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
@@ -138,7 +138,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
           })}
         </div>
       </div>
-      <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-md shrink-0">
+      <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-gray-50 shrink-0">
         <button className="w-full py-2.5 rounded-full border-2 border-dashed border-teal-500/30 text-teal-600 text-sm hover:bg-teal-50 hover:border-teal-500/50 transition-all flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><Plus size={16} /> Agregar Nueva Tarea</button>
       </div>
     </div>
@@ -204,7 +204,7 @@ export function MasteryDashboardView() {
             {daysOfWeek.map(day => (<div key={day} className="text-center text-[10px] lg:text-xs font-mono text-gray-400 uppercase tracking-wider">{day}</div>))}
           </div>
           <div className="flex-1 px-2 lg:px-8 pb-4 lg:pb-8 overflow-y-auto custom-scrollbar-light">
-            <div className="grid grid-cols-7 h-full min-h-[400px] lg:min-h-[600px] border-l border-t border-gray-200 rounded-bl-xl rounded-br-xl bg-white/30 backdrop-blur-sm">
+            <div className="grid grid-cols-7 h-full min-h-[400px] lg:min-h-[600px] border-l border-t border-gray-200 rounded-bl-xl rounded-br-xl bg-white">
               {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-[#F0F2F5]/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                 const events = getEventsForDay(day);
@@ -223,7 +223,7 @@ export function MasteryDashboardView() {
             </div>
           </div>
         </div>
-        <aside className="hidden lg:flex w-[370px] h-full bg-white/65 backdrop-blur-xl border-l border-white/60 flex-col relative shadow-xl overflow-hidden shrink-0">
+        <aside className="hidden lg:flex w-[370px] h-full bg-white border-l border-zinc-200 flex-col relative shadow-xl overflow-hidden shrink-0">
           <DailySidebarContent navigateTo={navigateTo} displayTasks={displayTasks} remainingTasks={remainingTasks} completionPct={completionPct} />
         </aside>
         <MobileDrawer isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} width={340}>

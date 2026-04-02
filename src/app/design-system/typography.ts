@@ -20,7 +20,7 @@ export const typography = {
   families: {
     heading: 'Georgia, serif',
     body:    '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    display: '"Space Grotesk", sans-serif',
+    display: 'Georgia, serif',
     mono:    '"JetBrains Mono", monospace',
   },
 

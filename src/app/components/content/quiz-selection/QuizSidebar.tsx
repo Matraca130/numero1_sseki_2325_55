@@ -151,7 +151,7 @@ export function QuizSidebar({
                 <div key={section.id} className={clsx(secIdx > 0 && 'mt-0.5')}>
                   <button
                     onClick={() => onToggleSection(section.id)}
-                    className="w-full sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-4 py-2 flex items-center gap-2 hover:bg-zinc-50/80 transition-colors text-left"
+                    className="w-full sticky top-0 z-10 bg-white px-4 py-2 flex items-center gap-2 hover:bg-zinc-50/80 transition-colors text-left"
                   >
                     <ChevronRight size={13} className={clsx('shrink-0 transition-transform text-zinc-400', isSectionExpanded && 'rotate-90')} />
                     <Layers size={13} className="text-teal-500 shrink-0" />
