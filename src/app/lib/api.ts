@@ -19,7 +19,7 @@
 // SINGLE SOURCE OF TRUTH: Credentials come from @/app/lib/supabase.ts
 // ============================================================
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/app/lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, supabase } from '@/app/lib/supabase';
 import { extractItems } from '@/app/lib/api-helpers';
 
 export const API_BASE = `${SUPABASE_URL}/functions/v1/server`;
@@ -44,6 +44,35 @@ export function setAccessToken(t: string | null) {
 
 export function getAccessToken(): string | null {
   return _accessToken;
+}
+
+// ── Global 401 interceptor ─────────────────────────────
+// When any API request returns 401, the token is expired or revoked.
+// Sign out via Supabase, clear local state, and redirect to login.
+// Debounced so concurrent 401s don't trigger multiple redirects.
+
+let _handlingUnauthorized = false;
+
+function handleUnauthorized(): void {
+  if (_handlingUnauthorized) return;
+  _handlingUnauthorized = true;
+
+  // Clear module-level token
+  _accessToken = null;
+
+  // Clear localStorage auth data
+  localStorage.removeItem('axon_access_token');
+  localStorage.removeItem('axon_active_membership');
+  localStorage.removeItem('axon_user');
+  localStorage.removeItem('axon_memberships');
+
+  // Sign out from Supabase (fire-and-forget)
+  supabase.auth.signOut().catch(() => {});
+
+  // Redirect to login (skip if already there)
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
+  }
 }
 
 // ── GET request deduplication ───────────────────────────
@@ -118,6 +147,15 @@ export async function apiCall<T = any>(
           console.error(`[API] Non-JSON response from ${path}:`, text.substring(0, 300));
         }
         throw new Error(`Invalid response from server (${res.status})`);
+      }
+
+      // 401 → token expired/revoked → sign out and redirect
+      if (res.status === 401) {
+        if (import.meta.env.DEV) {
+          console.warn(`[API] 401 Unauthorized at ${path} — signing out`);
+        }
+        handleUnauthorized();
+        throw new Error('Session expired');
       }
 
       if (!res.ok) {
@@ -202,6 +240,15 @@ export async function* apiCallStream<T = any>(
       headers,
       signal: controller.signal,
     });
+
+    // 401 → token expired/revoked → sign out and redirect
+    if (res.status === 401) {
+      if (import.meta.env.DEV) {
+        console.warn(`[API] 401 Unauthorized at STREAM ${path} — signing out`);
+      }
+      handleUnauthorized();
+      throw new Error('Session expired');
+    }
 
     if (!res.ok) {
       const text = await res.text();
