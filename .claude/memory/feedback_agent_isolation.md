@@ -40,13 +40,28 @@ type: feedback
 - **Nunca crear archivos huérfanos** (sin dueño en el AGENT-REGISTRY).
 - Si durante tu trabajo descubrís un archivo existente que no tiene dueño en el registry → registrarlo en tu memoria individual como "archivo huérfano detectado" para que el Arquitecto lo asigne.
 
+## MEMORY UPDATE (antes de reportar éxito)
+
+9. **Antes de reportar que tu tarea está completa**, evaluá tu sesión usando los criterios de "Evolución Continua" (más abajo). El proceso es:
+   - Abrir `.claude/agent-memory/individual/<TU-ID>.md`
+   - **SIEMPRE** actualizar: `Last updated:` con fecha actual + incrementar contador de sesiones en Métricas
+   - **SOLO SI APLICA** registrar lecciones — evaluá con las preguntas de la sección "Evolución Continua":
+     - ¿Descubriste algo nuevo sobre el código? → Agregar a "Patrones que funcionan"
+     - ¿Casi cometiste un error? → Agregar a "Patrones a evitar"
+     - ¿Tomaste una decisión técnica entre opciones? → Agregar a "Decisiones técnicas"
+     - ¿Una lección previa te ayudó? → Actualizar "Efectividad de lecciones"
+   - Si ninguna pregunta aplica → solo actualizá fecha y métricas, sin inventar lecciones
+   - `git add .claude/agent-memory/individual/<TU-ID>.md`
+   - Commitear junto con tu último commit de código O como commit separado
+10. **El Quality Gate verificará** que `git diff` incluya cambios en tu archivo de memoria (al menos fecha y métricas). Si no los hay → NEEDS FIX.
+
 ## POST-EXECUTION
 
-9. Quality-gate Opus IMMEDIATELY when each agent completes (in background, don't wait for others)
-10. Verify `git diff main..<branch> --stat` — only authorized files
-11. If contamination: rebuild clean branch from main
-12. Merge PRs ONE at a time; rebase remaining branches after each merge
-13. Never `git commit --amend` on branches with open PRs
+12. Quality-gate Opus IMMEDIATELY when each agent completes (in background, don't wait for others)
+13. Verify `git diff main..<branch> --stat` — only authorized files
+14. If contamination: rebuild clean branch from main
+15. Merge PRs ONE at a time; rebase remaining branches after each merge
+16. Never `git commit --amend` on branches with open PRs
 
 ## PATTERNS
 

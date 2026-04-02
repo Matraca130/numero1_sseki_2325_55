@@ -86,15 +86,17 @@ describe('KeywordChip', () => {
     vi.useRealTimers();
   });
 
-  it('handles missing definition gracefully — no popover shown', () => {
+  it('shows popover without definition text when definition is null', () => {
     const kw = makeKeyword({ definition: null });
     render(<KeywordChip keyword={kw} />);
 
-    // Even on focus, no tooltip because definition is null
     fireEvent.focus(screen.getByRole('button'));
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-    // Keyword name still renders as chip text
-    expect(screen.getByText('Aterosclerosis')).toBeInTheDocument();
+    // Popover still shows (for cross-summary panel), but without definition text
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent('Aterosclerosis');
+    // Definition text should NOT be present
+    expect(tooltip).not.toHaveTextContent('Enfermedad inflamatoria');
   });
 
   it('applies correct styling classes', () => {

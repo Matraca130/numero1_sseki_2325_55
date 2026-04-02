@@ -3,13 +3,27 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  plugins: [
-    // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
-    react(),
-    tailwindcss(),
-  ],
+import { cloudflare } from "@cloudflare/vite-plugin";
+
+// manualChunks must only apply to the client (browser) build.
+// The Cloudflare Workers build (worker environment) does not support
+// manualChunks and will error if it inherits this option.
+const clientManualChunks = {
+  // Core framework (shared by all routes)
+  'vendor-react': ['react', 'react-dom', 'react-router'],
+  // Heavy libraries split into their own chunks for better HTTP caching.
+  // Each only loads when its consuming route is visited.
+  'vendor-three': ['three'],
+  'vendor-motion': ['motion'],
+  'vendor-recharts': ['recharts'],
+  'vendor-supabase': ['@supabase/supabase-js'],
+  'vendor-dates': ['date-fns'],
+};
+
+export default defineConfig(({ isSsrBuild }) => ({
+  plugins: [// The React and Tailwind plugins are both required for Make, even if
+  // Tailwind is not being actively used – do not remove them
+  react(), tailwindcss(), cloudflare()],
   resolve: {
     alias: {
       // Alias @ to the src directory
@@ -27,18 +41,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core framework (shared by all routes)
-          'vendor-react': ['react', 'react-dom', 'react-router'],
-          // Heavy libraries split into their own chunks for better HTTP caching.
-          // Each only loads when its consuming route is visited.
-          'vendor-three': ['three'],
-          'vendor-motion': ['motion'],
-          'vendor-recharts': ['recharts'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-dates': ['date-fns'],
-        },
+        // Only split chunks for the client build; the Workers runtime build
+        // does not support manualChunks and would fail with this config.
+        manualChunks: isSsrBuild ? undefined : clientManualChunks,
       },
     },
   },
-})
+}))

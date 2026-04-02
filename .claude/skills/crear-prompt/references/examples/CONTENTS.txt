@@ -1,0 +1,298 @@
+===============================================================================
+CONTENIDOS DETALLADOS DE CADA EJEMPLO
+===============================================================================
+
+FILE 1: hotfix-example.md
+───────────────────────────────────────────────────────────────────────────────
+Caso: Corregir bug crítico: Quiz scores no actualizan parámetros BKT
+
+SECCIONES:
+  1. Plan Inicial (6 líneas) — Reporte del bug del usuario
+  2. Análisis Rápido del Arquitecto
+     - Scope de investigación (grep commands)
+     - Ubicación del bug (código BEFORE/AFTER)
+     - Dependencias (2 agentes)
+     - Riesgo de regresión
+  3. Plan Micro
+     - Fase 1: Secuencial (QZ-04)
+     - Fase 2: Auditoría (XX-02)
+  4. Prompts Completos (2 agentes)
+     a) QZ-04 (quiz-adaptive)
+        - <system> con rol del agente
+        - <mandatory_reads> 5 archivos
+        - <critical_issue> con síntoma e impacto
+        - <isolation_zone> archivos permitidos
+        - <conventions> de código
+        - <task> con bug_location exacta
+        - <bug_location> BEFORE/AFTER code
+        - <output_format>
+        - <examples> de test TDD
+        - <escalation>
+        - <quality_gate_focus>
+        
+     b) XX-02 (quality-gate) en HOTFIX MODE
+        - <mode> explicita auditoría reducida
+        - <checklist> 3 mandatory + skip optionals
+        - <verdict_logic> rápida
+        - <output_format> reporte breve
+        - <escalation> para BLOCK cases
+  
+  5. Ejecución (Timeline) — 14:45 a 15:15 = 30 minutos
+  6. Datos Post-Hotfix — Data fix plan para sesión siguiente
+  7. Lecciones para AGENT-METRICS.md
+  8. Comparación: Feature vs Hotfix (tabla)
+  9. Checklist Pre-Merge (10 items)
+  10. Resumen Ejecutivo
+
+TOTAL: 524 líneas, 14 KB
+
+───────────────────────────────────────────────────────────────────────────────
+
+FILE 2: feature-example.md
+───────────────────────────────────────────────────────────────────────────────
+Caso: Agregar notificaciones de repetición espaciada al sistema de Flashcards
+
+SECCIONES:
+  1. Plan Inicial — Solicitud del usuario
+  2. Análisis Profundo del Arquitecto
+     - 2.1 Archivos afectados (con ubicaciones exactas)
+     - 2.2 Mapeo de agentes (tabla 8 agentes)
+     - 2.3 Dependencias críticas (diagrama secuencia)
+     - 2.4 Criterios de éxito por fase (tabla)
+  
+  3. Equipo de Agentes Seleccionados
+     - Diagrama de olas: 5 fases, secuencial + paralelo
+  
+  4. Prompts Completos para 8 Agentes
+     
+     FASE 1: Infraestructura
+     a) IF-04 (infra-database)
+        - CREATE TABLE flashcard_notifications_sent
+        - Schema completo con comentarios
+        - RLS policy
+        - TypeScript types
+        - Unit tests
+        
+     FASE 2A: Cálculo FSRS
+     b) FC-04 (flashcards-fsrs)
+        - calcularProximoRepasoFlashcards(userId, deckId)
+        - FSRS v4 parámetros (w8=1.10, w11=2.18)
+        - Integración con BD
+        - Tests: 3 casos
+        
+     FASE 2B: Router de Mensajes
+     c) MG-04 (messaging-backend)
+        - distribuirNotificacionFlashcards()
+        - Orquestación de canales
+        - Retry logic con exponential backoff
+        - Status tracking
+        
+     FASE 3A: Telegram
+     d) MG-01 (telegram-bot)
+        - enviarNotificacionFlashcards(userId, payload)
+        - Formateo con markdown
+        - Deep link a estudio
+        - Rate limiting handling
+        
+     FASE 3B: WhatsApp
+     e) MG-02 (whatsapp-bot)
+        - enviarNotificacionFlashcards(userId, payload)
+        - WhatsApp Cloud API v18+
+        - Template messages
+        - Retry con backoff
+        
+     FASE 3C: Notificaciones In-App
+     f) MG-03 (notifications)
+        - NotificationBell component
+        - NotificationToast component
+        - useNotifications hook
+        - Polling cada 30s
+        - GET/POST endpoints para acknowledge
+        
+     FASE 4: Backend de Flashcards
+     g) FC-02 (flashcards-backend)
+        - POST /flashcards/schedule-notifications
+        - Orquestación de FC-04 + MG-04
+        - Rate limit: 1 notif/estudiante/día
+        - Error handling
+        
+     FASE 5: Study Queue
+     h) ST-03 (study-queue)
+        - useStudyNotifications hook
+        - Deep link handling: /study?deck={deckId}&fromNotification=true
+        - Auto-start sesión
+        - Analytics tracking
+  
+  5. Plan de Fases y Ejecución
+     - Tabla temporal (5 fases, 2-2.5 horas total)
+     - Duración por fase
+     - Qué es secuencial vs paralelo
+  
+  6. Criterios de Calidad (Quality Gate)
+     - 6 checks estándar
+     - Severidad por tipo de falla
+  
+  7. Rollback Plan
+     - Por fase
+     - Si QG BLOCK
+     - Si QG NEEDS FIX
+  
+  8. Lecciones Esperadas en AGENT-METRICS.md
+     - Por agente
+     - Lecciones registradas
+  
+  9. Archivos Finales Generados
+     - Árbol de directorios de entrega
+  
+  10. Estimación de Tokens y Costos
+      - Por agente
+      - Total ~10,000 tokens
+      - Costo estimado ~$0.30
+  
+  11. Resumen (impacto, agentes, auditoría)
+
+TOTAL: 1,215 líneas, 35 KB
+
+───────────────────────────────────────────────────────────────────────────────
+
+FILE 3: cross-cutting-example.md
+───────────────────────────────────────────────────────────────────────────────
+Caso: Migrar todos los endpoints de API v1 a v2 con nuevo error handling
+
+SECCIONES:
+  1. Objetivo de Negocio — Solicitud del usuario
+  
+  2. Análisis Arquitectónico del Arquitecto
+     - 2.1 Scope global (87 endpoints distribuidos)
+     - 2.2 Cambios requeridos (3 capas + 16 agentes)
+     - 2.3 Dependencia crítica (IF-01 es bloqueador)
+     - 2.4 Rollback plan (5 escenarios)
+  
+  3. Descomposición por Ola
+     - Fase 1: Infraestructura (2 agentes)
+     - Fase 2: Autenticación (2 agentes)
+     - Fase 3: Dominios (16 agentes en 5 olas)
+     - Fase 4: Auditoría (1 agente MACRO mode)
+  
+  4. Prompts Completos para 8+ Agentes
+     
+     FASE 1: IF-01 (infra-plumbing)
+     - createApiResponse() wrapper
+     - v1 vs v2 response shapes
+     - Error codes estándar
+     - Backward compatible
+     
+     FASE 1: IF-02 (infra-ui)
+     - Actualizar apiCall() para parsear v2
+     - Detección v1 vs v2 en runtime
+     - Error handling by error.code
+     
+     FASE 2: AS-01 (auth-backend)
+     - Migrar 5 endpoints (login, register, logout, refresh, me)
+     - createApiResponse("2.0", ...) en cada uno
+     - Error codes para auth
+     
+     FASE 2: AS-02 (auth-frontend)
+     - Actualizar AuthContext
+     - Parsear v2 error shape
+     - Mensajes legibles por error.code
+     
+     FASE 3A: QZ-02 (quiz-backend) [TEMPLATE]
+     - Migrar 12 endpoints a v2
+     - Patrón repetible para otros dominios
+     - BEFORE/AFTER code examples
+     
+     FASE 3B: QZ-01 (quiz-frontend) [TEMPLATE]
+     - Actualizar useQuiz() hook
+     - Manejar v2 error responses
+     - Backward compat
+     
+     FASE 3C-3E: Otros agentes
+     - Usan mismo patrón que QZ-02/QZ-01
+     - Templates genéricos aplicables
+     
+     FASE 4: XX-02 (quality-gate) MACRO MODE
+     - Per-agent checklists (5 checks)
+     - Global checklist (5 checks)
+     - Verdict logic
+     - Per-agent verdicts (APPROVE/NEEDS FIX/BLOCK)
+     - Global verdict
+     - Escenarios de error con rollback específico
+  
+  5. Plan de Ejecución Temporal
+     - Tabla de todas las fases
+     - Duración por fase
+     - 4-5 horas total
+     - Paralelización explícita
+  
+  6. Rollback Plan Detallado
+     - Escenario 1: Fase 1 BLOCK
+     - Escenario 2: Fase 2 BLOCK
+     - Escenario 3: Fase 3 QZ-02 BLOCK
+     - Escenario 4: Fase 5C AO-02 BLOCK
+     - Escenario 5: Fase 6 XX-02 global BLOCK
+     - Rollback completo (nuclear option)
+  
+  7. Documentación Post-Migración
+     - Qué actualizar después
+  
+  8. Métricas Esperadas en AGENT-METRICS.md
+     - QG pass rate por agente
+     - System pulse
+  
+  9. Diagrama de Flujo Visual
+     - ASCII art de toda la ejecución
+  
+  10. Anti-Patrones & Lecciones Esperadas
+      - 5 anti-patrones con soluciones
+      - Lecciones registradas por agente
+  
+  11. Resumen Ejecutivo
+
+TOTAL: 1,359 líneas, 36 KB
+
+───────────────────────────────────────────────────────────────────────────────
+
+FILE 4: README.md (INDEX)
+───────────────────────────────────────────────────────────────────────────────
+Guía de navegación y uso de todos los ejemplos
+
+SECCIONES:
+  1. Descripción de hotfix-example.md
+  2. Descripción de feature-example.md
+  3. Descripción de cross-cutting-example.md
+  4. Matriz de Decisión (cuál leer según situación)
+  5. Estructura Común a Todos los Ejemplos
+  6. Características de Todos los Prompts
+  7. Cómo Usar Estos Ejemplos (4 modos)
+  8. Estadísticas (tabla)
+  9. Lenguaje (todos en español)
+  10. Siguiente Lectura (referencias)
+  11. Preguntas Frecuentes (FAQ)
+
+TOTAL: ~300 líneas, 9.6 KB
+
+===============================================================================
+RESUMEN COMPLETO
+===============================================================================
+
+HOTFIX: 524 líneas — 1 caso micro, 1 línea de código, 30 minutos
+FEATURE: 1,215 líneas — 1 caso medio, 6-8 agentes, 3-4 horas
+MACRO: 1,359 líneas — 1 caso macro, 15+ agentes, 8-10 horas
+README: 300 líneas — Guía de navegación
+
+TOTAL: 3,398 líneas, 100+ KB
+
+Cada ejemplo contiene:
+  ✓ Análisis del Arquitecto
+  ✓ Prompts COMPLETOS listos para ejecutar
+  ✓ Ejemplos de código BEFORE/AFTER
+  ✓ Dependencias documentadas
+  ✓ Quality Gate criteria
+  ✓ Rollback plan
+  ✓ Lecciones esperadas
+  ✓ Estimaciones de tiempo/tokens
+
+Todos en ESPAÑOL, todos con XML tags Axon estándar.
+
+===============================================================================

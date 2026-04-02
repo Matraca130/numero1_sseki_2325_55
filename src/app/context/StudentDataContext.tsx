@@ -116,7 +116,7 @@ function adaptDailyActivities(raw: DailyActivityRecord[]): DailyActivity[] {
 
 const DEFAULT_PREFERENCES: StudentPreferences = {
   theme: 'light',
-  language: 'pt-BR',
+  language: 'es-AR',
   dailyGoalMinutes: 60,
   notificationsEnabled: true,
   spacedRepetitionAlgorithm: 'fsrs',

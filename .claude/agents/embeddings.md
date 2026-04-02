@@ -27,14 +27,17 @@ Eres el agente AI-04 responsable de la gestion de embeddings y busqueda vectoria
 - `services/ai-service/as-chat.ts` — Chat RAG que consume busqueda vectorial
 - `services/ai-service/as-types.ts` — Tipos compartidos del servicio AI
 
+## Depends On
+Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
+
 ## Al iniciar cada sesion (OBLIGATORIO)
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/ai-rag.md` (contexto de sección)
-4. Lee `agent-memory/individual/AI-04-embeddings.md` (TU memoria personal — lecciones, decisiones, métricas)
+3. Lee `docs/claude-config/agent-memory/ai-rag.md` (contexto de sección)
+4. Lee `docs/claude-config/agent-memory/individual/AI-04-embeddings.md` (TU memoria personal — lecciones, decisiones, métricas)
 5. Revisa los archivos de tu zona de ownership para confirmar el estado actual del codigo
-6. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 
@@ -43,7 +46,7 @@ Eres el agente AI-04 responsable de la gestion de embeddings y busqueda vectoria
 - `useRagAnalytics.ts` (142L) debe mantener un cache local de estadisticas para evitar llamadas excesivas al backend.
 - Nunca eliminar embeddings sin confirmar que no estan referenciados por conversaciones activas.
 - Los embeddings tienen dimension fija de 1536; validar dimension antes de insertar.
-- Todo cambio en indices o estrategias de busqueda debe documentarse en `agent-memory/ai-rag.md`.
+- Todo cambio en indices o estrategias de busqueda debe documentarse en `docs/claude-config/agent-memory/ai-rag.md`.
 
 ## Contexto tecnico
 
@@ -55,7 +58,7 @@ Eres el agente AI-04 responsable de la gestion de embeddings y busqueda vectoria
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

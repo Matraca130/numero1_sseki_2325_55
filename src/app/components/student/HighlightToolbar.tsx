@@ -11,13 +11,14 @@ import { StickyNote } from 'lucide-react';
 import clsx from 'clsx';
 
 const HIGHLIGHT_COLORS = [
-  { key: 'yellow', bg: 'bg-yellow-400', ring: 'ring-yellow-500' },
-  { key: 'green',  bg: 'bg-emerald-400', ring: 'ring-emerald-500' },
-  { key: 'blue',   bg: 'bg-blue-400',   ring: 'ring-blue-500' },
-  { key: 'pink',   bg: 'bg-pink-400',   ring: 'ring-pink-500' },
+  { key: 'yellow', label: 'amarillo', bg: 'bg-yellow-400', ring: 'ring-yellow-500' },
+  { key: 'green',  label: 'verde',    bg: 'bg-emerald-400', ring: 'ring-emerald-500' },
+  { key: 'blue',   label: 'azul',     bg: 'bg-blue-400',   ring: 'ring-blue-500' },
+  { key: 'pink',   label: 'rosa',     bg: 'bg-pink-400',   ring: 'ring-pink-500' },
+  { key: 'orange', label: 'naranja',  bg: 'bg-orange-400',  ring: 'ring-orange-500' },
 ] as const;
 
-export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink';
+export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'orange';
 
 interface HighlightToolbarProps {
   /** Absolute position (relative to the scroll container) */
@@ -36,6 +37,9 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
       transition={{ duration: 0.12 }}
       style={{ top, left, position: 'absolute', zIndex: 60 }}
       className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-700 rounded-full px-2.5 py-1.5 shadow-xl"
+      role="toolbar"
+      aria-label="Opciones de resaltado"
+      aria-orientation="horizontal"
     >
       {HIGHLIGHT_COLORS.map(c => (
         <button
@@ -46,14 +50,16 @@ export function HighlightToolbar({ top, left, onSelectColor, onAnnotate }: Highl
             "hover:scale-110 hover:border-zinc-500 active:scale-95",
             c.bg,
           )}
-          title={`Subrayar ${c.key}`}
+          aria-label={`Subrayar ${c.label}`}
+          title={`Subrayar ${c.label}`}
         />
       ))}
       <div className="w-px h-4 bg-zinc-700 mx-0.5" />
       <button
         onClick={onAnnotate}
         className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors px-1"
-        title="Subrayar + agregar nota"
+        aria-label="Subrayar y agregar nota"
+        title="Subrayar y agregar nota"
       >
         <StickyNote size={11} />
         <span>Anotar</span>

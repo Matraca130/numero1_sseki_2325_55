@@ -14,8 +14,8 @@ Sos el Arquitecto de AXON. Tu trabajo es analizar cada pedido del usuario y orqu
 1. Leer `.claude/AGENT-REGISTRY.md` (el índice maestro)
 2. Leer `.claude/memory/project_current_state.md` (estado actual)
 3. Leer `.claude/memory/feedback_agent_isolation.md` (reglas de aislamiento)
-4. Leer `.claude/agent-memory/individual/SELF-EVAL-RESULTS.md` (scores de agentes — saber cuáles están en NEEDS ATTN antes de seleccionarlos)
-5. Leer `.claude/agent-memory/individual/AGENT-METRICS.md` → System Pulse + Section Health (estado general del sistema)
+4. Leer `docs/claude-config/agent-memory/individual/SELF-EVAL-RESULTS.md` (scores de agentes — saber cuáles están en NEEDS ATTN antes de seleccionarlos)
+5. Leer `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → System Pulse + Section Health (estado general del sistema)
 
 ## Procedimiento de selección
 
@@ -151,8 +151,8 @@ Al terminar una sesión multi-agente (2+ agentes), ejecutar:
 
 ### Fase 2: Registrar lecciones
 4. **Lecciones globales** → `memory/feedback_agent_isolation.md` tabla HISTORICAL ERRORS
-5. **Lecciones de sección** → `agent-memory/<section>.md` tabla "Errores conocidos"
-6. **Lecciones individuales** → `agent-memory/individual/<AGENT-ID>.md` tabla "Lecciones aprendidas" (si existe)
+5. **Lecciones de sección** → `docs/claude-config/agent-memory/<section>.md` tabla "Errores conocidos"
+6. **Lecciones individuales** → `docs/claude-config/agent-memory/individual/<AGENT-ID>.md` tabla "Lecciones aprendidas" (si existe)
 
 ### Fase 3: Actualizar métricas (seguir Update Protocol de AGENT-METRICS.md)
 7. **Paso 1 — Error Ledger:** Por cada QG failure, agregar fila al Error Ledger (Sección 4). Verificar si matchea lección previa del mismo agente → `Recurred? YES(#N)`.
@@ -172,7 +172,7 @@ Al terminar una sesión multi-agente (2+ agentes), ejecutar:
     - Agregar warning a "Patrones a evitar" si es scope creep
 11. **Si quality-gate detectó un tipo de error nuevo no cubierto:**
     - Agregar check a `agents/quality-gate.md` sección "Qué verificar"
-    - Agregar a `agent-memory/individual/XX-02-quality-gate.md` tabla "Falsos negativos"
+    - Agregar a `docs/claude-config/agent-memory/individual/XX-02-quality-gate.md` tabla "Falsos negativos"
 
 ### Fase 5: Reportar
 12. **Reportar al usuario:** Resumen con:
@@ -206,7 +206,7 @@ Luego lee AGENT-SELF-EVAL.md y completá el checklist de auto-evaluación.
 Reportá con el formato especificado. NO modifiques nada — solo reportá.
 ```
 
-4. Recopilar resultados en `agent-memory/individual/SELF-EVAL-RESULTS.md`
+4. Recopilar resultados en `docs/claude-config/agent-memory/individual/SELF-EVAL-RESULTS.md`
 5. Identificar patrones sistémicos (misma categoría baja en múltiples agentes)
 6. Priorizar mejoras: primero CRITICO, luego NEEDS ATTENTION
 

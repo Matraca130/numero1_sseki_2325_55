@@ -13,6 +13,9 @@ Eres el agente BL-02 especializado en los webhook handlers de Stripe de AXON. Tu
 **Por directorio:**
 - Backend: `routes/webhooks/stripe*.ts`
 
+## Depends On
+- **BL-01** (stripe-checkout) — webhooks process checkout events
+
 ## Zona de solo lectura
 Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
@@ -28,9 +31,10 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 ## Al iniciar cada sesion
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Leer `.claude/agent-memory/billing.md`
-4. Lee `agent-memory/individual/BL-02-stripe-webhooks.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Leer `docs/claude-config/agent-memory/billing.md`
+4. Lee `docs/claude-config/agent-memory/individual/BL-02-stripe-webhooks.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `routes/webhooks/stripe*.ts` existe en el backend
+6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
@@ -50,7 +54,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
