@@ -34,6 +34,7 @@ export function TabBadge({ count, active }: { count: number; active?: boolean })
   return (
     <span className={`ml-1 text-[10px] rounded-full px-1.5 py-0.5 ${active ? 'bg-teal-100 text-teal-700' : 'bg-zinc-200 text-zinc-600'}`}>
       {count}
+      <span className="sr-only"> elementos</span>
     </span>
   );
 }

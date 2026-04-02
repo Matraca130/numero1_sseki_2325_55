@@ -16,7 +16,7 @@ export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) 
           className="max-w-full rounded-[10px] border border-gray-200 dark:border-gray-700 inline-block"
         />
         {caption && (
-          <figcaption className="text-[12px] italic text-gray-400 dark:text-gray-500 mt-1 text-center">
+          <figcaption className="text-[12px] italic text-gray-500 dark:text-gray-400 mt-1 text-center">
             {caption}
           </figcaption>
         )}
@@ -31,7 +31,7 @@ export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) 
         {description ?? 'Imagen por agregar'}
       </div>
       {caption && (
-        <div className="text-xs text-gray-400 dark:text-gray-500 italic mt-1.5">
+        <div className="text-xs text-gray-500 dark:text-gray-400 italic mt-1.5">
           {caption}
         </div>
       )}

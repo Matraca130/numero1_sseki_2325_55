@@ -258,15 +258,20 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             src={src}
             alt={alt}
             loading="lazy"
+            role={onImageClick ? 'button' : undefined}
+            tabIndex={onImageClick ? 0 : undefined}
             onClick={() => onImageClick?.(src, alt, caption)}
+            onKeyDown={onImageClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onImageClick(src, alt, caption); } } : undefined}
+            aria-label={onImageClick ? `Ampliar imagen${alt ? `: ${alt}` : ''}` : undefined}
             className={clsx(
-              'rounded-xl border border-gray-200 shadow-sm cursor-zoom-in transition-shadow hover:shadow-md',
+              'rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md',
+              onImageClick && 'cursor-zoom-in focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none',
               isMobile ? 'w-full h-auto' : 'max-w-full h-auto',
             )}
             style={!isMobile && c.objectFit ? { objectFit: c.objectFit } : undefined}
           />
           {caption && (
-            <figcaption className="mt-2 text-center text-xs text-gray-400 italic">
+            <figcaption className="mt-2 text-center text-xs text-gray-500 italic">
               {caption}
             </figcaption>
           )}

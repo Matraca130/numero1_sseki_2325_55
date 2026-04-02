@@ -322,6 +322,14 @@ export function StudentSummaryReader({
       className={`axon-reader overflow-y-auto ${isDark ? 'bg-[#111215]' : 'bg-[#F0F2F5]'}`}
       style={{ minHeight: '100vh' }}
     >
+      {/* ── Skip to content (a11y) ── */}
+      <a
+        href="#reader-main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:border focus:border-teal-200 focus:text-sm focus:font-semibold"
+      >
+        Saltar al contenido
+      </a>
+
       {/* ── Reading progress bar (Wave 1) ── */}
       <ReadingProgress containerRef={readerRef} />
 
@@ -462,7 +470,7 @@ export function StudentSummaryReader({
             </button>
 
             {/* Separator */}
-            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
+            <div role="separator" aria-hidden="true" style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
 
             {/* Theme toggle */}
             <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
@@ -495,7 +503,7 @@ export function StudentSummaryReader({
             </div>
 
             {/* Separator */}
-            <div style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
+            <div role="separator" aria-hidden="true" style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
 
             {/* Sidebar toggle */}
             <button
@@ -522,7 +530,7 @@ export function StudentSummaryReader({
         {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
 
         {/* ── Summary header card ── */}
-        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-[20px] border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
+        <div id="reader-main-content" className="reader-card bg-white dark:bg-[#1e1f25] rounded-[20px] border-2 border-zinc-200 dark:border-[#2d2e34] shadow-sm mb-6 overflow-hidden">
           {/* Accent bar */}
           <div className={`h-1 ${isCompleted ? 'bg-emerald-500' : 'bg-teal-500'}`} />
 
@@ -549,11 +557,11 @@ export function StudentSummaryReader({
                         <CheckCircle2 className="w-3 h-3" /> Completado
                       </span>
                     )}
-                    <span className="text-[11px] text-zinc-400">
+                    <span className="text-[11px] text-zinc-500">
                       {new Date(summary.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                     {readingState?.time_spent_seconds != null && readingState.time_spent_seconds > 0 && (
-                      <span className="text-[11px] text-zinc-400 flex items-center gap-1">
+                      <span className="text-[11px] text-zinc-500 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {Math.round(readingState.time_spent_seconds / 60)} min de lectura
                       </span>
@@ -566,6 +574,7 @@ export function StudentSummaryReader({
               <motion.button
                 onClick={isCompleted ? handleUnmarkCompleted : handleMarkCompleted}
                 disabled={markingRead}
+                aria-busy={markingRead}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm shrink-0 transition-all cursor-pointer ${focusRing} ${
                   isCompleted
                     ? 'bg-white border-2 border-zinc-200 text-zinc-600 hover:bg-zinc-50'
@@ -576,7 +585,7 @@ export function StudentSummaryReader({
                 whileTap={{ scale: 0.97 }}
               >
                 {markingRead ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <><Loader2 className="w-4 h-4 animate-spin" /><span className="sr-only">Guardando...</span></>
                 ) : isCompleted ? (
                   <><CheckCircle2 className="w-4 h-4" /> Marcar no leido</>
                 ) : (
@@ -658,12 +667,12 @@ export function StudentSummaryReader({
             </TabsTrigger>
             <TabsTrigger value="keywords" className="gap-1.5 rounded-lg">
               <Tag className="w-3.5 h-3.5" />
-              Keywords
+              <span lang="en">Keywords</span>
               {!keywordsLoading && <TabBadge count={keywords.length} active={activeTab === 'keywords'} />}
             </TabsTrigger>
             <TabsTrigger value="videos" className="gap-1.5 rounded-lg">
               <VideoIcon className="w-3.5 h-3.5" />
-              Videos
+              <span lang="en">Videos</span>
               {!videosLoading && <TabBadge count={videosCount} active={activeTab === 'videos'} />}
             </TabsTrigger>
             <TabsTrigger value="annotations" className="gap-1.5 rounded-lg">
