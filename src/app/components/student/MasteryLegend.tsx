@@ -32,6 +32,8 @@ export function MasteryLegend({ masteryLevels, totalBlocks }: MasteryLegendProps
 
   return (
     <div
+      role="region"
+      aria-label="Progreso de dominio del material"
       style={{
         padding: '12px 16px',
         borderRadius: 12,

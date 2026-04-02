@@ -254,19 +254,30 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       if (!src) return null;
       return (
         <figure className="my-2">
-          <img
-            src={src}
-            alt={alt}
-            loading="lazy"
+          <button
+            type="button"
             onClick={() => onImageClick?.(src, alt, caption)}
+            onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); onImageClick?.(src, alt, caption); } }}
             className={clsx(
-              'rounded-xl border border-gray-200 shadow-sm cursor-zoom-in transition-shadow hover:shadow-md',
-              isMobile ? 'w-full h-auto' : 'max-w-full h-auto',
+              'cursor-zoom-in transition-shadow hover:shadow-md rounded-xl',
+              'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none',
             )}
-            style={!isMobile && c.objectFit ? { objectFit: c.objectFit } : undefined}
-          />
+            aria-label={`Ver imagen: ${alt || caption || 'sin descripción'}`}
+            style={{ background: 'none', border: 'none', padding: 0, display: 'block' }}
+          >
+            <img
+              src={src}
+              alt={alt}
+              loading="lazy"
+              className={clsx(
+                'rounded-xl border border-gray-200 shadow-sm',
+                isMobile ? 'w-full h-auto' : 'max-w-full h-auto',
+              )}
+              style={!isMobile && c.objectFit ? { objectFit: c.objectFit } : undefined}
+            />
+          </button>
           {caption && (
-            <figcaption className="mt-2 text-center text-xs text-gray-400 italic">
+            <figcaption className="mt-2 text-center text-xs text-gray-500 italic">
               {caption}
             </figcaption>
           )}
@@ -341,7 +352,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-gray-700 truncate">{title}</p>
-              <p className="text-[10px] text-gray-400">Toca para abrir PDF</p>
+              <p className="text-gray-500" style={{ fontSize: 'clamp(0.625rem, 1.5vw, 0.75rem)' }}>Toca para abrir PDF</p>
             </div>
             <ExternalLink size={14} className="text-gray-400 shrink-0" />
           </a>

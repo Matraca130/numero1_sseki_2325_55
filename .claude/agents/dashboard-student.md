@@ -47,6 +47,7 @@ Puedes leer pero **nunca modificar**:
 3. Lee `docs/claude-config/agent-memory/dashboard.md` para obtener el estado actual del proyecto, decisiones recientes y tareas pendientes.
 4. Si el archivo no existe, notifica al usuario y continua sin el.
 5. Lee `docs/claude-config/agent-memory/individual/DG-01-dashboard-student.md` (TU memoria personal — lecciones, patrones, métricas)
+6. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
 6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 7. Resume brevemente lo que encontraste antes de comenzar cualquier tarea.
 

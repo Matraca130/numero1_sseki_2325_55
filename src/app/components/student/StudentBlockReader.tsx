@@ -318,20 +318,22 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
 
       {/* ── Main layout: sidebar + content ───────────────────── */}
       <div className="flex flex-1 overflow-hidden" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
-        {/* Sidebar */}
+        {/* Sidebar — collapsed (52px) stays in flow, expanded overlays */}
         {sidebarOpen && (
-          <SidebarOutline
-            blocks={sortedBlocks.map((b) => ({
-              id: b.id,
-              type: b.type,
-              content: b.content as Record<string, unknown> | undefined,
-            }))}
-            activeBlockId={activeBlockId}
-            onBlockClick={scrollToBlock}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
-            masteryLevels={showMastery ? masteryLevels : undefined}
-          />
+          <div className="relative" style={{ width: 52, flexShrink: 0 }}>
+            <SidebarOutline
+              blocks={sortedBlocks.map((b) => ({
+                id: b.id,
+                type: b.type,
+                content: b.content as Record<string, unknown> | undefined,
+              }))}
+              activeBlockId={activeBlockId}
+              onBlockClick={scrollToBlock}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+              masteryLevels={showMastery ? masteryLevels : undefined}
+            />
+          </div>
         )}
 
         {/* Content area */}
