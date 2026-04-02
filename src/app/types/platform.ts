@@ -204,19 +204,9 @@ export interface Topic {
   created_at?: ISODate;
 }
 
-export interface Summary {
-  id: UUID;
-  topic_id: UUID;
-  institution_id?: UUID;
-  course_id?: UUID;
-  title?: string | null;
-  content_markdown: string;
-  status: SummaryStatus;
-  created_by?: string;
-  version?: number;
-  created_at: ISODate;
-  updated_at: ISODate;
-}
+// Canonical Summary type lives in summariesApi.ts (matches actual API response).
+// Re-exported here for backward compatibility.
+export type { Summary } from '@/app/services/summariesApi';
 
 export interface Keyword {
   id: UUID;
