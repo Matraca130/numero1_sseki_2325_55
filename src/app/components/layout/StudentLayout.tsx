@@ -112,7 +112,7 @@ function StudentShell() {
             <button
               onClick={handleMenuToggle}
               className={`${components.header.menuBtn} hover:text-white transition-all duration-200`}
-              title={isSidebarOpen ? "Fechar menu" : "Abrir menu"}
+              title={isSidebarOpen ? "Cerrar menú" : "Abrir menú"}
             >
               <Menu size={20} />
             </button>
