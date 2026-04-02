@@ -94,7 +94,7 @@ export function StudentSummaryReader({
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
   const [showTimer, setShowTimer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings(summary.id);
+  const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings();
 
   // ── Wave 1: Sidebar, search, reading progress ─────────
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -395,6 +395,7 @@ export function StudentSummaryReader({
         <div id="reader-main-content" className={`flex-1 min-w-0 transition-all duration-200 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
 
         {/* ── Immersive header toolbar (V1+V2+V6) ── */}
+        {!readingSettings.focusMode && (
         <header
           role="banner"
           aria-label="Barra de herramientas del resumen"
@@ -407,11 +408,6 @@ export function StudentSummaryReader({
             zIndex: 100,
             borderBottom: isDark ? '1px solid #2d2e34' : '1px solid transparent',
             borderRadius: '12px 12px 0 0',
-            opacity: readingSettings.focusMode ? 0 : 1,
-            pointerEvents: readingSettings.focusMode ? 'none' : 'auto',
-            maxHeight: readingSettings.focusMode ? 0 : 200,
-            overflow: 'hidden',
-            transition: 'opacity 200ms ease, max-height 200ms ease',
           }}
         >
           {/* Left side: back + brand */}
@@ -559,6 +555,7 @@ export function StudentSummaryReader({
             </button>
           </div>
         </header>
+        )}
 
         {/* ── Study Timer (fixed position, self-managed) ── */}
         {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}

@@ -563,7 +563,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       {blockContent}
 
       {(hasActions || ttsText) && (
-        <div className="flex items-center gap-1 mt-1">
+        <div className="flex items-center gap-1 mt-1" data-testid="viewer-block-actions">
           {ttsText && <TTSButton text={ttsText} />}
           {onBookmarkToggle && (
             <BookmarkButton

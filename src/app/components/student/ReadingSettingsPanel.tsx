@@ -43,7 +43,7 @@ function loadSettings(): ReadingSettings {
   return { ...DEFAULT_READING_SETTINGS };
 }
 
-export function useReadingSettings(_summaryId?: string) {
+export function useReadingSettings() {
   const [settings, setSettings] = useState<ReadingSettings>(loadSettings);
 
   useEffect(() => {

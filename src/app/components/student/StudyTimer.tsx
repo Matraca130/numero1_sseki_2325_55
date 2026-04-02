@@ -79,7 +79,9 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
         apiCall(`/study-sessions/${sid}`, {
           method: 'PUT',
           body: JSON.stringify({ completed_at: new Date().toISOString() }),
-        }).catch(() => {});
+        }).catch((err) => {
+          console.warn('[StudyTimer] Failed to complete study session:', err);
+        });
       }
       toast('Tiempo de estudio finalizado!');
       setMode('break');
@@ -95,7 +97,9 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
 
   const toggleRunning = useCallback(() => {
     // Fire API call outside state updater to avoid double-fire in StrictMode
+    // Set ref to sentinel immediately to prevent race condition on rapid clicks
     if (!running && mode === 'study' && !sessionIdRef.current) {
+      sessionIdRef.current = 'pending';
       apiCall<{ id: string }>('/study-sessions', {
         method: 'POST',
         body: JSON.stringify({
@@ -104,9 +108,12 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
         }),
       })
         .then((res) => {
-          if (res?.id) sessionIdRef.current = res.id;
+          sessionIdRef.current = res?.id ?? null;
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn('[StudyTimer] Failed to create study session:', err);
+          sessionIdRef.current = null;
+        });
     }
     setRunning((prev) => !prev);
   }, [mode, running]);
