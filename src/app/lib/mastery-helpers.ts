@@ -15,6 +15,8 @@
 //   blue   — Maestria (delta >= 1.10)
 // ============================================================
 
+import { colors } from '@/app/design-system/colors';
+
 export interface BktState {
   id?: string;
   student_id?: string;
@@ -100,11 +102,12 @@ export function getDeltaColorClasses(level: DeltaColorLevel): {
     bg: string; text: string; border: string; dot: string;
     bgLight: string; hoverBg: string; ring: string; hex: string;
   }> = {
-    gray:   { bg: 'bg-zinc-50',    text: 'text-zinc-500',    border: 'border-zinc-300',    dot: 'bg-zinc-400',    bgLight: 'bg-zinc-100/60',    hoverBg: 'hover:bg-zinc-200/80',    ring: 'ring-zinc-400',    hex: '#a1a1aa' },
-    red:    { bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-300',     dot: 'bg-red-500',     bgLight: 'bg-red-100/60',     hoverBg: 'hover:bg-red-200/80',     ring: 'ring-red-500',     hex: '#ef4444' },
-    yellow: { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-300',   dot: 'bg-amber-500',   bgLight: 'bg-amber-100/60',   hoverBg: 'hover:bg-amber-200/80',   ring: 'ring-amber-500',   hex: '#f59e0b' },
-    green:  { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500', bgLight: 'bg-emerald-100/60', hoverBg: 'hover:bg-emerald-200/80', ring: 'ring-emerald-500', hex: '#10b981' },
-    blue:   { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-300',    dot: 'bg-blue-500',    bgLight: 'bg-blue-100/60',    hoverBg: 'hover:bg-blue-200/80',    ring: 'ring-blue-500',    hex: '#3b82f6' },
+    // Hex values sourced from the canonical Delta Mastery Scale (colors.mastery)
+    gray:   { bg: 'bg-zinc-50',    text: 'text-zinc-500',    border: 'border-zinc-300',    dot: 'bg-zinc-400',    bgLight: 'bg-zinc-100/60',    hoverBg: 'hover:bg-zinc-200/80',    ring: 'ring-zinc-400',    hex: colors.mastery.descubrir },
+    red:    { bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-300',     dot: 'bg-red-500',     bgLight: 'bg-red-100/60',     hoverBg: 'hover:bg-red-200/80',     ring: 'ring-red-500',     hex: colors.mastery.emergente },
+    yellow: { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-300',   dot: 'bg-amber-500',   bgLight: 'bg-amber-100/60',   hoverBg: 'hover:bg-amber-200/80',   ring: 'ring-amber-500',   hex: colors.mastery.enProgreso },
+    green:  { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500', bgLight: 'bg-emerald-100/60', hoverBg: 'hover:bg-emerald-200/80', ring: 'ring-emerald-500', hex: colors.mastery.consolidado },
+    blue:   { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-300',    dot: 'bg-blue-500',    bgLight: 'bg-blue-100/60',    hoverBg: 'hover:bg-blue-200/80',    ring: 'ring-blue-500',    hex: colors.mastery.maestria },
   };
   return map[level];
 }

@@ -22,7 +22,8 @@ export default function ProseBlock({ block, keywords }: { block: SummaryBlock; k
         <img
           src={image}
           alt={title ?? ''}
-          className="max-w-full rounded-xl border border-gray-200 dark:border-gray-700 mt-3"
+          loading="lazy"
+          className="max-w-full rounded-[10px] border border-gray-200 dark:border-gray-700 mt-3"
         />
       )}
     </div>

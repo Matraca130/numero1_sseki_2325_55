@@ -86,15 +86,12 @@ export function SidebarOutline({
 
   return (
     <aside
-      className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light bg-white dark:bg-[#1e1f25] border-r border-gray-200 dark:border-[#2d2e34]"
-      style={{
-        width: collapsed ? 44 : 220,
-        transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)',
-        padding: 8,
-        borderRadius: '0 12px 12px 0',
-      }}
+      role="navigation"
+      aria-label="Estructura del resumen"
+      className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light bg-white dark:bg-[#1e1f25] border-r border-gray-200 dark:border-[#2d2e34] transition-all duration-200"
+      style={{ width: collapsed ? 52 : 220 }}
     >
-      {/* ── Header ─────────────────────────────────── */}
+      {/* -- Header -- */}
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
         {!collapsed && (
           <span
@@ -108,21 +105,14 @@ export function SidebarOutline({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex items-center justify-center transition-colors"
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: 'rgba(42,140,122,0.08)',
-            flexShrink: 0,
-          }}
+          className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-50 dark:bg-[#1a2e2a] text-teal-500 hover:bg-teal-100 dark:hover:bg-[#224038] transition-colors"
           aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         >
           <ToggleIcon size={14} className="text-teal-500" />
         </button>
       </div>
 
-      {/* ── Block list ─────────────────────────────── */}
+      {/* -- Block list -- */}
       <nav className="flex flex-col gap-0.5 px-1">
         {blocks.map((block) => {
           const isActive = block.id === activeBlockId;
@@ -136,6 +126,8 @@ export function SidebarOutline({
               type="button"
               onClick={() => onBlockClick(block.id)}
               title={collapsed ? label : undefined}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={collapsed ? label : undefined}
               className={[
                 'relative flex items-center gap-2 text-left transition-all',
                 'border-l-[3px]',

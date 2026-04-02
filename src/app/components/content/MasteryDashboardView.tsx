@@ -31,23 +31,23 @@ interface CalendarEvent {
 }
 
 const CALENDAR_EVENTS: CalendarEvent[] = [
-  { day: 4, title: 'Fisiologia II', category: 'science', time: '10:00 - 11:30' },
-  { day: 6, title: 'Anatomia Patológica', category: 'arts', time: '14:00 - 15:30', hasReview: true },
-  { day: 11, title: 'Fisiologia II', category: 'science', time: '10:00 - 11:30' },
+  { day: 4, title: 'Fisiología II', category: 'science', time: '10:00 - 11:30' },
+  { day: 6, title: 'Anatomía Patológica', category: 'arts', time: '14:00 - 15:30', hasReview: true },
+  { day: 11, title: 'Fisiología II', category: 'science', time: '10:00 - 11:30' },
   { day: 11, title: 'Bioquímica', category: 'core', time: '17:00 - 18:00' },
-  { day: 14, title: 'Fisiologia II', category: 'science', time: '10:00 - 11:30' },
-  { day: 18, title: 'Farmacologia I', category: 'science', time: '09:00 - 10:30', hasReview: true },
-  { day: 24, title: 'Fisiologia II', category: 'science', time: '10:00 - 11:30' },
-  { day: 25, title: 'Histologia', category: 'arts', time: '14:00 - 15:30' },
-  { day: 27, title: 'Grupo de Estudo', category: 'core', time: '18:00 - 20:00' },
+  { day: 14, title: 'Fisiología II', category: 'science', time: '10:00 - 11:30' },
+  { day: 18, title: 'Farmacología I', category: 'science', time: '09:00 - 10:30', hasReview: true },
+  { day: 24, title: 'Fisiología II', category: 'science', time: '10:00 - 11:30' },
+  { day: 25, title: 'Histología', category: 'arts', time: '14:00 - 15:30' },
+  { day: 27, title: 'Grupo de Estudio', category: 'core', time: '18:00 - 20:00' },
 ];
 
 const TODAY_TASKS = [
-  { id: '1', type: 'review' as const, subject: 'Psicologia Cognitiva', title: 'Mapeamento Conceitual', retention: 25, urgency: 'urgent' as const },
-  { id: '2', type: 'session' as const, subject: 'Fisiologia II', title: 'Prática de Integração', description: 'Complete os problemas 14-22 do Capítulo 4.', time: '14:00', isPrimary: true },
-  { id: '3', type: 'session' as const, subject: 'Anatomia', title: 'Ler Capítulo 4', description: 'Foco na seção de membro superior.', time: '16:30', duration: '45m' },
-  { id: '4', type: 'session' as const, subject: 'Bioquímica', title: 'Revisar Anotações', description: 'Revisão rápida antes de dormir.', time: '19:00' },
-  { id: '5', type: 'session' as const, subject: 'Geral', title: 'Diário de Estudo', time: '20:30' },
+  { id: '1', type: 'review' as const, subject: 'Psicología Cognitiva', title: 'Mapeo Conceptual', retention: 25, urgency: 'urgent' as const },
+  { id: '2', type: 'session' as const, subject: 'Fisiología II', title: 'Práctica de Integración', description: 'Completá los problemas 14-22 del Capítulo 4.', time: '14:00', isPrimary: true },
+  { id: '3', type: 'session' as const, subject: 'Anatomía', title: 'Leer Capítulo 4', description: 'Foco en la sección de miembro superior.', time: '16:30', duration: '45m' },
+  { id: '4', type: 'session' as const, subject: 'Bioquímica', title: 'Revisar Anotaciones', description: 'Revisión rápida antes de dormir.', time: '19:00' },
+  { id: '5', type: 'session' as const, subject: 'General', title: 'Diario de Estudio', time: '20:30' },
 ];
 
 const CATEGORY_STYLES = {
@@ -57,19 +57,19 @@ const CATEGORY_STYLES = {
 };
 
 const SUBJECT_BADGE_STYLES: Record<string, string> = {
-  'Psicologia Cognitiva': 'bg-red-50 text-red-600',
-  'Fisiologia II': 'bg-blue-50 text-blue-600',
-  'Anatomia': 'bg-pink-50 text-pink-600',
+  'Psicología Cognitiva': 'bg-red-50 text-red-600',
+  'Fisiología II': 'bg-blue-50 text-blue-600',
+  'Anatomía': 'bg-pink-50 text-pink-600',
   'Bioquímica': 'bg-emerald-50 text-emerald-600',
-  'Geral': 'bg-gray-100 text-gray-500',
+  'General': 'bg-gray-100 text-gray-500',
 };
 
 const SUBJECT_ACCENT_COLORS: Record<string, string> = {
-  'Psicologia Cognitiva': 'bg-red-500',
-  'Fisiologia II': 'bg-blue-500',
-  'Anatomia': 'bg-pink-500',
+  'Psicología Cognitiva': 'bg-red-500',
+  'Fisiología II': 'bg-blue-500',
+  'Anatomía': 'bg-pink-500',
   'Bioquímica': 'bg-emerald-500',
-  'Geral': 'bg-gray-300',
+  'General': 'bg-gray-300',
 };
 
 // ── Daily Sidebar Content (extracted for reuse in drawer) ──
@@ -83,8 +83,8 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
     <div className="flex flex-col h-full">
       <div className="px-4 lg:px-6 py-4 lg:py-6 border-b border-gray-200/50 flex items-start justify-between shrink-0">
         <div>
-          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Sexta-feira, 14</h2>
-          <p className="text-gray-400 text-sm mt-1">{remainingTasks} tarefas restantes</p>
+          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Viernes, 14</h2>
+          <p className="text-gray-400 text-sm mt-1">{remainingTasks} tareas restantes</p>
         </div>
         <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
@@ -99,7 +99,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" /><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" /></span>
-              <h3 className="text-xs uppercase tracking-wider text-gray-400" style={{ fontWeight: 700 }}>Revisões Espaçadas</h3>
+              <h3 className="text-xs uppercase tracking-wider text-gray-400" style={{ fontWeight: 700 }}>Revisiones Espaciadas</h3>
             </div>
             {displayTasks.filter(t => t.type === 'review').map(task => (
               <div key={task.id} className="bg-white rounded-xl p-3 lg:p-4 shadow-md ring-1 ring-red-500/30 relative overflow-hidden">
@@ -110,16 +110,16 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
                 </div>
                 <h3 className="text-gray-800 mb-1" style={{ fontWeight: 700 }}>{task.title}</h3>
                 <div className="mb-4">
-                  <div className="flex justify-between text-[10px] text-gray-400 mb-1 uppercase"><span>Retenção</span><span className="text-red-500">{task.retention}% (Crítico)</span></div>
+                  <div className="flex justify-between text-[10px] text-gray-400 mb-1 uppercase"><span>Retención</span><span className="text-red-500">{task.retention}% (Crítico)</span></div>
                   <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-red-500 rounded-full" style={{ width: `${task.retention}%` }} /></div>
                 </div>
-                <button onClick={() => navigateTo('review-session')} className="w-full h-11 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm tracking-wide shadow-lg transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[44px] font-semibold" style={{ fontWeight: 700 }}><PlayCircle size={16} /> Iniciar Revisão</button>
+                <button onClick={() => navigateTo('review-session')} className="w-full h-11 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm tracking-wide shadow-lg transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[44px] font-semibold" style={{ fontWeight: 700 }}><PlayCircle size={16} /> Iniciar Revisión</button>
               </div>
             ))}
           </div>
         )}
         <div className="space-y-4">
-          <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2" style={{ fontWeight: 700 }}>Agenda de Hoje</h3>
+          <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2" style={{ fontWeight: 700 }}>Agenda de Hoy</h3>
           {displayTasks.filter(t => t.type === 'session').map((task, i) => {
             const opacity = i >= 2 ? (i >= 3 ? 'opacity-60 hover:opacity-100' : 'opacity-80 hover:opacity-100') : '';
             return (
@@ -131,7 +131,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
                 </div>
                 <h3 className={clsx("text-gray-800 mb-1", !task.isPrimary && 'text-base')} style={{ fontWeight: 700 }}>{task.title}</h3>
                 {task.description && <p className="text-sm text-gray-400 mb-3">{task.description}</p>}
-                {task.isPrimary && (<button onClick={() => navigateTo('study')} className="w-full h-11 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm tracking-wide shadow-md transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[44px] font-semibold" style={{ fontWeight: 700 }}><Play size={16} /> Iniciar Sessão</button>)}
+                {task.isPrimary && (<button onClick={() => navigateTo('study')} className="w-full h-11 rounded-full bg-[#2a8c7a] hover:bg-[#244e47] text-white text-sm tracking-wide shadow-md transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[44px] font-semibold" style={{ fontWeight: 700 }}><Play size={16} /> Iniciar Sesión</button>)}
                 {task.duration && (<div className="flex gap-2 mt-1"><span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={12} /> {task.duration}</span></div>)}
               </div>
             );
@@ -139,7 +139,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
         </div>
       </div>
       <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-md shrink-0">
-        <button className="w-full py-2.5 rounded-full border-2 border-dashed border-teal-500/30 text-teal-600 text-sm hover:bg-teal-50 hover:border-teal-500/50 transition-all flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><Plus size={16} /> Adicionar Nova Tarefa</button>
+        <button className="w-full py-2.5 rounded-full border-2 border-dashed border-teal-500/30 text-teal-600 text-sm hover:bg-teal-50 hover:border-teal-500/50 transition-all flex items-center justify-center gap-2 min-h-[44px]" style={{ fontWeight: 700 }}><Plus size={16} /> Agregar Nueva Tarea</button>
       </div>
     </div>
   );
@@ -159,7 +159,7 @@ export function MasteryDashboardView() {
     return map;
   }, [tree]);
 
-  const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const prevMonthDays = [26, 27, 28, 29, 30];
   const daysInMonth = 28;
   const today = 14;
@@ -174,7 +174,7 @@ export function MasteryDashboardView() {
   const displayTasks = useMemo(() => {
     if (!isConnected || bktStates.length === 0) return TODAY_TASKS;
     const urgentTopics = [...bktStates].filter(b => b.p_know < 0.5).sort((a, b) => a.p_know - b.p_know).slice(0, 3);
-    const reviewTasks = urgentTopics.map((b, i) => ({ id: `review-${i}`, type: 'review' as const, subject: topicLookup.get(b.subtopic_id) || `Tópico ${b.subtopic_id.slice(0, 6)}`, title: 'Revisão Espaçada', retention: Math.round(b.p_know * 100), urgency: 'urgent' as const }));
+    const reviewTasks = urgentTopics.map((b, i) => ({ id: `review-${i}`, type: 'review' as const, subject: topicLookup.get(b.subtopic_id) || `Tema ${b.subtopic_id.slice(0, 6)}`, title: 'Revisión Espaciada', retention: Math.round(b.p_know * 100), urgency: 'urgent' as const }));
     return [...reviewTasks, ...TODAY_TASKS.filter(t => t.type === 'session')];
   }, [isConnected, bktStates, topicLookup]);
 
@@ -183,7 +183,7 @@ export function MasteryDashboardView() {
   const getEventsForDay = (day: number) => {
     const actData = activityMap.get(day);
     const mockEvents = CALENDAR_EVENTS.filter(e => e.day === day);
-    if (isConnected && actData && actData.minutes > 0 && mockEvents.length === 0) return [{ day, title: `${actData.sessions} sessão(ões)`, category: 'core' as const, time: `${actData.minutes} min`, hasReview: actData.cards > 0 }];
+    if (isConnected && actData && actData.minutes > 0 && mockEvents.length === 0) return [{ day, title: `${actData.sessions} sesión(es)`, category: 'core' as const, time: `${actData.minutes} min`, hasReview: actData.cards > 0 }];
     return mockEvents;
   };
 
@@ -191,11 +191,11 @@ export function MasteryDashboardView() {
     <div className="h-full flex flex-col bg-[#f5f6fa]">
       <div className="shrink-0">
         <AxonPageHeader
-          title="Fevereiro 2026"
-          subtitle="Painel de domínio do estudo"
+          title="Febrero 2026"
+          subtitle="Panel de dominio del estudio"
           onBack={() => navigateTo('schedule')}
-          statsLeft={<div className="flex items-center gap-1 bg-white/60 rounded-lg p-1 border border-gray-200/60"><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronLeft size={18} /></button><button className="px-2 lg:px-3 py-1 text-sm text-gray-700 min-h-[44px]">Hoje</button><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronRight size={18} /></button></div>}
-          statsRight={<div className="flex items-center gap-2"><button onClick={() => setSidebarOpen(true)} className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-gray-200/60 text-gray-600 text-sm min-h-[44px]"><CalendarDays size={16} className="text-teal-500" /><span className="hidden sm:inline">Agenda</span></button><div className="flex bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">{(['day', 'week', 'month'] as const).map(mode => (<button key={mode} onClick={() => setViewMode(mode)} className={clsx("px-3 lg:px-4 py-1.5 rounded-lg text-sm transition-all whitespace-nowrap min-h-[44px]", viewMode === mode ? "bg-white shadow-sm text-teal-600" : "text-gray-400 hover:text-gray-600 hover:bg-white/50")}>{mode === 'day' ? 'Dia' : mode === 'week' ? 'Sem' : 'Mês'}</button>))}</div></div>}
+          statsLeft={<div className="flex items-center gap-1 bg-white/60 rounded-lg p-1 border border-gray-200/60"><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronLeft size={18} /></button><button className="px-2 lg:px-3 py-1 text-sm text-gray-700 min-h-[44px]">Hoy</button><button className="p-1 hover:bg-white rounded-md transition-colors text-gray-400 min-h-[44px] min-w-[44px] flex items-center justify-center"><ChevronRight size={18} /></button></div>}
+          statsRight={<div className="flex items-center gap-2"><button onClick={() => setSidebarOpen(true)} className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-white/60 rounded-lg border border-gray-200/60 text-gray-600 text-sm min-h-[44px]"><CalendarDays size={16} className="text-teal-500" /><span className="hidden sm:inline">Agenda</span></button><div className="flex bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">{(['day', 'week', 'month'] as const).map(mode => (<button key={mode} onClick={() => setViewMode(mode)} className={clsx("px-3 lg:px-4 py-1.5 rounded-lg text-sm transition-all whitespace-nowrap min-h-[44px]", viewMode === mode ? "bg-white shadow-sm text-teal-600" : "text-gray-400 hover:text-gray-600 hover:bg-white/50")}>{mode === 'day' ? 'Día' : mode === 'week' ? 'Sem' : 'Mes'}</button>))}</div></div>}
         />
       </div>
       <div className="flex-1 flex overflow-hidden">

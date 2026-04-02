@@ -4,6 +4,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { extractItems } from '@/app/lib/api-helpers';
 import type {
   UUID,
   PlatformPlan,
@@ -19,7 +20,8 @@ const request = apiCall;
 
 export async function getPlatformPlans(includeInactive = false): Promise<PlatformPlan[]> {
   const qs = includeInactive ? '?include_inactive=true' : '';
-  return request<PlatformPlan[]>(`/platform-plans${qs}`);
+  const result = await request(`/platform-plans${qs}`);
+  return extractItems<PlatformPlan>(result);
 }
 
 export async function getPlatformPlan(id: UUID): Promise<PlatformPlan> {
@@ -52,7 +54,8 @@ export async function getInstitutionPlans(instId: UUID, includeInactive = false)
   const params = new URLSearchParams();
   params.set('institution_id', instId);
   if (includeInactive) params.set('include_inactive', 'true');
-  return request<InstitutionPlan[]>(`/institution-plans?${params}`);
+  const result = await request(`/institution-plans?${params}`);
+  return extractItems<InstitutionPlan>(result);
 }
 
 export async function getInstitutionPlan(id: UUID): Promise<InstitutionPlan> {

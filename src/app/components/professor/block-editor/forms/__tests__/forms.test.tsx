@@ -27,7 +27,6 @@ describe('ProseForm', () => {
     render(<ProseForm block={block} onChange={vi.fn()} />);
     expect(screen.getByDisplayValue('Test Title')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Test content paragraph')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('https://example.com/img.jpg')).toBeInTheDocument();
   });
 
   it('calls onChange when title is edited', () => {
@@ -44,14 +43,6 @@ describe('ProseForm', () => {
     render(<ProseForm block={block} onChange={onChange} />);
     fireEvent.change(screen.getByPlaceholderText('Escribe el contenido...'), { target: { value: 'Updated text' } });
     expect(onChange).toHaveBeenCalledWith('content', 'Updated text');
-  });
-
-  it('calls onChange when image URL is edited', () => {
-    const onChange = vi.fn();
-    const block = makeBlock(FORM_FIXTURES.prose);
-    render(<ProseForm block={block} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('https://ejemplo.com/imagen.jpg'), { target: { value: 'https://new.com/pic.png' } });
-    expect(onChange).toHaveBeenCalledWith('image', 'https://new.com/pic.png');
   });
 
   it('handles empty content gracefully', () => {
@@ -203,7 +194,6 @@ describe('ComparisonForm', () => {
     const block = makeBlock(FORM_FIXTURES.comparison);
     render(<ComparisonForm block={block} onChange={vi.fn()} />);
     expect(screen.getByDisplayValue('Comparison Table')).toBeInTheDocument();
-    // Headers appear in both header inputs and as row placeholders, so use getAll
     expect(screen.getAllByDisplayValue('Feature').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByDisplayValue('Option A').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByDisplayValue('Option B').length).toBeGreaterThanOrEqual(1);

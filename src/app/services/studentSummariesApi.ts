@@ -191,6 +191,60 @@ export async function deleteVideoNote(id: string): Promise<any> {
   return apiCall(`/video-notes/${id}`, { method: 'DELETE' });
 }
 
+// ── Block Bookmarks ────────────────────────────────────
+
+export interface BlockBookmark {
+  id: string;
+  summary_id: string;
+  block_id: string;
+  student_id: string;
+  created_at: string;
+}
+
+export async function getBlockBookmarks(summaryId: string): Promise<PaginatedList<BlockBookmark>> {
+  return apiCall<PaginatedList<BlockBookmark>>(`/block-bookmarks?summary_id=${summaryId}`);
+}
+
+export async function createBlockBookmark(data: { summary_id: string; block_id: string }): Promise<BlockBookmark> {
+  return apiCall<BlockBookmark>('/block-bookmarks', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function deleteBlockBookmark(id: string): Promise<any> {
+  return apiCall(`/block-bookmarks/${id}`, { method: 'DELETE' });
+}
+
+// ── Block Notes ────────────────────────────────────────
+
+export interface BlockNote {
+  id: string;
+  summary_id: string;
+  block_id: string;
+  student_id: string;
+  text: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export async function getBlockNotes(summaryId: string, blockId?: string): Promise<PaginatedList<BlockNote>> {
+  let url = `/block-notes?summary_id=${summaryId}`;
+  if (blockId) url += `&block_id=${blockId}`;
+  return apiCall<PaginatedList<BlockNote>>(url);
+}
+
+export async function createBlockNote(data: { summary_id: string; block_id: string; text: string; color?: string }): Promise<BlockNote> {
+  return apiCall<BlockNote>('/block-notes', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function updateBlockNote(id: string, data: { text?: string; color?: string }): Promise<BlockNote> {
+  return apiCall<BlockNote>(`/block-notes/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function deleteBlockNote(id: string): Promise<any> {
+  return apiCall(`/block-notes/${id}`, { method: 'DELETE' });
+}
+
 // ── Bulk Reading States ─────────────────────────────────────
 
 /**

@@ -5,11 +5,14 @@
 // Interactable: images (lightbox), videos (play), PDFs (view),
 // keyword-refs (SmartPopup).
 // ============================================================
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
   Play, Download, ExternalLink, Tag, StickyNote, Brain,
 } from 'lucide-react';
+import { HighlightToolbar } from './HighlightToolbar';
+import type { HighlightColor } from './HighlightToolbar';
 import BookmarkButton from './BookmarkButton';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
@@ -20,7 +23,7 @@ import {
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
 import TTSButton from './TTSButton';
-import { getMasteryStyle } from '@/app/components/student/MasteryBar';
+import { getMasteryStyle } from '@/app/design-system';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -41,6 +44,10 @@ interface ViewerBlockProps {
   onNotesToggle?: () => void;
   /** Trigger quiz modal for this block */
   onQuizTrigger?: () => void;
+  /** Summary ID for text annotation persistence (highlighting) */
+  summaryId?: string;
+  /** Shared annotation mutation (lifted from parent to avoid N instances) */
+  createAnnotationMutation?: { mutate: Function; isPending?: boolean };
 }
 
 // ── Callout icon map ──────────────────────────────────────
@@ -90,6 +97,8 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   isBookmarked,
   onNotesToggle,
   onQuizTrigger,
+  summaryId,
+  createAnnotationMutation,
 }: ViewerBlockProps) {
   const c = block.content || {};
 
@@ -97,6 +106,113 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   const ttsText = extractBlockText(block);
 
   const hasActions = onBookmarkToggle || onNotesToggle || onQuizTrigger;
+
+  // ── Text highlighting (block-scoped) ───────────────────
+  const blockRef = useRef<HTMLDivElement>(null);
+  const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+
+  // Use shared mutation from parent (avoids N instances per block)
+  const createMutation = createAnnotationMutation;
+
+  // Text-bearing block types that support highlighting
+  const isHighlightable = ['prose', 'key_point', 'callout', 'list_detail', 'two_column', 'stages', 'text'].includes(block.type);
+  const highlightEnabled = !!summaryId && isHighlightable;
+
+  const handleMouseUp = useCallback(() => {
+    if (!highlightEnabled) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !blockRef.current) {
+      setToolbar(null);
+      setSelectionRange(null);
+      return;
+    }
+    const selectedText = sel.toString().trim();
+    if (!selectedText || selectedText.length < 3) {
+      setToolbar(null);
+      setSelectionRange(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    // Check selection is within this block
+    if (!blockRef.current.contains(range.commonAncestorContainer)) {
+      setToolbar(null);
+      setSelectionRange(null);
+      return;
+    }
+    const preRange = document.createRange();
+    preRange.setStart(blockRef.current, 0);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    const startOffset = preRange.toString().length;
+    const endOffset = startOffset + sel.toString().length;
+    setSelectionRange({ start: startOffset, end: endOffset });
+    const rect = range.getBoundingClientRect();
+    const containerRect = blockRef.current.getBoundingClientRect();
+    setToolbar({
+      top: rect.top - containerRect.top - 42,
+      left: rect.left - containerRect.left + rect.width / 2 - 90,
+    });
+  }, [highlightEnabled]);
+
+  const handleSelectColor = useCallback((color: HighlightColor) => {
+    if (!selectionRange || !summaryId || !createMutation) return;
+    createMutation.mutate(
+      {
+        summary_id: summaryId,
+        start_offset: selectionRange.start,
+        end_offset: selectionRange.end,
+        color,
+      },
+      {
+        onSuccess: () => {
+          window.getSelection()?.removeAllRanges();
+          setToolbar(null);
+          setSelectionRange(null);
+        },
+      },
+    );
+  }, [selectionRange, createMutation, summaryId]);
+
+  const handleAnnotate = useCallback(() => {
+    if (!selectionRange || !summaryId || !createMutation) return;
+    createMutation.mutate(
+      {
+        summary_id: summaryId,
+        start_offset: selectionRange.start,
+        end_offset: selectionRange.end,
+        color: 'yellow',
+        note: '',
+      },
+      {
+        onSuccess: () => {
+          window.getSelection()?.removeAllRanges();
+          setToolbar(null);
+          setSelectionRange(null);
+        },
+      },
+    );
+  }, [selectionRange, createMutation, summaryId]);
+
+  // Listen for mouseup on block content
+  useEffect(() => {
+    const el = blockRef.current;
+    if (!el || !highlightEnabled) return;
+    el.addEventListener('mouseup', handleMouseUp);
+    return () => el.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseUp, highlightEnabled]);
+
+  // Hide toolbar on click outside
+  useEffect(() => {
+    if (!toolbar) return;
+    const handler = (e: MouseEvent) => {
+      if (blockRef.current && !blockRef.current.contains(e.target as Node)) {
+        setToolbar(null);
+        setSelectionRange(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [toolbar]);
 
   const blockContent = (() => { switch (block.type) {
     // ── Text ────────────────────────────────────────────
@@ -378,6 +494,8 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   return (
     <div
+      ref={blockRef}
+      className={highlightEnabled ? 'select-text' : undefined}
       style={{
         position: 'relative',
         transition: 'background 0.3s, border-color 0.3s',
@@ -391,10 +509,50 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           : {}),
       }}
     >
+      {/* Floating highlight toolbar on text selection */}
+      <AnimatePresence>
+        {toolbar && selectionRange && highlightEnabled && (
+          <HighlightToolbar
+            top={toolbar.top}
+            left={Math.max(0, toolbar.left)}
+            onSelectColor={handleSelectColor}
+            onAnnotate={handleAnnotate}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mastery percentage badge — top right */}
+      {mastery && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: mastery.border,
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 700,
+            lineHeight: 1,
+            zIndex: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+          }}
+          title={mastery.label}
+          aria-label={`Dominio: ${Math.round((masteryLevel ?? 0) * 100)}%`}
+        >
+          {Math.round((masteryLevel ?? 0) * 100)}%
+        </div>
+      )}
+
       {blockContent}
 
       {(hasActions || ttsText) && (
-        <div className="flex items-center gap-1 mt-1">
+        <div className="flex items-center gap-1 mt-1" data-testid="viewer-block-actions">
           {ttsText && <TTSButton text={ttsText} />}
           {onBookmarkToggle && (
             <BookmarkButton

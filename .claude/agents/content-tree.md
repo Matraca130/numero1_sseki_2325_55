@@ -21,7 +21,7 @@ Eres SM-04, el agente del arbol de contenido de Axon. Tu responsabilidad es mant
 
 ## Zona de solo lectura
 
-- `agent-memory/summaries.md` — memoria compartida de sección
+- `docs/claude-config/agent-memory/summaries.md` — memoria compartida de sección
 - `types/content.ts` — tipos canónicos de contenido. Si necesitan cambios, escalar a XX-01 (Arquitecto)
 
 ## Depends On / Produces for
@@ -32,8 +32,8 @@ Eres SM-04, el agente del arbol de contenido de Axon. Tu responsabilidad es mant
 ## Al iniciar cada sesión (OBLIGATORIO)
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/summaries.md` (memoria de sección)
-4. Lee `agent-memory/individual/AGENT-METRICS.md` → sección Agent Detail para SM-04 (tu historial QG)
+3. Lee `docs/claude-config/agent-memory/summaries.md` (memoria de sección)
+4. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → sección Agent Detail para SM-04 (tu historial QG)
 5. Revisa `ContentTreeContext.tsx` para entender el estado actual
 6. Revisa `ContentTree.tsx` para validar la estructura del componente
 7. Verifica tipos en `types/content.ts` (SOLO LECTURA — si necesitan cambios, escalar a XX-01)
@@ -66,7 +66,7 @@ Eres SM-04, el agente del arbol de contenido de Axon. Tu responsabilidad es mant
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

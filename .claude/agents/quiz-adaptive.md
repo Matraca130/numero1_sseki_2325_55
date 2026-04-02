@@ -21,7 +21,7 @@ Eres QZ-04, el agente responsable del motor de quizzes adaptativos. Gestionas la
 
 ## Zona de solo lectura
 
-- `agent-memory/quiz.md`
+- `docs/claude-config/agent-memory/quiz.md`
 - Archivos de otros agentes de quiz (QZ-05, QZ-06) para entender contratos de datos
 - Servicios compartidos y tipos globales
 
@@ -34,11 +34,11 @@ Eres QZ-04, el agente responsable del motor de quizzes adaptativos. Gestionas la
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `agent-memory/quiz.md` (contexto de sección)
-4. Lee `agent-memory/individual/QZ-04-bkt.md` (TU memoria personal — lecciones, decisiones, métricas)
+3. Lee `docs/claude-config/agent-memory/quiz.md` (contexto de sección)
+4. Lee `docs/claude-config/agent-memory/individual/QZ-04-bkt.md` (TU memoria personal — lecciones, decisiones, métricas)
 5. Revisa los archivos de tu zona de ownership para entender el estado actual del código
 6. Identifica cualquier cambio reciente en los contratos BKT o la máquina de estados
-7. Lee `agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+7. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
@@ -59,7 +59,7 @@ Eres QZ-04, el agente responsable del motor de quizzes adaptativos. Gestionas la
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
