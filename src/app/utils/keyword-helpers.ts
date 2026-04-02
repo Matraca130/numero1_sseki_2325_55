@@ -2,7 +2,10 @@
 // Keyword helpers — runtime logic extracted from types/keywords.ts
 // ============================================================
 
-import type { KeywordCollection } from '@/app/types/keywords';
+import type { KeywordState } from '@/app/types/student';
+
+/** Record<normalizedKeyword, KeywordState> */
+type KeywordCollection = Record<string, KeywordState>;
 
 export interface KeywordNeed {
   keyword: string;

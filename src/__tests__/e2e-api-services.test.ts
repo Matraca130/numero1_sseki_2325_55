@@ -26,6 +26,7 @@ vi.mock('@/app/lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: vi.fn(),
+      signOut: () => Promise.resolve({}),
       onAuthStateChange: vi.fn(() => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       })),
@@ -370,7 +371,8 @@ describe('Error propagation from service layer', () => {
   it('flashcardApi propagates apiCall errors to the caller', async () => {
     mockFetch.mockResolvedValueOnce(mockErrorResponse('Unauthorized', 401));
 
-    await expect(getFlashcardsByTopic('topic-1')).rejects.toThrow('Unauthorized');
+    // 401 interceptor (#338) converts to 'Session expired'
+    await expect(getFlashcardsByTopic('topic-1')).rejects.toThrow('Session expired');
   });
 
   it('gamificationApi.getProfile returns null on error instead of throwing', async () => {
