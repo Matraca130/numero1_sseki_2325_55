@@ -54,7 +54,6 @@ export {
   saveStudySummary,
   deleteStudySummary,
   getKeywords,
-  getTopicKeywords,
   saveKeywords,
   saveCourseKeywords,
 } from './student-api/sa-content';

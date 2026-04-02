@@ -27,8 +27,6 @@ import {
 
 // ── Types ─────────────────────────────────────────────────
 
-// NOTE: MasteryLevel is canonically defined in types/keywords.ts.
-// This hook uses DeltaColorLevel from mastery-helpers.ts exclusively.
 
 export interface KeywordMasteryEntry {
   keywordId: string;
