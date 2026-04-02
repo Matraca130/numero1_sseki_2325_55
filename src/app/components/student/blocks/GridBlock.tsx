@@ -11,7 +11,9 @@ export default function GridBlock({ block }: { block: SummaryBlock }) {
   const title = block.content?.title as string | undefined;
   const columns = (block.content?.columns ?? 3) as number;
   const items = (block.content?.items ?? []) as GridItem[];
-  const gridCols = columns === 2 ? 'grid-cols-2' : 'grid-cols-3';
+  const gridCols = columns === 2
+    ? 'grid-cols-1 sm:grid-cols-2'
+    : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3';
 
   if (!items.length) {
     return (
