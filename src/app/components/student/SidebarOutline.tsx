@@ -100,10 +100,10 @@ export function SidebarOutline({
 
   return (
     <>
-      {/* ── Backdrop scrim — click to close ── */}
+      {/* ── Click-away layer — transparent, no visual effect ── */}
       {!collapsed && (
         <div
-          className="fixed inset-0 z-30 bg-black/8 backdrop-blur-[1px] transition-opacity duration-200"
+          className="fixed inset-0 z-30"
           onClick={onToggleCollapse}
           aria-hidden="true"
         />
@@ -114,16 +114,22 @@ export function SidebarOutline({
         aria-label="Estructura del resumen"
         aria-expanded={!collapsed}
         className={[
-          'max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light',
+          'overflow-y-auto custom-scrollbar-light',
           'bg-white dark:bg-[#1e1f25]',
           'transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
           collapsed
-            ? 'sticky top-[72px] border-r border-gray-200 dark:border-[#2d2e34]'
-            : 'absolute top-0 left-0 z-40 shadow-2xl rounded-2xl border border-gray-200 dark:border-[#2d2e34]',
+            ? 'sticky top-[72px] max-h-[calc(100vh-88px)] border-r border-gray-200 dark:border-[#2d2e34]'
+            : [
+                'absolute left-0 z-40',
+                'shadow-xl rounded-2xl',
+                'border border-gray-200/80 dark:border-[#2d2e34]',
+              ].join(' '),
         ].join(' ')}
         style={{
-          width: collapsed ? 52 : 272,
-          padding: collapsed ? 0 : '4px 0',
+          width: collapsed ? 52 : 280,
+          ...(collapsed
+            ? {}
+            : { top: 0, maxHeight: 'calc(100vh - 120px)' }),
         }}
       >
         {/* -- Header -- */}
