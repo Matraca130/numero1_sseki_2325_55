@@ -50,7 +50,7 @@ const ICON_BY_TYPE: Record<string, LucideIcon> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Maps a mastery level (0–1+) to the Delta Mastery Scale color token.
+/** Maps a mastery level (0-1+) to the Delta Mastery Scale color token.
  *  Logic mirrors MasteryBar's getMasteryInfo so colors stay consistent. */
 function getMasteryDotColor(level: number): string {
   if (level > 1.0) return colors.mastery.maestria;      // blue
@@ -88,15 +88,10 @@ export function SidebarOutline({
     <aside
       role="navigation"
       aria-label="Estructura del resumen"
-      className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light bg-white dark:bg-[#1e1f25] border-r border-gray-200 dark:border-[#2d2e34]"
-      style={{
-        width: collapsed ? 44 : 220,
-        transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)',
-        padding: 8,
-        borderRadius: '0 12px 12px 0',
-      }}
+      className="sticky top-[72px] flex-shrink-0 max-h-[calc(100vh-88px)] overflow-y-auto custom-scrollbar-light bg-white dark:bg-[#1e1f25] border-r border-gray-200 dark:border-[#2d2e34] transition-all duration-200"
+      style={{ width: collapsed ? 52 : 220 }}
     >
-      {/* ── Header ─────────────────────────────────── */}
+      {/* -- Header -- */}
       <div className="flex items-center justify-between" style={{ padding: '0 0 8px' }}>
         {!collapsed && (
           <span
@@ -110,21 +105,14 @@ export function SidebarOutline({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex items-center justify-center transition-colors"
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: 'rgba(42,140,122,0.08)',
-            flexShrink: 0,
-          }}
+          className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-50 dark:bg-[#1a2e2a] text-teal-500 hover:bg-teal-100 dark:hover:bg-[#224038] transition-colors"
           aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         >
           <ToggleIcon size={14} className="text-teal-500" />
         </button>
       </div>
 
-      {/* ── Block list ─────────────────────────────── */}
+      {/* -- Block list -- */}
       <nav className="flex flex-col gap-0.5 px-1">
         {blocks.map((block) => {
           const isActive = block.id === activeBlockId;
@@ -161,7 +149,7 @@ export function SidebarOutline({
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
               )}
 
-              {/* Mastery dot — Delta Mastery Scale */}
+              {/* Mastery dot -- Delta Mastery Scale */}
               {mastery !== undefined && (
                 <span
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full"

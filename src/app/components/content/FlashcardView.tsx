@@ -13,7 +13,6 @@ import { apiCall } from '@/app/lib/api';
 import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
 import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { useStudyQueueData } from '@/app/hooks/useStudyQueueData';
 import { useFlashcardCoverage } from '@/app/hooks/useFlashcardCoverage';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
@@ -28,9 +27,8 @@ export function FlashcardView() {
   const { selectedTopicId } = useContentTree();
 
   // T-01: Topic mastery from flashcard-mappings + FSRS
-  const courseId = nav.currentCourse.id === 'empty' ? null : nav.currentCourse.id;
-  const sqData = useStudyQueueData(courseId);
-  const coverage = useFlashcardCoverage(sqData.queue, sqData.loading);
+  // Reuse nav hook's sqData (already handles multi-course fetch)
+  const coverage = useFlashcardCoverage(nav.sqData.queue, nav.sqData.loading);
 
   const engine = useFlashcardEngine({
     studentId,
