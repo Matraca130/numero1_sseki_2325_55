@@ -67,6 +67,8 @@ export function SummaryScreen({
   // ── Keyboard shortcuts ──────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
       if (e.key === 'r' || e.key === 'R') {
         onRestart();
       } else if (e.key === 'Escape') {
