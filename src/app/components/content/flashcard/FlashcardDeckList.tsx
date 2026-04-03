@@ -47,7 +47,7 @@ export interface FlashcardDeck {
 }
 
 export interface FlashcardDeckListProps {
-  decks: FlashcardDeck[];
+  decks: FlashcardDeck[] | null | undefined;
   onDeckClick: (deckId: string) => void;
 }
 
@@ -56,6 +56,36 @@ export interface FlashcardDeckListProps {
 export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps) {
   const shouldReduce = useReducedMotion();
   const [deckFilter, setDeckFilter] = useState<'all' | 'due' | 'mastered'>('due');
+
+  // Guard: handle null, undefined, or empty array
+  if (!decks || decks.length === 0) {
+    return (
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-4 sm:mb-5">
+          <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
+            <Layers className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="text-sm text-zinc-900" style={{ fontWeight: 700 }}>
+              Tus Mazos
+            </h3>
+            <p className="text-xs text-zinc-500" style={{ fontWeight: 400 }}>
+              0 mazos {'\u00B7'} 0 cards en total
+            </p>
+          </div>
+        </div>
+        <div className="text-center py-16 rounded-2xl border border-dashed border-zinc-200 bg-white">
+          <Layers className="w-10 h-10 mx-auto mb-3 text-zinc-300" />
+          <p className="text-sm text-zinc-500" style={{ fontWeight: 600, fontFamily: 'Georgia, serif' }}>
+            A{'\u00FA'}n no ten{'\u00E9'}s mazos de flashcards
+          </p>
+          <p className="text-xs text-zinc-400 mt-1.5 max-w-xs mx-auto" style={{ fontWeight: 400 }}>
+            Cuando tus profesores creen flashcards para tus cursos, aparecer{'\u00E1'}n aqu{'\u00ED'}.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const totalCards = decks.reduce((a, d) => a + d.totalCards, 0);
   const totalDue = decks.reduce((a, d) => a + d.dueToday, 0);
