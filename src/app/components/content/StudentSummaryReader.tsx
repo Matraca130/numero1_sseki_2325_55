@@ -357,7 +357,7 @@ export function StudentSummaryReader({
       <div className="flex gap-6 mx-auto p-6 sm:p-8" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
         {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div className="flex-shrink-0">
+          <div className="relative flex-shrink-0" style={{ width: 52 }}>
             <SidebarOutline
               blocks={sidebarBlocks}
               activeBlockId={activeBlockId}
