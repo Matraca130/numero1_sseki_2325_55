@@ -164,13 +164,13 @@ export function SummaryDetailView({
             summaryId={summary.id} onBack={onBack} onStatusChange={handleStatusChange}
             onKeywordsClick={() => setShowKeywords(true)} onVideosClick={() => setShowVideos(true)}
             keywordsCount={activeKeywords.length} videosCount={videosCount}
-            summaryTitle={summary.title || 'Sin titulo'} summaryStatus={summary.status}
+            summaryTitle={summary.title || 'Sin título'} summaryStatus={summary.status}
           />
         </ErrorBoundary>
       ) : (
         <TipTapEditor
           summaryId={summary.id} contentMarkdown={summary.content_markdown}
-          summaryTitle={summary.title || 'Sin titulo'} summaryStatus={summary.status}
+          summaryTitle={summary.title || 'Sin título'} summaryStatus={summary.status}
           onBack={onBack} onStatusChange={handleStatusChange}
           onKeywordsClick={() => setShowKeywords(true)} onVideosClick={() => setShowVideos(true)}
           keywordsCount={activeKeywords.length} videosCount={videosCount}

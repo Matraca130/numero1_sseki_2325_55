@@ -127,7 +127,7 @@ export function useSummaryReaderMutations({
       onReadingStateChanged(rs);
       setShowXpToast(true);
       setTimeout(() => setShowXpToast(false), 3000);
-      toast.success('Resumen marcado como leido');
+      toast.success('Resumen marcado como leído');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
       markSessionComplete('reading');
       // Close the study session so it appears in history with XP
@@ -140,7 +140,7 @@ export function useSummaryReaderMutations({
         }).catch(() => {});
       }
     },
-    onError: (err: any) => toast.error(err.message || 'Error al marcar como leido'),
+    onError: (err: any) => toast.error(err.message || 'Error al marcar como leído'),
   });
 
   // ── 2. Unmark completed ─────────────────────────────
@@ -148,7 +148,7 @@ export function useSummaryReaderMutations({
     mutationFn: () => studentApi.upsertReadingState({ summary_id: summaryId, completed: false }),
     onSuccess: (rs) => {
       onReadingStateChanged(rs);
-      toast.success('Marcado como no leido');
+      toast.success('Marcado como no leído');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
     },
     onError: (err: any) => toast.error(err.message || 'Error al actualizar'),

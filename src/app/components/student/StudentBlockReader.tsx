@@ -87,7 +87,9 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   // UI state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1280 : false
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMastery, setShowMastery] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);

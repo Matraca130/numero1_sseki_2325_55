@@ -76,7 +76,7 @@ export function SummaryHeader({
         <ChevronRight size={14} className="text-gray-300 shrink-0" />
         <span className="truncate max-w-[150px]">{breadcrumb.topicName}</span>
         <ChevronRight size={14} className="text-gray-300 shrink-0" />
-        <span className="text-gray-600 truncate max-w-[200px]">{summary.title || 'Sin titulo'}</span>
+        <span className="text-gray-600 truncate max-w-[200px]">{summary.title || 'Sin título'}</span>
       </div>
 
       {/* Header card */}
@@ -96,7 +96,7 @@ export function SummaryHeader({
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="text-gray-900 truncate">{summary.title || 'Sin titulo'}</h2>
+              <h2 className="text-gray-900 truncate">{summary.title || 'Sin título'}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className={clsx(
                   "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] border",
@@ -106,7 +106,7 @@ export function SummaryHeader({
                 </span>
                 {isCompleted && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <CheckCircle2 size={10} /> Leido
+                    <CheckCircle2 size={10} /> Leído
                   </span>
                 )}
                 <span className="text-[10px] text-gray-300">

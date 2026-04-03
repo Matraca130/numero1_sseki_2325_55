@@ -160,7 +160,7 @@ function SessionBlock({
                   className="text-[9px] px-1.5 py-0.5 rounded-full border"
                   style={{ color: tint.successText, backgroundColor: tint.successBg, borderColor: tint.successBorder, fontWeight: 600 }}
                 >
-                  Leido
+                  Leído
                 </span>
               )}
               {isInProgress && (
@@ -174,7 +174,7 @@ function SessionBlock({
             </div>
 
             <h3 className="text-sm mb-1 line-clamp-2" style={{ color: '#18181b', fontWeight: 700 }}>
-              {summary.title || 'Sin titulo'}
+              {summary.title || 'Sin título'}
             </h3>
             {preview && (
               <p className="text-[11px] line-clamp-2" style={{ color: tint.subtitleText }}>

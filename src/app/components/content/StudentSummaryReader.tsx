@@ -97,12 +97,22 @@ export function StudentSummaryReader({
   const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings();
 
   // ── Wave 1: Sidebar, search, reading progress ─────────
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1280 : true
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   /** View mode: 'enriched' shows structured blocks, 'reading' shows plain markdown */
   const [viewMode, setViewMode] = useState<'enriched' | 'reading'>('enriched');
+
+  // Auto-switch to enriched if reading mode selected but no content_markdown
+  useEffect(() => {
+    if (viewMode === 'reading' && !summary?.content_markdown) {
+      const timer = setTimeout(() => setViewMode('enriched'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, summary?.content_markdown]);
 
   // ── Content pagination ──────────────────────────────────
   const [contentPage, setContentPage] = useState(0);
@@ -142,12 +152,21 @@ export function StudentSummaryReader({
 
   // ── Sidebar block click → scroll into view ──
   const handleSidebarBlockClick = useCallback((blockId: string) => {
+    if (viewMode === 'reading') {
+      setViewMode('enriched');
+      // Let the DOM update before scrolling
+      setTimeout(() => {
+        const el = document.querySelector(`[data-block-id="${blockId}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return;
+    }
     setTimeout(() => {
       const el = document.querySelector(`[data-block-id="${blockId}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setActiveBlockId(blockId);
     }, 50);
-  }, []);
+  }, [viewMode]);
 
   // ── Search: count matches in blocks ──
   const searchResultCount = useMemo(() => {
@@ -315,6 +334,21 @@ export function StudentSummaryReader({
 
   const isCompleted = readingState?.completed === true;
 
+  // ── Shared toolbar button style ──
+  const toolbarBtnStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    padding: 10,
+    cursor: 'pointer',
+    color: '#b4d9d1',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 44,
+    minHeight: 44,
+    borderRadius: 6,
+  };
+
   return (
     <motion.div
       ref={readerRef}
@@ -388,7 +422,7 @@ export function StudentSummaryReader({
           </div>
         )}
 
-        <div id="reader-main-content" className={`flex-1 min-w-0 transition-all duration-200 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
+        <div id="reader-main-content" tabIndex={-1} className={`flex-1 min-w-0 transition-all duration-200 ${readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}>
 
         {/* ── Compact header toolbar with title ── */}
         {!readingSettings.focusMode && (
@@ -411,20 +445,7 @@ export function StudentSummaryReader({
             <button
               onClick={onBack}
               aria-label="Volver a resúmenes"
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 10,
-                cursor: 'pointer',
-                color: '#b4d9d1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 6,
-                flexShrink: 0,
-              }}
+              style={{ ...toolbarBtnStyle, flexShrink: 0 }}
             >
               <ChevronLeft size={20} />
             </button>
@@ -440,7 +461,7 @@ export function StudentSummaryReader({
                   margin: 0,
                 }}
               >
-                {summary.title || 'Sin titulo'}
+                {summary.title || 'Sin título'}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <span style={{ color: '#8cb8af', fontSize: 11 }}>
@@ -454,7 +475,7 @@ export function StudentSummaryReader({
                 )}
                 {isCompleted && (
                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7' }}>
-                    <CheckCircle2 className="w-2.5 h-2.5" /> Leido
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Leído
                   </span>
                 )}
               </div>
@@ -467,8 +488,8 @@ export function StudentSummaryReader({
             <button
               onClick={isCompleted ? handleUnmarkCompleted : handleMarkCompleted}
               disabled={markingRead}
-              title={isCompleted ? 'Marcar no leido' : 'Marcar como leido'}
-              aria-label={isCompleted ? 'Marcar no leido' : 'Marcar como leido'}
+              title={isCompleted ? 'Marcar no leído' : 'Marcar como leído'}
+              aria-label={isCompleted ? 'Marcar no leído' : 'Marcar como leído'}
               style={{
                 background: isCompleted ? 'rgba(16,185,129,0.2)' : 'none',
                 border: 'none',
@@ -487,19 +508,7 @@ export function StudentSummaryReader({
               onClick={() => setSearchOpen((v) => !v)}
               title="Buscar (Ctrl+F)"
               aria-label="Buscar"
-              style={{
-                background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none',
-                border: 'none',
-                padding: 10,
-                cursor: 'pointer',
-                color: searchOpen ? '#2a8c7a' : '#b4d9d1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 6,
-              }}
+              style={{ ...toolbarBtnStyle, background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none', color: searchOpen ? '#2a8c7a' : '#b4d9d1' }}
             >
               <SearchIcon size={16} />
             </button>
@@ -509,19 +518,7 @@ export function StudentSummaryReader({
               onClick={() => setShowTimer((prev) => !prev)}
               title="Temporizador de estudio"
               aria-label={showTimer ? 'Cerrar timer' : 'Abrir timer'}
-              style={{
-                background: showTimer ? 'rgba(42,140,122,0.15)' : 'none',
-                border: 'none',
-                padding: 10,
-                cursor: 'pointer',
-                color: showTimer ? '#2a8c7a' : '#b4d9d1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 6,
-              }}
+              style={{ ...toolbarBtnStyle, background: showTimer ? 'rgba(42,140,122,0.15)' : 'none', color: showTimer ? '#2a8c7a' : '#b4d9d1' }}
             >
               <Timer size={16} />
             </button>
@@ -538,19 +535,7 @@ export function StudentSummaryReader({
                 onClick={() => setShowSettings((prev) => !prev)}
                 title="Configuración de lectura"
                 aria-label={showSettings ? 'Cerrar configuración' : 'Configuración de lectura'}
-                style={{
-                  background: showSettings ? 'rgba(42,140,122,0.15)' : 'none',
-                  border: 'none',
-                  padding: 10,
-                  cursor: 'pointer',
-                  color: showSettings ? '#2a8c7a' : '#b4d9d1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: 44,
-                  minHeight: 44,
-                  borderRadius: 6,
-                }}
+                style={{ ...toolbarBtnStyle, background: showSettings ? 'rgba(42,140,122,0.15)' : 'none', color: showSettings ? '#2a8c7a' : '#b4d9d1' }}
               >
                 <Settings size={16} />
               </button>
@@ -571,19 +556,7 @@ export function StudentSummaryReader({
               onClick={() => setSidebarCollapsed((v) => !v)}
               title="Outline"
               aria-label={sidebarCollapsed ? 'Mostrar panel de estructura' : 'Ocultar panel de estructura'}
-              style={{
-                background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none',
-                border: 'none',
-                padding: 10,
-                cursor: 'pointer',
-                color: !sidebarCollapsed ? '#2a8c7a' : '#b4d9d1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 6,
-              }}
+              style={{ ...toolbarBtnStyle, background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none', color: !sidebarCollapsed ? '#2a8c7a' : '#b4d9d1' }}
             >
               <PanelLeftOpen size={16} />
             </button>
@@ -596,6 +569,13 @@ export function StudentSummaryReader({
 
         {/* ── Main content area (white card) ── */}
         <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-b-[20px] border-2 border-t-0 border-zinc-200 dark:border-[#2d2e34] shadow-sm overflow-hidden">
+
+          {/* ── Reading mode fallback when no content_markdown ── */}
+          {viewMode === 'reading' && !summary?.content_markdown && (
+            <p style={{ color: '#888', textAlign: 'center', padding: '2rem' }}>
+              Este resumen no tiene contenido en formato texto. Cambiando a modo enriquecido...
+            </p>
+          )}
 
           {/* ── Reading mode: plain markdown ── */}
           {viewMode === 'reading' && summary.content_markdown && (
