@@ -85,12 +85,12 @@ export default function renderTextWithKeywords(
   return text.split(/(\{\{[^}]+\}\})/g).map((part, i) => {
     const match = part.match(/^\{\{(.+)\}\}$/);
     if (match) {
-      const kwName = match[1];
+      const kwRef = match[1];
       const kw = keywords.find(
-        k => k.name.toLowerCase() === kwName.toLowerCase() && k.is_active !== false,
+        k => (k.id === kwRef || k.name.toLowerCase() === kwRef.toLowerCase()) && k.is_active !== false,
       );
       if (kw) return <KeywordChip key={i} keyword={kw} />;
-      return <span key={i}>{kwName}</span>;
+      return <span key={i}>{kwRef}</span>;
     }
     // Preserve paragraph breaks + apply inline markdown
     return part.split('\n\n').map((p, j) => (

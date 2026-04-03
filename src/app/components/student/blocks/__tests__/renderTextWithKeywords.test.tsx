@@ -171,6 +171,21 @@ describe('renderTextWithKeywords', () => {
     expect(container.querySelector('em')!.textContent).toBe('italic');
   });
 
+  it('matches keyword by UUID (id) when content uses {{uuid}} placeholders', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    renderResult('El {{d70d2417-ceea-4cb7-b533-5b6859c7f63b}} cardíaco es grave.', [kw]);
+    expect(screen.getByText('Síncope')).toBeInTheDocument();
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('cardíaco es grave.');
+  });
+
+  it('matches keyword by UUID even with multiple UUID placeholders', () => {
+    const kw1 = makeKeyword({ id: 'aaa-111', name: 'Disnea' });
+    const kw2 = makeKeyword({ id: 'bbb-222', name: 'Edema' });
+    renderResult('{{aaa-111}} y {{bbb-222}} son síntomas.', [kw1, kw2]);
+    expect(screen.getByText('Disnea')).toBeInTheDocument();
+    expect(screen.getByText('Edema')).toBeInTheDocument();
+  });
+
   it('handles ***text*** gracefully (bold wrapping italic)', () => {
     const { container } = renderResult('Esto es ***texto*** especial.');
     // Should render as <strong><em>texto</em></strong> or at least not crash
