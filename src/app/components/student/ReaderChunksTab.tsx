@@ -107,6 +107,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
             <div ref={chunksContainerRef}>
               <TextHighlighter
                 chunks={chunks}
+                keywords={keywords}
                 summaryId={summaryId}
                 annotations={annotations}
               />

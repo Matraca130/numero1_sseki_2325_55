@@ -26,7 +26,8 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { HighlightToolbar } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
-import type { Chunk } from '@/app/services/summariesApi';
+import type { Chunk, SummaryKeyword } from '@/app/services/summariesApi';
+import { replaceKeywordPlaceholders } from '@/app/components/student/blocks/renderTextWithKeywords';
 import {
   useCreateAnnotationMutation,
   useUpdateAnnotationMutation,
@@ -94,6 +95,7 @@ function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment
 // ── Props ─────────────────────────────────────────────────
 interface TextHighlighterProps {
   chunks: Chunk[];
+  keywords?: SummaryKeyword[];
   loading?: boolean;
   summaryId: string;
   annotations: TextAnnotation[];
@@ -101,6 +103,7 @@ interface TextHighlighterProps {
 
 export function TextHighlighter({
   chunks,
+  keywords = [],
   loading,
   summaryId,
   annotations,
@@ -301,7 +304,7 @@ export function TextHighlighter({
       <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
         {segments.map((seg, idx) => {
           if (!seg.annotation) {
-            return <span key={idx}>{seg.text}</span>;
+            return <span key={idx}>{replaceKeywordPlaceholders(seg.text, keywords)}</span>;
           }
 
           const ann = seg.annotation;
@@ -323,7 +326,7 @@ export function TextHighlighter({
                 setNoteText(ann.note || '');
               }}
             >
-              {seg.text}
+              {replaceKeywordPlaceholders(seg.text, keywords)}
               {hasNote && (
                 <span className="inline-block align-top ml-0.5">
                   <MessageSquare size={8} className="text-amber-500 inline" />
@@ -380,7 +383,7 @@ export function TextHighlighter({
                 colorMap[editingAnnotation.color || 'yellow']?.border || 'border-yellow-300',
               )}>
                 <span className="line-clamp-2">
-                  {fullText.slice(editingAnnotation.start_offset, editingAnnotation.end_offset)}
+                  {replaceKeywordPlaceholders(fullText.slice(editingAnnotation.start_offset, editingAnnotation.end_offset), keywords)}
                 </span>
               </div>
 
