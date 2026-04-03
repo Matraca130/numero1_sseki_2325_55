@@ -97,7 +97,9 @@ export function StudentSummaryReader({
   const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings();
 
   // ── Wave 1: Sidebar, search, reading progress ─────────
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1280 : true
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
@@ -378,14 +380,6 @@ export function StudentSummaryReader({
               />
             )}
           </div>
-        )}
-
-        {/* Backdrop for sidebar overlay */}
-        {!sidebarCollapsed && !readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div
-            className="absolute inset-0 bg-black/10 z-[105] xl:hidden"
-            onClick={() => setSidebarCollapsed(true)}
-          />
         )}
 
         {/* Content — full width on <xl with left margin for collapsed sidebar; flex child on xl+ */}
