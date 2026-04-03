@@ -354,17 +354,10 @@ export function StudentSummaryReader({
         </button>
       )}
 
-      <div className="relative xl:flex xl:gap-6 mx-auto p-6 sm:p-8" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
+      <div className="flex gap-6 mx-auto p-6 sm:p-8" style={{ maxWidth: readingSettings.focusMode ? 768 : 1100 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
         {!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && (
-          <div
-            className={[
-              'flex flex-col gap-3 z-[110] transition-all duration-200',
-              sidebarCollapsed
-                ? 'relative flex-shrink-0'
-                : 'absolute top-6 left-6 bottom-0 bg-white dark:bg-[#1e1f25] shadow-xl rounded-xl xl:relative xl:flex-shrink-0 xl:shadow-none xl:rounded-none xl:bg-transparent',
-            ].join(' ')}
-          >
+          <div className="flex-shrink-0">
             <SidebarOutline
               blocks={sidebarBlocks}
               activeBlockId={activeBlockId}
@@ -372,28 +365,20 @@ export function StudentSummaryReader({
               collapsed={sidebarCollapsed}
               onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
               masteryLevels={masteryLevels}
+              masteryLegend={Object.keys(masteryLevels).length > 0 ? (
+                <MasteryLegend
+                  masteryLevels={masteryLevels}
+                  totalBlocks={sidebarBlocks.length}
+                />
+              ) : undefined}
             />
-            {!sidebarCollapsed && Object.keys(masteryLevels).length > 0 && (
-              <MasteryLegend
-                masteryLevels={masteryLevels}
-                totalBlocks={sidebarBlocks.length}
-              />
-            )}
           </div>
         )}
 
-        {/* Content — full width on <xl with left margin for collapsed sidebar; flex child on xl+ */}
+        {/* Content */}
         <div
-          className={[
-            'min-w-0 transition-[margin-left] duration-200',
-            readingSettings.focusMode ? 'mx-auto' : 'xl:flex-1',
-            (!readingSettings.focusMode && sidebarBlocks.length > 0 && activeTab === 'chunks' && sidebarCollapsed)
-              ? 'ml-16 xl:ml-0'
-              : '',
-          ].join(' ')}
-          style={{
-            maxWidth: readingSettings.focusMode ? 680 : 800,
-          }}
+          className={`flex-1 min-w-0 ${readingSettings.focusMode ? 'mx-auto' : ''}`}
+          style={{ maxWidth: readingSettings.focusMode ? 680 : 800 }}
         >
 
         {/* ── Immersive header toolbar (Phase B.6 — extracted) ── */}
