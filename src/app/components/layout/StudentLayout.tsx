@@ -15,7 +15,7 @@
 //   - P2: Body scroll lock via MobileDrawer
 // ============================================================
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useParams } from 'react-router';
 import { AppProvider } from '@/app/context/AppContext';
 import { StudentDataProvider } from '@/app/context/StudentDataContext';
@@ -35,7 +35,7 @@ import { UserProfileDropdown } from '@/app/components/layout/UserProfileDropdown
 import { MobileDrawer } from '@/app/components/layout/MobileDrawer';
 import { components, animation, layout } from '@/app/design-system';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, PanelLeftClose, Sparkles, X } from 'lucide-react';
+import { Menu, BookOpen, Sparkles, X } from 'lucide-react';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 
 // -- Lazy-loaded AI Assistant ----------------------------------
@@ -65,11 +65,24 @@ function StudentShell() {
   // Derive a stable key from the URL for page transitions
   const routeKey = location.pathname;
 
+  // Track whether we've auto-opened the topic drawer this session
+  const hasAutoOpenedTopicRef = useRef(false);
+
   // Close ONLY mobile drawers on route change (desktop sidebar unaffected)
   useEffect(() => {
     setMobileSidebarOpen(false);
     setMobileTopicOpen(false);
   }, [location.pathname]);
+
+  // Auto-open topic drawer on mobile when entering study views (once per session)
+  useEffect(() => {
+    if (isMobile && showTopicSidebar && !hasAutoOpenedTopicRef.current) {
+      hasAutoOpenedTopicRef.current = true;
+      // Small delay so the page renders first, then the drawer slides in
+      const timer = setTimeout(() => setMobileTopicOpen(true), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, showTopicSidebar]);
 
   // Handle hamburger: toggle desktop sidebar OR open mobile drawer
   const handleMenuToggle = useCallback(() => {
@@ -135,10 +148,11 @@ function StudentShell() {
             {showTopicSidebar && (
               <button
                 onClick={() => setMobileTopicOpen(!mobileTopicOpen)}
-                className="lg:hidden p-2 rounded-lg text-[#8fbfb3] hover:text-white hover:bg-white/[0.07] transition-all"
-                title="Temas"
+                className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 hover:text-white transition-all text-xs font-medium min-h-[36px]"
+                aria-label="Abrir navegación de temas"
               >
-                <PanelLeftClose size={18} />
+                <BookOpen size={14} />
+                <span>Temas</span>
               </button>
             )}
             <UserProfileDropdown />
@@ -158,10 +172,9 @@ function StudentShell() {
           <MobileDrawer
             isOpen={showTopicSidebar && mobileTopicOpen}
             onClose={() => setMobileTopicOpen(false)}
-            width={260}
+            width={280}
             zIndex={30}
             topOffset={56}
-            showCloseButton={false}
           >
             <div className="h-full bg-white shadow-xl">
               <TopicSidebar />
