@@ -6,7 +6,8 @@ import ResizableImage from '../ResizableImage';
 import { type BlockFormProps, inputClass } from './shared';
 
 const SUPABASE_URL = API_BASE.replace('/functions/v1/server', '');
-const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
+const STORAGE_BUCKET = 'axon-images';
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}`;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
