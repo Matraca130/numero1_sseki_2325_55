@@ -72,6 +72,23 @@ function parseImageRef(text: string, keyPrefix: string): React.ReactNode[] {
 }
 
 /**
+ * Replace {{uuid}} or {{name}} placeholders with keyword names in a plain string.
+ * Useful for HTML content rendered via dangerouslySetInnerHTML where React
+ * components (KeywordChip) cannot be injected.
+ */
+export function replaceKeywordPlaceholders(
+  text: string,
+  keywords: SummaryKeyword[] = [],
+): string {
+  return text.replace(/\{\{([^}]+)\}\}/g, (_match, ref: string) => {
+    const kw = keywords.find(
+      k => (k.id === ref || k.name.toLowerCase() === ref.toLowerCase()) && k.is_active !== false,
+    );
+    return kw ? kw.name : ref;
+  });
+}
+
+/**
  * Parses text containing {{keyword_name}} markers and renders them as KeywordChip components.
  * Non-matching text is rendered with paragraph break support (\n\n -> <br/><br/>)
  * and inline markdown (bold, italic, code, hr, image refs).
