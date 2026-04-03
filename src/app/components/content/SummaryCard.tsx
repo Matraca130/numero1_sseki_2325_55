@@ -115,7 +115,7 @@ export const SummaryCard = React.memo(function SummaryCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-sm truncate" style={{ fontWeight: 700, color: axon.darkTeal }}>
-                {s.title || 'Sin titulo'}
+                {s.title || 'Sin título'}
               </h3>
               {isCompleted && (
                 <span
@@ -127,7 +127,7 @@ export const SummaryCard = React.memo(function SummaryCard({
                     borderColor: tint.successBorder,
                   }}
                 >
-                  <CheckCircle2 className="w-3 h-3" /> Leido
+                  <CheckCircle2 className="w-3 h-3" /> Leído
                 </span>
               )}
               {isInProgress && (

@@ -444,7 +444,7 @@ function TopicNode({
                     s.id === activeSummaryId ? 'text-teal-400' : 'text-zinc-500'
                   )} />
                   <span className="text-[10px] truncate">
-                    {s.title || 'Sin titulo'}
+                    {s.title || 'Sin título'}
                   </span>
                   <span className={clsx(
                     'text-[8px] px-1 py-0.5 rounded ml-auto shrink-0',

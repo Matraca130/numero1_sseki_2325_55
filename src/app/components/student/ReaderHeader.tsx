@@ -96,7 +96,7 @@ export function ReaderHeader({
         <span className="text-sm text-zinc-400">{topicName}</span>
         <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
         <span className="text-sm text-zinc-700 truncate max-w-[200px]" style={{ fontWeight: 600 }}>
-          {summary.title || 'Sin titulo'}
+          {summary.title || 'Sin título'}
         </span>
       </div>
 
@@ -120,7 +120,7 @@ export function ReaderHeader({
               </div>
               <div>
                 <h2 className="text-zinc-900 text-lg tracking-tight" style={{ fontWeight: 700 }}>
-                  {summary.title || 'Sin titulo'}
+                  {summary.title || 'Sin título'}
                 </h2>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   {isCompleted && (
@@ -157,9 +157,9 @@ export function ReaderHeader({
               {markingRead ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : isCompleted ? (
-                <><CheckCircle2 className="w-4 h-4" /> Marcar no leido</>
+                <><CheckCircle2 className="w-4 h-4" /> Marcar no leído</>
               ) : (
-                <><CheckCircle2 className="w-4 h-4" /> Marcar como leido</>
+                <><CheckCircle2 className="w-4 h-4" /> Marcar como leído</>
               )}
             </motion.button>
           </div>

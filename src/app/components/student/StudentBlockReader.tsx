@@ -87,8 +87,8 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   // UI state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1280 : false
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMastery, setShowMastery] = useState(true);
@@ -180,7 +180,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   return (
     <div className="fixed inset-0 z-40 flex flex-col" style={{ background: pageBg }}>
       {/* ── Reading progress bar ─────────────────────────────── */}
-      <ReadingProgress containerRef={contentRef} />
+      <ReadingProgress />
 
       {/* ── Sticky compact header ────────────────────────────── */}
       <header
@@ -489,19 +489,17 @@ function ToolbarSeparator() {
 
 // ── Reading progress bar ─────────────────────────────────────
 
-function ReadingProgress({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
+function ReadingProgress() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
     const handleScroll = () => {
-      const scrollable = el.scrollHeight - el.clientHeight;
-      setProgress(scrollable > 0 ? (el.scrollTop / scrollable) * 100 : 0);
+      const winH = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(winH > 0 ? (window.scrollY / winH) * 100 : 0);
     };
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [containerRef]);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div
