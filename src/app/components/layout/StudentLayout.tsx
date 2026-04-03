@@ -140,11 +140,8 @@ function StudentShell() {
 
             {/* Course Switcher */}
             <CourseSwitcher />
-          </div>
 
-          {/* Right side header actions */}
-          <div className="flex items-center gap-1 lg:gap-1.5">
-            {/* Mobile: Topic sidebar toggle (only on study views) */}
+            {/* Topic sidebar toggle (top-left, only on study views) */}
             {showTopicSidebar && (
               <button
                 onClick={() => setMobileTopicOpen(!mobileTopicOpen)}
@@ -155,6 +152,10 @@ function StudentShell() {
                 <span>Temas</span>
               </button>
             )}
+          </div>
+
+          {/* Right side header actions */}
+          <div className="flex items-center gap-1 lg:gap-1.5">
             <UserProfileDropdown />
           </div>
         </header>
