@@ -28,6 +28,7 @@ import type { ReadingSettings } from '@/app/components/student/ReadingSettingsPa
 import type { SummaryKeyword } from '@/app/services/summariesApi';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 import { TextHighlighter } from '@/app/components/student/TextHighlighter';
+import { replaceKeywordPlaceholders } from '@/app/components/student/blocks/renderTextWithKeywords';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -131,12 +132,12 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
               >
                 {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
                   <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>
-                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content)) }} />
+                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords))) }} />
                   </KeywordHighlighterInline>
                 ) : (
                   <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>
                     <div className="axon-prose max-w-none">
-                      {chunk.content.split('\n').map((line, i) => renderPlainLine(line, i))}
+                      {replaceKeywordPlaceholders(chunk.content, keywords).split('\n').map((line, i) => renderPlainLine(line, i))}
                     </div>
                   </KeywordHighlighterInline>
                 )}

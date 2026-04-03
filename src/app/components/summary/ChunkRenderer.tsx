@@ -10,12 +10,14 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Layers } from 'lucide-react';
-import type { Chunk } from '@/app/services/summariesApi';
+import type { Chunk, SummaryKeyword } from '@/app/services/summariesApi';
 import { enrichHtmlWithImages, renderPlainLine } from '@/app/lib/summary-content-helpers';
 import { sanitizeHtml } from '@/app/lib/sanitize';
+import { replaceKeywordPlaceholders } from '@/app/components/student/blocks/renderTextWithKeywords';
 
 interface ChunkRendererProps {
   chunks: Chunk[];
+  keywords?: SummaryKeyword[];
   loading?: boolean;
 }
 
@@ -24,7 +26,7 @@ function isHtml(content: string): boolean {
   return /<[a-z][\s\S]*>/i.test(content);
 }
 
-export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, loading }: ChunkRendererProps) {
+export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keywords = [], loading }: ChunkRendererProps) {
   if (loading) {
     return (
       <div className="space-y-4 p-6">
@@ -63,11 +65,11 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, loading
           {isHtml(chunk.content) ? (
             <div
               className="axon-prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(chunk.content, 'light')) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords), 'light')) }}
             />
           ) : (
             <div className="text-gray-600 leading-relaxed">
-              {chunk.content.split('\n').map((line, lineIdx) =>
+              {replaceKeywordPlaceholders(chunk.content, keywords).split('\n').map((line, lineIdx) =>
                 renderPlainLine(line, lineIdx, 'light')
               )}
             </div>
