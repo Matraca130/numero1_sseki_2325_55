@@ -71,8 +71,25 @@ function parseImageRef(text: string, keyPrefix: string): React.ReactNode[] {
   }).filter(Boolean) as React.ReactNode[];
 }
 
+// UUID v4 pattern for bare keyword IDs that lost their {{}} wrapper
+const BARE_UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+/**
+ * Wrap bare keyword UUIDs (without {{}}) so the main parser can resolve them.
+ * Only wraps UUIDs that match an existing keyword ID to avoid false positives.
+ */
+function wrapBareKeywordUuids(text: string, keywords: SummaryKeyword[]): string {
+  if (!keywords.length) return text;
+  const kwIds = new Set(keywords.map(k => k.id.toLowerCase()));
+  return text.replace(
+    new RegExp(`(?<!\\{\\{)(${BARE_UUID_RE.source})(?!\\}\\})`, 'gi'),
+    (uuid) => kwIds.has(uuid.toLowerCase()) ? `{{${uuid}}}` : uuid,
+  );
+}
+
 /**
  * Replace {{uuid}} or {{name}} placeholders with keyword names in a plain string.
+ * Also resolves bare keyword UUIDs (without {{}}).
  * Useful for HTML content rendered via dangerouslySetInnerHTML where React
  * components (KeywordChip) cannot be injected.
  */
@@ -80,7 +97,8 @@ export function replaceKeywordPlaceholders(
   text: string,
   keywords: SummaryKeyword[] = [],
 ): string {
-  return text.replace(/\{\{([^}]+)\}\}/g, (_match, ref: string) => {
+  const normalized = wrapBareKeywordUuids(text, keywords);
+  return normalized.replace(/\{\{([^}]+)\}\}/g, (_match, ref: string) => {
     const kw = keywords.find(
       k => (k.id === ref || k.name.toLowerCase() === ref.toLowerCase()) && k.is_active !== false,
     );
@@ -90,6 +108,7 @@ export function replaceKeywordPlaceholders(
 
 /**
  * Parses text containing {{keyword_name}} markers and renders them as KeywordChip components.
+ * Also resolves bare keyword UUIDs (without {{}}).
  * Non-matching text is rendered with paragraph break support (\n\n -> <br/><br/>)
  * and inline markdown (bold, italic, code, hr, image refs).
  */
@@ -99,7 +118,9 @@ export default function renderTextWithKeywords(
 ): React.ReactNode {
   if (!text) return null;
 
-  return text.split(/(\{\{[^}]+\}\})/g).map((part, i) => {
+  const normalized = wrapBareKeywordUuids(text, keywords);
+
+  return normalized.split(/(\{\{[^}]+\}\})/g).map((part, i) => {
     const match = part.match(/^\{\{(.+)\}\}$/);
     if (match) {
       const kwRef = match[1];
