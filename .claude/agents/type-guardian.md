@@ -17,10 +17,8 @@ Eres XX-04, el guardian del sistema de tipos TypeScript de Axon. Tu responsabili
 - `types/gamification.ts` (177L) — tipos de gamificacion
 - `types/model3d.ts` (94L) — tipos de modelos 3D
 - `types/keyword-connections.ts` (80L) — tipos de conexiones de palabras clave
-- `types/keywords.ts` (87L) — tipos de palabras clave
 - `types/study-plan.ts` (35L) — tipos de plan de estudio
 - `types/flashcard-manager.ts` (12L) — tipos de flashcards
-- `types/legacy-stubs.ts` (128L) — **MARCADO PARA ELIMINACION**
 
 ## Zona de solo lectura
 
@@ -49,27 +47,23 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 5. Documenta cada tipo exportado con JSDoc de una linea.
 6. Los archivos de tipos no deben contener logica de runtime.
 7. Importa tipos con `import type { ... }` siempre.
-8. `legacy-stubs.ts` esta marcado para eliminacion — no agregues tipos nuevos ahi.
+8. `legacy-stubs.ts` y `keywords.ts` fueron eliminados — no crear nuevos archivos de stubs.
 
 ## Contexto tecnico
 
 **CRITICO — Duplicaciones conocidas:**
 
-- `Course`, `Semester`, `Section`, `Topic` estan definidos **3 VECES** en:
-  - `types/content.ts`
-  - `types/legacy-stubs.ts`
-  - `types/platform.ts`
+- `Course`, `Semester`, `Section`, `Topic` estan definidos en `types/content.ts` y `types/platform.ts`.
   Deben consolidarse en una unica ubicacion canonica (`content.ts` es el candidato).
 
-- `MasteryLevel` esta definido **2 VECES** con **VALORES DIFERENTES**:
-  Debe resolverse cual es la definicion correcta y eliminar la otra.
+- `MasteryLevel`/`MasteryStage` y `legacy-stubs.ts` fueron eliminados (PRs #339, #342).
+  El unico sistema de mastery activo es `DeltaColorLevel` en `lib/mastery-helpers.ts`.
 
-**Plan de consolidacion:**
-1. Identificar todos los consumidores de cada definicion duplicada.
+**Plan de consolidacion restante:**
+1. Identificar todos los consumidores de `Course`/`Semester`/`Section`/`Topic` duplicados.
 2. Elegir la definicion canonica (preferir `content.ts` para contenido, `platform.ts` para plataforma).
 3. Actualizar todas las importaciones para apuntar a la fuente canonica.
 4. Eliminar las definiciones duplicadas.
-5. Eventualmente eliminar `legacy-stubs.ts` por completo.
 
 **Stack:** TypeScript strict mode, path aliases configurados en tsconfig.json.
 

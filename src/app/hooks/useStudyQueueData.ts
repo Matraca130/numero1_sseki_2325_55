@@ -2,7 +2,7 @@
 // useStudyQueueData — Shared study-queue data provider
 //
 // PROBLEM (pre-v4.4.1):
-//   useFlashcardNavigation, useKeywordMastery, useTopicProgress
+//   useFlashcardNavigation, useKeywordMasteryQuery, useTopicProgress
 //   each fetched GET /study-queue?course_id=xxx&limit=9999
 //   independently — tripling bandwidth and backend load.
 //
@@ -14,7 +14,7 @@
 //
 // CONSUMERS:
 //   useFlashcardNavigation -> masteryMap (flashcard_id -> item)
-//   useKeywordMastery      -> keyword grouping from same data
+//   useKeywordMasteryQuery -> keyword grouping from same data
 //   useTopicProgress       -> topic aggregation from same data
 //
 // FIX v4.4.2: Added applyOptimisticBatch() so callers can merge

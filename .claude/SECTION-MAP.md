@@ -124,7 +124,7 @@
 - `hooks/useStudyTimeEstimates.ts` (453L) — estimaciones tiempo
 - `hooks/useStudyQueueData.ts` (292L) — shared queue provider
 - `hooks/useTopicMastery.ts` (241L) — mastery por topic
-- `hooks/useKeywordMastery.ts` (155L) — mastery por keyword
+
 - `hooks/useScheduleAI.ts` (221L) — AI schedule actions
 - `services/studySessionApi.ts` (245L), `bktApi.ts`, `keywordMasteryApi.ts` (529L)
 - `lib/studyQueueApi.ts` — NeedScore algorithm
