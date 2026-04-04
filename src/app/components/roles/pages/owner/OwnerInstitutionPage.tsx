@@ -19,13 +19,13 @@ import { Building2 } from 'lucide-react';
 export function OwnerInstitutionPage() {
   return (
     <PlaceholderPage
-      title="Gestion de Institucion"
-      description="Configuracion, branding, datos de la institucion"
+      title="Gestión de Institución"
+      description="Configuración, branding, datos de la institución"
       icon={<Building2 size={22} />}
       accentColor="amber"
       features={[
         'Editar nombre, logo, slug',
-        'Configuracion de la institucion',
+        'Configuración de la institución',
         'Integraciones',
         'Dominio personalizado',
       ]}

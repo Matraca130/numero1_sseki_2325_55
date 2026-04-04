@@ -110,7 +110,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, onStart, onBack, on
                 </button>
               )}
               <button onClick={onStudyTopic} className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-[#F0F2F5] hover:bg-gray-100 rounded-xl text-xs font-medium text-gray-600 transition-colors border border-gray-200">
-                <GraduationCap size={14} /> Ver T\u00F3pico
+                <GraduationCap size={14} /> Ver Tópico
               </button>
               {cards.length > 0 && (
                 <button onClick={() => onStart(cardsToStart)} className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all" style={{ backgroundColor: deckColor.hex, fontWeight: 700 }}>
@@ -118,7 +118,7 @@ export function DeckScreen({ topic, sectionIdx, sectionName, onStart, onBack, on
                 </button>
               )}
               {onStartAdaptive && cards.length > 0 && (
-                <button onClick={() => onStartAdaptive()} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-white text-xs sm:text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all bg-[#2a8c7a] hover:bg-[#244e47]" style={{ fontWeight: 600 }} title="Sesi\u00F3n adaptativa con IA">
+                <button onClick={() => onStartAdaptive()} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-white text-xs sm:text-sm shadow-sm hover:scale-105 hover:brightness-90 active:scale-95 transition-all bg-[#2a8c7a] hover:bg-[#244e47]" style={{ fontWeight: 600 }} title="Sesión adaptativa con IA">
                   <Sparkles size={14} /><span className="hidden sm:inline">Con IA</span><span className="sm:hidden">IA</span>
                 </button>
               )}

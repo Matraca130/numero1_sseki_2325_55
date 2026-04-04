@@ -99,7 +99,7 @@ export function SelectRolePage() {
             Hola, {user?.name?.split(' ')[0] || 'Usuario'}
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
-            Selecciona la institucion y el rol para esta sesion
+            Selecciona la institución y el rol para esta sesión
           </p>
         </div>
 

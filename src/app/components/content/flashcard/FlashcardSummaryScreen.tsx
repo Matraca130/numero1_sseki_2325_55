@@ -83,7 +83,7 @@ export function SummaryScreen({
   if (stats.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-surface-dashboard p-8 text-center">
-        <p className="text-gray-500">No hay datos de la sesi\u00F3n.</p>
+        <p className="text-gray-500">No hay datos de la sesión.</p>
         <button
           onClick={onExit}
           className="mt-4 px-6 py-3 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
@@ -131,7 +131,7 @@ export function SummaryScreen({
           <Trophy size={40} className="text-teal-500" />
         </div>
 
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Sesi\u00F3n Completada!</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Sesión Completada!</h2>
         <p className="text-gray-500 mb-6 sm:mb-8 max-w-md text-sm sm:text-base">
           Completaste {stats.length} flashcards con un dominio estimado de:
         </p>
@@ -216,11 +216,11 @@ export function SummaryScreen({
             <div className="flex items-center justify-center gap-2 mb-2">
               <Sparkles size={16} className="text-teal-500" />
               <span className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
-                Refuerza tus puntos d\u00E9biles
+                Refuerza tus puntos débiles
               </span>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              Genera flashcards personalizadas con IA enfocadas en lo que m\u00E1s necesitas practicar
+              Genera flashcards personalizadas con IA enfocadas en lo que más necesitas practicar
             </p>
             <button
               onClick={onStartAdaptive}
@@ -228,7 +228,7 @@ export function SummaryScreen({
               style={{ fontWeight: 600 }}
             >
               <Sparkles size={14} />
-              Sesi\u00F3n Adaptativa
+              Sesión Adaptativa
             </button>
           </motion.div>
         )}

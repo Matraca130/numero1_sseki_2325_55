@@ -21,13 +21,13 @@ const VARIANTS: Record<string, CalloutConfig> = {
   },
   warning: {
     icon: AlertTriangle,
-    label: 'Atenci\u00f3n',
+    label: 'Atención',
     light: { bg: 'bg-[#fffbeb]', border: 'border-l-amber-500', accent: 'text-[#f59e0b]' },
     dark: { bg: 'dark:bg-[#2a2010]', border: 'dark:border-l-amber-500', accent: 'dark:text-amber-300' },
   },
   clinical: {
     icon: Stethoscope,
-    label: 'Correlaci\u00f3n Cl\u00ednica',
+    label: 'Correlación Clínica',
     light: { bg: 'bg-[#eff6ff]', border: 'border-l-blue-500', accent: 'text-[#3b82f6]' },
     dark: { bg: 'dark:bg-[#0f1a2e]', border: 'dark:border-l-blue-500', accent: 'dark:text-blue-300' },
   },

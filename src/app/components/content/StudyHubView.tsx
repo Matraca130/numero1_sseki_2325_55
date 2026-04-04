@@ -105,7 +105,7 @@ export function StudyHubView() {
   // ── Greeting + user name (for hero) ────────────────────────
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Buenos dias';
+    if (hour < 12) return 'Buenos días';
     if (hour < 19) return 'Buenas tardes';
     return 'Buenas noches';
   }, []);

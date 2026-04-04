@@ -45,7 +45,7 @@ export function LoginPage() {
       if (mode === 'signin') {
         const res = await login(email, password);
         if (!res.success) {
-          setError(res.error || 'Error al iniciar sesion');
+          setError(res.error || 'Error al iniciar sesión');
         } else {
           const from = (location.state as any)?.from?.pathname || '/';
           navigate(from, { replace: true });
@@ -139,7 +139,7 @@ export function LoginPage() {
               <p className="text-sm text-zinc-400 mt-1">
                 {mode === 'signin'
                   ? 'Ingresa tus credenciales para continuar'
-                  : 'Registrate para empezar a estudiar'}
+                  : 'Regístrate para empezar a estudiar'}
               </p>
             </div>
 
@@ -206,7 +206,7 @@ export function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === 'signup' ? 'Minimo 8 caracteres' : 'Tu contrasena'}
+                    placeholder={mode === 'signup' ? 'Mínimo 8 caracteres' : 'Tu contraseña'}
                     className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                     required
                     minLength={mode === 'signup' ? 8 : 1}
@@ -238,7 +238,7 @@ export function LoginPage() {
                 {loading
                   ? 'Conectando...'
                   : mode === 'signin'
-                    ? 'Iniciar sesion'
+                    ? 'Iniciar sesión'
                     : 'Crear cuenta'}
               </button>
             </form>
@@ -251,15 +251,17 @@ export function LoginPage() {
                 onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
                 className="ml-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors"
               >
-                {mode === 'signin' ? 'Registrate' : 'Inicia sesion'}
+                {mode === 'signin' ? 'Regístrate' : 'Inicia sesión'}
               </button>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
-            <span className="text-xs text-zinc-600">Conectado al backend</span>
-          </div>
+          {import.meta.env.DEV && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+              <span className="text-xs text-zinc-600">Conectado al backend</span>
+            </div>
+          )}
         </motion.div>
       </div>
     </div>

@@ -17,8 +17,8 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Flashcards', path: '/professor/flashcards', icon: <CreditCard size={16} /> },
   { label: 'Quizzes', path: '/professor/quizzes', icon: <ClipboardList size={16} /> },
   { label: 'Estudiantes', path: '/professor/students', icon: <Users size={16} /> },
-  { label: 'IA Pedagogica', path: '/professor/ai', icon: <Brain size={16} /> },
-  { label: 'Configuracion', path: '/professor/settings', icon: <Settings size={16} /> },
+  { label: 'IA Pedagógica', path: '/professor/ai', icon: <Brain size={16} /> },
+  { label: 'Configuración', path: '/professor/settings', icon: <Settings size={16} /> },
 ];
 
 export function ProfessorLayout() {

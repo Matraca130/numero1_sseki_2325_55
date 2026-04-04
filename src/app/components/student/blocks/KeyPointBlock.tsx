@@ -18,7 +18,7 @@ export default function KeyPointBlock({ block, keywords }: { block: SummaryBlock
         )}
         {importance === 'critical' && (
           <span className="text-[11px] bg-red-500 text-white px-2 py-0.5 rounded-[10px] font-semibold uppercase">
-            {`CR\u00cdTICO`}
+            {`CRÍTICO`}
           </span>
         )}
       </div>
