@@ -132,7 +132,7 @@ function StatPill({
       </div>
       <div>
         <p className="text-sm text-white" style={{ fontWeight: 700 }}>{value}</p>
-        <p className="text-[10px] text-white/40">{label}</p>
+        <p className="text-[10px] text-white/60">{label}</p>
       </div>
     </motion.div>
   );

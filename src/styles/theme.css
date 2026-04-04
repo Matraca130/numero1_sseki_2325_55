@@ -36,6 +36,12 @@
 }
 
 @layer base {
+  /* A5 — Global focus-visible indicator (WCAG 2.1 AA) */
+  :focus-visible {
+    outline: 2px solid #2dd4bf;
+    outline-offset: 2px;
+  }
+
   .dark {
     --cal-exam: #F87171; --cal-recov: #FB923C;
     --cal-review: #60A5FA; --cal-study: #4ADE80;
