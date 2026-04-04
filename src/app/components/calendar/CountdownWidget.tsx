@@ -12,10 +12,12 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { Clock } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 
 import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
 import { EVENT_COLORS, type EventType } from '@/app/lib/calendar-constants';
 import { cn } from '@/app/components/ui/utils';
+import { ExamPrepPanel } from './ExamPrepPanel';
 
 // ── Constants ──────────────────────────────────────────────
 
@@ -54,6 +56,7 @@ export interface CountdownWidgetProps {
 
 export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) {
   const [showAll, setShowAll] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<CalendarEvent | null>(null);
 
   // Filter future exam events and sort by date ASC
   const upcomingExams = useMemo(() => {
@@ -117,7 +120,10 @@ export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) 
                   'focus:outline-none focus:ring-2 focus:ring-teal-400',
                   'active:scale-[0.98] active:opacity-80',
                 )}
-                onClick={() => onEventClick?.(exam.id)}
+                onClick={() => {
+                  setSelectedExam(exam);
+                  onEventClick?.(exam.id);
+                }}
                 aria-label={`${exam.title}, ${daysRemaining} dias restantes`}
               >
                 <div className="flex flex-col gap-0.5 overflow-hidden">
@@ -185,6 +191,20 @@ export function CountdownWidget({ events, onEventClick }: CountdownWidgetProps) 
           Mostrar menos
         </button>
       )}
+
+      {/* Exam Prep Panel (inline, shown when an exam is selected) */}
+      <AnimatePresence>
+        {selectedExam && (
+          <div className="mt-3">
+            <ExamPrepPanel
+              examId={selectedExam.id}
+              examTitle={selectedExam.title}
+              examDate={selectedExam.date}
+              onClose={() => setSelectedExam(null)}
+            />
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

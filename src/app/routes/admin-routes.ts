@@ -41,4 +41,8 @@ export const adminChildren: RouteObject[] = [
     path: 'ai-health',
     lazy: () => import('@/app/components/roles/pages/admin/AdminAIHealthPage').then(m => ({ Component: m.AdminAIHealthPage })),
   },
+  {
+    path: 'finals',
+    lazy: () => import('@/app/components/roles/pages/admin/AdminFinalsConfigPage').then(m => ({ Component: m.AdminFinalsConfigPage })),
+  },
 ];
