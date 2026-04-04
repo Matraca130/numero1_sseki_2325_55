@@ -26,8 +26,8 @@ export interface KeywordState {
   card_coverage: number;
   /** Last time this keyword was reviewed */
   last_review_at: string | null;
-  /** Color classification with hysteresis */
-  color: 'red' | 'yellow' | 'green';
+  /** Color classification with hysteresis (matches DeltaColorLevel from mastery-helpers) */
+  color: 'gray' | 'red' | 'yellow' | 'green' | 'blue';
   /** Internal counter for hysteresis stability */
   color_stability_counter: number;
 }
