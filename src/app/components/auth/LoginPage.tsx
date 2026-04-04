@@ -52,7 +52,7 @@ export function LoginPage() {
         }
       } else {
         if (!name.trim()) { setError('El nombre es obligatorio'); setLoading(false); return; }
-        if (password.length < 8) { setError('La contrasena debe tener al menos 8 caracteres'); setLoading(false); return; }
+        if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); setLoading(false); return; }
         const res = await signup(email, password, name);
         if (!res.success) {
           setError(res.error || 'Error al crear cuenta');
@@ -196,7 +196,7 @@ export function LoginPage() {
 
               <div>
                 <label className="block text-sm text-zinc-300 mb-1.5">
-                  Contrasena
+                  Contraseña
                   {mode === 'signup' && (
                     <span className="text-zinc-500 ml-1">(min. 8 caracteres)</span>
                   )}

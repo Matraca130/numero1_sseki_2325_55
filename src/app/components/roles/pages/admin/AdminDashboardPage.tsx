@@ -19,7 +19,7 @@ export function AdminDashboardPage() {
   return (
     <PlaceholderPage
       title="Dashboard del Administrador"
-      description="Vision general de la gestion: usuarios, contenido, permisos"
+      description="Visión general de la gestión: usuarios, contenido, permisos"
       icon={<LayoutDashboard size={22} />}
       accentColor="blue"
       features={[

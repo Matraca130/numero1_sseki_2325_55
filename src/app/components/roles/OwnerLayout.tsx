@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Suscripciones', path: '/owner/subscriptions', icon: <ShieldCheck size={16} /> },
   { label: 'Reglas de Acceso', path: '/owner/access-rules', icon: <Key size={16} /> },
   { label: 'Reportes', path: '/owner/reports', icon: <BarChart3 size={16} /> },
-  { label: 'Configuracion', path: '/owner/settings', icon: <Settings size={16} /> },
+  { label: 'Configuración', path: '/owner/settings', icon: <Settings size={16} /> },
 ];
 
 export function OwnerLayout() {

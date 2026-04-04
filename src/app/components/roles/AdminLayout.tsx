@@ -16,7 +16,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Permisos', path: '/admin/scopes', icon: <ShieldCheck size={16} /> },
   { label: 'Reportes', path: '/admin/reports', icon: <BarChart3 size={16} /> },
   { label: 'AI Health', path: '/admin/ai-health', icon: <Activity size={16} /> },
-  { label: 'Configuracion', path: '/admin/settings', icon: <Settings size={16} /> },
+  { label: 'Configuración', path: '/admin/settings', icon: <Settings size={16} /> },
 ];
 
 export function AdminLayout() {
