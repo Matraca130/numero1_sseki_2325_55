@@ -46,12 +46,18 @@ const AxonAIAssistant = React.lazy(() =>
 // -- Inner shell (needs AppContext available) ------------------
 
 function StudentShell() {
-  const { isSidebarOpen, setSidebarOpen } = useUI();
+  const { isSidebarOpen, setSidebarOpen, activeSummaryId, setActiveSummaryId } = useUI();
   const { isStudySessionActive } = useStudySession();
   const { navigateTo, isView } = useStudentNav();
   const location = useLocation();
-  const { summaryId } = useParams<{ summaryId?: string }>();
+  const { summaryId: urlSummaryId } = useParams<{ summaryId?: string }>();
   const isMobile = useIsMobile();
+
+  // Sync URL summaryId → context (so child pages can also set it)
+  useEffect(() => {
+    if (urlSummaryId) setActiveSummaryId(urlSummaryId);
+    else setActiveSummaryId(undefined);
+  }, [urlSummaryId, setActiveSummaryId]);
 
   const showTopicSidebar = isView('study-hub', 'study', 'summaries', 'flashcards') && !isStudySessionActive;
 
@@ -200,13 +206,13 @@ function StudentShell() {
       {/* ── AI Assistant Panel (lazy-loaded) ── */}
       {isAIOpen && (
         <React.Suspense fallback={null}>
-          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} summaryId={summaryId} />
+          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} summaryId={activeSummaryId} />
         </React.Suspense>
       )}
 
       {/* ── AI Assistant Floating Action Button ── */}
       <AnimatePresence>
-        {!isStudySessionActive && !summaryId && (
+        {!isStudySessionActive && (
           <motion.button
             key="ai-fab"
             initial={{ scale: 0, opacity: 0 }}
