@@ -84,7 +84,7 @@ export function replaceKeywordPlaceholders(
     const kw = keywords.find(
       k => (k.id === ref || k.name.toLowerCase() === ref.toLowerCase()) && k.is_active !== false,
     );
-    return kw ? kw.name : ref;
+    return kw ? kw.name : _match;
   });
 }
 
@@ -107,7 +107,7 @@ export default function renderTextWithKeywords(
         k => (k.id === kwRef || k.name.toLowerCase() === kwRef.toLowerCase()) && k.is_active !== false,
       );
       if (kw) return <KeywordChip key={i} keyword={kw} />;
-      return <span key={i}>{kwRef}</span>;
+      return <span key={i} className="text-xs text-slate-400 italic">{kwRef}</span>;
     }
     // Preserve paragraph breaks + apply inline markdown
     return part.split('\n\n').map((p, j) => (
