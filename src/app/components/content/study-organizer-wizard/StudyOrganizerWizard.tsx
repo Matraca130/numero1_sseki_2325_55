@@ -207,23 +207,23 @@ export function StudyOrganizerWizard() {
   }
 
   function StepTopics() {
-    const relevantCourses = courses.filter((c: any) => selectedSubjects.includes(c.id));
+    const relevantCourses = (courses as WizardCourse[]).filter((c) => selectedSubjects.includes(c.id));
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between"><h2 className="text-3xl text-gray-900" style={headingStyle}>Seleccioná los contenidos</h2><span className="text-sm text-gray-500">{selectedTopics.length} tópico{selectedTopics.length !== 1 ? 's' : ''}</span></div>
         <div className="space-y-5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-          {relevantCourses.map((course: any) => (
+          {relevantCourses.map((course) => (
             <div key={course.id} className={`${components.card.base} overflow-hidden`}>
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100"><div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">{SUBJECT_ICONS[course.id] || <BookOpen size={20} />}</div><div className="flex-1"><h3 className="font-bold text-gray-900">{course.name}</h3></div></div>
               <div className="px-5 py-3 space-y-2">
-                {course.semesters.map((sem: any) => (<div key={sem.id} className="space-y-2">{sem.sections.map((section: any) => {
+                {course.semesters.map((sem) => (<div key={sem.id} className="space-y-2">{sem.sections.map((section) => {
                   const sectionSel = isSectionSelected(course.id, section.id);
                   return (<div key={section.id}>
                     <button onClick={() => toggleSection(course.id, section.id)} className={clsx("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors", sectionSel ? "bg-teal-50" : "hover:bg-gray-50")}>
                       <div className={clsx("w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0", sectionSel ? "bg-teal-500 border-teal-500" : "border-gray-300")}>{sectionSel && <Check size={12} className="text-white" />}</div>
                       <span className="font-semibold text-gray-800 text-sm flex-1">{section.title}</span><span className="text-xs text-gray-400">{section.topics.length} tópicos</span>
                     </button>
-                    <div className="ml-8 space-y-0.5">{section.topics.map((topic: any) => {
+                    <div className="ml-8 space-y-0.5">{section.topics.map((topic) => {
                       const isSel = selectedTopics.some(t => t.topicId === topic.id && t.courseId === course.id);
                       const mastery = topicMastery.get(topic.id); const mPct = mastery?.masteryPercent ?? 0; const hasData = mastery && mastery.totalAttempts > 0;
                       return (<button key={topic.id} onClick={() => toggleTopic(course.id, course.name, section.title, topic.title, topic.id)} className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-colors", isSel ? "bg-teal-50 text-teal-700" : "hover:bg-gray-50 text-gray-600")}>

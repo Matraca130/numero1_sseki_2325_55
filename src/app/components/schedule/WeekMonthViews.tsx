@@ -450,11 +450,101 @@ export function WeekView({
   onToggleTask,
   onSelectDay,
   onNavigateNewPlan,
+  onMoveTaskToDay,
 }: WeekViewProps) {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const weekTasks = allTasks.filter(t => {
+  // ── Drag & drop state ─────────────────────────────────────
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  // Optimistic moves: taskId -> new date string (yyyy-MM-dd)
+  const [optimisticMoves, setOptimisticMoves] = useState<Map<string, string>>(new Map());
+
+  const handleTaskDragStart = useCallback((e: React.DragEvent, task: TaskWithPlan, fromDate: string) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      taskId: task.id,
+      planId: task.planId,
+      fromDate,
+    }));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedTaskId(task.id);
+  }, []);
+
+  const handleDayDragOver = useCallback((dayStr: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDay(dayStr);
+  }, []);
+
+  const handleDayDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear if leaving the container (not entering a child)
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    if (relatedTarget && (e.currentTarget as HTMLElement).contains(relatedTarget)) return;
+    setDragOverDay(null);
+  }, []);
+
+  const handleDayDrop = useCallback((targetDate: string) => async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverDay(null);
+    setDraggedTaskId(null);
+
+    let data: { taskId: string; planId: string; fromDate: string };
+    try {
+      data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    } catch {
+      return;
+    }
+
+    if (data.fromDate === targetDate) return;
+
+    // Optimistic update
+    setOptimisticMoves(prev => {
+      const next = new Map(prev);
+      next.set(data.taskId, targetDate);
+      return next;
+    });
+
+    if (onMoveTaskToDay) {
+      try {
+        await onMoveTaskToDay(data.taskId, data.planId, targetDate);
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('[WeekView] Move task failed, reverting:', err);
+        }
+        // Revert optimistic move on failure
+        setOptimisticMoves(prev => {
+          const next = new Map(prev);
+          next.delete(data.taskId);
+          return next;
+        });
+      }
+    }
+  }, [onMoveTaskToDay]);
+
+  // Clear drag state on drag end (e.g. escape key or drop outside)
+  React.useEffect(() => {
+    const handleGlobalDragEnd = () => {
+      setDraggedTaskId(null);
+      setDragOverDay(null);
+    };
+    document.addEventListener('dragend', handleGlobalDragEnd);
+    return () => document.removeEventListener('dragend', handleGlobalDragEnd);
+  }, []);
+
+  // Apply optimistic moves to task list
+  const effectiveTasks = React.useMemo(() => {
+    if (optimisticMoves.size === 0) return allTasks;
+    return allTasks.map(t => {
+      const newDateStr = optimisticMoves.get(t.id);
+      if (!newDateStr) return t;
+      // Parse yyyy-MM-dd into a Date at midnight local time
+      const [y, m, d] = newDateStr.split('-').map(Number);
+      return { ...t, date: new Date(y, m - 1, d) };
+    });
+  }, [allTasks, optimisticMoves]);
+
+  const weekTasks = effectiveTasks.filter(t => {
     const taskDate = format(t.date, 'yyyy-MM-dd');
     const start = format(weekStart, 'yyyy-MM-dd');
     const end = format(addDays(weekStart, 6), 'yyyy-MM-dd');
@@ -473,7 +563,8 @@ export function WeekView({
       />
 
       {weekDays.map((day, i) => {
-        const dayTasks = allTasks.filter(t => isSameDay(t.date, day));
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayTasks = effectiveTasks.filter(t => isSameDay(t.date, day));
         return (
           <WeekDayRow
             key={day.toString()}
@@ -485,6 +576,12 @@ export function WeekView({
             togglingTaskId={togglingTaskId}
             onToggleTask={onToggleTask}
             onSelectDay={onSelectDay}
+            isDragOver={dragOverDay === dayStr}
+            draggedTaskId={draggedTaskId}
+            onDragOver={handleDayDragOver(dayStr)}
+            onDragLeave={handleDayDragLeave}
+            onDrop={handleDayDrop(dayStr)}
+            onTaskDragStart={handleTaskDragStart}
           />
         );
       })}
