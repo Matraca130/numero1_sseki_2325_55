@@ -28,6 +28,8 @@ import {
   Image,
   LogOut,
   MoreHorizontal,
+  Menu,
+  X,
 } from 'lucide-react';
 
 import { NavItem } from '@/app/components/shared/NavItem';
@@ -54,6 +56,7 @@ export function StudentDataPanel() {
   const { tree } = useContentTree();
   const [seeding, setSeeding] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month'>('today');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSeed = async () => {
     setSeeding(true);
@@ -102,10 +105,15 @@ export function StudentDataPanel() {
 
   return (
     <div className="flex min-h-screen bg-[#f5f3ef]">
-      {/* Left Sidebar */}
-      <aside className="w-56 bg-[#1a2e2a] text-white flex flex-col">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Left Sidebar — hidden on mobile, drawer when toggled */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-56 bg-[#1a2e2a] text-white flex flex-col transform transition-transform duration-200 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center">
               <GraduationCap size={24} className="text-white" />
@@ -115,6 +123,9 @@ export function StudentDataPanel() {
               <p className="text-xs text-gray-400">MEDICAL ACADEMY</p>
             </div>
           </div>
+          <button className="lg:hidden p-1 hover:bg-white/10 rounded-lg" onClick={() => setSidebarOpen(false)}>
+            <X size={20} className="text-white" />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -139,10 +150,15 @@ export function StudentDataPanel() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-3">
+            {/* Mobile menu button */}
+            <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors" onClick={() => setSidebarOpen(true)}>
+              <Menu size={20} className="text-gray-600" />
+            </button>
+
             {/* Search */}
-            <div className="flex-1 max-w-md">
+            <div className="flex-1 max-w-md hidden sm:block">
               <div className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -154,7 +170,12 @@ export function StudentDataPanel() {
             </div>
 
             {/* Right section */}
-            <div className="flex items-center gap-4 ml-6">
+            <div className="flex items-center gap-2 sm:gap-4 ml-auto">
+              {/* Mobile search toggle */}
+              <button className="sm:hidden relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <Search size={20} className="text-gray-600" />
+              </button>
+
               {/* Notifications */}
               <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Bell size={20} className="text-gray-600" />
@@ -162,8 +183,8 @@ export function StudentDataPanel() {
               </button>
 
               {/* User Profile */}
-              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-                <div className="text-right">
+              <div className="flex items-center gap-3 pl-2 sm:pl-4 border-l border-gray-200">
+                <div className="text-right hidden sm:block">
                   <p className="text-sm font-semibold text-gray-900">
                     {userName}
                   </p>
@@ -179,10 +200,10 @@ export function StudentDataPanel() {
 
         {/* Connection Status Banner (only show when not connected) */}
         {!seeded && (
-          <div className={`border-b px-8 py-4 ${
+          <div className={`border-b px-4 sm:px-6 lg:px-8 py-4 ${
             error ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
           }`}>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                 error ? 'bg-red-500' : 'bg-amber-500'
               }`}>
@@ -230,13 +251,13 @@ export function StudentDataPanel() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 px-8 py-8 overflow-y-auto">
-          <div className="flex gap-6 max-w-[1600px]">
+        <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 overflow-y-auto">
+          <div className="flex flex-col xl:flex-row gap-6 w-full max-w-full lg:max-w-[1600px]">
             {/* Left Content */}
-            <div className="flex-1 space-y-6">
+            <div className="flex-1 min-w-0 space-y-6">
               {/* Welcome Section */}
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                   Bienvenido de vuelta, {profile?.name?.split(' ')[0] || 'Dr. Reed'}
                 </h1>
                 <p className="text-gray-500 italic text-sm">
@@ -251,7 +272,7 @@ export function StudentDataPanel() {
                     <button
                       key={f}
                       onClick={() => setTimeFilter(f)}
-                      className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-medium text-sm transition-all ${
                         timeFilter === f
                           ? 'bg-[#1a2e2a] text-white'
                           : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -264,8 +285,8 @@ export function StudentDataPanel() {
               </div>
 
               {/* Section Header */}
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Disciplinas en Curso</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Disciplinas en Curso</h2>
                 <button className="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center gap-1">
                   Ver currículo completo →
                 </button>
@@ -293,7 +314,7 @@ export function StudentDataPanel() {
                   })}
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
+                <div className="bg-white rounded-2xl p-6 sm:p-12 text-center border border-gray-200">
                   <Database size={48} className="mx-auto text-gray-300 mb-4" />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay datos disponibles</h3>
                   <p className="text-gray-500 mb-6">
@@ -311,9 +332,9 @@ export function StudentDataPanel() {
               )}
             </div>
 
-            {/* Right Sidebar */}
+            {/* Right Sidebar — stacks below on mobile, side panel on xl+ */}
             {seeded && (
-              <div className="w-80 space-y-6 flex-shrink-0">
+              <div className="w-full xl:w-80 space-y-6 xl:flex-shrink-0">
                 {/* Daily Performance Card */}
                 <div className="bg-[#1a2e2a] rounded-2xl p-6 text-white">
                   <h3 className="text-xl font-bold mb-6">Desempeño Diario</h3>

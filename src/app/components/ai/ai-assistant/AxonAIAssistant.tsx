@@ -150,14 +150,14 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
       {isOpen && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} />
-          <motion.div initial={{ x: '100%', opacity: 0.5 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} role="dialog" aria-label="Asistente AI Axon" aria-modal="true" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} className="fixed right-0 top-0 bottom-0 w-full max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col">
+          <motion.div initial={{ x: '100%', opacity: 0.5 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} role="dialog" aria-label="Asistente AI Axon" aria-modal="true" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} className="fixed right-0 top-0 bottom-0 w-full md:max-w-[480px] bg-[#f5f6fa] shadow-2xl z-[70] flex flex-col">
             {/* Header */}
             <div className="shrink-0 bg-teal-700 px-5 py-4 flex items-center justify-between relative overflow-hidden">
               <div className="relative flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center border border-white/20"><Sparkles size={20} className="text-white" /></div>
                 <div><h2 className="text-white font-bold text-lg leading-tight" style={{ fontFamily: "Georgia, serif" }}>Axon AI</h2><p className="text-white/60 text-xs">Powered by Gemini</p></div>
               </div>
-              <button onClick={onClose} aria-label="Cerrar asistente" className="relative w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"><X size={18} /></button>
+              <button onClick={onClose} aria-label="Cerrar asistente" className="relative w-11 h-11 md:w-8 md:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"><X size={20} className="md:hidden" /><X size={18} className="hidden md:block" /></button>
             </div>
 
             {/* Mode tabs */}
