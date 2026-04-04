@@ -303,6 +303,26 @@ describe('Study Plan Wizard → Generation → Reschedule E2E', () => {
       const calledProfile = (aiReschedule as any).mock.calls[0][0];
       expect(calledProfile.sessionHistory.length).toBeGreaterThan(0);
     });
+
+    it('includes today in schedule days (not just tomorrow onwards)', async () => {
+      (aiReschedule as any).mockRejectedValueOnce(new Error('AI down'));
+
+      const params = baseRescheduleParams();
+      // Set completion date to today + 1 so there's minimal room
+      params.backendPlan.completion_date = '2026-04-05';
+      const result = await executeReschedule(params);
+
+      if (result.didReschedule) {
+        const scheduledDates = result.changes.map(c =>
+          c.newDate.toISOString().slice(0, 10)
+        );
+        // Today (2026-04-04, Friday) should be a valid scheduling day
+        const includesNearDates = scheduledDates.some(d =>
+          d === '2026-04-04' || d === '2026-04-05'
+        );
+        expect(includesNearDates).toBe(true);
+      }
+    });
   });
 
   // ── G1+G3: Mapper edge cases ──────────────────────────

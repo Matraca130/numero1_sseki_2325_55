@@ -56,7 +56,6 @@ function buildScheduleDaysFromPlan(
 
   const days: Array<{ date: Date; availableMinutes: number }> = [];
   const current = new Date(today);
-  current.setDate(current.getDate() + 1); // start from tomorrow
 
   while (current <= endDate) {
     const dayOfWeek = current.getDay();
@@ -223,16 +222,19 @@ export async function executeReschedule(params: RescheduleParams): Promise<Resch
     const days = runSchedulingPipeline(rawTasks, new Map(), scheduleDays, masteryMap);
 
     // Convert ScheduleDay[] → RescheduleChange[]
+    // Use a consumed-set to avoid assigning the same task ID twice
+    // when multiple pipeline tasks share topicId + method.
     const changes: RescheduleChange[] = [];
+    const consumedTaskIds = new Set<string>();
     let orderIndex = 0;
     for (const day of days) {
       for (const task of day.tasks) {
-        // Find the matching pending task by topicId + method
         const matchingTask = pendingTasks.find(
           pt => pt.topicId === task.topicId && pt.method === task.method
-            && !changes.some(c => c.taskId === pt.id)
+            && !consumedTaskIds.has(pt.id)
         );
         if (matchingTask) {
+          consumedTaskIds.add(matchingTask.id);
           changes.push({
             taskId: matchingTask.id,
             newDate: day.date,

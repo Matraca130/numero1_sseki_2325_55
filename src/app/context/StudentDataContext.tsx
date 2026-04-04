@@ -242,7 +242,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
           getStudentStatsReal(),
           getDailyActivities(thirtyDaysAgo, today, 90),
           getAllBktStates(undefined, 500),
-          getStudySessions(),
+          getStudySessions({ limit: 50 }),
         ]);
 
       const rawStats =
