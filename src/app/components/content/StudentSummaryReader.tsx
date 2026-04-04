@@ -45,6 +45,7 @@ import { useReadingTimeTracker } from '@/app/hooks/useReadingTimeTracker';
 import { useVideoListQuery } from '@/app/hooks/queries/useVideoPlayerQueries';
 import { useThemeToggle } from '@/app/hooks/useThemeToggle';
 import { ThemeToggle } from '@/app/components/student/ThemeToggle';
+import { colors } from '@/app/design-system';
 
 // ── Extracted helpers (Phase B.1) ─────────────────────────
 import {
@@ -89,7 +90,7 @@ export function StudentSummaryReader({
   onNavigateKeyword,
   initialTab,
 }: StudentSummaryReaderProps) {
-  const [activeTab, setActiveTab] = useState(initialTab === 'chunks' ? 'keywords' : (initialTab || 'keywords'));
+  const [activeTab, setActiveTab] = useState(initialTab || 'keywords');
   const readerRef = useRef<HTMLDivElement>(null);
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
   const [showTimer, setShowTimer] = useState(false);
@@ -152,20 +153,23 @@ export function StudentSummaryReader({
 
   // ── Sidebar block click → scroll into view ──
   const handleSidebarBlockClick = useCallback((blockId: string) => {
+    const scrollToBlock = () => {
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-block-id="${blockId}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setActiveBlockId(blockId);
+        }
+      });
+    };
+
     if (viewMode === 'reading') {
       setViewMode('enriched');
-      // Let the DOM update before scrolling
-      setTimeout(() => {
-        const el = document.querySelector(`[data-block-id="${blockId}"]`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+      // Double rAF ensures React has flushed the DOM update
+      requestAnimationFrame(() => scrollToBlock());
       return;
     }
-    setTimeout(() => {
-      const el = document.querySelector(`[data-block-id="${blockId}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setActiveBlockId(blockId);
-    }, 50);
+    scrollToBlock();
   }, [viewMode]);
 
   // ── Search: count matches in blocks ──
@@ -340,7 +344,7 @@ export function StudentSummaryReader({
     border: 'none',
     padding: 10,
     cursor: 'pointer',
-    color: '#b4d9d1',
+    color: colors.reader.iconDefault,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -431,7 +435,7 @@ export function StudentSummaryReader({
           aria-label="Barra de herramientas del resumen"
           className="flex items-center justify-between"
           style={{
-            background: isDark ? '#0d0e11' : '#1B3B36',
+            background: isDark ? colors.reader.headerBgDark : colors.reader.headerBg,
             padding: '10px 20px',
             position: 'sticky',
             top: 0,
@@ -464,17 +468,17 @@ export function StudentSummaryReader({
                 {summary.title || 'Sin título'}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <span style={{ color: '#8cb8af', fontSize: 11 }}>
+                <span style={{ color: colors.reader.iconSubtle, fontSize: 11 }}>
                   {new Date(summary.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
                 {readingState?.time_spent_seconds != null && readingState.time_spent_seconds > 0 && (
-                  <span className="flex items-center gap-1" style={{ color: '#8cb8af', fontSize: 11 }}>
+                  <span className="flex items-center gap-1" style={{ color: colors.reader.iconSubtle, fontSize: 11 }}>
                     <Clock className="w-3 h-3" />
                     {Math.round(readingState.time_spent_seconds / 60)} min
                   </span>
                 )}
                 {isCompleted && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7' }}>
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: 'rgba(16,185,129,0.2)', color: colors.reader.iconActive }}>
                     <CheckCircle2 className="w-2.5 h-2.5" /> Leído
                   </span>
                 )}
@@ -495,7 +499,7 @@ export function StudentSummaryReader({
                 border: 'none',
                 padding: 6,
                 cursor: 'pointer',
-                color: isCompleted ? '#6ee7b7' : '#b4d9d1',
+                color: isCompleted ? colors.reader.iconActive : colors.reader.iconDefault,
                 display: 'flex',
                 borderRadius: 6,
               }}
@@ -508,7 +512,7 @@ export function StudentSummaryReader({
               onClick={() => setSearchOpen((v) => !v)}
               title="Buscar (Ctrl+F)"
               aria-label="Buscar"
-              style={{ ...toolbarBtnStyle, background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none', color: searchOpen ? '#2a8c7a' : '#b4d9d1' }}
+              style={{ ...toolbarBtnStyle, background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none', color: searchOpen ? '#2a8c7a' : colors.reader.iconDefault }}
             >
               <SearchIcon size={16} />
             </button>
@@ -518,7 +522,7 @@ export function StudentSummaryReader({
               onClick={() => setShowTimer((prev) => !prev)}
               title="Temporizador de estudio"
               aria-label={showTimer ? 'Cerrar timer' : 'Abrir timer'}
-              style={{ ...toolbarBtnStyle, background: showTimer ? 'rgba(42,140,122,0.15)' : 'none', color: showTimer ? '#2a8c7a' : '#b4d9d1' }}
+              style={{ ...toolbarBtnStyle, background: showTimer ? 'rgba(42,140,122,0.15)' : 'none', color: showTimer ? '#2a8c7a' : colors.reader.iconDefault }}
             >
               <Timer size={16} />
             </button>
@@ -535,7 +539,7 @@ export function StudentSummaryReader({
                 onClick={() => setShowSettings((prev) => !prev)}
                 title="Configuración de lectura"
                 aria-label={showSettings ? 'Cerrar configuración' : 'Configuración de lectura'}
-                style={{ ...toolbarBtnStyle, background: showSettings ? 'rgba(42,140,122,0.15)' : 'none', color: showSettings ? '#2a8c7a' : '#b4d9d1' }}
+                style={{ ...toolbarBtnStyle, background: showSettings ? 'rgba(42,140,122,0.15)' : 'none', color: showSettings ? '#2a8c7a' : colors.reader.iconDefault }}
               >
                 <Settings size={16} />
               </button>
@@ -556,7 +560,7 @@ export function StudentSummaryReader({
               onClick={() => setSidebarCollapsed((v) => !v)}
               title="Outline"
               aria-label={sidebarCollapsed ? 'Mostrar panel de estructura' : 'Ocultar panel de estructura'}
-              style={{ ...toolbarBtnStyle, background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none', color: !sidebarCollapsed ? '#2a8c7a' : '#b4d9d1' }}
+              style={{ ...toolbarBtnStyle, background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none', color: !sidebarCollapsed ? '#2a8c7a' : colors.reader.iconDefault }}
             >
               <PanelLeftOpen size={16} />
             </button>

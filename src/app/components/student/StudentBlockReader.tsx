@@ -40,12 +40,13 @@ import { ReadingSettingsPanel, type ReadingSettings } from './ReadingSettingsPan
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import type { Summary } from '@/app/services/summariesApi';
+import { colors } from '@/app/design-system';
 
 // ── Design tokens (match prototype) ─────────────────────────
 
-const HEADER_BG_LIGHT = '#1B3B36';
-const HEADER_BG_DARK = '#0d0e11';
-const ICON_COLOR = '#b4d9d1';
+const HEADER_BG_LIGHT = colors.reader.headerBg;
+const HEADER_BG_DARK = colors.reader.headerBgDark;
+const ICON_COLOR = colors.reader.iconDefault;
 const SEPARATOR_COLOR = '#6b9e95';
 const TEAL_ACCENT = '#2a8c7a';
 const PAGE_BG_LIGHT = '#F0F2F5';
@@ -372,7 +373,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
                 fontFamily: 'Georgia, serif',
                 fontSize: 30,
                 fontWeight: 700,
-                color: isDark ? '#3cc9a8' : '#1B3B36',
+                color: isDark ? '#3cc9a8' : colors.reader.headerBg,
                 lineHeight: 1.2,
                 margin: 0,
               }}

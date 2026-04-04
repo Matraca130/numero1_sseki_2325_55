@@ -106,4 +106,13 @@ export const colors = {
     bar:        '#0d9488',     // Axon Progress End
     grid:       '#f3f4f6',     // gray-100
   },
+
+  /** Reader toolbar — Axon Dark Teal derivatives */
+  reader: {
+    headerBg:     '#1B3B36',   // Dark Teal — same as dark.navBar
+    headerBgDark: '#0d0e11',   // Near-black for dark mode
+    iconDefault:  '#b4d9d1',   // Muted teal — toolbar icons
+    iconSubtle:   '#8cb8af',   // Dimmer teal — dates, metadata
+    iconActive:   '#6ee7b7',   // Emerald-300 — completed state
+  },
 } as const;

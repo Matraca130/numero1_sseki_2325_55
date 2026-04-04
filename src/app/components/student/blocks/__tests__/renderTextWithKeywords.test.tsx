@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import renderTextWithKeywords from '../renderTextWithKeywords';
+import renderTextWithKeywords, { replaceKeywordPlaceholders } from '../renderTextWithKeywords';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
 
 function makeKeyword(overrides: Partial<SummaryKeyword> = {}): SummaryKeyword {
@@ -50,9 +50,9 @@ describe('renderTextWithKeywords', () => {
     expect(screen.getByTestId('wrapper')).toHaveTextContent('es grave.');
   });
 
-  it('renders keyword name as plain span fallback when keyword not in list', () => {
+  it('renders keyword name as styled span fallback when keyword not in list', () => {
     renderResult('La {{desconocido}} es rara.', []);
-    // Falls back to plain span with keyword name
+    // Falls back to styled span with keyword name (without braces in text content)
     expect(screen.getByText('desconocido')).toBeInTheDocument();
     expect(screen.getByTestId('wrapper')).toHaveTextContent('La desconocido es rara.');
   });
@@ -192,5 +192,25 @@ describe('renderTextWithKeywords', () => {
     const strong = container.querySelector('strong');
     expect(strong).not.toBeNull();
     expect(container.textContent).toContain('texto');
+  });
+
+  it('styles unresolved placeholder span with subtle classes', () => {
+    const { container } = renderResult('Ver {{abc-uuid-123}} aquí.', []);
+    const span = container.querySelector('span.text-xs.italic.text-slate-400');
+    expect(span).not.toBeNull();
+    expect(span!.textContent).toBe('abc-uuid-123');
+  });
+});
+
+describe('replaceKeywordPlaceholders', () => {
+  it('preserves {{braces}} for unresolved placeholders instead of returning raw UUID', () => {
+    const result = replaceKeywordPlaceholders('Ver {{abc-uuid-123}} aquí.', []);
+    expect(result).toBe('Ver {{abc-uuid-123}} aquí.');
+  });
+
+  it('replaces resolved placeholders with keyword name', () => {
+    const kw = makeKeyword({ id: 'abc-uuid-123', name: 'Síncope' });
+    const result = replaceKeywordPlaceholders('Ver {{abc-uuid-123}} aquí.', [kw]);
+    expect(result).toBe('Ver Síncope aquí.');
   });
 });
