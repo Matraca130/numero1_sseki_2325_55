@@ -57,7 +57,7 @@ The **Architect agent** reads this index and selects agents based on:
 | ID | Agent Name | Scope | Files Owned | Depends On | Definition |
 |----|-----------|-------|-------------|------------|------------|
 | QZ-01 | quiz-frontend | Quiz UI components (student + professor) | `components/content/Quiz*.tsx`, `components/student/Quiz*.tsx`, `components/professor/Quiz*.tsx`, `routes/quiz-student-routes.ts` | QZ-02, SM-04, DG-04 | `agents/quiz-frontend.md` |
-| QZ-02 | quiz-backend | Quiz API routes + DB queries | `routes-student.ts` (quiz CRUD via factory), `routes/study/reviews.ts` (quiz-attempts), `lib/bkt-v4.ts`, `lib/types.ts` | AS-01 | `agents/quiz-backend.md` |
+| QZ-02 | quiz-backend | Quiz API routes + DB queries | `routes-student.ts` (quiz CRUD via factory), `routes/study/reviews.ts` (quiz-attempts), `lib/bkt-v4.ts` *(read-only; owned by QZ-04)*, `lib/types.ts` | AS-01 | `agents/quiz-backend.md` |
 | QZ-03 | quiz-tester | Quiz integration + unit tests | `tests/quiz/**`, `tests/e2e/quiz*` | QZ-01, QZ-02 | `agents/quiz-tester.md` |
 | QZ-04 | quiz-adaptive | Adaptive quiz engine (BKT integration) | `lib/bkt-v4.ts`, `hooks/useAdaptiveQuiz*.ts`, `services/bktApi.ts` | QZ-01 | `agents/quiz-adaptive.md` |
 | QZ-05 | quiz-questions | Question CRUD + renderers | `components/student/renderers/*.tsx`, `hooks/queries/useQuestion*.ts` | QZ-01, AS-02 | `agents/quiz-questions.md` |
@@ -134,7 +134,7 @@ The **Architect agent** reads this index and selects agents based on:
 | AI-03 | ai-generation | AI content generation (summaries, quizzes, flashcards) | `lib/ai-generation/*.ts`, `services/aiGenerationApi.ts` | AI-01 | `agents/ai-generation.md` |
 | AI-04 | embeddings | Embedding management + vector search | `lib/embeddings.ts`, `services/embeddingsApi.ts` | — | `agents/embeddings.md` |
 | AI-05 | ai-backend | AI route handlers | `routes/ai*.ts`, `ai-service.ts` | AS-01 | `agents/ai-backend.md` |
-| AI-06 | ai-prompts | Prompt engineering + templates | `lib/prompts/*.ts`, `lib/ai-config.ts` | — | `agents/ai-prompts.md` |
+| AI-06 | ai-prompts | Prompt engineering + templates | `lib/prompts/*.ts`, `lib/ai-config.ts` *(read-only; owned by IF-03)* | — | `agents/ai-prompts.md` |
 
 ## 9. 3D Viewer (3D)
 
