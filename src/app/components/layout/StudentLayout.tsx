@@ -46,11 +46,13 @@ const AxonAIAssistant = React.lazy(() =>
 // -- Inner shell (needs AppContext available) ------------------
 
 function StudentShell() {
-  const { isSidebarOpen, setSidebarOpen } = useUI();
+  const { isSidebarOpen, setSidebarOpen, activeSummaryId } = useUI();
   const { isStudySessionActive } = useStudySession();
   const { navigateTo, isView } = useStudentNav();
   const location = useLocation();
-  const { summaryId } = useParams<{ summaryId?: string }>();
+  const { summaryId: urlSummaryId } = useParams<{ summaryId?: string }>();
+  // Prefer URL param; fall back to summary ID lifted from child views (AXO-131)
+  const summaryId = urlSummaryId || activeSummaryId;
   const isMobile = useIsMobile();
 
   const showTopicSidebar = isView('study-hub', 'study', 'summaries', 'flashcards') && !isStudySessionActive;
@@ -206,7 +208,7 @@ function StudentShell() {
 
       {/* ── AI Assistant Floating Action Button ── */}
       <AnimatePresence>
-        {!isStudySessionActive && !summaryId && (
+        {!isStudySessionActive && !urlSummaryId && (
           <motion.button
             key="ai-fab"
             initial={{ scale: 0, opacity: 0 }}
