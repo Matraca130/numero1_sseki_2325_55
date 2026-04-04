@@ -5,7 +5,7 @@
 // Interactable: images (lightbox), videos (play), PDFs (view),
 // keyword-refs (SmartPopup).
 // ============================================================
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
@@ -16,6 +16,7 @@ import type { HighlightColor } from './HighlightToolbar';
 import BookmarkButton from './BookmarkButton';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 import { sanitizeHtml } from '@/app/lib/sanitize';
 import {
   ProseBlock, KeyPointBlock, StagesBlock, ComparisonBlock,
@@ -48,6 +49,8 @@ interface ViewerBlockProps {
   summaryId?: string;
   /** Shared annotation mutation (lifted from parent to avoid N instances) */
   createAnnotationMutation?: { mutate: Function; isPending?: boolean };
+  /** Text annotations for rendering highlights on this block */
+  annotations?: TextAnnotation[];
 }
 
 // ── Callout icon map ──────────────────────────────────────
@@ -65,6 +68,26 @@ const calloutBg: Record<string, string> = {
   success: 'bg-emerald-50 border-emerald-200',
   tip: 'bg-teal-50 border-teal-200',
 };
+
+// ── Highlight color map (shared by optimistic + useEffect) ──
+
+const HIGHLIGHT_COLOR_MAP: Record<string, string> = {
+  yellow: 'rgba(253,224,71,0.4)',
+  green: 'rgba(110,231,183,0.4)',
+  blue: 'rgba(147,197,253,0.4)',
+  pink: 'rgba(249,168,212,0.4)',
+  orange: 'rgba(253,186,116,0.4)',
+};
+
+/** Strip all data-axon-hl marks from a container and normalize text nodes. */
+function stripHighlightMarks(container: HTMLElement): void {
+  const marks = container.querySelectorAll('mark[data-axon-hl]');
+  marks.forEach(mark => {
+    const text = document.createTextNode(mark.textContent || '');
+    mark.parentNode?.replaceChild(text, mark);
+  });
+  container.normalize();
+}
 
 // ── Plain text extraction for TTS ─────────────────────────
 
@@ -99,6 +122,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   onQuizTrigger,
   summaryId,
   createAnnotationMutation,
+  annotations = [],
 }: ViewerBlockProps) {
   const c = block.content || {};
 
@@ -109,6 +133,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   // ── Text highlighting (block-scoped) ───────────────────
   const blockRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
 
@@ -134,14 +159,14 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       return;
     }
     const range = sel.getRangeAt(0);
-    // Check selection is within this block
-    if (!blockRef.current.contains(range.commonAncestorContainer)) {
+    // Check selection is within the content area (not UI chrome)
+    if (!contentRef.current?.contains(range.commonAncestorContainer)) {
       setToolbar(null);
       setSelectionRange(null);
       return;
     }
     const preRange = document.createRange();
-    preRange.setStart(blockRef.current, 0);
+    preRange.setStart(contentRef.current, 0);
     preRange.setEnd(range.startContainer, range.startOffset);
     const startOffset = preRange.toString().length;
     const endOffset = startOffset + sel.toString().length;
@@ -154,14 +179,34 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     });
   }, [highlightEnabled]);
 
+  // Apply visual highlight to current selection immediately (optimistic)
+  const applySelectionHighlight = useCallback((color: string) => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !contentRef.current) return;
+    try {
+      const range = sel.getRangeAt(0);
+      if (!contentRef.current.contains(range.commonAncestorContainer)) return;
+      const mark = document.createElement('mark');
+      mark.setAttribute('data-axon-hl', 'pending');
+      mark.style.backgroundColor = HIGHLIGHT_COLOR_MAP[color] || HIGHLIGHT_COLOR_MAP.yellow;
+      mark.style.borderRadius = '2px';
+      mark.style.padding = '0 1px';
+      range.surroundContents(mark);
+    } catch {
+      // surroundContents may fail crossing element boundaries
+    }
+  }, []);
+
   const handleSelectColor = useCallback((color: HighlightColor) => {
     if (!selectionRange || !summaryId || !createMutation) return;
+    applySelectionHighlight(color);
     createMutation.mutate(
       {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color,
+        block_id: block.id,
       },
       {
         onSuccess: () => {
@@ -171,10 +216,11 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         },
       },
     );
-  }, [selectionRange, createMutation, summaryId]);
+  }, [selectionRange, createMutation, summaryId, applySelectionHighlight, block.id]);
 
   const handleAnnotate = useCallback(() => {
     if (!selectionRange || !summaryId || !createMutation) return;
+    applySelectionHighlight('yellow');
     createMutation.mutate(
       {
         summary_id: summaryId,
@@ -182,6 +228,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         end_offset: selectionRange.end,
         color: 'yellow',
         note: '',
+        block_id: block.id,
       },
       {
         onSuccess: () => {
@@ -191,7 +238,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         },
       },
     );
-  }, [selectionRange, createMutation, summaryId]);
+  }, [selectionRange, createMutation, summaryId, applySelectionHighlight, block.id]);
 
   // Listen for mouseup on block content
   useEffect(() => {
@@ -213,6 +260,81 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [toolbar]);
+
+  // ── Render existing highlights on block text via DOM ─────
+  // Walk text nodes and wrap ranges that match stored annotations
+  // with <mark> elements. Annotations use block-local offsets
+  // (calculated relative to blockRef.current's text content).
+  // Show annotations that belong to this block (block_id match).
+  // Annotations without block_id (from TextHighlighter / Modo subrayado) are excluded
+  // since their offsets are global, not block-local.
+  const liveAnnotations = useMemo(
+    () => annotations.filter(a => !a.deleted_at && a.block_id === block.id),
+    [annotations, block.id],
+  );
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !highlightEnabled || liveAnnotations.length === 0) return;
+
+    // Strip previous highlight marks before re-applying
+    stripHighlightMarks(el);
+
+    // Collect all text nodes
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const textNodes: { node: Text; start: number; end: number }[] = [];
+    let charOffset = 0;
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      const len = node.textContent?.length || 0;
+      textNodes.push({ node, start: charOffset, end: charOffset + len });
+      charOffset += len;
+    }
+
+    // Sort annotations by start_offset ascending
+    const sorted = [...liveAnnotations].sort((a, b) => a.start_offset - b.start_offset);
+
+    // Apply each annotation by finding and wrapping text node ranges
+    // Process in reverse so DOM mutations don't shift later offsets
+    for (let ai = sorted.length - 1; ai >= 0; ai--) {
+      const ann = sorted[ai];
+      const annStart = ann.start_offset;
+      const annEnd = Math.min(ann.end_offset, charOffset);
+      if (annStart >= annEnd) continue;
+
+      // Find text nodes that overlap with this annotation
+      for (let ti = textNodes.length - 1; ti >= 0; ti--) {
+        const tn = textNodes[ti];
+        const overlapStart = Math.max(annStart, tn.start);
+        const overlapEnd = Math.min(annEnd, tn.end);
+        if (overlapStart >= overlapEnd) continue;
+
+        const localStart = overlapStart - tn.start;
+        const localEnd = overlapEnd - tn.start;
+
+        try {
+          const range = document.createRange();
+          range.setStart(tn.node, localStart);
+          range.setEnd(tn.node, localEnd);
+
+          const mark = document.createElement('mark');
+          mark.setAttribute('data-axon-hl', ann.id);
+          mark.style.backgroundColor = HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow;
+          mark.style.borderRadius = '2px';
+          mark.style.padding = '0 1px';
+          range.surroundContents(mark);
+        } catch {
+          // surroundContents may fail if range crosses element boundaries
+        }
+      }
+    }
+
+    // Cleanup on unmount or re-render
+    return () => {
+      if (!el) return;
+      stripHighlightMarks(el);
+    };
+  }, [liveAnnotations, highlightEnabled]);
 
   const blockContent = (() => { switch (block.type) {
     // ── Text ────────────────────────────────────────────
@@ -560,7 +682,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         </div>
       )}
 
-      {blockContent}
+      <div ref={contentRef}>{blockContent}</div>
 
       {(hasActions || ttsText) && (
         <div className="flex items-center gap-1 mt-1" data-testid="viewer-block-actions">
