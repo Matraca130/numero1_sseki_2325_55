@@ -113,6 +113,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   // ── Text highlighting (block-scoped) ───────────────────
   const blockRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
 
@@ -138,14 +139,14 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       return;
     }
     const range = sel.getRangeAt(0);
-    // Check selection is within this block
-    if (!blockRef.current.contains(range.commonAncestorContainer)) {
+    // Check selection is within the content area (not UI chrome)
+    if (!contentRef.current?.contains(range.commonAncestorContainer)) {
       setToolbar(null);
       setSelectionRange(null);
       return;
     }
     const preRange = document.createRange();
-    preRange.setStart(blockRef.current, 0);
+    preRange.setStart(contentRef.current, 0);
     preRange.setEnd(range.startContainer, range.startOffset);
     const startOffset = preRange.toString().length;
     const endOffset = startOffset + sel.toString().length;
@@ -161,10 +162,10 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   // Apply visual highlight to current selection immediately (optimistic)
   const applySelectionHighlight = useCallback((color: string) => {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !blockRef.current) return;
+    if (!sel || sel.isCollapsed || !contentRef.current) return;
     try {
       const range = sel.getRangeAt(0);
-      if (!blockRef.current.contains(range.commonAncestorContainer)) return;
+      if (!contentRef.current.contains(range.commonAncestorContainer)) return;
       const hlColors: Record<string, string> = {
         yellow: 'rgba(253,224,71,0.4)',
         green: 'rgba(110,231,183,0.4)',
@@ -254,7 +255,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   const liveAnnotations = annotations.filter(a => !a.deleted_at && a.block_id === block.id);
 
   useEffect(() => {
-    const el = blockRef.current;
+    const el = contentRef.current;
     if (!el || !highlightEnabled || liveAnnotations.length === 0) return;
 
     // Strip previous highlight marks before re-applying
@@ -680,7 +681,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         </div>
       )}
 
-      {blockContent}
+      <div ref={contentRef}>{blockContent}</div>
 
       {(hasActions || ttsText) && (
         <div className="flex items-center gap-1 mt-1" data-testid="viewer-block-actions">
