@@ -274,15 +274,6 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
   }, [savedAnswers, reviewSession, resetLiveInputs]);
 
   // ── Q-UX2: Countdown timeout handler ────────────────────
-  // TODO(Q-UX2/BUG-020): The countdown timer UI is fully wired
-  // (QuizTaker -> QuizTopBar -> QuizCountdownTimer -> handleCountdownTimeout),
-  // but it never activates in practice because the backend has no
-  // time_limit_seconds column yet. The API layer (quizzesEntityApi.ts)
-  // strips the field before create/update (see BUG-020), so quizzes
-  // always return time_limit_seconds=null from the DB. To enable:
-  //   1. ALTER TABLE quizzes ADD COLUMN time_limit_seconds INTEGER;
-  //   2. Add time_limit_seconds to createFields + updateFields in backend.
-  //   3. Remove the BUG-020 strip workaround in quizzesEntityApi.ts.
   // When the countdown reaches zero, auto-submit empty answer and advance
   const handleCountdownTimeout = useCallback(() => {
     const currentQ = questions[currentIdx];
