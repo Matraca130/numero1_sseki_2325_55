@@ -52,6 +52,7 @@ import { QuizScoreCircle } from '@/app/components/student/QuizScoreCircle';
 // XP is awarded server-side via afterWrite hooks — frontend only DISPLAYS.
 // Q-UX1: Now with server-confirmed XP, badge toasts, and level-up celebration.
 import { XP_TABLE } from '@/app/types/gamification';
+import { gradients } from '@/app/design-system';
 import { useGamification } from '@/app/context/GamificationContext';
 import { useQuizGamificationFeedback } from '@/app/components/student/useQuizGamificationFeedback';
 import { QuizXpConfirmedCard } from '@/app/components/student/QuizXpConfirmedCard';
@@ -60,22 +61,22 @@ import { LevelUpCelebration } from '@/app/components/gamification/LevelUpCelebra
 
 // ── P-PERF: Stable style constants for streak badges ─────
 const STREAK_STYLE_ACTIVE = {
-  background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-  border: '1px solid #86efac',
+  background: gradients.streakActive.css,
+  border: `1px solid ${gradients.streakActive.border}`,
   color: '#16a34a',
   fontWeight: 600,
 } as const;
 
 const STREAK_STYLE_AT_RISK = {
-  background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
-  border: '1px solid #fca5a5',
+  background: gradients.streakAtRisk.css,
+  border: `1px solid ${gradients.streakAtRisk.border}`,
   color: '#dc2626',
   fontWeight: 600,
 } as const;
 
 const STREAK_STYLE_DEFAULT = {
-  background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
-  border: '1px solid #fdba74',
+  background: gradients.streakDefault.css,
+  border: `1px solid ${gradients.streakDefault.border}`,
   color: '#ea580c',
   fontWeight: 600,
 } as const;
