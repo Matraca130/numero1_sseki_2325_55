@@ -172,7 +172,6 @@ function StudyPathCard({
           style={{
             opacity: hovered ? 1 : 0,
             backgroundColor: `${axon.darkTeal}22`,
-            backdropFilter: hovered ? 'blur(3px)' : 'blur(0px)',
           }}
         >
           <motion.div

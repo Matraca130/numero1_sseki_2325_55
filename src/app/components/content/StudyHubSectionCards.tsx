@@ -306,7 +306,7 @@ function SectionCard({
                 className={`absolute inset-0 flex items-center justify-center z-20 transition-all duration-300 ${
                   hovered ? 'opacity-100' : 'opacity-0'
                 }`}
-                style={{ backgroundColor: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(2px)' }}
+                style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}
               >
                 <motion.div
                   className="px-5 py-2.5 rounded-full text-sm shadow-lg flex items-center gap-2"
