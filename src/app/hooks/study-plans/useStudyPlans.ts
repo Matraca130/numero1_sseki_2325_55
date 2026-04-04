@@ -151,6 +151,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         topicMap,
         topicMastery: opts.topicMastery,
         getTimeEstimate: opts.getTimeEstimate,
+        sessionHistory: opts.sessionHistory,
       });
 
       if (result.didReschedule && result.changes.length > 0) {

@@ -32,11 +32,13 @@ import {
   getStudentStatsReal,
   getDailyActivities,
   getAllBktStates,
+  getStudySessions,
 } from '@/app/services/platformApi';
 import type {
   StudentStatsRecord,
   DailyActivityRecord,
   BktStateRecord,
+  StudySessionRecord,
 } from '@/app/services/platformApi';
 
 // ── Frontend types (unchanged) ──
@@ -138,6 +140,8 @@ export interface StudentDataState {
   rawStats: StudentStatsRecord | null;
   // ── NEW (v2.1) ──
   rawDaily: DailyActivityRecord[];
+  // ── NEW (v2.2): Session history for AI schedule-agent ──
+  sessionHistory: StudySessionRecord[];
 }
 
 interface StudentDataContextType extends StudentDataState {
@@ -171,6 +175,7 @@ const StudentDataContext = createContext<StudentDataContextType>({
   bktStates: [],
   rawStats: null,
   rawDaily: [],
+  sessionHistory: [],
   loading: true,
   error: null,
   isConnected: false,
@@ -197,6 +202,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
     bktStates: [],
     rawStats: null,
     rawDaily: [],
+    sessionHistory: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -231,11 +237,12 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
       thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
       const thirtyDaysAgo = thirtyDaysAgoDate.toISOString().slice(0, 10);
 
-      const [rawStatsResult, rawDailyResult, bktResult] =
+      const [rawStatsResult, rawDailyResult, bktResult, sessionHistoryResult] =
         await Promise.allSettled([
           getStudentStatsReal(),
           getDailyActivities(thirtyDaysAgo, today, 90),
           getAllBktStates(undefined, 500),
+          getStudySessions(),
         ]);
 
       const rawStats =
@@ -244,6 +251,8 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         rawDailyResult.status === 'fulfilled' ? rawDailyResult.value : [];
       const bktStates =
         bktResult.status === 'fulfilled' ? bktResult.value : [];
+      const sessionHistory =
+        sessionHistoryResult.status === 'fulfilled' ? sessionHistoryResult.value : [];
 
       // Adapt to frontend types
       const stats = adaptStats(rawStats, rawDaily);
@@ -260,6 +269,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         bktStates,
         rawStats,
         rawDaily,
+        sessionHistory,
       });
 
       setLoading(false);
@@ -315,6 +325,7 @@ export function StudentDataProvider({ children }: { children: ReactNode }) {
         bktStates: [],
         rawStats: null,
         rawDaily: [],
+        sessionHistory: [],
       });
       hasAttemptedLoad.current = false;
       lastLoadedUserId.current = userId;

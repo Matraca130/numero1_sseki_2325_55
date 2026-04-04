@@ -10,6 +10,7 @@ import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useStudyPlans, type UseStudyPlansOptions } from '@/app/hooks/useStudyPlans';
 import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
+import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import type { StudyPlan } from '@/app/context/AppContext';
 
 interface StudyPlansContextValue {
@@ -31,10 +32,11 @@ const StudyPlansCtx = createContext<StudyPlansContextValue | null>(null);
 export function StudyPlansProvider({ children }: { children: React.ReactNode }) {
   const { topicMastery } = useTopicMasteryContext();
   const { getEstimate } = useStudyTimeEstimatesContext();
+  const { sessionHistory } = useStudentDataContext();
 
   const opts: UseStudyPlansOptions | undefined =
     topicMastery.size > 0
-      ? { topicMastery, getTimeEstimate: getEstimate }
+      ? { topicMastery, getTimeEstimate: getEstimate, sessionHistory }
       : undefined;
 
   const hook = useStudyPlans(opts);
