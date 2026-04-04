@@ -110,6 +110,7 @@ export async function createTextAnnotation(data: {
   end_offset: number;
   color?: string;
   note?: string;
+  selected_text?: string;
 }): Promise<TextAnnotation> {
   return apiCall<TextAnnotation>('/text-annotations', {
     method: 'POST',

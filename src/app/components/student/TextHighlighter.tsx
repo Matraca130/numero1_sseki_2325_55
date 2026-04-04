@@ -43,10 +43,10 @@ const colorMap: Record<string, { bg: string; bgHover: string; border: string }> 
   orange: { bg: 'bg-orange-200/50', bgHover: 'bg-orange-200/70', border: 'border-orange-300' },
 };
 
-// ── Build plain text from chunks ──────────────────────────
-function buildPlainText(chunks: Chunk[]): string {
+// ── Build plain text from chunks (with keywords resolved) ─
+function buildPlainText(chunks: Chunk[], keywords: SummaryKeyword[] = []): string {
   const sorted = [...chunks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  return sorted.map(c => c.content).join('\n');
+  return sorted.map(c => replaceKeywordPlaceholders(c.content, keywords)).join('\n');
 }
 
 // ── Split text into segments with highlights ──────────────
@@ -109,6 +109,7 @@ export function TextHighlighter({
   annotations,
 }: TextHighlighterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
 
@@ -124,13 +125,13 @@ export function TextHighlighter({
   const updateMutation = useUpdateAnnotationMutation(summaryId);
   const deleteMutation = useDeleteAnnotationMutation(summaryId);
 
-  const fullText = buildPlainText(chunks);
+  const fullText = buildPlainText(chunks, keywords);
   const liveAnnotations = annotations.filter(a => !a.deleted_at);
 
   // ── Handle text selection ───────────────────────────────
   const handleMouseUp = useCallback(() => {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !containerRef.current) {
+    if (!sel || sel.isCollapsed || !textRef.current || !containerRef.current) {
       // Only hide toolbar if not in annotate mode
       if (!annotateMode) {
         setToolbar(null);
@@ -146,24 +147,26 @@ export function TextHighlighter({
       return;
     }
 
-    // Calculate offset within fullText
-    const container = containerRef.current;
-    const textContent = container.textContent || '';
+    // Ensure the selection is within the text container
+    const textContainer = textRef.current;
+    if (!textContainer.contains(sel.anchorNode) || !textContainer.contains(sel.focusNode)) {
+      return;
+    }
 
-    // Find the selection's position within the container's text
+    // Calculate offset within fullText using textRef (excludes toolbar text)
     const range = sel.getRangeAt(0);
     const preRange = document.createRange();
-    preRange.setStart(container, 0);
+    preRange.setStart(textContainer, 0);
     preRange.setEnd(range.startContainer, range.startOffset);
     const startOffset = preRange.toString().length;
     const endOffset = startOffset + sel.toString().length;
 
     setSelectionRange({ start: startOffset, end: endOffset });
 
-    // Position toolbar above selection
+    // Position toolbar above selection (relative to outer container)
     const rect = range.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const scrollTop = container.scrollTop || 0;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const scrollTop = containerRef.current.scrollTop || 0;
     setToolbar({
       top: rect.top - containerRect.top + scrollTop - 42,
       left: rect.left - containerRect.left + rect.width / 2 - 90,
@@ -194,12 +197,14 @@ export function TextHighlighter({
   // ── Create highlight ────────────────────────────────────
   const handleSelectColor = (color: HighlightColor) => {
     if (!selectionRange) return;
+    const selectedText = fullText.slice(selectionRange.start, selectionRange.end);
     createMutation.mutate(
       {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color,
+        selected_text: selectedText,
       },
       {
         onSuccess: () => {
@@ -216,12 +221,14 @@ export function TextHighlighter({
   const handleAnnotate = () => {
     if (!selectionRange) return;
     setAnnotateMode(true);
+    const selectedText = fullText.slice(selectionRange.start, selectionRange.end);
     createMutation.mutate(
       {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color: 'yellow',
+        selected_text: selectedText,
       },
       {
         onSuccess: (ann) => {
@@ -301,10 +308,10 @@ export function TextHighlighter({
       </AnimatePresence>
 
       {/* Rendered text with highlights */}
-      <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+      <div ref={textRef} className="text-gray-600 leading-relaxed whitespace-pre-wrap">
         {segments.map((seg, idx) => {
           if (!seg.annotation) {
-            return <span key={idx}>{replaceKeywordPlaceholders(seg.text, keywords)}</span>;
+            return <span key={idx}>{seg.text}</span>;
           }
 
           const ann = seg.annotation;
@@ -326,7 +333,7 @@ export function TextHighlighter({
                 setNoteText(ann.note || '');
               }}
             >
-              {replaceKeywordPlaceholders(seg.text, keywords)}
+              {seg.text}
               {hasNote && (
                 <span className="inline-block align-top ml-0.5">
                   <MessageSquare size={8} className="text-amber-500 inline" />
@@ -383,7 +390,7 @@ export function TextHighlighter({
                 colorMap[editingAnnotation.color || 'yellow']?.border || 'border-yellow-300',
               )}>
                 <span className="line-clamp-2">
-                  {replaceKeywordPlaceholders(fullText.slice(editingAnnotation.start_offset, editingAnnotation.end_offset), keywords)}
+                  {fullText.slice(editingAnnotation.start_offset, editingAnnotation.end_offset)}
                 </span>
               </div>
 
