@@ -6,7 +6,7 @@
 //   Phase 1 (0-0.8s): XP estimate with shimmer "verificando..."
 //   Phase 2 (after confirm): Morphs to confirmed amount + check
 //
-// Glass morphism + gradient + spring physics + particle sparkles.
+// Gradient + spring physics + particle sparkles.
 // ============================================================
 
 import React from 'react';
@@ -69,7 +69,6 @@ export const QuizXpConfirmedCard = React.memo(function QuizXpConfirmedCard({
           border: isConfirmed
             ? '1px solid rgba(16,185,129,0.35)'
             : '1px solid rgba(253,224,71,0.5)',
-          backdropFilter: 'blur(12px)',
           boxShadow: isConfirmed
             ? '0 8px 32px -4px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.05), inset 0 1px 0 rgba(255,255,255,0.6)'
             : '0 8px 32px -4px rgba(245,158,11,0.18), 0 0 0 1px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
