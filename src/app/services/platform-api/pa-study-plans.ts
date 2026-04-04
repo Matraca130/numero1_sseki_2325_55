@@ -191,29 +191,15 @@ export async function reorderItems(
 }
 
 // ============================================================
-// STUDY SESSIONS
+// STUDY SESSIONS — canonical definitions live in studySessionApi.ts
+// Re-exported here for backward compatibility via platformApi.ts
 // ============================================================
 
-export interface StudySessionRecord {
-  id: string;
-  student_id?: string;
-  course_id?: string | null;
-  session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
-  completed_at?: string | null;
-  total_reviews: number;
-  correct_reviews: number;
-  created_at: string;
-}
+import type { StudySessionRecord } from '@/app/services/studySessionApi';
+export { createStudySession, getStudySessions } from '@/app/services/studySessionApi';
+export type { StudySessionRecord } from '@/app/services/studySessionApi';
 
-export async function createStudySession(
-  data: { session_type: string; course_id?: string }
-): Promise<StudySessionRecord> {
-  return request<StudySessionRecord>('/study-sessions', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
+/** Update a study session (partial PUT). Kept here because closeStudySession requires all fields. */
 export async function updateStudySession(
   sessionId: string,
   data: { completed_at?: string; total_reviews?: number; correct_reviews?: number }
@@ -222,19 +208,4 @@ export async function updateStudySession(
     method: 'PUT',
     body: JSON.stringify(data),
   });
-}
-
-export async function getStudySessions(
-  options?: { course_id?: string; session_type?: string; limit?: number }
-): Promise<StudySessionRecord[]> {
-  const params = new URLSearchParams();
-  if (options?.course_id) params.set('course_id', options.course_id);
-  if (options?.session_type) params.set('session_type', options.session_type);
-  if (options?.limit) params.set('limit', String(options.limit));
-  const qs = params.toString() ? `?${params}` : '';
-  const result = await request<{ items: StudySessionRecord[] } | StudySessionRecord[]>(
-    `/study-sessions${qs}`
-  );
-  if (Array.isArray(result)) return result;
-  return (result as any)?.items || [];
 }
