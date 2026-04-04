@@ -16,7 +16,7 @@ export type QuizStatus = 'active' | 'suspended' | 'deleted';
 export type BktColor = 'red' | 'orange' | 'yellow' | 'green';
 export type FsrsState = 0 | 1 | 2 | 3;
 export type FsrsGrade = 1 | 2 | 3 | 4;
-export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
+export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'orange';
 
 // ── Institutions ──────────────────────────────────────────
 

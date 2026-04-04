@@ -14,7 +14,7 @@
 // Offsets are character offsets within the concatenated plain-text
 // of ALL chunks (sorted by order_index), joined by '\n'.
 // ============================================================
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -58,9 +58,8 @@ interface Segment {
 function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment[] {
   if (annotations.length === 0) return [{ text: fullText }];
 
-  // Sort by start_offset
+  // Sort by start_offset (caller already filters deleted_at)
   const sorted = [...annotations]
-    .filter(a => !a.deleted_at)
     .sort((a, b) => a.start_offset - b.start_offset);
 
   const segments: Segment[] = [];
@@ -111,7 +110,7 @@ export function TextHighlighter({
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const [toolbar, setToolbar] = useState<{ top: number; left: number } | null>(null);
-  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number; text: string } | null>(null);
 
   // Note editing
   const [editingAnnotation, setEditingAnnotation] = useState<TextAnnotation | null>(null);
@@ -125,8 +124,8 @@ export function TextHighlighter({
   const updateMutation = useUpdateAnnotationMutation(summaryId);
   const deleteMutation = useDeleteAnnotationMutation(summaryId);
 
-  const fullText = buildPlainText(chunks, keywords);
-  const liveAnnotations = annotations.filter(a => !a.deleted_at);
+  const fullText = useMemo(() => buildPlainText(chunks, keywords), [chunks, keywords]);
+  const liveAnnotations = useMemo(() => annotations.filter(a => !a.deleted_at), [annotations]);
 
   // ── Handle text selection ───────────────────────────────
   const handleMouseUp = useCallback(() => {
@@ -161,7 +160,7 @@ export function TextHighlighter({
     const startOffset = preRange.toString().length;
     const endOffset = startOffset + sel.toString().length;
 
-    setSelectionRange({ start: startOffset, end: endOffset });
+    setSelectionRange({ start: startOffset, end: endOffset, text: fullText.slice(startOffset, endOffset) });
 
     // Position toolbar above selection (relative to outer container)
     const rect = range.getBoundingClientRect();
@@ -197,14 +196,13 @@ export function TextHighlighter({
   // ── Create highlight ────────────────────────────────────
   const handleSelectColor = (color: HighlightColor) => {
     if (!selectionRange) return;
-    const selectedText = fullText.slice(selectionRange.start, selectionRange.end);
     createMutation.mutate(
       {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color,
-        selected_text: selectedText,
+        selected_text: selectionRange.text,
       },
       {
         onSuccess: () => {
@@ -221,14 +219,13 @@ export function TextHighlighter({
   const handleAnnotate = () => {
     if (!selectionRange) return;
     setAnnotateMode(true);
-    const selectedText = fullText.slice(selectionRange.start, selectionRange.end);
     createMutation.mutate(
       {
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
-        color: 'yellow',
-        selected_text: selectedText,
+        color: 'yellow' as HighlightColor,
+        selected_text: selectionRange.text,
       },
       {
         onSuccess: (ann) => {
@@ -291,7 +288,7 @@ export function TextHighlighter({
     );
   }
 
-  const segments = buildSegments(fullText, liveAnnotations);
+  const segments = useMemo(() => buildSegments(fullText, liveAnnotations), [fullText, liveAnnotations]);
 
   return (
     <div ref={containerRef} className="relative p-6 select-text">
