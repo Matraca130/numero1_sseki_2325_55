@@ -3,12 +3,18 @@
 //
 // Admin CRUD for finals periods: list, create, edit, delete.
 // Uses /admin/finals-periods endpoints.
+//
+// Backend contract:
+//   GET    /admin/finals-periods?institution_id=X
+//   POST   /admin/finals-periods  { institution_id, finals_period_start, finals_period_end, course_id? }
+//   PATCH  /admin/finals-periods/:id  { finals_period_start?, finals_period_end?, course_id? }
+//   DELETE /admin/finals-periods/:id
 // ============================================================
 
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Plus, Trash2, Calendar, ToggleLeft, ToggleRight,
+  Plus, Trash2, Calendar,
   Loader2, AlertCircle, GraduationCap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -25,37 +31,43 @@ interface FinalsPeriod {
   id: string;
   institution_id: string;
   course_id: string | null;
-  start_date: string;
-  end_date: string;
-  is_active: boolean;
+  finals_period_start: string;
+  finals_period_end: string;
+  created_by: string | null;
   created_at: string;
 }
 
 interface FinalsPeriodForm {
   course_id: string;
-  start_date: string;
-  end_date: string;
-  is_active: boolean;
+  finals_period_start: string;
+  finals_period_end: string;
 }
 
 // ── API ───────────────────────────────────────────────────────
 
 const FINALS_KEY = ['admin-finals-periods'] as const;
 
-async function fetchFinalsPeriods(): Promise<FinalsPeriod[]> {
-  return await apiCall<FinalsPeriod[]>('/admin/finals-periods');
+async function fetchFinalsPeriods(institutionId: string): Promise<FinalsPeriod[]> {
+  return await apiCall<FinalsPeriod[]>(
+    `/admin/finals-periods?institution_id=${institutionId}`,
+  );
 }
 
-async function createFinalsPeriod(data: FinalsPeriodForm): Promise<FinalsPeriod> {
+async function createFinalsPeriod(
+  data: FinalsPeriodForm & { institution_id: string },
+): Promise<FinalsPeriod> {
   return await apiCall<FinalsPeriod>('/admin/finals-periods', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-async function updateFinalsPeriod(id: string, data: Partial<FinalsPeriodForm>): Promise<FinalsPeriod> {
+async function updateFinalsPeriod(
+  id: string,
+  data: Partial<FinalsPeriodForm>,
+): Promise<FinalsPeriod> {
   return await apiCall<FinalsPeriod>(`/admin/finals-periods/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
@@ -68,26 +80,27 @@ async function deleteFinalsPeriod(id: string): Promise<void> {
 
 const EMPTY_FORM: FinalsPeriodForm = {
   course_id: '',
-  start_date: '',
-  end_date: '',
-  is_active: true,
+  finals_period_start: '',
+  finals_period_end: '',
 };
 
 export function AdminFinalsConfigPage() {
   const queryClient = useQueryClient();
-  const { courses } = usePlatformData();
+  const { courses, institutionId } = usePlatformData();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<FinalsPeriodForm>(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: periods = [], isLoading, error } = useQuery({
-    queryKey: FINALS_KEY,
-    queryFn: fetchFinalsPeriods,
+    queryKey: [...FINALS_KEY, institutionId],
+    queryFn: () => fetchFinalsPeriods(institutionId!),
+    enabled: !!institutionId,
     staleTime: 2 * 60 * 1000,
   });
 
   const createMutation = useMutation({
-    mutationFn: createFinalsPeriod,
+    mutationFn: (data: FinalsPeriodForm) =>
+      createFinalsPeriod({ ...data, institution_id: institutionId! }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FINALS_KEY });
       setShowForm(false);
@@ -96,11 +109,11 @@ export function AdminFinalsConfigPage() {
     onError: () => toast.error('Error al crear el periodo de finales.'),
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      updateFinalsPeriod(id, { is_active }),
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<FinalsPeriodForm> }) =>
+      updateFinalsPeriod(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: FINALS_KEY }),
-    onError: () => toast.error('Error al actualizar el estado del periodo.'),
+    onError: () => toast.error('Error al actualizar el periodo.'),
   });
 
   const deleteMutation = useMutation({
@@ -114,8 +127,8 @@ export function AdminFinalsConfigPage() {
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.start_date || !formData.end_date) return;
-    if (formData.end_date <= formData.start_date) {
+    if (!formData.finals_period_start || !formData.finals_period_end) return;
+    if (formData.finals_period_end <= formData.finals_period_start) {
       toast.error('La fecha de fin debe ser posterior a la fecha de inicio.');
       return;
     }
@@ -126,6 +139,17 @@ export function AdminFinalsConfigPage() {
     if (!courseId) return 'Todos los cursos';
     return courses?.find((c: { id: string; name: string }) => c.id === courseId)?.name ?? courseId;
   };
+
+  if (!institutionId) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-2 text-amber-600">
+          <AlertCircle size={18} />
+          <span className="text-[14px]">Selecciona una institucion para ver los periodos de finales.</span>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -206,8 +230,8 @@ export function AdminFinalsConfigPage() {
                   <input
                     type="date"
                     required
-                    value={formData.start_date}
-                    onChange={e => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                    value={formData.finals_period_start}
+                    onChange={e => setFormData(f => ({ ...f, finals_period_start: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] text-[#1a2332] focus:outline-none focus:ring-2 focus:ring-teal-400"
                   />
                 </div>
@@ -216,8 +240,8 @@ export function AdminFinalsConfigPage() {
                   <input
                     type="date"
                     required
-                    value={formData.end_date}
-                    onChange={e => setFormData(f => ({ ...f, end_date: e.target.value }))}
+                    value={formData.finals_period_end}
+                    onChange={e => setFormData(f => ({ ...f, finals_period_end: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] text-[#1a2332] focus:outline-none focus:ring-2 focus:ring-teal-400"
                   />
                 </div>
@@ -271,25 +295,11 @@ export function AdminFinalsConfigPage() {
                   {courseName(period.course_id)}
                 </div>
                 <div className="text-[11px] text-[#9ba3b2]">
-                  {format(parseISO(period.start_date), "d MMM yyyy", { locale: es })}
+                  {format(parseISO(period.finals_period_start), "d MMM yyyy", { locale: es })}
                   {' — '}
-                  {format(parseISO(period.end_date), "d MMM yyyy", { locale: es })}
+                  {format(parseISO(period.finals_period_end), "d MMM yyyy", { locale: es })}
                 </div>
               </div>
-
-              {/* Active toggle */}
-              <button
-                type="button"
-                onClick={() => toggleMutation.mutate({ id: period.id, is_active: !period.is_active })}
-                className="p-1 min-h-[36px] flex items-center justify-center"
-                title={period.is_active ? 'Desactivar' : 'Activar'}
-              >
-                {period.is_active ? (
-                  <ToggleRight size={24} className="text-teal-500" />
-                ) : (
-                  <ToggleLeft size={24} className="text-gray-300" />
-                )}
-              </button>
 
               {/* Delete */}
               {deleteConfirm === period.id ? (

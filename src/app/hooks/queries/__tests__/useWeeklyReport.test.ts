@@ -19,6 +19,16 @@ vi.mock('@/app/lib/api', () => ({
   apiCall: (...args: unknown[]) => mockApiCall(...args),
 }));
 
+// ── Mock useAuth ────────────────────────────────────────────
+
+const MOCK_INSTITUTION_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+
+vi.mock('@/app/context/AuthContext', () => ({
+  useAuth: () => ({
+    selectedInstitution: { id: MOCK_INSTITUTION_ID, name: 'Test', role: 'student' },
+  }),
+}));
+
 // ── Import after mocks ─────────────────────────────────────
 
 import { useWeeklyReport, type WeeklyReportData } from '../useWeeklyReport';
@@ -40,19 +50,24 @@ function createWrapper() {
 }
 
 const MOCK_REPORT: WeeklyReportData = {
+  id: 'report-1',
   weekStart: '2026-03-30',
   weekEnd: '2026-04-05',
   totalSessions: 12,
   totalReviews: 45,
   correctReviews: 38,
+  accuracyPercent: 84,
+  totalTimeSeconds: 7200,
   daysActive: 5,
   streakAtReport: 5,
   xpEarned: 320,
-  summary: 'Great week of study with consistent practice.',
-  strengths: ['Calculus', 'Linear Algebra'],
-  weaknesses: ['Statistics'],
-  recommendations: ['Review probability distributions'],
+  aiSummary: 'Great week of study with consistent practice.',
+  aiStrengths: ['Calculus', 'Linear Algebra'],
+  aiWeaknesses: ['Statistics'],
+  aiMasteryTrend: 'improving',
+  aiRecommendedFocus: [{ topicName: 'Probability', reason: 'Low mastery', suggestedMethod: 'flashcard' }],
   aiModel: 'claude-opus-4-6',
+  createdAt: '2026-04-05T12:00:00Z',
 };
 
 // ── Tests ───────────────────────────────────────────────────
@@ -62,7 +77,7 @@ describe('useWeeklyReport', () => {
     vi.clearAllMocks();
   });
 
-  it('fetches weekly report successfully', async () => {
+  it('fetches weekly report with institution_id', async () => {
     mockApiCall.mockResolvedValueOnce(MOCK_REPORT);
     const { wrapper } = createWrapper();
 
@@ -72,7 +87,9 @@ describe('useWeeklyReport', () => {
 
     await waitFor(() => expect(result.current.report).toEqual(MOCK_REPORT));
 
-    expect(mockApiCall).toHaveBeenCalledWith('/ai/weekly-report');
+    expect(mockApiCall).toHaveBeenCalledWith(
+      `/ai/weekly-report?institution_id=${MOCK_INSTITUTION_ID}`,
+    );
   });
 
   it('returns null report when fetch fails (graceful fallback)', async () => {
@@ -87,7 +104,7 @@ describe('useWeeklyReport', () => {
     expect(result.current.report).toBeNull();
   });
 
-  it('generate mutation calls POST and updates cache', async () => {
+  it('generate mutation calls POST with institutionId and updates cache', async () => {
     // First call: GET (initial fetch returns null)
     mockApiCall.mockResolvedValueOnce(null);
     const { wrapper } = createWrapper();
@@ -105,7 +122,10 @@ describe('useWeeklyReport', () => {
 
     await waitFor(() => expect(result.current.isGenerating).toBe(false));
 
-    expect(mockApiCall).toHaveBeenCalledWith('/ai/weekly-report', { method: 'POST' });
+    expect(mockApiCall).toHaveBeenCalledWith('/ai/weekly-report', {
+      method: 'POST',
+      body: JSON.stringify({ institutionId: MOCK_INSTITUTION_ID }),
+    });
     expect(result.current.report).toEqual(MOCK_REPORT);
   });
 

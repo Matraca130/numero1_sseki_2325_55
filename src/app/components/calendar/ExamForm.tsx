@@ -7,7 +7,7 @@
 //         exam_type
 //
 // Validation: Zod + react-hook-form.
-// Submit: POST /exam-events (create) or PATCH /exam-events/:id (edit).
+// Submit: POST /calendar/exam-events (create) or PATCH /calendar/exam-events/:id (edit).
 // Delete: with AlertDialog confirmation.
 // On success: invalidateQueries(['calendar-data']) to refresh.
 // ============================================================
@@ -133,12 +133,12 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
       setIsSubmitting(true);
       try {
         if (isEditMode && exam) {
-          await apiCall(`/exam-events/${exam.id}`, {
+          await apiCall(`/calendar/exam-events/${exam.id}`, {
             method: 'PATCH',
             body: JSON.stringify(values),
           });
         } else {
-          await apiCall('/exam-events', {
+          await apiCall('/calendar/exam-events', {
             method: 'POST',
             body: JSON.stringify(values),
           });
@@ -164,7 +164,7 @@ export function ExamForm({ exam, onClose, courses = [] }: ExamFormProps) {
     if (!exam) return;
     setIsDeleting(true);
     try {
-      await apiCall(`/exam-events/${exam.id}`, {
+      await apiCall(`/calendar/exam-events/${exam.id}`, {
         method: 'DELETE',
       });
       await queryClient.invalidateQueries({ queryKey: ['calendar-data'] });

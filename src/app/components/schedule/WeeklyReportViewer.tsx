@@ -78,9 +78,11 @@ export function WeeklyReportViewer() {
     );
   }
 
-  const accuracy = report.totalReviews > 0
-    ? Math.round((report.correctReviews / report.totalReviews) * 100)
-    : 0;
+  const accuracy = report.accuracyPercent ?? (
+    report.totalReviews > 0
+      ? Math.round((report.correctReviews / report.totalReviews) * 100)
+      : 0
+  );
 
   return (
     <motion.div
@@ -117,21 +119,21 @@ export function WeeklyReportViewer() {
       </div>
 
       {/* AI summary */}
-      {report.summary && (
+      {report.aiSummary && (
         <div className="bg-[#f8f9fb] rounded-xl p-3 mb-4">
-          <p className="text-[13px] text-[#4a5565] leading-relaxed">{report.summary}</p>
+          <p className="text-[13px] text-[#4a5565] leading-relaxed">{report.aiSummary}</p>
         </div>
       )}
 
       {/* Strengths */}
-      {report.strengths.length > 0 && (
+      {report.aiStrengths && report.aiStrengths.length > 0 && (
         <div className="mb-3">
           <div className="flex items-center gap-1.5 mb-2">
             <TrendingUp size={13} className="text-emerald-500" />
             <span className="text-[11px] font-semibold text-[#4a5565] uppercase tracking-wider">Fortalezas</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {report.strengths.map((s, i) => (
+            {report.aiStrengths.map((s, i) => (
               <span key={i} className="inline-flex px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium">
                 {s}
               </span>
@@ -141,14 +143,14 @@ export function WeeklyReportViewer() {
       )}
 
       {/* Weaknesses */}
-      {report.weaknesses.length > 0 && (
+      {report.aiWeaknesses && report.aiWeaknesses.length > 0 && (
         <div className="mb-3">
           <div className="flex items-center gap-1.5 mb-2">
             <AlertTriangle size={13} className="text-amber-500" />
             <span className="text-[11px] font-semibold text-[#4a5565] uppercase tracking-wider">A mejorar</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {report.weaknesses.map((w, i) => (
+            {report.aiWeaknesses.map((w, i) => (
               <span key={i} className="inline-flex px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-medium">
                 {w}
               </span>
@@ -158,19 +160,19 @@ export function WeeklyReportViewer() {
       )}
 
       {/* Recommendations */}
-      {report.recommendations.length > 0 && (
+      {report.aiRecommendedFocus && report.aiRecommendedFocus.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <Lightbulb size={13} className="text-blue-500" />
             <span className="text-[11px] font-semibold text-[#4a5565] uppercase tracking-wider">Recomendaciones</span>
           </div>
           <ul className="space-y-1.5">
-            {report.recommendations.map((r, i) => (
+            {report.aiRecommendedFocus.map((r, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-[#4a5565]">
                 <span className="shrink-0 w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-bold mt-0.5">
                   {i + 1}
                 </span>
-                {r}
+                <span><strong>{r.topicName}</strong> — {r.reason}</span>
               </li>
             ))}
           </ul>
