@@ -79,7 +79,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
     <div className="flex flex-col h-full">
       <div className="px-4 lg:px-6 py-4 lg:py-6 border-b border-gray-200/50 flex items-start justify-between shrink-0">
         <div>
-          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Viernes, 14</h2>
+          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Viernes, 14</h2>
           <p className="text-gray-400 text-sm mt-1">{remainingTasks} tareas restantes</p>
         </div>
         <div className="relative w-12 h-12 flex items-center justify-center shrink-0">

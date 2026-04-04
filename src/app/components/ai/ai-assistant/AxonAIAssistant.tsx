@@ -155,7 +155,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
             <div className="shrink-0 bg-teal-700 px-5 py-4 flex items-center justify-between relative overflow-hidden">
               <div className="relative flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center border border-white/20"><Sparkles size={20} className="text-white" /></div>
-                <div><h2 className="text-white font-bold text-lg leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Axon AI</h2><p className="text-white/60 text-xs">Powered by Gemini</p></div>
+                <div><h2 className="text-white font-bold text-lg leading-tight" style={{ fontFamily: "Georgia, serif" }}>Axon AI</h2><p className="text-white/60 text-xs">Powered by Gemini</p></div>
               </div>
               <button onClick={onClose} aria-label="Cerrar asistente" className="relative w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"><X size={18} /></button>
             </div>
@@ -191,7 +191,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
           {messages.length === 0 && (
             <div className="text-center py-8 space-y-6 px-4">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60"><Sparkles size={28} className="text-teal-500" /></div>
-              <div><h3 className="font-bold text-gray-800 text-lg" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Como posso ajudar?</h3><p className="text-gray-400 text-sm mt-1">Pergunte sobre qualquer topico de medicina</p></div>
+              <div><h3 className="font-bold text-gray-800 text-lg" style={{ fontFamily: "Georgia, serif" }}>Como posso ajudar?</h3><p className="text-gray-400 text-sm mt-1">Pergunte sobre qualquer topico de medicina</p></div>
               <div className="space-y-2 max-w-sm mx-auto">{QUICK_PROMPTS.map((p, i) => (<button key={i} onClick={() => sendChat(p.label)} className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-200/60 hover:border-teal-300 hover:shadow-sm transition-all text-left group"><p.icon size={16} className={p.color} /><span className="text-sm text-gray-600 group-hover:text-gray-800 flex-1">{p.label}</span><ChevronRight size={14} className="text-gray-300 group-hover:text-teal-400 transition-colors" /></button>))}</div>
             </div>
           )}
@@ -241,7 +241,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
       <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
         {generatedCards.length === 0 ? (
           <div className="space-y-4">
-            <div className="text-center py-4"><div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3"><Layers size={24} className="text-teal-500" /></div><h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Gerar Flashcards com IA</h3><p className="text-gray-400 text-xs mt-1">{summaryId ? 'Gere flashcards baseados no resumo atual' : 'Navega a un resumen para generar flashcards'}</p></div>
+            <div className="text-center py-4"><div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3"><Layers size={24} className="text-teal-500" /></div><h3 className="font-bold text-gray-800" style={{ fontFamily: "Georgia, serif" }}>Gerar Flashcards com IA</h3><p className="text-gray-400 text-xs mt-1">{summaryId ? 'Gere flashcards baseados no resumo atual' : 'Navega a un resumen para generar flashcards'}</p></div>
             <div className="bg-white rounded-xl p-4 border border-gray-200/60 space-y-3">
               {!summaryId && (<div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg"><AlertCircle size={14} className="text-amber-500 shrink-0" /><p className="text-xs text-amber-700">Navega a un resumen para generar flashcards con IA.</p></div>)}
               <button onClick={generateFlashcardsFn} disabled={isLoading || !summaryId} className="w-full py-3 bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50">{isLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}{isLoading ? 'Gerando...' : 'Gerar Flashcards'}</button>
@@ -271,7 +271,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
       <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
         {generatedQuiz.length === 0 ? (
           <div className="space-y-4">
-            <div className="text-center py-4"><div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3"><GraduationCap size={24} className="text-teal-500" /></div><h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Quiz com IA</h3><p className="text-gray-400 text-xs mt-1">{summaryId ? 'Questoes no estilo residencia medica' : 'Navega a un resumen para generar quiz'}</p></div>
+            <div className="text-center py-4"><div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3"><GraduationCap size={24} className="text-teal-500" /></div><h3 className="font-bold text-gray-800" style={{ fontFamily: "Georgia, serif" }}>Quiz com IA</h3><p className="text-gray-400 text-xs mt-1">{summaryId ? 'Questoes no estilo residencia medica' : 'Navega a un resumen para generar quiz'}</p></div>
             <div className="bg-white rounded-xl p-4 border border-gray-200/60 space-y-3">
               {!summaryId && (<div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg"><AlertCircle size={14} className="text-amber-500 shrink-0" /><p className="text-xs text-amber-700">Navega a un resumen para generar quiz con IA.</p></div>)}
               <button onClick={generateQuizFn} disabled={isLoading || !summaryId} className="w-full py-3 bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50">{isLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}{isLoading ? 'Gerando...' : 'Gerar Quiz'}</button>
@@ -302,7 +302,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
       <div className="flex-1 overflow-y-auto custom-scrollbar-light px-4 py-4 space-y-4">
         {!explanation ? (
           <div className="space-y-4">
-            <div className="text-center py-4"><div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3"><BookOpen size={24} className="text-teal-500" /></div><h3 className="font-bold text-gray-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Explicacao Profunda</h3><p className="text-gray-400 text-xs mt-1">IA explica qualquer conceito medico em detalhes</p></div>
+            <div className="text-center py-4"><div className="w-14 h-14 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center border border-teal-200/60 mb-3"><BookOpen size={24} className="text-teal-500" /></div><h3 className="font-bold text-gray-800" style={{ fontFamily: "Georgia, serif" }}>Explicacao Profunda</h3><p className="text-gray-400 text-xs mt-1">IA explica qualquer conceito medico em detalhes</p></div>
             <div className="bg-white rounded-xl p-4 border border-gray-200/60 space-y-3">
               <div><label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Conceito</label><textarea value={explainConceptText} onChange={e => setExplainConceptText(e.target.value)} placeholder="Ex: Potencial de acao no neuronio" rows={3} className="w-full px-3 py-2.5 bg-[#F0F2F5] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none" /></div>
               <button onClick={explainFn} disabled={!explainConceptText.trim() || isLoading} className="w-full py-3 bg-[#2a8c7a] hover:bg-[#244e47] text-white rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50">{isLoading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}{isLoading ? 'Analisando...' : 'Explicar Conceito'}</button>
