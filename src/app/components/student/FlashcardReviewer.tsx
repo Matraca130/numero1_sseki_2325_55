@@ -57,6 +57,7 @@ import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar
 import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
 import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
+import { gradients } from '@/app/design-system';
 
 // ── Props ─────────────────────────────────────────────────────
 
@@ -267,7 +268,7 @@ function FlashcardReviewerInner({ summaryId, onClose, masteryMap }: FlashcardRev
   if (phase === 'idle') {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2a8c7a]/20 to-[#1B3B36]/10 border border-[#2a8c7a]/20 flex items-center justify-center mb-6"><CreditCard size={36} className="text-[#2a8c7a]" /></div>
+        <div className={`w-20 h-20 rounded-2xl ${gradients.tealIconBg.tw} border border-[#2a8c7a]/20 flex items-center justify-center mb-6`}><CreditCard size={36} className="text-[#2a8c7a]" /></div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">Revision de Flashcards</h3>
         <p className="text-sm text-gray-500 max-w-md mb-1">{totalCards} flashcard{totalCards !== 1 ? 's' : ''} disponible{totalCards !== 1 ? 's' : ''} para revisar</p>
         <p className="text-xs text-gray-400 mb-8">Voltea cada tarjeta y califica que tan bien recordaste la respuesta</p>
@@ -303,7 +304,7 @@ function FlashcardReviewerInner({ summaryId, onClose, masteryMap }: FlashcardRev
             </div>
           )}
           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <motion.div className="h-full bg-gradient-to-r from-[#2dd4a8] to-[#0d9488] rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} />
+            <motion.div className={`h-full ${gradients.progress.tw} rounded-full`} initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} />
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center px-5 min-h-0">

@@ -8,10 +8,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { METHOD_ICONS, METHOD_LABELS, METHOD_COLORS } from '@/app/utils/studyMethodStyles';
+import { gradients } from '@/app/design-system';
 
 export const METHOD_TAG_FIGMA: Record<string, { bg: string; border: string; text: string; iconStroke: string }> = {
   flashcard: { bg: '#f0fdf6', border: 'rgba(198,240,223,0.8)', text: '#6ba88e', iconStroke: '#6ba88e' },
-  quiz: { bg: 'linear-gradient(90deg, rgb(254,248,224), rgb(254,243,198))', border: 'rgba(253,230,138,0.6)', text: '#b45309', iconStroke: '#b45309' },
+  quiz: { bg: gradients.methodQuiz.css, border: 'rgba(253,230,138,0.6)', text: '#b45309', iconStroke: '#b45309' },
   video: { bg: '#eff6ff', border: 'rgba(191,219,254,0.8)', text: '#3b82f6', iconStroke: '#3b82f6' },
   resumo: { bg: '#faf5ff', border: 'rgba(221,214,254,0.8)', text: '#7c3aed', iconStroke: '#7c3aed' },
   '3d': { bg: '#fff7ed', border: 'rgba(254,215,170,0.8)', text: '#c2410c', iconStroke: '#c2410c' },

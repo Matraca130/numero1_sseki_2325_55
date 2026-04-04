@@ -10,13 +10,14 @@ import { Trophy, Crown, Medal, Loader2, AlertTriangle, TrendingUp, User } from '
 import { useAuth } from '@/app/context/AuthContext';
 import { getLeaderboard } from '@/app/services/gamificationApi';
 import type { LeaderboardResponse, LeaderboardEntry } from '@/app/services/gamificationApi';
+import { gradients } from '@/app/design-system';
 
 type Period = 'weekly' | 'daily';
 
 const PODIUM = [
-  { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300', gradient: 'linear-gradient(135deg, #fbbf24, #f59e0b)' },
-  { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-300', gradient: 'linear-gradient(135deg, #9ca3af, #6b7280)' },
-  { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300', gradient: 'linear-gradient(135deg, #fb923c, #ea580c)' },
+  { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300', gradient: gradients.gold.css },
+  { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-300', gradient: gradients.silver.css },
+  { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300', gradient: gradients.bronze.css },
 ];
 
 export function LeaderboardPage() {

@@ -34,7 +34,8 @@
  *   ├── layout.ts            ← Dimensiones, spacing, grids
  *   ├── animation.ts         ← Presets de Motion
  *   ├── rules.ts             ← Reglas obligatorias y prohibidas
- *   └── severity.ts          ← Tokens de severidad (mild/moderate/critical)
+ *   ├── severity.ts          ← Tokens de severidad (mild/moderate/critical)
+ *   └── gradients.ts         ← Gradientes decorativos tokenizados
  */
 
 // ─────────────────────────────────────────────
@@ -142,3 +143,8 @@ export { designRules } from './rules';
 // ─────────────────────────────────────────────
 export { SEVERITY } from './severity';
 export type { SeverityLevel } from './severity';
+
+// ─────────────────────────────────────────────
+// 13. GRADIENT TOKENS
+// ─────────────────────────────────────────────
+export { gradients } from './gradients';

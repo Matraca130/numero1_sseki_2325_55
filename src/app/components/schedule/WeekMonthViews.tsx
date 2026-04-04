@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { StudyPlanTask } from '@/app/types/study-plan';
+import { gradients } from '@/app/design-system';
 
 // ── Shared type ───────────────────────────────────────────────
 export type TaskWithPlan = StudyPlanTask & { planId: string };
@@ -129,7 +130,7 @@ function CompactTaskCard({
       className={clsx(
         'flex items-center gap-2.5 px-3 py-2 rounded-[10px] border relative overflow-hidden',
         task.completed
-          ? 'border-[#c6f0df] bg-gradient-to-r from-[#f6fffb] to-white'
+          ? `border-[#c6f0df] ${gradients.scheduleCompletedRow.tw}`
           : 'border-[#ebedf0] bg-white hover:border-[#d0d4db] hover:shadow-[0_1px_4px_rgba(0,0,0,0.04)]',
         isToggling && 'pointer-events-none',
       )}
@@ -139,8 +140,8 @@ function CompactTaskCard({
         className="absolute left-0 top-0 bottom-0 w-[2.5px] rounded-l-[10px]"
         style={{
           background: task.completed
-            ? 'linear-gradient(to bottom, #34D399, #2a8c7a)'
-            : 'linear-gradient(to bottom, #e5e7eb, #dfe2e8)',
+            ? gradients.scheduleBarActive.css
+            : gradients.scheduleBarInactive.css,
         }}
       />
 
@@ -289,7 +290,7 @@ function WeekDayRow({
         className={clsx(
           'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
           isCurrentDay
-            ? 'bg-gradient-to-r from-[#e6f5f1] to-[#f0f9f7]'
+            ? gradients.currentDayHeader.tw
             : isSelected
               ? 'bg-[#f8f9fb]'
               : 'bg-white hover:bg-[#fafafa]',

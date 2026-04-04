@@ -44,6 +44,7 @@ import { LevelProgressBar } from '@/app/components/gamification/LevelProgressBar
 import { useAuth } from '@/app/context/AuthContext';
 import * as gamificationApi from '@/app/services/gamificationApi';
 import { useStudyPlanBridge } from '@/app/hooks/useStudyPlanBridge';
+import { gradients } from '@/app/design-system';
 
 interface ReviewQueueItem { card: FlashcardItem; fsrsState: StudyQueueItem; }
 interface ReviewSessionViewProps { onClose?: () => void; masteryMap?: Map<string, { p_know: number }>; }
@@ -185,7 +186,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
     }
     return (
       <div className="flex flex-col items-center justify-center h-full bg-[#F0F2F5] px-4">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2a8c7a]/20 to-[#1B3B36]/10 border border-[#2a8c7a]/20 flex items-center justify-center mb-6"><Calendar size={36} className="text-[#2a8c7a]" /></div>
+        <div className={`w-20 h-20 rounded-2xl ${gradients.tealIconBg.tw} border border-[#2a8c7a]/20 flex items-center justify-center mb-6`}><Calendar size={36} className="text-[#2a8c7a]" /></div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">Repaso del dia</h3>
         <p className="text-sm text-gray-500 max-w-md text-center mb-1">{totalDueCount} flashcard{totalDueCount !== 1 ? 's' : ''} para repasar hoy</p>
         <p className="text-xs text-gray-400 mb-8">Basado en el algoritmo FSRS de repeticion espaciada</p>
@@ -223,7 +224,7 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
               {currentItem.fsrsState.clinical_priority > 0 && (<span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20" style={{ fontWeight: 600 }}><Stethoscope size={10} />Prioridad clinica: {Math.round(currentItem.fsrsState.clinical_priority * 100)}%</span>)}
             </div>
           )}
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden"><motion.div className="h-full bg-gradient-to-r from-[#2dd4a8] to-[#0d9488] rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} /></div>
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden"><motion.div className={`h-full ${gradients.progress.tw} rounded-full`} initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} /></div>
         </div>
         <div className="flex-1 flex items-center justify-center px-5 min-h-0">
           <AnimatePresence mode="wait">

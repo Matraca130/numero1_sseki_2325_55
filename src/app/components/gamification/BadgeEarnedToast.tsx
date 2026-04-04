@@ -15,6 +15,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, X } from 'lucide-react';
 import type { BadgeWithEarnedStatus } from '@/app/types/gamification';
+import { gradients } from '@/app/design-system';
 
 interface BadgeEarnedToastProps {
   badges: BadgeWithEarnedStatus[];
@@ -36,7 +37,7 @@ export function BadgeEarnedToast({ badges, onDismiss }: BadgeEarnedToastProps) {
         <div
           className="rounded-2xl p-4 shadow-xl border"
           style={{
-            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            background: gradients.badgeEarned.css,
             borderColor: '#fbbf24',
           }}
         >

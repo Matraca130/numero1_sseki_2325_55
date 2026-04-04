@@ -16,6 +16,7 @@ import {
   TrendingUp, Award,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { gradients } from '@/app/design-system';
 
 // ── Props ────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ export const QuizXpConfirmedCard = React.memo(function QuizXpConfirmedCard({
       transition={{ delay: 0.7, type: 'spring', stiffness: 400, damping: 28 }}
       className="relative overflow-hidden rounded-2xl mx-auto max-w-sm mb-6"
       style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.03) 0%, rgba(15,23,42,0.01) 100%)',
+        background: gradients.xpCardOuter.css,
       }}
     >
       {/* Glass card */}
@@ -64,14 +65,14 @@ export const QuizXpConfirmedCard = React.memo(function QuizXpConfirmedCard({
         className="relative z-10 px-5 py-4 rounded-2xl"
         style={{
           background: isConfirmed
-            ? 'linear-gradient(135deg, rgba(236,253,245,0.9) 0%, rgba(209,250,229,0.85) 50%, rgba(167,243,208,0.8) 100%)'
-            : 'linear-gradient(135deg, rgba(254,243,199,0.85) 0%, rgba(253,230,138,0.8) 50%, rgba(252,211,77,0.75) 100%)',
+            ? gradients.xpConfirmed.css
+            : gradients.xpPending.css,
           border: isConfirmed
-            ? '1px solid rgba(16,185,129,0.35)'
-            : '1px solid rgba(253,224,71,0.5)',
+            ? `1px solid ${gradients.xpConfirmed.border}`
+            : `1px solid ${gradients.xpPending.border}`,
           boxShadow: isConfirmed
-            ? '0 8px 32px -4px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.05), inset 0 1px 0 rgba(255,255,255,0.6)'
-            : '0 8px 32px -4px rgba(245,158,11,0.18), 0 0 0 1px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+            ? gradients.xpConfirmed.shadow
+            : gradients.xpPending.shadow,
           transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
@@ -83,11 +84,11 @@ export const QuizXpConfirmedCard = React.memo(function QuizXpConfirmedCard({
               className="flex items-center justify-center w-10 h-10 rounded-xl"
               style={{
                 background: isConfirmed
-                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                  : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  ? gradients.xpConfirmedIcon.css
+                  : gradients.xpPendingIcon.css,
                 boxShadow: isConfirmed
-                  ? '0 4px 12px rgba(16,185,129,0.35)'
-                  : '0 4px 12px rgba(245,158,11,0.3)',
+                  ? gradients.xpConfirmedIcon.shadow
+                  : gradients.xpPendingIcon.shadow,
                 transition: 'all 0.5s ease',
               }}
               animate={isConfirmed ? { rotate: [0, -10, 10, 0] } : { rotate: [0, -6, 6, 0] }}
@@ -216,7 +217,7 @@ export const QuizXpConfirmedCard = React.memo(function QuizXpConfirmedCard({
         <motion.div
           className="absolute inset-0 z-20 pointer-events-none"
           style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+            background: gradients.xpShimmer.css,
           }}
           animate={{ x: ['-100%', '200%'] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
