@@ -108,7 +108,16 @@ export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTask
   }, [studyPlans, topicMastery, studentDataCtx?.dailyActivity, studentDataCtx?.stats, timeSummary]);
 
   const toggleExpand = (taskId: string) => { setExpandedTasks(prev => { const next = new Set(prev); if (next.has(taskId)) next.delete(taskId); else next.add(taskId); return next; }); };
-  const handleToggleTask = async (planId: string, taskId: string) => { setTogglingTaskId(taskId); await toggleTaskComplete(planId, taskId); setTogglingTaskId(null); };
+  const handleToggleTask = async (planId: string, taskId: string) => {
+    setTogglingTaskId(taskId);
+    try {
+      await toggleTaskComplete(planId, taskId);
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('[Dashboard] toggleTask failed:', err);
+    } finally {
+      setTogglingTaskId(null);
+    }
+  };
   const handleDragStart = useCallback((taskId: string) => { setDraggedTaskId(taskId); }, []);
   const handleDragOver = useCallback((e: React.DragEvent, taskId: string) => { e.preventDefault(); if (taskId !== draggedTaskId) setDragOverTaskId(taskId); }, [draggedTaskId]);
   const handleDrop = useCallback((e: React.DragEvent, targetTaskId: string) => {
