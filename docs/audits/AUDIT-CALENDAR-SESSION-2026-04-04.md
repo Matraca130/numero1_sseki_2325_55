@@ -263,4 +263,62 @@ FLUJO E2E: Agregar Sesion de Estudio
 
 ---
 
-*Reporte generado por auditoria multi-agente paralela (4 agentes opus)*
+## Addendum: Hallazgos del Agente API Contract (XX-09)
+
+### CRITICOS adicionales
+
+#### C-4: StudySessionRecord definido en 2 archivos con shapes DIVERGENTES
+- **Archivo 1:** `pa-study-plans.ts:195-204` -- `total_reviews: number` (requerido), sin `started_at`
+- **Archivo 2:** `studySessionApi.ts:28-41` -- `total_reviews?: number` (opcional), con `started_at: string` (requerido)
+- **6 discrepancias concretas** entre ambas definiciones
+- **Fix:** Unificar en `types/study-session.ts`, re-exportar desde ambos
+
+#### C-5: Funciones duplicadas createStudySession/getStudySessions en ambos archivos
+- `pa-study-plans.ts` tiene `createStudySession`, `updateStudySession`, `getStudySessions`
+- `studySessionApi.ts` tiene `createStudySession`, `closeStudySession`, `getStudySessions`
+- Nombres distintos para la misma operacion (`updateStudySession` vs `closeStudySession`)
+- **Fix:** Eliminar funciones de session de pa-study-plans.ts, usar studySessionApi.ts como canonico
+
+### ALTOS adicionales
+
+#### H-6: `aiReschedule` invocado con `completedTaskId = ''` (siempre vacio)
+- **Archivo:** `reschedule-runner.ts:141`
+- `''` es falsy, asi que `callScheduleAgent` nunca lo envia al backend
+- El AI no sabe que tarea se completo, degradando la calidad del reschedule
+- **Fix:** Propagar el taskId real desde `toggleTaskComplete` hasta `executeReschedule`
+
+#### H-7: Endpoint `/reorder` acepta `table: string` libre -- riesgo de SQL injection
+- **Archivo:** `pa-study-plans.ts:182`
+- El parametro `table` se envia directo al backend como JSON body
+- Deberia ser union type: `table: 'study_plan_tasks' | 'topics'`
+
+### MEDIOS adicionales
+
+#### M-9: `course_id` no se mapea ni se envia desde el wizard
+- `StudyPlanRecord.course_id` existe como `string | null`
+- `createPlanFromWizard` nunca lo envia
+- `getStudyPlans(courseId)` no encontrara planes sin `course_id`
+
+#### M-10: Mapping lossy VIDEO/3D -> 'reading' en backend
+- `video` y `3d` se guardan como `reading` en backend
+- La inversa mapea `reading` -> `resumo`, perdiendo el metodo original si `original_method` es null
+
+#### M-11: `reschedule-runner.ts` duplica logica de `data-mapping.ts`
+- Reconstruye `frontendTasks` con la misma logica que `mapBackendPlanToFrontend`
+- Duplicacion que puede divergir
+
+---
+
+## Totales actualizados
+
+| Severidad | Cantidad |
+|-----------|----------|
+| **Critico** | 5 |
+| **Alto** | 7 |
+| **Medio** | 11 |
+| **Bajo** | 5 |
+| **Total** | **28 hallazgos** |
+
+---
+
+*Reporte generado por auditoria multi-agente paralela (4 agentes opus, 2 exploradores)*
