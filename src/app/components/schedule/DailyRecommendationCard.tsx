@@ -4,7 +4,7 @@
 // Shows Claude's personalized study recommendations for today.
 // Accepts a StudentProfilePayload; if null, shows empty state.
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Sparkles, RefreshCw, BookOpen, Zap, GraduationCap, FileText, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,6 +13,7 @@ import {
   aiRecommendToday,
   type StudentProfilePayload,
   type AiRecommendation,
+  type AiScheduleResponse,
 } from '@/app/services/aiService';
 
 // ── Method icon mapping ──
@@ -34,6 +35,9 @@ interface Props {
   studentProfile: StudentProfilePayload | null;
 }
 
+// Cache TTL: avoid redundant AI calls when the component re-mounts within 5 min
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 export function DailyRecommendationCard({ studentProfile }: Props) {
   const [recommendations, setRecommendations] = useState<AiRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,12 +45,35 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
   const [error, setError] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
-  const fetchRecommendations = useCallback(async () => {
+  const cacheRef = useRef<{ data: AiScheduleResponse | null; timestamp: number }>({
+    data: null,
+    timestamp: 0,
+  });
+
+  const fetchRecommendations = useCallback(async (forceRefresh = false) => {
     if (!studentProfile) return;
+
+    // Serve from cache if fresh and not a manual refresh
+    const now = Date.now();
+    if (
+      !forceRefresh &&
+      cacheRef.current.data &&
+      now - cacheRef.current.timestamp < CACHE_TTL_MS
+    ) {
+      const cached = cacheRef.current.data;
+      if (cached.todayRecommendations?.length) {
+        setRecommendations(cached.todayRecommendations);
+        setAiPowered(cached._meta?.aiPowered ?? false);
+      }
+      setHasFetched(true);
+      return;
+    }
+
     setLoading(true);
     setError(false);
     try {
       const result = await aiRecommendToday(studentProfile);
+      cacheRef.current = { data: result, timestamp: Date.now() };
       if (result?.todayRecommendations?.length) {
         setRecommendations(result.todayRecommendations);
         setAiPowered(result._meta?.aiPowered ?? false);
@@ -135,7 +162,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
           <AlertCircle size={24} className="text-[#dfe2e8] mb-2" />
           <p className="text-[12px] text-[#9ba3b2] mb-3">No hay recomendaciones disponibles</p>
           <button
-            onClick={fetchRecommendations}
+            onClick={() => fetchRecommendations(true)}
             className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2a8c7a] bg-[#e6f5f1] px-3 py-2 rounded-full hover:bg-[#ccebe3] transition-colors min-h-[36px]"
           >
             <RefreshCw size={12} />
@@ -189,7 +216,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
           )}
         </div>
         <button
-          onClick={fetchRecommendations}
+          onClick={() => fetchRecommendations(true)}
           disabled={loading}
           className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-[#9ba3b2] hover:text-[#4a5565] hover:bg-gray-50 rounded-lg transition-colors"
           aria-label="Actualizar recomendaciones"
