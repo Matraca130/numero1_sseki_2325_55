@@ -16,6 +16,7 @@ import type { HighlightColor } from './HighlightToolbar';
 import BookmarkButton from './BookmarkButton';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
+import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 import { sanitizeHtml } from '@/app/lib/sanitize';
 import {
   ProseBlock, KeyPointBlock, StagesBlock, ComparisonBlock,
@@ -48,6 +49,8 @@ interface ViewerBlockProps {
   summaryId?: string;
   /** Shared annotation mutation (lifted from parent to avoid N instances) */
   createAnnotationMutation?: { mutate: Function; isPending?: boolean };
+  /** Text annotations for rendering highlights on this block */
+  annotations?: TextAnnotation[];
 }
 
 // ── Callout icon map ──────────────────────────────────────
@@ -99,6 +102,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   onQuizTrigger,
   summaryId,
   createAnnotationMutation,
+  annotations = [],
 }: ViewerBlockProps) {
   const c = block.content || {};
 
@@ -154,8 +158,34 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     });
   }, [highlightEnabled]);
 
+  // Apply visual highlight to current selection immediately (optimistic)
+  const applySelectionHighlight = useCallback((color: string) => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !blockRef.current) return;
+    try {
+      const range = sel.getRangeAt(0);
+      if (!blockRef.current.contains(range.commonAncestorContainer)) return;
+      const hlColors: Record<string, string> = {
+        yellow: 'rgba(253,224,71,0.4)',
+        green: 'rgba(110,231,183,0.4)',
+        blue: 'rgba(147,197,253,0.4)',
+        pink: 'rgba(249,168,212,0.4)',
+        orange: 'rgba(253,186,116,0.4)',
+      };
+      const mark = document.createElement('mark');
+      mark.setAttribute('data-axon-hl', 'pending');
+      mark.style.backgroundColor = hlColors[color] || hlColors.yellow;
+      mark.style.borderRadius = '2px';
+      mark.style.padding = '0 1px';
+      range.surroundContents(mark);
+    } catch {
+      // surroundContents may fail crossing element boundaries
+    }
+  }, []);
+
   const handleSelectColor = useCallback((color: HighlightColor) => {
     if (!selectionRange || !summaryId || !createMutation) return;
+    applySelectionHighlight(color);
     createMutation.mutate(
       {
         summary_id: summaryId,
@@ -171,10 +201,11 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         },
       },
     );
-  }, [selectionRange, createMutation, summaryId]);
+  }, [selectionRange, createMutation, summaryId, applySelectionHighlight]);
 
   const handleAnnotate = useCallback(() => {
     if (!selectionRange || !summaryId || !createMutation) return;
+    applySelectionHighlight('yellow');
     createMutation.mutate(
       {
         summary_id: summaryId,
@@ -191,7 +222,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         },
       },
     );
-  }, [selectionRange, createMutation, summaryId]);
+  }, [selectionRange, createMutation, summaryId, applySelectionHighlight]);
 
   // Listen for mouseup on block content
   useEffect(() => {
@@ -213,6 +244,93 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [toolbar]);
+
+  // ── Render existing highlights on block text via DOM ─────
+  // Walk text nodes and wrap ranges that match stored annotations
+  // with <mark> elements. Annotations use block-local offsets
+  // (calculated relative to blockRef.current's text content).
+  const liveAnnotations = annotations.filter(a => !a.deleted_at);
+
+  useEffect(() => {
+    const el = blockRef.current;
+    if (!el || !highlightEnabled || liveAnnotations.length === 0) return;
+
+    // Strip previous highlight marks before re-applying
+    const existingMarks = el.querySelectorAll('mark[data-axon-hl]');
+    existingMarks.forEach(mark => {
+      const text = document.createTextNode(mark.textContent || '');
+      mark.parentNode?.replaceChild(text, mark);
+    });
+    el.normalize();
+
+    // Collect all text nodes
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const textNodes: { node: Text; start: number; end: number }[] = [];
+    let charOffset = 0;
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      const len = node.textContent?.length || 0;
+      textNodes.push({ node, start: charOffset, end: charOffset + len });
+      charOffset += len;
+    }
+
+    const hlColorMap: Record<string, string> = {
+      yellow: 'rgba(253,224,71,0.4)',
+      green: 'rgba(110,231,183,0.4)',
+      blue: 'rgba(147,197,253,0.4)',
+      pink: 'rgba(249,168,212,0.4)',
+      orange: 'rgba(253,186,116,0.4)',
+    };
+
+    // Sort annotations by start_offset ascending
+    const sorted = [...liveAnnotations].sort((a, b) => a.start_offset - b.start_offset);
+
+    // Apply each annotation by finding and wrapping text node ranges
+    // Process in reverse so DOM mutations don't shift later offsets
+    for (let ai = sorted.length - 1; ai >= 0; ai--) {
+      const ann = sorted[ai];
+      const annStart = ann.start_offset;
+      const annEnd = Math.min(ann.end_offset, charOffset);
+      if (annStart >= annEnd) continue;
+
+      // Find text nodes that overlap with this annotation
+      for (let ti = textNodes.length - 1; ti >= 0; ti--) {
+        const tn = textNodes[ti];
+        const overlapStart = Math.max(annStart, tn.start);
+        const overlapEnd = Math.min(annEnd, tn.end);
+        if (overlapStart >= overlapEnd) continue;
+
+        const localStart = overlapStart - tn.start;
+        const localEnd = overlapEnd - tn.start;
+
+        try {
+          const range = document.createRange();
+          range.setStart(tn.node, localStart);
+          range.setEnd(tn.node, localEnd);
+
+          const mark = document.createElement('mark');
+          mark.setAttribute('data-axon-hl', ann.id);
+          mark.style.backgroundColor = hlColorMap[ann.color || 'yellow'] || hlColorMap.yellow;
+          mark.style.borderRadius = '2px';
+          mark.style.padding = '0 1px';
+          range.surroundContents(mark);
+        } catch {
+          // surroundContents may fail if range crosses element boundaries
+        }
+      }
+    }
+
+    // Cleanup on unmount or re-render
+    return () => {
+      if (!el) return;
+      const marks = el.querySelectorAll('mark[data-axon-hl]');
+      marks.forEach(mark => {
+        const text = document.createTextNode(mark.textContent || '');
+        mark.parentNode?.replaceChild(text, mark);
+      });
+      el.normalize();
+    };
+  }, [liveAnnotations, highlightEnabled]);
 
   const blockContent = (() => { switch (block.type) {
     // ── Text ────────────────────────────────────────────

@@ -28,6 +28,7 @@ import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import { useCreateAnnotationMutation } from '@/app/hooks/queries/useAnnotationMutations';
+import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -42,9 +43,11 @@ interface SummaryViewerProps {
   keywords?: SummaryKeyword[];
   /** Layout mode: 'canvas' = absolute positioning (default), 'flow' = vertical stack */
   layout?: 'canvas' | 'flow';
+  /** Text annotations for highlight rendering in blocks */
+  annotations?: TextAnnotation[];
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'flow' }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'flow', annotations = [] }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -200,6 +203,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
                 masteryLevel={masteryLevels[block.id]}
                 summaryId={summaryId}
                 createAnnotationMutation={createAnnotationMutation}
+                annotations={annotations}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
