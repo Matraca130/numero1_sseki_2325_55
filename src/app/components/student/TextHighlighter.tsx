@@ -44,18 +44,18 @@ const colorMap: Record<string, { bg: string; bgHover: string; border: string }> 
 };
 
 // ── Build plain text from chunks ──────────────────────────
-function buildPlainText(chunks: Chunk[]): string {
+export function buildPlainText(chunks: Chunk[]): string {
   const sorted = [...chunks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   return sorted.map(c => c.content).join('\n');
 }
 
 // ── Split text into segments with highlights ──────────────
-interface Segment {
+export interface Segment {
   text: string;
   annotation?: TextAnnotation;
 }
 
-function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment[] {
+export function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment[] {
   if (annotations.length === 0) return [{ text: fullText }];
 
   // Sort by start_offset
