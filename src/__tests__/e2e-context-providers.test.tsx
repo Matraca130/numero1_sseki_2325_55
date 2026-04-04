@@ -111,11 +111,13 @@ vi.mock('@/app/context/AuthContext', () => ({
 const mockGetStudentStatsReal = vi.fn();
 const mockGetDailyActivities = vi.fn();
 const mockGetAllBktStates = vi.fn();
+const mockGetStudySessions = vi.fn();
 
 vi.mock('@/app/services/platformApi', () => ({
   getStudentStatsReal: (...args: unknown[]) => mockGetStudentStatsReal(...args),
   getDailyActivities: (...args: unknown[]) => mockGetDailyActivities(...args),
   getAllBktStates: (...args: unknown[]) => mockGetAllBktStates(...args),
+  getStudySessions: (...args: unknown[]) => mockGetStudySessions(...args),
 }));
 
 // ── Mock getAxonToday ───────────────────────────────────────
@@ -183,12 +185,14 @@ function setupSuccessfulApiCalls() {
   mockGetStudentStatsReal.mockResolvedValue(MOCK_STATS);
   mockGetDailyActivities.mockResolvedValue(MOCK_DAILY);
   mockGetAllBktStates.mockResolvedValue(MOCK_BKT);
+  mockGetStudySessions.mockResolvedValue([]);
 }
 
 function setupFailingApiCalls(errorMessage = 'Network error') {
   mockGetStudentStatsReal.mockRejectedValue(new Error(errorMessage));
   mockGetDailyActivities.mockRejectedValue(new Error(errorMessage));
   mockGetAllBktStates.mockRejectedValue(new Error(errorMessage));
+  mockGetStudySessions.mockRejectedValue(new Error(errorMessage));
 }
 
 function createStudentDataWrapper() {

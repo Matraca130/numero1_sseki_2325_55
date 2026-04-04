@@ -1,10 +1,12 @@
 /**
- * Maps StudySessionRecord[] to the AI schedule-agent's sessionHistory payload.
+ * Maps StudySessionRecord[] from the backend into the AI schedule-agent payload format.
+ * Used by plan-generation.ts and reschedule-runner.ts to populate sessionHistory
+ * in the StudentProfilePayload sent to the AI.
  */
 
-import type { StudySessionRecord } from '@/app/services/studySessionApi';
+import type { StudySessionRecord } from '@/app/services/platformApi';
 
-interface SessionHistoryEntry {
+export interface MappedSessionHistory {
   sessionType: string;
   durationMinutes: number;
   createdAt: string;
@@ -12,27 +14,19 @@ interface SessionHistoryEntry {
 }
 
 /**
- * Convert backend StudySessionRecords into the shape expected by
- * StudentProfilePayload.sessionHistory.
+ * Convert backend StudySessionRecords into the AI payload format.
+ * Only includes completed sessions. Duration is estimated from total_reviews
+ * since per-session time tracking is not yet available.
  */
 export function mapSessionHistoryForAI(
-  sessions: StudySessionRecord[],
-): SessionHistoryEntry[] {
-  return sessions.map((s) => {
-    // Compute duration from started_at → completed_at if both exist
-    let durationMinutes = 0;
-    if (s.started_at && s.completed_at) {
-      const start = new Date(s.started_at).getTime();
-      const end = new Date(s.completed_at).getTime();
-      if (end > start) {
-        durationMinutes = Math.round((end - start) / 60_000);
-      }
-    }
-
-    return {
-      sessionType: s.session_type,
-      durationMinutes,
-      createdAt: s.created_at ?? s.started_at,
-    };
-  });
+  records: StudySessionRecord[],
+): MappedSessionHistory[] {
+  return records
+    .filter(r => r.completed_at)
+    .map(r => ({
+      sessionType: r.session_type,
+      durationMinutes: Math.round((r.total_reviews || 1) * 1.5),
+      createdAt: r.completed_at!,
+      topicId: undefined,
+    }));
 }

@@ -14,3 +14,11 @@ export const CATEGORY_STYLES: Record<string, string> = {
   core: 'bg-emerald-500/15 border-l-4 border-l-emerald-500 text-emerald-900',
   activity: 'bg-violet-500/15 border-l-4 border-l-violet-500 text-violet-900',
 };
+
+/** Mobile dot indicator colors per category. */
+export const CATEGORY_DOT_COLORS: Record<string, string> = {
+  science: 'bg-blue-500',
+  arts: 'bg-pink-500',
+  core: 'bg-emerald-500',
+  activity: 'bg-violet-500',
+};

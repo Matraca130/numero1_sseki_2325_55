@@ -16,6 +16,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Layers, Clock, Brain, ChevronRight } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import { focusRing } from './constants';
+import { gradients } from '@/app/design-system';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export function FlashcardHero({
           </div>
           <ProgressBar
             value={totalCards > 0 ? totalMastered / totalCards : 0}
-            color="bg-gradient-to-r from-[#0d9488] to-[#2dd4a8]"
+            color={gradients.progressReverse.tw}
             className="h-2"
             animated
             dark

@@ -12,8 +12,6 @@ import { balanceCognitiveLoad } from './cognitive-load';
 import { interleaveWithinDays } from './cognitive-load';
 
 /**
- * @internal — not yet consumed, planned for future iteration
- *
  * Enrich plan tasks with difficulty data from the study-intelligence API.
  * Maps TopicDifficultyData to the task's difficulty fields.
  */
@@ -45,8 +43,6 @@ export function enrichTasksWithDifficulty(
 }
 
 /**
- * @internal — not yet consumed, planned for future iteration
- *
  * Run the complete scheduling intelligence pipeline.
  *
  * Pipeline:

@@ -12,6 +12,7 @@ import {
   Clock, BookOpen, Plus, GripVertical, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { gradients } from '@/app/design-system';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, addDays, subDays, isBefore, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getAxonToday } from '@/app/utils/constants';
@@ -225,7 +226,7 @@ export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTask
                         <div className={clsx('w-2 h-2 rounded-[3px]', tasks[0]?.subjectColor || 'bg-[#6b7385]')} />
                         <span className="text-[13px] font-semibold text-[#4a5565] tracking-[0.2px]">{subject}</span>
                         <span className="text-[10px] text-[#b0b8c4] font-medium">{tasks.filter(t => t.completed).length}/{tasks.length}</span>
-                        <div className="flex-1 h-px ml-1" style={{ background: 'linear-gradient(90deg, rgb(232,234,237), rgba(0,0,0,0))' }} />
+                        <div className="flex-1 h-px ml-1" style={{ background: gradients.subjectDivider.css }} />
                       </div>
                       {tasks.map((task, localIdx) => {
                         const globalIdx = subjectStartIndex + localIdx;
@@ -237,8 +238,8 @@ export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTask
                             <motion.div layout draggable={!isMobile} onDragStart={!isMobile ? () => handleDragStart(task.id) : undefined} onDragOver={!isMobile ? (e) => handleDragOver(e, task.id) : undefined} onDrop={!isMobile ? (e) => handleDrop(e, task.id) : undefined} onDragEnd={!isMobile ? handleDragEnd : undefined}
                               initial={{ opacity: 0, y: 6 }} animate={{ opacity: isToggling ? 0.5 : 1, y: 0 }} transition={{ delay: globalIdx * 0.06, duration: 0.25 }}
                               className={clsx('ml-9 flex-1 rounded-[14px] border overflow-hidden relative transition-shadow', task.completed ? 'border-[#c6f0df] shadow-[0px_1px_3px_0px_rgba(52,211,153,0.05)]' : 'border-[#ebedf0] bg-white shadow-[0px_1px_3px_0px_rgba(0,0,0,0.02)] hover:shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)]', draggedTaskId === task.id && 'opacity-40 scale-[0.97]', dragOverTaskId === task.id && draggedTaskId !== task.id && 'border-[#2a8c7a] ring-1 ring-[#2a8c7a]/20', isToggling && 'pointer-events-none')}
-                              style={task.completed ? { background: 'linear-gradient(90deg, rgb(250,255,254) 0%, rgb(255,255,255) 100%)' } : undefined}>
-                              <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: task.completed ? 'linear-gradient(to bottom, rgb(52,211,153), rgb(42,140,122))' : 'linear-gradient(to bottom, rgb(229,231,235), rgb(223,226,232))' }} />
+                              style={task.completed ? { background: gradients.dashboardCompletedRow.css } : undefined}>
+                              <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: task.completed ? gradients.dashboardBarActive.css : gradients.dashboardBarInactive.css }} />
                               <div className="pl-5 pr-4 py-[18px] flex items-center gap-3">
                                 <div className="hidden lg:block cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 shrink-0 touch-none opacity-50"><GripVertical size={14} /></div>
                                 <CompletionCircle completed={task.completed} onClick={() => handleToggleTask(task.planId, task.id)} />

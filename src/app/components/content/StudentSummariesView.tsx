@@ -30,6 +30,7 @@ import {
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useKeywordNavigation } from '@/app/hooks/useKeywordNavigation';
 import { axon, tint } from '@/app/lib/palette';
+import { gradients } from '@/app/design-system';
 
 export function StudentSummariesView() {
   const { selectedTopicId, tree, selectTopic } = useContentTree();
@@ -203,7 +204,7 @@ export function StudentSummariesView() {
                   value={progress}
                   animated
                   dark
-                  color="bg-gradient-to-r from-[#2dd4a8] to-[#0d9488]"
+                  color={gradients.progress.tw}
                 />
                 <div className="flex items-center justify-between mt-2">
                   {motivation && (

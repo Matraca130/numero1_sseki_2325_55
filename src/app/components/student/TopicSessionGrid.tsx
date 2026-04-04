@@ -25,6 +25,7 @@ import {
   focusRing,
 } from '@/app/components/design-kit';
 import { axon, tint } from '@/app/lib/palette';
+import { gradients } from '@/app/design-system';
 import { stripMarkdown } from '@/app/components/content/summary-helpers';
 import { AVG_READING_WPM, MAX_TIME_BASED_PROGRESS } from '@/app/lib/xp-constants';
 
@@ -251,7 +252,7 @@ function SessionBlock({
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(to top, rgba(27,59,54,0.85) 0%, rgba(27,59,54,0.3) 50%, rgba(27,59,54,0.1) 100%)',
+                background: gradients.videoOverlay.css,
               }}
             />
           )}

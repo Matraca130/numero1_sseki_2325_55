@@ -11,6 +11,7 @@ import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 import { useStudyPlansContext } from '@/app/context/StudyPlansContext';
 import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
+import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { getAxonToday } from '@/app/utils/constants';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -43,6 +44,7 @@ export function StudyOrganizerWizard() {
   const [aiPowered, setAiPowered] = useState(false);
 
   const { topicMastery, courseMastery } = useTopicMasteryContext();
+  const { sessionHistory, rawDaily: dailyActivity, rawStats: stats } = useStudentDataContext();
   const selectedCourseId = selectedSubjects.length === 1 ? selectedSubjects[0] : null;
   const { data: studyIntelligence } = useStudyIntelligence(selectedCourseId);
 
@@ -92,6 +94,8 @@ export function StudyOrganizerWizard() {
       const result = await generateStudyPlan({
         selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours,
         topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount: studyPlans.length,
+        sessionHistory, dailyActivity, stats,
+        studyIntelligenceTopics: studyIntelligence?.topics,
       });
       setAiPowered(result.aiPowered);
       await createPlanFromWizard(result.plan);

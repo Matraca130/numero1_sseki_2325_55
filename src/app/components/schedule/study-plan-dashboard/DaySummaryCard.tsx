@@ -6,6 +6,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { BookOpen } from 'lucide-react';
+import { gradients } from '@/app/design-system';
 
 interface DaySummaryCardProps {
   todayCompleted: number;
@@ -30,7 +31,7 @@ export function DaySummaryCard({ todayCompleted, todayTotal, todayMinutes, today
       <div className="grid grid-cols-2 lg:grid-cols-4">
         <div
           className="px-5 py-4 flex items-center gap-3 col-span-2 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-[#eef0f3]"
-          style={{ background: 'linear-gradient(90deg, rgb(230,245,241) 0%, rgb(237,248,245) 100%)' }}
+          style={{ background: gradients.daySummaryHeader.css }}
         >
           <BookOpen size={13} className="text-[#1b3b36] shrink-0" />
           <div>

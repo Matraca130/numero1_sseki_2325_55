@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { CATEGORY_STYLES } from '@/app/utils/categoryStyles';
+import { CATEGORY_STYLES, CATEGORY_DOT_COLORS } from '@/app/utils/categoryStyles';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft,
@@ -71,7 +71,7 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
     <div className="flex flex-col h-full">
       <div className="px-4 lg:px-6 py-4 lg:py-6 border-b border-gray-200/50 flex items-start justify-between shrink-0 bg-white/20">
         <div>
-          <h2 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Memory Timeline</h2>
+          <h2 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Memory Timeline</h2>
           <p className="text-gray-400 text-xs mt-1">Impacto del estudio de hoy en la retención</p>
         </div>
         <div className="w-10 h-10 flex items-center justify-center bg-teal-50 rounded-xl shadow-sm border border-white"><Activity size={18} className="text-teal-500" /></div>
@@ -130,7 +130,7 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
       </div>
       <div className="p-3 lg:p-4 border-t border-gray-200/50 bg-white shrink-0">
         <div className="bg-white/60 rounded-lg p-3 border border-white/60 flex items-center justify-between">
-          <div><div className="text-[10px] text-gray-400 uppercase tracking-wider" style={{ fontWeight: 700 }}>Retención General</div><div className="text-2xl text-gray-800" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>{overallRetention}%</div></div>
+          <div><div className="text-[10px] text-gray-400 uppercase tracking-wider" style={{ fontWeight: 700 }}>Retención General</div><div className="text-2xl text-gray-800" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>{overallRetention}%</div></div>
           <div className="h-10 w-24"><svg className="w-full h-full text-emerald-500" preserveAspectRatio="none" viewBox="0 0 100 40"><path d="M0 30 Q 10 35, 20 25 T 40 20 T 60 15 T 80 5 L 100 10 L 100 40 L 0 40 Z" fill="currentColor" opacity="0.2" /><path d="M0 30 Q 10 35, 20 25 T 40 20 T 60 15 T 80 5 L 100 10" fill="none" stroke="currentColor" strokeWidth="2" /></svg></div>
         </div>
       </div>
@@ -225,7 +225,7 @@ export function KnowledgeHeatmapView() {
                       className={clsx("absolute z-50 bg-white rounded-xl shadow-xl border border-zinc-200 p-4", "left-2 right-2 bottom-2 lg:bottom-auto lg:left-auto lg:right-auto lg:w-72")}
                       style={{ ...(window.matchMedia('(min-width: 1024px)').matches ? { top: `${topPx}px`, left: `${leftPx}px` } : {}) }}>
                       <div className="flex justify-between items-start mb-3">
-                        <h4 className="text-pink-700" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>{dayEvents[0]?.title || `Día ${selectedDay}`}</h4>
+                        <h4 className="text-pink-700" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>{dayEvents[0]?.title || `Día ${selectedDay}`}</h4>
                         <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2 -mt-2"><X size={14} /></button>
                       </div>
                       <div className="flex items-center gap-4 mb-4">
@@ -265,7 +265,7 @@ export function KnowledgeHeatmapView() {
                         {event.noteText && <div className="text-xs text-gray-500 italic bg-white/50 border border-white rounded p-1.5 mt-1">{event.noteText}</div>}
                       </div>))}
                     </div>
-                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={i} className={clsx("w-1.5 h-1.5 rounded-full", event.category === 'science' ? 'bg-blue-500' : event.category === 'arts' ? 'bg-pink-500' : 'bg-emerald-500')} />))}</div>)}
+                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={i} className={clsx("w-1.5 h-1.5 rounded-full", CATEGORY_DOT_COLORS[event.category] ?? 'bg-emerald-500')} />))}</div>)}
                   </div>
                 );
               })}
