@@ -20,6 +20,8 @@ import { WeekView, MonthView } from '@/app/components/schedule/WeekMonthViews';
 import type { TaskWithPlan } from '@/app/components/schedule/WeekMonthViews';
 import { DailyRecommendationCard } from '@/app/components/schedule/DailyRecommendationCard';
 import { WeeklyInsightCard } from '@/app/components/schedule/WeeklyInsightCard';
+import { MomentumCard } from '@/app/components/schedule/MomentumCard';
+import { WeeklyReportViewer } from '@/app/components/schedule/WeeklyReportViewer';
 import type { StudentProfilePayload } from '@/app/services/aiService';
 import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
@@ -160,6 +162,7 @@ export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTask
             {tasksForDate.length > 0 ? (
               <>
                 <DailyRecommendationCard studentProfile={studentProfile} />
+                <MomentumCard />
                 {Object.entries(tasksBySubject).map(([subject, tasks]) => {
                   const subjectStartIndex = flatTasks.findIndex(t => t.subject === subject);
                   return (
@@ -218,6 +221,7 @@ export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTask
                   <button className="w-full flex items-center justify-center gap-2 py-4 rounded-[14px] border border-dashed border-[#e2e5ea] text-[#9ba3b2] hover:text-[#4a5565] hover:border-[#b0b8c4] transition-all text-[13px] font-medium hover:bg-white/60"><Plus size={14} />Agregar tarea</button>
                 </motion.div>
                 <div className="ml-9"><DaySummaryCard todayCompleted={todayCompleted} todayTotal={tasksForDate.length} todayMinutes={todayTotalMinutes} todayProgress={todayProgress} /></div>
+                <WeeklyReportViewer />
                 <WeeklyInsightCard studentProfile={studentProfile} />
               </>
             ) : (
