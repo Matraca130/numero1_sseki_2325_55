@@ -83,8 +83,7 @@ describe('useCreateAnnotationMutation', () => {
 
   it('calls createTextAnnotation with provided data', async () => {
     mockCreateTextAnnotation.mockResolvedValueOnce(MOCK_ANNOTATION);
-    const { wrapper, queryClient } = createWrapper();
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { wrapper } = createWrapper();
 
     const { result } = renderHook(() => useCreateAnnotationMutation(SUMMARY_ID), { wrapper });
 

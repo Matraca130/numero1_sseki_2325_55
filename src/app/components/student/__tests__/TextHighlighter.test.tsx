@@ -45,7 +45,6 @@ import {
   buildPlainText,
   buildSegments,
 } from '../TextHighlighter';
-import type { Segment } from '../TextHighlighter';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 
 // ── Fixtures ────────────────────────────────────────────────

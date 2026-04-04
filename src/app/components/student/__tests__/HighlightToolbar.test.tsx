@@ -4,7 +4,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HighlightToolbar, HIGHLIGHT_COLORS } from '../HighlightToolbar';
-import type { HighlightColor } from '../HighlightToolbar';
 
 // ── Helpers ──────────────────────────────────────────────────
 
