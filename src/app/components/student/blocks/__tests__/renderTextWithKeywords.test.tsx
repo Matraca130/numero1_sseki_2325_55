@@ -200,6 +200,36 @@ describe('renderTextWithKeywords', () => {
     expect(span).not.toBeNull();
     expect(span!.textContent).toBe('abc-uuid-123');
   });
+
+  it('resolves bare UUID (without {{}}) when it matches a keyword ID', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    renderResult('palpitaciones, d70d2417-ceea-4cb7-b533-5b6859c7f63b, edema y cianosis', [kw]);
+    expect(screen.getByText('Síncope')).toBeInTheDocument();
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('palpitaciones,');
+    expect(screen.getByTestId('wrapper')).toHaveTextContent(', edema y cianosis');
+  });
+
+  it('does NOT wrap bare UUIDs that do not match any keyword ID', () => {
+    renderResult('ID: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee desconocido.', []);
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+  });
+
+  it('resolves multiple bare UUIDs in same text', () => {
+    const kw1 = makeKeyword({ id: '4f60d12f-b9a3-44b2-b051-06d5469f3cdc', name: 'Ortopnea' });
+    const kw2 = makeKeyword({ id: '63e643c7-7193-4566-8282-bbb4ca44c6dd', name: 'DPN' });
+    renderResult(
+      'Cuando progresa a 4f60d12f-b9a3-44b2-b051-06d5469f3cdc o a 63e643c7-7193-4566-8282-bbb4ca44c6dd',
+      [kw1, kw2],
+    );
+    expect(screen.getByText('Ortopnea')).toBeInTheDocument();
+    expect(screen.getByText('DPN')).toBeInTheDocument();
+  });
+
+  it('does not double-wrap UUIDs already in {{}}', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    renderResult('{{d70d2417-ceea-4cb7-b533-5b6859c7f63b}} es importante.', [kw]);
+    expect(screen.getByText('Síncope')).toBeInTheDocument();
+  });
 });
 
 describe('replaceKeywordPlaceholders', () => {
@@ -212,5 +242,14 @@ describe('replaceKeywordPlaceholders', () => {
     const kw = makeKeyword({ id: 'abc-uuid-123', name: 'Síncope' });
     const result = replaceKeywordPlaceholders('Ver {{abc-uuid-123}} aquí.', [kw]);
     expect(result).toBe('Ver Síncope aquí.');
+  });
+
+  it('resolves bare UUID to keyword name in plain string', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    const result = replaceKeywordPlaceholders(
+      'palpitaciones, d70d2417-ceea-4cb7-b533-5b6859c7f63b, edema',
+      [kw],
+    );
+    expect(result).toBe('palpitaciones, Síncope, edema');
   });
 });
