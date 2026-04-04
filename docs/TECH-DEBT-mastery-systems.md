@@ -1,22 +1,22 @@
-# Deuda Tecnica: Sistemas de Mastery Duplicados
+# Deuda Tecnica: Sistemas de Mastery — Auditoria Final
 
 **Fecha de auditoria:** 2026-04-04
-**PR revisado:** #350 (fix: deduplicate MasteryLevel -> MasteryStage)
-**Auditor:** Code Review automatizado
+**PR revisado:** #350 (fix: deduplicate MasteryLevel -> MasteryStage) — **CERRADO como stale**
+**Auditor:** Code Review automatizado (3 agentes en paralelo)
 
 ---
 
 ## Resumen ejecutivo
 
-Existen 3 sistemas de "mastery" en el codebase. Solo 1 se usa realmente.
-Los otros 2 son codigo muerto que el PR #350 intenta unificar entre si,
-pero no resuelve el problema raiz: ninguno de los dos tiene consumidores.
+Existieron 3 sistemas de "mastery" en el codebase. Solo 1 se usa realmente.
+Los otros 2 fueron eliminados en PRs #339 y #342. PR #350 intentaba modificar
+archivos que ya no existen en main. Fue cerrado.
+
+**Estado actual:** Solo queda `DeltaColorLevel` (mastery-helpers.ts) como sistema activo.
 
 ---
 
-## Los 3 sistemas encontrados
-
-### 1. DeltaColorLevel (mastery-helpers.ts) — ACTIVO, COMPLETO
+## Sistema activo: DeltaColorLevel (mastery-helpers.ts)
 
 **Definicion:** `src/app/lib/mastery-helpers.ts:72`
 **Tipo:** `'gray' | 'red' | 'yellow' | 'green' | 'blue'`
@@ -29,73 +29,72 @@ pero no resuelve el problema raiz: ninguno de los dos tiene consumidores.
 | green  | Consolidado    | delta >= 1.00   |
 | blue   | Maestria       | delta >= 1.10   |
 
-**Consumidores verificados (15+ archivos):**
-- `src/app/hooks/useKeywordMastery.ts` — calculo de mastery por keyword
+**Consumidores verificados (18 archivos directos):**
 - `src/app/hooks/queries/useKeywordMasteryQuery.ts` — query hook con delta map
 - `src/app/components/shared/MasteryIndicator.tsx` — indicador visual
 - `src/app/components/student/ConnectionsMap.tsx` — mapa de conexiones
 - `src/app/components/student/KeywordHighlighterInline.tsx` — highlighting
-- `src/app/components/student/ReaderKeywordsTab.tsx` — tab de keywords
 - `src/app/components/student/KeywordBadges.tsx` — badges de keywords
+- `src/app/components/student/ReaderKeywordsTab.tsx` — tab de keywords
+- `src/app/components/student/KeywordPopup.tsx` — popup de keyword
+- `src/app/components/student/KeywordMasterySection.tsx` — seccion mastery
+- `src/app/components/student/SubtopicResultsSection.tsx` — resultados subtopic
+- `src/app/components/student/InlineKeywordPopover.tsx` — popover inline
 - `src/app/components/dashboard/masteryOverviewTypes.ts` — tipos de dashboard
-- `src/app/design-system/index.ts` — re-exportado como parte del design system
+- `src/app/components/dashboard/useMasteryOverviewData.ts` — datos de dashboard
+- `src/app/components/content/flashcard/adaptive/AdaptiveKeywordPanel.tsx`
+- `src/app/components/content/flashcard/adaptive/AdaptivePartialSummary.tsx`
+- `src/app/components/content/flashcard/adaptive/AdaptiveCompletedScreen.tsx`
+- `src/app/design-system/index.ts` — re-exportado (pero 0 consumidores usan el barrel)
 - Tests: `delta-color-scale.test.ts`, `mastery-helpers.test.ts`, `e2e-fsrs-study-intelligence.test.ts`
 
-**Tiene:** logica de calculo (delta = mastery/threshold), clases CSS, labels, hex colors, tests.
-
-### 2. MasteryStage (keywords.ts) — CODIGO MUERTO
-
-**Definicion:** `src/app/types/keywords.ts` (linea depende del branch)
-**Tipo:** `'none' | 'seen' | 'learning' | 'familiar' | 'mastered'`
-
-**Consumidores verificados: CERO**
-- Grep por `MasteryStage` en `src/**/*.{ts,tsx}` = 0 resultados (fuera de su propia definicion)
-- Grep por `from.*types/keywords` = 0 importaciones reales (solo un comentario en keyword-helpers.ts)
-- Nadie importa este tipo ni lo usa en ningun componente
-
-**No tiene:** logica de calculo, ni funciones que determinen en que stage esta un estudiante.
-
-### 3. MasteryLevel (keywords.ts / legacy-stubs.ts) — CODIGO MUERTO
-
-**Definicion original:** `'red' | 'yellow' | 'green'` (3 colores)
-**Definicion post-PR #350:** alias de `MasteryStage`
-
-**Consumidores verificados: CERO**
-- Grep por `MasteryLevel` en `src/**/*.{ts,tsx}` = 0 resultados (fuera de definiciones)
-- Grep por `from.*legacy-stubs` = 0 importaciones
-- Nadie importa `MasteryLevel` de ningun archivo
+**Exports por frecuencia de uso:**
+| Export | Consumidores directos |
+|--------|----------------------|
+| `getKeywordDeltaColorSafe` | 11 archivos |
+| `getDeltaColorClasses` | 11 archivos |
+| `getDeltaColorLabel` | 7 archivos |
+| `type DeltaColorLevel` | 8 archivos |
+| `getDominationThreshold` | 3 archivos |
+| `getKeywordMastery` | 2 archivos |
+| `type BktState` | 3 archivos |
+| `getDeltaColor` | 1 archivo |
+| `getKeywordDeltaColor` | 0 (solo uso interno via `getKeywordDeltaColorSafe`) |
 
 ---
 
-## Hallazgo sobre masteryConfig
+## Sistemas eliminados (RESUELTO)
 
-Existen 2 objetos llamados `masteryConfig`:
+### MasteryStage / MasteryLevel / masteryConfig (keywords.ts)
+- **Estado:** ELIMINADO en PR #342 (commit `735786c`)
+- Tenia 0 consumidores antes de ser eliminado
 
-| Ubicacion | Claves | Consumidores |
-|-----------|--------|-------------|
-| `src/app/types/keywords.ts` | `none, seen, learning, familiar, mastered` (post-PR) | **CERO** — nadie importa `masteryConfig` de keywords.ts |
-| `src/app/hooks/useKeywordMastery.ts:47` | `gray, red, yellow, green, blue` (DeltaColorLevel) | Solo uso interno del hook |
+### legacy-stubs.ts (re-export de MasteryLevel + 17 exports mas)
+- **Estado:** ELIMINADO en PR #339 (commit `b83f4b0`)
+- Tenia 0 importadores antes de ser eliminado
 
-El `masteryConfig` de `keywords.ts` es codigo muerto. El de `useKeywordMastery.ts`
-se construye dinamicamente a partir de `getDeltaColorClasses()` y `getDeltaColorLabel()`.
+### useKeywordMastery.ts (hook con masteryConfig propio)
+- **Estado:** ELIMINADO en esta limpieza
+- Tenia 0 importadores — reemplazado por `useKeywordMasteryQuery.ts`
+
+### keyword-helpers.ts (stubs de getKeywordsNeedingCards, getKeywordStats)
+- **Estado:** ELIMINADO en esta limpieza
+- Ambas funciones eran stubs vacios con 0 consumidores
 
 ---
 
-## Veredicto sobre PR #350
+## Deuda tecnica residual (baja prioridad)
 
-| Aspecto | Evaluacion |
-|---------|-----------|
-| Rompe algo? | **No** — unifica dos tipos que nadie importa |
-| Arregla algo real? | **No** — ambos tipos ya eran codigo muerto antes del PR |
-| Es correcto tecnicamente? | **Si** — el alias y re-export son validos |
-| Resuelve la deuda tecnica? | **Parcialmente** — unifica los muertos entre si, pero no los elimina |
+1. **Barrel re-exports innecesarios:** `src/app/design-system/index.ts` lineas 109-118
+   re-exportan todo mastery-helpers, pero 0 consumidores usan la ruta del barrel
+   (`@/app/design-system`). Todos importan directo de `@/app/lib/mastery-helpers`.
 
-### Lo que el PR deberia hacer en su lugar (o como follow-up):
+2. **`getKeywordDeltaColor` exportado sin consumidores directos:** Solo se usa
+   internamente via `getKeywordDeltaColorSafe`. Podria ser unexported.
 
-1. **Eliminar `MasteryLevel` y `MasteryStage` por completo** — tienen 0 consumidores
-2. **Eliminar `masteryConfig` de `keywords.ts`** — tiene 0 consumidores
-3. **Eliminar o marcar `legacy-stubs.ts`** — tiene 0 importadores
-4. **Renombrar `masteryConfig` en `useKeywordMastery.ts`** a `deltaColorConfig` para evitar confusion de nombres
+3. **Sistema separado de flashcards:** `src/app/components/content/flashcard/mastery-colors.ts`
+   tiene su propio sistema de 6 niveles (ratings 0-5). Es intencionalmente independiente
+   de DeltaColorLevel — NO es deuda tecnica, es diseno deliberado.
 
 ---
 
@@ -106,25 +105,11 @@ se construye dinamicamente a partir de `getDeltaColorClasses()` y `getDeltaColor
 Razones:
 1. **Nombres enganiosos:** `MasteryLevel`, `MasteryStage`, `DeltaColorLevel` suenan similares.
    Sin grep exhaustivo, es facil asumir que son el mismo sistema.
-2. **Archivo `keywords.ts` no se puede leer en el branch del PR** — el archivo no existe
-   en el branch base actual; tuve que inferir su contenido del diff del PR.
-3. **Doble `masteryConfig`:** Existen dos objetos con el mismo nombre en archivos distintos.
-   Una busqueda superficial podria confundir cual es el activo.
-4. **`legacy-stubs.ts` sugiere uso legacy activo:** El nombre implica que hay consumidores
-   legacy que necesitan el stub, pero en realidad nadie lo importa.
-5. **El PR parece util a primera vista:** Sin verificar consumidores, la deduplicacion
-   parece una mejora real. Solo el grep exhaustivo revela que son tipos muertos.
-6. **3 sistemas con overlap conceptual:** Entender que `DeltaColorLevel` es el unico
-   activo requiere rastrear imports de los 3 tipos por separado.
-
----
-
-## Archivos involucrados (referencia rapida)
-
-```
-src/app/lib/mastery-helpers.ts          — Sistema activo (DeltaColorLevel)
-src/app/types/keywords.ts               — Tipos muertos (MasteryStage, MasteryLevel, masteryConfig)
-src/app/types/legacy-stubs.ts           — Re-export muerto de MasteryLevel
-src/app/hooks/useKeywordMastery.ts      — Hook activo, usa DeltaColorLevel
-src/app/utils/keyword-helpers.ts        — Helpers de keywords, no usa mastery types
-```
+2. **Archivos ya eliminados de main:** `keywords.ts` y `legacy-stubs.ts` no existen en el
+   branch actual pero PR #350 los modificaba — el PR estaba basado en un commit viejo.
+3. **Doble `masteryConfig`:** Existian dos objetos con el mismo nombre en archivos distintos.
+4. **`legacy-stubs.ts` sugeria uso legacy activo:** El nombre implica consumidores legacy,
+   pero en realidad nadie lo importaba.
+5. **3 sistemas con overlap conceptual:** Entender que `DeltaColorLevel` es el unico
+   activo requirio rastrear imports de los 3 tipos por separado con grep exhaustivo.
+6. **Se necesitaron 3 agentes en paralelo** para verificar: uno por cada sistema de mastery.

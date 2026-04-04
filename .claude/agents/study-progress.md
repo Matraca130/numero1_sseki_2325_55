@@ -14,7 +14,6 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 ### Por nombre
 
 - `hooks/useTopicMastery.ts` (~241L) — Hook de mastery por tema
-- `hooks/useKeywordMastery.ts` (~155L) — Hook de mastery por keyword
 - `hooks/useCourseMastery.ts` (~110L) — Hook de mastery por curso
 - `hooks/useTopicProgress.ts` (~261L) — Hook de progreso por tema
 - `hooks/queries/useStudyHubProgress.ts` (~343L) — Query de progreso del Study Hub
@@ -30,7 +29,6 @@ Eres **ST-05 — Progress Tracking + Mastery Display Agent**. Tu responsabilidad
 ### Por directorio
 
 - `hooks/useTopicMastery*`
-- `hooks/useKeywordMastery*`
 - `hooks/useCourseMastery*`
 - `hooks/useTopicProgress*`
 - `hooks/queries/useStudyHubProgress*`
