@@ -7,14 +7,18 @@
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCw, X } from 'lucide-react';
+import { Play, Pause, RotateCw, X, Plus, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiCall } from '@/app/lib/api';
 
 // ── Constants ────────────────────────────────────────────
 
-const STUDY_SECONDS = 25 * 60;
-const BREAK_SECONDS = 5 * 60;
+const DEFAULT_STUDY_MINUTES = 25;
+const DEFAULT_BREAK_MINUTES = 5;
+const MIN_MINUTES = 1;
+const MAX_STUDY_MINUTES = 120;
+const MAX_BREAK_MINUTES = 30;
+const STEP_MINUTES = 5;
 
 type TimerMode = 'study' | 'break';
 
@@ -28,12 +32,14 @@ export interface StudyTimerProps {
 
 export function StudyTimer({ onClose }: StudyTimerProps) {
   const [mode, setMode] = useState<TimerMode>('study');
-  const [seconds, setSeconds] = useState(STUDY_SECONDS);
+  const [studyMinutes, setStudyMinutes] = useState(DEFAULT_STUDY_MINUTES);
+  const [breakMinutes, setBreakMinutes] = useState(DEFAULT_BREAK_MINUTES);
+  const [seconds, setSeconds] = useState(DEFAULT_STUDY_MINUTES * 60);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
-  const totalSeconds = mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS;
+  const totalSeconds = mode === 'study' ? studyMinutes * 60 : breakMinutes * 60;
   const progress = 1 - seconds / totalSeconds;
 
   // ── Tick logic ───────────────────────────────────────
@@ -85,11 +91,11 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
       }
       toast('Tiempo de estudio finalizado!');
       setMode('break');
-      setSeconds(BREAK_SECONDS);
+      setSeconds(breakMinutes * 60);
     } else {
       toast('Descanso finalizado!');
       setMode('study');
-      setSeconds(STUDY_SECONDS);
+      setSeconds(studyMinutes * 60);
     }
   }, [seconds, mode]);
 
@@ -121,8 +127,21 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   const handleReset = useCallback(() => {
     setRunning(false);
     sessionIdRef.current = null;
-    setSeconds(mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
-  }, [mode]);
+    setSeconds(mode === 'study' ? studyMinutes * 60 : breakMinutes * 60);
+  }, [mode, studyMinutes, breakMinutes]);
+
+  const handleAdjustTime = useCallback((delta: number) => {
+    if (running) return;
+    if (mode === 'study') {
+      const next = Math.max(MIN_MINUTES, Math.min(MAX_STUDY_MINUTES, studyMinutes + delta));
+      setStudyMinutes(next);
+      setSeconds(next * 60);
+    } else {
+      const next = Math.max(MIN_MINUTES, Math.min(MAX_BREAK_MINUTES, breakMinutes + delta));
+      setBreakMinutes(next);
+      setSeconds(next * 60);
+    }
+  }, [running, mode, studyMinutes, breakMinutes]);
 
   // ── Format mm:ss ─────────────────────────────────────
 
@@ -158,11 +177,27 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
         </button>
       </div>
 
-      {/* Time display */}
-      <div className="px-3 py-2 text-center">
-        <span className="font-mono font-bold tabular-nums text-gray-800" style={{ fontSize: 'clamp(1.5rem, 3vw, 1.875rem)' }}>
+      {/* Time display with +/- controls */}
+      <div className="flex items-center justify-center gap-2 px-3 py-2">
+        <button
+          onClick={() => handleAdjustTime(-STEP_MINUTES)}
+          disabled={running || (mode === 'study' ? studyMinutes <= MIN_MINUTES : breakMinutes <= MIN_MINUTES)}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label={`Reducir ${STEP_MINUTES} minutos`}
+        >
+          <Minus size={14} />
+        </button>
+        <span className="font-mono font-bold tabular-nums text-gray-800" style={{ fontSize: 'clamp(1.5rem, 3vw, 1.875rem)', minWidth: 80, textAlign: 'center' }}>
           {display}
         </span>
+        <button
+          onClick={() => handleAdjustTime(STEP_MINUTES)}
+          disabled={running || (mode === 'study' ? studyMinutes >= MAX_STUDY_MINUTES : breakMinutes >= MAX_BREAK_MINUTES)}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label={`Aumentar ${STEP_MINUTES} minutos`}
+        >
+          <Plus size={14} />
+        </button>
       </div>
 
       {/* Progress bar */}
