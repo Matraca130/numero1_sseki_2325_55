@@ -189,6 +189,8 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     try {
       const record = await apiCreatePlan({
         name: frontendPlan.name,
+        course_id: frontendPlan.courseId
+          ?? (frontendPlan.subjects?.length === 1 ? frontendPlan.subjects[0].id : undefined),
         status: 'active',
         completion_date: frontendPlan.completionDate
           ? frontendPlan.completionDate.toISOString().slice(0, 10)

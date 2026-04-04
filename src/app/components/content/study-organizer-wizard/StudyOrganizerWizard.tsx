@@ -22,6 +22,7 @@ import clsx from 'clsx';
 import { headingStyle, components } from '@/app/design-system';
 import { useStudyIntelligence } from '@/app/hooks/useStudyIntelligence';
 import { TOTAL_STEPS, STEP_INFO, SUBJECT_ICONS, STUDY_METHODS, DAY_LABELS } from './constants';
+import type { WizardCourse } from './helpers';
 import { getCourseMasteryPercent, getCourseStudiedTopics, getSubjectColor, getSubjectName } from './helpers';
 import { generateStudyPlan } from './plan-generation';
 
@@ -116,22 +117,22 @@ export function StudyOrganizerWizard() {
     });
   };
   const isSectionSelected = (courseId: string, sectionId: string) => {
-    const course = courses.find((c: any) => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) return false;
-    for (const sem of course.semesters) { const section = sem.sections.find((s: any) => s.id === sectionId); if (section) return section.topics.every((t: any) => selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId)); }
+    for (const sem of course.semesters) { const section = sem.sections.find((s) => s.id === sectionId); if (section) return section.topics.every((t) => selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId)); }
     return false;
   };
   const toggleSection = (courseId: string, sectionId: string) => {
-    const course = courses.find((c: any) => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) return;
     for (const sem of course.semesters) {
-      const section = sem.sections.find((s: any) => s.id === sectionId);
+      const section = sem.sections.find((s) => s.id === sectionId);
       if (section) {
         if (isSectionSelected(courseId, sectionId)) {
-          setSelectedTopics(prev => prev.filter(t => !(t.courseId === courseId && section.topics.some((st: any) => st.id === t.topicId))));
+          setSelectedTopics(prev => prev.filter(t => !(t.courseId === courseId && section.topics.some((st) => st.id === t.topicId))));
         } else {
-          const newTopics = section.topics.filter((t: any) => !selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId))
-            .map((t: any) => ({ courseId, courseName: course.name, sectionTitle: section.title, topicTitle: t.title, topicId: t.id }));
+          const newTopics = section.topics.filter((t) => !selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId))
+            .map((t) => ({ courseId, courseName: course.name, sectionTitle: section.title, topicTitle: t.title, topicId: t.id }));
           setSelectedTopics(prev => [...prev, ...newTopics]);
         }
       }
@@ -147,9 +148,9 @@ export function StudyOrganizerWizard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between"><h2 className="text-3xl text-gray-900" style={headingStyle}>¿Qué materias vas a estudiar?</h2></div>
         <div className="grid grid-cols-2 gap-5">
-          {courses.map((course: any) => {
+          {(courses as WizardCourse[]).map((course) => {
             const isSelected = selectedSubjects.includes(course.id);
-            const totalTopics = course.semesters.reduce((sum: number, sem: any) => sum + sem.sections.reduce((s2: number, sec: any) => s2 + sec.topics.length, 0), 0);
+            const totalTopics = course.semesters.reduce((sum, sem) => sum + sem.sections.reduce((s2, sec) => s2 + sec.topics.length, 0), 0);
             const pct = getCourseMasteryPercent(course.id, courseMastery);
             return (
               <div key={course.id} className={clsx("flex flex-col bg-white rounded-2xl border transition-all duration-200", isSelected ? "border-teal-400 shadow-md" : "border-gray-200 shadow-sm")}>

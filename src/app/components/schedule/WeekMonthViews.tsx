@@ -6,7 +6,7 @@
 // MonthView: Full-width calendar grid + tasks for selected day +
 //   month-level stats card.
 // ============================================================
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, isSameDay, addDays, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,6 +23,7 @@ import {
   GraduationCap,
   FileText,
   Box,
+  GripVertical,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { StudyPlanTask } from '@/app/types/study-plan';
@@ -113,25 +114,35 @@ function CompactTaskCard({
   isToggling,
   onToggle,
   onGoToDay,
+  draggable: isDraggable,
+  onDragStart,
+  isDragging,
 }: {
   task: TaskWithPlan;
   index: number;
   isToggling: boolean;
   onToggle: (planId: string, taskId: string) => void;
   onGoToDay?: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  isDragging?: boolean;
 }) {
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: isToggling ? 0.5 : 1, y: 0 }}
+      animate={{ opacity: isDragging ? 0.35 : isToggling ? 0.5 : 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.2 }}
+      draggable={isDraggable}
+      onDragStart={onDragStart}
       className={clsx(
         'flex items-center gap-2.5 px-3 py-2 rounded-[10px] border relative overflow-hidden',
         task.completed
           ? 'border-[#c6f0df] bg-gradient-to-r from-[#f6fffb] to-white'
           : 'border-[#ebedf0] bg-white hover:border-[#d0d4db] hover:shadow-[0_1px_4px_rgba(0,0,0,0.04)]',
         isToggling && 'pointer-events-none',
+        isDraggable && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'scale-[0.97]',
       )}
     >
       {/* Left accent */}
@@ -143,6 +154,13 @@ function CompactTaskCard({
             : 'linear-gradient(to bottom, #e5e7eb, #dfe2e8)',
         }}
       />
+
+      {/* Drag grip — only when draggable */}
+      {isDraggable && (
+        <div className="shrink-0 text-gray-300 hover:text-gray-400 ml-1 touch-none">
+          <GripVertical size={12} />
+        </div>
+      )}
 
       <SmallCircle
         completed={task.completed}
@@ -168,7 +186,7 @@ function CompactTaskCard({
           <button
             onClick={onGoToDay}
             className="p-1 rounded-md hover:bg-gray-100 text-[#c0c6d0] hover:text-[#4a5565] transition-colors"
-            title="Ver en día"
+            title="Ver en dia"
           >
             <ChevronRight size={11} />
           </button>
@@ -189,6 +207,8 @@ interface WeekViewProps {
   onToggleTask: (planId: string, taskId: string) => void;
   onSelectDay: (date: Date) => void;  // switches to day view
   onNavigateNewPlan: () => void;
+  /** Called when a task is dragged from one day to another. */
+  onMoveTaskToDay?: (taskId: string, planId: string, newDate: string) => Promise<void>;
 }
 
 function WeekSummaryBar({
@@ -249,6 +269,12 @@ function WeekDayRow({
   togglingTaskId,
   onToggleTask,
   onSelectDay,
+  isDragOver,
+  draggedTaskId,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onTaskDragStart,
 }: {
   day: Date;
   tasks: TaskWithPlan[];
@@ -258,29 +284,46 @@ function WeekDayRow({
   togglingTaskId: string | null;
   onToggleTask: (planId: string, taskId: string) => void;
   onSelectDay: (date: Date) => void;
+  isDragOver: boolean;
+  draggedTaskId: string | null;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onTaskDragStart: (e: React.DragEvent, task: TaskWithPlan, dayStr: string) => void;
 }) {
   const completed = tasks.filter(t => t.completed).length;
   const pct = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
   const progressColor = pct >= 80 ? '#34D399' : pct >= 40 ? '#d97706' : '#f87171';
   const [expanded, setExpanded] = React.useState(isCurrentDay || isSelected);
+  const dayStr = format(day, 'yyyy-MM-dd');
 
   // Expand when the day becomes selected
   React.useEffect(() => {
     if (isSelected || isCurrentDay) setExpanded(true);
   }, [isSelected, isCurrentDay]);
 
+  // Auto-expand when dragging over a collapsed day
+  React.useEffect(() => {
+    if (isDragOver && !expanded) setExpanded(true);
+  }, [isDragOver, expanded]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.2 }}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       className={clsx(
-        'rounded-[12px] border overflow-hidden transition-shadow',
-        isCurrentDay
-          ? 'border-[#2a8c7a]/30 shadow-[0_0_0_1px_rgba(42,140,122,0.12),0_2px_8px_rgba(42,140,122,0.05)]'
-          : isSelected
-            ? 'border-[#1a2332]/20 shadow-[0_1px_6px_rgba(0,0,0,0.05)]'
-            : 'border-[#ebedf0] hover:border-[#d5d9e0]',
+        'rounded-[12px] border overflow-hidden transition-all',
+        isDragOver
+          ? 'border-teal-400 ring-2 ring-teal-400/40 bg-teal-50/30 shadow-[0_0_12px_rgba(20,184,166,0.12)]'
+          : isCurrentDay
+            ? 'border-[#2a8c7a]/30 shadow-[0_0_0_1px_rgba(42,140,122,0.12),0_2px_8px_rgba(42,140,122,0.05)]'
+            : isSelected
+              ? 'border-[#1a2332]/20 shadow-[0_1px_6px_rgba(0,0,0,0.05)]'
+              : 'border-[#ebedf0] hover:border-[#d5d9e0]',
       )}
     >
       {/* Day header — clickable */}
@@ -288,11 +331,13 @@ function WeekDayRow({
         onClick={() => setExpanded(e => !e)}
         className={clsx(
           'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
-          isCurrentDay
-            ? 'bg-gradient-to-r from-[#e6f5f1] to-[#f0f9f7]'
-            : isSelected
-              ? 'bg-[#f8f9fb]'
-              : 'bg-white hover:bg-[#fafafa]',
+          isDragOver
+            ? 'bg-gradient-to-r from-teal-50 to-teal-50/50'
+            : isCurrentDay
+              ? 'bg-gradient-to-r from-[#e6f5f1] to-[#f0f9f7]'
+              : isSelected
+                ? 'bg-[#f8f9fb]'
+                : 'bg-white hover:bg-[#fafafa]',
         )}
       >
         {/* Day label */}
@@ -332,7 +377,12 @@ function WeekDayRow({
               </div>
             </>
           ) : (
-            <span className="text-[11px] text-[#b0b8c4] font-medium">Sin tareas programadas</span>
+            <span className={clsx(
+              'text-[11px] font-medium',
+              isDragOver ? 'text-teal-500' : 'text-[#b0b8c4]',
+            )}>
+              {isDragOver ? 'Soltar aqui para mover' : 'Sin tareas programadas'}
+            </span>
           )}
         </div>
 
@@ -345,9 +395,9 @@ function WeekDayRow({
               ? 'text-[#2a8c7a] bg-[#ccebe3] hover:bg-[#b5e0d5]'
               : 'text-[#8b95a5] bg-[#f3f4f7] hover:bg-[#e8eaed] hover:text-[#4a5565]',
           )}
-          title="Ver en vista de día"
+          title="Ver en vista de dia"
         >
-          Ver día
+          Ver dia
         </button>
 
         {/* Expand chevron */}
@@ -380,6 +430,9 @@ function WeekDayRow({
                   index={i}
                   isToggling={togglingTaskId === task.id}
                   onToggle={onToggleTask}
+                  draggable
+                  isDragging={draggedTaskId === task.id}
+                  onDragStart={(e) => onTaskDragStart(e, task, dayStr)}
                 />
               ))}
             </div>

@@ -32,4 +32,6 @@ export interface StudyPlan {
   tasks: StudyPlanTask[];
   createdAt: Date;
   totalEstimatedHours: number;
+  /** Course ID when plan targets a single course (used for backend filtering). */
+  courseId?: string;
 }
