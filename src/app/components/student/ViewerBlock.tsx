@@ -5,7 +5,7 @@
 // Interactable: images (lightbox), videos (play), PDFs (view),
 // keyword-refs (SmartPopup).
 // ============================================================
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
@@ -68,6 +68,26 @@ const calloutBg: Record<string, string> = {
   success: 'bg-emerald-50 border-emerald-200',
   tip: 'bg-teal-50 border-teal-200',
 };
+
+// ── Highlight color map (shared by optimistic + useEffect) ──
+
+const HIGHLIGHT_COLOR_MAP: Record<string, string> = {
+  yellow: 'rgba(253,224,71,0.4)',
+  green: 'rgba(110,231,183,0.4)',
+  blue: 'rgba(147,197,253,0.4)',
+  pink: 'rgba(249,168,212,0.4)',
+  orange: 'rgba(253,186,116,0.4)',
+};
+
+/** Strip all data-axon-hl marks from a container and normalize text nodes. */
+function stripHighlightMarks(container: HTMLElement): void {
+  const marks = container.querySelectorAll('mark[data-axon-hl]');
+  marks.forEach(mark => {
+    const text = document.createTextNode(mark.textContent || '');
+    mark.parentNode?.replaceChild(text, mark);
+  });
+  container.normalize();
+}
 
 // ── Plain text extraction for TTS ─────────────────────────
 
@@ -166,16 +186,9 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     try {
       const range = sel.getRangeAt(0);
       if (!contentRef.current.contains(range.commonAncestorContainer)) return;
-      const hlColors: Record<string, string> = {
-        yellow: 'rgba(253,224,71,0.4)',
-        green: 'rgba(110,231,183,0.4)',
-        blue: 'rgba(147,197,253,0.4)',
-        pink: 'rgba(249,168,212,0.4)',
-        orange: 'rgba(253,186,116,0.4)',
-      };
       const mark = document.createElement('mark');
       mark.setAttribute('data-axon-hl', 'pending');
-      mark.style.backgroundColor = hlColors[color] || hlColors.yellow;
+      mark.style.backgroundColor = HIGHLIGHT_COLOR_MAP[color] || HIGHLIGHT_COLOR_MAP.yellow;
       mark.style.borderRadius = '2px';
       mark.style.padding = '0 1px';
       range.surroundContents(mark);
@@ -252,19 +265,20 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   // Walk text nodes and wrap ranges that match stored annotations
   // with <mark> elements. Annotations use block-local offsets
   // (calculated relative to blockRef.current's text content).
-  const liveAnnotations = annotations.filter(a => !a.deleted_at && a.block_id === block.id);
+  // Show annotations that belong to this block (block_id match).
+  // Annotations without block_id (from TextHighlighter / Modo subrayado) are excluded
+  // since their offsets are global, not block-local.
+  const liveAnnotations = useMemo(
+    () => annotations.filter(a => !a.deleted_at && a.block_id === block.id),
+    [annotations, block.id],
+  );
 
   useEffect(() => {
     const el = contentRef.current;
     if (!el || !highlightEnabled || liveAnnotations.length === 0) return;
 
     // Strip previous highlight marks before re-applying
-    const existingMarks = el.querySelectorAll('mark[data-axon-hl]');
-    existingMarks.forEach(mark => {
-      const text = document.createTextNode(mark.textContent || '');
-      mark.parentNode?.replaceChild(text, mark);
-    });
-    el.normalize();
+    stripHighlightMarks(el);
 
     // Collect all text nodes
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -276,14 +290,6 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       textNodes.push({ node, start: charOffset, end: charOffset + len });
       charOffset += len;
     }
-
-    const hlColorMap: Record<string, string> = {
-      yellow: 'rgba(253,224,71,0.4)',
-      green: 'rgba(110,231,183,0.4)',
-      blue: 'rgba(147,197,253,0.4)',
-      pink: 'rgba(249,168,212,0.4)',
-      orange: 'rgba(253,186,116,0.4)',
-    };
 
     // Sort annotations by start_offset ascending
     const sorted = [...liveAnnotations].sort((a, b) => a.start_offset - b.start_offset);
@@ -313,7 +319,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
           const mark = document.createElement('mark');
           mark.setAttribute('data-axon-hl', ann.id);
-          mark.style.backgroundColor = hlColorMap[ann.color || 'yellow'] || hlColorMap.yellow;
+          mark.style.backgroundColor = HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow;
           mark.style.borderRadius = '2px';
           mark.style.padding = '0 1px';
           range.surroundContents(mark);
@@ -326,12 +332,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     // Cleanup on unmount or re-render
     return () => {
       if (!el) return;
-      const marks = el.querySelectorAll('mark[data-axon-hl]');
-      marks.forEach(mark => {
-        const text = document.createTextNode(mark.textContent || '');
-        mark.parentNode?.replaceChild(text, mark);
-      });
-      el.normalize();
+      stripHighlightMarks(el);
     };
   }, [liveAnnotations, highlightEnabled]);
 
