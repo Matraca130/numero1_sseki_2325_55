@@ -15,8 +15,6 @@ import { classifyDifficulty } from './difficulty';
 import { logger } from '@/app/lib/logger';
 
 /**
- * @internal — not yet consumed, planned for future iteration
- *
  * Redistribute tasks across days to balance cognitive load.
  *
  * Principle: Each day should have a mix of hard, medium, and easy tasks.
@@ -109,8 +107,6 @@ export function computeDayCognitiveLoad(tasks: ScheduleTask[]): number {
 }
 
 /**
- * @internal — not yet consumed, planned for future iteration
- *
  * Reorder tasks within each day to avoid consecutive same-tier tasks.
  *
  * Based on interleaving research (Rohrer, 2012):

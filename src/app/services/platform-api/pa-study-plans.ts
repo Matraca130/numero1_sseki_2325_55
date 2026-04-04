@@ -223,11 +223,12 @@ export async function updateStudySession(
 }
 
 export async function getStudySessions(
-  options?: { course_id?: string; session_type?: string }
+  options?: { course_id?: string; session_type?: string; limit?: number }
 ): Promise<StudySessionRecord[]> {
   const params = new URLSearchParams();
   if (options?.course_id) params.set('course_id', options.course_id);
   if (options?.session_type) params.set('session_type', options.session_type);
+  if (options?.limit) params.set('limit', String(options.limit));
   const qs = params.toString() ? `?${params}` : '';
   const result = await request<{ items: StudySessionRecord[] } | StudySessionRecord[]>(
     `/study-sessions${qs}`

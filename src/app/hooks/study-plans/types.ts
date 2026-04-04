@@ -4,6 +4,7 @@
  */
 
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
+import type { StudySessionRecord } from '@/app/services/platformApi';
 
 export interface TopicLookup {
   topicTitle: string;
@@ -18,4 +19,6 @@ export interface UseStudyPlansOptions {
   topicMastery?: Map<string, TopicMasteryInfo>;
   /** Time estimate getter from useStudyTimeEstimates (Phase 5 reschedule) */
   getTimeEstimate?: (methodId: string) => { estimatedMinutes: number };
+  /** Session history for AI schedule-agent profile (G1) */
+  sessionHistory?: StudySessionRecord[];
 }
