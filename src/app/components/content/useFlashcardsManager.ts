@@ -5,7 +5,7 @@
 // computed values from FlashcardsManager into a reusable hook.
 // ============================================================
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { apiCall, ensureGeneralKeyword } from '@/app/lib/api';
+import { apiCall } from '@/app/lib/api';
 import * as flashcardApi from '@/app/services/flashcardApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 import type { Keyword } from '@/app/types/platform';
