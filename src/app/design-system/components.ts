@@ -147,7 +147,7 @@ export const components = {
 
   /** Quick access shortcut cards (WelcomeView) */
   shortcutCard: {
-    base:     'bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer',
+    base:     'bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-teal-400/50 transition-all duration-200 cursor-pointer',
     iconSize: 'w-10 h-10 rounded-xl',
     iconBg:   'bg-teal-50',
     iconColor: 'text-teal-500',
