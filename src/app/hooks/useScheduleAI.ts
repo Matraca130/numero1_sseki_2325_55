@@ -18,6 +18,7 @@ import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
 import { useStudyPlansContext } from '@/app/context/StudyPlansContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { mapSessionHistoryForAI } from '@/app/utils/session-history-mapper';
 import {
   aiDistributeTasks,
   aiRecommendToday,
@@ -34,7 +35,7 @@ export function useScheduleAI() {
   const { topicMastery } = useTopicMasteryContext();
   const { summary: timeSummary } = useStudyTimeEstimatesContext();
   const { plans } = useStudyPlansContext();
-  const { stats, dailyActivity } = useStudentDataContext();
+  const { stats, dailyActivity, sessionHistory } = useStudentDataContext();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,12 +82,12 @@ export function useScheduleAI() {
 
     return {
       topicMastery: masteryRecord,
-      sessionHistory: [], // Sessions not held in context; kept empty for now
+      sessionHistory: mapSessionHistoryForAI(sessionHistory ?? []),
       dailyActivity: dailyActivityPayload,
       stats: statsPayload,
       studyMethods: Array.from(allMethods),
     };
-  }, [topicMastery, dailyActivity, stats, timeSummary, plans]);
+  }, [topicMastery, dailyActivity, sessionHistory, stats, timeSummary, plans]);
 
   // ── Build plan context for a specific plan ────────────────
 
