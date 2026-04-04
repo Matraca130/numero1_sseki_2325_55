@@ -20,14 +20,14 @@ export const typography = {
   families: {
     heading: 'Georgia, serif',
     body:    '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    display: '"Space Grotesk", sans-serif',
+    display: 'Georgia, serif',
     mono:    '"JetBrains Mono", monospace',
   },
 
   /** Google Fonts import URLs */
   imports: [
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
-    'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap',
+    'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap',
   ],
 
   /** Tailwind CSS variable name */
