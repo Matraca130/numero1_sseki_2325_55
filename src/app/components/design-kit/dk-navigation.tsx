@@ -12,7 +12,7 @@ import { StreakBadge, XpCounter } from "./dk-primitives";
    4. NAVEGACION — Navbar y Breadcrumb
    ═══════════════════════════════════════════════════════════════════════ */
 
-/** Navbar principal — sticky, glass effect, slots configurables */
+/** Navbar principal — sticky, solid background, slots configurables */
 export function AppNavbar({
   leftAction,
   breadcrumb,
