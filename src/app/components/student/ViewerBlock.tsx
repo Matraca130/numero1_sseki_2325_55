@@ -5,7 +5,8 @@
 // Interactable: images (lightbox), videos (play), PDFs (view),
 // keyword-refs (SmartPopup).
 // ============================================================
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo, Suspense, lazy } from 'react';
+const SketchBlock = lazy(() => import('@/app/components/algorithmic-art/SketchBlock').then(m => ({ default: m.SketchBlock })));
 import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
@@ -699,6 +700,26 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           <Tag size={11} className="shrink-0" />
           {name}
         </button>
+      );
+    }
+
+    // ── Algorithmic Art Block ───────────────────────────
+    case 'algorithmic_sketch': {
+      const engineKey = c.engine_key || c.engineKey || '';
+      const seed = typeof c.seed === 'number' ? c.seed : 42;
+      const previewHeight = typeof c.height === 'number' ? c.height : 300;
+      if (!engineKey) return null;
+      return (
+        <Suspense fallback={
+          <div className="rounded-xl animate-pulse bg-slate-800" style={{ height: previewHeight }} />
+        }>
+          <SketchBlock
+            engineKey={engineKey as import('@/app/components/algorithmic-art/types').EngineKey}
+            seed={seed}
+            dark={dark}
+            previewHeight={previewHeight}
+          />
+        </Suspense>
       );
     }
 
