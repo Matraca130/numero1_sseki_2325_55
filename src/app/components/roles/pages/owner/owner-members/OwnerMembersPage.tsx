@@ -63,7 +63,7 @@ export function OwnerMembersPage() {
               <h1 className="text-xl font-bold text-gray-900">Miembros</h1>
               <Badge variant="secondary" className="text-xs tabular-nums">{members.length}</Badge>
             </div>
-            <p className="text-sm text-gray-500">Gestiona administradores, profesores y estudiantes de tu institucion</p>
+            <p className="text-sm text-gray-500">Gestiona administradores, profesores y estudiantes de tu institución</p>
           </div>
           <Button onClick={() => setInviteOpen(true)} className="gap-2 bg-amber-500 hover:bg-amber-600 self-start sm:self-auto">
             <UserPlus size={14} />Invitar miembro

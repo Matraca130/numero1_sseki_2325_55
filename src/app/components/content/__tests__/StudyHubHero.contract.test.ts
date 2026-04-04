@@ -28,7 +28,7 @@ describe('StudyHubHero — contract', () => {
 
   it('requires all REPO-origin props', () => {
     const props: StudyHubHeroProps = {
-      greeting: 'Buenos dias',
+      greeting: 'Buenos días',
       userName: 'Carlos',
       effectiveTopic: { id: 't1', title: 'Anatomia' },
       isAutoSelected: false,
@@ -87,7 +87,7 @@ describe('StudyHubHero — contract', () => {
 
   it('FM-origin props (onGoToVideos, onGoToSummaries, images) are optional', () => {
     const minimal: StudyHubHeroProps = {
-      greeting: 'Buenos dias',
+      greeting: 'Buenos días',
       userName: 'Test',
       effectiveTopic: null,
       isAutoSelected: false,

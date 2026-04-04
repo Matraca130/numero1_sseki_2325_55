@@ -147,7 +147,7 @@ export function OwnerReportsPage() {
           </div>
           <h1 className="text-xl font-bold text-gray-900">Reportes</h1>
         </div>
-        <p className="text-sm text-gray-500">Metricas de la institucion e historial de generaciones IA</p>
+        <p className="text-sm text-gray-500">Métricas de la institución e historial de generaciones IA</p>
       </FadeIn>
 
       {/* Stats cards */}

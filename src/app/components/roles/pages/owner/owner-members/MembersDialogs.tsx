@@ -61,7 +61,7 @@ export function InviteMemberDialog({ open, onOpenChange, plans, institutionId, o
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><UserPlus size={18} className="text-amber-500" />Invitar miembro</DialogTitle>
-          <DialogDescription>Agrega un nuevo miembro a tu institucion</DialogDescription>
+          <DialogDescription>Agrega un nuevo miembro a tu institución</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">
@@ -236,7 +236,7 @@ export function DeleteMemberDialog({ member, open, onOpenChange, onDelete }: Del
     setLoading(true);
     try {
       await onDelete(member.id);
-      toast.success(`"${member.name || member.email}" eliminado de la institucion`);
+      toast.success(`"${member.name || member.email}" eliminado de la institución`);
       onOpenChange(false);
     } catch (err: unknown) {
       toast.error(`Error al eliminar miembro: ${err instanceof Error ? err.message : 'Error desconocido'}`);
@@ -249,7 +249,7 @@ export function DeleteMemberDialog({ member, open, onOpenChange, onDelete }: Del
         <AlertDialogHeader>
           <AlertDialogTitle>Eliminar miembro</AlertDialogTitle>
           <AlertDialogDescription>
-            ¿Estas seguro de que quieres eliminar a <span className="font-semibold text-gray-900">{member?.name || member?.email || 'este miembro'}</span> de la institucion? Esta accion no se puede deshacer.
+            ¿Estás seguro de que quieres eliminar a <span className="font-semibold text-gray-900">{member?.name || member?.email || 'este miembro'}</span> de la institución? Esta acción no se puede deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

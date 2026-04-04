@@ -23,7 +23,7 @@ import { Users } from 'lucide-react';
 export function AdminMembersPage() {
   return (
     <PlaceholderPage
-      title="Gestion de Miembros"
+      title="Gestión de Miembros"
       description="Administra profesores y estudiantes dentro de tu scope"
       icon={<Users size={22} />}
       accentColor="blue"

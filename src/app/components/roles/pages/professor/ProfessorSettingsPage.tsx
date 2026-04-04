@@ -11,7 +11,7 @@ import { Settings } from 'lucide-react';
 export function ProfessorSettingsPage() {
   return (
     <PlaceholderPage
-      title="Configuracion"
+      title="Configuración"
       description="Ajustes del profesor"
       icon={<Settings size={22} />}
       accentColor="purple"

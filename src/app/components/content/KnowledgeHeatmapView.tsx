@@ -62,7 +62,7 @@ const TIMELINE_DATA = {
 };
 
 
-// ── Memory Timeline Sidebar Content (extracted for reuse in drawer) ──
+// ── Línea de Memoria Sidebar Content (extracted for reuse in drawer) ──
 function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, overallRetention, criticalTopic }: {
   navigateTo: (route: string) => void; isConnected: boolean; stats: any; bktStates: any[]; overallRetention: number;
   criticalTopic: { topicTitle: string; masteryPercent: number; flashcardsDue: number } | null;
@@ -71,7 +71,7 @@ function MemoryTimelineSidebar({ navigateTo, isConnected, stats, bktStates, over
     <div className="flex flex-col h-full">
       <div className="px-4 lg:px-6 py-4 lg:py-6 border-b border-gray-200/50 flex items-start justify-between shrink-0 bg-white/20">
         <div>
-          <h2 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Memory Timeline</h2>
+          <h2 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Línea de Memoria</h2>
           <p className="text-gray-400 text-xs mt-1">Impacto del estudio de hoy en la retención</p>
         </div>
         <div className="w-10 h-10 flex items-center justify-center bg-teal-50 rounded-xl shadow-sm border border-white"><Activity size={18} className="text-teal-500" /></div>
@@ -193,7 +193,7 @@ export function KnowledgeHeatmapView() {
     <div className="h-full flex flex-col bg-[#f5f6fa]">
       <div className="shrink-0">
         <AxonPageHeader
-          title="Knowledge Heatmap"
+          title="Mapa de Conocimiento"
           subtitle="Mapa de calor de conocimiento"
           onBack={() => navigateTo('schedule')}
           statsLeft={<div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs text-gray-500 bg-white/60 px-2 lg:px-3 py-1.5 rounded-full border border-gray-200/60 overflow-x-auto whitespace-nowrap"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> Alta carga<span className="w-2 h-2 rounded-full bg-orange-500 ml-1 lg:ml-2 shrink-0" /> Media<span className="w-2 h-2 rounded-full bg-emerald-500 ml-1 lg:ml-2 shrink-0" /> Baja</div>}

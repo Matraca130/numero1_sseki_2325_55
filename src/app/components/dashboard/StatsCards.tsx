@@ -205,8 +205,8 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, weekTimeSe
         icon={<Flame className="w-5 h-5 text-amber-600" />}
         iconBg="bg-amber-50"
         label="Racha"
-        value={`${streak} d\u00edas`}
-        sub={streak >= longestStreak && streak > 0 ? '\u00a1R\u00e9cord!' : `m\u00e1x: ${longestStreak}`}
+        value={`${streak} días`}
+        sub={streak >= longestStreak && streak > 0 ? '¡Récord!' : `máx: ${longestStreak}`}
         delay={0}
       />
       <StatCard
@@ -220,7 +220,7 @@ export function StatsCards({ stats, todayActivity, yesterdayActivity, weekTimeSe
       <StatCard
         icon={<Target className="w-5 h-5 text-indigo-600" />}
         iconBg="bg-indigo-50"
-        label="Precisi\u00f3n"
+        label="Precisión"
         value={todayAccuracy !== null ? `${todayAccuracy}%` : '\u2014'}
         sub={accuracyDiff !== null ? `${parseFloat(accuracyDiff) >= 0 ? '+' : ''}${accuracyDiff}% vs ayer` : 'sin datos ayer'}
         delay={0.1}

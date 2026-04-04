@@ -12,7 +12,7 @@ export function ProfessorDashboardPage() {
   return (
     <PlaceholderPage
       title="Dashboard del Profesor"
-      description="Vision general: cursos, estudiantes, contenido creado"
+      description="Visión general: cursos, estudiantes, contenido creado"
       icon={<LayoutDashboard size={22} />}
       accentColor="purple"
       features={[

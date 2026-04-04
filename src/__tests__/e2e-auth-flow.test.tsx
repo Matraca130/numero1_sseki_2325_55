@@ -316,8 +316,8 @@ describe('E2E Auth Flow', () => {
 
     // Fill in the login form
     const emailInput = screen.getByPlaceholderText('tu@email.com');
-    const passwordInput = screen.getByPlaceholderText('Tu contrasena');
-    const submitButton = screen.getByRole('button', { name: /Iniciar sesion/i });
+    const passwordInput = screen.getByPlaceholderText('Tu contraseña');
+    const submitButton = screen.getByRole('button', { name: /Iniciar sesión/i });
 
     await act(async () => {
       fireEvent.change(emailInput, { target: { value: 'maria@axon.edu' } });
@@ -351,8 +351,8 @@ describe('E2E Auth Flow', () => {
     });
 
     const emailInput = screen.getByPlaceholderText('tu@email.com');
-    const passwordInput = screen.getByPlaceholderText('Tu contrasena');
-    const submitButton = screen.getByRole('button', { name: /Iniciar sesion/i });
+    const passwordInput = screen.getByPlaceholderText('Tu contraseña');
+    const submitButton = screen.getByRole('button', { name: /Iniciar sesión/i });
 
     await act(async () => {
       fireEvent.change(emailInput, { target: { value: 'bad@axon.edu' } });
@@ -377,7 +377,7 @@ describe('E2E Auth Flow', () => {
 
     // PostLoginRouter -> multiple institutions, no selection -> /select-org
     await waitFor(() => {
-      expect(screen.getByText(/Selecciona la institucion/i)).toBeInTheDocument();
+      expect(screen.getByText(/Selecciona la institución/i)).toBeInTheDocument();
     });
 
     expect(screen.getByText('Universidad Axon')).toBeInTheDocument();

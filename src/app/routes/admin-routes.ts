@@ -29,10 +29,10 @@ const lazyPlaceholder = (title: string, desc: string, Icon: LucideIcon) => ({
 
 export const adminChildren: RouteObject[] = [
   { index: true,      ...lazyPlaceholder('Dashboard',  'Panel principal del administrador', LayoutDashboard) },
-  { path: 'members',  ...lazyPlaceholder('Miembros',   'Gestion de miembros de la institucion', Users) },
-  { path: 'content',  ...lazyPlaceholder('Contenido',  'Gestion del contenido academico', FileText) },
-  { path: 'scopes',   ...lazyPlaceholder('Scopes',     'Administracion de permisos', Shield) },
-  { path: 'reports',  ...lazyPlaceholder('Reportes',   'Estadisticas e informes', BarChart3) },
+  { path: 'members',  ...lazyPlaceholder('Miembros',   'Gestión de miembros de la institución', Users) },
+  { path: 'content',  ...lazyPlaceholder('Contenido',  'Gestión del contenido académico', FileText) },
+  { path: 'scopes',   ...lazyPlaceholder('Scopes',     'Administración de permisos', Shield) },
+  { path: 'reports',  ...lazyPlaceholder('Reportes',   'Estadísticas e informes', BarChart3) },
   {
     path: 'settings',
     lazy: () => import('@/app/components/roles/pages/admin/AdminSettingsPage').then(m => ({ Component: m.AdminSettingsPage })),

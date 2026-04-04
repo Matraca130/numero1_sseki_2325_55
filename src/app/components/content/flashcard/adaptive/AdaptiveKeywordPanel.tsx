@@ -103,7 +103,7 @@ export function AdaptiveKeywordPanel({ keywordMastery, topicSummary, loading = f
         <div className="mb-2">
           {!compact && weakKeywords.length > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-2 px-2" style={{ fontWeight: 600 }}><AlertTriangle size={12} /><span>Necesitan refuerzo ({weakKeywords.length})</span></div>}
           <div className="space-y-0.5">{visibleWeak.map((kw) => <KeywordRow key={kw.keyword_id} keyword={kw} compact={compact} />)}</div>
-          {hasMore && <button onClick={() => setShowAll(true)} className="w-full text-center text-xs text-[#2a8c7a] hover:text-[#244e47] py-2 transition-colors" style={{ fontWeight: 500 }}>Mostrar {weakKeywords.length - INITIAL_VISIBLE} m{'\u00E1'}s...</button>}
+          {hasMore && <button onClick={() => setShowAll(true)} className="w-full text-center text-xs text-[#2a8c7a] hover:text-[#244e47] py-2 transition-colors" style={{ fontWeight: 500 }}>Mostrar {weakKeywords.length - INITIAL_VISIBLE} más...</button>}
         </div>
       )}
       {weakKeywords.length > 0 && masteredKeywords.length > 0 && <div className="h-px bg-gray-100 my-2" />}
@@ -112,11 +112,11 @@ export function AdaptiveKeywordPanel({ keywordMastery, topicSummary, loading = f
           {!compact && <div className="flex items-center gap-1.5 text-xs text-emerald-600 mb-2 px-2" style={{ fontWeight: 600 }}><CheckCircle2 size={12} /><span>Dominados ({masteredKeywords.length})</span></div>}
           <div className="space-y-0.5">
             {masteredKeywords.slice(0, compact ? 3 : 5).map((kw) => <KeywordRow key={kw.keyword_id} keyword={kw} compact={compact} />)}
-            {masteredKeywords.length > (compact ? 3 : 5) && <p className="text-[10px] text-gray-400 text-center py-1">+{masteredKeywords.length - (compact ? 3 : 5)} m{'\u00E1'}s dominados</p>}
+            {masteredKeywords.length > (compact ? 3 : 5) && <p className="text-[10px] text-gray-400 text-center py-1">+{masteredKeywords.length - (compact ? 3 : 5)} más dominados</p>}
           </div>
         </div>
       )}
-      {weakKeywords.length === 0 && masteredKeywords.length > 0 && <div className="flex items-center gap-2 text-sm text-emerald-600 py-2 justify-center" style={{ fontWeight: 500 }}><CheckCircle2 size={16} /><span>{'\u00A1'}Todos los keywords dominados!</span></div>}
+      {weakKeywords.length === 0 && masteredKeywords.length > 0 && <div className="flex items-center gap-2 text-sm text-emerald-600 py-2 justify-center" style={{ fontWeight: 500 }}><CheckCircle2 size={16} /><span>¡Todos los keywords dominados!</span></div>}
     </div>
   );
 }

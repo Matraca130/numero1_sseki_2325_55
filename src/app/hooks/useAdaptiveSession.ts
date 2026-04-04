@@ -325,7 +325,7 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       const aiCards = mapBatchToFlashcards(result);
 
       if (aiCards.length === 0) {
-        setGenerationError('No se pudieron generar flashcards v\u00E1lidas. Int\u00E9ntalo de nuevo.');
+        setGenerationError('No se pudieron generar flashcards válidas. Inténtalo de nuevo.');
         setPhase('partial-summary');
         return;
       }
@@ -347,7 +347,7 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error('[AdaptiveSession] Generation failed:', err);
-      setGenerationError('La generaci\u00F3n de flashcards fall\u00F3. Int\u00E9ntalo de nuevo.');
+      setGenerationError('La generación de flashcards falló. Inténtalo de nuevo.');
       setPhase('partial-summary');
     } finally {
       isGeneratingRef.current = false;
