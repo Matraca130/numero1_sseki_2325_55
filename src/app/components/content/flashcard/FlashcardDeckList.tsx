@@ -70,17 +70,17 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
               Tus Mazos
             </h3>
             <p className="text-xs text-zinc-500" style={{ fontWeight: 400 }}>
-              0 mazos {'\u00B7'} 0 cards en total
+              0 mazos · 0 cards en total
             </p>
           </div>
         </div>
         <div className="text-center py-16 rounded-2xl border border-dashed border-zinc-200 bg-white">
           <Layers className="w-10 h-10 mx-auto mb-3 text-zinc-300" />
           <p className="text-sm text-zinc-500" style={{ fontWeight: 600, fontFamily: 'Georgia, serif' }}>
-            A{'\u00FA'}n no ten{'\u00E9'}s mazos de flashcards
+            Aún no tenés mazos de flashcards
           </p>
           <p className="text-xs text-zinc-400 mt-1.5 max-w-xs mx-auto" style={{ fontWeight: 400 }}>
-            Cuando tus profesores creen flashcards para tus cursos, aparecer{'\u00E1'}n aqu{'\u00ED'}.
+            Cuando tus profesores creen flashcards para tus cursos, aparecerán aquí.
           </p>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
               Tus Mazos
             </h3>
             <p className="text-xs text-zinc-500" style={{ fontWeight: 400 }}>
-              {decks.length} mazos {'\u00B7'} {totalCards} cards en total
+              {decks.length} mazos · {totalCards} cards en total
             </p>
           </div>
         </div>
@@ -230,7 +230,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
                         transition={{ type: 'spring', stiffness: 400, delay: 0.5 }}
                       >
                         <CheckCircle2 className="w-3 h-3" />
-                        Al d{'\u00EDa'}
+                        Al día
                       </motion.span>
                     )}
                   </div>
@@ -286,7 +286,7 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
                       className="text-[10px] text-zinc-300 mt-2 hidden sm:block"
                       style={{ fontWeight: 400 }}
                     >
-                      {'\u00DAltimo'} repaso: {deck.lastReviewed}
+                      Último repaso: {deck.lastReviewed}
                     </p>
                   )}
                 </div>
@@ -307,8 +307,8 @@ export function FlashcardDeckList({ decks, onDeckClick }: FlashcardDeckListProps
             <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-emerald-300" />
             <p className="text-sm" style={{ fontWeight: 600 }}>
               {deckFilter === 'due'
-                ? 'No hay cards pendientes! Est\u00E1s al d\u00EDa.'
-                : 'No hay mazos en esta categor\u00EDa.'}
+                ? 'No hay cards pendientes! Estás al día.'
+                : 'No hay mazos en esta categoría.'}
             </p>
           </motion.div>
         )}

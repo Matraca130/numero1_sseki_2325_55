@@ -18,10 +18,10 @@ export function AdaptiveIdleLanding({ topicTitle, cardCount, onStart, onBack }: 
         <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center mb-6 shadow-xl shadow-[#2a8c7a]/25">
           <Sparkles size={36} className="text-teal-500" />
         </div>
-        <h1 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>Sesi{'\u00F3'}n Adaptativa</h1>
+        <h1 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>Sesión Adaptativa</h1>
         <p className="text-sm text-gray-500 mb-2">{topicTitle}</p>
         <p className="text-xs text-gray-400 mb-8 max-w-sm">
-          Revisa las flashcards del profesor primero. Despu{'\u00E9'}s, la IA generar{'\u00E1'} flashcards enfocadas en tus {'\u00E1'}reas m{'\u00E1'}s d{'\u00E9'}biles. Puedes repetir cuantas rondas quieras.
+          Revisa las flashcards del profesor primero. Después, la IA generará flashcards enfocadas en tus áreas más débiles. Puedes repetir cuantas rondas quieras.
         </p>
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-gray-200/60 text-sm text-gray-600 mb-8">
           <Zap size={14} className="text-[#2a8c7a]" />
@@ -29,16 +29,16 @@ export function AdaptiveIdleLanding({ topicTitle, cardCount, onStart, onBack }: 
         </div>
         <div className="flex items-center gap-3 mb-10 text-xs text-gray-400">
           <span className="px-2 py-1 rounded bg-[#e6f5f1] text-[#2a8c7a] border border-[#2a8c7a]/20" style={{ fontWeight: 500 }}>Profesor</span>
-          <span>{'\u2192'}</span>
+          <span>→</span>
           <span className="px-2 py-1 rounded bg-teal-50 text-teal-600 border border-teal-200" style={{ fontWeight: 500 }}>IA genera</span>
-          <span>{'\u2192'}</span>
+          <span>→</span>
           <span className="px-2 py-1 rounded bg-teal-50 text-teal-600 border border-teal-200" style={{ fontWeight: 500 }}>Revisar IA</span>
-          <span>{'\u2192'}</span>
-          <span className="px-2 py-1 rounded bg-[#F0F2F5] text-gray-500 border border-gray-200" style={{ fontWeight: 500 }}>Repetir {'\u221E'}</span>
+          <span>→</span>
+          <span className="px-2 py-1 rounded bg-[#F0F2F5] text-gray-500 border border-gray-200" style={{ fontWeight: 500 }}>Repetir ∞</span>
         </div>
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="px-5 py-2.5 rounded-full border border-gray-200 text-sm text-gray-600 hover:bg-white/80 transition-colors" style={{ fontWeight: 500 }}><ArrowLeft size={14} className="inline mr-1.5" />Volver</button>
-          <button onClick={onStart} className="px-7 py-2.5 rounded-full bg-[#2a8c7a] text-white text-sm shadow-lg shadow-[#2a8c7a]/25 hover:bg-[#244e47] hover:-translate-y-0.5 transition-all flex items-center gap-2" style={{ fontWeight: 600 }}><Sparkles size={14} />Iniciar Sesi{'\u00F3'}n</button>
+          <button onClick={onStart} className="px-7 py-2.5 rounded-full bg-[#2a8c7a] text-white text-sm shadow-lg shadow-[#2a8c7a]/25 hover:bg-[#244e47] hover:-translate-y-0.5 transition-all flex items-center gap-2" style={{ fontWeight: 600 }}><Sparkles size={14} />Iniciar Sesión</button>
         </div>
       </div>
     </motion.div>

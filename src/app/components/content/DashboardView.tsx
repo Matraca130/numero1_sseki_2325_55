@@ -117,7 +117,7 @@ export function DashboardView() {
       <AxonPageHeader
         title="Dashboard"
         subtitle={currentCourse.name}
-        statsLeft={<p className="text-gray-500 text-sm">Vision general de tu aprendizaje</p>}
+        statsLeft={<p className="text-gray-500 text-sm">Visión general de tu aprendizaje</p>}
         actionButton={
           <div className="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200/60 shrink-0">
             <button

@@ -74,7 +74,7 @@ export function MembersEmpty({ onInvite }: { onInvite: () => void }) {
           <Users size={24} />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-1">Sin miembros registrados</h3>
-        <p className="text-sm text-gray-500 mb-6">Invita administradores, profesores y estudiantes a tu institucion</p>
+        <p className="text-sm text-gray-500 mb-6">Invita administradores, profesores y estudiantes a tu institución</p>
         <Button onClick={onInvite} className="gap-2 bg-amber-500 hover:bg-amber-600"><UserPlus size={14} />Invitar primer miembro</Button>
       </div>
     </FadeIn>

@@ -58,7 +58,7 @@ export function ProfessorGamificationPage() {
   const avgLvl = n > 0 ? (lb!.leaderboard.reduce((s, e) => s + e.current_level, 0) / n).toFixed(1) : '0';
   const top5 = lb?.leaderboard.slice(0, 5) ?? [];
 
-  if (!iid) return <div className="flex items-center justify-center h-full text-gray-400"><p className="text-sm">Selecciona una institucion</p></div>;
+  if (!iid) return <div className="flex items-center justify-center h-full text-gray-400"><p className="text-sm">Selecciona una institución</p></div>;
 
   return (
     <div className="h-full overflow-y-auto">

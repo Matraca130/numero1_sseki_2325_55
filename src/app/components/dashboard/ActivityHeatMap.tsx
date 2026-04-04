@@ -137,10 +137,10 @@ function CellTooltip({ cell }: { cell: DayCell }) {
         ) : (
           <>
             <p className="text-zinc-300">
-              {cell.reviews_count} repasos \u00b7 {cell.correct_count} correctos ({pct}%)
+              {cell.reviews_count} repasos · {cell.correct_count} correctos ({pct}%)
             </p>
             <p className="text-zinc-400">
-              {cell.sessions_count} sesion{cell.sessions_count !== 1 ? 'es' : ''} \u00b7{' '}
+              {cell.sessions_count} sesion{cell.sessions_count !== 1 ? 'es' : ''} ·{' '}
               {formatMinutes(cell.time_spent_seconds)} estudiados
             </p>
           </>
@@ -272,7 +272,7 @@ export function ActivityHeatMap() {
           <div className="w-3 h-3 rounded-sm bg-axon-accent" />
           <div className="w-3 h-3 rounded-sm bg-[#244e47]" />
           <div className="w-3 h-3 rounded-sm bg-axon-dark" />
-          <span>Mas</span>
+          <span>Más</span>
         </div>
 
         <p className="text-xs text-gray-500">

@@ -62,7 +62,7 @@ export function PlaceholderPage({
               <p className="text-xs text-gray-400">{user?.email}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Institucion</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Institución</p>
               <p className="text-sm font-medium text-gray-900">{activeMembership?.institution?.name || '—'}</p>
               <p className="text-xs text-gray-400">@{activeMembership?.institution?.slug || '—'}</p>
             </div>
@@ -92,8 +92,8 @@ export function PlaceholderPage({
           </div>
         )}
 
-        {/* Backend routes reference */}
-        {backendRoutes.length > 0 && (
+        {/* Backend routes reference — dev only */}
+        {import.meta.env.DEV && backendRoutes.length > 0 && (
           <div className="bg-gray-50 rounded-xl border border-gray-100 p-5">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
               Rutas del backend conectadas

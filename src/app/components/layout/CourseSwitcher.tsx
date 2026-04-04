@@ -32,7 +32,7 @@ export function CourseSwitcher() {
           <BookOpen className="w-[18px] h-[18px] sm:w-5 sm:h-5" strokeWidth={2.5} />
         </div>
         <div className="text-left hidden md:block">
-          <p className="text-gray-400 group-hover:text-gray-300 font-medium tracking-wide uppercase text-[14px] font-sans">Curso Atual</p>
+          <p className="text-gray-400 group-hover:text-gray-300 font-medium tracking-wide uppercase text-[14px] font-sans">Curso Actual</p>
           <p className="font-semibold text-gray-200 group-hover:text-white leading-none text-[16px] font-sans">{currentCourse.name}</p>
         </div>
         <ChevronDown 

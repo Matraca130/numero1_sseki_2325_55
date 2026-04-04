@@ -526,7 +526,7 @@ describe('E2E Layout & Navigation System', () => {
     it('shows current course name', () => {
       renderWithRouter(<CourseSwitcher />);
 
-      expect(screen.getByText('Curso Atual')).toBeInTheDocument();
+      expect(screen.getByText('Curso Actual')).toBeInTheDocument();
       expect(screen.getByText('Anatomia Humana')).toBeInTheDocument();
     });
 

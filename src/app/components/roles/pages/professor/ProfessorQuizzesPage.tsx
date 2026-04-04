@@ -118,7 +118,7 @@ export function ProfessorQuizzesPage() {
   // ── Render ────────────────────────────────────────
 
   return (
-    <QuizErrorBoundary label="Gestion de Quizzes" accentColor="purple">
+    <QuizErrorBoundary label="Gestión de Quizzes" accentColor="purple">
       <div className="flex h-full">
         {/* ── Left Panel: Cascade Selectors ── */}
         <div className="shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden w-[300px]">

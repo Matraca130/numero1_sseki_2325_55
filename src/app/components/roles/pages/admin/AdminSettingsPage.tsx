@@ -124,7 +124,7 @@ function AdminAISettingsSection({ onBack }: { onBack: () => void }) {
       <PageHeader
         icon={<Brain size={22} />}
         title="Inteligencia Artificial"
-        subtitle="Configura el modelo de IA para tu institucion"
+        subtitle="Configura el modelo de IA para tu institución"
         accent="blue"
         actions={
           <Button variant="outline" onClick={onBack} className="gap-2">
@@ -215,8 +215,8 @@ export function AdminSettingsPage() {
 
       <PageHeader
         icon={<Settings size={22} />}
-        title="Configuracion"
-        subtitle="Ajustes de la institucion"
+        title="Configuración"
+        subtitle="Ajustes de la institución"
         accent="blue"
       />
 
@@ -229,7 +229,7 @@ export function AdminSettingsPage() {
         <SettingsCard
           icon={<Brain size={20} />}
           title="Inteligencia Artificial"
-          description="Selecciona el modelo de IA para tu institucion"
+          description="Selecciona el modelo de IA para tu institución"
           onClick={() => setSection('ai')}
           ready
         />

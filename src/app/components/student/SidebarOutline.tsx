@@ -72,12 +72,18 @@ function getMasteryDotColor(level: number): string {
 }
 
 
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+function isGarbageTitle(s: string): boolean {
+  return UUID_RE.test(s) || s.includes('{{');
+}
+
 function getBlockLabel(block: { type: string; content?: Record<string, unknown> }): string {
   const title = block.content?.title;
-  if (typeof title === 'string' && title.length > 0) return title;
+  if (typeof title === 'string' && title.length > 0 && !isGarbageTitle(title)) return title;
 
   const label = block.content?.label;
-  if (typeof label === 'string' && label.length > 0) return label;
+  if (typeof label === 'string' && label.length > 0 && !isGarbageTitle(label)) return label;
 
   return block.type.replace(/_/g, ' ');
 }

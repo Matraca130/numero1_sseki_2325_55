@@ -18,7 +18,7 @@ import { Settings } from 'lucide-react';
 export function OwnerSettingsPage() {
   return (
     <PlaceholderPage
-      title="Configuracion"
+      title="Configuración"
       description="Ajustes generales del propietario"
       icon={<Settings size={22} />}
       accentColor="amber"

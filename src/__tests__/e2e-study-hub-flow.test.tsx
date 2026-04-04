@@ -160,7 +160,7 @@ const mockTodayStats: TodayStats = {
 };
 
 const defaultHeroProps: StudyHubHeroProps = {
-  greeting: 'Buenos dias',
+  greeting: 'Buenos días',
   userName: 'Test Student',
   effectiveTopic: { id: 'topic-1', title: 'Huesos del Craneo' },
   isAutoSelected: false,
@@ -282,7 +282,7 @@ describe('E2E Study Hub Flow', () => {
   describe('1. Hero greeting and stats display', () => {
     it('renders the personalized greeting with student name', () => {
       renderHero();
-      expect(screen.getByText(/Buenos dias, Test Student/)).toBeInTheDocument();
+      expect(screen.getByText(/Buenos días, Test Student/)).toBeInTheDocument();
     });
 
     it('shows "Retoma donde dejaste" title when there are reading sessions', () => {

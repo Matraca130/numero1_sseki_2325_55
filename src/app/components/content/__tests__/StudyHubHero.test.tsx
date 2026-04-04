@@ -79,7 +79,7 @@ vi.mock('lucide-react', () => {
 // ── Helpers ───────────────────────────────────────────────────
 
 const defaultProps: StudyHubHeroProps = {
-  greeting: 'Buenos dias',
+  greeting: 'Buenos días',
   userName: 'Carlos',
   effectiveTopic: { id: 't1', title: 'Anatomia del Corazon' },
   isAutoSelected: false,
@@ -114,7 +114,7 @@ describe('StudyHubHero', () => {
 
   it('renders the greeting with user name', () => {
     renderHero();
-    expect(screen.getByText(/Buenos dias, Carlos/)).toBeInTheDocument();
+    expect(screen.getByText(/Buenos días, Carlos/)).toBeInTheDocument();
   });
 
   it('shows "Retoma donde dejaste" when heroReadingSessions > 0', () => {
