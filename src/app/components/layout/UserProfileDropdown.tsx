@@ -77,6 +77,7 @@ export function UserProfileDropdown() {
         onClick={() => navigateTo('schedule')}
         className="hidden sm:flex relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group"
         title="Cronograma"
+        aria-label="Cronograma"
       >
         <div className="relative">
           <Calendar size={18} className="group-hover:text-axon-accent transition-colors" />
@@ -89,12 +90,13 @@ export function UserProfileDropdown() {
         onClick={toggleTheme}
         className="hidden sm:flex relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group"
         title={theme === 'dark' ? 'Tema Oscuro' : 'Tema Claro'}
+        aria-label="Cambiar tema"
       >
         
       </button>
 
       {/* Notifications */}
-      <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group" title="Notificaciones">
+      <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all group" title="Notificaciones" aria-label="Notificaciones">
         <Bell size={18} className="group-hover:text-axon-accent transition-colors" />
         <span className="absolute top-1 right-1 flex items-center justify-center w-[15px] h-[15px] rounded-full bg-axon-accent text-[8px] font-bold text-white ring-2 ring-[#1a1a1a]">3</span>
       </button>
