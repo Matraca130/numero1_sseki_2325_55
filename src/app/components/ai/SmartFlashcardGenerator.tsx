@@ -89,14 +89,18 @@ export function SmartFlashcardGenerator({
     }
   };
 
-  const getColorForKeyword = (color: 'red' | 'yellow' | 'green') => {
+  const getColorForKeyword = (color: 'gray' | 'red' | 'yellow' | 'green' | 'blue') => {
     switch (color) {
+      case 'gray':
+        return 'text-gray-500 bg-gray-50 border-gray-200';
       case 'red':
         return 'text-red-600 bg-red-50 border-red-200';
       case 'yellow':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'green':
         return 'text-green-600 bg-green-50 border-green-200';
+      case 'blue':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
     }
   };
 

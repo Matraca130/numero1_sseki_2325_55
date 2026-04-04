@@ -39,7 +39,10 @@ export type KeywordCollection = Record<string, KeywordState>;
 
 // ── Mastery Config ───────────────────────────────────────────
 
-/** @deprecated Use getDeltaColorClasses + getDeltaColorLabel from mastery-helpers.ts instead */
+/**
+ * @deprecated Use getDeltaColorClasses + getDeltaColorLabel from mastery-helpers.ts instead
+ * Labels are canonical Spanish (es-AR). Portuguese labels (Nao sei, Mais ou menos, Sei bem) were removed in BH-ERR-021.
+ */
 export const masteryConfig: Record<MasteryLevel, {
   label: string;
   color: string;
@@ -48,7 +51,7 @@ export const masteryConfig: Record<MasteryLevel, {
   description: string;
 }> = {
   none:      { label: 'Nuevo',       color: 'text-gray-600',    bg: 'bg-gray-50',    border: 'border-gray-200',   description: 'Sin revisar' },
-  seen:      { label: 'Visto',       color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',   description: 'Visto una vez' },
+  seen:      { label: 'Visto',       color: 'text-sky-400',     bg: 'bg-sky-50',     border: 'border-sky-200',    description: 'Visto una vez' },
   learning:  { label: 'Aprendiendo', color: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200',  description: 'Conocimiento parcial' },
   familiar:  { label: 'Familiar',    color: 'text-teal-600',    bg: 'bg-teal-50',    border: 'border-teal-200',   description: 'Buen dominio' },
   mastered:  { label: 'Dominado',    color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', description: 'Dominio consolidado' },

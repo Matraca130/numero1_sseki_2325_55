@@ -115,7 +115,7 @@ export interface KeywordData {
 
 export const masteryConfig: Record<MasteryLevel, { label: string; color: string; bgColor: string; textColor: string; borderColor: string; icon: string }> = {
   none:      { label: 'Nuevo',      color: 'gray',   bgColor: 'bg-gray-100',   textColor: 'text-gray-600',   borderColor: 'border-gray-200', icon: '○' },
-  seen:      { label: 'Visto',      color: 'blue',   bgColor: 'bg-blue-100',   textColor: 'text-blue-600',   borderColor: 'border-blue-200', icon: '◔' },
+  seen:      { label: 'Visto',      color: 'sky',    bgColor: 'bg-sky-100',    textColor: 'text-sky-400',    borderColor: 'border-sky-200', icon: '◔' },
   learning:  { label: 'Aprendiendo', color: 'amber',  bgColor: 'bg-amber-100',  textColor: 'text-amber-600',  borderColor: 'border-amber-200', icon: '◑' },
   familiar:  { label: 'Familiar',   color: 'teal',   bgColor: 'bg-teal-100',   textColor: 'text-teal-600',   borderColor: 'border-teal-200', icon: '◕' },
   mastered:  { label: 'Dominado',   color: 'green',  bgColor: 'bg-green-100',  textColor: 'text-green-600',  borderColor: 'border-green-200', icon: '●' },

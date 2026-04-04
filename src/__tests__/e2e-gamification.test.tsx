@@ -449,7 +449,7 @@ describe('LeaderboardPage — renders leaderboard entries', () => {
     render(<LeaderboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText('900 XP')).toBeInTheDocument();
     });
 
     expect(screen.getByText('#3')).toBeInTheDocument();
