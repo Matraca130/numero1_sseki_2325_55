@@ -125,9 +125,9 @@ function StudentShell() {
             <button
               onClick={handleMenuToggle}
               className={`${components.header.menuBtn} hover:text-white transition-all duration-200`}
-              title={isSidebarOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-label={isSidebarOpen ? "Cerrar menú" : "Abrir menú"}
             >
-              <Menu size={20} />
+              <Menu size={20} aria-hidden="true" />
             </button>
 
             {/* Logo Area - Click to Home */}

@@ -73,6 +73,7 @@ function RoleSidebarContent({
   onSwitchRole: () => void;
   onSignOut: () => void;
 }) {
+  const loc = useLocation();
   return (
     <div className={`h-full bg-gradient-to-b ${accent.sidebar} flex flex-col w-[260px]`}>
       {/* Logo */}
@@ -95,21 +96,27 @@ function RoleSidebarContent({
 
       {/* Nav Items */}
       <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5 overscroll-contain">
-        {navItems.map((item) => (
+        {navItems.map((item) => {
+          const isEnd = item.path.split('/').length <= 2;
+          const isCurrentPage = isEnd
+            ? loc.pathname === item.path
+            : loc.pathname.startsWith(item.path);
+          return (
           <NavLink
             key={item.path}
             to={item.path}
-            end={item.path.split('/').length <= 2}
+            end={isEnd}
             onClick={onNavClick}
+            aria-current={isCurrentPage ? 'page' : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all border-l-2 min-h-[44px] ${
                 isActive
                   ? `${accent.activeNav}`
-                  : 'border-l-transparent text-white/50 hover:text-white/80 hover:bg-white/[0.04]'
+                  : 'border-l-transparent text-white/60 hover:text-white/80 hover:bg-white/[0.04]'
               }`
             }
           >
-            <span className="shrink-0">{item.icon}</span>
+            <span className="shrink-0" aria-hidden="true">{item.icon}</span>
             <span className="flex-1 truncate">{item.label}</span>
             {item.badge && (
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${accent.badge}`}>
@@ -117,7 +124,8 @@ function RoleSidebarContent({
               </span>
             )}
           </NavLink>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Bottom: Switch Role + User */}
@@ -126,14 +134,14 @@ function RoleSidebarContent({
           onClick={onSwitchRole}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-all text-[12px] min-h-[44px]"
         >
-          <ArrowLeftRight size={14} />
+          <ArrowLeftRight size={14} aria-hidden="true" />
           <span>Cambiar rol</span>
         </button>
         <button
           onClick={onSignOut}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-500/[0.06] transition-all text-[12px] min-h-[44px]"
         >
-          <LogOut size={14} />
+          <LogOut size={14} aria-hidden="true" />
           <span>Cerrar sesion</span>
         </button>
       </div>
@@ -203,8 +211,9 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all"
+              aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
             >
-              <Menu size={18} />
+              <Menu size={18} aria-hidden="true" />
             </button>
           </div>
 

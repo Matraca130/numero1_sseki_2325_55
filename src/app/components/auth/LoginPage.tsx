@@ -136,7 +136,7 @@ export function LoginPage() {
               <h1 className="text-2xl text-white">
                 {mode === 'signin' ? 'Bienvenido de vuelta' : 'Crear cuenta'}
               </h1>
-              <p className="text-sm text-zinc-400 mt-1">
+              <p className="text-sm text-zinc-300 mt-1">
                 {mode === 'signin'
                   ? 'Ingresa tus credenciales para continuar'
                   : 'Registrate para empezar a estudiar'}
@@ -168,13 +168,14 @@ export function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'signup' && (
                 <div>
-                  <label className="block text-sm text-zinc-300 mb-1.5">Nombre completo</label>
+                  <label htmlFor="signup-name" className="block text-sm text-zinc-200 mb-1.5">Nombre completo</label>
                   <input
+                    id="signup-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
-                    className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                     required
                     autoComplete="name"
                   />
@@ -182,32 +183,34 @@ export function LoginPage() {
               )}
 
               <div>
-                <label className="block text-sm text-zinc-300 mb-1.5">Email</label>
+                <label htmlFor="login-email" className="block text-sm text-zinc-200 mb-1.5">Email</label>
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                  className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                   required
                   autoComplete="email"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-zinc-300 mb-1.5">
+                <label htmlFor="login-password" className="block text-sm text-zinc-200 mb-1.5">
                   Contrasena
                   {mode === 'signup' && (
-                    <span className="text-zinc-500 ml-1">(min. 8 caracteres)</span>
+                    <span className="text-zinc-400 ml-1">(min. 8 caracteres)</span>
                   )}
                 </label>
                 <div className="relative">
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={mode === 'signup' ? 'Minimo 8 caracteres' : 'Tu contrasena'}
-                    className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                    className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
                     required
                     minLength={mode === 'signup' ? 8 : 1}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
@@ -215,7 +218,8 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors"
+                    aria-label={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

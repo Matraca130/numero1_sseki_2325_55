@@ -11,7 +11,7 @@
 //   - Added min-h-[44px] touch targets on all nav items
 // ============================================================
 import React from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
 import { useUI } from '@/app/context/UIContext';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { viewToPath, type ViewType } from '@/app/hooks/useStudentNav';
@@ -43,6 +43,7 @@ interface NavItem {
 export function Sidebar() {
   const { isSidebarOpen, setSidebarOpen } = useUI();
   const { currentCourse } = useNavigation();
+  const location = useLocation();
 
   const navItems: NavItem[] = [
     { id: 'home', label: 'Inicio', icon: Home },
@@ -84,6 +85,11 @@ export function Sidebar() {
                 to={to}
                 end={isEnd}
                 onClick={() => setSidebarOpen(false)}
+                aria-current={
+                  (isEnd ? location.pathname === to : location.pathname.startsWith(to)) ||
+                  alsoPatterns.some(p => location.pathname.startsWith(p))
+                    ? 'page' : undefined
+                }
                 className={({ isActive }) => {
                   const alsoActive = alsoPatterns.length > 0 && typeof window !== 'undefined'
                     ? alsoPatterns.some(p => window.location.pathname.startsWith(p))
@@ -107,7 +113,7 @@ export function Sidebar() {
 
                   return (
                     <>
-                      <Icon size={20} className={active ? "text-current" : "text-[#8fbfb3] group-hover:text-white"} />
+                      <Icon size={20} className={active ? "text-current" : "text-[#8fbfb3] group-hover:text-white"} aria-hidden="true" />
                       <span>{item.label}</span>
                       {active && (
                         <motion.div
@@ -135,6 +141,7 @@ export function Sidebar() {
                 key="settings"
                 to={settingsTo}
                 onClick={() => setSidebarOpen(false)}
+                aria-current={location.pathname.startsWith(settingsTo) ? 'page' : undefined}
                 className={({ isActive }) =>
                   clsx(
                     components.sidebar.navItem.base,
@@ -147,7 +154,7 @@ export function Sidebar() {
               >
                 {({ isActive }) => (
                   <>
-                    <SettingsIcon size={20} className={isActive ? "text-current" : "text-gray-500 group-hover:text-white"} />
+                    <SettingsIcon size={20} className={isActive ? "text-current" : "text-gray-500 group-hover:text-white"} aria-hidden="true" />
                     <span>{settingsItem.label}</span>
                     {isActive && (
                       <motion.div
@@ -177,7 +184,7 @@ export function Sidebar() {
                   'opacity-50 cursor-not-allowed'
                 )}
               >
-                <Icon size={20} className="text-[#8fbfb3]" />
+                <Icon size={20} className="text-[#8fbfb3]" aria-hidden="true" />
                 <span>{item.label}</span>
                 <span className="ml-auto text-[9px] text-[#6db5a5]/50 uppercase tracking-wider">Pronto</span>
               </button>
