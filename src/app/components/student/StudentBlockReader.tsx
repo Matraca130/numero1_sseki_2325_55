@@ -34,12 +34,17 @@ import {
   Redo2,
   X,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { SummaryViewer } from './SummaryViewer';
 import { SidebarOutline } from './SidebarOutline';
 import { ReadingSettingsPanel, type ReadingSettings } from './ReadingSettingsPanel';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
-import type { Summary } from '@/app/services/summariesApi';
+import { queryKeys } from '@/app/hooks/queries/queryKeys';
+import * as summariesApi from '@/app/services/summariesApi';
+import type { Summary, SummaryKeyword } from '@/app/services/summariesApi';
+import { extractItems } from '@/app/lib/api-helpers';
+import { PROFESSOR_CONTENT_STALE } from '@/app/hooks/queries/staleTimes';
 import { colors } from '@/app/design-system';
 
 // ── Design tokens (match prototype) ─────────────────────────
@@ -108,6 +113,15 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   // Data
   const { data: blocks = [] } = useSummaryBlocksQuery(summary.id);
   const { data: masteryLevels = {} } = useSummaryBlockMastery(summary.id);
+  const { data: keywords = [] } = useQuery({
+    queryKey: queryKeys.summaryKeywords(summary.id),
+    queryFn: async () => {
+      const result = await summariesApi.getKeywords(summary.id);
+      return extractItems<SummaryKeyword>(result);
+    },
+    staleTime: PROFESSOR_CONTENT_STALE,
+    select: (data) => data.filter(k => k.is_active !== false),
+  });
 
   // ── Scroll spy via IntersectionObserver ────────────────────
   useEffect(() => {
@@ -431,6 +445,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
               summaryId={summary.id}
               readingSettings={readingSettings}
               layout="flow"
+              keywords={keywords}
             />
           </div>
 
