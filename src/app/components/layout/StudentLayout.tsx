@@ -189,7 +189,7 @@ function StudentShell() {
               initial={animation.pageTransition.initial}
               animate={animation.pageTransition.animate}
               transition={{ duration: animation.pageTransition.duration }}
-              className="h-full w-full"
+              className="h-full w-full pb-20"
             >
               <Outlet />
             </motion.div>
