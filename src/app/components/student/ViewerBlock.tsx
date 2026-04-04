@@ -629,6 +629,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     <div
       ref={blockRef}
       className={highlightEnabled ? 'select-text' : undefined}
+      onContextMenu={highlightEnabled ? (e) => e.preventDefault() : undefined}
       style={{
         position: 'relative',
         transition: 'background 0.3s, border-color 0.3s',

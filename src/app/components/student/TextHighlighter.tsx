@@ -287,7 +287,7 @@ export function TextHighlighter({
   const segments = buildSegments(fullText, liveAnnotations);
 
   return (
-    <div ref={containerRef} className="relative p-6 select-text">
+    <div ref={containerRef} className="relative p-6 select-text" onContextMenu={(e) => e.preventDefault()}>
       {/* Floating toolbar on selection */}
       <AnimatePresence>
         {toolbar && selectionRange && (
