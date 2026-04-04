@@ -23,6 +23,7 @@ export function FlashcardView() {
   const { user } = useAuth();
   const studentId = user?.id || null;
   const navigate = useNavigate();
+  const { setActiveSummaryId } = useUI();
 
   const nav = useFlashcardNavigation();
   const { selectedTopicId } = useContentTree();
@@ -89,7 +90,6 @@ export function FlashcardView() {
   const currentSummaryId = cardSummaryId || fetchedSummaryId;
 
   // Lift summaryId to layout so AI assistant can use it (AXO-131)
-  const { setActiveSummaryId } = useUI();
   useEffect(() => {
     setActiveSummaryId(currentSummaryId || undefined);
     return () => setActiveSummaryId(undefined);
