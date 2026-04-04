@@ -280,3 +280,41 @@ El Arquitecto lee el AGENT-REGISTRY, selecciona agentes, resuelve dependencias, 
 - El Quality Gate (XX-02) audita despues de cada agente y auto-registra lecciones
 - Los agentes leen sus lecciones previas al iniciar → no repiten errores
 - **NUNCA** lanzar un agente sin que lea su `.claude/agents/<nombre>.md` primero
+
+## Branch Hygiene Policy
+
+### Reglas obligatorias
+
+1. **Siempre mergear PRs via GitHub** (botón "Merge" o `gh pr merge`). NUNCA integrar trabajo a `main` con push directo o merge local — esto rompe la trazabilidad y deja ramas huérfanas.
+2. **Eliminar ramas después de merge.** Activar "Automatically delete head branches" en Settings → General del repo. Si se mergea manualmente, borrar la rama inmediatamente después.
+3. **Ramas `claude/*` son efímeras.** Se crean por sesión de Claude Code y deben eliminarse al cerrar la sesión si el trabajo ya se integró o se descartó.
+4. **Una rama = un PR.** No crear múltiples ramas para el mismo cambio. Si un PR se cierra sin merge, la rama debe borrarse solo si el trabajo se descartó o se rehizo en otra rama.
+5. **No acumular ramas sin PR.** Toda rama que tenga más de 3 días sin PR abierto debe justificarse o eliminarse.
+
+### Verificación antes de eliminar ramas
+
+Antes de borrar cualquier rama, verificar que su trabajo ya está en `main`:
+
+```bash
+# Ver si TODOS los commits de una rama ya están en main (por patch-id)
+git cherry -v origin/main origin/<branch>
+# - líneas con "-" → commit YA está en main (seguro borrar)
+# - líneas con "+" → commit NO está en main (NO borrar)
+```
+
+**Solo eliminar una rama si `git cherry` muestra todas las líneas con `-` o no muestra líneas (rama vacía/idéntica a main).**
+
+### Auditoría periódica
+
+Ejecutar mensualmente:
+
+```bash
+# Ramas mergeadas en main (candidatas a eliminar)
+git branch -r --merged origin/main | grep -v 'origin/main'
+
+# Ramas no mergeadas con fecha de último commit
+for branch in $(git branch -r --no-merged origin/main | grep -v 'origin/main'); do
+  date=$(git log -1 --format="%ci" $branch | cut -d' ' -f1)
+  echo "$branch | $date"
+done
+```
