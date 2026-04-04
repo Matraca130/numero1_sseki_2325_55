@@ -14,6 +14,7 @@ import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
 import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useFlashcardCoverage } from '@/app/hooks/useFlashcardCoverage';
+import { useUI } from '@/app/context/UIContext';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } from './flashcard';
@@ -22,6 +23,7 @@ export function FlashcardView() {
   const { user } = useAuth();
   const studentId = user?.id || null;
   const navigate = useNavigate();
+  const { setActiveSummaryId } = useUI();
 
   const nav = useFlashcardNavigation();
   const { selectedTopicId } = useContentTree();
@@ -86,6 +88,12 @@ export function FlashcardView() {
   const [fetchedSummaryId, setFetchedSummaryId] = useState<string>('');
   const cardSummaryId = nav.selectedTopic?.flashcards?.[0]?.summary_id || '';
   const currentSummaryId = cardSummaryId || fetchedSummaryId;
+
+  // Sync resolved summaryId to UIContext so AxonAIAssistant can use it
+  useEffect(() => {
+    if (currentSummaryId) setActiveSummaryId(currentSummaryId);
+    return () => setActiveSummaryId(undefined);
+  }, [currentSummaryId, setActiveSummaryId]);
 
   useEffect(() => {
     const topicId = nav.selectedTopic?.id;
