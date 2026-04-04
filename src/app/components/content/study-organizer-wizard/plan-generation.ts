@@ -9,7 +9,11 @@ import { aiDistributeTasks } from '@/app/services/aiService';
 import type { StudentProfilePayload, PlanContextPayload } from '@/app/services/aiService';
 import { adjustTimeByDifficulty, classifyDifficulty } from '@/app/lib/scheduling-intelligence';
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
+import type { WizardCourse } from './helpers';
 import { getSubjectColor, getSubjectName } from './helpers';
+
+/** Maximum time (ms) to wait for AI distribution before falling back to algorithmic. */
+const AI_TIMEOUT_MS = 20_000;
 
 interface GeneratePlanParams {
   selectedSubjects: string[];
@@ -20,7 +24,7 @@ interface GeneratePlanParams {
   topicMastery: Map<string, TopicMasteryInfo>;
   difficultyMap: Map<string, number>;
   getTimeEstimate: (methodId: string) => { estimatedMinutes: number };
-  courses: any[];
+  courses: WizardCourse[];
   existingPlanCount: number;
 }
 
@@ -68,10 +72,12 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
     studyMethods: selectedMethods,
   };
 
-  // Try AI distribution
+  // Try AI distribution with timeout
   let aiDistribution: { topicId: string; method: string; scheduledDate: string; estimatedMinutes: number; reason: string }[] | null = null;
   try {
-    const result = await aiDistributeTasks(profile, planContext);
+    const aiPromise = aiDistributeTasks(profile, planContext);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), AI_TIMEOUT_MS));
+    const result = await Promise.race([aiPromise, timeoutPromise]);
     if (result?._meta?.aiPowered && result.distribution?.length) {
       aiDistribution = result.distribution;
       aiPowered = true;
@@ -153,14 +159,26 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
       currentDay.setDate(currentDay.getDate() + 1);
     }
 
-    while (itemIdx < interleaved.length) {
-      const item = interleaved[itemIdx];
-      tasks.push({
-        id: `task-${taskIndex++}`, date: new Date(endDate), title: item.topicTitle,
-        subject: item.courseName, subjectColor: getSubjectColor(item.courseId, courses),
-        method: item.method, estimatedMinutes: item.minutes, completed: false, topicId: item.topicId,
+    // Spread overflow tasks across last available days instead of dumping all on endDate
+    if (itemIdx < interleaved.length) {
+      const remainingItems = interleaved.slice(itemIdx);
+      const lastDays: Date[] = [];
+      const scanDate = new Date(endDate);
+      while (lastDays.length < Math.min(3, remainingItems.length) && scanDate >= today) {
+        const dow = scanDate.getDay();
+        const hi = dow === 0 ? 6 : dow - 1;
+        if (weeklyHours[hi] > 0) lastDays.unshift(new Date(scanDate));
+        scanDate.setDate(scanDate.getDate() - 1);
+      }
+      if (lastDays.length === 0) lastDays.push(new Date(endDate));
+      remainingItems.forEach((item, i) => {
+        const dayForItem = lastDays[i % lastDays.length];
+        tasks.push({
+          id: `task-${taskIndex++}`, date: new Date(dayForItem), title: item.topicTitle,
+          subject: item.courseName, subjectColor: getSubjectColor(item.courseId, courses),
+          method: item.method, estimatedMinutes: item.minutes, completed: false, topicId: item.topicId,
+        });
       });
-      itemIdx++;
     }
   }
 
@@ -171,6 +189,8 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
     methods: selectedMethods, selectedTopics, completionDate: endDate, weeklyHours, tasks,
     createdAt: getAxonToday(),
     totalEstimatedHours: Math.round(tasks.reduce((sum, t) => sum + t.estimatedMinutes, 0) / 60),
+    // When only one subject is selected, attach course_id for backend filtering
+    ...(selectedSubjects.length === 1 && { courseId: selectedSubjects[0] }),
   };
 
   return { plan, aiPowered };

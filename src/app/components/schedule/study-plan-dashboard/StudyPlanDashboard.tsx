@@ -9,7 +9,7 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown,
-  Clock, BookOpen, Plus, GripVertical,
+  Clock, BookOpen, Plus, GripVertical, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, addDays, subDays } from 'date-fns';
@@ -23,6 +23,8 @@ import type { StudentProfilePayload } from '@/app/services/aiService';
 import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
+import { useContentTree } from '@/app/context/ContentTreeContext';
+import { isBefore, startOfDay } from 'date-fns';
 import { CompletionCircle, MethodTag, DurationPill } from './CompletionIndicators';
 import { DaySummaryCard } from './DaySummaryCard';
 import { DashboardLayout } from './DashboardLayout';
@@ -35,6 +37,8 @@ export interface StudyPlanDashboardProps {
   reorderTasks: (planId: string, orderedIds: string[]) => Promise<void>;
   updatePlanStatus: (planId: string, status: 'active' | 'completed' | 'archived') => Promise<void>;
   deletePlan: (planId: string) => Promise<void>;
+  /** Optional refresh callback to re-fetch plans (used for manual reschedule) */
+  refresh?: () => Promise<void>;
 }
 
 export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTasks, updatePlanStatus, deletePlan }: StudyPlanDashboardProps) {
