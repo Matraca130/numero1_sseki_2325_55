@@ -1,12 +1,12 @@
 // ============================================================
 // Axon — Student: BlockQuizModal
 //
-// Lightweight quiz modal scoped to a single content block.
-// Shows one multiple-choice question at a time with immediate
-// feedback (correct/incorrect + explanation).
+// ADR-001: Per-block quiz modal with domain tracking.
 //
-// Calls POST /ai/generate with type: 'quiz' to fetch real
-// questions. Falls back to MOCK_QUESTIONS if the API fails.
+// Priority: loads pre-generated questions from quiz_questions DB
+// (filtered by block_id). Falls back to AI generation if none exist.
+// Tracks every attempt in quiz_attempts for domain mastery.
+//
 // Design: teal accent, Georgia headings, Inter body, pill buttons.
 // ============================================================
 
@@ -14,11 +14,13 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, X, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { apiCall } from '@/app/lib/api';
+import { getQuizQuestions } from '@/app/services/quizQuestionsApi';
+import type { QuizQuestion as DbQuizQuestion } from '@/app/services/quizQuestionsApi';
 
 // ── Design tokens (inlined from design system) ──────────────
 
 const MODAL_OVERLAY =
-  'fixed inset-0 z-50 flex items-center justify-center bg-black/50';
+  'fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm';
 
 const MODAL_CARD =
   'bg-white rounded-2xl shadow-2xl border border-gray-200';
@@ -46,7 +48,8 @@ const FEEDBACK = {
 
 // ── Types ────────────────────────────────────────────────
 
-interface QuizQuestion {
+interface DisplayQuestion {
+  id: string | null;           // quiz_question UUID (null for AI-generated/mock)
   text: string;
   options: string[];
   correctIndex: number;
@@ -60,56 +63,30 @@ export interface BlockQuizModalProps {
   onClose: () => void;
 }
 
-// ── Mock data (fallback) ────────────────────────────────
-
-const MOCK_QUESTIONS: QuizQuestion[] = [
-  {
-    text: '¿Cual es la principal caracteristica de la aterosclerosis?',
-    options: [
-      'Es una enfermedad exclusivamente genetica',
-      'Es un deposito pasivo de grasa en las arterias',
-      'Es un proceso inflamatorio cronico de las arterias',
-      'Afecta solo a las venas de gran calibre',
-    ],
-    correctIndex: 2,
-    explanation:
-      'La aterosclerosis es un proceso inflamatorio cronico activo, no un simple deposito de grasa.',
-  },
-  {
-    text: '¿Que tipo de celulas participan en la formacion de la placa ateromatosa?',
-    options: [
-      'Exclusivamente eritrocitos',
-      'Macrofagos y celulas musculares lisas',
-      'Solo plaquetas',
-      'Neuronas y astrocitos',
-    ],
-    correctIndex: 1,
-    explanation:
-      'Los macrofagos fagocitan lipidos (celulas espumosas) y las celulas musculares lisas migran para estabilizar la placa.',
-  },
-  {
-    text: '¿Cual es el principal factor de riesgo modificable para enfermedades cardiovasculares?',
-    options: [
-      'Edad avanzada',
-      'Sexo masculino',
-      'Hipertension arterial',
-      'Antecedentes familiares',
-    ],
-    correctIndex: 2,
-    explanation:
-      'La hipertension arterial es el principal factor de riesgo modificable. Edad, sexo y antecedentes familiares no son modificables.',
-  },
-];
-
 // ── Helpers ─────────────────────────────────────────────
 
-function parseApiQuestions(data: any): QuizQuestion[] | null {
+/** Convert DB quiz_questions rows to display format */
+function dbToDisplay(dbQuestions: DbQuizQuestion[]): DisplayQuestion[] {
+  return dbQuestions
+    .filter((q) => q.options && q.options.length >= 2)
+    .map((q) => ({
+      id: q.id,
+      text: q.question,
+      options: q.options as string[],
+      correctIndex: (q.options as string[]).indexOf(q.correct_answer),
+      explanation: q.explanation || '',
+    }))
+    .filter((q) => q.correctIndex >= 0); // ensure correct_answer is in options
+}
+
+/** Parse AI generate endpoint response */
+function parseApiQuestions(data: any): DisplayQuestion[] | null {
   try {
-    // The AI generate endpoint returns different shapes; try common ones
     const items = data?.questions ?? data?.items ?? data?.quiz ?? (Array.isArray(data) ? data : null);
     if (!Array.isArray(items) || items.length === 0) return null;
 
     return items.map((q: any) => ({
+      id: null, // AI-generated, no DB id
       text: q.text || q.question || '',
       options: q.options || q.choices || [],
       correctIndex: typeof q.correctIndex === 'number'
@@ -118,9 +95,32 @@ function parseApiQuestions(data: any): QuizQuestion[] | null {
           ? q.correct_index
           : (q.options || q.choices || []).indexOf(q.correct_answer ?? ''),
       explanation: q.explanation || q.rationale || '',
-    })).filter((q: QuizQuestion) => q.text && q.options.length >= 2);
+    })).filter((q: DisplayQuestion) => q.text && q.options.length >= 2);
   } catch {
     return null;
+  }
+}
+
+/** Record attempt in quiz_attempts for domain tracking */
+async function recordAttempt(
+  questionId: string,
+  answer: string,
+  isCorrect: boolean,
+  timeTakenMs?: number,
+) {
+  try {
+    await apiCall('/quiz-attempts', {
+      method: 'POST',
+      body: JSON.stringify({
+        quiz_question_id: questionId,
+        answer,
+        is_correct: isCorrect,
+        time_taken_ms: timeTakenMs ?? null,
+      }),
+    });
+  } catch {
+    // Non-blocking — don't break UX if tracking fails
+    console.warn('[BlockQuizModal] Failed to record quiz attempt');
   }
 }
 
@@ -135,56 +135,91 @@ export function BlockQuizModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [questions, setQuestions] = useState<DisplayQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchedFor, setFetchedFor] = useState<string | null>(null);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [score, setScore] = useState({ correct: 0, total: 0 });
 
-  // Fetch quiz from AI when modal opens with a new blockId
+  // Fetch quiz: DB first (pre-generated), then AI fallback
   useEffect(() => {
     if (!isOpen || !blockId || !summaryId) return;
     const key = `${summaryId}-${blockId}`;
-    if (fetchedFor === key) return; // Already fetched for this block
+    if (fetchedFor === key) return;
 
     let cancelled = false;
     setLoading(true);
     setFetchedFor(key);
 
-    apiCall('/ai/generate', {
-      method: 'POST',
-      body: JSON.stringify({ summary_id: summaryId, block_id: blockId, type: 'quiz' }),
-      timeoutMs: 30_000,
-    })
-      .then((result: any) => {
-        if (cancelled) return;
-        const parsed = parseApiQuestions(result);
-        if (parsed && parsed.length > 0) {
-          setQuestions(parsed);
-        } else {
-          // API returned but data wasn't parseable — use mocks
-          setQuestions(MOCK_QUESTIONS);
+    (async () => {
+      try {
+        // 1. Try pre-generated questions from quiz_questions table
+        const dbResult = await getQuizQuestions(summaryId, {
+          block_id: blockId,
+          limit: 10,
+        });
+
+        if (!cancelled && dbResult.items.length > 0) {
+          const display = dbToDisplay(dbResult.items);
+          if (display.length > 0) {
+            setQuestions(display);
+            setLoading(false);
+            return;
+          }
         }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        // API failed — fallback to mock questions
-        setQuestions(MOCK_QUESTIONS);
-      })
-      .finally(() => {
+
+        // 2. Fallback: AI generation
+        const aiResult = await apiCall('/ai/generate', {
+          method: 'POST',
+          body: JSON.stringify({ summary_id: summaryId, block_id: blockId, type: 'quiz' }),
+          timeoutMs: 30_000,
+        });
+
+        if (!cancelled) {
+          const parsed = parseApiQuestions(aiResult);
+          setQuestions(parsed && parsed.length > 0 ? parsed : []);
+        }
+      } catch {
+        if (!cancelled) setQuestions([]);
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
 
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchedFor is a guard, not a trigger
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, blockId, summaryId]);
+
+  // Reset question timer when question changes
+  useEffect(() => {
+    setQuestionStartTime(Date.now());
+  }, [currentIndex]);
 
   const question = useMemo(() => questions[currentIndex], [questions, currentIndex]);
   const isCorrect = selected === question?.correctIndex;
   const isLastQuestion = currentIndex >= questions.length - 1;
 
   const handleConfirm = useCallback(() => {
-    if (selected === null) return;
+    if (selected === null || !question) return;
     setAnswered(true);
-  }, [selected]);
+
+    const correct = selected === question.correctIndex;
+    setScore((prev) => ({
+      correct: prev.correct + (correct ? 1 : 0),
+      total: prev.total + 1,
+    }));
+
+    // Track attempt if question has a DB id
+    if (question.id) {
+      const timeTaken = Date.now() - questionStartTime;
+      recordAttempt(
+        question.id,
+        question.options[selected],
+        correct,
+        timeTaken,
+      );
+    }
+  }, [selected, question, questionStartTime]);
 
   const handleNext = useCallback(() => {
     if (isLastQuestion) {
@@ -209,6 +244,7 @@ export function BlockQuizModal({
     setSelected(null);
     setAnswered(false);
     setFetchedFor(null);
+    setScore({ correct: 0, total: 0 });
     onClose();
   }, [onClose]);
 
@@ -246,9 +282,14 @@ export function BlockQuizModal({
                 >
                   Quiz del Bloque
                 </h3>
-                {!loading && (
+                {!loading && questions.length > 0 && (
                   <p className="text-[11px] text-zinc-400">
                     Pregunta {currentIndex + 1} de {questions.length}
+                    {score.total > 0 && (
+                      <span className="ml-2 text-teal-500 font-medium">
+                        {score.correct}/{score.total}
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
@@ -265,7 +306,14 @@ export function BlockQuizModal({
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={28} className="text-teal-500 animate-spin" />
                 <p className="text-zinc-500 font-sans" style={{ fontSize: 13 }}>
-                  Generando preguntas...
+                  Cargando preguntas...
+                </p>
+              </div>
+            ) : questions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Brain size={28} className="text-zinc-300" />
+                <p className="text-zinc-400 font-sans text-center" style={{ fontSize: 13 }}>
+                  No hay preguntas disponibles para este bloque.
                 </p>
               </div>
             ) : question ? (
