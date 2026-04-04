@@ -85,13 +85,22 @@ export function StudyOrganizerWizard() {
   const goBack = () => { if (step > 0) { setDirection(-1); setStep(step - 1); } else navigateTo('schedule'); };
 
   const handleGeneratePlan = async () => {
-    setAiLoading(true); setAiPowered(false);
-    const result = await generateStudyPlan({
-      selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours,
-      topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount: studyPlans.length,
-    });
-    setAiPowered(result.aiPowered); setAiLoading(false);
-    addStudyPlan(result.plan); createPlanFromWizard(result.plan); navigateTo('schedule');
+    setAiLoading(true);
+    setAiPowered(false);
+    try {
+      const result = await generateStudyPlan({
+        selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours,
+        topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount: studyPlans.length,
+      });
+      setAiPowered(result.aiPowered);
+      await createPlanFromWizard(result.plan);
+      addStudyPlan(result.plan);
+      navigateTo('schedule');
+    } catch (err) {
+      console.error('[StudyOrganizerWizard] Plan generation failed:', err);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const toggleSubject = (id: string) => {
@@ -241,7 +250,7 @@ export function StudyOrganizerWizard() {
         <div className={`${components.card.base} p-8`}>
           <div className="flex flex-col items-center gap-6">
             <div className="w-14 h-14 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><Calendar size={28} /></div>
-            <div className="relative w-72"><input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} min="2026-02-08" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-teal-500 focus:outline-none transition-colors bg-white text-center" /></div>
+            <div className="relative w-72"><input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} min={getAxonToday().toISOString().slice(0, 10)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-teal-500 focus:outline-none transition-colors bg-white text-center" /></div>
             {daysRemaining !== null && (<div className="flex items-center gap-4"><div className="bg-teal-50 border border-teal-200 rounded-xl px-5 py-3 text-center"><p className="text-2xl font-bold text-teal-700">{daysRemaining}</p><p className="text-xs text-gray-500 uppercase tracking-wider">Días</p></div><div className="bg-[#F0F2F5] border border-gray-200 rounded-xl px-5 py-3 text-center"><p className="text-2xl font-bold text-gray-800">{Math.ceil(daysRemaining / 7)}</p><p className="text-xs text-gray-500 uppercase tracking-wider">Semanas</p></div></div>)}
           </div>
         </div>
