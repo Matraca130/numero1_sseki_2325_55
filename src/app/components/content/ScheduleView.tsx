@@ -20,6 +20,7 @@ export function ScheduleView() {
     reorderTasks,
     updatePlanStatus,
     deletePlan,
+    refresh,
   } = useStudyPlansContext();
 
   if (plansLoading) {
@@ -37,6 +38,7 @@ export function ScheduleView() {
       reorderTasks={reorderTasks}
       updatePlanStatus={updatePlanStatus}
       deletePlan={deletePlan}
+      refresh={refresh}
     />
   );
 }

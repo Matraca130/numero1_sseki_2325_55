@@ -88,11 +88,13 @@ export function StudyPlanDashboard({ studyPlans, toggleTaskComplete, reorderTask
   const todayProgress = tasksForDate.length > 0 ? Math.round((todayCompleted / tasksForDate.length) * 100) : 0;
 
   // M-4: Overdue tasks — tasks with date before today that are not completed
-  const today = getAxonToday();
-  const todayStart = startOfDay(today);
+  const todayIso = useMemo(() => startOfDay(getAxonToday()).toISOString(), []);
   const overdueTasks = useMemo(
-    () => allTasks.filter(t => !t.completed && isBefore(startOfDay(t.date), todayStart)),
-    [allTasks, todayStart],
+    () => {
+      const todayStart = new Date(todayIso);
+      return allTasks.filter(t => !t.completed && isBefore(startOfDay(t.date), todayStart));
+    },
+    [allTasks, todayIso],
   );
 
   // M-5: Reschedule state
