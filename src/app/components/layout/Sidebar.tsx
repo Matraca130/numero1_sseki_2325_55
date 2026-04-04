@@ -17,15 +17,16 @@ import { useNavigation } from '@/app/context/NavigationContext';
 import { viewToPath, type ViewType } from '@/app/hooks/useStudentNav';
 import { components } from '@/app/design-system';
 import { motion } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Layers, 
-  Box, 
-  GraduationCap, 
-  Settings, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Layers,
+  Box,
+  GraduationCap,
+  Settings,
   Users,
   Calendar,
+  CalendarDays,
   Home,
   Database,
   Flame,
@@ -54,6 +55,7 @@ export function Sidebar() {
     { id: 'flashcards', label: 'Flashcards', icon: Layers },
     { id: '3d', label: 'Atlas 3D', icon: Box },
     { id: 'quiz', label: 'Quiz', icon: GraduationCap },
+    { id: 'calendario', label: 'Calendario', icon: CalendarDays },
     { id: 'student-data', label: 'Mis Datos', icon: Database },
   ];
 

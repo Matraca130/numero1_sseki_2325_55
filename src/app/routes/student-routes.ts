@@ -19,6 +19,7 @@ import { summaryStudentRoutes } from './summary-student-routes';
 import { flashcardStudentRoutes } from './flashcard-student-routes';
 import { studyStudentRoutes } from './study-student-routes';
 import { threeDStudentRoutes } from './threed-student-routes';
+import { calendarStudentRoutes } from './calendar-student-routes';
 
 export const studentChildren: RouteObject[] = [
   ...studyStudentRoutes,       // Agent 5 (includes index route)
@@ -26,6 +27,7 @@ export const studentChildren: RouteObject[] = [
   ...summaryStudentRoutes,     // Agent 2
   ...flashcardStudentRoutes,   // Agent 3
   ...threeDStudentRoutes,      // Agent 6
+  ...calendarStudentRoutes,    // Calendar v2
   // Catch-all — keep last
   {
     path: '*',
