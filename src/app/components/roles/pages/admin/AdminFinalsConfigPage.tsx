@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { headingStyle, components } from '@/app/design-system';
+import { toast } from 'sonner';
 import { apiCall } from '@/app/lib/api';
 import { usePlatformData } from '@/app/context/PlatformDataContext';
 
@@ -92,12 +93,14 @@ export function AdminFinalsConfigPage() {
       setShowForm(false);
       setFormData(EMPTY_FORM);
     },
+    onError: () => toast.error('Error al crear el periodo de finales.'),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       updateFinalsPeriod(id, { is_active }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: FINALS_KEY }),
+    onError: () => toast.error('Error al actualizar el estado del periodo.'),
   });
 
   const deleteMutation = useMutation({
@@ -106,11 +109,16 @@ export function AdminFinalsConfigPage() {
       queryClient.invalidateQueries({ queryKey: FINALS_KEY });
       setDeleteConfirm(null);
     },
+    onError: () => toast.error('Error al eliminar el periodo de finales.'),
   });
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.start_date || !formData.end_date) return;
+    if (formData.end_date <= formData.start_date) {
+      toast.error('La fecha de fin debe ser posterior a la fecha de inicio.');
+      return;
+    }
     createMutation.mutate(formData);
   }, [formData, createMutation]);
 
