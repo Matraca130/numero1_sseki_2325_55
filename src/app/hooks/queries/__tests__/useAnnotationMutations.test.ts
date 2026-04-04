@@ -165,6 +165,28 @@ describe('useCreateAnnotationMutation', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockToastError).toHaveBeenCalledWith('Error al crear subrayado');
   });
+
+  it('passes block_id to createTextAnnotation when provided', async () => {
+    mockCreateTextAnnotation.mockResolvedValueOnce(MOCK_ANNOTATION);
+    const { wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useCreateAnnotationMutation(SUMMARY_ID), { wrapper });
+
+    act(() => {
+      result.current.mutate({
+        summary_id: SUMMARY_ID,
+        start_offset: 0,
+        end_offset: 10,
+        color: 'green',
+        block_id: 'block-001',
+      });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockCreateTextAnnotation).toHaveBeenCalledWith(
+      expect.objectContaining({ block_id: 'block-001' }),
+    );
+  });
 });
 
 describe('useUpdateAnnotationMutation', () => {

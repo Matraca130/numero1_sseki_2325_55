@@ -192,6 +192,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
         color,
+        block_id: block.id,
       },
       {
         onSuccess: () => {
@@ -201,7 +202,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         },
       },
     );
-  }, [selectionRange, createMutation, summaryId, applySelectionHighlight]);
+  }, [selectionRange, createMutation, summaryId, applySelectionHighlight, block.id]);
 
   const handleAnnotate = useCallback(() => {
     if (!selectionRange || !summaryId || !createMutation) return;
@@ -213,6 +214,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         end_offset: selectionRange.end,
         color: 'yellow',
         note: '',
+        block_id: block.id,
       },
       {
         onSuccess: () => {
@@ -222,7 +224,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         },
       },
     );
-  }, [selectionRange, createMutation, summaryId, applySelectionHighlight]);
+  }, [selectionRange, createMutation, summaryId, applySelectionHighlight, block.id]);
 
   // Listen for mouseup on block content
   useEffect(() => {
@@ -249,7 +251,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   // Walk text nodes and wrap ranges that match stored annotations
   // with <mark> elements. Annotations use block-local offsets
   // (calculated relative to blockRef.current's text content).
-  const liveAnnotations = annotations.filter(a => !a.deleted_at);
+  const liveAnnotations = annotations.filter(a => !a.deleted_at && a.block_id === block.id);
 
   useEffect(() => {
     const el = blockRef.current;

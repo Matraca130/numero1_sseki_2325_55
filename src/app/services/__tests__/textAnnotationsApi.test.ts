@@ -111,6 +111,18 @@ describe('studentSummariesApi — Text Annotations', () => {
       });
       expect(result.id).toBe('ann-001');
     });
+
+    it('uses apiCall POST when block_id is not provided', async () => {
+      mockApiCall.mockResolvedValueOnce(MOCK_ANNOTATION);
+      await createTextAnnotation({
+        summary_id: 'sum-001',
+        start_offset: 0,
+        end_offset: 5,
+      });
+      expect(mockApiCall).toHaveBeenCalledWith('/text-annotations', expect.objectContaining({
+        method: 'POST',
+      }));
+    });
   });
 
   describe('updateTextAnnotation', () => {

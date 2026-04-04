@@ -78,6 +78,7 @@ function createMockAnnotation(overrides: Partial<TextAnnotation> = {}): TextAnno
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
     deleted_at: null,
+    block_id: null,
     ...overrides,
   };
 }
