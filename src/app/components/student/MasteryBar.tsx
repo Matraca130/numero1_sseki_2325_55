@@ -13,7 +13,10 @@
 //   Maestría      (blue)  — level > 1.0
 // ============================================================
 
-import { colors } from '@/app/design-system';
+// Import directly from the colors module to avoid circular dependency.
+// design-system/index.ts re-exports from this file, so importing the
+// barrel here would create: index.ts → MasteryBar → index.ts → 💥
+import { colors } from '@/app/design-system/colors';
 
 // ── Types ────────────────────────────────────────────────────
 
