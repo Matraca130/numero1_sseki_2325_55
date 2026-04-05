@@ -738,7 +738,9 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   // ── Block mastery: granular 7-step scale (local only) ─────
   // Self-styled blocks skip the mastery wrapper.
   const isSelfStyled = ['key_point', 'callout', 'comparison', 'image_reference', 'section_divider'].includes(block.type);
-  const blockMastery = masteryLevel !== undefined ? getBlockMastery(masteryLevel, dark) : null;
+  // Show "Iniciando" (gray) for blocks without mastery data instead of hiding coloring
+  const effectiveLevel = masteryLevel === undefined || masteryLevel < 0 ? 0 : masteryLevel;
+  const blockMastery = getBlockMastery(effectiveLevel, dark);
   const applyMasteryWrapper = blockMastery && !isSelfStyled;
 
   return (
@@ -793,9 +795,9 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
           }}
           title={blockMastery.label}
-          aria-label={`Dominio: ${Math.round((masteryLevel ?? 0) * 100)}%`}
+          aria-label={`Dominio: ${Math.round(effectiveLevel * 100)}%`}
         >
-          {Math.round((masteryLevel ?? 0) * 100)}%
+          {Math.round(effectiveLevel * 100)}%
         </div>
       )}
 
