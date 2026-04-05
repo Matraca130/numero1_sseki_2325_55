@@ -137,12 +137,6 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   const hasActions = onBookmarkToggle || onNotesToggle || onQuizTrigger;
 
-  // Count of annotations on this block (for indicator badge)
-  const annotationCount = useMemo(
-    () => annotations.filter(a => !a.deleted_at && a.block_id === block.id).length,
-    [annotations, block.id],
-  );
-
   // ── Text highlighting (block-scoped) ───────────────────
   const blockRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -284,6 +278,13 @@ export const ViewerBlock = React.memo(function ViewerBlock({
     () => annotations.filter(a => !a.deleted_at && a.block_id === block.id),
     [annotations, block.id],
   );
+  const annotationCount = liveAnnotations.length;
+
+  // Sorted copy for footnote panel (avoids mutating memoized array)
+  const sortedAnnotations = useMemo(
+    () => [...liveAnnotations].sort((a, b) => a.start_offset - b.start_offset),
+    [liveAnnotations],
+  );
 
   useEffect(() => {
     const el = contentRef.current;
@@ -338,7 +339,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           mark.style.borderRadius = '2px';
           mark.style.padding = '0 1px';
           range.surroundContents(mark);
-          // Track the last mark (highest text position) for superscript
+          // Reverse iteration: first found = last in document order (superscript position)
           if (!lastMark) lastMark = mark;
         } catch {
           // surroundContents may fail if range crosses element boundaries
@@ -715,40 +716,33 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
       {/* ── Footnote references (book-style) ──────────────── */}
       {annotationCount > 0 && (
-        <div className="mt-2 pt-2 border-t border-gray-200/60">
+        <div className="mt-2 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
           <ol className="list-none m-0 p-0 space-y-0.5">
-            {liveAnnotations
-              .sort((a, b) => a.start_offset - b.start_offset)
-              .map((ann, i) => {
-                const previewText = ann.end_offset - ann.start_offset > 40
-                  ? '…'
-                  : '';
-                return (
-                  <li key={ann.id} className="flex items-start gap-1.5 text-[10px] leading-tight">
-                    <span
-                      className="shrink-0 font-semibold text-amber-600 min-w-[12px] text-right"
-                      style={{ fontSize: 9 }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[3px]"
-                      style={{
-                        backgroundColor: HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow,
-                        border: '1px solid rgba(0,0,0,0.1)',
-                      }}
-                    />
-                    {ann.note && ann.note.trim() ? (
-                      <span className="text-gray-600 italic truncate max-w-[220px]">
-                        <MessageSquare size={8} className="inline text-amber-500 mr-0.5" />
-                        {ann.note}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 italic">subrayado{previewText}</span>
-                    )}
-                  </li>
-                );
-              })}
+            {sortedAnnotations.map((ann, i) => (
+              <li key={ann.id} className="flex items-start gap-1.5 text-[10px] leading-tight">
+                <span
+                  className="shrink-0 font-semibold text-amber-600 dark:text-amber-400 min-w-[12px] text-right"
+                  style={{ fontSize: 9 }}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[3px]"
+                  style={{
+                    backgroundColor: HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow,
+                    border: '1px solid rgba(0,0,0,0.1)',
+                  }}
+                />
+                {ann.note && ann.note.trim() ? (
+                  <span className="text-gray-600 dark:text-gray-400 italic truncate max-w-[220px]">
+                    <MessageSquare size={8} className="inline text-amber-500 mr-0.5" />
+                    {ann.note}
+                  </span>
+                ) : (
+                  <span className="text-gray-400 dark:text-gray-500 italic">subrayado</span>
+                )}
+              </li>
+            ))}
           </ol>
         </div>
       )}
