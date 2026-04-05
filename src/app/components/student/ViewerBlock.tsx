@@ -18,6 +18,7 @@ import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 import { sanitizeHtml } from '@/app/lib/sanitize';
+import { replaceKeywordPlaceholders } from './blocks/renderTextWithKeywords';
 import {
   ProseBlock, KeyPointBlock, StagesBlock, ComparisonBlock,
   ListDetailBlock, GridBlock, TwoColumnBlock, CalloutBlock as EduCalloutBlock,
@@ -344,7 +345,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       return (
         <div
           className="axon-prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(replaceKeywordPlaceholders(html, keywords)) }}
           role="article"
         />
       );
@@ -528,10 +529,10 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             {/<[a-z][\s\S]*>/i.test(text) ? (
               <div
                 className="text-sm text-gray-700 leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(replaceKeywordPlaceholders(text, keywords)) }}
               />
             ) : (
-              <p className="text-sm text-gray-700 leading-relaxed">{text}</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{replaceKeywordPlaceholders(text, keywords)}</p>
             )}
           </div>
         </div>
