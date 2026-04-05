@@ -170,7 +170,7 @@ export function TextHighlighter({
       top: rect.top - containerRect.top + scrollTop - 42,
       left: rect.left - containerRect.left + rect.width / 2 - 90,
     });
-  }, [annotateMode]);
+  }, [annotateMode, fullText]);
 
   // ── Listen for mouseup ──────────────────────────────────
   useEffect(() => {
