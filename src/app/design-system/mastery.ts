@@ -44,9 +44,9 @@ export const MASTERY_DARK: Record<string, MasteryColorSet> = {
 export function getMasteryStyle(level: number, dark: boolean): MasteryColorSet {
   const m = dark ? MASTERY_DARK : MASTERY_LIGHT;
   if (level >= 1.1) return m.blue;
-  if (level >= 0.85) return m.green;
-  if (level >= 0.50) return m.yellow;
-  if (level >= 0.15) return m.red;
+  if (level >= 1.0) return m.green;
+  if (level >= 0.85) return m.yellow;
+  if (level >= 0.5) return m.red;
   return m.gray;
 }
 
@@ -55,8 +55,8 @@ export function getMasteryStyle(level: number, dark: boolean): MasteryColorSet {
  */
 export function getMasteryInfo(level: number): { color: string; label: string } {
   if (level > 1.0) return { color: colors.mastery.maestria, label: 'Maestría' };
-  if (level >= 0.85) return { color: colors.mastery.consolidado, label: 'Consolidado' };
-  if (level >= 0.50) return { color: colors.mastery.enProgreso, label: 'En progreso' };
-  if (level >= 0.15) return { color: colors.mastery.emergente, label: 'Emergente' };
+  if (level === 1.0) return { color: colors.mastery.consolidado, label: 'Consolidado' };
+  if (level >= 0.85) return { color: colors.mastery.enProgreso, label: 'En progreso' };
+  if (level >= 0.5) return { color: colors.mastery.emergente, label: 'Emergente' };
   return { color: colors.mastery.descubrir, label: 'Por descubrir' };
 }

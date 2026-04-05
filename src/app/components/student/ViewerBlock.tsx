@@ -26,7 +26,8 @@ import {
   ImageReferenceBlock, SectionDividerBlock,
 } from './blocks';
 import TTSButton from './TTSButton';
-import { getMasteryStyle } from '@/app/design-system';
+// getMasteryStyle is the global scale (used by MasteryBar, progress, etc.)
+// Blocks use a local 7-step scale (getBlockMastery) defined below.
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -84,6 +85,45 @@ const HIGHLIGHT_COLOR_MAP: Record<string, string> = {
   pink: 'rgba(249,168,212,0.4)',
   orange: 'rgba(253,186,116,0.4)',
 };
+
+// ── Block-only mastery scale (7 steps, more granular than global) ──
+// This does NOT affect the global getMasteryStyle/getMasteryInfo used
+// elsewhere (MasteryBar, progress pages, etc.). Only ViewerBlock uses this.
+interface BlockMasteryVisual {
+  bg: string;
+  border: string;
+  badge: string;
+  label: string;
+}
+
+const BLOCK_MASTERY_SCALE: {
+  min: number;
+  light: BlockMasteryVisual;
+  dark: BlockMasteryVisual;
+}[] = [
+  { min: 0.90, light: { bg: '#eff6ff', border: '#3b82f6', badge: '#2563eb', label: 'Maestría' },
+               dark:  { bg: '#0f1a2e', border: '#60a5fa', badge: '#3b82f6', label: 'Maestría' } },
+  { min: 0.70, light: { bg: '#f0fdf4', border: '#22c55e', badge: '#16a34a', label: 'Consolidado' },
+               dark:  { bg: '#0f2a1d', border: '#4ade80', badge: '#22c55e', label: 'Consolidado' } },
+  { min: 0.50, light: { bg: '#fefce8', border: '#eab308', badge: '#ca8a04', label: 'Avanzado' },
+               dark:  { bg: '#2a2510', border: '#facc15', badge: '#eab308', label: 'Avanzado' } },
+  { min: 0.35, light: { bg: '#fffbeb', border: '#f59e0b', badge: '#d97706', label: 'En progreso' },
+               dark:  { bg: '#2a2010', border: '#fbbf24', badge: '#f59e0b', label: 'En progreso' } },
+  { min: 0.20, light: { bg: '#fff7ed', border: '#f97316', badge: '#ea580c', label: 'Practicando' },
+               dark:  { bg: '#2a1a0f', border: '#fb923c', badge: '#f97316', label: 'Practicando' } },
+  { min: 0.08, light: { bg: '#fef2f2', border: '#ef4444', badge: '#dc2626', label: 'Emergente' },
+               dark:  { bg: '#2a1215', border: '#f87171', badge: '#ef4444', label: 'Emergente' } },
+  { min: 0.00, light: { bg: '#f9fafb', border: '#9ca3af', badge: '#6b7280', label: 'Iniciando' },
+               dark:  { bg: '#1f1f23', border: '#6b7280', badge: '#9ca3af', label: 'Iniciando' } },
+];
+
+function getBlockMastery(level: number, dark: boolean): BlockMasteryVisual | null {
+  if (level < 0) return null; // -1 = no data
+  for (const step of BLOCK_MASTERY_SCALE) {
+    if (level >= step.min) return dark ? step.dark : step.light;
+  }
+  return null;
+}
 
 /** Strip all data-axon-hl marks and superscript footnotes from a container. */
 function stripHighlightMarks(container: HTMLElement): void {
@@ -695,13 +735,11 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   if (!blockContent) return null;
 
-  // ── Mastery: left-border + badge (prototype parity) ──────
-  // Self-styled blocks (key_point, callout, comparison, etc.) keep their own
-  // background/border and skip the mastery wrapper, matching PROTOTYPE.jsx:622-648.
+  // ── Block mastery: granular 7-step scale (local only) ─────
+  // Self-styled blocks skip the mastery wrapper.
   const isSelfStyled = ['key_point', 'callout', 'comparison', 'image_reference', 'section_divider'].includes(block.type);
-  // masteryLevel === -1 means "no data yet" → don't show mastery wrapper
-  const mastery = (masteryLevel !== undefined && masteryLevel >= 0) ? getMasteryStyle(masteryLevel, dark) : null;
-  const applyMasteryWrapper = mastery && !isSelfStyled;
+  const blockMastery = masteryLevel !== undefined ? getBlockMastery(masteryLevel, dark) : null;
+  const applyMasteryWrapper = blockMastery && !isSelfStyled;
 
   return (
     <div
@@ -713,8 +751,8 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         transition: 'background 0.3s, border-color 0.3s',
         ...(applyMasteryWrapper
           ? {
-              background: dark ? mastery.bg : `${mastery.bg}99`,
-              borderLeft: `3px solid ${mastery.border}50`,
+              background: `${blockMastery.bg}`,
+              borderLeft: `3px solid ${blockMastery.border}50`,
               paddingLeft: 16,
               borderRadius: 4,
             }
@@ -734,7 +772,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       </AnimatePresence>
 
       {/* Mastery percentage badge — top right */}
-      {mastery && (
+      {blockMastery && (
         <div
           style={{
             position: 'absolute',
@@ -746,7 +784,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: mastery.border,
+            background: blockMastery.badge,
             color: '#fff',
             fontSize: 9,
             fontWeight: 700,
@@ -754,7 +792,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             zIndex: 2,
             boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
           }}
-          title={mastery.label}
+          title={blockMastery.label}
           aria-label={`Dominio: ${Math.round((masteryLevel ?? 0) * 100)}%`}
         >
           {Math.round((masteryLevel ?? 0) * 100)}%
