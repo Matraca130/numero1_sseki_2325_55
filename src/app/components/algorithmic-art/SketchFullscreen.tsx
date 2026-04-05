@@ -6,7 +6,7 @@
 // ============================================================
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router';
-import { ArrowLeft, Camera, Shuffle, ChevronLeft, ChevronRight, Hash } from 'lucide-react';
+import { ArrowLeft, Camera, Shuffle, ChevronLeft, ChevronRight, Hash, Share2, Grid3X3 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import clsx from 'clsx';
 import SketchEngine from './SketchEngine';
@@ -14,9 +14,13 @@ import { SketchSidebar } from './SketchSidebar';
 import { useSketchParams } from './hooks/useSketchParams';
 import { useSeedNavigation } from './hooks/useSeedNavigation';
 import { useSketchTracking } from './hooks/useSketchTracking';
+import { useSketchUrlState } from './hooks/useSketchUrlState';
+import { useReducedMotion } from './hooks/useReducedMotion';
 import { ENGINE_DISPLAY_NAMES } from './engines/index';
 import type { EngineKey, EngineModule, PresetDefinition } from './types';
 import type { P5CanvasHandle } from './P5Canvas';
+
+const SketchGalleryLazy = React.lazy(() => import('./SketchGallery'));
 
 const VALID_ENGINES = new Set<string>([
   'cardiovascular', 'respiratorio', 'dolor', 'digestivo', 'nervioso',
@@ -47,7 +51,11 @@ export function SketchFullscreen() {
   );
 
   const { track, trackView } = useSketchTracking(engineKey);
+  const reducedMotion = useReducedMotion();
+  const { syncToUrl, getShareUrl } = useSketchUrlState(module?.paramSchema ?? null);
   const viewStartRef = useRef(Date.now());
+  const [showGallery, setShowGallery] = useState(false);
+  const [shareTooltip, setShareTooltip] = useState(false);
 
   // Track view duration on unmount
   useEffect(() => {
@@ -97,6 +105,23 @@ export function SketchFullscreen() {
   const handlePrevSeed = () => { prevSeed(); track({ action: 'seed_change', seed: seed - 1 }); };
   const handleNextSeed = () => { nextSeed(); track({ action: 'seed_change', seed: seed + 1 }); };
   const handleRandomSeed = () => { randomizeSeed(); track({ action: 'seed_change' }); };
+
+  const handleShare = useCallback(() => {
+    if (!engineKey) return;
+    const url = getShareUrl(engineKey, seed, params);
+    navigator.clipboard.writeText(url).then(() => {
+      setShareTooltip(true);
+      setTimeout(() => setShareTooltip(false), 2000);
+    }).catch(() => {
+      // Fallback: prompt
+      window.prompt('URL para compartir:', url);
+    });
+  }, [engineKey, seed, params, getShareUrl]);
+
+  // Sync params to URL when they change
+  useEffect(() => {
+    if (module) syncToUrl(seed, params);
+  }, [seed, params, module, syncToUrl]);
 
   // Sync seed input with seed state
   useEffect(() => { setSeedInputValue(String(seed)); }, [seed]);
@@ -220,6 +245,45 @@ export function SketchFullscreen() {
               <Camera size={12} />
               <span className="hidden sm:inline">Captura</span>
             </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleShare}
+                title="Copiar enlace para compartir"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                aria-label="Compartir enlace con semilla y parámetros actuales"
+              >
+                <Share2 size={12} />
+                <span className="hidden sm:inline">Compartir</span>
+              </button>
+              {shareTooltip && (
+                <div
+                  className="absolute top-full mt-1 right-0 px-2 py-1 text-[10px] text-white bg-green-600 rounded shadow-lg whitespace-nowrap z-10"
+                  role="status"
+                  aria-live="polite"
+                >
+                  ¡Enlace copiado!
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowGallery(v => !v)}
+              title="Ver galería de semillas"
+              className={clsx(
+                'flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg transition-colors',
+                showGallery
+                  ? 'bg-orange-500/20 text-orange-300'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+              )}
+              aria-pressed={showGallery}
+              aria-label="Abrir galería de semillas"
+            >
+              <Grid3X3 size={12} />
+              <span className="hidden sm:inline">Galería</span>
+            </button>
           </div>
         </header>
 
@@ -227,18 +291,26 @@ export function SketchFullscreen() {
         <main
           className="flex-1 overflow-hidden flex items-center justify-center bg-slate-950 p-4"
           data-testid="sketch-fullscreen-canvas"
+          role="img"
+          aria-label={`Visualización algorítmica: ${displayName}, semilla ${seed}`}
         >
-          <SketchEngine
-            ref={canvasRef}
-            engineKey={engineKey}
-            seed={seed}
-            externalParamsRef={paramsRef}
-            onReady={handleReady}
-            className={clsx(
-              'rounded-xl overflow-hidden shadow-2xl',
-              'max-w-full max-h-full',
-            )}
-          />
+          {showGallery ? (
+            <div className="w-full h-full overflow-y-auto p-4">
+              <SketchGalleryLazy engineKey={engineKey} />
+            </div>
+          ) : (
+            <SketchEngine
+              ref={canvasRef}
+              engineKey={engineKey}
+              seed={seed}
+              externalParamsRef={paramsRef}
+              onReady={handleReady}
+              className={clsx(
+                'rounded-xl overflow-hidden shadow-2xl',
+                'max-w-full max-h-full',
+              )}
+            />
+          )}
         </main>
       </div>
     </div>

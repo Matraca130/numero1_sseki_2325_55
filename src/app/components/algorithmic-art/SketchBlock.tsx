@@ -72,7 +72,11 @@ export function SketchBlock({
   }
 
   return (
-    <div className={clsx('relative rounded-xl overflow-hidden group', className)}>
+    <div
+      className={clsx('relative rounded-xl overflow-hidden group', className)}
+      role="figure"
+      aria-label={`Arte algorítmico: ${engineKey}, semilla ${currentSeed}`}
+    >
       <Suspense fallback={<SketchBlockSkeleton height={previewHeight} />}>
         <SketchEngine
           ref={canvasRef}
