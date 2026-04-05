@@ -124,6 +124,30 @@ async function recordAttempt(
   }
 }
 
+// ── Types for block review submission ────────────────────
+interface BlockReviewResult {
+  question_id: string | null;
+  is_correct: boolean;
+  time_taken_ms: number;
+}
+
+/** Submit block quiz results to update per-block BKT mastery */
+async function submitBlockReview(
+  blockId: string,
+  summaryId: string,
+  results: BlockReviewResult[],
+) {
+  if (results.length === 0) return;
+  try {
+    await apiCall('/block-review', {
+      method: 'POST',
+      body: JSON.stringify({ block_id: blockId, summary_id: summaryId, results }),
+    });
+  } catch {
+    console.warn('[BlockQuizModal] Failed to submit block review for mastery update');
+  }
+}
+
 // ── Component ────────────────────────────────────────────
 
 export function BlockQuizModal({
@@ -140,6 +164,7 @@ export function BlockQuizModal({
   const [fetchedFor, setFetchedFor] = useState<string | null>(null);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [reviewResults, setReviewResults] = useState<BlockReviewResult[]>([]);
 
   // Fetch quiz: DB first (pre-generated), then AI fallback
   useEffect(() => {
@@ -204,14 +229,22 @@ export function BlockQuizModal({
     setAnswered(true);
 
     const correct = selected === question.correctIndex;
+    const timeTaken = Date.now() - questionStartTime;
+
     setScore((prev) => ({
       correct: prev.correct + (correct ? 1 : 0),
       total: prev.total + 1,
     }));
 
-    // Track attempt if question has a DB id
+    // Accumulate result for block mastery BKT update
+    setReviewResults((prev) => [...prev, {
+      question_id: question.id,
+      is_correct: correct,
+      time_taken_ms: timeTaken,
+    }]);
+
+    // Track attempt if question has a DB id (analytics)
     if (question.id) {
-      const timeTaken = Date.now() - questionStartTime;
       recordAttempt(
         question.id,
         question.options[selected],
@@ -223,30 +256,38 @@ export function BlockQuizModal({
 
   const handleNext = useCallback(() => {
     if (isLastQuestion) {
+      // Submit all results for block mastery BKT update before closing
+      submitBlockReview(blockId, summaryId, reviewResults);
+      setReviewResults([]);
       onClose();
       return;
     }
     setCurrentIndex((prev) => prev + 1);
     setSelected(null);
     setAnswered(false);
-  }, [isLastQuestion, onClose]);
+  }, [isLastQuestion, onClose, blockId, summaryId, reviewResults]);
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) onClose();
+      if (e.target === e.currentTarget) handleClose();
     },
-    [onClose],
+    [handleClose],
   );
 
   // Reset state when modal reopens
   const handleClose = useCallback(() => {
+    // Submit any accumulated results before closing (e.g., user closes mid-quiz)
+    if (reviewResults.length > 0) {
+      submitBlockReview(blockId, summaryId, reviewResults);
+    }
     setCurrentIndex(0);
     setSelected(null);
     setAnswered(false);
     setFetchedFor(null);
     setScore({ correct: 0, total: 0 });
+    setReviewResults([]);
     onClose();
-  }, [onClose]);
+  }, [onClose, blockId, summaryId, reviewResults]);
 
   if (!isOpen) return null;
 
