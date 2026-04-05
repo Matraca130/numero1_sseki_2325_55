@@ -12,6 +12,7 @@
 // Interactions: image→lightbox, video→play, pdf→view, keyword→popup
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { Layers, Bookmark } from 'lucide-react';
 import { Skeleton } from '@/app/components/ui/skeleton';
@@ -77,8 +78,14 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
     setAnnotationsOpen(prev => ({ ...prev, [blockId]: !prev[blockId] }));
   }, []);
 
-  // ── Quiz modal state ──────────────────────────────────
+  // ── Quiz modal state ──────────���───────────────────────
   const [quizBlockId, setQuizBlockId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const handleQuizClose = useCallback(() => {
+    setQuizBlockId(null);
+    // Invalidate block mastery cache so updated colors are fetched
+    queryClient.invalidateQueries({ queryKey: ['summary-block-mastery', summaryId] });
+  }, [summaryId, queryClient]);
 
   // ── Detect mobile ───────────────────────────────────────
   useEffect(() => {
@@ -284,7 +291,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
         blockId={quizBlockId || ''}
         summaryId={summaryId}
         isOpen={!!quizBlockId}
-        onClose={() => setQuizBlockId(null)}
+        onClose={handleQuizClose}
       />
 
       {/* ── Bookmarks toggle + panel ──────────────────── */}
