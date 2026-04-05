@@ -22,6 +22,8 @@ export interface QuizEntity {
   description: string | null;
   source: 'manual' | 'ai';
   is_active: boolean;
+  /** ADR-001: Optional block linkage — when set, quiz is scoped to a single block */
+  block_id?: string | null;
   /** Q-UX2: Per-question time limit in seconds (null/0 = no limit) */
   time_limit_seconds?: number | null;
   created_by: string;
