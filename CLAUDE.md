@@ -139,6 +139,30 @@ src/
 
 > **Note**: `bkt-engine.ts` was deleted (TD-3). BKT computation is now inlined in `src/app/components/student/useQuizBkt.ts` and runs server-side in backend `batch-review.ts`.
 
+## Quiz Domain — Table Map (DO NOT CONFUSE)
+
+The quiz system uses 4 distinct tables. Confusing them causes bugs (e.g., filtering at wrong level).
+
+| Table | What it stores | Key columns | `block_id`? |
+|---|---|---|---|
+| **`quiz_questions`** | Individual questions (question text, options, correct answer, difficulty) | `summary_id`, `keyword_id`, `block_id`, `quiz_id` | **YES** — this is how per-block filtering works |
+| **`quizzes`** | Container/grouper with title and time limit (optional wrapper around questions) | `summary_id` | **NO** — summary-scoped only |
+| **`quiz_attempts`** | Each student answer to a question | `quiz_question_id`, `student_id`, `session_id` | No |
+| **`study_sessions`** | Study session (groups multiple attempts) | `student_id`, `course_id`, `session_type` | No |
+
+### Quiz scoping levels
+
+1. **Per-block**: Filter `quiz_questions` by `block_id`. Frontend: `loadBlockPracticeQuestions()` and `loadQuizQuestions()` (when quiz has `block_id`).
+2. **Per-summary**: Fetch all `quiz_questions` for a `summary_id` without `block_id` filter. Frontend: `loadPracticeQuestions()`.
+3. **General/multi-topic**: Not yet implemented.
+
+### Critical rules
+
+- **`quiz_questions.block_id`** is the ONLY mechanism for per-block filtering. The `quizzes` table has NO `block_id` column.
+- When loading questions for a quiz entity (`loadQuizQuestions`), always pass `block_id` if the quiz has one.
+- AI generation endpoints (`generate.ts`) must include `block_id` in the INSERT when provided.
+- `generate-smart.ts` and `pre-generate.ts` generate by keyword (no block concept) — this is intentional.
+
 ## Architecture Patterns
 
 ### Authentication Flow
