@@ -3,20 +3,27 @@
 //
 // Visual indicator for block-level mastery. Renders a colored
 // bar (rounded-full) whose color maps to the Delta Mastery Scale
-// defined in the design system (colors.mastery).
+// defined in the design system (design-system/mastery.ts).
 //
 // Levels:
 //   Por descubrir (gray)  — level < 0.5
 //   Emergente     (red)   — 0.5 ≤ level < 0.85
 //   En progreso   (amber) — 0.85 ≤ level < 1.0
 //   Consolidado   (green) — level = 1.0
-//   Maestría      (blue)  — level > 1.0
+//   Maestria      (blue)  — level > 1.0
 // ============================================================
 
-// Import directly from the colors module to avoid circular dependency.
-// design-system/index.ts re-exports from this file, so importing the
-// barrel here would create: index.ts → MasteryBar → index.ts → 💥
-import { colors } from '@/app/design-system/colors';
+// All mastery tokens and helpers now live in design-system/mastery.ts
+// to avoid circular dependencies. Re-export for backward compatibility.
+export {
+  MASTERY_LIGHT,
+  MASTERY_DARK,
+  getMasteryStyle,
+  getMasteryInfo,
+} from '@/app/design-system/mastery';
+export type { MasteryColorSet } from '@/app/design-system/mastery';
+
+import { getMasteryInfo } from '@/app/design-system/mastery';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -24,60 +31,6 @@ interface MasteryBarProps {
   level: number;
   showLabel?: boolean;
   size?: 'sm' | 'md';
-}
-
-// ── Mastery color tokens (light & dark) ─────────────────────
-
-export interface MasteryColorSet {
-  bg: string;
-  border: string;
-  text: string;
-  label: string;
-}
-
-// Border colors sourced from the canonical Delta Mastery Scale (colors.mastery)
-export const MASTERY_LIGHT: Record<string, MasteryColorSet> = {
-  gray:   { bg: "#f4f4f5", border: colors.mastery.descubrir,   text: "#52525b", label: "Por descubrir" },
-  red:    { bg: "#fef2f2", border: colors.mastery.emergente,   text: "#b91c1c", label: "Emergente" },
-  yellow: { bg: "#fffbeb", border: colors.mastery.enProgreso,  text: "#92400e", label: "En progreso" },
-  green:  { bg: "#f0fdf4", border: colors.mastery.consolidado, text: "#065f46", label: "Consolidado" },
-  blue:   { bg: "#eff6ff", border: colors.mastery.maestria,    text: "#1d4ed8", label: "Maestría" },
-};
-
-export const MASTERY_DARK: Record<string, MasteryColorSet> = {
-  gray:   { bg: "#27272a", border: colors.mastery.descubrir,   text: "#a1a1aa", label: "Por descubrir" },
-  red:    { bg: "#2a1215", border: colors.mastery.emergente,   text: "#fca5a5", label: "Emergente" },
-  yellow: { bg: "#2a2010", border: colors.mastery.enProgreso,  text: "#fcd34d", label: "En progreso" },
-  green:  { bg: "#0f2a1d", border: colors.mastery.consolidado, text: "#6ee7b7", label: "Consolidado" },
-  blue:   { bg: "#0f1a2e", border: colors.mastery.maestria,    text: "#93c5fd", label: "Maestría" },
-};
-
-/**
- * Returns the mastery color set for a given level and theme.
- * Matches the prototype's getMasteryStyle() (PROTOTYPE.jsx:35-42).
- */
-export function getMasteryStyle(level: number, dark: boolean): MasteryColorSet {
-  const m = dark ? MASTERY_DARK : MASTERY_LIGHT;
-  if (level >= 1.1) return m.blue;
-  if (level >= 1.0) return m.green;
-  if (level >= 0.85) return m.yellow;
-  if (level >= 0.5) return m.red;
-  return m.gray;
-}
-
-// ── Helpers ──────────────────────────────────────────────────
-
-interface MasteryInfo {
-  color: string;
-  label: string;
-}
-
-export function getMasteryInfo(level: number): MasteryInfo {
-  if (level > 1.0) return { color: colors.mastery.maestria, label: 'Maestría' };
-  if (level === 1.0) return { color: colors.mastery.consolidado, label: 'Consolidado' };
-  if (level >= 0.85) return { color: colors.mastery.enProgreso, label: 'En progreso' };
-  if (level >= 0.5) return { color: colors.mastery.emergente, label: 'Emergente' };
-  return { color: colors.mastery.descubrir, label: 'Por descubrir' };
 }
 
 // ── Component ────────────────────────────────────────────────

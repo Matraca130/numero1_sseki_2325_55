@@ -5,12 +5,11 @@
 // colored dots + labels, plus a summary stat of how many blocks
 // are consolidated (mastery >= 1.0).
 //
-// Uses MASTERY_LIGHT from MasteryBar.tsx (canonical color defs)
+// Uses MASTERY_LIGHT from design-system/mastery.ts (canonical color defs)
 // and headingStyle from the design system.
 // ============================================================
 
-import { headingStyle } from '@/app/design-system';
-import { MASTERY_LIGHT } from '@/app/components/student/MasteryBar';
+import { headingStyle, MASTERY_LIGHT } from '@/app/design-system';
 
 // ── Types ────────────────────────────────────────────────────
 

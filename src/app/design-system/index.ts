@@ -86,20 +86,15 @@ export { sectionColors } from './section-colors';
 // 7b. MASTERY CONVENIENCE RE-EXPORTS
 // ─────────────────────────────────────────────
 // The canonical 5-level Delta Mastery Scale lives in colors.mastery.
-// These re-exports give consumers a shorter import path:
-//
-//   import { MASTERY_LIGHT, MASTERY_DARK, getMasteryStyle } from '@/app/design-system';
-//
-// Note: The 6-tier flashcard rating scale in
-//   components/content/flashcard/mastery-colors.ts
-// is a DIFFERENT concept and is intentionally NOT re-exported here.
+// Tokens + helpers live in design-system/mastery.ts (NOT in MasteryBar)
+// to avoid a circular dependency (design-system → MasteryBar → design-system).
 export {
   MASTERY_LIGHT,
   MASTERY_DARK,
   getMasteryStyle,
   getMasteryInfo,
-} from '@/app/components/student/MasteryBar';
-export type { MasteryColorSet as MasteryBarColorSet } from '@/app/components/student/MasteryBar';
+} from './mastery';
+export type { MasteryColorSet as MasteryBarColorSet } from './mastery';
 
 // ─────────────────────────────────────────────
 // 7c. MASTERY HELPERS RE-EXPORTS (Delta color scale logic)
