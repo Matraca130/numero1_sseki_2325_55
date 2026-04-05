@@ -392,11 +392,11 @@ export function StudentSummaryReader({
           onClick={() => updateReadingSettings({ ...readingSettings, focusMode: false })}
           title="Salir de modo enfocado (Esc)"
           aria-label="Salir de modo enfocado"
-          className="fixed top-4 right-4 z-[500] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 border border-gray-200 shadow-sm transition-all"
-          style={{ fontSize: 'clamp(0.6875rem, 1.5vw, 0.75rem)' }}
+          className="fixed top-5 right-5 z-[500] flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ fontSize: 'clamp(0.75rem, 1.5vw, 0.8125rem)' }}
         >
-          <Minimize2 size={13} />
-          Salir
+          <Minimize2 size={14} />
+          Salir del modo enfocado
         </button>
       )}
 
