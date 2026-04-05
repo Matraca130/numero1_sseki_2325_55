@@ -132,6 +132,12 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
   const hasActions = onBookmarkToggle || onNotesToggle || onQuizTrigger;
 
+  // Count of annotations on this block (for indicator badge)
+  const annotationCount = useMemo(
+    () => annotations.filter(a => !a.deleted_at && a.block_id === block.id).length,
+    [annotations, block.id],
+  );
+
   // ── Text highlighting (block-scoped) ───────────────────
   const blockRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -641,7 +647,13 @@ export const ViewerBlock = React.memo(function ViewerBlock({
               paddingLeft: 16,
               borderRadius: 4,
             }
-          : {}),
+          : annotationCount > 0
+            ? {
+                borderLeft: '2px solid rgba(245,158,11,0.4)',
+                paddingLeft: 12,
+                borderRadius: 4,
+              }
+            : {}),
       }}
     >
       {/* Floating highlight toolbar on text selection */}
@@ -701,9 +713,22 @@ export const ViewerBlock = React.memo(function ViewerBlock({
               onClick={onNotesToggle}
               title="Notas del bloque"
               aria-label="Alternar notas del bloque"
-              className="flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-teal-500 transition-colors"
+              className={clsx(
+                'relative flex items-center justify-center w-7 h-7 rounded transition-colors',
+                annotationCount > 0
+                  ? 'text-amber-500 hover:text-amber-600'
+                  : 'text-gray-400 hover:text-teal-500',
+              )}
             >
               <StickyNote size={15} />
+              {annotationCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-amber-500 text-white text-[9px] font-semibold leading-none px-0.5"
+                  aria-label={`${annotationCount} anotaciones`}
+                >
+                  {annotationCount}
+                </span>
+              )}
             </button>
           )}
           {onQuizTrigger && (
