@@ -52,7 +52,7 @@ export function MomentumCard() {
   const { score, trend, streak } = data;
   const scoreColor = getScoreColor(score);
   const dashOffset = CIRCUMFERENCE - (score / 100) * CIRCUMFERENCE;
-  const trendInfo = TREND_CONFIG[trend];
+  const trendInfo = TREND_CONFIG[trend] ?? TREND_CONFIG.stable;
 
   return (
     <motion.div
