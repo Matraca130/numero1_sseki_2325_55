@@ -28,7 +28,7 @@ import BookmarksPanel from './BookmarksPanel';
 import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
-import { useCreateAnnotationMutation } from '@/app/hooks/queries/useAnnotationMutations';
+import { useCreateAnnotationMutation, useDeleteAnnotationMutation } from '@/app/hooks/queries/useAnnotationMutations';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 
 // ── Props ─────────────────────────────────────────────────
@@ -69,8 +69,9 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
   const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBlockBookmarks(summaryId);
   const [showBookmarks, setShowBookmarks] = useState(false);
 
-  // ── Text annotation mutation (single instance for all blocks) ──
+  // ── Text annotation mutations (single instance for all blocks) ──
   const createAnnotationMutation = useCreateAnnotationMutation(summaryId);
+  const deleteAnnotationMutation = useDeleteAnnotationMutation(summaryId);
 
   // ── Annotations state (per-block toggle) ──────────────
   const [annotationsOpen, setAnnotationsOpen] = useState<Record<string, boolean>>({});
@@ -210,6 +211,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
                 masteryLevel={masteryLevels[block.id]}
                 summaryId={summaryId}
                 createAnnotationMutation={createAnnotationMutation}
+                deleteAnnotationMutation={deleteAnnotationMutation}
                 annotations={annotations}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}

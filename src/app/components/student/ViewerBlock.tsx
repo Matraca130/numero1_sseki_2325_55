@@ -10,7 +10,7 @@ import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
   Play, Download, ExternalLink, Tag, StickyNote, Brain,
-  MessageSquare,
+  MessageSquare, X,
 } from 'lucide-react';
 import { HighlightToolbar } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
@@ -51,6 +51,8 @@ interface ViewerBlockProps {
   summaryId?: string;
   /** Shared annotation mutation (lifted from parent to avoid N instances) */
   createAnnotationMutation?: { mutate: Function; isPending?: boolean };
+  /** Shared delete mutation for removing individual annotations */
+  deleteAnnotationMutation?: { mutate: Function; isPending?: boolean };
   /** Text annotations for rendering highlights on this block */
   annotations?: TextAnnotation[];
 }
@@ -128,6 +130,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   onQuizTrigger,
   summaryId,
   createAnnotationMutation,
+  deleteAnnotationMutation,
   annotations = [],
 }: ViewerBlockProps) {
   const c = block.content || {};
@@ -719,7 +722,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         <div className="mt-2 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
           <ol className="list-none m-0 p-0 space-y-0.5">
             {sortedAnnotations.map((ann, i) => (
-              <li key={ann.id} className="flex items-start gap-1.5 text-[10px] leading-tight">
+              <li key={ann.id} className="group/fn flex items-start gap-1.5 text-[10px] leading-tight">
                 <span
                   className="shrink-0 font-semibold text-amber-600 dark:text-amber-400 min-w-[12px] text-right"
                   style={{ fontSize: 9 }}
@@ -734,12 +737,23 @@ export const ViewerBlock = React.memo(function ViewerBlock({
                   }}
                 />
                 {ann.note && ann.note.trim() ? (
-                  <span className="text-gray-600 dark:text-gray-400 italic truncate max-w-[220px]">
+                  <span className="text-gray-600 dark:text-gray-400 italic truncate max-w-[200px]">
                     <MessageSquare size={8} className="inline text-amber-500 mr-0.5" />
                     {ann.note}
                   </span>
                 ) : (
                   <span className="text-gray-400 dark:text-gray-500 italic">subrayado</span>
+                )}
+                {deleteAnnotationMutation && (
+                  <button
+                    type="button"
+                    onClick={() => deleteAnnotationMutation.mutate(ann.id)}
+                    title="Eliminar anotación"
+                    aria-label={`Eliminar anotación ${i + 1}`}
+                    className="shrink-0 ml-auto opacity-0 group-hover/fn:opacity-100 transition-opacity text-gray-400 hover:text-red-500 p-0.5 rounded"
+                  >
+                    <X size={10} />
+                  </button>
                 )}
               </li>
             ))}
