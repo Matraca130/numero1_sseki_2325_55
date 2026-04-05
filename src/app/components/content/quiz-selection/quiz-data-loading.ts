@@ -60,7 +60,9 @@ export async function loadQuizQuestions(
   quiz: QuizEntity,
   maxQuestions: number,
 ): Promise<{ items: QuizQuestion[]; error: string | null }> {
-  const res = await quizApi.getQuizQuestions(quiz.summary_id, { limit: 200 });
+  const filters: { limit: number; block_id?: string } = { limit: 200 };
+  if (quiz.block_id) filters.block_id = quiz.block_id;
+  const res = await quizApi.getQuizQuestions(quiz.summary_id, filters);
   let items = (res.items || []).filter(q => q.is_active);
 
   try {
