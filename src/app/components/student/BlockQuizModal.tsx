@@ -258,6 +258,7 @@ export function BlockQuizModal({
     if (isLastQuestion) {
       // Submit all results for block mastery BKT update before closing
       submitBlockReview(blockId, summaryId, reviewResults);
+      setReviewResults([]);
       onClose();
       return;
     }
@@ -268,9 +269,9 @@ export function BlockQuizModal({
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) onClose();
+      if (e.target === e.currentTarget) handleClose();
     },
-    [onClose],
+    [handleClose],
   );
 
   // Reset state when modal reopens

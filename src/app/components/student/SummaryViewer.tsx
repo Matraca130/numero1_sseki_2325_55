@@ -78,7 +78,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
     setAnnotationsOpen(prev => ({ ...prev, [blockId]: !prev[blockId] }));
   }, []);
 
-  // ── Quiz modal state ──────────���───────────────────────
+  // ── Quiz modal state ──────────────────────────────────
   const [quizBlockId, setQuizBlockId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const handleQuizClose = useCallback(() => {
