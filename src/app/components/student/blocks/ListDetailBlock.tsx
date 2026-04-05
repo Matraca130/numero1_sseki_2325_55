@@ -41,9 +41,9 @@ export default function ListDetailBlock({ block, keywords }: { block: SummaryBlo
         </h3>
       )}
       {intro && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 leading-[1.6]">
-          {intro}
-        </p>
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3 leading-[1.6]">
+          {renderTextWithKeywords(intro, keywords)}
+        </div>
       )}
       <div className="flex flex-col gap-2">
         {items.map((item, i) => (
