@@ -139,12 +139,13 @@ async function submitBlockReview(
 ) {
   if (results.length === 0) return;
   try {
-    await apiCall('/block-review', {
+    const res = await apiCall('/block-review', {
       method: 'POST',
       body: JSON.stringify({ block_id: blockId, summary_id: summaryId, results }),
     });
-  } catch {
-    console.warn('[BlockQuizModal] Failed to submit block review for mastery update');
+    console.log('[BlockQuizModal] Block review submitted:', res);
+  } catch (err: any) {
+    console.error('[BlockQuizModal] Failed to submit block review:', err?.message || err);
   }
 }
 
