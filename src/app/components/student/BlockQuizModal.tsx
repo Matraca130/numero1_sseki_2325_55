@@ -184,11 +184,12 @@ export function BlockQuizModal({
           limit: 10,
         });
 
-        console.log(`[BlockQuiz] block_id=${blockId}, DB returned ${dbResult.items.length} items`);
-
         if (!cancelled && dbResult.items.length > 0) {
-          const display = dbToDisplay(dbResult.items);
-          console.log(`[BlockQuiz] dbToDisplay converted ${dbResult.items.length} → ${display.length} displayable`);
+          // Client-side block_id filter as safety net — ensures only this block's questions show
+          const blockItems = dbResult.items.filter(
+            (q) => !q.block_id || q.block_id === blockId,
+          );
+          const display = dbToDisplay(blockItems);
           if (display.length > 0) {
             setQuestions(display);
             setLoading(false);
