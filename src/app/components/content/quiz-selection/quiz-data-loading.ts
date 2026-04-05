@@ -60,19 +60,24 @@ export async function loadQuizQuestions(
   quiz: QuizEntity,
   maxQuestions: number,
 ): Promise<{ items: QuizQuestion[]; error: string | null }> {
-  const filters: { limit: number; block_id?: string } = { limit: 200 };
-  if (quiz.block_id) filters.block_id = quiz.block_id;
-  const res = await quizApi.getQuizQuestions(quiz.summary_id, filters);
-  let items = (res.items || []).filter(q => q.is_active);
+  // Build filters: always filter by quiz_id; also by block_id when the quiz is block-scoped
+  const params = new URLSearchParams();
+  params.set('summary_id', quiz.summary_id);
+  params.set('quiz_id', quiz.id);
+  if (quiz.block_id) params.set('block_id', quiz.block_id);
+  params.set('limit', '200');
 
+  let items: QuizQuestion[] = [];
   try {
-    const filtered = await apiCall<any>(`/quiz-questions?summary_id=${quiz.summary_id}&quiz_id=${quiz.id}`);
-    const filteredItems = Array.isArray(filtered) ? filtered : (filtered?.items || []);
-    if (filteredItems.length > 0) {
-      items = filteredItems.filter((q: any) => q.is_active);
-    }
+    const res = await apiCall<any>(`/quiz-questions?${params}`);
+    const arr = Array.isArray(res) ? res : (res?.items || []);
+    items = arr.filter((q: any) => q.is_active);
   } catch {
-    // quiz_id filter failed, use all summary questions
+    // Fallback: fetch by summary + block_id only
+    const filters: { limit: number; block_id?: string } = { limit: 200 };
+    if (quiz.block_id) filters.block_id = quiz.block_id;
+    const res = await quizApi.getQuizQuestions(quiz.summary_id, filters);
+    items = (res.items || []).filter(q => q.is_active);
   }
 
   if (items.length === 0) {
