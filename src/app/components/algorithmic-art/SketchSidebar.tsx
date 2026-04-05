@@ -45,6 +45,7 @@ export function SketchSidebar({
         className,
       )}
       style={{ width: 320 }}
+      aria-label="Panel de controles del motor algorítmico"
     >
       {/* Header */}
       <div className="px-4 pt-5 pb-3 border-b border-slate-700">

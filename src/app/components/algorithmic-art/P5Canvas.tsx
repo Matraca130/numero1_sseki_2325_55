@@ -172,6 +172,25 @@ const P5Canvas = forwardRef<P5CanvasHandle, P5CanvasProps>(function P5Canvas(
     return () => observer.disconnect();
   }, [width, height]);
 
+  // ── Reduced motion support ─────────────────────────────────
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionPref = (e: MediaQueryListEvent | MediaQueryList) => {
+      const p = p5InstanceRef.current;
+      if (!p) return;
+      if (e.matches) {
+        // Reduce to ~15 fps by setting frameRate
+        p.frameRate(15);
+      } else {
+        p.frameRate(60);
+      }
+    };
+    // Apply initial state
+    handleMotionPref(mql);
+    mql.addEventListener('change', handleMotionPref);
+    return () => mql.removeEventListener('change', handleMotionPref);
+  }, [sketch, seed]);
+
   // ── Imperative handle ─────────────────────────────────────
   useImperativeHandle(ref, () => ({
     screenshot: (filename = 'axon-sketch') => {
@@ -180,6 +199,7 @@ const P5Canvas = forwardRef<P5CanvasHandle, P5CanvasProps>(function P5Canvas(
     restart: () => {
       createInstance();
     },
+    getInstance: () => p5InstanceRef.current,
   }));
 
   return (
@@ -187,6 +207,8 @@ const P5Canvas = forwardRef<P5CanvasHandle, P5CanvasProps>(function P5Canvas(
       ref={containerRef}
       className={className}
       style={{ width: width ? `${width}px` : '100%', overflow: 'hidden' }}
+      role="img"
+      aria-label="Visualización algorítmica interactiva"
       data-testid="p5-canvas-container"
     />
   );
