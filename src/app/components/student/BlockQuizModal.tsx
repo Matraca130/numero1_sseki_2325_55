@@ -184,8 +184,11 @@ export function BlockQuizModal({
           limit: 10,
         });
 
+        console.log(`[BlockQuiz] block_id=${blockId}, DB returned ${dbResult.items.length} items`);
+
         if (!cancelled && dbResult.items.length > 0) {
           const display = dbToDisplay(dbResult.items);
+          console.log(`[BlockQuiz] dbToDisplay converted ${dbResult.items.length} → ${display.length} displayable`);
           if (display.length > 0) {
             setQuestions(display);
             setLoading(false);
@@ -194,6 +197,7 @@ export function BlockQuizModal({
         }
 
         // 2. Fallback: AI generation
+        console.log(`[BlockQuiz] Falling back to AI generation for block=${blockId}`);
         const aiResult = await apiCall('/ai/generate', {
           method: 'POST',
           body: JSON.stringify({ summary_id: summaryId, block_id: blockId, type: 'quiz' }),
