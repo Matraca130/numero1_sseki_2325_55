@@ -23,7 +23,7 @@ import {
 import clsx from 'clsx';
 import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
-import { HighlightToolbar } from './HighlightToolbar';
+import { HighlightToolbar, DEFAULT_HIGHLIGHT_COLOR } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 import type { Chunk, SummaryKeyword } from '@/app/services/summariesApi';
@@ -224,7 +224,7 @@ export function TextHighlighter({
         summary_id: summaryId,
         start_offset: selectionRange.start,
         end_offset: selectionRange.end,
-        color: 'yellow' as HighlightColor,
+        color: DEFAULT_HIGHLIGHT_COLOR,
         selected_text: selectionRange.text,
       },
       {
