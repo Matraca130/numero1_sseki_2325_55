@@ -1,7 +1,7 @@
 // ============================================================
 // Axon — Global test setup
 //
-// Loaded by vitest.config.ts setupFiles.
+// Loaded by vitest.config.ts → setupFiles.
 // Adds @testing-library/jest-dom matchers (toBeInTheDocument, etc.)
 // ============================================================
 import '@testing-library/jest-dom';
