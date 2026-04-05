@@ -699,7 +699,8 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   // Self-styled blocks (key_point, callout, comparison, etc.) keep their own
   // background/border and skip the mastery wrapper, matching PROTOTYPE.jsx:622-648.
   const isSelfStyled = ['key_point', 'callout', 'comparison', 'image_reference', 'section_divider'].includes(block.type);
-  const mastery = masteryLevel !== undefined ? getMasteryStyle(masteryLevel, dark) : null;
+  // masteryLevel === -1 means "no data yet" → don't show mastery wrapper
+  const mastery = (masteryLevel !== undefined && masteryLevel >= 0) ? getMasteryStyle(masteryLevel, dark) : null;
   const applyMasteryWrapper = mastery && !isSelfStyled;
 
   return (
