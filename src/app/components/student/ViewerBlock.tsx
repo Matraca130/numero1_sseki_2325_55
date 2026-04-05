@@ -363,6 +363,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           mark.style.backgroundColor = HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow;
           mark.style.borderRadius = '2px';
           mark.style.padding = '0 1px';
+          mark.style.cursor = 'pointer';
           range.surroundContents(mark);
           // Reverse iteration: first found = last in document order (superscript position)
           if (!lastMark) lastMark = mark;
@@ -388,6 +389,28 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       if (!el) return;
       stripHighlightMarks(el);
     };
+  }, [liveAnnotations, highlightEnabled]);
+
+  // ── Click on highlighted text → open note editor ────────
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !highlightEnabled) return;
+    const handler = (e: MouseEvent) => {
+      const mark = (e.target as HTMLElement).closest('mark[data-axon-hl]');
+      if (!mark) return;
+      const annId = mark.getAttribute('data-axon-hl');
+      if (!annId || annId === 'pending') return;
+      // Don't open editor if user is selecting text
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;
+      const ann = liveAnnotations.find(a => a.id === annId);
+      if (ann) {
+        setEditingId(annId);
+        setEditingText(ann.note || '');
+      }
+    };
+    el.addEventListener('click', handler);
+    return () => el.removeEventListener('click', handler);
   }, [liveAnnotations, highlightEnabled]);
 
   const blockContent = (() => { switch (block.type) {
