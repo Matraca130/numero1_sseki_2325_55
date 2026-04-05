@@ -3,8 +3,21 @@
 // ============================================================
 
 import { render, screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import { CountdownWidget } from '../CountdownWidget';
 import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+
+// Mock ExamPrepPanel to avoid react-query dependency
+vi.mock('../ExamPrepPanel', () => ({
+  ExamPrepPanel: ({ examTitle, onClose }: any) => (
+    <div data-testid="exam-prep-panel">{examTitle}<button onClick={onClose}>Close</button></div>
+  ),
+}));
+
+// Mock motion/react
+vi.mock('motion/react', () => ({
+  AnimatePresence: ({ children }: any) => children,
+}));
 
 // ── Helpers ─────────────────────────────────────────────────
 

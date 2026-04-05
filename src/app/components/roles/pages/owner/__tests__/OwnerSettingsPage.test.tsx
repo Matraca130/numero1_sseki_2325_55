@@ -61,7 +61,7 @@ describe('OwnerSettingsPage', () => {
 
   it('displays the correct page title', () => {
     render(<OwnerSettingsPage />);
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Configuracion');
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Configuración');
   });
 
   it('displays the correct page description', () => {

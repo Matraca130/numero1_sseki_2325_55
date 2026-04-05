@@ -44,6 +44,7 @@ vi.mock('lucide-react', () => ({
   AlertCircle: () => <div data-testid="icon-alert" />,
   RefreshCw: () => <div data-testid="icon-refresh" />,
   BookOpen: () => <div data-testid="icon-book" />,
+  CalendarDays: () => <div data-testid="icon-calendar-days" />,
 }));
 
 // ── Mock KeywordRow ───────────────────────────────────────

@@ -182,7 +182,7 @@ describe('OwnerSubscriptionsPage', () => {
   it('displays page description', async () => {
     render(<OwnerSubscriptionsPage />);
     await waitFor(() => {
-      expect(screen.getByText(/Gestiona las suscripciones de tu institucion/)).toBeInTheDocument();
+      expect(screen.getByText(/Gestiona las suscripciones de tu institución/)).toBeInTheDocument();
     });
   });
 

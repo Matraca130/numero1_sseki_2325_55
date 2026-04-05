@@ -79,7 +79,7 @@ describe('AdminDashboardPage', () => {
       authOverrides: defaultAuthOverrides,
     });
     expect(
-      screen.getByText(/Vision general de la gestion/)
+      screen.getByText(/Visión general de la gestión/)
     ).toBeInTheDocument();
   });
 

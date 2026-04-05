@@ -32,6 +32,7 @@ vi.mock('lucide-react', () => ({
   ChevronRight: () => <div data-testid="icon-chevron-right" />,
   PlayCircle: () => <div data-testid="icon-play" />,
   BookOpen: () => <div data-testid="icon-book" />,
+  CalendarDays: () => <div data-testid="icon-calendar-days" />,
 }));
 
 // ── Mock design-system ─────────────────────────────────────

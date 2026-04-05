@@ -187,7 +187,7 @@ describe('OwnerDashboardPage', () => {
   it('renders page title and institution name in header', () => {
     renderDashboard();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText(/Vision general de/)).toBeInTheDocument();
+    expect(screen.getByText(/Visión general de/)).toBeInTheDocument();
     expect(screen.getByText('Test University')).toBeInTheDocument();
   });
 
@@ -393,8 +393,8 @@ describe('OwnerDashboardPage', () => {
     });
 
     renderDashboard();
-    expect(screen.getByText('Sin institucion configurada')).toBeInTheDocument();
-    expect(screen.getByText(/Tu cuenta aun no tiene una institucion/)).toBeInTheDocument();
+    expect(screen.getByText('Sin institución configurada')).toBeInTheDocument();
+    expect(screen.getByText(/Tu cuenta aún no tiene una institución/)).toBeInTheDocument();
   });
 
   // ── Edge Cases ─────────────────────────────────────────

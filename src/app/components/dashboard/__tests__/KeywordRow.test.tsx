@@ -30,6 +30,7 @@ vi.mock('lucide-react', () => ({
   ChevronDown: () => <div data-testid="icon-chevron-down" />,
   ChevronRight: () => <div data-testid="icon-chevron-right" />,
   RotateCcw: () => <div data-testid="icon-repeat" />,
+  CalendarDays: () => <div data-testid="icon-calendar-days" />,
 }));
 
 // ── Mock logger ────────────────────────────────────────────
