@@ -180,16 +180,19 @@ export function BlockQuizModal({
     (async () => {
       try {
         // 1. Try pre-generated questions from quiz_questions table
+        console.log(`[BlockQuiz] Fetching questions for block=${blockId} summary=${summaryId}`);
         const dbResult = await getQuizQuestions(summaryId, {
           block_id: blockId,
           limit: 10,
         });
+        console.log(`[BlockQuiz] Got ${dbResult.items.length} items, block_ids:`, dbResult.items.map(q => q.block_id));
 
         if (!cancelled && dbResult.items.length > 0) {
           // Client-side block_id filter as safety net — ensures only this block's questions show
           const blockItems = dbResult.items.filter(
             (q) => !q.block_id || q.block_id === blockId,
           );
+          console.log(`[BlockQuiz] After block filter: ${blockItems.length} items (from ${dbResult.items.length})`);
           const display = dbToDisplay(blockItems);
           if (display.length > 0) {
             setQuestions(display);
