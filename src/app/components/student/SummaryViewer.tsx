@@ -287,12 +287,15 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       )}
 
       {/* ── Block Quiz Modal ───────────────────────────── */}
-      <BlockQuizModal
-        blockId={quizBlockId || ''}
-        summaryId={summaryId}
-        isOpen={!!quizBlockId}
-        onClose={handleQuizClose}
-      />
+      {quizBlockId && (
+        <BlockQuizModal
+          key={quizBlockId}
+          blockId={quizBlockId}
+          summaryId={summaryId}
+          isOpen
+          onClose={handleQuizClose}
+        />
+      )}
 
       {/* ── Bookmarks toggle + panel ──────────────────── */}
       <div className="fixed bottom-6 right-24 z-50">
