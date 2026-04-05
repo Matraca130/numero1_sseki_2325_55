@@ -10,6 +10,7 @@ import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
   Play, Download, ExternalLink, Tag, StickyNote, Brain,
+  MessageSquare,
 } from 'lucide-react';
 import { HighlightToolbar } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
@@ -80,8 +81,12 @@ const HIGHLIGHT_COLOR_MAP: Record<string, string> = {
   orange: 'rgba(253,186,116,0.4)',
 };
 
-/** Strip all data-axon-hl marks from a container and normalize text nodes. */
+/** Strip all data-axon-hl marks and superscript footnotes from a container. */
 function stripHighlightMarks(container: HTMLElement): void {
+  // Remove superscript footnote numbers first
+  const sups = container.querySelectorAll('sup[data-axon-fn]');
+  sups.forEach(sup => sup.remove());
+  // Unwrap highlight marks
   const marks = container.querySelectorAll('mark[data-axon-hl]');
   marks.forEach(mark => {
     const text = document.createTextNode(mark.textContent || '');
@@ -298,16 +303,19 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       charOffset += len;
     }
 
-    // Sort annotations by start_offset ascending
+    // Sort annotations by start_offset ascending (footnote order)
     const sorted = [...liveAnnotations].sort((a, b) => a.start_offset - b.start_offset);
 
     // Apply each annotation by finding and wrapping text node ranges
     // Process in reverse so DOM mutations don't shift later offsets
     for (let ai = sorted.length - 1; ai >= 0; ai--) {
       const ann = sorted[ai];
+      const footnoteNum = ai + 1; // 1-based footnote number
       const annStart = ann.start_offset;
       const annEnd = Math.min(ann.end_offset, charOffset);
       if (annStart >= annEnd) continue;
+
+      let lastMark: HTMLElement | null = null;
 
       // Find text nodes that overlap with this annotation
       for (let ti = textNodes.length - 1; ti >= 0; ti--) {
@@ -330,9 +338,22 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           mark.style.borderRadius = '2px';
           mark.style.padding = '0 1px';
           range.surroundContents(mark);
+          // Track the last mark (highest text position) for superscript
+          if (!lastMark) lastMark = mark;
         } catch {
           // surroundContents may fail if range crosses element boundaries
         }
+      }
+
+      // Add superscript footnote number after the last mark of this annotation
+      if (lastMark) {
+        const sup = document.createElement('sup');
+        sup.setAttribute('data-axon-fn', ann.id);
+        sup.textContent = String(footnoteNum);
+        sup.style.cssText =
+          'font-size:9px;font-weight:600;color:#d97706;margin-left:1px;' +
+          'cursor:default;vertical-align:super;line-height:0;user-select:none;';
+        lastMark.insertAdjacentElement('afterend', sup);
       }
     }
 
@@ -647,13 +668,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
               paddingLeft: 16,
               borderRadius: 4,
             }
-          : annotationCount > 0
-            ? {
-                borderLeft: '2px solid rgba(245,158,11,0.4)',
-                paddingLeft: 12,
-                borderRadius: 4,
-              }
-            : {}),
+          : {}),
       }}
     >
       {/* Floating highlight toolbar on text selection */}
@@ -697,6 +712,46 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       )}
 
       <div ref={contentRef}>{blockContent}</div>
+
+      {/* ── Footnote references (book-style) ──────────────── */}
+      {annotationCount > 0 && (
+        <div className="mt-2 pt-2 border-t border-gray-200/60">
+          <ol className="list-none m-0 p-0 space-y-0.5">
+            {liveAnnotations
+              .sort((a, b) => a.start_offset - b.start_offset)
+              .map((ann, i) => {
+                const previewText = ann.end_offset - ann.start_offset > 40
+                  ? '…'
+                  : '';
+                return (
+                  <li key={ann.id} className="flex items-start gap-1.5 text-[10px] leading-tight">
+                    <span
+                      className="shrink-0 font-semibold text-amber-600 min-w-[12px] text-right"
+                      style={{ fontSize: 9 }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[3px]"
+                      style={{
+                        backgroundColor: HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                      }}
+                    />
+                    {ann.note && ann.note.trim() ? (
+                      <span className="text-gray-600 italic truncate max-w-[220px]">
+                        <MessageSquare size={8} className="inline text-amber-500 mr-0.5" />
+                        {ann.note}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 italic">subrayado{previewText}</span>
+                    )}
+                  </li>
+                );
+              })}
+          </ol>
+        </div>
+      )}
 
       {(hasActions || ttsText) && (
         <div className="flex items-center gap-1 mt-1" data-testid="viewer-block-actions">
