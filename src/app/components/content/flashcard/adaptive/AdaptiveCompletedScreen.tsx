@@ -38,7 +38,7 @@ export function AdaptiveCompletedScreen({ allStats, completedRounds, masteryDelt
         <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center mb-6 shadow-xl shadow-teal-500/25">
           <Trophy size={40} className="text-teal-500" />
         </div>
-        <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>{'\u00A1'}Sesi{'\u00F3'}n Completada!</h2>
+        <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>¡Sesión Completada!</h2>
         <p className="text-sm text-gray-500 mb-6">
           {totalReviews} flashcards en {totalRounds} {totalRounds === 1 ? 'ronda' : 'rondas'}
           {aiRounds > 0 && <span className="text-teal-500"> ({profRounds} profesor + {aiRounds} IA)</span>}

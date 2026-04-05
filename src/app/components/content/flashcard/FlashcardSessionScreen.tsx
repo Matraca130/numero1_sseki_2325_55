@@ -23,6 +23,7 @@ import { CheckCircle, Brain, X, Eye, AlertTriangle, Stethoscope, Keyboard } from
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { RATINGS } from '@/app/hooks/flashcard-types';
+import { colors } from '@/app/design-system';
 import { getMasteryColor } from './mastery-colors';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 
@@ -86,7 +87,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
       if (i < currentIndex) {
         color = getMasteryColor(sessionStats[i]).hex;
       } else if (i === currentIndex) {
-        color = '#2a8c7a';
+        color = colors.primary[500];
       } else {
         color = 'transparent';
       }

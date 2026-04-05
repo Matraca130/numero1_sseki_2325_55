@@ -83,11 +83,13 @@ vi.mock('@/app/context/AuthContext', () => ({
 const mockGetStudentStatsReal = vi.fn();
 const mockGetDailyActivities = vi.fn();
 const mockGetAllBktStates = vi.fn();
+const mockGetStudySessions = vi.fn();
 
 vi.mock('@/app/services/platformApi', () => ({
   getStudentStatsReal: (...args: unknown[]) => mockGetStudentStatsReal(...args),
   getDailyActivities: (...args: unknown[]) => mockGetDailyActivities(...args),
   getAllBktStates: (...args: unknown[]) => mockGetAllBktStates(...args),
+  getStudySessions: (...args: unknown[]) => mockGetStudySessions(...args),
 }));
 
 // -- Mock getAxonToday ------------------------------------
@@ -110,6 +112,7 @@ function setupSuccessfulApi() {
   mockGetStudentStatsReal.mockResolvedValue(MOCK_STATS);
   mockGetDailyActivities.mockResolvedValue(MOCK_DAILY);
   mockGetAllBktStates.mockResolvedValue(MOCK_BKT);
+  mockGetStudySessions.mockResolvedValue([]);
 }
 
 // -- Test suite -------------------------------------------

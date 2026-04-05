@@ -6,8 +6,6 @@
 import { logger } from '@/app/lib/logger';
 
 /**
- * @internal — not yet consumed, planned for future iteration
- *
  * Topological sort of topics based on prerequisite_topic_ids.
  * Topics with no prerequisites come first.
  * Falls back to original order if cycles are detected.

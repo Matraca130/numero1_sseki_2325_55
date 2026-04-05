@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { sessionDurationMinutes } from '@/app/hooks/useStudyTimeEstimates';
-import type { StudySessionRecord } from '@/app/services/platform-api/pa-study-plans';
+import type { StudySessionRecord } from '@/app/services/studySessionApi';
 
 function makeSession(
   overrides: Partial<StudySessionRecord> & { created_at: string },
@@ -13,6 +13,7 @@ function makeSession(
   return {
     id: 'test-session-1',
     session_type: 'flashcard',
+    started_at: overrides.created_at,
     total_reviews: 10,
     correct_reviews: 8,
     ...overrides,

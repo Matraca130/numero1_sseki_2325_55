@@ -25,7 +25,7 @@ export default function DashboardPage() {
       {/* ── Header ── */}
       <AxonPageHeader
         title="Dashboard"
-        subtitle="Visao geral do teu aprendizado"
+        subtitle="Visión general de tu aprendizaje"
         actionButton={
           <div className="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200/60 shrink-0">
             <button className="px-4 py-2 text-sm rounded-md bg-[#1B3B36] text-white shadow-sm">

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { UIProvider } from '@/app/context/UIContext';
 import { NavigationProvider } from '@/app/context/NavigationContext';
+import type { StudyPlan } from '@/app/types/study-plan';
 
 // @refresh reset
 
@@ -11,32 +12,8 @@ export type { ViewType } from '@/app/hooks/useStudentNav';
 export type { ThemeType } from '@/app/context/UIContext';
 
 // ── Types ────────────────────────────────────────────────────
-
-export interface StudyPlanTask {
-  id: string;
-  date: Date;
-  title: string;
-  subject: string;
-  subjectColor: string;
-  method: string;
-  estimatedMinutes: number;
-  completed: boolean;
-  /** Topic ID for backend mapping (Phase 3+) */
-  topicId?: string;
-}
-
-export interface StudyPlan {
-  id: string;
-  name: string;
-  subjects: { id: string; name: string; color: string }[];
-  methods: string[];
-  selectedTopics: { courseId: string; courseName: string; sectionTitle: string; topicTitle: string; topicId: string }[];
-  completionDate: Date;
-  weeklyHours: number[]; // [mon, tue, wed, thu, fri, sat, sun]
-  tasks: StudyPlanTask[];
-  createdAt: Date;
-  totalEstimatedHours: number;
-}
+// Canonical definitions live in types/study-plan.ts; re-exported here for backward compatibility.
+export type { StudyPlan, StudyPlanTask } from '@/app/types/study-plan';
 
 // ── Study Session Context ────────────────────────────────────
 

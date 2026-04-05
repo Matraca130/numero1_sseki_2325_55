@@ -33,6 +33,7 @@ export type ViewType =
   | 'mastery-dashboard'
   | 'student-data'
   | 'gamification'
+  | 'calendario'
   | 'settings';
 
 // ── Mapping helpers ──────────────────────────────────────────

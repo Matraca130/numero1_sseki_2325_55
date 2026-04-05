@@ -14,6 +14,7 @@ import { useFlashcardEngine } from '@/app/hooks/useFlashcardEngine';
 import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useFlashcardCoverage } from '@/app/hooks/useFlashcardCoverage';
+import { useUI } from '@/app/context/UIContext';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 
 import { HubScreen, SectionScreen, DeckScreen, SessionScreen, SummaryScreen } from './flashcard';
@@ -86,6 +87,13 @@ export function FlashcardView() {
   const [fetchedSummaryId, setFetchedSummaryId] = useState<string>('');
   const cardSummaryId = nav.selectedTopic?.flashcards?.[0]?.summary_id || '';
   const currentSummaryId = cardSummaryId || fetchedSummaryId;
+
+  // Lift summaryId to layout so AI assistant can use it (AXO-131)
+  const { setActiveSummaryId } = useUI();
+  useEffect(() => {
+    setActiveSummaryId(currentSummaryId || undefined);
+    return () => setActiveSummaryId(undefined);
+  }, [currentSummaryId, setActiveSummaryId]);
 
   useEffect(() => {
     const topicId = nav.selectedTopic?.id;

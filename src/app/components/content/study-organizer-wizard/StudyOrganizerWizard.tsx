@@ -11,6 +11,7 @@ import { useTreeCourses } from '@/app/hooks/useTreeCourses';
 import { useStudyPlansContext } from '@/app/context/StudyPlansContext';
 import { useTopicMasteryContext } from '@/app/context/TopicMasteryContext';
 import { useStudyTimeEstimatesContext } from '@/app/context/StudyTimeEstimatesContext';
+import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { getAxonToday } from '@/app/utils/constants';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -22,6 +23,7 @@ import clsx from 'clsx';
 import { headingStyle, components } from '@/app/design-system';
 import { useStudyIntelligence } from '@/app/hooks/useStudyIntelligence';
 import { TOTAL_STEPS, STEP_INFO, SUBJECT_ICONS, STUDY_METHODS, DAY_LABELS } from './constants';
+import type { WizardCourse } from './helpers';
 import { getCourseMasteryPercent, getCourseStudiedTopics, getSubjectColor, getSubjectName } from './helpers';
 import { generateStudyPlan } from './plan-generation';
 
@@ -42,6 +44,7 @@ export function StudyOrganizerWizard() {
   const [aiPowered, setAiPowered] = useState(false);
 
   const { topicMastery, courseMastery } = useTopicMasteryContext();
+  const { sessionHistory, rawDaily: dailyActivity, rawStats: stats } = useStudentDataContext();
   const selectedCourseId = selectedSubjects.length === 1 ? selectedSubjects[0] : null;
   const { data: studyIntelligence } = useStudyIntelligence(selectedCourseId);
 
@@ -85,13 +88,24 @@ export function StudyOrganizerWizard() {
   const goBack = () => { if (step > 0) { setDirection(-1); setStep(step - 1); } else navigateTo('schedule'); };
 
   const handleGeneratePlan = async () => {
-    setAiLoading(true); setAiPowered(false);
-    const result = await generateStudyPlan({
-      selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours,
-      topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount: studyPlans.length,
-    });
-    setAiPowered(result.aiPowered); setAiLoading(false);
-    addStudyPlan(result.plan); createPlanFromWizard(result.plan); navigateTo('schedule');
+    setAiLoading(true);
+    setAiPowered(false);
+    try {
+      const result = await generateStudyPlan({
+        selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours,
+        topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount: studyPlans.length,
+        sessionHistory, dailyActivity, stats,
+        studyIntelligenceTopics: studyIntelligence?.topics,
+      });
+      setAiPowered(result.aiPowered);
+      await createPlanFromWizard(result.plan);
+      addStudyPlan(result.plan);
+      navigateTo('schedule');
+    } catch (err) {
+      console.error('[StudyOrganizerWizard] Plan generation failed:', err);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const toggleSubject = (id: string) => {
@@ -107,22 +121,22 @@ export function StudyOrganizerWizard() {
     });
   };
   const isSectionSelected = (courseId: string, sectionId: string) => {
-    const course = courses.find((c: any) => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) return false;
-    for (const sem of course.semesters) { const section = sem.sections.find((s: any) => s.id === sectionId); if (section) return section.topics.every((t: any) => selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId)); }
+    for (const sem of course.semesters) { const section = sem.sections.find((s) => s.id === sectionId); if (section) return section.topics.every((t) => selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId)); }
     return false;
   };
   const toggleSection = (courseId: string, sectionId: string) => {
-    const course = courses.find((c: any) => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) return;
     for (const sem of course.semesters) {
-      const section = sem.sections.find((s: any) => s.id === sectionId);
+      const section = sem.sections.find((s) => s.id === sectionId);
       if (section) {
         if (isSectionSelected(courseId, sectionId)) {
-          setSelectedTopics(prev => prev.filter(t => !(t.courseId === courseId && section.topics.some((st: any) => st.id === t.topicId))));
+          setSelectedTopics(prev => prev.filter(t => !(t.courseId === courseId && section.topics.some((st) => st.id === t.topicId))));
         } else {
-          const newTopics = section.topics.filter((t: any) => !selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId))
-            .map((t: any) => ({ courseId, courseName: course.name, sectionTitle: section.title, topicTitle: t.title, topicId: t.id }));
+          const newTopics = section.topics.filter((t) => !selectedTopics.some(st => st.topicId === t.id && st.courseId === courseId))
+            .map((t) => ({ courseId, courseName: course.name, sectionTitle: section.title, topicTitle: t.title, topicId: t.id }));
           setSelectedTopics(prev => [...prev, ...newTopics]);
         }
       }
@@ -138,9 +152,9 @@ export function StudyOrganizerWizard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between"><h2 className="text-3xl text-gray-900" style={headingStyle}>¿Qué materias vas a estudiar?</h2></div>
         <div className="grid grid-cols-2 gap-5">
-          {courses.map((course: any) => {
+          {(courses as WizardCourse[]).map((course) => {
             const isSelected = selectedSubjects.includes(course.id);
-            const totalTopics = course.semesters.reduce((sum: number, sem: any) => sum + sem.sections.reduce((s2: number, sec: any) => s2 + sec.topics.length, 0), 0);
+            const totalTopics = course.semesters.reduce((sum, sem) => sum + sem.sections.reduce((s2, sec) => s2 + sec.topics.length, 0), 0);
             const pct = getCourseMasteryPercent(course.id, courseMastery);
             return (
               <div key={course.id} className={clsx("flex flex-col bg-white rounded-2xl border transition-all duration-200", isSelected ? "border-teal-400 shadow-md" : "border-gray-200 shadow-sm")}>
@@ -197,23 +211,23 @@ export function StudyOrganizerWizard() {
   }
 
   function StepTopics() {
-    const relevantCourses = courses.filter((c: any) => selectedSubjects.includes(c.id));
+    const relevantCourses = (courses as WizardCourse[]).filter((c) => selectedSubjects.includes(c.id));
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between"><h2 className="text-3xl text-gray-900" style={headingStyle}>Seleccioná los contenidos</h2><span className="text-sm text-gray-500">{selectedTopics.length} tópico{selectedTopics.length !== 1 ? 's' : ''}</span></div>
         <div className="space-y-5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-          {relevantCourses.map((course: any) => (
+          {relevantCourses.map((course) => (
             <div key={course.id} className={`${components.card.base} overflow-hidden`}>
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100"><div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">{SUBJECT_ICONS[course.id] || <BookOpen size={20} />}</div><div className="flex-1"><h3 className="font-bold text-gray-900">{course.name}</h3></div></div>
               <div className="px-5 py-3 space-y-2">
-                {course.semesters.map((sem: any) => (<div key={sem.id} className="space-y-2">{sem.sections.map((section: any) => {
+                {course.semesters.map((sem) => (<div key={sem.id} className="space-y-2">{sem.sections.map((section) => {
                   const sectionSel = isSectionSelected(course.id, section.id);
                   return (<div key={section.id}>
                     <button onClick={() => toggleSection(course.id, section.id)} className={clsx("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors", sectionSel ? "bg-teal-50" : "hover:bg-gray-50")}>
                       <div className={clsx("w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0", sectionSel ? "bg-teal-500 border-teal-500" : "border-gray-300")}>{sectionSel && <Check size={12} className="text-white" />}</div>
                       <span className="font-semibold text-gray-800 text-sm flex-1">{section.title}</span><span className="text-xs text-gray-400">{section.topics.length} tópicos</span>
                     </button>
-                    <div className="ml-8 space-y-0.5">{section.topics.map((topic: any) => {
+                    <div className="ml-8 space-y-0.5">{section.topics.map((topic) => {
                       const isSel = selectedTopics.some(t => t.topicId === topic.id && t.courseId === course.id);
                       const mastery = topicMastery.get(topic.id); const mPct = mastery?.masteryPercent ?? 0; const hasData = mastery && mastery.totalAttempts > 0;
                       return (<button key={topic.id} onClick={() => toggleTopic(course.id, course.name, section.title, topic.title, topic.id)} className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-colors", isSel ? "bg-teal-50 text-teal-700" : "hover:bg-gray-50 text-gray-600")}>
@@ -241,7 +255,7 @@ export function StudyOrganizerWizard() {
         <div className={`${components.card.base} p-8`}>
           <div className="flex flex-col items-center gap-6">
             <div className="w-14 h-14 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><Calendar size={28} /></div>
-            <div className="relative w-72"><input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} min="2026-02-08" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-teal-500 focus:outline-none transition-colors bg-white text-center" /></div>
+            <div className="relative w-72"><input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} min={getAxonToday().toISOString().slice(0, 10)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-teal-500 focus:outline-none transition-colors bg-white text-center" /></div>
             {daysRemaining !== null && (<div className="flex items-center gap-4"><div className="bg-teal-50 border border-teal-200 rounded-xl px-5 py-3 text-center"><p className="text-2xl font-bold text-teal-700">{daysRemaining}</p><p className="text-xs text-gray-500 uppercase tracking-wider">Días</p></div><div className="bg-[#F0F2F5] border border-gray-200 rounded-xl px-5 py-3 text-center"><p className="text-2xl font-bold text-gray-800">{Math.ceil(daysRemaining / 7)}</p><p className="text-xs text-gray-500 uppercase tracking-wider">Semanas</p></div></div>)}
           </div>
         </div>

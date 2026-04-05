@@ -121,7 +121,7 @@ export function getDeltaColorLabel(level: DeltaColorLevel): string {
     red: 'Emergente',
     yellow: 'En progreso',
     green: 'Consolidado',
-    blue: 'Maestr\u00eda',
+    blue: 'Maestría',
   };
   return labels[level];
 }

@@ -50,7 +50,7 @@ export function AdaptivePartialSummary({ allStats, completedRounds, keywordMaste
               <Zap size={12} className={latestRound?.source === 'ai' ? 'text-teal-500' : 'text-[#2a8c7a]'} />
               Ronda {totalRounds} completada{latestRound?.source === 'ai' && <span className="text-teal-500" style={{ fontWeight: 600 }}> (IA)</span>}
             </motion.div>
-            <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>{'\u00A1'}Buen trabajo!</h2>
+            <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>¡Buen trabajo!</h2>
             <p className="text-sm text-gray-500">Revisaste {totalReviews} flashcards en {totalRounds} {totalRounds === 1 ? 'ronda' : 'rondas'}</p>
           </div>
           <div className="flex items-center justify-center gap-8 mb-8">
@@ -62,16 +62,16 @@ export function AdaptivePartialSummary({ allStats, completedRounds, keywordMaste
           </div>
           <div className="mb-8"><AdaptiveKeywordPanel keywordMastery={keywordMastery} topicSummary={topicSummary} loading={masteryLoading} /></div>
           {generationError && <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-4 px-4 py-3 bg-rose-50/60 border border-rose-200/60 rounded-xl"><div className="flex items-start gap-2"><AlertCircle size={14} className="text-rose-500 mt-0.5 shrink-0" /><span className="text-xs text-rose-700" style={{ fontWeight: 500 }}>{generationError}</span></div></motion.div>}
-          {lastGenerationResult && <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-6 px-4 py-3 bg-teal-50/60 border border-teal-200/60 rounded-xl"><div className="flex items-start gap-2"><Sparkles size={14} className="text-teal-500 mt-0.5 shrink-0" /><div className="text-xs text-teal-700"><span style={{ fontWeight: 600 }}>{'\u00DA'}ltima generaci{'\u00F3'}n:</span> {lastGenerationResult.stats.generated} cards creadas{lastGenerationResult.stats.uniqueKeywords > 0 && <> sobre {lastGenerationResult.stats.uniqueKeywords} keywords</>}{lastGenerationResult.stats.failed > 0 && <span className="text-amber-600"> ({lastGenerationResult.stats.failed} fallaron)</span>}</div></div></motion.div>}
+          {lastGenerationResult && <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-6 px-4 py-3 bg-teal-50/60 border border-teal-200/60 rounded-xl"><div className="flex items-start gap-2"><Sparkles size={14} className="text-teal-500 mt-0.5 shrink-0" /><div className="text-xs text-teal-700"><span style={{ fontWeight: 600 }}>Última generación:</span> {lastGenerationResult.stats.generated} cards creadas{lastGenerationResult.stats.uniqueKeywords > 0 && <> sobre {lastGenerationResult.stats.uniqueKeywords} keywords</>}{lastGenerationResult.stats.failed > 0 && <span className="text-amber-600"> ({lastGenerationResult.stats.failed} fallaron)</span>}</div></div></motion.div>}
           <div className="bg-white rounded-2xl border border-gray-200/60 p-5 mb-4">
-            <div className="flex items-center gap-2 mb-3"><Sparkles size={16} className="text-[#2a8c7a]" /><h3 className="text-sm text-gray-800" style={{ fontWeight: 600 }}>Generar m{'\u00E1'}s con IA</h3></div>
-            <p className="text-xs text-gray-500 mb-4">La IA crear{'\u00E1'} flashcards enfocadas en tus {'\u00E1'}reas m{'\u00E1'}s d{'\u00E9'}biles{topicSummary && topicSummary.weakestKeywords.length > 0 && <>, especialmente <span className="text-gray-700" style={{ fontWeight: 500 }}>{topicSummary.weakestKeywords.slice(0, 2).map(kw => kw.name).join(', ')}</span></>}</p>
+            <div className="flex items-center gap-2 mb-3"><Sparkles size={16} className="text-[#2a8c7a]" /><h3 className="text-sm text-gray-800" style={{ fontWeight: 600 }}>Generar más con IA</h3></div>
+            <p className="text-xs text-gray-500 mb-4">La IA creará flashcards enfocadas en tus áreas más débiles{topicSummary && topicSummary.weakestKeywords.length > 0 && <>, especialmente <span className="text-gray-700" style={{ fontWeight: 500 }}>{topicSummary.weakestKeywords.slice(0, 2).map(kw => kw.name).join(', ')}</span></>}</p>
             <div className="flex items-center justify-between gap-4">
               <AdaptiveCountSelector value={selectedCount} onChange={setSelectedCount} />
               <button onClick={() => onGenerateMore(selectedCount)} disabled={isFinishing} className={clsx("px-5 py-2.5 rounded-full bg-[#2a8c7a] text-white text-sm shadow-md shadow-[#2a8c7a]/25 hover:bg-[#244e47] hover:-translate-y-0.5 transition-all flex items-center gap-2", isFinishing && "opacity-50 cursor-not-allowed")} style={{ fontWeight: 600 }}><Sparkles size={14} />Generar</button>
             </div>
           </div>
-          <button onClick={() => { setIsFinishing(true); onFinish(); }} disabled={isFinishing} className={clsx("w-full flex items-center justify-center gap-2 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors", isFinishing && "opacity-50 cursor-not-allowed")} style={{ fontWeight: 500 }}><LogOut size={14} />{isFinishing ? 'Finalizando...' : `Finalizar sesi${'\u00F3'}n`}</button>
+          <button onClick={() => { setIsFinishing(true); onFinish(); }} disabled={isFinishing} className={clsx("w-full flex items-center justify-center gap-2 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors", isFinishing && "opacity-50 cursor-not-allowed")} style={{ fontWeight: 500 }}><LogOut size={14} />{isFinishing ? 'Finalizando...' : 'Finalizar sesión'}</button>
           {completedRounds.length > 1 && <div className="mt-6 pt-4 border-t border-gray-200/60"><RoundHistoryList rounds={completedRounds} title="Historial de rondas" bare /></div>}
         </div>
       </div>

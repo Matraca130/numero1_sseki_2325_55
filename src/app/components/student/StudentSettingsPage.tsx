@@ -50,7 +50,7 @@ export function StudentSettingsPage() {
               className="text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-tight text-gray-900"
               style={headingStyle}
             >
-              Configuracion
+              Configuración
             </h1>
             <p className="text-sm text-gray-500 font-medium">
               Gestiona tu cuenta y preferencias

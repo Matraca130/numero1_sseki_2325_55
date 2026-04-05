@@ -14,6 +14,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, X } from 'lucide-react';
+import { gradients } from '@/app/design-system';
 
 interface LevelUpCelebrationProps {
   newLevel: number;
@@ -42,13 +43,13 @@ export function LevelUpCelebration({ newLevel, previousLevel, show, onClose }: L
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className="rounded-3xl p-8 text-center max-w-sm mx-4 shadow-2xl"
             style={{
-              background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #99f6e4 100%)',
+              background: gradients.levelUp.css,
               border: '2px solid #5eead4',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #14b8a6, #0d9488)' }}
+              style={{ background: gradients.levelUpIcon.css }}
             >
               <Sparkles size={40} className="text-white" />
             </div>

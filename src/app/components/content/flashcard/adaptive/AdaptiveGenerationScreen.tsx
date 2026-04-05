@@ -27,7 +27,7 @@ export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerat
           <Sparkles size={32} className="text-teal-500" />
         </motion.div>
         <h2 className="text-2xl text-gray-900 mb-2" style={{ fontWeight: 700 }}>Generando Flashcards</h2>
-        <p className="text-gray-500 mb-8 text-sm">La IA est{'\u00E1'} creando flashcards adaptadas a tus {'\u00E1'}reas d{'\u00E9'}biles</p>
+        <p className="text-gray-500 mb-8 text-sm">La IA está creando flashcards adaptadas a tus áreas débiles</p>
         <div className="relative mb-8" style={{ width: ringSize, height: ringSize }}>
           <svg width={ringSize} height={ringSize} className="-rotate-90">
             <circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="#e2e8f0" strokeWidth={ringStroke} />
@@ -40,7 +40,7 @@ export function AdaptiveGenerationScreen({ progress, onCancel }: AdaptiveGenerat
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
           <Loader2 size={14} className="animate-spin text-[#2a8c7a]" />
-          <span>{total === 0 ? 'Preparando generaci\u00F3n...' : completed < total ? `Creando flashcard ${completed + 1} de ${total}...` : `\u00A1${generated} flashcards creadas!`}</span>
+          <span>{total === 0 ? 'Preparando generación...' : completed < total ? `Creando flashcard ${completed + 1} de ${total}...` : `¡${generated} flashcards creadas!`}</span>
         </div>
         {failed > 0 && <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 mb-4"><AlertCircle size={12} /><span style={{ fontWeight: 500 }}>{failed} {failed === 1 ? 'card no se pudo generar' : 'cards no se pudieron generar'}</span></motion.div>}
         {isSlow && completed < total && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-gray-400 mt-2">Esto puede tardar un momento</motion.p>}

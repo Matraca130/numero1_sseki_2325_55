@@ -4,6 +4,7 @@ import type { SummaryBlock } from '@/app/services/summariesApi';
 export default function ImageReferenceBlock({ block }: { block: SummaryBlock }) {
   const description = block.content?.description as string | undefined;
   const caption = block.content?.caption as string | undefined;
+  // Fallback chain: `image_url` (canonical) → `src` / `url` (legacy block schemas)
   const image_url = (block.content?.image_url || block.content?.src || block.content?.url) as string | undefined;
 
   if (image_url) {

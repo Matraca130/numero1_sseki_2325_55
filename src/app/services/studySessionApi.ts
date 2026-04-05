@@ -29,7 +29,7 @@ export interface StudySessionRecord {
   id: string;
   student_id?: string;  // FIX BA-05: was 'user_id', real DB column is 'student_id'
   session_type: 'flashcard' | 'quiz' | 'reading' | 'mixed';
-  course_id?: string;
+  course_id?: string | null;
   started_at: string;
   completed_at?: string | null;  // FIX RT-001: was 'ended_at', real DB column is 'completed_at'
   total_reviews?: number;

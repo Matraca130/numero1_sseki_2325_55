@@ -108,3 +108,47 @@ export async function loadPracticeQuestions(
 
   return { items, error: null };
 }
+
+export async function loadBlockPracticeQuestions(
+  summaryId: string,
+  blockId: string,
+  filters: { difficulty: Difficulty | ''; type: QuestionType | '' },
+  maxQuestions: number,
+): Promise<{ items: QuizQuestion[]; error: string | null }> {
+  const apiFilters: any = { limit: 200, block_id: blockId };
+  if (filters.difficulty) apiFilters.difficulty = filters.difficulty;
+  if (filters.type) apiFilters.question_type = filters.type;
+
+  const res = await quizApi.getQuizQuestions(summaryId, apiFilters);
+  let items = (res.items || []).filter(q => q.is_active);
+
+  if (items.length === 0) {
+    return { items: [], error: 'Este bloque no tiene preguntas de quiz activas.' };
+  }
+
+  items = items.sort(() => Math.random() - 0.5);
+  if (maxQuestions > 0 && maxQuestions < items.length) {
+    items = items.slice(0, maxQuestions);
+  }
+
+  return { items, error: null };
+}
+
+export async function loadBlocksForSummary(
+  summaryId: string,
+): Promise<{ id: string; title: string; type: string }[]> {
+  try {
+    const res = await apiCall<any>(`/summary-blocks?summary_id=${summaryId}`);
+    const items = Array.isArray(res) ? res : (res?.items || []);
+    return items
+      .filter((b: any) => b.is_active !== false)
+      .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0))
+      .map((b: any) => ({
+        id: b.id,
+        title: b.content?.title || b.type || `Bloque ${b.order_index + 1}`,
+        type: b.type,
+      }));
+  } catch {
+    return [];
+  }
+}

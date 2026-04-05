@@ -199,9 +199,9 @@ function DashboardEmpty() {
           <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-4">
             <Building2 size={24} />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin institucion configurada</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin institución configurada</h2>
           <p className="text-sm text-gray-500">
-            Tu cuenta aun no tiene una institucion asociada. Contacta al soporte para configurarla.
+            Tu cuenta aún no tiene una institución asociada. Contacta al soporte para configurarla.
           </p>
         </div>
       </FadeIn>
@@ -515,9 +515,9 @@ export function OwnerDashboardPage() {
               <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
             </div>
             <p className="text-sm text-gray-500">
-              Vision general de{' '}
+              Visión general de{' '}
               <span className="font-medium text-gray-700">
-                {institution?.name ?? activeMembership?.institution?.name ?? 'tu institucion'}
+                {institution?.name ?? activeMembership?.institution?.name ?? 'tu institución'}
               </span>
             </p>
           </div>

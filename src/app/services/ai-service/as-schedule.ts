@@ -95,6 +95,31 @@ export interface AiScheduleResponse {
   _meta: AiScheduleMeta;
 }
 
+// ── Narrowing helpers ────────────────────────────────────
+// Safe accessors for Claude's loosely-typed JSON responses.
+
+function asArray(val: unknown): unknown[] {
+  return Array.isArray(val) ? val : [];
+}
+
+function asRecord(val: unknown): Record<string, unknown> {
+  return (val && typeof val === 'object' && !Array.isArray(val))
+    ? (val as Record<string, unknown>)
+    : {};
+}
+
+function str(val: unknown): string {
+  return typeof val === 'string' ? val : '';
+}
+
+function num(val: unknown, fallback: number): number {
+  return typeof val === 'number' ? val : fallback;
+}
+
+function strArray(val: unknown): string[] {
+  return Array.isArray(val) ? val.filter((v): v is string => typeof v === 'string') : [];
+}
+
 // ── Normalizer ────────────────────────────────────────────
 // The backend wraps Claude's JSON in { result, _meta }.
 // Claude's field names vary between runs, so we normalize
@@ -108,71 +133,81 @@ function normalizeClaudeResponse(
   const base: AiScheduleResponse = { _meta: meta };
 
   if (action === 'recommend-today') {
-    const recs = (claude.recommendations ?? claude.todayRecommendations ?? []) as any[];
-    base.todayRecommendations = recs.map((r: any) => ({
-      topicId: r.topicId ?? '',
-      topicTitle: r.topicTitle ?? r.topicName ?? '',
-      method: r.method ?? r.taskType ?? '',
-      reason: r.reason ?? '',
-      priority: r.priority ?? 3,
-    }));
+    const recs = asArray(claude.recommendations ?? claude.todayRecommendations);
+    base.todayRecommendations = recs.map((r) => {
+      const rec = asRecord(r);
+      return {
+        topicId: str(rec.topicId),
+        topicTitle: str(rec.topicTitle ?? rec.topicName),
+        method: str(rec.method ?? rec.taskType),
+        reason: str(rec.reason),
+        priority: num(rec.priority, 3),
+      };
+    });
   } else if (action === 'distribute') {
-    const sched = (claude.schedule ?? claude.distribution ?? []) as any[];
+    const sched = asArray(claude.schedule ?? claude.distribution);
     const flat: AiDistribution[] = [];
     for (const item of sched) {
-      if (item.blocks) {
-        for (const block of item.blocks as any[]) {
+      const entry = asRecord(item);
+      if (entry.blocks) {
+        for (const block of asArray(entry.blocks)) {
+          const b = asRecord(block);
           flat.push({
-            topicId: block.topicId ?? '',
-            method: block.method ?? block.taskType ?? '',
-            scheduledDate: item.day ?? '',
-            estimatedMinutes: block.duration_min ?? block.estimatedMinutes ?? 30,
-            reason: block.reason ?? '',
+            topicId: str(b.topicId),
+            method: str(b.method ?? b.taskType),
+            scheduledDate: str(entry.day),
+            estimatedMinutes: num(b.duration_min ?? b.estimatedMinutes, 30),
+            reason: str(b.reason),
           });
         }
       } else {
         flat.push({
-          topicId: item.topicId ?? '',
-          method: item.method ?? item.taskType ?? '',
-          scheduledDate: item.scheduledDate ?? item.day ?? '',
-          estimatedMinutes: item.estimatedMinutes ?? item.duration_min ?? 30,
-          reason: item.reason ?? '',
+          topicId: str(entry.topicId),
+          method: str(entry.method ?? entry.taskType),
+          scheduledDate: str(entry.scheduledDate ?? entry.day),
+          estimatedMinutes: num(entry.estimatedMinutes ?? entry.duration_min, 30),
+          reason: str(entry.reason),
         });
       }
     }
     base.distribution = flat;
   } else if (action === 'reschedule') {
-    const sched = (claude.updatedSchedule ?? claude.rescheduledTasks ?? []) as any[];
+    const sched = asArray(claude.updatedSchedule ?? claude.rescheduledTasks);
     const flat: AiRescheduledTask[] = [];
     for (const item of sched) {
-      if (item.blocks) {
-        for (const block of item.blocks as any[]) {
+      const entry = asRecord(item);
+      if (entry.blocks) {
+        for (const block of asArray(entry.blocks)) {
+          const b = asRecord(block);
           flat.push({
-            taskId: block.taskId ?? block.topicId ?? '',
-            newDate: item.day ?? '',
-            newEstimatedMinutes: block.duration_min ?? block.newEstimatedMinutes ?? 30,
-            reason: block.reason ?? '',
+            taskId: str(b.taskId ?? b.topicId),
+            newDate: str(entry.day),
+            newEstimatedMinutes: num(b.duration_min ?? b.newEstimatedMinutes, 30),
+            reason: str(b.reason),
           });
         }
       } else {
         flat.push({
-          taskId: item.taskId ?? item.topicId ?? '',
-          newDate: item.newDate ?? item.day ?? '',
-          newEstimatedMinutes: item.newEstimatedMinutes ?? item.duration_min ?? 30,
-          reason: item.reason ?? '',
+          taskId: str(entry.taskId ?? entry.topicId),
+          newDate: str(entry.newDate ?? entry.day),
+          newEstimatedMinutes: num(entry.newEstimatedMinutes ?? entry.duration_min, 30),
+          reason: str(entry.reason),
         });
       }
     }
     base.rescheduledTasks = flat;
   } else if (action === 'weekly-insight') {
-    const insight = claude as any;
+    const focusItems = asArray(claude.recommendedFocus);
+    const mappedFocus = focusItems.map((f) => {
+      if (typeof f === 'string') return f;
+      const rec = asRecord(f);
+      return `${str(rec.topicName)}: ${str(rec.reason)}`;
+    });
     base.insight = {
-      summary: insight.weekSummary ?? insight.summary ?? '',
-      strengths: insight.strengths ?? [],
-      weaknesses: insight.weaknesses ?? [],
-      recommendations: insight.recommendedFocus?.map?.((f: any) =>
-        typeof f === 'string' ? f : `${f.topicName}: ${f.reason}`
-      ) ?? insight.recommendations ?? [],
+      summary: str(claude.weekSummary ?? claude.summary),
+      strengths: strArray(claude.strengths),
+      weaknesses: strArray(claude.weaknesses),
+      recommendations: mappedFocus.length > 0 ? mappedFocus : strArray(claude.recommendations),
     };
   }
 

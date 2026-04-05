@@ -166,14 +166,14 @@ export function OwnerSubscriptionsPage() {
               <h1 className="text-xl font-bold text-gray-900">Suscripciones</h1>
               <Badge variant="secondary" className="text-xs tabular-nums">{subscriptions.length}</Badge>
             </div>
-            <p className="text-sm text-gray-500">Gestiona las suscripciones de tu institucion</p>
+            <p className="text-sm text-gray-500">Gestiona las suscripciones de tu institución</p>
           </div>
           <Button
             onClick={() => setCreateOpen(true)}
             className="gap-2 bg-amber-500 hover:bg-amber-600 self-start sm:self-auto"
           >
             <Plus size={14} />
-            Nueva suscripcion
+            Nueva suscripción
           </Button>
         </div>
       </FadeIn>
@@ -331,9 +331,9 @@ function CreateSubscriptionDialog({ open, onOpenChange, institutionId, platformP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus size={18} className="text-amber-500" />
-            Nueva suscripcion
+            Nueva suscripción
           </DialogTitle>
-          <DialogDescription>Suscribe tu institucion a un plan de plataforma</DialogDescription>
+          <DialogDescription>Suscribe tu institución a un plan de plataforma</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">

@@ -92,7 +92,7 @@ function getActionMeta(action: string) {
 function getGreeting(name?: string): { line1: string; line2: string } {
   const h = new Date().getHours();
   const first = name?.split(' ')[0] ?? '';
-  const saludo = h < 12 ? 'Buenos dias' : h < 18 ? 'Buenas tardes' : 'Buenas noches';
+  const saludo = h < 12 ? 'Buenos días' : h < 18 ? 'Buenas tardes' : 'Buenas noches';
   return {
     line1: first ? `${saludo}, ${first}` : saludo,
     line2: 'Tu progreso de hoy',
@@ -132,7 +132,7 @@ function StatPill({
       </div>
       <div>
         <p className="text-sm text-white" style={{ fontWeight: 700 }}>{value}</p>
-        <p className="text-[10px] text-white/40">{label}</p>
+        <p className="text-[10px] text-white/60">{label}</p>
       </div>
     </motion.div>
   );
@@ -391,7 +391,7 @@ function PerformanceSidebar({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 truncate" style={{ fontWeight: 500 }}>{meta.label}</p>
                       <p className="text-[11px] text-gray-400 mt-0.5">
-                        +{tx.xp_final} XP{tx.bonus_type ? ` (${tx.bonus_type})` : ''} \u00b7 {timeAgo(tx.created_at)}
+                        +{tx.xp_final} XP{tx.bonus_type ? ` (${tx.bonus_type})` : ''} · {timeAgo(tx.created_at)}
                       </p>
                     </div>
                   </div>
@@ -411,7 +411,7 @@ function PerformanceSidebar({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 truncate" style={{ fontWeight: 500 }}>{meta.label}</p>
                       <p className="text-[11px] text-gray-400 mt-0.5">
-                        {reviewInfo && <span>{reviewInfo} \u00b7 </span>}
+                        {reviewInfo && <span>{reviewInfo} · </span>}
                         {timeAgo(sess.completed_at || sess.created_at || '')}
                       </p>
                     </div>

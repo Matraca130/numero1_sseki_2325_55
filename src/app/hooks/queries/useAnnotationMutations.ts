@@ -28,6 +28,7 @@ export function useCreateAnnotationMutation(summaryId: string) {
       color?: string;
       note?: string;
       selected_text?: string;
+      block_id?: string;
     }) => studentApi.createTextAnnotation(data),
     onSuccess: () => {
       queryClient.invalidateQueries({

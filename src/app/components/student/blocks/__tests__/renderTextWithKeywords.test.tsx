@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import renderTextWithKeywords from '../renderTextWithKeywords';
+import renderTextWithKeywords, { replaceKeywordPlaceholders } from '../renderTextWithKeywords';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
 
 function makeKeyword(overrides: Partial<SummaryKeyword> = {}): SummaryKeyword {
@@ -50,9 +50,9 @@ describe('renderTextWithKeywords', () => {
     expect(screen.getByTestId('wrapper')).toHaveTextContent('es grave.');
   });
 
-  it('renders keyword name as plain span fallback when keyword not in list', () => {
+  it('renders keyword name as styled span fallback when keyword not in list', () => {
     renderResult('La {{desconocido}} es rara.', []);
-    // Falls back to plain span with keyword name
+    // Falls back to styled span with keyword name (without braces in text content)
     expect(screen.getByText('desconocido')).toBeInTheDocument();
     expect(screen.getByTestId('wrapper')).toHaveTextContent('La desconocido es rara.');
   });
@@ -192,5 +192,64 @@ describe('renderTextWithKeywords', () => {
     const strong = container.querySelector('strong');
     expect(strong).not.toBeNull();
     expect(container.textContent).toContain('texto');
+  });
+
+  it('styles unresolved placeholder span with subtle classes', () => {
+    const { container } = renderResult('Ver {{abc-uuid-123}} aquí.', []);
+    const span = container.querySelector('span.text-xs.italic.text-slate-400');
+    expect(span).not.toBeNull();
+    expect(span!.textContent).toBe('abc-uuid-123');
+  });
+
+  it('resolves bare UUID (without {{}}) when it matches a keyword ID', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    renderResult('palpitaciones, d70d2417-ceea-4cb7-b533-5b6859c7f63b, edema y cianosis', [kw]);
+    expect(screen.getByText('Síncope')).toBeInTheDocument();
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('palpitaciones,');
+    expect(screen.getByTestId('wrapper')).toHaveTextContent(', edema y cianosis');
+  });
+
+  it('does NOT wrap bare UUIDs that do not match any keyword ID', () => {
+    renderResult('ID: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee desconocido.', []);
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+  });
+
+  it('resolves multiple bare UUIDs in same text', () => {
+    const kw1 = makeKeyword({ id: '4f60d12f-b9a3-44b2-b051-06d5469f3cdc', name: 'Ortopnea' });
+    const kw2 = makeKeyword({ id: '63e643c7-7193-4566-8282-bbb4ca44c6dd', name: 'DPN' });
+    renderResult(
+      'Cuando progresa a 4f60d12f-b9a3-44b2-b051-06d5469f3cdc o a 63e643c7-7193-4566-8282-bbb4ca44c6dd',
+      [kw1, kw2],
+    );
+    expect(screen.getByText('Ortopnea')).toBeInTheDocument();
+    expect(screen.getByText('DPN')).toBeInTheDocument();
+  });
+
+  it('does not double-wrap UUIDs already in {{}}', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    renderResult('{{d70d2417-ceea-4cb7-b533-5b6859c7f63b}} es importante.', [kw]);
+    expect(screen.getByText('Síncope')).toBeInTheDocument();
+  });
+});
+
+describe('replaceKeywordPlaceholders', () => {
+  it('preserves {{braces}} for unresolved placeholders instead of returning raw UUID', () => {
+    const result = replaceKeywordPlaceholders('Ver {{abc-uuid-123}} aquí.', []);
+    expect(result).toBe('Ver {{abc-uuid-123}} aquí.');
+  });
+
+  it('replaces resolved placeholders with keyword name', () => {
+    const kw = makeKeyword({ id: 'abc-uuid-123', name: 'Síncope' });
+    const result = replaceKeywordPlaceholders('Ver {{abc-uuid-123}} aquí.', [kw]);
+    expect(result).toBe('Ver Síncope aquí.');
+  });
+
+  it('resolves bare UUID to keyword name in plain string', () => {
+    const kw = makeKeyword({ id: 'd70d2417-ceea-4cb7-b533-5b6859c7f63b', name: 'Síncope' });
+    const result = replaceKeywordPlaceholders(
+      'palpitaciones, d70d2417-ceea-4cb7-b533-5b6859c7f63b, edema',
+      [kw],
+    );
+    expect(result).toBe('palpitaciones, Síncope, edema');
   });
 });

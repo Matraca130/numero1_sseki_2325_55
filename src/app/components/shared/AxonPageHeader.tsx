@@ -10,7 +10,7 @@
 // ============================================================
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { AxonBrand, AxonBadge, AxonWatermark } from '@/app/components/shared/AxonLogo';
+import { AxonBadge, AxonWatermark } from '@/app/components/shared/AxonLogo';
 import { components, headingStyle } from '@/app/design-system';
 
 interface AxonPageHeaderProps {
@@ -53,9 +53,8 @@ export function AxonPageHeader({
         {/* Main title area — stacks on mobile */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 lg:gap-8 mb-3">
           <div className="flex-1 min-w-0">
-            <h1 className={`${components.pageHeader.title} mb-1.5 flex items-baseline gap-2 sm:gap-4`} style={headingStyle}>
+            <h1 className={`${components.pageHeader.title} mb-1.5`} style={headingStyle}>
               <span className="truncate">{title}</span>
-              <span className="hidden sm:inline"><AxonBrand /></span>
             </h1>
             <h2 className={`${components.pageHeader.subtitle} line-clamp-2 sm:line-clamp-1`} style={headingStyle}>{subtitle}</h2>
           </div>

@@ -107,7 +107,7 @@ export function StatCard({
   const fadeUp = useFadeUp();
   return (
     <motion.div
-      className="bg-zinc-800/80 border border-zinc-700/50 rounded-xl px-4 py-3.5"
+      className="bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3.5"
       {...fadeUp(delay)}
     >
       <div className="flex items-center gap-2 mb-2">

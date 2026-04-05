@@ -329,7 +329,7 @@ function StatCard({
           {label}
         </p>
         {sub && (
-          <p className="text-[10px]" style={{ color: '#9ca3af' }}>
+          <p className="text-[10px]" style={{ color: '#6b7280' }}>
             {sub}
           </p>
         )}

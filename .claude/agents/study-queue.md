@@ -28,7 +28,7 @@ Eres **ST-03 — Study Queue + Review Scheduling Agent**. Tu responsabilidad es 
 ## Zona de solo lectura
 
 - `hooks/useTopicMastery.ts` — Mastery por tema para calculo de prioridad (owner: ST-05)
-- `hooks/useKeywordMastery.ts` — Mastery por keyword (owner: ST-05)
+- `hooks/queries/useKeywordMasteryQuery.ts` — Mastery por keyword (owner: ST-05)
 - `services/bktApi.ts` — Datos BKT consumidos para fragility (owner: ST-05)
 - `lib/mastery-helpers.ts` — Helpers de mastery (owner: ST-05)
 - `services/studySessionApi.ts` — API de sesiones para iniciar review (owner: ST-02)

@@ -34,7 +34,8 @@
  *   ├── layout.ts            ← Dimensiones, spacing, grids
  *   ├── animation.ts         ← Presets de Motion
  *   ├── rules.ts             ← Reglas obligatorias y prohibidas
- *   └── severity.ts          ← Tokens de severidad (mild/moderate/critical)
+ *   ├── severity.ts          ← Tokens de severidad (mild/moderate/critical)
+ *   └── gradients.ts         ← Gradientes decorativos tokenizados
  */
 
 // ─────────────────────────────────────────────
@@ -85,20 +86,18 @@ export { sectionColors } from './section-colors';
 // 7b. MASTERY CONVENIENCE RE-EXPORTS
 // ─────────────────────────────────────────────
 // The canonical 5-level Delta Mastery Scale lives in colors.mastery.
-// These re-exports give consumers a shorter import path:
+// Tokens + helpers live in design-system/mastery.ts (NOT in MasteryBar)
+// to avoid a circular dependency (design-system → MasteryBar → design-system).
 //
-//   import { MASTERY_LIGHT, MASTERY_DARK, getMasteryStyle } from '@/app/design-system';
-//
-// Note: The 6-tier flashcard rating scale in
-//   components/content/flashcard/mastery-colors.ts
-// is a DIFFERENT concept and is intentionally NOT re-exported here.
+// IMPORTANT: The barrel must never import from component files — doing so
+// creates cross-chunk circular initialization issues with Vite code-splitting.
 export {
   MASTERY_LIGHT,
   MASTERY_DARK,
   getMasteryStyle,
   getMasteryInfo,
-} from '@/app/components/student/MasteryBar';
-export type { MasteryColorSet as MasteryBarColorSet } from '@/app/components/student/MasteryBar';
+} from './mastery';
+export type { MasteryColorSet as MasteryBarColorSet } from './mastery';
 
 // ─────────────────────────────────────────────
 // 7c. MASTERY HELPERS RE-EXPORTS (Delta color scale logic)
@@ -142,3 +141,8 @@ export { designRules } from './rules';
 // ─────────────────────────────────────────────
 export { SEVERITY } from './severity';
 export type { SeverityLevel } from './severity';
+
+// ─────────────────────────────────────────────
+// 13. GRADIENT TOKENS
+// ─────────────────────────────────────────────
+export { gradients } from './gradients';

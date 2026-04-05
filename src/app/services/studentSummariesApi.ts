@@ -42,6 +42,7 @@ export interface TextAnnotation {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+  block_id?: string | null;
 }
 
 export interface KwStudentNote {
@@ -111,7 +112,22 @@ export async function createTextAnnotation(data: {
   color?: string;
   note?: string;
   selected_text?: string;
+  block_id?: string;
 }): Promise<TextAnnotation> {
+  // Use Supabase RPC when block_id is provided (enriched view)
+  if (data.block_id) {
+    const { supabase } = await import('@/app/lib/supabase');
+    const { data: result, error } = await supabase.rpc('create_text_annotation', {
+      p_summary_id: data.summary_id,
+      p_start_offset: data.start_offset,
+      p_end_offset: data.end_offset,
+      p_color: data.color || 'yellow',
+      p_note: data.note || null,
+      p_block_id: data.block_id,
+    });
+    if (error) throw new Error(error.message);
+    return result as TextAnnotation;
+  }
   return apiCall<TextAnnotation>('/text-annotations', {
     method: 'POST',
     body: JSON.stringify(data),

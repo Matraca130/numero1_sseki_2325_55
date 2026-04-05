@@ -1,15 +1,23 @@
 /**
  * Plan generation logic for StudyOrganizerWizard.
- * Builds AI payloads, tries AI distribution, falls back to algorithmic.
+ * Builds AI payloads, tries AI distribution, falls back to scheduling pipeline.
  */
 
 import type { StudyPlan, StudyPlanTask } from '@/app/context/AppContext';
 import { getAxonToday } from '@/app/utils/constants';
 import { aiDistributeTasks } from '@/app/services/aiService';
 import type { StudentProfilePayload, PlanContextPayload } from '@/app/services/aiService';
-import { adjustTimeByDifficulty, classifyDifficulty } from '@/app/lib/scheduling-intelligence';
+import { classifyDifficulty, runSchedulingPipeline } from '@/app/lib/scheduling-intelligence';
+import type { ScheduleDay } from '@/app/lib/scheduling-intelligence';
+import type { TopicDifficultyData } from '@/app/types/student';
 import type { TopicMasteryInfo } from '@/app/hooks/useTopicMastery';
+import type { StudySessionRecord, DailyActivityRecord, StudentStatsRecord } from '@/app/services/platformApi';
+import { mapSessionHistoryForAI } from '@/app/utils/session-history-mapper';
+import type { WizardCourse } from './helpers';
 import { getSubjectColor, getSubjectName } from './helpers';
+
+/** Maximum time (ms) to wait for AI distribution before falling back to algorithmic. */
+const AI_TIMEOUT_MS = 20_000;
 
 interface GeneratePlanParams {
   selectedSubjects: string[];
@@ -20,8 +28,14 @@ interface GeneratePlanParams {
   topicMastery: Map<string, TopicMasteryInfo>;
   difficultyMap: Map<string, number>;
   getTimeEstimate: (methodId: string) => { estimatedMinutes: number };
-  courses: any[];
+  courses: WizardCourse[];
   existingPlanCount: number;
+  // G1: Real student data for AI profile
+  sessionHistory?: StudySessionRecord[];
+  dailyActivity?: DailyActivityRecord[];
+  stats?: StudentStatsRecord | null;
+  // G2: Full difficulty data for scheduling pipeline
+  studyIntelligenceTopics?: TopicDifficultyData[];
 }
 
 interface GeneratePlanResult {
@@ -29,8 +43,54 @@ interface GeneratePlanResult {
   aiPowered: boolean;
 }
 
+/** Build schedule days from date range and weekly hours allocation. */
+function buildScheduleDays(
+  start: Date,
+  end: Date,
+  weeklyHours: number[],
+): Array<{ date: Date; availableMinutes: number }> {
+  const days: Array<{ date: Date; availableMinutes: number }> = [];
+  const current = new Date(start);
+  while (current <= end) {
+    const dayOfWeek = current.getDay();
+    const hoursIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const availableMinutes = weeklyHours[hoursIdx] * 60;
+    if (availableMinutes > 0) {
+      days.push({ date: new Date(current), availableMinutes });
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
+}
+
+/** Convert ScheduleDay[] from the pipeline into StudyPlanTask[]. */
+function flattenDaysToTasks(days: ScheduleDay[], courses: any[]): StudyPlanTask[] {
+  let taskIndex = 0;
+  const tasks: StudyPlanTask[] = [];
+  for (const day of days) {
+    for (const task of day.tasks) {
+      tasks.push({
+        id: `task-${taskIndex++}`,
+        date: new Date(day.date),
+        title: task.topicTitle,
+        subject: task.courseName,
+        subjectColor: getSubjectColor(task.courseId, courses),
+        method: task.method,
+        estimatedMinutes: task.estimatedMinutes,
+        completed: false,
+        topicId: task.topicId,
+      });
+    }
+  }
+  return tasks;
+}
+
 export async function generateStudyPlan(params: GeneratePlanParams): Promise<GeneratePlanResult> {
-  const { selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours, topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount } = params;
+  const {
+    selectedSubjects, selectedMethods, selectedTopics, completionDate, weeklyHours,
+    topicMastery, difficultyMap, getTimeEstimate, courses, existingPlanCount,
+    sessionHistory, dailyActivity, stats, studyIntelligenceTopics,
+  } = params;
 
   const today = getAxonToday();
   const endDate = new Date(completionDate);
@@ -63,15 +123,33 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
         }];
       })
     ),
-    sessionHistory: [], dailyActivity: [],
-    stats: { totalStudyMinutes: 0, totalSessions: 0, currentStreak: 0, avgMinutesPerSession: null },
+    sessionHistory: sessionHistory ? mapSessionHistoryForAI(sessionHistory) : [],
+    dailyActivity: dailyActivity
+      ? dailyActivity.map(d => ({
+          date: d.activity_date,
+          studyMinutes: Math.round(d.time_spent_seconds / 60),
+          sessionsCount: d.sessions_count,
+        }))
+      : [],
+    stats: stats
+      ? {
+          totalStudyMinutes: Math.round(stats.total_time_seconds / 60),
+          totalSessions: stats.total_sessions ?? 0,
+          currentStreak: stats.current_streak,
+          avgMinutesPerSession: stats.total_sessions
+            ? Math.round(stats.total_time_seconds / 60 / stats.total_sessions)
+            : null,
+        }
+      : { totalStudyMinutes: 0, totalSessions: 0, currentStreak: 0, avgMinutesPerSession: null },
     studyMethods: selectedMethods,
   };
 
-  // Try AI distribution
+  // Try AI distribution with timeout
   let aiDistribution: { topicId: string; method: string; scheduledDate: string; estimatedMinutes: number; reason: string }[] | null = null;
   try {
-    const result = await aiDistributeTasks(profile, planContext);
+    const aiPromise = aiDistributeTasks(profile, planContext);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), AI_TIMEOUT_MS));
+    const result = await Promise.race([aiPromise, timeoutPromise]);
     if (result?._meta?.aiPowered && result.distribution?.length) {
       aiDistribution = result.distribution;
       aiPowered = true;
@@ -95,72 +173,47 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
       topicId: item.topicId,
     }));
   } else {
-    tasks = [];
-    let currentDay = new Date(today);
-    let taskIndex = 0;
-
-    const sortedTopics = [...selectedTopics].sort((a, b) => {
-      const prioA = topicMastery.get(a.topicId)?.priorityScore ?? 50;
-      const prioB = topicMastery.get(b.topicId)?.priorityScore ?? 50;
-      return prioB - prioA;
-    });
-
-    const getAdjustedMinutes = (topicId: string, baseMinutes: number): number => {
-      const difficulty = difficultyMap.get(topicId) ?? null;
-      const masteryPercent = topicMastery.get(topicId)?.masteryPercent ?? 0;
-      return adjustTimeByDifficulty(baseMinutes, difficulty, masteryPercent);
-    };
-
-    const allItems: { topicTitle: string; courseName: string; courseId: string; topicId: string; method: string; minutes: number }[] = [];
-    for (const topic of sortedTopics) {
-      for (const methodId of selectedMethods) {
-        allItems.push({
-          topicTitle: topic.topicTitle, courseName: topic.courseName, courseId: topic.courseId, topicId: topic.topicId, method: methodId,
-          minutes: getAdjustedMinutes(topic.topicId, getTimeEstimate(methodId).estimatedMinutes),
-        });
-      }
+    // ── Intelligent fallback: scheduling pipeline ──────────────
+    // Uses prerequisite ordering, cognitive load balancing, and
+    // adaptive interleaving instead of simple 2:1 priority interleave.
+    const fullDifficultyMap = new Map<string, TopicDifficultyData>();
+    if (studyIntelligenceTopics) {
+      for (const t of studyIntelligenceTopics) fullDifficultyMap.set(t.id, t);
     }
 
-    const highPriority = allItems.filter(item => (topicMastery.get(item.topicId)?.priorityScore ?? 50) >= 60);
-    const normalPriority = allItems.filter(item => (topicMastery.get(item.topicId)?.priorityScore ?? 50) < 60);
-    const interleaved: typeof allItems = [];
-    let hi = 0, lo = 0;
-    while (hi < highPriority.length || lo < normalPriority.length) {
-      if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
-      if (hi < highPriority.length) interleaved.push(highPriority[hi++]);
-      if (lo < normalPriority.length) interleaved.push(normalPriority[lo++]);
-    }
+    const scheduleDays = buildScheduleDays(today, endDate, weeklyHours);
+    const rawTasks = selectedTopics.flatMap(topic =>
+      selectedMethods.map(method => ({
+        topicId: topic.topicId,
+        topicTitle: topic.topicTitle,
+        method,
+        estimatedMinutes: getTimeEstimate(method).estimatedMinutes,
+        courseId: topic.courseId,
+        courseName: topic.courseName,
+        sectionTitle: topic.sectionTitle,
+      }))
+    );
+    const masteryMap = new Map(
+      selectedTopics.map(t => [t.topicId, topicMastery.get(t.topicId)?.masteryPercent ?? 0])
+    );
 
-    let itemIdx = 0;
-    while (currentDay <= endDate && itemIdx < interleaved.length) {
-      const dayOfWeek = currentDay.getDay();
-      const hoursIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const availableMinutes = weeklyHours[hoursIdx] * 60;
-      if (availableMinutes > 0) {
-        let usedMinutes = 0;
-        while (usedMinutes < availableMinutes && itemIdx < interleaved.length) {
-          const item = interleaved[itemIdx];
-          if (usedMinutes + item.minutes <= availableMinutes + 10) {
-            tasks.push({
-              id: `task-${taskIndex++}`, date: new Date(currentDay), title: item.topicTitle,
-              subject: item.courseName, subjectColor: getSubjectColor(item.courseId, courses),
-              method: item.method, estimatedMinutes: item.minutes, completed: false, topicId: item.topicId,
-            });
-            usedMinutes += item.minutes; itemIdx++;
-          } else break;
-        }
-      }
-      currentDay.setDate(currentDay.getDate() + 1);
-    }
-
-    while (itemIdx < interleaved.length) {
-      const item = interleaved[itemIdx];
-      tasks.push({
-        id: `task-${taskIndex++}`, date: new Date(endDate), title: item.topicTitle,
-        subject: item.courseName, subjectColor: getSubjectColor(item.courseId, courses),
-        method: item.method, estimatedMinutes: item.minutes, completed: false, topicId: item.topicId,
-      });
-      itemIdx++;
+    if (scheduleDays.length > 0) {
+      const days = runSchedulingPipeline(rawTasks, fullDifficultyMap, scheduleDays, masteryMap);
+      tasks = flattenDaysToTasks(days, courses);
+    } else {
+      // Edge case: no available days — assign all tasks to end date
+      let taskIndex = 0;
+      tasks = rawTasks.map(item => ({
+        id: `task-${taskIndex++}`,
+        date: new Date(endDate),
+        title: item.topicTitle,
+        subject: item.courseName,
+        subjectColor: getSubjectColor(item.courseId, courses),
+        method: item.method,
+        estimatedMinutes: item.estimatedMinutes,
+        completed: false,
+        topicId: item.topicId,
+      }));
     }
   }
 
@@ -171,6 +224,8 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
     methods: selectedMethods, selectedTopics, completionDate: endDate, weeklyHours, tasks,
     createdAt: getAxonToday(),
     totalEstimatedHours: Math.round(tasks.reduce((sum, t) => sum + t.estimatedMinutes, 0) / 60),
+    // When only one subject is selected, attach course_id for backend filtering
+    ...(selectedSubjects.length === 1 && { courseId: selectedSubjects[0] }),
   };
 
   return { plan, aiPowered };

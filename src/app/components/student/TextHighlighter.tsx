@@ -44,18 +44,18 @@ const colorMap: Record<string, { bg: string; bgHover: string; border: string }> 
 };
 
 // ── Build plain text from chunks (with keywords resolved) ─
-function buildPlainText(chunks: Chunk[], keywords: SummaryKeyword[] = []): string {
+export function buildPlainText(chunks: Chunk[], keywords: SummaryKeyword[] = []): string {
   const sorted = [...chunks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   return sorted.map(c => replaceKeywordPlaceholders(c.content, keywords)).join('\n');
 }
 
 // ── Split text into segments with highlights ──────────────
-interface Segment {
+export interface Segment {
   text: string;
   annotation?: TextAnnotation;
 }
 
-function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment[] {
+export function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment[] {
   if (annotations.length === 0) return [{ text: fullText }];
 
   // Sort by start_offset (caller already filters deleted_at)
@@ -291,7 +291,7 @@ export function TextHighlighter({
   const segments = useMemo(() => buildSegments(fullText, liveAnnotations), [fullText, liveAnnotations]);
 
   return (
-    <div ref={containerRef} className="relative p-6 select-text">
+    <div ref={containerRef} className="relative p-6 select-text" onContextMenu={(e) => e.preventDefault()}>
       {/* Floating toolbar on selection */}
       <AnimatePresence>
         {toolbar && selectionRange && (

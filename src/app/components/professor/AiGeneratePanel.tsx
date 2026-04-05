@@ -200,7 +200,7 @@ export function AiGeneratePanel({
                 <p className="text-[10px] mt-0.5 opacity-80">
                   {gen.genState.generatedCount} generada{gen.genState.generatedCount !== 1 ? 's' : ''}
                   {gen.genState.failedCount
-                    ? ` \u00b7 ${gen.genState.failedCount} fallida${gen.genState.failedCount !== 1 ? 's' : ''}`
+                    ? ` · ${gen.genState.failedCount} fallida${gen.genState.failedCount !== 1 ? 's' : ''}`
                     : ''}
                 </p>
               )}

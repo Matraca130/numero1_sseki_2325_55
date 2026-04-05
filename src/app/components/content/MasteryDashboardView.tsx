@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
-import { CATEGORY_STYLES } from '@/app/utils/categoryStyles';
+import { CATEGORY_STYLES, CATEGORY_DOT_COLORS } from '@/app/utils/categoryStyles';
 import { motion } from 'motion/react';
 import {
   ChevronLeft,
@@ -79,7 +79,7 @@ function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, complet
     <div className="flex flex-col h-full">
       <div className="px-4 lg:px-6 py-4 lg:py-6 border-b border-gray-200/50 flex items-start justify-between shrink-0">
         <div>
-          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Viernes, 14</h2>
+          <h2 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Viernes, 14</h2>
           <p className="text-gray-400 text-sm mt-1">{remainingTasks} tareas restantes</p>
         </div>
         <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
@@ -212,7 +212,7 @@ export function MasteryDashboardView() {
                     <div className="mt-1 lg:mt-2 space-y-1 hidden lg:block">
                       {events.map((event, i) => (<div key={i} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer hover:brightness-95 transition-all shadow-sm relative overflow-hidden", CATEGORY_STYLES[event.category])}><div className="mb-0.5 pr-4 truncate" style={{ fontWeight: 700 }}>{event.title}</div>{event.time && <div className="opacity-80 font-mono text-[10px]">{event.time}</div>}{event.hasReview && <div className="absolute top-1.5 right-1.5 text-blue-600 bg-white/40 rounded-full p-0.5"><Brain size={12} /></div>}</div>))}
                     </div>
-                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={i} className={clsx("w-1.5 h-1.5 rounded-full", event.category === 'science' ? 'bg-blue-500' : event.category === 'arts' ? 'bg-pink-500' : 'bg-emerald-500')} />))}</div>)}
+                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={i} className={clsx("w-1.5 h-1.5 rounded-full", CATEGORY_DOT_COLORS[event.category] ?? 'bg-emerald-500')} />))}</div>)}
                   </div>
                 );
               })}

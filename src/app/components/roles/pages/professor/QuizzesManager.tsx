@@ -148,7 +148,7 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
 
   // ── Render ──────────────────────────────────────────
   return (
-    <QuizErrorBoundary label="Gestion de Quizzes" accentColor="purple">
+    <QuizErrorBoundary label="Gestión de Quizzes" accentColor="purple">
       <div className="flex flex-col h-full">
         {/* Backend warning banner */}
         {backendError && (

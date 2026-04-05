@@ -37,6 +37,8 @@ interface QuizRightPanelProps {
   onSelectSummary: (summary: Summary) => void;
   onStartQuiz: (quiz: QuizEntity) => void;
   onPracticeAll: (summary: Summary) => void;
+  summaryBlocks: { id: string; title: string; type: string }[];
+  onBlockPractice: (blockId: string, blockTitle: string) => void;
 }
 
 export function QuizRightPanel({
@@ -45,6 +47,7 @@ export function QuizRightPanel({
   activeCourse, activeSemester, topicSummaries, loadingTopics,
   quizHistory, showHistory, onFilterDifficulty, onFilterType, onMaxQuestions,
   onToggleHistory, onSelectSummary, onStartQuiz, onPracticeAll,
+  summaryBlocks, onBlockPractice,
 }: QuizRightPanelProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-50">
@@ -178,26 +181,55 @@ export function QuizRightPanel({
 
                   {loosePracticeCount > 0 && (
                     <div className="mt-3 pt-3 border-t border-zinc-100">
-                      <button
-                        onClick={() => onPracticeAll(selectedSummary)}
-                        disabled={loadingQuizId === 'practice-all'}
-                        className="w-full flex items-center gap-3 p-4 rounded-2xl border border-dashed border-zinc-300 hover:border-teal-300 hover:bg-teal-50/20 transition-all text-left group bg-white"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-teal-500 transition-colors">
-                          {loadingQuizId === 'practice-all' ? (
-                            <Loader2 size={18} className="animate-spin text-zinc-500" />
-                          ) : (
-                            <Play size={18} className="text-zinc-500 group-hover:text-white transition-colors" />
-                          )}
+                      <p className="text-[10px] uppercase tracking-wider text-zinc-400 mb-2" style={{ fontWeight: 700 }}>
+                        Practica por bloque ({summaryBlocks.length})
+                      </p>
+                      {summaryBlocks.length > 0 ? (
+                        <div className="space-y-2">
+                          {summaryBlocks.map(block => (
+                            <button
+                              key={block.id}
+                              onClick={() => onBlockPractice(block.id, block.title)}
+                              disabled={loadingQuizId === `block-${block.id}`}
+                              className="w-full flex items-center gap-3 p-3 rounded-xl border border-zinc-200 hover:border-teal-300 hover:bg-teal-50/30 transition-all text-left group bg-white"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-teal-500 transition-colors">
+                                {loadingQuizId === `block-${block.id}` ? (
+                                  <Loader2 size={14} className="animate-spin text-zinc-500" />
+                                ) : (
+                                  <Play size={14} className="text-zinc-500 group-hover:text-white transition-colors" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[13px] text-zinc-700 truncate" style={{ fontWeight: 600 }}>{block.title}</p>
+                                <p className="text-[10px] text-zinc-400 capitalize">{block.type.replace(/_/g, ' ')}</p>
+                              </div>
+                              <ChevronRight size={14} className="text-zinc-300 shrink-0 group-hover:text-teal-500" />
+                            </button>
+                          ))}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm text-zinc-700" style={{ fontWeight: 600 }}>Practica libre</p>
-                          <p className="text-[11px] text-zinc-400">
-                            {loosePracticeCount} pregunta{loosePracticeCount !== 1 ? 's' : ''} disponible{loosePracticeCount !== 1 ? 's' : ''} en este resumen
-                          </p>
-                        </div>
-                        <ChevronRight size={16} className="text-zinc-300 shrink-0" />
-                      </button>
+                      ) : (
+                        <button
+                          onClick={() => onPracticeAll(selectedSummary)}
+                          disabled={loadingQuizId === 'practice-all'}
+                          className="w-full flex items-center gap-3 p-4 rounded-2xl border border-dashed border-zinc-300 hover:border-teal-300 hover:bg-teal-50/20 transition-all text-left group bg-white"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-teal-500 transition-colors">
+                            {loadingQuizId === 'practice-all' ? (
+                              <Loader2 size={18} className="animate-spin text-zinc-500" />
+                            ) : (
+                              <Play size={18} className="text-zinc-500 group-hover:text-white transition-colors" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-zinc-700" style={{ fontWeight: 600 }}>Practica libre</p>
+                            <p className="text-[11px] text-zinc-400">
+                              {loosePracticeCount} pregunta{loosePracticeCount !== 1 ? 's' : ''} disponible{loosePracticeCount !== 1 ? 's' : ''} en este resumen
+                            </p>
+                          </div>
+                          <ChevronRight size={16} className="text-zinc-300 shrink-0" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

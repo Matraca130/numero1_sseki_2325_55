@@ -66,24 +66,24 @@ export const StudyStreakCard = React.memo(function StudyStreakCard({ stats, stud
       </motion.span>
 
       <span className="text-sm text-gray-500 mt-1">
-        {streak === 1 ? 'd\u00eda de racha' : 'd\u00edas de racha'}
+        {streak === 1 ? 'día de racha' : 'días de racha'}
       </span>
 
       {/* Motivational text */}
       <p className="text-xs text-gray-500 mt-3 text-center px-4">
         {!studiedToday && streak > 0
-          ? '\u00a1Estudi\u00e1 hoy para mantener tu racha!'
+          ? '¡Estudiá hoy para mantener tu racha!'
           : streak >= 7
-            ? `\u00a1${streak} d\u00edas consecutivos!`
+            ? `¡${streak} días consecutivos!`
             : streak > 0
-              ? `Mejor racha: ${longest} d\u00edas`
-              : 'Empez\u00e1 a estudiar para iniciar tu racha'}
+              ? `Mejor racha: ${longest} días`
+              : 'Empezá a estudiar para iniciar tu racha'}
       </p>
 
       {/* Record badge */}
       {streak > 0 && streak >= longest && (
         <span className="mt-2 text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
-          R\u00e9cord personal!
+          Récord personal!
         </span>
       )}
     </motion.div>

@@ -18,7 +18,7 @@ El **Arquitecto** (XX-01) es el punto de entrada único. Lee el **Agent Registry
 
 ## Paso 1: Crear las definiciones de agentes faltantes
 
-Actualmente tienes 16 agentes definidos en `claude-config/agents/`. Necesitas crear 54 más.
+Actualmente tienes 74 agentes definidos en `.claude/agents/`.
 
 ### Formato estándar para cada agente
 
@@ -43,7 +43,7 @@ Todo fuera de tu zona. Escalar al lead para modificar lógica de otra zona.
 
 ## Al iniciar cada sesión (OBLIGATORIO)
 1. Leer el CLAUDE.md del repo donde vas a trabajar (ROOT, FRONTEND, o BACKEND)
-2. Leer `docs/claude-config/agent-memory/[section].md`
+2. Leer `.claude/agent-memory/[section].md`
 3. Leer `.claude/memory/feedback_agent_isolation.md`
 
 ## Reglas de código
@@ -58,7 +58,7 @@ Todo fuera de tu zona. Escalar al lead para modificar lógica de otra zona.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
@@ -97,7 +97,7 @@ Crear por sección, en este orden (de más a menos impacto):
 Cada sección necesita un archivo de memoria compartida:
 
 ```
-docs/claude-config/agent-memory/
+.claude/agent-memory/
 ├── quiz.md          ← ya existe
 ├── flashcards.md    ← ya existe
 ├── summaries.md     ← ya existe
@@ -189,9 +189,9 @@ Agregar al CLAUDE.md raíz del proyecto:
 
 - **70 agents** organized in 12 sections + cross-cutting
 - **Architect agent** (XX-01) is the entry point for multi-agent sessions
-- **Agent Registry:** `axon-docs/claude-config/AGENT-REGISTRY.md`
-- **Agent definitions:** `axon-docs/claude-config/agents/*.md`
-- **Agent memory:** `axon-docs/claude-config/agent-memory/*.md`
+- **Agent Registry:** `.claude/AGENT-REGISTRY.md`
+- **Agent definitions:** `.claude/agents/*.md`
+- **Agent memory:** `.claude/agent-memory/*.md`
 
 ### To start a multi-agent session:
 1. Describe what you want
@@ -265,10 +265,10 @@ Después de CADA sesión multi-agente, el Arquitecto ejecuta un post-mortem:
 
 | Tipo de lección | Destino | Quién lo hace |
 |----------------|---------|---------------|
-| Error específico de un agente | `docs/claude-config/agent-memory/individual/<AGENT-ID>.md` → "Lecciones aprendidas" | **XX-02 (automático)** |
+| Error específico de un agente | `.claude/agent-memory/individual/<AGENT-ID>.md` → "Lecciones aprendidas" | **XX-02 (automático)** |
 | Error en Error Ledger | `AGENT-METRICS.md` → Sección 4 | **XX-02 (automático)** |
 | Error de aislamiento/coordinación | `memory/feedback_agent_isolation.md` → HISTORICAL ERRORS | Arquitecto (manual) |
-| Error específico de sección | `docs/claude-config/agent-memory/<section>.md` → "Errores conocidos" | Arquitecto (manual) |
+| Error específico de sección | `.claude/agent-memory/<section>.md` → "Errores conocidos" | Arquitecto (manual) |
 | Cambio en ownership de archivos | `AGENT-REGISTRY.md` → actualizar "Files Owned" | Arquitecto (manual) |
 
 ### Métricas (actualizar SIEMPRE — seguir Update Protocol)
@@ -287,7 +287,7 @@ Después de cada sesión, el Arquitecto sigue el **Update Protocol** de `AGENT-M
 Si un error se repite 2+ veces para el mismo agente:
 
 ```
-1. Abrir agents/<agent-name>.md
+1. Abrir .claude/agents/<agent-name>.md
 2. Agregar regla nueva a "Reglas de código":
    - [APRENDIDO] <regla basada en error repetido>
 3. Si fue scope creep legítimo → expandir "Tu zona de ownership"
@@ -317,8 +317,8 @@ Fase 1 — Diagnóstico:
      ▼
 Fase 2 — Registrar lecciones:
   → Global: feedback_agent_isolation.md
-  → Sección: docs/claude-config/agent-memory/<section>.md
-  → Individual: docs/claude-config/agent-memory/individual/<AGENT-ID>.md
+  → Sección: .claude/agent-memory/<section>.md
+  → Individual: .claude/agent-memory/individual/<AGENT-ID>.md
      │
      ▼
 Fase 3 — Actualizar métricas (5 pasos):
@@ -331,7 +331,7 @@ Fase 3 — Actualizar métricas (5 pasos):
      ▼
 Fase 4 — Auto-evolución:
   ¿Error repetido 2+ veces?
-    → SÍ: Modificar agents/<agent>.md (reglas, ownership, o patterns)
+    → SÍ: Modificar .claude/agents/<agent>.md (reglas, ownership, o patterns)
     → NO: Solo registrar lección
      │
      ▼
@@ -344,7 +344,7 @@ Fase 5 — Reportar al usuario:
 
 ### Agentes con memoria individual
 
-Los siguientes agentes tienen archivo propio en `docs/claude-config/agent-memory/individual/`:
+Los siguientes agentes tienen archivo propio en `.claude/agent-memory/individual/`:
 
 #### Implementadores (7)
 | Agent ID | Archivo | Razón |
@@ -367,9 +367,9 @@ Los siguientes agentes tienen archivo propio en `docs/claude-config/agent-memory
 | AS-04 | `AS-04-security-scanner.md` | Seguridad — vulnerabilidades, falsos positivos, patrones seguros |
 | AS-03 | `AS-03-rls-auditor.md` | RLS — tablas auditadas, brechas, patrones validados |
 
-> **Total: 13 agentes con memoria individual** (7 implementadores + 6 supervisores)
+> **Total: 61+ agentes con memoria individual** (sistema completo)
 
-Para agregar memoria individual a otro agente: crear archivo en `docs/claude-config/agent-memory/individual/<AGENT-ID>-<name>.md` y agregar lectura a su definición en `agents/<agent>.md`.
+Para agregar memoria individual a otro agente: crear archivo en `.claude/agent-memory/individual/<AGENT-ID>-<name>.md` y agregar lectura a su definición en `.claude/agents/<agent>.md`.
 
 ---
 

@@ -68,6 +68,7 @@ vi.mock('lucide-react', () => {
     Shield: icon('Shield'), Moon: icon('Moon'), Target: icon('Target'),
     TrendingUp: icon('TrendingUp'), ArrowLeftRight: icon('ArrowLeftRight'),
     Sparkles: icon('Sparkles'),
+    CalendarDays: icon('CalendarDays'),
     default: {},
   };
 });
@@ -526,7 +527,7 @@ describe('E2E Layout & Navigation System', () => {
     it('shows current course name', () => {
       renderWithRouter(<CourseSwitcher />);
 
-      expect(screen.getByText('Curso Atual')).toBeInTheDocument();
+      expect(screen.getByText('Curso Actual')).toBeInTheDocument();
       expect(screen.getByText('Anatomia Humana')).toBeInTheDocument();
     });
 

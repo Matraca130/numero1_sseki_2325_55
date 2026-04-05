@@ -12,6 +12,7 @@
 // Interactions: image→lightbox, video→play, pdf→view, keyword→popup
 // ============================================================
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { Layers, Bookmark } from 'lucide-react';
 import { Skeleton } from '@/app/components/ui/skeleton';
@@ -28,6 +29,7 @@ import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import { useCreateAnnotationMutation } from '@/app/hooks/queries/useAnnotationMutations';
+import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -42,9 +44,11 @@ interface SummaryViewerProps {
   keywords?: SummaryKeyword[];
   /** Layout mode: 'canvas' = absolute positioning (default), 'flow' = vertical stack */
   layout?: 'canvas' | 'flow';
+  /** Text annotations for highlight rendering in blocks */
+  annotations?: TextAnnotation[];
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'flow' }: SummaryViewerProps) {
+export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'flow', annotations = [] }: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -76,6 +80,12 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
 
   // ── Quiz modal state ──────────────────────────────────
   const [quizBlockId, setQuizBlockId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const handleQuizClose = useCallback(() => {
+    setQuizBlockId(null);
+    // Invalidate block mastery cache so updated colors are fetched
+    queryClient.invalidateQueries({ queryKey: ['summary-block-mastery', summaryId] });
+  }, [summaryId, queryClient]);
 
   // ── Detect mobile ───────────────────────────────────────
   useEffect(() => {
@@ -200,6 +210,7 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
                 masteryLevel={masteryLevels[block.id]}
                 summaryId={summaryId}
                 createAnnotationMutation={createAnnotationMutation}
+                annotations={annotations}
                 onImageClick={handleImageClick}
                 onKeywordClick={onKeywordClick}
                 onVideoPlay={(videoId) => setActiveVideoId(videoId)}
@@ -276,12 +287,15 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
       )}
 
       {/* ── Block Quiz Modal ───────────────────────────── */}
-      <BlockQuizModal
-        blockId={quizBlockId || ''}
-        summaryId={summaryId}
-        isOpen={!!quizBlockId}
-        onClose={() => setQuizBlockId(null)}
-      />
+      {quizBlockId && (
+        <BlockQuizModal
+          key={quizBlockId}
+          blockId={quizBlockId}
+          summaryId={summaryId}
+          isOpen
+          onClose={handleQuizClose}
+        />
+      )}
 
       {/* ── Bookmarks toggle + panel ──────────────────── */}
       <div className="fixed bottom-6 right-24 z-50">

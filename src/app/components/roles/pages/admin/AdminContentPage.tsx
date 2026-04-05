@@ -22,7 +22,7 @@ import { FileText } from 'lucide-react';
 export function AdminContentPage() {
   return (
     <PlaceholderPage
-      title="Gestion de Contenido"
+      title="Gestión de Contenido"
       description="Revisa y aprueba contenido creado por profesores"
       icon={<FileText size={22} />}
       accentColor="blue"

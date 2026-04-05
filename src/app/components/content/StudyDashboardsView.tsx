@@ -329,7 +329,7 @@ export function StudyDashboardsView() {
               >
                 {/* RESPONSIVE: flex-col sm:flex-row, legend flex-wrap */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 lg:mb-6">
-                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Curva de Olvido Global</h3>
+                  <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Curva de Olvido Global</h3>
                   <div className="flex flex-wrap gap-2 lg:gap-4">
                     <div className="flex items-center gap-1.5 lg:gap-2">
                       <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-teal-500" />
@@ -409,7 +409,7 @@ export function StudyDashboardsView() {
 
               {/* Subject Performance Header */}
               <div className="flex items-center justify-between">
-                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Desempeño por Materia</h3>
+                <h3 className="text-gray-800 text-base lg:text-xl" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Desempeño por Materia</h3>
                 <div className="flex gap-1 lg:gap-2">
                   <button className="p-2 hover:bg-white/50 rounded-lg text-gray-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <Filter size={18} />
@@ -525,7 +525,7 @@ export function StudyDashboardsView() {
             >
               <div className="flex items-center gap-3 mb-6">
                 <Settings size={20} className="text-teal-500" />
-                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>Configuraciones del Algoritmo</h3>
+                <h3 className="text-gray-800 text-base lg:text-lg" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>Configuraciones del Algoritmo</h3>
               </div>
               <div className="space-y-6">
                 <div>

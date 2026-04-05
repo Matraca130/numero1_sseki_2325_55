@@ -118,6 +118,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     planId: string,
     /** Pre-applied tasks snapshot (already contains the status flip) */
     tasksSnapshot: StudyPlanTaskRecord[],
+    completedTaskId: string,
   ): Promise<void> => {
     if (!opts?.topicMastery || !opts?.getTimeEstimate) {
       if (import.meta.env.DEV) {
@@ -146,11 +147,13 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     try {
       const result = await executeReschedule({
         planId,
+        completedTaskId,
         tasksSnapshot,
         backendPlan: bp,
         topicMap,
         topicMastery: opts.topicMastery,
         getTimeEstimate: opts.getTimeEstimate,
+        sessionHistory: opts.sessionHistory,
       });
 
       if (result.didReschedule && result.changes.length > 0) {
@@ -186,6 +189,8 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     try {
       const record = await apiCreatePlan({
         name: frontendPlan.name,
+        course_id: frontendPlan.courseId
+          ?? (frontendPlan.subjects?.length === 1 ? frontendPlan.subjects[0].id : undefined),
         status: 'active',
         completion_date: frontendPlan.completionDate
           ? frontendPlan.completionDate.toISOString().slice(0, 10)
@@ -214,7 +219,16 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
         })
       );
 
-      await Promise.allSettled(taskPromises);
+      const taskResults = await Promise.allSettled(taskPromises);
+      const failed = taskResults.filter(r => r.status === 'rejected');
+      if (failed.length > 0) {
+        console.error(`[useStudyPlans] ${failed.length}/${taskPromises.length} tasks failed to persist`);
+        if (import.meta.env.DEV) {
+          failed.forEach((r, i) => {
+            if (r.status === 'rejected') console.error(`  Task ${i}: ${r.reason}`);
+          });
+        }
+      }
 
       const syncedPlan: StudyPlan = { ...frontendPlan, id: record.id };
       syncToAppContext(syncedPlan);
@@ -260,7 +274,7 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
       });
 
       if (newStatus === 'completed') {
-        runReschedule(planId, updatedTasks);
+        runReschedule(planId, updatedTasks, taskId);
       }
     } catch (err: any) {
       if (import.meta.env.DEV) console.error('[useStudyPlans] toggleTask error:', err);

@@ -19,8 +19,9 @@ export type QuestionSource = 'manual' | 'ai';
 export interface QuizQuestion {
   id: string;
   summary_id: string;
-  keyword_id: string;
-  subtopic_id?: string | null;  // null when DB column is NULL, undefined when field absent
+  keyword_id: string | null;
+  block_id?: string | null;      // ADR-001: per-block quiz linkage
+  subtopic_id?: string | null;   // null when DB column is NULL, undefined when field absent
   question_type: QuestionType;
   question: string;
   options: string[] | null;
@@ -42,11 +43,11 @@ export interface QuizQuestionListResponse {
 }
 
 export interface CreateQuizQuestionPayload {
-  // FIX BA-01: removed 'name' — quiz_questions table has NO 'name' column
   summary_id: string;
-  keyword_id: string;
-  subtopic_id?: string;  // optional — omit if no subtopic selected
-  quiz_id?: string;      // FIX BA-04: backend accepts quiz_id in createFields
+  keyword_id?: string;     // optional — per-block questions may not need keyword
+  block_id?: string;       // ADR-001: link question to specific block
+  subtopic_id?: string;    // optional — omit if no subtopic selected
+  quiz_id?: string;        // backend accepts quiz_id in createFields
   question_type: QuestionType;
   question: string;
   correct_answer: string;
@@ -80,6 +81,7 @@ export async function getQuizQuestions(
   summaryId: string,
   filters?: {
     keyword_id?: string;
+    block_id?: string;           // ADR-001: filter by block
     question_type?: QuestionType;
     difficulty?: Difficulty | number;
     quiz_id?: string;
@@ -90,6 +92,7 @@ export async function getQuizQuestions(
   const params = new URLSearchParams();
   params.set('summary_id', summaryId);
   if (filters?.keyword_id) params.set('keyword_id', filters.keyword_id);
+  if (filters?.block_id) params.set('block_id', filters.block_id);
   if (filters?.question_type) params.set('question_type', filters.question_type);
   if (filters?.difficulty != null) {
     // Accept both string ('easy') and integer (1) — always send integer to backend

@@ -145,9 +145,9 @@ export function getReasonText(reason: SmartMetadata['primary_reason'], pKnow: nu
   switch (reason) {
     case 'new_concept': return 'Es un concepto nuevo que aun no has estudiado.';
     case 'low_mastery': return `Tu dominio es bajo (${pct}%). Necesitas reforzar este concepto.`;
-    case 'needs_review': return `Tu dominio es moderado-bajo (${pct}%). Un repaso te ayudar\u00E1 a consolidar.`;
-    case 'moderate_mastery': return `Tu dominio es intermedio (${pct}%). Puedes profundizar con ejercicios m\u00E1s desafiantes.`;
-    case 'reinforcement': return `Tu dominio es alto (${pct}%). Este ejercicio te ayudar\u00E1 a mantener el conocimiento.`;
+    case 'needs_review': return `Tu dominio es moderado-bajo (${pct}%). Un repaso te ayudará a consolidar.`;
+    case 'moderate_mastery': return `Tu dominio es intermedio (${pct}%). Puedes profundizar con ejercicios más desafiantes.`;
+    case 'reinforcement': return `Tu dominio es alto (${pct}%). Este ejercicio te ayudará a mantener el conocimiento.`;
     default: return `Concepto seleccionado para estudio (dominio: ${pct}%).`;
   }
 }

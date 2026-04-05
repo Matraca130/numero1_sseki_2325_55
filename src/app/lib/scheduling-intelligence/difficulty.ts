@@ -58,12 +58,12 @@ export function getDifficultyBadge(
   }
 
   if (difficulty >= DIFFICULTY_THRESHOLDS.hard) {
-    return { label: 'Dif\u00edcil', color: '#ef4444', emoji: '\uD83D\uDD34' }; // red circle
+    return { label: 'Difícil', color: '#ef4444', emoji: '🔴' }; // red circle
   }
 
   if (difficulty >= DIFFICULTY_THRESHOLDS.medium) {
     return { label: 'Moderado', color: '#f59e0b', emoji: '\uD83D\uDFE1' }; // yellow circle
   }
 
-  return { label: 'F\u00e1cil', color: '#22c55e', emoji: '\uD83D\uDFE2' }; // green circle
+  return { label: 'Fácil', color: '#22c55e', emoji: '🟢' }; // green circle
 }

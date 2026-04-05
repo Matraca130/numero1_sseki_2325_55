@@ -44,14 +44,38 @@ export function buildFallbackEvents(): FallbackEvent[] {
   ];
 }
 
-export const UPCOMING_EXAMS: UpcomingExam[] = [
-  { id: 1, title: 'Examen de Fisiologia', date: '07 Feb', daysLeft: 0, priority: 'high' },
-  { id: 2, title: 'Simulacro General', date: '15 Feb', daysLeft: 8, priority: 'medium' },
-  { id: 3, title: 'Anatomia Practica', date: '22 Feb', daysLeft: 15, priority: 'high' },
-];
+// ── Helpers for relative date formatting ────────────────────
+const _addDays = (base: Date, days: number): Date => {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+};
 
-export const COMPLETED_TASKS: CompletedTask[] = [
-  { id: 1, title: 'Resumen: Introduccion a la Anatomia', date: 'Ayer', score: '95%' },
-  { id: 2, title: 'Flashcards: Huesos del Craneo', date: '05 Feb', score: '80%' },
-  { id: 3, title: 'Quiz: Sistema Nervioso', date: '04 Feb', score: '100%' },
-];
+const _MONTH_ABBR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+const _fmtDate = (date: Date): string =>
+  `${String(date.getDate()).padStart(2, '0')} ${_MONTH_ABBR[date.getMonth()]}`;
+
+// L-3 fix: dates are relative to getAxonToday() so "daysLeft" stays accurate.
+export function buildUpcomingExams(): UpcomingExam[] {
+  const today = getAxonToday();
+  return [
+    { id: 1, title: 'Examen de Fisiologia', date: _fmtDate(today),               daysLeft: 0,  priority: 'high' },
+    { id: 2, title: 'Simulacro General',    date: _fmtDate(_addDays(today, 8)),   daysLeft: 8,  priority: 'medium' },
+    { id: 3, title: 'Anatomia Practica',    date: _fmtDate(_addDays(today, 15)),  daysLeft: 15, priority: 'high' },
+  ];
+}
+
+export function buildCompletedTasks(): CompletedTask[] {
+  const today = getAxonToday();
+  return [
+    { id: 1, title: 'Resumen: Introduccion a la Anatomia', date: 'Ayer',                          score: '95%' },
+    { id: 2, title: 'Flashcards: Huesos del Craneo',       date: _fmtDate(_addDays(today, -2)),   score: '80%' },
+    { id: 3, title: 'Quiz: Sistema Nervioso',              date: _fmtDate(_addDays(today, -3)),   score: '100%' },
+  ];
+}
+
+// Backward-compatible constants (evaluated once at import time).
+// Prefer the builder functions above for always-fresh dates.
+export const UPCOMING_EXAMS: UpcomingExam[] = buildUpcomingExams();
+export const COMPLETED_TASKS: CompletedTask[] = buildCompletedTasks();
