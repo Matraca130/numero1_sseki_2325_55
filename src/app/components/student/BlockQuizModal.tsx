@@ -267,13 +267,6 @@ export function BlockQuizModal({
     setAnswered(false);
   }, [isLastQuestion, onClose, blockId, summaryId, reviewResults]);
 
-  const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) handleClose();
-    },
-    [handleClose],
-  );
-
   // Reset state when modal reopens
   const handleClose = useCallback(() => {
     // Submit any accumulated results before closing (e.g., user closes mid-quiz)
@@ -288,6 +281,13 @@ export function BlockQuizModal({
     setReviewResults([]);
     onClose();
   }, [onClose, blockId, summaryId, reviewResults]);
+
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) handleClose();
+    },
+    [handleClose],
+  );
 
   if (!isOpen) return null;
 
