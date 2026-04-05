@@ -90,6 +90,11 @@ export { sectionColors } from './section-colors';
 //
 //   import { MASTERY_LIGHT, MASTERY_DARK, getMasteryStyle } from '@/app/design-system';
 //
+// IMPORTANT: Mastery tokens live in design-system/mastery.ts (a sibling
+// module), NOT in components/student/MasteryBar.tsx. The barrel must
+// never import from component files — doing so creates cross-chunk
+// circular initialization issues with Vite code-splitting.
+//
 // Note: The 6-tier flashcard rating scale in
 //   components/content/flashcard/mastery-colors.ts
 // is a DIFFERENT concept and is intentionally NOT re-exported here.
@@ -98,8 +103,8 @@ export {
   MASTERY_DARK,
   getMasteryStyle,
   getMasteryInfo,
-} from '@/app/components/student/MasteryBar';
-export type { MasteryColorSet as MasteryBarColorSet } from '@/app/components/student/MasteryBar';
+} from './mastery';
+export type { MasteryColorSet as MasteryBarColorSet } from './mastery';
 
 // ─────────────────────────────────────────────
 // 7c. MASTERY HELPERS RE-EXPORTS (Delta color scale logic)
