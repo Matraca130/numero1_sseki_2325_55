@@ -1,19 +1,14 @@
-// ============================================================
-// Axon — Design System: Mastery Tokens & Helpers
-//
-// Canonical 5-level Delta Mastery Scale visual tokens.
-// Extracted from MasteryBar.tsx so the design-system barrel
-// never imports from a component file (avoids cross-chunk
-// circular initialization issues with Vite code-splitting).
-//
-// Levels:
-//   Por descubrir (gray)  — delta < 0.5
-//   Emergente     (red)   — 0.5 ≤ delta < 0.85
-//   En progreso   (amber) — 0.85 ≤ delta < 1.0
-//   Consolidado   (green) — delta = 1.0
-//   Maestría      (blue)  — delta > 1.0
-// ============================================================
-
+/**
+ * @module @axon/design-system/mastery
+ *
+ * Mastery color tokens and helper functions for the Delta Mastery Scale.
+ * Extracted from MasteryBar.tsx to break the circular dependency:
+ *   design-system/index.ts → MasteryBar → design-system/colors → index.ts
+ *
+ * Now the dependency flows one way:
+ *   design-system/index.ts → mastery.ts → colors.ts  (no cycle)
+ *   MasteryBar.tsx → mastery.ts → colors.ts           (no cycle)
+ */
 import { colors } from './colors';
 
 // ── Types ────────────────────────────────────────────────────
