@@ -61,13 +61,13 @@ describe('OwnerInstitutionPage', () => {
 
   it('displays the correct page title', () => {
     render(<OwnerInstitutionPage />);
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Gestion de Institucion');
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Gestión de Institución');
   });
 
   it('displays the correct page description', () => {
     render(<OwnerInstitutionPage />);
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Configuracion, branding, datos de la institucion',
+      'Configuración, branding, datos de la institución',
     );
   });
 
@@ -83,7 +83,7 @@ describe('OwnerInstitutionPage', () => {
     const featuresList = screen.getByTestId('features-list');
 
     expect(featuresList).toHaveTextContent('Editar nombre, logo, slug');
-    expect(featuresList).toHaveTextContent('Configuracion de la institucion');
+    expect(featuresList).toHaveTextContent('Configuración de la institución');
     expect(featuresList).toHaveTextContent('Integraciones');
     expect(featuresList).toHaveTextContent('Dominio personalizado');
   });
@@ -161,7 +161,7 @@ describe('OwnerInstitutionPage', () => {
 
   it('shows institution configuration is planned', () => {
     render(<OwnerInstitutionPage />);
-    expect(screen.getByText('Configuracion de la institucion')).toBeInTheDocument();
+    expect(screen.getByText('Configuración de la institución')).toBeInTheDocument();
   });
 
   it('shows integrations are planned', () => {

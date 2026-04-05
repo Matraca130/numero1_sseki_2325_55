@@ -64,14 +64,14 @@ describe('AdminContentPage', () => {
     renderWithAuth(<AdminContentPage />, {
       authOverrides: defaultAuthOverrides,
     });
-    expect(screen.getByText('Gestion de Contenido')).toBeInTheDocument();
+    expect(screen.getByText('Gestión de Contenido')).toBeInTheDocument();
   });
 
   it('displays the correct page title', () => {
     renderWithAuth(<AdminContentPage />, {
       authOverrides: defaultAuthOverrides,
     });
-    expect(screen.getByText('Gestion de Contenido')).toBeInTheDocument();
+    expect(screen.getByText('Gestión de Contenido')).toBeInTheDocument();
   });
 
   it('displays the page description with approval focus', () => {

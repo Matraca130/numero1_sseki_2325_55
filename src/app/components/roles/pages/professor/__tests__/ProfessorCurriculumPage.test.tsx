@@ -8,6 +8,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, createMockUser, createMockInstitution, screen } from '@/test/test-utils';
 import { ProfessorCurriculumPage } from '../ProfessorCurriculumPage';
 
+// Mock window.matchMedia (not available in jsdom)
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Mock motion library
 vi.mock('motion/react', async (importOriginal) => {
   const actual = await importOriginal();
@@ -27,7 +42,7 @@ vi.mock('lucide-react', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    BookMarked: ({ ...props }: any) => <div data-testid="book-marked-icon" {...props} />,
+    ListTree: ({ ...props }: any) => <div data-testid="list-tree-icon" {...props} />,
   };
 });
 
@@ -99,13 +114,14 @@ describe('ProfessorCurriculumPage', () => {
     renderWithProviders(<ProfessorCurriculumPage />, {
       authOverrides: { role: 'professor' },
     });
-    expect(screen.getByTestId('book-marked-icon')).toBeInTheDocument();
+    const icons = screen.getAllByTestId('list-tree-icon');
+    expect(icons.length).toBeGreaterThan(0);
   });
 
   it('displays the curriculum hierarchy structure', () => {
     renderWithProviders(<ProfessorCurriculumPage />);
     // Verify main container is present
-    const icons = screen.getAllByTestId('book-marked-icon');
+    const icons = screen.getAllByTestId('list-tree-icon');
     expect(icons.length).toBeGreaterThan(0);
   });
 
@@ -116,7 +132,8 @@ describe('ProfessorCurriculumPage', () => {
         selectedInstitution: createMockInstitution({ role: 'professor' }),
       },
     });
-    expect(screen.getByTestId('book-marked-icon')).toBeInTheDocument();
+    const icons = screen.getAllByTestId('list-tree-icon');
+    expect(icons.length).toBeGreaterThan(0);
   });
 
   it('supports opening topic detail panels', () => {
@@ -142,12 +159,14 @@ describe('ProfessorCurriculumPage', () => {
         }),
       },
     });
-    expect(screen.getByTestId('book-marked-icon')).toBeInTheDocument();
+    const icons = screen.getAllByTestId('list-tree-icon');
+    expect(icons.length).toBeGreaterThan(0);
   });
 
   it('renders with motion animations enabled', () => {
     renderWithProviders(<ProfessorCurriculumPage />);
     // Verify motion components are rendered (motion.div wraps content)
-    expect(screen.getByTestId('book-marked-icon')).toBeInTheDocument();
+    const icons = screen.getAllByTestId('list-tree-icon');
+    expect(icons.length).toBeGreaterThan(0);
   });
 });

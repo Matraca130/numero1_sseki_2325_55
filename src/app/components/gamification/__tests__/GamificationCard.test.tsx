@@ -59,6 +59,9 @@ vi.mock('lucide-react', () => ({
   Wrench: (props: Record<string, unknown>) => (
     <svg data-testid="wrench-icon" {...props} />
   ),
+  CalendarDays: (props: Record<string, unknown>) => (
+    <svg data-testid="calendar-days-icon" {...props} />
+  ),
 }));
 
 // Mock useAuth

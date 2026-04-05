@@ -24,6 +24,7 @@ vi.mock('lucide-react', () => ({
   Settings: ({ size, ...props }: any) => <div data-testid="settings-icon" {...props} />,
   Users: ({ size, ...props }: any) => <div data-testid="users-icon" {...props} />,
   Construction: ({ size, ...props }: any) => <div data-testid="construction-icon" {...props} />,
+  CalendarDays: ({ size, ...props }: any) => <div data-testid="calendar-days-icon" {...props} />,
 }));
 
 // Mock useAuth
@@ -77,7 +78,7 @@ describe('ProfessorSettingsPage', () => {
 
   it('renders with correct title and description', () => {
     renderWithAuth(<ProfessorSettingsPage />);
-    expect(screen.getByText('Configuracion')).toBeInTheDocument();
+    expect(screen.getByText('Configuración')).toBeInTheDocument();
     expect(screen.getByText('Ajustes del profesor')).toBeInTheDocument();
   });
 

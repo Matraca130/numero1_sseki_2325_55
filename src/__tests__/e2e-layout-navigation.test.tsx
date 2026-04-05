@@ -68,6 +68,7 @@ vi.mock('lucide-react', () => {
     Shield: icon('Shield'), Moon: icon('Moon'), Target: icon('Target'),
     TrendingUp: icon('TrendingUp'), ArrowLeftRight: icon('ArrowLeftRight'),
     Sparkles: icon('Sparkles'),
+    CalendarDays: icon('CalendarDays'),
     default: {},
   };
 });

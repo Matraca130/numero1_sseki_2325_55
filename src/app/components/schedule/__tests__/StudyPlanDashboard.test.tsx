@@ -53,6 +53,22 @@ vi.mock('@/app/context/StudentDataContext', () => ({
   }),
 }));
 
+vi.mock('@/app/context/ContentTreeContext', () => ({
+  useContentTree: () => ({
+    tree: null,
+    loading: false,
+    error: null,
+    canEdit: false,
+    selectedTopicId: null,
+    selectTopic: vi.fn(),
+    refresh: vi.fn(),
+    addCourse: vi.fn(), editCourse: vi.fn(), removeCourse: vi.fn(),
+    addSemester: vi.fn(), editSemester: vi.fn(), removeSemester: vi.fn(),
+    addSection: vi.fn(), editSection: vi.fn(), removeSection: vi.fn(),
+    addTopic: vi.fn(), editTopic: vi.fn(), removeTopic: vi.fn(),
+  }),
+}));
+
 vi.mock('@/app/components/schedule/WeekMonthViews', () => ({
   WeekView: () => <div data-testid="week-view">Week View</div>,
   MonthView: () => <div data-testid="month-view">Month View</div>,
@@ -68,6 +84,14 @@ vi.mock('@/app/components/schedule/WeeklyInsightCard', () => ({
 
 vi.mock('@/app/components/schedule/study-plan-dashboard/DaySummaryCard', () => ({
   DaySummaryCard: () => <div data-testid="day-summary">Day Summary</div>,
+}));
+
+vi.mock('@/app/components/schedule/MomentumCard', () => ({
+  MomentumCard: () => <div data-testid="momentum-card">Momentum</div>,
+}));
+
+vi.mock('@/app/components/schedule/WeeklyReportViewer', () => ({
+  WeeklyReportViewer: () => <div data-testid="weekly-report">Weekly Report</div>,
 }));
 
 vi.mock('@/app/components/schedule/study-plan-dashboard/DashboardLayout', () => ({

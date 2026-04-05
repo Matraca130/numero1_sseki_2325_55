@@ -527,7 +527,7 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
     it('resets tree and selectedTopicId when institution changes', async () => {
       mockGetContentTree.mockResolvedValue(DEEPLY_NESTED_TREE);
 
-      const { result } = renderHook(() => useContentTree(), { wrapper });
+      const { result, rerender } = renderHook(() => useContentTree(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -551,7 +551,9 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
 
       mockGetContentTree.mockResolvedValueOnce([]);
 
-      // Re-trigger the effect by waiting for the hook to re-render
+      // Force re-render so the hook picks up the new mock values
+      rerender();
+
       await waitFor(() => {
         expect(mockGetContentTree).toHaveBeenCalledWith('inst-002');
       });
@@ -589,7 +591,7 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
     it('handles rapid institution changes', async () => {
       mockGetContentTree.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useContentTree(), { wrapper });
+      const { result, rerender } = renderHook(() => useContentTree(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -599,16 +601,15 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
 
       // Rapidly change institutions
       mockAuthValues.selectedInstitution = { id: 'inst-002' };
-      // Force hook to re-evaluate
+      rerender();
 
       await waitFor(() => {
         expect(mockGetContentTree).toHaveBeenCalledWith('inst-002');
       });
 
-      const firstCallCount = mockGetContentTree.mock.calls.length;
-
       // Change again before first completes
       mockAuthValues.selectedInstitution = { id: 'inst-003' };
+      rerender();
 
       await waitFor(() => {
         const calls = mockGetContentTree.mock.calls;
@@ -625,13 +626,14 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
       mockAuthValues.status = 'loading';
       mockGetContentTree.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useContentTree(), { wrapper });
+      const { result, rerender } = renderHook(() => useContentTree(), { wrapper });
 
       // Should not call API while auth is loading
       expect(mockGetContentTree).not.toHaveBeenCalled();
 
       // Simulate auth becoming authenticated
       mockAuthValues.status = 'authenticated';
+      rerender();
 
       await waitFor(() => {
         expect(mockGetContentTree).toHaveBeenCalledWith('inst-001');
@@ -663,7 +665,7 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
     });
 
     it('handles role changes (professor to student)', async () => {
-      const { result } = renderHook(() => useContentTree(), { wrapper });
+      const { result, rerender } = renderHook(() => useContentTree(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -673,6 +675,7 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
 
       // Change role to student
       mockAuthValues.role = 'student';
+      rerender();
 
       await waitFor(() => {
         // canEdit is recomputed
@@ -685,7 +688,7 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
 
     it('handles role changes (student to professor)', async () => {
       mockAuthValues.role = 'student';
-      const { result } = renderHook(() => useContentTree(), { wrapper });
+      const { result, rerender } = renderHook(() => useContentTree(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -695,6 +698,7 @@ describe('ContentTreeContext — Edge Cases & Error Scenarios', () => {
 
       // Change role to professor
       mockAuthValues.role = 'professor';
+      rerender();
 
       await waitFor(() => {
         expect(result.current.canEdit).toBe(true);

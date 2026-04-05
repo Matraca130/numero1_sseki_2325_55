@@ -25,6 +25,9 @@ vi.mock('lucide-react', () => ({
   Star: (props: Record<string, unknown>) => (
     <svg data-testid="star-icon" {...props} />
   ),
+  CalendarDays: (props: Record<string, unknown>) => (
+    <svg data-testid="calendar-days-icon" {...props} />
+  ),
 }));
 
 describe('LevelProgressBar', () => {

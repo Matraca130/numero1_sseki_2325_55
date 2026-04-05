@@ -38,6 +38,7 @@ vi.mock('lucide-react', () => ({
   ArrowLeft: ({ size, ...props }: any) => <div data-testid="arrow-left-icon" {...props} />,
   PanelRightOpen: ({ size, ...props }: any) => <div data-testid="panel-right-open-icon" {...props} />,
   PanelRightClose: ({ size, ...props }: any) => <div data-testid="panel-right-close-icon" {...props} />,
+  CalendarDays: ({ size, ...props }: any) => <div data-testid="calendar-days-icon" {...props} />,
 }));
 
 // Mock useAuth

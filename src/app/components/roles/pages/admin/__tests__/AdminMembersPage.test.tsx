@@ -64,14 +64,14 @@ describe('AdminMembersPage', () => {
     renderWithAuth(<AdminMembersPage />, {
       authOverrides: defaultAuthOverrides,
     });
-    expect(screen.getByText('Gestion de Miembros')).toBeInTheDocument();
+    expect(screen.getByText('Gestión de Miembros')).toBeInTheDocument();
   });
 
   it('displays the correct page title', () => {
     renderWithAuth(<AdminMembersPage />, {
       authOverrides: defaultAuthOverrides,
     });
-    expect(screen.getByText('Gestion de Miembros')).toBeInTheDocument();
+    expect(screen.getByText('Gestión de Miembros')).toBeInTheDocument();
   });
 
   it('displays the page description', () => {

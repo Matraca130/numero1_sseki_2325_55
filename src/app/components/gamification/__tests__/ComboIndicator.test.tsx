@@ -26,6 +26,9 @@ vi.mock('lucide-react', () => ({
   Flame: (props: Record<string, unknown>) => (
     <svg data-testid="flame-icon" {...props} />
   ),
+  CalendarDays: (props: Record<string, unknown>) => (
+    <svg data-testid="calendar-days-icon" {...props} />
+  ),
 }));
 
 describe('ComboIndicator', () => {

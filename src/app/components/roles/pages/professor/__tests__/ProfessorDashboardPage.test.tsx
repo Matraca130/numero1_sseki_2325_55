@@ -20,6 +20,7 @@ vi.mock('motion/react', () => ({
 vi.mock('lucide-react', () => ({
   LayoutDashboard: ({ size, ...props }: any) => <div data-testid="layout-dashboard-icon" {...props} />,
   Construction: ({ size, ...props }: any) => <div data-testid="construction-icon" {...props} />,
+  CalendarDays: ({ size, ...props }: any) => <div data-testid="calendar-days-icon" {...props} />,
 }));
 
 // Mock useAuth to return professor role
@@ -45,7 +46,7 @@ describe('ProfessorDashboardPage', () => {
   it('displays the correct title and description', () => {
     renderWithAuth(<ProfessorDashboardPage />);
     expect(screen.getByText('Dashboard del Profesor')).toBeInTheDocument();
-    expect(screen.getByText(/Vision general: cursos, estudiantes, contenido creado/)).toBeInTheDocument();
+    expect(screen.getByText(/Visión general: cursos, estudiantes, contenido creado/)).toBeInTheDocument();
   });
 
   it('renders the dashboard icon', () => {
