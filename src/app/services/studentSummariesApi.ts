@@ -111,6 +111,7 @@ export async function createTextAnnotation(data: {
   end_offset: number;
   color?: string;
   note?: string;
+  selected_text?: string;
   block_id?: string;
 }): Promise<TextAnnotation> {
   // Use Supabase RPC when block_id is provided (enriched view)

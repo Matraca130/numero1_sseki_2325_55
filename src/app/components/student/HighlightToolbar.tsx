@@ -19,6 +19,7 @@ const HIGHLIGHT_COLORS = [
 ] as const;
 
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'orange';
+export const DEFAULT_HIGHLIGHT_COLOR: HighlightColor = 'yellow';
 
 interface HighlightToolbarProps {
   /** Absolute position (relative to the scroll container) */
