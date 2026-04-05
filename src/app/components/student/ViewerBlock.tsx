@@ -10,7 +10,7 @@ import { AnimatePresence } from 'motion/react';
 import {
   FileText, AlertTriangle, Info, CheckCircle, Lightbulb,
   Play, Download, ExternalLink, Tag, StickyNote, Brain,
-  MessageSquare, X,
+  MessageSquare, X, Pencil, Check,
 } from 'lucide-react';
 import { HighlightToolbar } from './HighlightToolbar';
 import type { HighlightColor } from './HighlightToolbar';
@@ -53,6 +53,8 @@ interface ViewerBlockProps {
   createAnnotationMutation?: { mutate: Function; isPending?: boolean };
   /** Shared delete mutation for removing individual annotations */
   deleteAnnotationMutation?: { mutate: Function; isPending?: boolean };
+  /** Shared update mutation for editing annotation notes */
+  updateAnnotationMutation?: { mutate: Function; isPending?: boolean };
   /** Text annotations for rendering highlights on this block */
   annotations?: TextAnnotation[];
 }
@@ -131,6 +133,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   summaryId,
   createAnnotationMutation,
   deleteAnnotationMutation,
+  updateAnnotationMutation,
   annotations = [],
 }: ViewerBlockProps) {
   const c = block.content || {};
@@ -139,6 +142,11 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   const ttsText = extractBlockText(block);
 
   const hasActions = onBookmarkToggle || onNotesToggle || onQuizTrigger;
+
+  // ── Inline note editing state ──────────────────────────
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   // ── Text highlighting (block-scoped) ───────────────────
   const blockRef = useRef<HTMLDivElement>(null);
@@ -240,14 +248,28 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         block_id: block.id,
       },
       {
-        onSuccess: () => {
+        onSuccess: (created: any) => {
           window.getSelection()?.removeAllRanges();
           setToolbar(null);
           setSelectionRange(null);
+          // Open inline editor for the newly created annotation
+          if (created?.id) {
+            setEditingId(created.id);
+            setEditingText('');
+          }
         },
       },
     );
   }, [selectionRange, createMutation, summaryId, applySelectionHighlight, block.id]);
+
+  // Auto-focus the edit input when editing starts
+  useEffect(() => {
+    if (editingId) {
+      // Small delay to let React render the input first
+      const t = setTimeout(() => editInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [editingId]);
 
   // Listen for mouseup on block content
   useEffect(() => {
@@ -720,43 +742,115 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       {/* ── Footnote references (book-style) ──────────────── */}
       {annotationCount > 0 && (
         <div className="mt-2 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
-          <ol className="list-none m-0 p-0 space-y-0.5">
-            {sortedAnnotations.map((ann, i) => (
-              <li key={ann.id} className="group/fn flex items-start gap-1.5 text-[10px] leading-tight">
-                <span
-                  className="shrink-0 font-semibold text-amber-600 dark:text-amber-400 min-w-[12px] text-right"
-                  style={{ fontSize: 9 }}
-                >
-                  {i + 1}
-                </span>
-                <span
-                  className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[3px]"
-                  style={{
-                    backgroundColor: HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow,
-                    border: '1px solid rgba(0,0,0,0.1)',
-                  }}
-                />
-                {ann.note && ann.note.trim() ? (
-                  <span className="text-gray-600 dark:text-gray-400 italic truncate max-w-[200px]">
-                    <MessageSquare size={8} className="inline text-amber-500 mr-0.5" />
-                    {ann.note}
-                  </span>
-                ) : (
-                  <span className="text-gray-400 dark:text-gray-500 italic">subrayado</span>
-                )}
-                {deleteAnnotationMutation && (
-                  <button
-                    type="button"
-                    onClick={() => deleteAnnotationMutation.mutate(ann.id)}
-                    title="Eliminar anotación"
-                    aria-label={`Eliminar anotación ${i + 1}`}
-                    className="shrink-0 ml-auto opacity-0 group-hover/fn:opacity-100 transition-opacity text-gray-400 hover:text-red-500 p-0.5 rounded"
+          <ol className="list-none m-0 p-0 space-y-1">
+            {sortedAnnotations.map((ann, i) => {
+              const isEditing = editingId === ann.id;
+              return (
+                <li key={ann.id} className="group/fn flex items-start gap-1.5 text-[10px] leading-tight">
+                  <span
+                    className="shrink-0 font-semibold text-amber-600 dark:text-amber-400 min-w-[12px] text-right"
+                    style={{ fontSize: 9 }}
                   >
-                    <X size={10} />
-                  </button>
-                )}
-              </li>
-            ))}
+                    {i + 1}
+                  </span>
+                  <span
+                    className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[3px]"
+                    style={{
+                      backgroundColor: HIGHLIGHT_COLOR_MAP[ann.color || 'yellow'] || HIGHLIGHT_COLOR_MAP.yellow,
+                      border: '1px solid rgba(0,0,0,0.1)',
+                    }}
+                  />
+                  {isEditing ? (
+                    <form
+                      className="flex-1 flex items-center gap-1"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (updateAnnotationMutation && editingText.trim()) {
+                          updateAnnotationMutation.mutate({
+                            id: ann.id,
+                            data: { note: editingText.trim() },
+                          });
+                        }
+                        setEditingId(null);
+                        setEditingText('');
+                      }}
+                    >
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setEditingId(null);
+                            setEditingText('');
+                          }
+                        }}
+                        placeholder="Escribí tu nota..."
+                        className="flex-1 text-[10px] px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-amber-400"
+                      />
+                      <button
+                        type="submit"
+                        className="shrink-0 text-amber-600 hover:text-amber-700 p-0.5"
+                        title="Guardar nota"
+                      >
+                        <Check size={10} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setEditingId(null); setEditingText(''); }}
+                        className="shrink-0 text-gray-400 hover:text-gray-600 p-0.5"
+                        title="Cancelar"
+                      >
+                        <X size={10} />
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      {ann.note && ann.note.trim() ? (
+                        <span
+                          className="text-gray-600 dark:text-gray-400 italic truncate max-w-[200px] cursor-pointer hover:text-amber-600"
+                          onClick={() => { setEditingId(ann.id); setEditingText(ann.note || ''); }}
+                          title="Click para editar"
+                        >
+                          <MessageSquare size={8} className="inline text-amber-500 mr-0.5" />
+                          {ann.note}
+                        </span>
+                      ) : (
+                        <span
+                          className="text-gray-400 dark:text-gray-500 italic cursor-pointer hover:text-amber-600"
+                          onClick={() => { setEditingId(ann.id); setEditingText(''); }}
+                          title="Click para anotar"
+                        >
+                          subrayado — click para anotar
+                        </span>
+                      )}
+                      {updateAnnotationMutation && (
+                        <button
+                          type="button"
+                          onClick={() => { setEditingId(ann.id); setEditingText(ann.note || ''); }}
+                          title="Editar nota"
+                          className="shrink-0 opacity-0 group-hover/fn:opacity-100 transition-opacity text-gray-400 hover:text-amber-500 p-0.5 rounded"
+                        >
+                          <Pencil size={9} />
+                        </button>
+                      )}
+                      {deleteAnnotationMutation && (
+                        <button
+                          type="button"
+                          onClick={() => deleteAnnotationMutation.mutate(ann.id)}
+                          title="Eliminar anotación"
+                          aria-label={`Eliminar anotación ${i + 1}`}
+                          className="shrink-0 ml-auto opacity-0 group-hover/fn:opacity-100 transition-opacity text-gray-400 hover:text-red-500 p-0.5 rounded"
+                        >
+                          <X size={10} />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
       )}
