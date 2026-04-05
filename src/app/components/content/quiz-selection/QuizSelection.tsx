@@ -13,7 +13,7 @@ import { motion } from 'motion/react';
 import { GraduationCap } from 'lucide-react';
 import { EmptyState } from '@/app/components/shared/EmptyState';
 import { SkeletonCard } from '@/app/components/shared/SkeletonCard';
-import { loadSummariesForTopicFn, loadQuizzesForSummary, loadQuizQuestions, loadPracticeQuestions } from './quiz-data-loading';
+import { loadSummariesForTopicFn, loadQuizzesForSummary, loadQuizQuestions, loadPracticeQuestions, loadBlocksForSummary, loadBlockPracticeQuestions } from './quiz-data-loading';
 import { QuizSidebar } from './QuizSidebar';
 import { QuizRightPanel } from './QuizRightPanel';
 
@@ -34,6 +34,7 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
   const [quizzesLoading, setQuizzesLoading] = useState(false);
   const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
   const [loosePracticeCount, setLoosePracticeCount] = useState(0);
+  const [summaryBlocks, setSummaryBlocks] = useState<{ id: string; title: string; type: string }[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | ''>('');
   const [filterType, setFilterType] = useState<QuestionType | ''>('');
@@ -118,6 +119,8 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
     setLoosePracticeCount(result.practiceCount);
     setLoadError(result.error);
     setQuizzesLoading(false);
+    // Load blocks for per-block quiz
+    loadBlocksForSummary(summary.id).then(setSummaryBlocks);
   }, []);
 
   const handleStartQuizEntity = useCallback(async (quiz: QuizEntity) => {
@@ -147,6 +150,21 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
       setLoadingQuizId(null);
     }
   }, [filterDifficulty, filterType, maxQuestions, onStart]);
+
+  const handleBlockPractice = useCallback(async (blockId: string, blockTitle: string) => {
+    if (!selectedSummary) return;
+    setLoadingQuizId(`block-${blockId}`);
+    setLoadError(null);
+    try {
+      const result = await loadBlockPracticeQuestions(selectedSummary.id, blockId, { difficulty: filterDifficulty, type: filterType }, maxQuestions);
+      if (result.error) { setLoadError(result.error); return; }
+      onStart(result.items, blockTitle, selectedSummary.id);
+    } catch (err: any) {
+      setLoadError(err.message || 'Error al cargar preguntas del bloque');
+    } finally {
+      setLoadingQuizId(null);
+    }
+  }, [selectedSummary, filterDifficulty, filterType, maxQuestions, onStart]);
 
   const handleCourseChange = useCallback((idx: number) => {
     setActiveCourseIdx(idx);
@@ -193,6 +211,7 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
         onFilterDifficulty={setFilterDifficulty} onFilterType={setFilterType} onMaxQuestions={setMaxQuestions}
         onToggleHistory={() => setShowHistory(prev => !prev)}
         onSelectSummary={handleSelectSummary} onStartQuiz={handleStartQuizEntity} onPracticeAll={handlePracticeAll}
+        summaryBlocks={summaryBlocks} onBlockPractice={handleBlockPractice}
       />
     </motion.div>
   );

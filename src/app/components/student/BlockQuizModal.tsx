@@ -185,7 +185,11 @@ export function BlockQuizModal({
         });
 
         if (!cancelled && dbResult.items.length > 0) {
-          const display = dbToDisplay(dbResult.items);
+          // Client-side block_id filter as safety net — ensures only this block's questions show
+          const blockItems = dbResult.items.filter(
+            (q) => !q.block_id || q.block_id === blockId,
+          );
+          const display = dbToDisplay(blockItems);
           if (display.length > 0) {
             setQuestions(display);
             setLoading(false);
@@ -194,6 +198,7 @@ export function BlockQuizModal({
         }
 
         // 2. Fallback: AI generation
+        console.log(`[BlockQuiz] Falling back to AI generation for block=${blockId}`);
         const aiResult = await apiCall('/ai/generate', {
           method: 'POST',
           body: JSON.stringify({ summary_id: summaryId, block_id: blockId, type: 'quiz' }),
