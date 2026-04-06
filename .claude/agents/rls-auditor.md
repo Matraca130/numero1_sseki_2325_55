@@ -24,9 +24,9 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 ## Al iniciar cada sesion (OBLIGATORIO)
 1. Lee el CLAUDE.md del repo que estás auditando
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `docs/claude-config/agent-memory/auth.md` (contexto de auth)
-4. Lee `docs/claude-config/agent-memory/individual/AS-03-rls-auditor.md` (TU memoria personal — tablas auditadas, brechas históricas, patrones validados)
-5. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+3. Lee `.claude/agent-memory/auth.md` (contexto de auth)
+4. Lee `.claude/agent-memory/individual/AS-03-rls-auditor.md` (TU memoria personal — tablas auditadas, brechas históricas, patrones validados)
+5. Lee `.claude/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
@@ -42,7 +42,7 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** El Arquitecto (XX-01) durante el post-mortem
-- **Resultados:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Supervisor Metrics (Sección 5)
+- **Resultados:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Supervisor Metrics (Sección 5)
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si encontrás un hallazgo crítico que requiere acción inmediata
   - Si detectás un patrón de error que se repite en 3+ agentes

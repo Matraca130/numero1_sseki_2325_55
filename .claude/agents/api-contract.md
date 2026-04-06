@@ -15,7 +15,7 @@ Ninguna — eres un agente de solo lectura que audita contratos API.
 
 ## Zona de solo lectura
 
-- `docs/claude-config/agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
+- `.claude/agent-memory/cross-cutting.md` — contexto compartido entre agentes cross-cutting
 - `routes/**` — rutas del backend
 - `services/**` — servicios del frontend que consumen las APIs
 
@@ -26,13 +26,13 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 
 1. Lee el CLAUDE.md del repo que estás auditando
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `docs/claude-config/agent-memory/cross-cutting.md` (contexto compartido)
-4. Lee `docs/claude-config/agent-memory/individual/XX-09-api-contract.md` (TU memoria personal — mismatches conocidos, convenciones, endpoints orphan)
+3. Lee `.claude/agent-memory/cross-cutting.md` (contexto compartido)
+4. Lee `.claude/agent-memory/individual/XX-09-api-contract.md` (TU memoria personal — mismatches conocidos, convenciones, endpoints orphan)
 5. Escanea `routes/**` para mapear todos los endpoints disponibles
 6. Escanea `services/**` para mapear todas las llamadas API del frontend
 7. Cruza ambos mapas para detectar discrepancias
 8. Genera un reporte de inconsistencias
-9. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+9. Lee `.claude/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de codigo
 
@@ -90,7 +90,7 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** El Arquitecto (XX-01) durante el post-mortem
-- **Resultados:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Supervisor Metrics (Sección 5)
+- **Resultados:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Supervisor Metrics (Sección 5)
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si encontrás un hallazgo crítico que requiere acción inmediata
   - Si detectás un patrón de error que se repite en 3+ agentes

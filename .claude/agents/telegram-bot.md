@@ -34,10 +34,10 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 ## Al iniciar cada sesion
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Leer `docs/claude-config/agent-memory/messaging.md`
-4. Lee `docs/claude-config/agent-memory/individual/MG-01-telegram-bot.md` (TU memoria personal — lecciones, patrones, métricas)
+3. Leer `.claude/agent-memory/messaging.md`
+4. Lee `.claude/agent-memory/individual/MG-01-telegram-bot.md` (TU memoria personal — lecciones, patrones, métricas)
 5. Verificar que `sa-telegram.ts` existe
-6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
+6. Lee `.claude/agent-memory/individual/AGENT-METRICS.md` (metricas globales y error ledger)
 
 ## Reglas de codigo
 - TypeScript strict, no `any`, no console.log
@@ -60,7 +60,7 @@ Todo fuera de tu zona. Escalar al lead para modificar logica de otra zona.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

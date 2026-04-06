@@ -22,7 +22,7 @@ Estos archivos son tu responsabilidad directa. Puedes leerlos, editarlos y crear
 
 Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coordinación explícita con el agente responsable:
 
-- `docs/claude-config/agent-memory/summaries.md` — Lee este archivo al inicio de cada sesión para entender el modelo de datos y estado actual del sistema de resúmenes.
+- `.claude/agent-memory/summaries.md` — Lee este archivo al inicio de cada sesión para entender el modelo de datos y estado actual del sistema de resúmenes.
 - Archivos de migración de base de datos — Para entender el schema actual.
 - `supabase/` — Configuración de Supabase, pero no modificar sin coordinación.
 - Componentes frontend que consumen las APIs — Para entender cómo se usan los endpoints.
@@ -34,11 +34,11 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `docs/claude-config/agent-memory/summaries.md` para sincronizarte con el modelo de datos y estado actual del sistema de resúmenes.
+3. Lee `.claude/agent-memory/summaries.md` para sincronizarte con el modelo de datos y estado actual del sistema de resúmenes.
 4. Revisa las rutas existentes en `routes/summaries*.ts` para tener un mapa mental de los endpoints disponibles.
 5. Verifica si hay endpoints pendientes de implementar o deprecar.
-6. Lee `docs/claude-config/agent-memory/individual/SM-02-summaries-backend.md` (TU memoria personal — lecciones, patrones, métricas)
-7. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+6. Lee `.claude/agent-memory/individual/SM-02-summaries-backend.md` (TU memoria personal — lecciones, patrones, métricas)
+7. Lee `.claude/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
@@ -70,7 +70,7 @@ Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coo
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
