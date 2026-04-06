@@ -41,7 +41,7 @@ Estos archivos son tu responsabilidad directa. Puedes leerlos, editarlos y crear
 
 Puedes leer estos archivos para obtener contexto, pero NO los modifiques sin coordinación explícita con el agente responsable:
 
-- `docs/claude-config/agent-memory/infra.md` — Lee este archivo al inicio de cada sesión para contexto de infraestructura.
+- `.claude/agent-memory/infra.md` — Lee este archivo al inicio de cada sesión para contexto de infraestructura.
 - `components/layout/*.tsx` — Para ver cómo se consumen los tokens en layouts reales.
 - `tailwind.config.ts` o configuración de CSS — Para verificar que los tokens estén sincronizados.
 
@@ -52,10 +52,10 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento)
-3. Lee `docs/claude-config/agent-memory/infra.md` para sincronizarte con el estado actual de la infraestructura.
+3. Lee `.claude/agent-memory/infra.md` para sincronizarte con el estado actual de la infraestructura.
 4. Verifica que no haya tokens duplicados o inconsistencias entre archivos del design-system.
 5. Confirma que los componentes del design-kit importen tokens desde `design-system/`, nunca valores hardcodeados.
-6. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+6. Lee `.claude/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Reglas de código
 
@@ -80,7 +80,7 @@ Ninguna dependencia directa. Puede ejecutarse en cualquier fase.
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente

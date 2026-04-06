@@ -32,7 +32,9 @@
       "Bash(grep *)",
       "Read",
       "Write(.claude/agent-memory/**)",
+      "Write(.claude/agent-memory-seed/**)",
       "Edit(.claude/agent-memory/**)",
+      "Edit(.claude/agent-memory-seed/**)",
       "Glob",
       "Grep",
       "Agent"

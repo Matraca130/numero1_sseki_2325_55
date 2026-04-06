@@ -83,13 +83,13 @@ deno test supabase/functions/server/tests/summary_hook_test.ts
 
 1. Lee el CLAUDE.md del repo donde vas a trabajar — si no existe, notificá al usuario y continuá sin él
 2. Lee `memory/feedback_agent_isolation.md` (reglas de aislamiento) — si no existe, notificá al usuario
-3. Lee `docs/claude-config/agent-memory/summaries.md` (contexto de sección)
-4. Lee `docs/claude-config/agent-memory/individual/SM-03-summaries-tester.md` (TU memoria personal — lecciones, patrones, métricas)
-5. Lee `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
+3. Lee `.claude/agent-memory/summaries.md` (contexto de sección)
+4. Lee `.claude/agent-memory/individual/SM-03-summaries-tester.md` (TU memoria personal — lecciones, patrones, métricas)
+5. Lee `.claude/agent-memory/individual/AGENT-METRICS.md` → tu fila en Agent Detail para ver historial QG y no repetir errores
 
 ## Revisión y escalación
 - **Tu trabajo lo revisa:** XX-02 (quality-gate) después de cada sesión
-- **Resultados QG:** `docs/claude-config/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
+- **Resultados QG:** `.claude/agent-memory/individual/AGENT-METRICS.md` → Error Ledger + Agent Detail
 - **Cuándo escalar al Arquitecto (XX-01):**
   - Si necesitás modificar un archivo fuera de tu zona de ownership
   - Si encontrás un conflicto con el trabajo de otro agente
