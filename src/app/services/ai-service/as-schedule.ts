@@ -214,6 +214,27 @@ function normalizeClaudeResponse(
   return base;
 }
 
+// ── Organize types ──────────────────────────────────────
+
+export interface AiOrganizeResult {
+  operations: Array<{
+    op: string;
+    taskId: string;
+    reason?: string;
+    newIndex?: number;
+    newDate?: string;
+    fields?: Record<string, unknown>;
+  }>;
+  summary: string;
+  rationale: string;
+}
+
+export interface AiOrganizeResponse {
+  result: AiOrganizeResult | null;
+  executionResults?: Array<{ op: string; taskId: string; success: boolean; error?: string }>;
+  _meta: AiScheduleMeta;
+}
+
 // ── API Functions ─────────────────────────────────────────
 
 async function callScheduleAgent(
@@ -268,4 +289,16 @@ export async function aiWeeklyInsight(
   profile: StudentProfilePayload,
 ): Promise<AiScheduleResponse> {
   return callScheduleAgent('weekly-insight', profile);
+}
+
+/** AI-powered plan organization: reorder, delete, reschedule tasks */
+export async function aiOrganizePlan(
+  profile: StudentProfilePayload,
+): Promise<AiOrganizeResponse> {
+  const body = { action: 'organize', studentProfile: profile };
+  const raw = await apiCall<AiOrganizeResponse>(
+    '/ai/schedule-agent',
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+  return raw;
 }

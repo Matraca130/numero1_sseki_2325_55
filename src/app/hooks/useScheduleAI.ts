@@ -24,9 +24,11 @@ import {
   aiRecommendToday,
   aiReschedule,
   aiWeeklyInsight,
+  aiOrganizePlan,
   type StudentProfilePayload,
   type PlanContextPayload,
   type AiScheduleResponse,
+  type AiOrganizeResponse,
 } from '@/app/services/aiService';
 
 // ── Hook ────────────────────────────────────────────────────
@@ -203,6 +205,24 @@ export function useScheduleAI() {
     }
   }, [buildProfile]);
 
+  /** AI-powered plan organization: reorder, delete, reschedule tasks */
+  const organizeWithAI = useCallback(async (): Promise<AiOrganizeResponse | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await aiOrganizePlan(buildProfile());
+      // Clear recommendations cache since tasks changed
+      recommendationsCache.current = null;
+      return result;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'AI organize failed';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [buildProfile]);
+
   /** Clear cached recommendations (e.g., after plan changes) */
   const clearCache = useCallback(() => {
     recommendationsCache.current = null;
@@ -213,6 +233,7 @@ export function useScheduleAI() {
     getRecommendationsToday,
     rescheduleWithAI,
     getWeeklyInsight,
+    organizeWithAI,
     buildProfile,
     buildPlanContext,
     clearCache,
