@@ -739,7 +739,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   // Self-styled blocks skip the mastery wrapper.
   const isSelfStyled = ['key_point', 'callout', 'comparison', 'image_reference', 'section_divider'].includes(block.type);
   // Show "Iniciando" (gray) for blocks without mastery data instead of hiding coloring
-  const effectiveLevel = masteryLevel === undefined || masteryLevel < 0 ? 0 : masteryLevel;
+  const effectiveLevel = (masteryLevel === undefined || masteryLevel < 0 || !Number.isFinite(masteryLevel)) ? 0 : masteryLevel;
   const blockMastery = getBlockMastery(effectiveLevel, dark);
   const applyMasteryWrapper = blockMastery && !isSelfStyled;
 

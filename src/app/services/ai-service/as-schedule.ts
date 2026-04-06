@@ -296,9 +296,42 @@ export async function aiOrganizePlan(
   profile: StudentProfilePayload,
 ): Promise<AiOrganizeResponse> {
   const body = { action: 'organize', studentProfile: profile };
-  const raw = await apiCall<AiOrganizeResponse>(
+  const raw = await apiCall<{
+    result: Record<string, unknown> | null;
+    executionResults?: Array<{ op: string; taskId: string; success: boolean; error?: string }>;
+    _meta: Record<string, unknown>;
+  }>(
     '/ai/schedule-agent',
     { method: 'POST', body: JSON.stringify(body) },
   );
-  return raw;
+
+  const meta: AiScheduleMeta = {
+    model: str(raw._meta?.model),
+    tokensUsed: num(raw._meta?.tokensUsed, 0),
+    confidence: str(raw._meta?.confidence),
+    aiPowered: raw._meta?.aiPowered === true,
+  };
+
+  const result = raw.result;
+  const organizeResult: AiOrganizeResult | null = result ? {
+    operations: asArray(result.operations).map((o) => {
+      const op = asRecord(o);
+      return {
+        op: str(op.op),
+        taskId: str(op.taskId),
+        reason: str(op.reason),
+        newIndex: typeof op.newIndex === 'number' ? op.newIndex : undefined,
+        newDate: typeof op.newDate === 'string' ? op.newDate : undefined,
+        fields: (op.fields && typeof op.fields === 'object') ? op.fields as Record<string, unknown> : undefined,
+      };
+    }),
+    summary: str(result.summary),
+    rationale: str(result.rationale),
+  } : null;
+
+  return {
+    result: organizeResult,
+    executionResults: raw.executionResults,
+    _meta: meta,
+  };
 }
