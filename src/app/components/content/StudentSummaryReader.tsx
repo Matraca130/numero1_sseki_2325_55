@@ -42,6 +42,8 @@ import {
 } from '@/app/components/design-kit';
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
 import { useReadingTimeTracker } from '@/app/hooks/useReadingTimeTracker';
+import { useScrollPositionSave } from '@/app/hooks/useScrollPositionSave';
+import { useScrollPositionRestore } from '@/app/hooks/useScrollPositionRestore';
 import { useVideoListQuery } from '@/app/hooks/queries/useVideoPlayerQueries';
 import { useThemeToggle } from '@/app/hooks/useThemeToggle';
 import { ThemeToggle } from '@/app/components/student/ThemeToggle';
@@ -104,8 +106,15 @@ export function StudentSummaryReader({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+
+  // ── Scroll position restore (must be before state init) ──
+  const { initialViewMode, initialContentPage, restoreScroll } = useScrollPositionRestore(
+    summary.id,
+    readingState?.scroll_position ?? null,
+  );
+
   /** View mode: 'enriched' shows structured blocks, 'reading' shows plain markdown */
-  const [viewMode, setViewMode] = useState<'enriched' | 'reading'>('enriched');
+  const [viewMode, setViewMode] = useState<'enriched' | 'reading'>(initialViewMode ?? 'enriched');
 
   // Auto-switch to enriched if reading mode selected but no content_markdown
   useEffect(() => {
@@ -116,7 +125,7 @@ export function StudentSummaryReader({
   }, [viewMode, summary?.content_markdown]);
 
   // ── Content pagination ──────────────────────────────────
-  const [contentPage, setContentPage] = useState(0);
+  const [contentPage, setContentPage] = useState(initialContentPage ?? 0);
 
   // ── React Query: 4 initial fetches ──────────────────────
   const {
@@ -150,6 +159,25 @@ export function StudentSummaryReader({
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [sidebarBlocks, activeTab]);
+
+  // ── Suppress browser native scroll restoration ──
+  useEffect(() => {
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    return () => {
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'auto';
+      }
+    };
+  }, []);
+
+  // ── Restore scroll position after content loads ──
+  useEffect(() => {
+    if (!blocksLoading && !chunksLoading) {
+      restoreScroll(readerRef);
+    }
+  }, [blocksLoading, chunksLoading, restoreScroll]);
 
   // ── Sidebar block click → scroll into view ──
   const handleSidebarBlockClick = useCallback((blockId: string) => {
@@ -297,10 +325,19 @@ export function StudentSummaryReader({
   const { data: videos, isLoading: videosLoading } = useVideoListQuery(summary.id);
   const videosCount = videos?.length || 0;
 
-  // ── Reading time tracking ───────────────────────────────
+  // ── Scroll position save ────────────────────────────────
+  const { getScrollPercentage } = useScrollPositionSave(
+    summary.id,
+    activeBlockId,
+    viewMode,
+    contentPage,
+  );
+
+  // ── Reading time tracking (+ scroll position piggyback) ─
   const { snapshotForExternalSave } = useReadingTimeTracker(
     summary.id,
     readingState?.time_spent_seconds ?? 0,
+    () => getScrollPercentage(readerRef),
   );
 
   // ── Mutations hook (Phase B.3) ──────────────────────────

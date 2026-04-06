@@ -27,6 +27,7 @@ const MIN_ELAPSED_TO_SAVE = 5;   // don't save trivial amounts (<5s)
 export function useReadingTimeTracker(
   summaryId: string,
   initialTimeSpent: number,
+  getScrollPosition?: () => number | undefined,
 ) {
   // Accumulated total from the DB (updated after each successful save)
   const accumulatedRef = useRef(initialTimeSpent);
@@ -54,11 +55,13 @@ export function useReadingTimeTracker(
     savingRef.current = true;
     const newTotal = accumulatedRef.current + sessionElapsed;
 
+    const scrollPos = getScrollPosition?.();
     try {
       await studentApi.upsertReadingState({
         summary_id: summaryId,
         time_spent_seconds: newTotal,
         last_read_at: new Date().toISOString(),
+        ...(scrollPos != null && { scroll_position: scrollPos }),
       });
 
       // Success: update refs so next save doesn't double-count
@@ -91,6 +94,7 @@ export function useReadingTimeTracker(
     };
     if (token) headers['X-Access-Token'] = token;
 
+    const scrollPos = getScrollPosition?.();
     try {
       fetch(`${API_BASE}/reading-states`, {
         method: 'POST',
@@ -99,6 +103,7 @@ export function useReadingTimeTracker(
           summary_id: summaryId,
           time_spent_seconds: total,
           last_read_at: new Date().toISOString(),
+          ...(scrollPos != null && { scroll_position: scrollPos }),
         }),
         keepalive: true, // browser completes request even after page unloads
       });
