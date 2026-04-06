@@ -44,9 +44,10 @@ export function useScrollPositionRestore(
       if (!container) return;
 
       const blockId = saved?.activeBlockId;
+      const isReadingMode = saved?.viewMode === 'reading';
 
-      // Strategy 1: Scroll to saved block ID
-      if (blockId) {
+      // Strategy 1: Scroll to saved block ID (only in enriched mode where blocks exist)
+      if (blockId && !isReadingMode) {
         const existing = container.querySelector(`[data-block-id="${blockId}"]`);
         if (existing) {
           existing.scrollIntoView({ behavior: 'instant', block: 'start' });

@@ -50,11 +50,6 @@ export function useScrollPositionSave(
     return () => clearTimeout(timerRef.current);
   }, [summaryId, activeBlockId, viewMode, contentPage]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => clearTimeout(timerRef.current);
-  }, []);
-
   const getScrollPercentage = useCallback(
     (containerRef: React.RefObject<HTMLElement | null>) => {
       const el = containerRef?.current;
