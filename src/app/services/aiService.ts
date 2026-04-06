@@ -80,6 +80,7 @@ export {
   aiRecommendToday,
   aiReschedule,
   aiWeeklyInsight,
+  aiOrganizePlan,
 } from './ai-service/as-schedule';
 export type {
   StudentProfilePayload,
@@ -90,4 +91,5 @@ export type {
   AiInsight,
   AiScheduleMeta,
   AiScheduleResponse,
+  AiOrganizeResponse,
 } from './ai-service/as-schedule';
