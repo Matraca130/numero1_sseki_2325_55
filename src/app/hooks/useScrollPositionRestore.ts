@@ -7,7 +7,7 @@
 // then scrolls to it. Falls back to DB scroll_position percentage.
 // ============================================================
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { readSavedPosition } from '@/app/hooks/useScrollPositionSave';
 
 const RESTORE_TIMEOUT_MS = 5_000;
@@ -25,6 +25,15 @@ export function useScrollPositionRestore(
   const restoredRef = useRef(false);
   const savedRef = useRef(readSavedPosition(summaryId));
   const saved = savedRef.current;
+  // Track observer/timeout for cleanup on unmount
+  const cleanupRef = useRef<{ observer?: MutationObserver; timeout?: ReturnType<typeof setTimeout> }>({});
+
+  useEffect(() => {
+    return () => {
+      cleanupRef.current.observer?.disconnect();
+      clearTimeout(cleanupRef.current.timeout);
+    };
+  }, []);
 
   const restoreScroll = useCallback(
     (containerRef: React.RefObject<HTMLElement | null>) => {
@@ -49,14 +58,15 @@ export function useScrollPositionRestore(
           const el = container.querySelector(`[data-block-id="${blockId}"]`);
           if (el) {
             observer.disconnect();
-            clearTimeout(timeout);
+            clearTimeout(cleanupRef.current.timeout);
             el.scrollIntoView({ behavior: 'instant', block: 'start' });
           }
         });
 
         observer.observe(container, { childList: true, subtree: true });
+        cleanupRef.current.observer = observer;
 
-        const timeout = setTimeout(() => {
+        cleanupRef.current.timeout = setTimeout(() => {
           observer.disconnect();
           // Fallback to percentage after timeout
           restoreByPercentage(container, dbScrollPosition);

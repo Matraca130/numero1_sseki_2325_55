@@ -35,6 +35,9 @@ export function useReadingTimeTracker(
   const lastSaveTimeRef = useRef(Date.now());
   // Guard against concurrent saves (periodic + visibility)
   const savingRef = useRef(false);
+  // Ref for scroll position getter — avoids stale closures in save/saveBeacon
+  const getScrollPositionRef = useRef(getScrollPosition);
+  getScrollPositionRef.current = getScrollPosition;
 
   // Sync from prop — use Math.max to never overwrite a higher local value.
   // This handles: markCompleted returns 125 from API, but tracker already
@@ -55,7 +58,7 @@ export function useReadingTimeTracker(
     savingRef.current = true;
     const newTotal = accumulatedRef.current + sessionElapsed;
 
-    const scrollPos = getScrollPosition?.();
+    const scrollPos = getScrollPositionRef.current?.();
     try {
       await studentApi.upsertReadingState({
         summary_id: summaryId,
@@ -94,7 +97,7 @@ export function useReadingTimeTracker(
     };
     if (token) headers['X-Access-Token'] = token;
 
-    const scrollPos = getScrollPosition?.();
+    const scrollPos = getScrollPositionRef.current?.();
     try {
       fetch(`${API_BASE}/reading-states`, {
         method: 'POST',
