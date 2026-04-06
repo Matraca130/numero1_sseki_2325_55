@@ -237,6 +237,9 @@ export interface AiOrganizeResponse {
 
 // ── API Functions ─────────────────────────────────────────
 
+// NOTE: "organize" action uses aiOrganizePlan() directly — it does NOT go
+// through callScheduleAgent/normalizeClaudeResponse because it has a
+// different response shape (operations[] + executionResults).
 async function callScheduleAgent(
   action: 'distribute' | 'recommend-today' | 'reschedule' | 'weekly-insight',
   studentProfile: StudentProfilePayload,
