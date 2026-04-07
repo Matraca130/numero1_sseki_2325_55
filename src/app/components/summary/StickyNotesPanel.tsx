@@ -14,6 +14,7 @@
 //   - Uses existing shadcn/ui primitives where possible
 // ============================================================
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { StickyNote, X, Save, Trash2, Maximize2, Minimize2, CloudOff, Cloud } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -153,11 +154,16 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
 
   // Don't render anything if there's no summary context yet
   if (!summaryId) return null;
+  // SSR / non-browser: bail
+  if (typeof document === 'undefined') return null;
 
-  return (
+  // Render into a portal at document.body so we escape any ancestor
+  // stacking context (transformed motion.div, layout headers with z-index,
+  // overflow:hidden containers, etc.) and stay on top of the app header.
+  return createPortal(
     <div
-      className="fixed right-4 z-40 print:hidden"
-      style={{ top: '6rem' }}
+      className="fixed right-4 print:hidden"
+      style={{ top: '7.5rem', zIndex: 1000 }}
       aria-label="Notas rápidas"
     >
       <AnimatePresence mode="wait">
@@ -298,7 +304,8 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
           </motion.button>
         )}
       </AnimatePresence>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
