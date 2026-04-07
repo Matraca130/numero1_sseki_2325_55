@@ -42,9 +42,8 @@ import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
 import type { Flashcard } from '@/app/types/content';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 import { useStudyQueueData } from '@/app/hooks/useStudyQueueData';
-import { logger, errStatus } from '@/app/lib/logger';
-
-const log = logger('AdaptiveFlashcardView');
+import { logger } from '@/app/lib/logger';
+import { hasHttpStatus } from '@/app/utils/getErrorMessage';
 
 // Reuse existing SessionScreen for the review phase (zero duplication)
 import { SessionScreen } from './flashcard';
@@ -140,9 +139,9 @@ export function AdaptiveFlashcardView() {
         setLoading(false);
       } catch (err: unknown) {
         if (cancelled) return;
-        log.error('Failed to load cards:', err);
+        logger.error('AdaptiveFlashcardView', 'Failed to load cards:', err);
         setLoadError(
-          errStatus(err) === 404
+          hasHttpStatus(err, 404)
             ? 'No se encontraron flashcards para este tema.'
             : 'Error al cargar flashcards. Int\u00E9ntalo de nuevo.'
         );
