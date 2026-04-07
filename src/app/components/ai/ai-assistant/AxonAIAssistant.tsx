@@ -72,7 +72,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
 
     setIsStreaming(true);
     const result = await sendChatMessage(msg, {
-      summaryId, history,
+      summaryId, topicId: currentTopic?.id, history,
       onStreamStart: (id) => { setMessages(prev => [...prev, { id, role: 'model', content: '', timestamp: new Date() }]); setIsLoading(false); },
       onStreamChunk: (id, acc) => { setMessages(prev => prev.map(m => m.id === id ? { ...m, content: acc } : m)); },
       onStreamSources: (id, sources) => { setMessageSources(prev => new Map(prev).set(id, sources)); },
@@ -99,7 +99,7 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
     }
     setIsStreaming(false); // Defensive: ensure isStreaming is always reset
     setIsLoading(false);
-  }, [input, isLoading, messages, summaryId]);
+  }, [input, isLoading, messages, summaryId, currentTopic?.id]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
 

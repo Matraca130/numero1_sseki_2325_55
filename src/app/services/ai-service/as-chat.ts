@@ -17,6 +17,7 @@ export async function chat(
   message: string,
   opts?: {
     summaryId?: string;
+    topicId?: string;
     history?: ChatHistoryEntry[];
     strategy?: 'auto' | 'standard' | 'multi_query' | 'hyde';
   }
@@ -24,6 +25,7 @@ export async function chat(
   try {
     const body: Record<string, unknown> = { message };
     if (opts?.summaryId) body.summary_id = opts.summaryId;
+    if (opts?.topicId) body.topic_id = opts.topicId;
     if (opts?.history && opts.history.length > 0) body.history = opts.history;
     if (opts?.strategy) body.strategy = opts.strategy;
 
@@ -43,6 +45,7 @@ export async function chatText(
   message: string,
   opts?: {
     summaryId?: string;
+    topicId?: string;
     history?: ChatHistoryEntry[];
     strategy?: 'auto' | 'standard' | 'multi_query' | 'hyde';
   }
@@ -86,6 +89,7 @@ export async function chatStream(
   message: string,
   opts: {
     summaryId?: string;
+    topicId?: string;
     history?: ChatHistoryEntry[];
     strategy?: 'auto' | 'standard' | 'multi_query' | 'hyde';
     onChunk: (text: string) => void;
@@ -95,6 +99,7 @@ export async function chatStream(
 ): Promise<void> {
   const body: Record<string, unknown> = { message, stream: true };
   if (opts.summaryId) body.summary_id = opts.summaryId;
+  if (opts.topicId) body.topic_id = opts.topicId;
   if (opts.history && opts.history.length > 0) body.history = opts.history;
   if (opts.strategy) body.strategy = opts.strategy;
 
