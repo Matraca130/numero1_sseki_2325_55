@@ -12,3 +12,29 @@
 - **Learned:** useUndoRedo uses refs internally with separate useState counters for canUndo/canRedo — renderHook + act works correctly with this pattern
 - **Pattern:** For accessibility-only tasks, only add aria-*/role/tabIndex attributes — never change logic or styles
 - **Mistake:** None
+
+## Session — 2026-04-07
+- **Task:** Q1 audit fix — write Vitest tests for the new StickyNotesPanel feature (audit found 0 coverage). Driven by Claude Code regular, NOT through the proper agent orchestration (Arquitecto XX-01 → SM-03), because the work was mechanical pattern-matching against existing fixtures.
+- **Files NEW (claim ownership):**
+  - `src/__tests__/sticky-notes-api-contracts.test.ts` (16 tests, all green) — covers `getStickyNote`/`upsertStickyNote`/`deleteStickyNote` URL construction, encoding, body shape, error propagation, surface guard.
+  - `src/app/components/summary/__tests__/StickyNotesPanel.test.tsx` (20 tests, all green) — conditional render, portal mount, hydration race-safety, debounced upsert, offline fallback, clear-confirm, open/closed persistence, unmount cleanup.
+- **Files NOT touched:** `src/app/services/stickyNotesApi.ts` and `src/app/components/summary/StickyNotesPanel.tsx` were left as-is. Tests target the public surface only.
+- **Patterns that worked:**
+  - Mocking `apiCall` with `vi.mock('@/app/lib/api')` works cleanly for service unit tests — see `flashcard-api-contracts.test.ts` for the canonical reference.
+  - For component tests with portal-mounted UI (`createPortal(..., document.body)`), `screen.getByLabelText` correctly finds nodes outside the RTL test container because RTL queries scan the whole document by default.
+  - Race-safety tests use `mockImplementationOnce(() => new Promise((r) => { resolveLater = r; }))` to control resolution order — verifies that `loadTokenRef` correctly prevents stale fetches from pissing on fresh state.
+- **Patterns to avoid:**
+  - **NEVER use `vi.useFakeTimers()` in this suite** — the first attempt did this, and one fake-timer test failed mid-run, leaving timers fake for ALL subsequent tests, breaking effects in 12 unrelated tests with `<body><div /></body>` (empty DOM). Real timers + small `await wait(700)` waits are slower (~3s total) but bulletproof.
+  - The `cleanup()` from `@testing-library/react` should be called in `afterEach` defensively when using portals — RTL's auto-cleanup only unmounts the test container, not portal-mounted nodes elsewhere in body.
+- **Decisions:**
+  - Chose Vitest contract tests over MSW-style HTTP mocks because the service is a thin wrapper over `apiCall`. Verifying URL/method/body construction is the actual contract.
+  - Did not test the `motion/react` animation states — out of scope for behavior tests.
+- **Files to register in AGENT-REGISTRY ownership zone (next sync):**
+  - `src/__tests__/sticky-notes-*.test.ts*`
+  - `src/app/components/summary/__tests__/**`
+  These are inside the Summary section but the SM-03 declared zone in AGENT-REGISTRY currently lists `tests/summaries/**` and `components/student/blocks/__tests__/**` and `components/professor/block-editor/forms/__tests__/**`. The new sticky-notes tests are a logical addition and should be claimed.
+- **Pre-existing failures observed (NOT my regression):**
+  - `src/app/components/student/__tests__/TextHighlighter.test.tsx > buildSegments > filters out annotations with deleted_at set` (2 cases) — fails on main, untouched. Filed as observation, not fixed in this session.
+- **Mistake:** First version of the component test used fake timers naively. Cost: ~10 min of debug + a rewrite. Lesson: when in doubt, real timers are simpler.
+- **Score impact:** Q1 (test coverage) goes from 0/10 to ~8/10 for the sticky-notes feature.
+
