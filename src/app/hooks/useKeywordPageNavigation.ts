@@ -36,14 +36,15 @@ export function useKeywordPageNavigation({
       ? htmlPages.map(h =>
           convert(h, {
             wordwrap: false,
-          }),
-        )
-      : textPages.map(lines => lines.join('\n'));
+    const pageTexts = (isHtmlContent
+      ? htmlPages.map(h => h.replace(/<[^>]+>/g, ''))
+      : textPages.map(lines => lines.join('\n'))
+    ).map(t => t.toLowerCase());
 
     for (const kw of keywords) {
       const needle = kw.name.toLowerCase();
       for (let i = 0; i < pageTexts.length; i++) {
-        if (pageTexts[i].toLowerCase().includes(needle)) {
+        if (pageTexts[i].includes(needle)) {
           map.set(kw.id, i);
           break;
         }
