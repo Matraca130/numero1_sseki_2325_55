@@ -1,278 +1,320 @@
 // ============================================================
-// AdaptiveFlashcardView — Host for the adaptive (AI-driven) flashcard
-// session flow. Sibling of FlashcardView.tsx.
+// AdaptiveFlashcardView — Self-contained adaptive flashcard session
 //
-// v4.5.0 (Fase 5): Standalone route that consumes useAdaptiveSession
-// and orchestrates the phase-specific screens from
-// components/content/flashcard/adaptive/*.
+// ARCHITECTURE DECISION: This is a SEPARATE route component, NOT
+// a modification of FlashcardView. Reasons:
 //
-// URL contract (from FlashcardView DeckScreen "Con IA" button):
-//   /student/adaptive-session?topicId=...&courseId=...&topicTitle=...
+//   1. FlashcardView uses useFlashcardEngine (single-round, auto-close).
+//      The adaptive flow needs multi-round with manual close.
+//      Modifying FlashcardView would violate the S2 rule (don't change
+//      useFlashcardEngine signature) and risk regressions in the
+//      primary flashcard study flow.
 //
-// studentId is derived from useAuth() and the professor card list is
-// loaded from /flashcards-by-topic — the URL does NOT carry cardCount
-// or studentId (the view is self-sufficient).
+//   2. Maximum modularity: this view owns its lifecycle completely.
+//      It loads its own cards, manages its own session, and renders
+//      its own screens. Zero coupling with FlashcardView.
 //
-// Phase → Screen mapping:
-//   idle              → AdaptiveIdleLanding
-//   reviewing         → FlashcardSessionScreen (SessionScreen)
-//   generating        → AdaptiveGenerationScreen
-//   partial-summary   → AdaptivePartialSummary
-//   completed         → AdaptiveCompletedScreen
+//   3. Independent entry point: routed at /student/adaptive-session
+//      with query params ?topicId=xxx&courseId=yyy. Can be linked
+//      from DeckScreen, SummaryScreen, StudyHub, or anywhere.
+//
+// COMPOSITION:
+//   useAdaptiveSession (hook)  → session lifecycle + batch reviews
+//   SessionScreen (existing)   → card review UI (reused, not copied)
+//   AdaptivePartialSummary     → between-rounds summary + generate
+//   AdaptiveGenerationScreen   → AI generation loading view
+//   AdaptiveCompletedScreen    → final session summary (extracted)
+//   AdaptiveIdleLanding        → pre-session landing (extracted)
 // ============================================================
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
-import { AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useAdaptiveSession } from '@/app/hooks/useAdaptiveSession';
-import { getFlashcardsByTopic, type FlashcardItem } from '@/app/services/flashcardApi';
-import { logger } from '@/app/lib/logger';
-import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
-import { LoadingPage, EmptyState, ErrorState } from '@/app/components/shared/PageStates';
+import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
 import type { Flashcard } from '@/app/types/content';
+import type { FlashcardItem } from '@/app/services/flashcardApi';
+import { useStudyQueueData } from '@/app/hooks/useStudyQueueData';
+import { logger, errStatus } from '@/app/lib/logger';
 
+const log = logger('AdaptiveFlashcardView');
+
+// Reuse existing SessionScreen for the review phase (zero duplication)
 import { SessionScreen } from './flashcard';
+
+// Adaptive-specific screens
 import {
-  AdaptiveIdleLanding,
-  AdaptiveGenerationScreen,
   AdaptivePartialSummary,
+  AdaptiveGenerationScreen,
   AdaptiveCompletedScreen,
+  AdaptiveIdleLanding,
 } from './flashcard/adaptive';
 
-// ── Constants ─────────────────────────────────────────────
-const ADAPTIVE_ACCENT = '#14b8a6';
-const BACK_ROUTE = '/student/flashcards';
-
-// ── Helpers ───────────────────────────────────────────────
-// Map FlashcardItem (API shape) → Flashcard (UI shape expected by
-// useAdaptiveSession.startSession and SessionScreen). This mirrors the
-// module-private mapApiCard() in useFlashcardNavigation.ts; we can't
-// import that, so we duplicate the minimum shape.
-function mapItemToCard(item: FlashcardItem): Flashcard {
+// ── Helper: Map API FlashcardItem → UI Flashcard type ─────
+function mapApiToFlashcard(item: FlashcardItem): Flashcard & { subtopic_id?: string | null } {
   return {
     id: item.id,
-    front: item.front || '',
-    back: item.back || '',
-    question: item.front || '',
-    answer: item.back || '',
+    front: item.front,
+    back: item.back,
+    question: item.front,
+    answer: item.back,
     mastery: 0,
-    difficulty: 'normal',
-    keywords: [],
     summary_id: item.summary_id,
     keyword_id: item.keyword_id,
-    subtopic_id: item.subtopic_id ?? null,
+    subtopic_id: item.subtopic_id,
     source: item.source,
-    image: item.front_image_url || item.back_image_url || undefined,
-    frontImageUrl: item.front_image_url ?? null,
-    backImageUrl: item.back_image_url ?? null,
+    frontImageUrl: item.front_image_url,
+    backImageUrl: item.back_image_url,
+    fsrs_state: undefined,
   };
 }
 
 // ══════════════════════════════════════════════════════════
-// COMPONENT
+// MAIN COMPONENT
 // ══════════════════════════════════════════════════════════
 
 export function AdaptiveFlashcardView() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const studentId = user?.id ?? null;
+  const studentId = user?.id || null;
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const topicId = searchParams.get('topicId');
-  const courseId = searchParams.get('courseId') ?? '';
-  const topicTitle = searchParams.get('topicTitle') || 'Sesión Adaptativa';
+  const courseId = searchParams.get('courseId') || '';
+  const topicTitle = searchParams.get('topicTitle') || 'Sesi\u00F3n Adaptativa';
 
-  // ── Load professor cards for the topic ──
-  const [cards, setCards] = useState<Flashcard[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // ── Card loading state ──
+  const [cards, setCards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const loadCards = useCallback(async () => {
-    if (!topicId) {
-      setLoading(false);
-      setLoadError('Falta el topic para iniciar la sesión adaptativa.');
-      return;
-    }
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const data = await getFlashcardsByTopic(topicId);
-      const items = Array.isArray(data) ? data : data?.items || [];
-      const active = items
-        .filter((c: FlashcardItem) => c.is_active !== false && !c.deleted_at)
-        .map(mapItemToCard);
-      setCards(active);
-    } catch (err) {
-      logger.warn('[AdaptiveFlashcardView] Failed to load cards', err);
-      setLoadError('No pudimos cargar las flashcards del tema. Intenta de nuevo.');
-      setCards(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [topicId]);
+  // ── Study-queue data for real FSRS state ──
+  const sqData = useStudyQueueData(courseId || null);
 
-  useEffect(() => {
-    loadCards();
-  }, [loadCards]);
+  // ── Round ratings tracker (for SessionScreen progress bar) ──
+  const [roundRatings, setRoundRatings] = useState<number[]>([]);
 
   // ── Adaptive session hook ──
   const session = useAdaptiveSession({
     studentId,
     courseId,
     topicId,
+    masteryMap: sqData.byFlashcardId,
   });
 
-  const goBack = useCallback(() => {
-    navigate(BACK_ROUTE);
-  }, [navigate]);
+  // ── Load flashcards on mount ──
+  useEffect(() => {
+    if (!topicId) {
+      setLoadError('No se especific\u00F3 un tema. Vuelve al deck y selecciona un tema.');
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCards() {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        const response = await getFlashcardsByTopic(topicId!);
+        if (cancelled) return;
+
+        const mapped = response.items
+          .filter(item => item.is_active && !item.deleted_at)
+          .map(mapApiToFlashcard);
+
+        if (mapped.length === 0) {
+          setLoadError('No hay flashcards activas para este tema. Pide a tu profesor que las cree.');
+          setLoading(false);
+          return;
+        }
+
+        setCards(mapped);
+        setLoading(false);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        log.error('Failed to load cards:', err);
+        setLoadError(
+          errStatus(err) === 404
+            ? 'No se encontraron flashcards para este tema.'
+            : 'Error al cargar flashcards. Int\u00E9ntalo de nuevo.'
+        );
+        setLoading(false);
+      }
+    }
+
+    loadCards();
+    return () => { cancelled = true; };
+  }, [topicId]);
+
+  // ── Reset round ratings when entering a new review round ──
+  useEffect(() => {
+    if (session.phase === 'reviewing') {
+      setRoundRatings([]);
+    }
+  }, [session.phase]);
+
+  // ── EC-3 fix: prevent accidental tab close during active session ──
+  // EC-3 FIX (PR #286 review): Chrome/Edge require BOTH preventDefault()
+  // AND setting e.returnValue to trigger the beforeunload prompt.
+  // Safari mobile ignores beforeunload — window.confirm in handleBack
+  // covers intentional navigation there.
+  useEffect(() => {
+    const isActive = session.phase === 'reviewing'
+      || session.phase === 'partial-summary'
+      || session.phase === 'generating';
+
+    if (!isActive) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [session.phase]);
+
+  // ── Wrapped handleRate: tracks per-round ratings for SessionScreen ──
+  const handleRate = useCallback((rating: number) => {
+    setRoundRatings(prev => [...prev, rating]);
+    session.handleRate(rating);
+  }, [session.handleRate]);
 
   const handleStart = useCallback(() => {
-    if (!cards || cards.length === 0) return;
     session.startSession(cards);
-  }, [cards, session]);
+  }, [session.startSession, cards]);
 
-  const handleRestart = useCallback(() => {
-    // Re-run the flow from idle with the same card set
-    if (cards && cards.length > 0) {
-      session.startSession(cards);
-    } else {
-      loadCards();
+  const handleBack = useCallback(() => {
+    if (session.phase === 'reviewing' || session.phase === 'partial-summary' || session.phase === 'generating') {
+      const confirmed = window.confirm(
+        '\u00BFSeguro que quieres salir? Se perder\u00E1 el progreso de esta sesi\u00F3n.'
+      );
+      if (!confirmed) return;
     }
-  }, [cards, session, loadCards]);
+    navigate('/student/flashcards');
+  }, [session.phase, navigate]);
 
-  const handleFinishAndExit = useCallback(async () => {
-    await session.finishSession();
-  }, [session]);
-
-  const handleExitAfterCompletion = useCallback(() => {
-    navigate(BACK_ROUTE);
+  const handleExitCompleted = useCallback(() => {
+    navigate('/student/flashcards');
   }, [navigate]);
 
-  const totalCards = useMemo(() => cards?.length ?? 0, [cards]);
+  const handleRestart = useCallback(() => {
+    setRoundRatings([]);
+    session.startSession(cards);
+  }, [session.startSession, cards]);
 
-  // ── Early states ──
-  if (!topicId) {
-    return (
-      <ErrorBoundary>
-        <div className="flex h-full bg-surface-dashboard items-center justify-center">
-          <EmptyState
-            title="Tema no encontrado"
-            description="La sesión adaptativa requiere un topic válido."
-            actionLabel="Volver a Flashcards"
-            onAction={goBack}
-          />
-        </div>
-      </ErrorBoundary>
-    );
-  }
+  // ═══ RENDER ═══
 
-  if (loading && !cards) {
-    return (
-      <ErrorBoundary>
-        <div className="flex h-full bg-surface-dashboard">
-          <LoadingPage />
-        </div>
-      </ErrorBoundary>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <ErrorBoundary>
-        <div className="flex h-full bg-surface-dashboard items-center justify-center">
-          <ErrorState message={loadError} onRetry={loadCards} />
-        </div>
-      </ErrorBoundary>
-    );
-  }
-
-  if (!cards || cards.length === 0) {
-    return (
-      <ErrorBoundary>
-        <div className="flex h-full bg-surface-dashboard items-center justify-center">
-          <EmptyState
-            title="Sin flashcards"
-            description="Este tema todavía no tiene flashcards del profesor. La sesión adaptativa necesita un punto de partida."
-            actionLabel="Volver"
-            onAction={goBack}
-          />
-        </div>
-      </ErrorBoundary>
-    );
-  }
-
-  // ── Main phase-driven render ──
   return (
-    <ErrorBoundary>
-      <div className="flex h-full bg-surface-dashboard relative overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <AnimatePresence mode="wait">
-            {session.phase === 'idle' && (
-              <AdaptiveIdleLanding
-                key="idle"
-                topicTitle={topicTitle}
-                cardCount={totalCards}
-                onStart={handleStart}
-                onBack={goBack}
-              />
-            )}
+    <div className="flex h-full bg-surface-dashboard relative overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <AnimatePresence mode="wait">
 
-            {session.phase === 'reviewing' && session.currentCard && (
-              <SessionScreen
-                key={`session-round-${session.currentRound?.roundNumber ?? 0}`}
-                cards={session.sessionCards}
-                currentIndex={session.currentIndex}
-                isRevealed={session.isRevealed}
-                setIsRevealed={session.setIsRevealed}
-                handleRate={session.handleRate}
-                sessionStats={session.sessionStats}
-                courseColor={ADAPTIVE_ACCENT}
-                onBack={goBack}
-              />
-            )}
+          {loading && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center gap-4"
+            >
+              <Loader2 size={32} className="animate-spin text-[#2a8c7a]" />
+              <p className="text-sm text-gray-500">Cargando flashcards...</p>
+            </motion.div>
+          )}
 
-            {session.phase === 'generating' && session.generationProgress && (
-              <AdaptiveGenerationScreen
-                key="generating"
-                progress={session.generationProgress}
-                onCancel={session.abortGeneration}
-              />
-            )}
+          {!loading && loadError && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center gap-4 p-8"
+            >
+              <AlertCircle size={40} className="text-rose-400" />
+              <p className="text-sm text-gray-600 text-center max-w-sm">{loadError}</p>
+              <button
+                onClick={() => navigate('/student/flashcards')}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/70 border border-gray-200 text-sm text-gray-700 hover:bg-white transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                <ArrowLeft size={14} />
+                Volver a Flashcards
+              </button>
+            </motion.div>
+          )}
 
-            {session.phase === 'partial-summary' && (
-              <AdaptivePartialSummary
-                key="partial"
-                allStats={session.allStats}
-                completedRounds={session.completedRounds}
-                keywordMastery={session.keywordMastery}
-                topicSummary={session.topicSummary}
-                masteryLoading={session.masteryLoading}
-                masteryDeltas={session.masteryDeltas.current}
-                lastGenerationResult={session.lastGenerationResult}
-                generationError={session.generationError}
-                onGenerateMore={session.generateMore}
-                onFinish={handleFinishAndExit}
-              />
-            )}
+          {!loading && !loadError && session.phase === 'idle' && (
+            <AdaptiveIdleLanding
+              key="idle"
+              topicTitle={topicTitle}
+              cardCount={cards.length}
+              onStart={handleStart}
+              onBack={handleBack}
+            />
+          )}
 
-            {session.phase === 'completed' && (
-              <AdaptiveCompletedScreen
-                key="completed"
-                allStats={session.allStats}
-                completedRounds={session.completedRounds}
-                masteryDeltas={session.masteryDeltas.current}
-                topicSummary={session.topicSummary}
-                onRestart={handleRestart}
-                onExit={handleExitAfterCompletion}
-              />
-            )}
-          </AnimatePresence>
-        </div>
+          {session.phase === 'reviewing' && session.sessionCards.length > 0 && (
+            <SessionScreen
+              key={`review-round-${session.roundCount}`}
+              cards={session.sessionCards}
+              currentIndex={session.currentIndex}
+              isRevealed={session.isRevealed}
+              setIsRevealed={session.setIsRevealed}
+              handleRate={handleRate}
+              sessionStats={roundRatings}
+              courseColor="#2a8c7a"
+              onBack={handleBack}
+              masteryMap={sqData.byFlashcardId}
+            />
+          )}
+
+          {session.phase === 'partial-summary' && (
+            <AdaptivePartialSummary
+              key="partial-summary"
+              allStats={session.allStats}
+              completedRounds={session.completedRounds}
+              keywordMastery={session.keywordMastery}
+              topicSummary={session.topicSummary}
+              masteryLoading={session.masteryLoading}
+              masteryDeltas={session.masteryDeltas.current}
+              lastGenerationResult={session.lastGenerationResult}
+              generationError={session.generationError}
+              onGenerateMore={session.generateMore}
+              onFinish={session.finishSession}
+            />
+          )}
+
+          {session.phase === 'generating' && session.generationProgress && (
+            <AdaptiveGenerationScreen
+              key="generating"
+              progress={session.generationProgress}
+              onCancel={session.abortGeneration}
+            />
+          )}
+
+          {session.phase === 'completed' && (
+            <AdaptiveCompletedScreen
+              key="completed"
+              allStats={session.allStats}
+              completedRounds={session.completedRounds}
+              masteryDeltas={session.masteryDeltas.current}
+              topicSummary={session.topicSummary}
+              onRestart={handleRestart}
+              onExit={handleExitCompleted}
+            />
+          )}
+
+        </AnimatePresence>
       </div>
-    </ErrorBoundary>
+    </div>
   );
 }
-
-export default AdaptiveFlashcardView;
