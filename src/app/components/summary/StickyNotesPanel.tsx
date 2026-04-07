@@ -3,20 +3,36 @@
 //
 // A floating, persistent "RAM-memory" notes panel that follows
 // the user as they scroll through a summary. Acts like a sticky
-// notepad: continuous text area, autosaved to the backend
-// (table public.sticky_notes via /sticky-notes endpoint) and
-// mirrored to localStorage for instant reads + offline fallback.
+// notepad divided into 4 independent "slices" (slots), each one
+// its own note. Opens on a 2x2 picker grid; clicking a slot
+// enters the editor for that slot. Back / prev / next navigation
+// is supported and the last-opened slot is persisted per summary.
 //
-// Design intent (per Stitch / shadcn-ui guidance):
-//   - Pinned to the right side of the viewport (position: fixed)
-//   - Collapsible to a small icon when not in use
-//   - Yellow paper aesthetic so it reads as a "sticky note"
-//   - Uses existing shadcn/ui primitives where possible
+// Storage:
+//   - Backend `content` field stores a JSON-serialized
+//     4-string array. Plain-text legacy notes are migrated into
+//     slot 0 on first load.
+//   - localStorage mirrors the same JSON for instant reads and
+//     offline fallback.
+//   - The last-opened slot is persisted per summary under
+//     `axon:sticky-notes:active:<summaryId>`.
 // ============================================================
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { StickyNote, X, Save, Trash2, Maximize2, Minimize2, CloudOff, Cloud } from 'lucide-react';
+import {
+  StickyNote,
+  X,
+  Save,
+  Trash2,
+  Maximize2,
+  Minimize2,
+  CloudOff,
+  Cloud,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import {
   getStickyNote,
@@ -32,26 +48,89 @@ interface StickyNotesPanelProps {
 }
 
 const STORAGE_PREFIX = 'axon:sticky-notes:';
+const ACTIVE_SLOT_PREFIX = 'axon:sticky-notes:active:';
+const SLOT_COUNT = 4;
+const SLOT_LABELS = ['Nota 1', 'Nota 2', 'Nota 3', 'Nota 4'];
 
+type Slots = [string, string, string, string];
 type SyncStatus = 'idle' | 'saving' | 'saved' | 'offline';
 
-function readLocalNote(summaryId: string): string {
+function emptySlots(): Slots {
+  return ['', '', '', ''];
+}
+
+/**
+ * Parse a persisted content string into a 4-slot tuple.
+ * Back-compat: plain-text legacy notes are placed into slot 0.
+ */
+function parseSlots(raw: string | null | undefined): Slots {
+  if (!raw) return emptySlots();
   try {
-    return localStorage.getItem(STORAGE_PREFIX + summaryId) || '';
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const out = emptySlots();
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        out[i] = typeof parsed[i] === 'string' ? parsed[i] : '';
+      }
+      return out;
+    }
   } catch {
-    return '';
+    /* legacy plain text */
+  }
+  const out = emptySlots();
+  out[0] = String(raw);
+  return out;
+}
+
+function serializeSlots(slots: Slots): string {
+  // If every slot is empty we persist an empty string so the
+  // clear/delete semantics keep working with the backend.
+  if (slots.every((s) => !s)) return '';
+  return JSON.stringify(slots);
+}
+
+function readLocalSlots(summaryId: string): Slots {
+  try {
+    return parseSlots(localStorage.getItem(STORAGE_PREFIX + summaryId));
+  } catch {
+    return emptySlots();
   }
 }
 
-function writeLocalNote(summaryId: string, value: string) {
+function writeLocalSlots(summaryId: string, slots: Slots) {
   try {
-    if (value) {
-      localStorage.setItem(STORAGE_PREFIX + summaryId, value);
+    const serialized = serializeSlots(slots);
+    if (serialized) {
+      localStorage.setItem(STORAGE_PREFIX + summaryId, serialized);
     } else {
       localStorage.removeItem(STORAGE_PREFIX + summaryId);
     }
   } catch {
     /* localStorage not available */
+  }
+}
+
+function readActiveSlot(summaryId: string): number | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_SLOT_PREFIX + summaryId);
+    if (raw === null) return null;
+    const n = Number(raw);
+    if (Number.isInteger(n) && n >= 0 && n < SLOT_COUNT) return n;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeActiveSlot(summaryId: string, slot: number | null) {
+  try {
+    if (slot === null) {
+      localStorage.removeItem(ACTIVE_SLOT_PREFIX + summaryId);
+    } else {
+      localStorage.setItem(ACTIVE_SLOT_PREFIX + summaryId, String(slot));
+    }
+  } catch {
+    /* ignore */
   }
 }
 
@@ -64,21 +143,24 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     }
   });
   const [expanded, setExpanded] = useState(false);
-  const [value, setValue] = useState('');
+  const [slots, setSlots] = useState<Slots>(emptySlots);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const debounceRef = useRef<number | null>(null);
   // Tracks the summaryId for which the latest async load is valid (race-safety)
   const loadTokenRef = useRef<string | null>(null);
 
-  // Load note when summary changes — local first (instant), then backend (truth).
+  // Load notes when summary changes — local first (instant), then backend (truth).
   useEffect(() => {
     if (!summaryId) {
-      setValue('');
+      setSlots(emptySlots());
+      setActiveSlot(null);
       return;
     }
-    // Optimistic: show cached value immediately
-    setValue(readLocalNote(summaryId));
+    // Optimistic: show cached values immediately
+    setSlots(readLocalSlots(summaryId));
+    setActiveSlot(readActiveSlot(summaryId));
     setSyncStatus('idle');
     loadTokenRef.current = summaryId;
 
@@ -87,9 +169,9 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
         const remote = await getStickyNote(summaryId);
         // Bail if the user switched summaries while we were fetching
         if (loadTokenRef.current !== summaryId) return;
-        const remoteContent = remote?.content ?? '';
-        setValue(remoteContent);
-        writeLocalNote(summaryId, remoteContent);
+        const remoteSlots = parseSlots(remote?.content ?? '');
+        setSlots(remoteSlots);
+        writeLocalSlots(summaryId, remoteSlots);
       } catch {
         // Network/auth error → keep the localStorage value as fallback
         if (loadTokenRef.current !== summaryId) return;
@@ -107,18 +189,25 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     }
   }, [open]);
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const next = e.target.value;
-      setValue(next);
+  // Persist last-opened slot per summary
+  useEffect(() => {
+    if (!summaryId) return;
+    writeActiveSlot(summaryId, activeSlot);
+  }, [summaryId, activeSlot]);
+
+  const scheduleSave = useCallback(
+    (nextSlots: Slots) => {
       if (!summaryId) return;
       // Local mirror is synchronous → never lose typing
-      writeLocalNote(summaryId, next);
+      writeLocalSlots(summaryId, nextSlots);
       setSyncStatus('saving');
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(async () => {
         try {
-          await upsertStickyNote({ summary_id: summaryId, content: next });
+          await upsertStickyNote({
+            summary_id: summaryId,
+            content: serializeSlots(nextSlots),
+          });
           setSyncStatus('saved');
           setSavedAt(Date.now());
         } catch {
@@ -129,12 +218,39 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     [summaryId],
   );
 
-  const handleClear = useCallback(async () => {
+  const handleSlotChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (activeSlot === null) return;
+      const next = e.target.value;
+      setSlots((prev) => {
+        const updated = [...prev] as Slots;
+        updated[activeSlot] = next;
+        scheduleSave(updated);
+        return updated;
+      });
+    },
+    [activeSlot, scheduleSave],
+  );
+
+  const handleClearCurrent = useCallback(async () => {
+    if (activeSlot === null) return;
+    if (!slots[activeSlot]) return;
+    if (!window.confirm(`¿Borrar ${SLOT_LABELS[activeSlot]}?`)) return;
+    setSlots((prev) => {
+      const updated = [...prev] as Slots;
+      updated[activeSlot] = '';
+      scheduleSave(updated);
+      return updated;
+    });
+  }, [activeSlot, slots, scheduleSave]);
+
+  const handleClearAll = useCallback(async () => {
     if (!summaryId) return;
-    if (!value) return;
-    if (!window.confirm('¿Borrar todas las notas de este resumen?')) return;
-    setValue('');
-    writeLocalNote(summaryId, '');
+    if (slots.every((s) => !s)) return;
+    if (!window.confirm('¿Borrar TODAS las notas rápidas de este resumen?')) return;
+    const cleared = emptySlots();
+    setSlots(cleared);
+    writeLocalSlots(summaryId, cleared);
     setSyncStatus('saving');
     try {
       await deleteStickyNote(summaryId);
@@ -143,7 +259,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     } catch {
       setSyncStatus('offline');
     }
-  }, [summaryId, value]);
+  }, [summaryId, slots]);
 
   // Flush pending debounced save on unmount
   useEffect(() => {
@@ -152,10 +268,29 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     };
   }, []);
 
+  const goBackToPicker = useCallback(() => setActiveSlot(null), []);
+  const goPrevSlot = useCallback(() => {
+    setActiveSlot((s) => (s === null ? null : (s + SLOT_COUNT - 1) % SLOT_COUNT));
+  }, []);
+  const goNextSlot = useCallback(() => {
+    setActiveSlot((s) => (s === null ? null : (s + 1) % SLOT_COUNT));
+  }, []);
+
+  // Preview: first non-empty line, trimmed.
+  const slotPreview = useCallback((text: string): string => {
+    const firstLine = text.split('\n').find((l) => l.trim().length > 0) ?? '';
+    return firstLine.trim();
+  }, []);
+
+  const hasAnyContent = useMemo(() => slots.some((s) => s.length > 0), [slots]);
+
   // Don't render anything if there's no summary context yet
   if (!summaryId) return null;
   // SSR / non-browser: bail
   if (typeof document === 'undefined') return null;
+
+  const width = expanded ? 420 : 280;
+  const activeValue = activeSlot === null ? '' : slots[activeSlot];
 
   // Render into a portal at document.body so we escape any ancestor
   // stacking context (transformed motion.div, layout headers with z-index,
@@ -176,7 +311,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
             transition={{ duration: 0.18 }}
             className="flex flex-col rounded-2xl border border-amber-200 bg-amber-50 shadow-lg"
             style={{
-              width: expanded ? 420 : 280,
+              width,
               maxHeight: 'calc(100vh - 8rem)',
               backgroundImage:
                 'repeating-linear-gradient(180deg, transparent 0, transparent 27px, rgba(180, 130, 30, 0.08) 28px)',
@@ -185,15 +320,28 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/70">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="p-1.5 rounded-lg bg-amber-200/60">
-                  <StickyNote size={14} className="text-amber-700" />
-                </div>
+                {activeSlot !== null ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-amber-700 hover:bg-amber-200/60"
+                    onClick={goBackToPicker}
+                    aria-label="Volver"
+                    title="Volver"
+                  >
+                    <ArrowLeft size={14} />
+                  </Button>
+                ) : (
+                  <div className="p-1.5 rounded-lg bg-amber-200/60">
+                    <StickyNote size={14} className="text-amber-700" />
+                  </div>
+                )}
                 <div className="min-w-0">
                   <p
                     className="text-xs text-amber-900 truncate"
                     style={{ fontFamily: 'Georgia, serif' }}
                   >
-                    Notas rápidas
+                    {activeSlot === null ? 'Notas rápidas' : SLOT_LABELS[activeSlot]}
                   </p>
                   {contextLabel && (
                     <p className="text-[10px] text-amber-700/70 truncate">
@@ -203,6 +351,30 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                {activeSlot !== null && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-amber-700 hover:bg-amber-200/60"
+                      onClick={goPrevSlot}
+                      aria-label="Nota anterior"
+                      title="Nota anterior"
+                    >
+                      <ChevronLeft size={12} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-amber-700 hover:bg-amber-200/60"
+                      onClick={goNextSlot}
+                      aria-label="Siguiente nota"
+                      title="Siguiente nota"
+                    >
+                      <ChevronRight size={12} />
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -226,19 +398,59 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
               </div>
             </div>
 
-            {/* Textarea */}
-            <textarea
-              value={value}
-              onChange={handleChange}
-              placeholder="Tu memoria RAM... escribe lo que necesites recordar mientras lees."
-              className="flex-1 resize-none bg-transparent px-4 py-3 text-sm text-amber-950 placeholder:text-amber-700/40 focus:outline-none"
-              style={{
-                fontFamily: 'Georgia, serif',
-                lineHeight: '28px',
-                minHeight: 220,
-              }}
-              spellCheck
-            />
+            {/* Body: picker (4 slices) or editor for one slot */}
+            {activeSlot === null ? (
+              <div
+                className="grid grid-cols-2 gap-2 p-3"
+                style={{ minHeight: 220 }}
+                role="list"
+                aria-label="Elegir nota"
+              >
+                {slots.map((text, i) => {
+                  const preview = slotPreview(text);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActiveSlot(i)}
+                      className="group flex flex-col items-start gap-1 rounded-xl border border-amber-200/80 bg-amber-100/40 px-3 py-2 text-left transition hover:bg-amber-100 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                      style={{ minHeight: 92 }}
+                      aria-label={`${SLOT_LABELS[i]}${preview ? `: ${preview}` : ' (vacía)'}`}
+                      role="listitem"
+                    >
+                      <span
+                        className="text-[11px] font-semibold text-amber-800"
+                        style={{ fontFamily: 'Georgia, serif' }}
+                      >
+                        {SLOT_LABELS[i]}
+                      </span>
+                      <span
+                        className="line-clamp-3 text-[11px] leading-snug text-amber-900/80"
+                        style={{ fontFamily: 'Georgia, serif' }}
+                      >
+                        {preview || (
+                          <span className="italic text-amber-700/50">Vacía — tocá para escribir</span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <textarea
+                value={activeValue}
+                onChange={handleSlotChange}
+                placeholder={`Tu memoria RAM... ${SLOT_LABELS[activeSlot]}`}
+                className="flex-1 resize-none bg-transparent px-4 py-3 text-sm text-amber-950 placeholder:text-amber-700/40 focus:outline-none"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  lineHeight: '28px',
+                  minHeight: 220,
+                }}
+                spellCheck
+                autoFocus
+              />
+            )}
 
             {/* Footer */}
             <div className="flex items-center justify-between px-3 py-2 border-t border-amber-200/70 text-[10px] text-amber-700/80">
@@ -275,12 +487,13 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
               </div>
               <button
                 type="button"
-                onClick={handleClear}
-                disabled={!value}
+                onClick={activeSlot === null ? handleClearAll : handleClearCurrent}
+                disabled={activeSlot === null ? !hasAnyContent : !slots[activeSlot]}
                 className="flex items-center gap-1 text-amber-700/80 hover:text-red-600 disabled:opacity-30 disabled:hover:text-amber-700/80"
+                title={activeSlot === null ? 'Borrar todas' : 'Borrar esta nota'}
               >
                 <Trash2 size={10} />
-                Limpiar
+                {activeSlot === null ? 'Limpiar todo' : 'Limpiar'}
               </button>
             </div>
           </motion.div>
@@ -298,7 +511,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
             title="Abrir notas rápidas"
           >
             <StickyNote size={18} />
-            {value && (
+            {hasAnyContent && (
               <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-50" />
             )}
           </motion.button>
