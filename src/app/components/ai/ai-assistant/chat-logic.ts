@@ -34,6 +34,7 @@ export async function sendChatMessage(
   msg: string,
   options: {
     summaryId?: string;
+    topicId?: string;
     history: ChatHistoryEntry[];
     onStreamStart: (msgId: string) => void;
     onStreamChunk: (msgId: string, accumulated: string) => void;
@@ -42,7 +43,7 @@ export async function sendChatMessage(
     onStreamEnd: () => void;
   },
 ): Promise<ChatSendResult> {
-  const { summaryId, history, onStreamStart, onStreamChunk, onStreamSources, onStreamDone, onStreamEnd } = options;
+  const { summaryId, topicId, history, onStreamStart, onStreamChunk, onStreamSources, onStreamDone, onStreamEnd } = options;
   const streamingMsgId = `msg-${Date.now()}-${Math.random()}`;
   let rafId: number | null = null;
 
@@ -52,6 +53,7 @@ export async function sendChatMessage(
 
     await chatStream(msg, {
       summaryId,
+      topicId,
       history,
       onChunk: (chunk) => {
         accumulated += chunk;
@@ -77,7 +79,7 @@ export async function sendChatMessage(
 
     // Fallback to non-streaming — streaming placeholder needs cleanup by caller
     try {
-      const result: RagChatResponse = await chat(msg, { history, summaryId });
+      const result: RagChatResponse = await chat(msg, { history, summaryId, topicId });
       const fallbackMsgId = `msg-${Date.now()}-${Math.random()}`;
       return {
         msgId: fallbackMsgId,
