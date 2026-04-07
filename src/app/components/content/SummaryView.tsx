@@ -32,7 +32,6 @@ import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { SummaryHeader } from '@/app/components/summary/SummaryHeader';
 import { ChunkRenderer } from '@/app/components/summary/ChunkRenderer';
-import { StickyNotesPanel } from '@/app/components/summary/StickyNotesPanel';
 import { KeywordsManager } from '@/app/components/professor/KeywordsManager';
 import { VideosManager } from '@/app/components/professor/VideosManager';
 import { QuickKeywordCreator } from '@/app/components/professor/QuickKeywordCreator';
@@ -329,38 +328,28 @@ export function SummaryView() {
   // ── Student path — always uses unified StudentSummaryReader ──
   if (!isProfessor && selectedSummary) {
     return (
-      <>
-        <StudentSummaryReader
-          summary={selectedSummary}
-          topicName={breadcrumb.topicName}
-          readingState={readingState}
-          onBack={handleBack}
-          onReadingStateChanged={(rs) => {
-            queryClient.setQueryData(
-              queryKeys.readingState(selectedSummary.id),
-              rs,
-            );
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.topicProgress(selectedSummary.topic_id),
-            });
-          }}
-          onNavigateKeyword={handleNavigateKeyword}
-        />
-        <StickyNotesPanel
-          summaryId={selectedSummary.id}
-          contextLabel={selectedSummary.title || breadcrumb.topicName}
-        />
-      </>
+      <StudentSummaryReader
+        summary={selectedSummary}
+        topicName={breadcrumb.topicName}
+        readingState={readingState}
+        onBack={handleBack}
+        onReadingStateChanged={(rs) => {
+          queryClient.setQueryData(
+            queryKeys.readingState(selectedSummary.id),
+            rs,
+          );
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.topicProgress(selectedSummary.topic_id),
+          });
+        }}
+        onNavigateKeyword={handleNavigateKeyword}
+      />
     );
   }
 
   // ── Professor path ──────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
-      <StickyNotesPanel
-        summaryId={selectedSummaryId}
-        contextLabel={selectedSummary?.title || breadcrumb.topicName}
-      />
       {/* Header */}
       {selectedSummary && (
         <div className="px-6 pt-6">
