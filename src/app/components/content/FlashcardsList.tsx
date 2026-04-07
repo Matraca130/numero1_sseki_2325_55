@@ -13,13 +13,14 @@ import type { Keyword } from '@/app/types/platform';
 import type { Subtopic } from '@/app/types/flashcard-manager';
 import { detectCardType } from '@/app/lib/flashcard-utils';
 import { extractImageUrl, extractText } from '../professor/FlashcardPreview';
+import { useFlashcardImage } from '@/app/hooks/useFlashcardImage';
 import {
   CreditCard, Plus, Pencil, Trash2,
   Tag,
   Eye, EyeOff, ArchiveRestore,
   ToggleLeft, ToggleRight,
   Copy, CheckSquare, Square,
-  Loader2,
+  Loader2, Wand2,
 } from 'lucide-react';
 
 // ── FlashcardCardItem (memoized) ──────────────────────────
@@ -54,6 +55,13 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
   const isDeleted = !!card.deleted_at;
   const isInactive = !card.is_active && !isDeleted;
   const cardType = detectCardType(card.front, card.back);
+  const hasImage = !!(card.front_image_url || extractImageUrl(card.front));
+  const { generateImage, isGenerating } = useFlashcardImage();
+
+  const handleRegenerateImage = async () => {
+    const promptText = extractText(card.front) || card.front;
+    await generateImage(card.id, { imagePrompt: promptText });
+  };
 
   // Find subtopic name
   const subtopicName = useMemo(() => {
@@ -165,6 +173,14 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
                 title="Editar"
               >
                 <Pencil size={14} />
+              </button>
+              <button
+                onClick={handleRegenerateImage}
+                disabled={isGenerating}
+                className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-all disabled:opacity-50"
+                title={hasImage ? 'Regenerar imagen con IA' : 'Generar imagen con IA'}
+              >
+                {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
               </button>
               <button
                 onClick={() => onDuplicate(card)}
