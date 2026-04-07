@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
+import { StickyNotesPanel } from '@/app/components/summary/StickyNotesPanel';
 import { MasteryLegend } from '@/app/components/student/MasteryLegend';
 import { SearchBar } from '@/app/components/student/SearchBar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
@@ -391,6 +392,7 @@ export function StudentSummaryReader({
   };
 
   return (
+    <>
     <motion.div
       ref={readerRef}
       initial={{ opacity: 0, x: 10 }}
@@ -756,5 +758,10 @@ export function StudentSummaryReader({
         </div>{/* end flex-1 content wrapper */}
       </div>{/* end flex layout */}
     </motion.div>
+    <StickyNotesPanel
+      summaryId={summary.id}
+      contextLabel={summary.title || topicName}
+    />
+    </>
   );
 }
