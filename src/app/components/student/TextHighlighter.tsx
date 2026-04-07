@@ -56,10 +56,10 @@ export interface Segment {
 }
 
 export function buildSegments(fullText: string, annotations: TextAnnotation[]): Segment[] {
-  if (annotations.length === 0) return [{ text: fullText }];
+  const live = annotations.filter(a => !a.deleted_at);
+  if (live.length === 0) return [{ text: fullText }];
 
-  // Sort by start_offset (caller already filters deleted_at)
-  const sorted = [...annotations]
+  const sorted = [...live]
     .sort((a, b) => a.start_offset - b.start_offset);
 
   const segments: Segment[] = [];

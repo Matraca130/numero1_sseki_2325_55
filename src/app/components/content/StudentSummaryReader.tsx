@@ -1,20 +1,7 @@
-// ============================================================
 // Axon — StudentSummaryReader (read-only summary with student features)
-//
-// REFACTORED (Phase B): Mutations → hook, helpers → imports,
-// Annotations/Keywords tabs → sub-components.
-// 51KB → ~25KB. All E2E connections preserved.
-//
-// Sub-components used:
-//   - summary-content-helpers (enrichHtmlWithImages, pagination, renderPlainLine)
-//   - reader-atoms (ListSkeleton, TabBadge)
-//   - useSummaryReaderMutations (7 mutations → 1 hook)
-//   - ReaderAnnotationsTab (self-contained annotations CRUD)
-//   - ReaderKeywordsTab (self-contained keywords + notes)
-// ============================================================
+// Refactored (Phase B): mutations hook, helpers, tab sub-components, keyword page nav hook.
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from 'sonner';
 import {
   ChevronLeft, Layers, Tag, Video as VideoIcon,
   CheckCircle2, Clock, Loader2,
@@ -70,6 +57,7 @@ import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
 import { StudyTimer } from '@/app/components/student/StudyTimer';
 import ReadingSettingsPanel, { useReadingSettings } from '@/app/components/student/ReadingSettingsPanel';
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
+import { useKeywordPageNavigation } from '@/app/hooks/useKeywordPageNavigation';
 
 // ── Props ─────────────────────────────────────────────────
 interface StudentSummaryReaderProps {
@@ -261,58 +249,19 @@ export function StudentSummaryReader({
 
   const safePage = Math.min(contentPage, Math.max(0, totalPages - 1));
 
-  // MEJORA-P1: Map each keyword ID to its first page index.
-  const keywordPageMap = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!keywords.length || totalPages <= 1) return map;
-
-    const pageTexts = isHtmlContent
-      ? htmlPages.map(h => h.replace(/<[^>]+>/g, ''))
-      : textPages.map(lines => lines.join('\n'));
-
-    for (const kw of keywords) {
-      const needle = kw.name.toLowerCase();
-      for (let i = 0; i < pageTexts.length; i++) {
-        if (pageTexts[i].toLowerCase().includes(needle)) {
-          map.set(kw.id, i);
-          break;
-        }
-      }
-    }
-    return map;
-  }, [keywords, htmlPages, textPages, isHtmlContent, totalPages]);
-
-  // MEJORA-P1: Pending cross-page keyword navigation.
-  const pendingPageNavRef = useRef<{ keywordId: string; summaryId: string } | null>(null);
-
-  useEffect(() => {
-    if (!pendingPageNavRef.current) return;
-    const { keywordId, summaryId } = pendingPageNavRef.current;
-    pendingPageNavRef.current = null;
-
-    const timer = window.setTimeout(() => {
-      onNavigateKeyword?.(keywordId, summaryId);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [contentPage, onNavigateKeyword]);
-
-  // MEJORA-P1: Wrap onNavigateKeyword to handle cross-page navigation.
-  const handleNavigateKeywordWrapped = useCallback(
-    (keywordId: string, summaryId: string) => {
-      if (summaryId === summary.id && totalPages > 1) {
-        const targetPage = keywordPageMap.get(keywordId);
-        if (targetPage !== undefined && targetPage !== safePage) {
-          setContentPage(targetPage);
-          pendingPageNavRef.current = { keywordId, summaryId };
-          toast.info('Navegando a otra pagina del resumen...');
-          return;
-        }
-      }
-      onNavigateKeyword?.(keywordId, summaryId);
-    },
-    [summary.id, totalPages, keywordPageMap, safePage, onNavigateKeyword],
-  );
+  // MEJORA-P1: Cross-page keyword navigation (extracted hook)
+  const { handleNavigateKeyword: handleNavigateKeywordWrapped } = useKeywordPageNavigation({
+    summaryId: summary.id,
+    keywords,
+    isHtmlContent,
+    htmlPages,
+    textPages,
+    totalPages,
+    safePage,
+    contentPage,
+    setContentPage,
+    onNavigateKeyword,
+  });
 
   // ── Keywords: React Query on-demand (cache per keywordId) ──
   const [expandedKeyword, setExpandedKeyword] = useState<string | null>(null);
