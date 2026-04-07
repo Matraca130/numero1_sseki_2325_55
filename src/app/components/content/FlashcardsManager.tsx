@@ -65,7 +65,7 @@ export function FlashcardsManager({ summaryId }: FlashcardsManagerProps) {
       />
 
       {/* ── Content Area ── */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         {/* Type statistics */}
         {!state.flashcardsLoading && (
           <FlashcardStatsBar

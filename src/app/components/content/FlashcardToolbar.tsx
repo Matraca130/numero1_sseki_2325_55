@@ -94,15 +94,15 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
   return (
     <>
       {/* ── Header Bar ── */}
-      <div className="bg-white border-b border-gray-100 px-6 py-3 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
+      <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-3 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
               <CreditCard size={16} className="text-purple-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-bold text-gray-900 text-sm">Flashcards</h2>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-400 truncate">
                 {counters.active} activa{counters.active !== 1 ? 's' : ''}
                 {counters.inactive > 0 && (
                   <span className="text-amber-500">, {counters.inactive} inactiva{counters.inactive !== 1 ? 's' : ''}</span>
@@ -111,21 +111,23 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={onBulkImportClick}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-all"
+              title="Importar en lote"
+              className="flex items-center gap-2 px-3 sm:px-3.5 py-2 min-h-[40px] rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-all"
             >
               <Upload size={14} />
-              Importar en lote
+              <span className="hidden sm:inline">Importar en lote</span>
             </button>
             {/* Export dropdown */}
             <div className="relative group/export">
               <button
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-green-50 hover:border-green-200 hover:text-green-600 transition-all"
+                title="Exportar"
+                className="flex items-center gap-2 px-3 sm:px-3.5 py-2 min-h-[40px] rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-green-50 hover:border-green-200 hover:text-green-600 transition-all"
               >
                 <Download size={14} />
-                Exportar
+                <span className="hidden sm:inline">Exportar</span>
                 <ChevronDown size={12} />
               </button>
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20 hidden group-hover/export:block min-w-[180px]">
@@ -150,10 +152,11 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
             </div>
             <button
               onClick={onCreateClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all shadow-sm shadow-teal-200"
+              title="Nueva Flashcard"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-full bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all shadow-sm shadow-teal-200"
             >
               <Plus size={16} />
-              Nueva Flashcard
+              <span className="hidden sm:inline">Nueva Flashcard</span>
             </button>
           </div>
         </div>
@@ -161,18 +164,18 @@ export const FlashcardToolbar = React.memo(function FlashcardToolbar({
 
       {/* ── Filter Bar ── */}
       {flashcardsCount > 0 && (
-        <div className="bg-white border-b border-gray-100 px-6 py-2.5 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-2.5 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
               {/* Search */}
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar flashcards..."
-                  className="pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-xs w-52 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+                  className="pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-xs w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
                 />
               </div>
 
