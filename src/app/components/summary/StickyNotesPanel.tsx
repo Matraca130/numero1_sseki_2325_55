@@ -73,6 +73,12 @@ function displayTitle(slot: Slot, index: number): string {
   return slot.title.trim() || DEFAULT_SLOT_LABELS[index];
 }
 
+// First non-empty line of a note body, used as preview text in the picker.
+function slotPreview(text: string): string {
+  const firstLine = text.split('\n').find((l) => l.trim().length > 0) ?? '';
+  return firstLine.trim();
+}
+
 /**
  * Parse a persisted content string into a 4-slot tuple.
  * Back-compat:
@@ -214,9 +220,16 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     }
   }, [open]);
 
-  // Persist last-opened slot per summary
+  // Persist last-opened slot per summary. Skip writes until after the
+  // load effect has populated state for this summaryId, otherwise the
+  // previous summary's activeSlot leaks into the new summary's key.
+  const activeSlotHydratedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!summaryId) return;
+    if (activeSlotHydratedRef.current !== summaryId) {
+      activeSlotHydratedRef.current = summaryId;
+      return;
+    }
     writeActiveSlot(summaryId, activeSlot);
   }, [summaryId, activeSlot]);
 
@@ -273,11 +286,11 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
   const handleClearCurrent = useCallback(async () => {
     if (activeSlot === null) return;
     const current = slots[activeSlot];
-    if (!current.content) return;
-    if (!window.confirm(`¿Borrar el contenido de "${displayTitle(current, activeSlot)}"?`)) return;
+    if (!current.title && !current.content) return;
+    if (!window.confirm(`¿Borrar "${displayTitle(current, activeSlot)}"?`)) return;
     setSlots((prev) => {
       const updated = [...prev] as Slots;
-      updated[activeSlot] = { ...updated[activeSlot], content: '' };
+      updated[activeSlot] = emptySlot();
       scheduleSave(updated);
       return updated;
     });
@@ -313,12 +326,6 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
   }, []);
   const goNextSlot = useCallback(() => {
     setActiveSlot((s) => (s === null ? null : (s + 1) % SLOT_COUNT));
-  }, []);
-
-  // Preview: first non-empty line, trimmed.
-  const slotPreview = useCallback((text: string): string => {
-    const firstLine = text.split('\n').find((l) => l.trim().length > 0) ?? '';
-    return firstLine.trim();
   }, []);
 
   const hasAnyContent = useMemo(
@@ -478,7 +485,6 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                           type="text"
                           value={slot.title}
                           onChange={(e) => handleTitleChange(i, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
                           placeholder={DEFAULT_SLOT_LABELS[i]}
                           maxLength={MAX_TITLE_LENGTH}
                           aria-label={`Nombre de ${DEFAULT_SLOT_LABELS[i]}`}
@@ -565,7 +571,9 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                 type="button"
                 onClick={activeSlot === null ? handleClearAll : handleClearCurrent}
                 disabled={
-                  activeSlot === null ? !hasAnyContent : !slots[activeSlot].content
+                  activeSlot === null
+                    ? !hasAnyContent
+                    : !slots[activeSlot].content && !slots[activeSlot].title
                 }
                 className="flex items-center gap-1 text-amber-700/80 hover:text-red-600 disabled:opacity-30 disabled:hover:text-amber-700/80"
                 title={activeSlot === null ? 'Borrar todas' : 'Borrar esta nota'}
