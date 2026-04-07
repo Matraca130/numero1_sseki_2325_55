@@ -208,7 +208,7 @@ function StudentShell() {
       {/* ── AI Assistant Panel (lazy-loaded) ── */}
       {isAIOpen && (
         <React.Suspense fallback={null}>
-          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} summaryId={activeSummaryId} />
+          <AxonAIAssistant isOpen={isAIOpen} onClose={() => setAIOpen(false)} summaryId={summaryId} />
         </React.Suspense>
       )}
 
