@@ -1,6 +1,7 @@
 import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
+import { convert } from 'html-to-text';
 
 interface KeywordPageNavParams {
   summaryId: string;
@@ -32,7 +33,11 @@ export function useKeywordPageNavigation({
     if (!keywords.length || totalPages <= 1) return map;
 
     const pageTexts = isHtmlContent
-      ? htmlPages.map(h => h.replace(/<[^>]+>/g, ''))
+      ? htmlPages.map(h =>
+          convert(h, {
+            wordwrap: false,
+          }),
+        )
       : textPages.map(lines => lines.join('\n'));
 
     for (const kw of keywords) {
