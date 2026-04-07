@@ -3,8 +3,9 @@
 //
 // A floating, persistent "RAM-memory" notes panel that follows
 // the user as they scroll through a summary. Acts like a sticky
-// notepad: continuous text area, autosaved to localStorage,
-// keyed by summaryId so each summary keeps its own scratchpad.
+// notepad: continuous text area, autosaved to the backend
+// (table public.sticky_notes via /sticky-notes endpoint) and
+// mirrored to localStorage for instant reads + offline fallback.
 //
 // Design intent (per Stitch / shadcn-ui guidance):
 //   - Pinned to the right side of the viewport (position: fixed)
@@ -14,8 +15,13 @@
 // ============================================================
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { StickyNote, X, Save, Trash2, Maximize2, Minimize2 } from 'lucide-react';
+import { StickyNote, X, Save, Trash2, Maximize2, Minimize2, CloudOff, Cloud } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
+import {
+  getStickyNote,
+  upsertStickyNote,
+  deleteStickyNote,
+} from '@/app/services/stickyNotesApi';
 
 interface StickyNotesPanelProps {
   /** Identifier used to scope notes per summary. */
@@ -26,7 +32,9 @@ interface StickyNotesPanelProps {
 
 const STORAGE_PREFIX = 'axon:sticky-notes:';
 
-function readNote(summaryId: string): string {
+type SyncStatus = 'idle' | 'saving' | 'saved' | 'offline';
+
+function readLocalNote(summaryId: string): string {
   try {
     return localStorage.getItem(STORAGE_PREFIX + summaryId) || '';
   } catch {
@@ -34,7 +42,7 @@ function readNote(summaryId: string): string {
   }
 }
 
-function writeNote(summaryId: string, value: string) {
+function writeLocalNote(summaryId: string, value: string) {
   try {
     if (value) {
       localStorage.setItem(STORAGE_PREFIX + summaryId, value);
@@ -57,15 +65,36 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
   const [expanded, setExpanded] = useState(false);
   const [value, setValue] = useState('');
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const debounceRef = useRef<number | null>(null);
+  // Tracks the summaryId for which the latest async load is valid (race-safety)
+  const loadTokenRef = useRef<string | null>(null);
 
-  // Load note when summary changes
+  // Load note when summary changes — local first (instant), then backend (truth).
   useEffect(() => {
     if (!summaryId) {
       setValue('');
       return;
     }
-    setValue(readNote(summaryId));
+    // Optimistic: show cached value immediately
+    setValue(readLocalNote(summaryId));
+    setSyncStatus('idle');
+    loadTokenRef.current = summaryId;
+
+    (async () => {
+      try {
+        const remote = await getStickyNote(summaryId);
+        // Bail if the user switched summaries while we were fetching
+        if (loadTokenRef.current !== summaryId) return;
+        const remoteContent = remote?.content ?? '';
+        setValue(remoteContent);
+        writeLocalNote(summaryId, remoteContent);
+      } catch {
+        // Network/auth error → keep the localStorage value as fallback
+        if (loadTokenRef.current !== summaryId) return;
+        setSyncStatus('offline');
+      }
+    })();
   }, [summaryId]);
 
   // Persist open/closed state
@@ -82,23 +111,45 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
       const next = e.target.value;
       setValue(next);
       if (!summaryId) return;
+      // Local mirror is synchronous → never lose typing
+      writeLocalNote(summaryId, next);
+      setSyncStatus('saving');
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      debounceRef.current = window.setTimeout(() => {
-        writeNote(summaryId, next);
-        setSavedAt(Date.now());
-      }, 400);
+      debounceRef.current = window.setTimeout(async () => {
+        try {
+          await upsertStickyNote({ summary_id: summaryId, content: next });
+          setSyncStatus('saved');
+          setSavedAt(Date.now());
+        } catch {
+          setSyncStatus('offline');
+        }
+      }, 600);
     },
     [summaryId],
   );
 
-  const handleClear = useCallback(() => {
+  const handleClear = useCallback(async () => {
     if (!summaryId) return;
     if (!value) return;
     if (!window.confirm('¿Borrar todas las notas de este resumen?')) return;
     setValue('');
-    writeNote(summaryId, '');
-    setSavedAt(Date.now());
+    writeLocalNote(summaryId, '');
+    setSyncStatus('saving');
+    try {
+      await deleteStickyNote(summaryId);
+      setSyncStatus('saved');
+      setSavedAt(Date.now());
+    } catch {
+      setSyncStatus('offline');
+    }
   }, [summaryId, value]);
+
+  // Flush pending debounced save on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // Don't render anything if there's no summary context yet
   if (!summaryId) return null;
@@ -186,15 +237,35 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
             {/* Footer */}
             <div className="flex items-center justify-between px-3 py-2 border-t border-amber-200/70 text-[10px] text-amber-700/80">
               <div className="flex items-center gap-1">
-                <Save size={10} />
-                <span>
-                  {savedAt
-                    ? `Guardado ${new Date(savedAt).toLocaleTimeString([], {
+                {syncStatus === 'offline' ? (
+                  <>
+                    <CloudOff size={10} className="text-amber-700/60" />
+                    <span title="Guardado localmente — sin conexión al servidor">
+                      Solo local
+                    </span>
+                  </>
+                ) : syncStatus === 'saving' ? (
+                  <>
+                    <Save size={10} />
+                    <span>Guardando...</span>
+                  </>
+                ) : savedAt ? (
+                  <>
+                    <Cloud size={10} />
+                    <span>
+                      Guardado{' '}
+                      {new Date(savedAt).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
-                      })}`
-                    : 'Autoguardado'}
-                </span>
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={10} />
+                    <span>Autoguardado en la nube</span>
+                  </>
+                )}
               </div>
               <button
                 type="button"
