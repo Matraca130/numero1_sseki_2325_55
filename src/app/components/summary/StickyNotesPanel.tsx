@@ -9,9 +9,9 @@
 // is supported and the last-opened slot is persisted per summary.
 //
 // Storage:
-//   - Backend `content` field stores a JSON-serialized
-//     4-string array. Plain-text legacy notes are migrated into
-//     slot 0 on first load.
+//   - Backend `content` field stores a JSON-serialized array of 4
+//     `{ title, content }` objects. Legacy formats (plain text or a
+//     4-string array) are migrated automatically on first load.
 //   - localStorage mirrors the same JSON for instant reads and
 //     offline fallback.
 //   - The last-opened slot is persisted per summary under
@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -50,18 +51,34 @@ interface StickyNotesPanelProps {
 const STORAGE_PREFIX = 'axon:sticky-notes:';
 const ACTIVE_SLOT_PREFIX = 'axon:sticky-notes:active:';
 const SLOT_COUNT = 4;
-const SLOT_LABELS = ['Nota 1', 'Nota 2', 'Nota 3', 'Nota 4'];
+const DEFAULT_SLOT_LABELS = ['Nota 1', 'Nota 2', 'Nota 3', 'Nota 4'];
+const MAX_TITLE_LENGTH = 40;
 
-type Slots = [string, string, string, string];
+interface Slot {
+  title: string;
+  content: string;
+}
+type Slots = [Slot, Slot, Slot, Slot];
 type SyncStatus = 'idle' | 'saving' | 'saved' | 'offline';
 
+function emptySlot(): Slot {
+  return { title: '', content: '' };
+}
+
 function emptySlots(): Slots {
-  return ['', '', '', ''];
+  return [emptySlot(), emptySlot(), emptySlot(), emptySlot()];
+}
+
+function displayTitle(slot: Slot, index: number): string {
+  return slot.title.trim() || DEFAULT_SLOT_LABELS[index];
 }
 
 /**
  * Parse a persisted content string into a 4-slot tuple.
- * Back-compat: plain-text legacy notes are placed into slot 0.
+ * Back-compat:
+ *   - Plain-text legacy notes → placed into slot 0 content.
+ *   - Array of strings (previous format) → wrapped with empty titles.
+ *   - Array of `{title, content}` (current format) → used directly.
  */
 function parseSlots(raw: string | null | undefined): Slots {
   if (!raw) return emptySlots();
@@ -70,7 +87,15 @@ function parseSlots(raw: string | null | undefined): Slots {
     if (Array.isArray(parsed)) {
       const out = emptySlots();
       for (let i = 0; i < SLOT_COUNT; i++) {
-        out[i] = typeof parsed[i] === 'string' ? parsed[i] : '';
+        const item = parsed[i];
+        if (typeof item === 'string') {
+          out[i] = { title: '', content: item };
+        } else if (item && typeof item === 'object') {
+          out[i] = {
+            title: typeof item.title === 'string' ? item.title : '',
+            content: typeof item.content === 'string' ? item.content : '',
+          };
+        }
       }
       return out;
     }
@@ -78,14 +103,14 @@ function parseSlots(raw: string | null | undefined): Slots {
     /* legacy plain text */
   }
   const out = emptySlots();
-  out[0] = String(raw);
+  out[0] = { title: '', content: String(raw) };
   return out;
 }
 
 function serializeSlots(slots: Slots): string {
-  // If every slot is empty we persist an empty string so the
-  // clear/delete semantics keep working with the backend.
-  if (slots.every((s) => !s)) return '';
+  // If every slot is entirely empty (no title, no content) we persist an
+  // empty string so the clear/delete semantics keep working with the backend.
+  if (slots.every((s) => !s.title && !s.content)) return '';
   return JSON.stringify(slots);
 }
 
@@ -224,7 +249,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
       const next = e.target.value;
       setSlots((prev) => {
         const updated = [...prev] as Slots;
-        updated[activeSlot] = next;
+        updated[activeSlot] = { ...updated[activeSlot], content: next };
         scheduleSave(updated);
         return updated;
       });
@@ -232,13 +257,27 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     [activeSlot, scheduleSave],
   );
 
+  const handleTitleChange = useCallback(
+    (index: number, rawTitle: string) => {
+      const next = rawTitle.slice(0, MAX_TITLE_LENGTH);
+      setSlots((prev) => {
+        const updated = [...prev] as Slots;
+        updated[index] = { ...updated[index], title: next };
+        scheduleSave(updated);
+        return updated;
+      });
+    },
+    [scheduleSave],
+  );
+
   const handleClearCurrent = useCallback(async () => {
     if (activeSlot === null) return;
-    if (!slots[activeSlot]) return;
-    if (!window.confirm(`¿Borrar ${SLOT_LABELS[activeSlot]}?`)) return;
+    const current = slots[activeSlot];
+    if (!current.content) return;
+    if (!window.confirm(`¿Borrar el contenido de "${displayTitle(current, activeSlot)}"?`)) return;
     setSlots((prev) => {
       const updated = [...prev] as Slots;
-      updated[activeSlot] = '';
+      updated[activeSlot] = { ...updated[activeSlot], content: '' };
       scheduleSave(updated);
       return updated;
     });
@@ -246,7 +285,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
 
   const handleClearAll = useCallback(async () => {
     if (!summaryId) return;
-    if (slots.every((s) => !s)) return;
+    if (slots.every((s) => !s.title && !s.content)) return;
     if (!window.confirm('¿Borrar TODAS las notas rápidas de este resumen?')) return;
     const cleared = emptySlots();
     setSlots(cleared);
@@ -282,7 +321,10 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     return firstLine.trim();
   }, []);
 
-  const hasAnyContent = useMemo(() => slots.some((s) => s.length > 0), [slots]);
+  const hasAnyContent = useMemo(
+    () => slots.some((s) => s.content.length > 0 || s.title.length > 0),
+    [slots],
+  );
 
   // Don't render anything if there's no summary context yet
   if (!summaryId) return null;
@@ -290,7 +332,8 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
   if (typeof document === 'undefined') return null;
 
   const width = expanded ? 420 : 280;
-  const activeValue = activeSlot === null ? '' : slots[activeSlot];
+  const activeSlotValue: Slot =
+    activeSlot === null ? emptySlot() : slots[activeSlot];
 
   // Render into a portal at document.body so we escape any ancestor
   // stacking context (transformed motion.div, layout headers with z-index,
@@ -336,13 +379,27 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                     <StickyNote size={14} className="text-amber-700" />
                   </div>
                 )}
-                <div className="min-w-0">
-                  <p
-                    className="text-xs text-amber-900 truncate"
-                    style={{ fontFamily: 'Georgia, serif' }}
-                  >
-                    {activeSlot === null ? 'Notas rápidas' : SLOT_LABELS[activeSlot]}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  {activeSlot === null ? (
+                    <p
+                      className="text-xs text-amber-900 truncate"
+                      style={{ fontFamily: 'Georgia, serif' }}
+                    >
+                      Notas rápidas
+                    </p>
+                  ) : (
+                    <input
+                      type="text"
+                      value={activeSlotValue.title}
+                      onChange={(e) => handleTitleChange(activeSlot, e.target.value)}
+                      placeholder={DEFAULT_SLOT_LABELS[activeSlot]}
+                      maxLength={MAX_TITLE_LENGTH}
+                      aria-label="Nombre de la nota"
+                      title="Cambiar nombre de la nota"
+                      className="w-full bg-transparent text-xs text-amber-900 placeholder:text-amber-700/50 focus:outline-none focus:ring-1 focus:ring-amber-400/60 rounded px-1 -mx-1"
+                      style={{ fontFamily: 'Georgia, serif' }}
+                    />
+                  )}
                   {contextLabel && (
                     <p className="text-[10px] text-amber-700/70 truncate">
                       {contextLabel}
@@ -406,41 +463,61 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                 role="list"
                 aria-label="Elegir nota"
               >
-                {slots.map((text, i) => {
-                  const preview = slotPreview(text);
+                {slots.map((slot, i) => {
+                  const preview = slotPreview(slot.content);
+                  const label = displayTitle(slot, i);
                   return (
-                    <button
+                    <div
                       key={i}
-                      type="button"
-                      onClick={() => setActiveSlot(i)}
-                      className="group flex flex-col items-start gap-1 rounded-xl border border-amber-200/80 bg-amber-100/40 px-3 py-2 text-left transition hover:bg-amber-100 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400/60"
-                      style={{ minHeight: 92 }}
-                      aria-label={`${SLOT_LABELS[i]}${preview ? `: ${preview}` : ' (vacía)'}`}
+                      className="group relative flex flex-col items-stretch gap-1 rounded-xl border border-amber-200/80 bg-amber-100/40 px-3 py-2 transition hover:bg-amber-100 hover:shadow-sm focus-within:ring-2 focus-within:ring-amber-400/60"
+                      style={{ minHeight: 96 }}
                       role="listitem"
                     >
-                      <span
-                        className="text-[11px] font-semibold text-amber-800"
-                        style={{ fontFamily: 'Georgia, serif' }}
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={slot.title}
+                          onChange={(e) => handleTitleChange(i, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder={DEFAULT_SLOT_LABELS[i]}
+                          maxLength={MAX_TITLE_LENGTH}
+                          aria-label={`Nombre de ${DEFAULT_SLOT_LABELS[i]}`}
+                          title="Cambiar nombre"
+                          className="min-w-0 flex-1 bg-transparent text-[11px] font-semibold text-amber-800 placeholder:text-amber-700/50 focus:outline-none focus:ring-1 focus:ring-amber-400/60 rounded px-1 -mx-1"
+                          style={{ fontFamily: 'Georgia, serif' }}
+                        />
+                        <Pencil
+                          size={10}
+                          className="text-amber-700/40 group-hover:text-amber-700/80 shrink-0"
+                          aria-hidden
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSlot(i)}
+                        className="flex-1 text-left focus:outline-none"
+                        aria-label={`Abrir ${label}${preview ? `: ${preview}` : ' (vacía)'}`}
                       >
-                        {SLOT_LABELS[i]}
-                      </span>
-                      <span
-                        className="line-clamp-3 text-[11px] leading-snug text-amber-900/80"
-                        style={{ fontFamily: 'Georgia, serif' }}
-                      >
-                        {preview || (
-                          <span className="italic text-amber-700/50">Vacía — tocá para escribir</span>
-                        )}
-                      </span>
-                    </button>
+                        <span
+                          className="line-clamp-3 text-[11px] leading-snug text-amber-900/80"
+                          style={{ fontFamily: 'Georgia, serif' }}
+                        >
+                          {preview || (
+                            <span className="italic text-amber-700/50">
+                              Vacía — tocá para escribir
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
             ) : (
               <textarea
-                value={activeValue}
+                value={activeSlotValue.content}
                 onChange={handleSlotChange}
-                placeholder={`Tu memoria RAM... ${SLOT_LABELS[activeSlot]}`}
+                placeholder={`Tu memoria RAM... ${displayTitle(activeSlotValue, activeSlot)}`}
                 className="flex-1 resize-none bg-transparent px-4 py-3 text-sm text-amber-950 placeholder:text-amber-700/40 focus:outline-none"
                 style={{
                   fontFamily: 'Georgia, serif',
@@ -448,7 +525,6 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                   minHeight: 220,
                 }}
                 spellCheck
-                autoFocus
               />
             )}
 
@@ -488,7 +564,9 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
               <button
                 type="button"
                 onClick={activeSlot === null ? handleClearAll : handleClearCurrent}
-                disabled={activeSlot === null ? !hasAnyContent : !slots[activeSlot]}
+                disabled={
+                  activeSlot === null ? !hasAnyContent : !slots[activeSlot].content
+                }
                 className="flex items-center gap-1 text-amber-700/80 hover:text-red-600 disabled:opacity-30 disabled:hover:text-amber-700/80"
                 title={activeSlot === null ? 'Borrar todas' : 'Borrar esta nota'}
               >
