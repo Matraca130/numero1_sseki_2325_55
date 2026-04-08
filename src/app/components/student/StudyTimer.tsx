@@ -1,13 +1,15 @@
 // ============================================================
 // Axon — Student: StudyTimer (Pomodoro)
 //
-// Fixed-position Pomodoro timer widget with study (25 min) and
+// Draggable Pomodoro timer widget with study (25 min) and
 // break (5 min) modes that auto-switch. Shows mm:ss countdown,
-// progress bar, and play/pause/reset controls.
+// progress bar, and play/pause/reset controls. User can drag
+// the widget by its header to reposition it anywhere on screen;
+// the chosen position is persisted in localStorage.
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCw, X, Plus, Minus } from 'lucide-react';
+import { Play, Pause, RotateCw, X, Plus, Minus, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiCall } from '@/app/lib/api';
 
@@ -19,6 +21,41 @@ const MIN_MINUTES = 1;
 const MAX_STUDY_MINUTES = 120;
 const MAX_BREAK_MINUTES = 30;
 const STEP_MINUTES = 5;
+
+// Persisted position (viewport coordinates in px, top-left origin)
+const POSITION_STORAGE_KEY = 'axon:studyTimer:position';
+// Approximate widget size used for bounds-clamping before layout is measured
+const ESTIMATED_WIDGET_WIDTH = 220;
+const ESTIMATED_WIDGET_HEIGHT = 180;
+const EDGE_MARGIN = 8;
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+function loadSavedPosition(): Position | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Position>;
+    if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
+    return { x: parsed.x, y: parsed.y };
+  } catch {
+    return null;
+  }
+}
+
+function clampToViewport(pos: Position, width: number, height: number): Position {
+  if (typeof window === 'undefined') return pos;
+  const maxX = Math.max(EDGE_MARGIN, window.innerWidth - width - EDGE_MARGIN);
+  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - height - EDGE_MARGIN);
+  return {
+    x: Math.min(Math.max(EDGE_MARGIN, pos.x), maxX),
+    y: Math.min(Math.max(EDGE_MARGIN, pos.y), maxY),
+  };
+}
 
 type TimerMode = 'study' | 'break';
 
@@ -39,8 +76,87 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
+  // ── Draggable position state ─────────────────────────
+  // `position` is null on first load (widget uses default bottom-right CSS).
+  // Once the user drags, we switch to absolute x/y coordinates stored in localStorage.
+  const [position, setPosition] = useState<Position | null>(() => loadSavedPosition());
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const dragOffsetRef = useRef<Position>({ x: 0, y: 0 });
+  const didDragRef = useRef(false);
+
   const totalSeconds = mode === 'study' ? studyMinutes * 60 : breakMinutes * 60;
   const progress = 1 - seconds / totalSeconds;
+
+  // ── Drag handlers ────────────────────────────────────
+
+  const handleDragPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // Ignore clicks on interactive children (e.g., close button)
+    if ((e.target as HTMLElement).closest('button')) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    dragOffsetRef.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+    didDragRef.current = false;
+    setIsDragging(true);
+    // Seed position from current on-screen rect so the first move is smooth
+    // even when we were still using the default bottom/right CSS.
+    setPosition({ x: rect.left, y: rect.top });
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }, []);
+
+  const handleDragPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    const container = containerRef.current;
+    const width = container?.offsetWidth ?? ESTIMATED_WIDGET_WIDTH;
+    const height = container?.offsetHeight ?? ESTIMATED_WIDGET_HEIGHT;
+    const next = clampToViewport(
+      {
+        x: e.clientX - dragOffsetRef.current.x,
+        y: e.clientY - dragOffsetRef.current.y,
+      },
+      width,
+      height,
+    );
+    didDragRef.current = true;
+    setPosition(next);
+  }, [isDragging]);
+
+  const handleDragPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore if pointer was not captured
+    }
+    if (didDragRef.current && position) {
+      try {
+        window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
+      } catch {
+        // localStorage unavailable — silently ignore
+      }
+    }
+  }, [isDragging, position]);
+
+  // ── Re-clamp on window resize so the widget never falls off-screen ──
+
+  useEffect(() => {
+    if (!position) return;
+    const handleResize = () => {
+      const container = containerRef.current;
+      const width = container?.offsetWidth ?? ESTIMATED_WIDGET_WIDTH;
+      const height = container?.offsetHeight ?? ESTIMATED_WIDGET_HEIGHT;
+      setPosition((prev) => (prev ? clampToViewport(prev, width, height) : prev));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [position]);
 
   // ── Tick logic ───────────────────────────────────────
 
@@ -157,17 +273,36 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
   const barBg = isBrk ? 'bg-amber-400' : 'bg-teal-400';
   const labelColor = isBrk ? 'text-amber-600' : 'text-teal-600';
 
+  // If the user has dragged the widget we use absolute x/y; otherwise we fall
+  // back to the original bottom-right CSS anchor so first-time users see it
+  // exactly where it used to be.
+  const positionStyle: React.CSSProperties = position
+    ? { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto' }
+    : { right: '20px', bottom: '20px' };
+
   return (
     <div
-      className="fixed bottom-5 right-5 z-[400] min-w-[180px] rounded-2xl border border-gray-200 bg-white shadow-lg"
+      ref={containerRef}
+      className={`fixed z-[400] min-w-[180px] rounded-2xl border border-gray-200 bg-white shadow-lg ${isDragging ? 'select-none shadow-xl' : ''}`}
+      style={positionStyle}
       role="timer"
       aria-label={`${mode === 'study' ? 'Estudio' : 'Descanso'} ${display}`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className={`text-xs font-semibold uppercase tracking-wide ${labelColor}`}>
-          {mode === 'study' ? 'Estudio' : 'Descanso'}
-        </span>
+      {/* Header — doubles as drag handle */}
+      <div
+        className="flex items-center justify-between px-3 pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
+        onPointerDown={handleDragPointerDown}
+        onPointerMove={handleDragPointerMove}
+        onPointerUp={handleDragPointerUp}
+        onPointerCancel={handleDragPointerUp}
+        title="Arrastrar para mover"
+      >
+        <div className="flex items-center gap-1">
+          <GripVertical size={12} className="text-gray-300" aria-hidden="true" />
+          <span className={`text-xs font-semibold uppercase tracking-wide ${labelColor}`}>
+            {mode === 'study' ? 'Estudio' : 'Descanso'}
+          </span>
+        </div>
         <button
           onClick={onClose}
           className="rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
