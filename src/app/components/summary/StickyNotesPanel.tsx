@@ -17,7 +17,15 @@
 //   - The last-opened slot is persisted per summary under
 //     `axon:sticky-notes:active:<summaryId>`.
 // ============================================================
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -33,6 +41,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Pencil,
+  Underline as UnderlineIcon,
 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -95,6 +104,74 @@ interface Slot {
 type Slots = [Slot, Slot, Slot, Slot];
 type SyncStatus = 'idle' | 'saving' | 'saved' | 'offline';
 
+// ── Rich-text helpers ────────────────────────────────────
+// Note bodies are stored as HTML so users can underline (<u>) text. We keep
+// the allowed-tag set extremely small (<u>, <br>) to avoid XSS surface area
+// and to keep notes free of stray formatting from clipboard pastes.
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Detects whether a stored note is in our HTML format (new) or legacy plain
+// text. New notes always contain a <br>, <u>, or </u> tag once edited.
+function isHtmlContent(content: string): boolean {
+  return /<br\s*\/?>|<u>|<\/u>/i.test(content);
+}
+
+// Convert legacy plain text into our HTML format (escape entities and turn
+// newlines into <br> tags) so old notes still render after the textarea →
+// contentEditable migration.
+function plainTextToHtml(text: string): string {
+  return escapeHtml(text).replace(/\r?\n/g, '<br>');
+}
+
+// Idempotent migration helper used during parseSlots.
+function ensureHtml(content: string): string {
+  if (!content) return '';
+  return isHtmlContent(content) ? content : plainTextToHtml(content);
+}
+
+// Strip everything except <u> and <br>. Block-ish elements (<div>, <p>) are
+// flattened into trailing <br>s so the user's visual line structure is kept
+// even when the browser inserts wrapper tags on Enter or paste.
+function sanitizeNoteHtml(html: string): string {
+  if (!html) return '';
+  if (typeof document === 'undefined') return html;
+  const root = document.createElement('div');
+  root.innerHTML = html;
+  const walk = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return escapeHtml(node.textContent ?? '');
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+    const inner = Array.from(node.childNodes).map(walk).join('');
+    if (tag === 'u') return `<u>${inner}</u>`;
+    if (tag === 'br') return '<br>';
+    if (tag === 'div' || tag === 'p') {
+      return inner.length ? `${inner}<br>` : '<br>';
+    }
+    return inner;
+  };
+  return Array.from(root.childNodes).map(walk).join('');
+}
+
+// Extract plain text from our HTML format for the picker preview.
+function htmlToPlainText(html: string): string {
+  if (!html) return '';
+  if (typeof document === 'undefined') return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html.replace(/<br\s*\/?>/gi, '\n');
+  return tmp.textContent ?? '';
+}
+
 function emptySlot(): Slot {
   return { title: '', content: '' };
 }
@@ -109,7 +186,8 @@ function displayTitle(slot: Slot, index: number): string {
 
 // First non-empty line of a note body, used as preview text in the picker.
 function slotPreview(text: string): string {
-  const firstLine = text.split('\n').find((l) => l.trim().length > 0) ?? '';
+  const plain = isHtmlContent(text) ? htmlToPlainText(text) : text;
+  const firstLine = plain.split('\n').find((l) => l.trim().length > 0) ?? '';
   return firstLine.trim();
 }
 
@@ -129,11 +207,13 @@ function parseSlots(raw: string | null | undefined): Slots {
       for (let i = 0; i < SLOT_COUNT; i++) {
         const item = parsed[i];
         if (typeof item === 'string') {
-          out[i] = { title: '', content: item };
+          out[i] = { title: '', content: ensureHtml(item) };
         } else if (item && typeof item === 'object') {
+          const rawContent =
+            typeof item.content === 'string' ? item.content : '';
           out[i] = {
             title: typeof item.title === 'string' ? item.title : '',
-            content: typeof item.content === 'string' ? item.content : '',
+            content: ensureHtml(rawContent),
           };
         }
       }
@@ -143,7 +223,7 @@ function parseSlots(raw: string | null | undefined): Slots {
     /* legacy plain text */
   }
   const out = emptySlots();
-  out[0] = { title: '', content: String(raw) };
+  out[0] = { title: '', content: ensureHtml(String(raw)) };
   return out;
 }
 
@@ -151,7 +231,14 @@ function serializeSlots(slots: Slots): string {
   // If every slot is entirely empty (no title, no content) we persist an
   // empty string so the clear/delete semantics keep working with the backend.
   if (slots.every((s) => !s.title && !s.content)) return '';
-  return JSON.stringify(slots);
+  // Defense in depth: sanitize note bodies before persistence so anything
+  // the contentEditable produced (browser-injected wrappers, paste leftovers)
+  // is reduced to the allowed <u>/<br> subset.
+  const cleaned = slots.map((s) => ({
+    title: s.title,
+    content: sanitizeNoteHtml(s.content),
+  }));
+  return JSON.stringify(cleaned);
 }
 
 function readLocalSlots(summaryId: string): Slots {
@@ -199,6 +286,114 @@ function writeActiveSlot(summaryId: string, slot: number | null) {
   }
 }
 
+// ── Rich-text editor ─────────────────────────────────────
+// A small contentEditable wrapper used as a near-drop-in replacement for the
+// previous <textarea>. Supports underline (via Ctrl+U or the toolbar button
+// in the parent). Bold/italic shortcuts are intentionally swallowed since
+// the panel only exposes the underline action.
+//
+// React + contentEditable interop: we update the DOM imperatively only when
+// the `value` prop changes externally (e.g. when the user switches slots),
+// so the user's caret position is preserved while typing.
+interface NoteEditorProps {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const NoteEditor = forwardRef<HTMLDivElement, NoteEditorProps>(
+  function NoteEditor(
+    { value, onChange, placeholder, className, style },
+    forwardedRef,
+  ) {
+    const localRef = useRef<HTMLDivElement>(null);
+    useImperativeHandle(forwardedRef, () => localRef.current as HTMLDivElement);
+    // Tracks the last innerHTML we (or the user) committed. Used to avoid
+    // re-setting innerHTML on every render, which would clobber the caret.
+    const lastValueRef = useRef<string>(value);
+
+    useEffect(() => {
+      const el = localRef.current;
+      if (!el) return;
+      if (value !== lastValueRef.current) {
+        el.innerHTML = value;
+        lastValueRef.current = value;
+      }
+    }, [value]);
+
+    const handleInput = useCallback(
+      (e: React.FormEvent<HTMLDivElement>) => {
+        const html = e.currentTarget.innerHTML;
+        lastValueRef.current = html;
+        onChange(html);
+      },
+      [onChange],
+    );
+
+    // Block bold/italic shortcuts. Underline (Ctrl+U) is the browser default
+    // and continues to work — that's exactly what we want.
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          (e.key === 'b' || e.key === 'B' || e.key === 'i' || e.key === 'I')
+        ) {
+          e.preventDefault();
+        }
+      },
+      [],
+    );
+
+    // Plain-text paste only — keeps notes free of foreign formatting and
+    // means the sanitizer never has to deal with surprise tags.
+    const handlePaste = useCallback(
+      (e: React.ClipboardEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        if (text) document.execCommand('insertText', false, text);
+      },
+      [],
+    );
+
+    const isEmpty = useMemo(() => {
+      if (!value) return true;
+      if (typeof document === 'undefined') return false;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = value;
+      return (tmp.textContent ?? '').trim() === '';
+    }, [value]);
+
+    return (
+      <div className="relative flex flex-1 flex-col">
+        <div
+          ref={localRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          aria-label="Contenido de la nota"
+          spellCheck
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          className={className}
+          style={style}
+        />
+        {isEmpty && placeholder && (
+          <div
+            className="pointer-events-none absolute left-4 top-3 text-sm text-amber-700/40"
+            style={{ fontFamily: 'Georgia, serif' }}
+          >
+            {placeholder}
+          </div>
+        )}
+      </div>
+    );
+  },
+);
+
 export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelProps) {
   const [open, setOpen] = useState<boolean>(() => {
     try {
@@ -215,6 +410,9 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
   const debounceRef = useRef<number | null>(null);
   // Tracks the summaryId for which the latest async load is valid (race-safety)
   const loadTokenRef = useRef<string | null>(null);
+  // Imperative handle to the contentEditable so the toolbar can call
+  // execCommand against it when the underline button is pressed.
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // ── Draggable position state ─────────────────────────
   // `position` is null until the user drags; until then we use the original
@@ -374,18 +572,34 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     [summaryId],
   );
 
-  const handleSlotChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleSlotContentChange = useCallback(
+    (html: string) => {
       if (activeSlot === null) return;
-      const next = e.target.value;
       setSlots((prev) => {
         const updated = [...prev] as Slots;
-        updated[activeSlot] = { ...updated[activeSlot], content: next };
+        updated[activeSlot] = { ...updated[activeSlot], content: html };
         scheduleSave(updated);
         return updated;
       });
     },
     [activeSlot, scheduleSave],
+  );
+
+  // Toolbar action: toggle <u> on the current selection. We preventDefault
+  // on mouseDown so the button click doesn't steal focus from the editor —
+  // otherwise execCommand would have no live selection to act on.
+  const handleToggleUnderline = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      const editor = editorRef.current;
+      if (!editor) return;
+      if (document.activeElement !== editor) editor.focus();
+      document.execCommand('underline');
+      // Belt-and-suspenders: not every browser fires `input` for execCommand,
+      // so propagate the new HTML manually as well.
+      handleSlotContentChange(editor.innerHTML);
+    },
+    [handleSlotContentChange],
   );
 
   const handleTitleChange = useCallback(
@@ -653,18 +867,37 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
                 })}
               </div>
             ) : (
-              <textarea
-                value={activeSlotValue.content}
-                onChange={handleSlotChange}
-                placeholder={`Tu memoria RAM... ${displayTitle(activeSlotValue, activeSlot)}`}
-                className="flex-1 resize-none bg-transparent px-4 py-3 text-sm text-amber-950 placeholder:text-amber-700/40 focus:outline-none"
-                style={{
-                  fontFamily: 'Georgia, serif',
-                  lineHeight: '28px',
-                  minHeight: 220,
-                }}
-                spellCheck
-              />
+              <div className="flex flex-1 flex-col">
+                {/* Formatting toolbar — only underline for now. */}
+                <div
+                  className="flex items-center gap-1 border-b border-amber-200/70 px-2 py-1"
+                  role="toolbar"
+                  aria-label="Formato de la nota"
+                >
+                  <button
+                    type="button"
+                    onMouseDown={handleToggleUnderline}
+                    className="flex h-6 w-6 items-center justify-center rounded text-amber-700 hover:bg-amber-200/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-amber-400/60"
+                    aria-label="Subrayar (Ctrl+U)"
+                    title="Subrayar (Ctrl+U)"
+                  >
+                    <UnderlineIcon size={12} />
+                  </button>
+                </div>
+                <NoteEditor
+                  ref={editorRef}
+                  value={activeSlotValue.content}
+                  onChange={handleSlotContentChange}
+                  placeholder={`Tu memoria RAM... ${displayTitle(activeSlotValue, activeSlot)}`}
+                  className="flex-1 overflow-auto bg-transparent px-4 py-3 text-sm text-amber-950 focus:outline-none"
+                  style={{
+                    fontFamily: 'Georgia, serif',
+                    lineHeight: '28px',
+                    minHeight: 220,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                />
+              </div>
             )}
 
             {/* Footer */}
