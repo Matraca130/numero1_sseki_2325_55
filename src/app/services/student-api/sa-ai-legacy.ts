@@ -15,6 +15,7 @@ export async function aiChat(
   const message = lastUserMsg?.content || '';
   const history = messages.slice(0, -1);
 
+  // RAG chat needs > 15s default for the full pipeline + Claude generation.
   const data = await apiCall<{ response: string }>('/ai/rag-chat', {
     method: 'POST',
     body: JSON.stringify({
@@ -22,6 +23,7 @@ export async function aiChat(
       history: history.length > 0 ? history : undefined,
       summary_id: context?.summaryId || context?.summary_id || undefined,
     }),
+    timeoutMs: 60_000,
   });
   return { reply: data.response };
 }
@@ -37,6 +39,7 @@ export async function aiExplain(
   const data = await apiCall<{ response: string }>('/ai/rag-chat', {
     method: 'POST',
     body: JSON.stringify({ message }),
+    timeoutMs: 60_000,
   });
   return { explanation: data.response };
 }

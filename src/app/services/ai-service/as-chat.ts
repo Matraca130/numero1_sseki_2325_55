@@ -29,9 +29,14 @@ export async function chat(
     if (opts?.history && opts.history.length > 0) body.history = opts.history;
     if (opts?.strategy) body.strategy = opts.strategy;
 
+    // RAG chat runs a multi-step pipeline (embedding -> vector search ->
+    // optional Claude re-rank -> Claude Sonnet generation), which routinely
+    // exceeds the 15s default. Bumped to 60s so deep explanations don't
+    // abort mid-generation.
     return await apiCall<RagChatResponse>('/ai/rag-chat', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 60_000,
     });
   } catch (err: unknown) {
     handleRateLimitError(err);
