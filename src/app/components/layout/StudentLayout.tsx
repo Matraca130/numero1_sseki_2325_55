@@ -37,10 +37,14 @@ import { components, animation, layout } from '@/app/design-system';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, BookOpen, Sparkles, X } from 'lucide-react';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { lazyRetry } from '@/app/utils/lazyRetry';
 
 // -- Lazy-loaded AI Assistant ----------------------------------
+// Wrapped in lazyRetry so that stale chunk hashes after a deploy
+// trigger a one-shot reload instead of a hard "Failed to fetch
+// dynamically imported module" error.
 const AxonAIAssistant = React.lazy(() =>
-  import('@/app/components/ai/AxonAIAssistant').then(m => ({ default: m.AxonAIAssistant }))
+  lazyRetry(() => import('@/app/components/ai/AxonAIAssistant')).then(m => ({ default: m.AxonAIAssistant }))
 );
 
 // -- Inner shell (needs AppContext available) ------------------

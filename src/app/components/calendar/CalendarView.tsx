@@ -15,11 +15,15 @@ import 'react-day-picker/dist/style.css';
 import { CalendarSkeleton } from './CalendarSkeleton';
 import { DayCell } from './DayCell';
 import { CellEvents } from './EventBadge';
+import { lazyRetry } from '@/app/utils/lazyRetry';
+// Wrapped in lazyRetry so stale chunk hashes after a deploy trigger
+// a one-shot reload instead of a hard "Failed to fetch dynamically
+// imported module" error.
 const ExamDetailsPanel = React.lazy(() =>
-  import('./ExamDetailsPanel').then(m => ({ default: m.ExamDetailsPanel })),
+  lazyRetry(() => import('./ExamDetailsPanel')).then(m => ({ default: m.ExamDetailsPanel })),
 );
 const ExamForm = React.lazy(() =>
-  import('./ExamForm').then(m => ({ default: m.ExamForm })),
+  lazyRetry(() => import('./ExamForm')).then(m => ({ default: m.ExamForm })),
 );
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import {
