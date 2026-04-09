@@ -54,6 +54,12 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
     // Ignore when typing in inputs
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onBack();
+      return;
+    }
+
     if (!isRevealed) {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
@@ -67,7 +73,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
         handleRate(num);
       }
     }
-  }, [isRevealed, setIsRevealed, handleRate]);
+  }, [isRevealed, setIsRevealed, handleRate, onBack]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
