@@ -86,6 +86,10 @@ export async function getReadingState(summaryId: string): Promise<ReadingState |
   }
 }
 
+/**
+ * @deprecated Use useReadingStateQueue instead for batched, debounced updates.
+ * This function is still supported for backward compatibility.
+ */
 export async function upsertReadingState(data: {
   summary_id: string;
   scroll_position?: number;
