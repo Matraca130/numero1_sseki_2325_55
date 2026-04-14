@@ -16,12 +16,10 @@
 //
 // USAGE:
 //   This module is the SINGLE SOURCE OF TRUTH for grade translation.
-//   When PATH B is deployed, useFlashcardEngine.ts will import
-//   `smRatingToFsrsGrade()` to translate the 1-5 UI rating to
-//   the 1-4 backend grade before sending it to batch-review.
-//
-// BLOCKED: Integration into useFlashcardEngine.ts is deferred
-//          until PATH B is deployed on the backend (per Guidelines).
+//   INTEGRATED (audit 2026-04-14, P0 #1): `useFlashcardEngine.ts`
+//   imports `smRatingToFsrsGrade()` to translate the 1-5 UI rating
+//   to the 1-4 backend grade before it reaches `useReviewBatch` and
+//   the backend `batch-review.ts` endpoint (PATH B).
 //
 // BACKEND PR: https://github.com/Matraca130/axon-backend/pull/60
 //             (batch-review.ts PATH B, based on PR #59 libs)
