@@ -1,6 +1,6 @@
 {
-  "cycle": 1,
-  "last_run": "2026-04-14T01:08:00Z",
+  "cycle": 2,
+  "last_run": "2026-04-14T01:12:00Z",
   "findings_history": [
     {
       "cycle": 1,
@@ -21,13 +21,42 @@
       "security": {
         "findings": 0,
         "fixed": 0,
-        "notes": "No XSS vectors, no eval, no dangerouslySetInnerHTML. localStorage only stores UI state. URLs use encodeURIComponent."
+        "notes": "No XSS vectors, no eval, no dangerouslySetInnerHTML. localStorage only stores UI state."
       },
       "performance": {
         "issues_found": 8,
         "optimized": 4,
         "perf_test_pass": true,
-        "notes": "Added React.memo to 4 large unmemoized components: GraphTemplatePanel, MapComparisonPanel, ChangeHistoryPanel, PresentationMode"
+        "notes": "Added React.memo to 4 components: GraphTemplatePanel, MapComparisonPanel, ChangeHistoryPanel, PresentationMode"
+      }
+    },
+    {
+      "cycle": 2,
+      "date": "2026-04-14",
+      "tests": {
+        "gaps_found": 27,
+        "tests_written": 2,
+        "tests_enhanced": 0,
+        "total_new_assertions": 50,
+        "all_passing": true,
+        "notes": "Contract tests for useGraphInit (30 assertions, 1085-line hook) and useFullscreen (18 assertions). useLocalGraph already had 314 lines of BFS tests."
+      },
+      "code_quality": {
+        "issues_found": 0,
+        "fixed": 0,
+        "deferred": 16,
+        "notes": "Same deferred items from Cycle 1. No new issues — codebase was already clean."
+      },
+      "security": {
+        "findings": 0,
+        "fixed": 0,
+        "notes": "No changes to security posture."
+      },
+      "performance": {
+        "issues_found": 0,
+        "optimized": 0,
+        "perf_test_pass": true,
+        "notes": "4 remaining unmemoized components are small (<250 lines). No actionable perf issues."
       }
     }
   ]
