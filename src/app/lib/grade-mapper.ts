@@ -5,9 +5,13 @@
 // different components of the Axon evaluation system.
 //
 // SCALES IN PLAY:
-//   SM-2 (legacy frontend):  1-5  (1=again, 2=hard, 3=ok, 4=good, 5=perfect)
-//   FSRS (backend spec):     1-4  (1=Again, 2=Hard, 3=Good, 4=Easy)
-//   Continuous (spec v4.2):  0.0-1.0 (Again=0.0, Hard=0.35, Good=0.65, Easy=1.0)
+//   UI rating (flashcard buttons):  1-5  (1=again, 2=hard, 3=ok, 4=good, 5=perfect)
+//   FSRS (backend spec):            1-4  (1=Again, 2=Hard, 3=Good, 4=Easy)
+//   Continuous (spec v4.2):         0.0-1.0 (Again=0.0, Hard=0.35, Good=0.65, Easy=1.0)
+//
+// Axon does NOT use the SM-2 algorithm. The 1-5 scale is purely a
+// UX granularity choice for the flashcard session screen. Real
+// scheduling is FSRS v4 on the backend.
 //
 // isCorrect THRESHOLDS (per spec v4.2):
 //   FSRS:     grade >= 2 (Hard counts as successful recall)
@@ -16,12 +20,10 @@
 //
 // USAGE:
 //   This module is the SINGLE SOURCE OF TRUTH for grade translation.
-//   When PATH B is deployed, useFlashcardEngine.ts will import
-//   `smRatingToFsrsGrade()` to translate the 1-5 UI rating to
-//   the 1-4 backend grade before sending it to batch-review.
-//
-// BLOCKED: Integration into useFlashcardEngine.ts is deferred
-//          until PATH B is deployed on the backend (per Guidelines).
+//   INTEGRATED (audit 2026-04-14, P0 #1): `useFlashcardEngine.ts`
+//   imports `uiRatingToFsrsGrade()` to translate the 1-5 UI rating
+//   to the 1-4 backend grade before it reaches `useReviewBatch` and
+//   the backend `batch-review.ts` endpoint (PATH B).
 //
 // BACKEND PR: https://github.com/Matraca130/axon-backend/pull/60
 //             (batch-review.ts PATH B, based on PR #59 libs)
@@ -39,7 +41,9 @@
 export type FsrsGrade = 1 | 2 | 3 | 4;
 
 /**
- * SM-2 rating scale (1-5), as currently used by the frontend UI.
+ * UI rating scale (1-5) used by the flashcard session buttons.
+ * Purely a UX granularity choice — Axon does NOT use the SM-2
+ * algorithm. Scheduling is FSRS v4 on the backend.
  * - 1 = Again (blackout)
  * - 2 = Hard (incorrect but familiar)
  * - 3 = Good (correct with difficulty)
@@ -82,19 +86,20 @@ export const IS_CORRECT_THRESHOLD: Record<GradeContext, FsrsGrade> = {
 // ── Grade Translation Functions ──────────────────────────
 
 /**
- * Convert SM-2 UI rating (1-5) to FSRS backend grade (1-4).
+ * Convert the 1-5 UI rating from the flashcard session buttons
+ * to the FSRS backend grade (1-4).
  *
  * Mapping rationale:
- *   SM-2 1 (again)   → FSRS 1 (Again)  — total failure
- *   SM-2 2 (hard)    → FSRS 2 (Hard)   — recalled but struggled
- *   SM-2 3 (ok)      → FSRS 3 (Good)   — standard correct recall
- *   SM-2 4 (good)    → FSRS 3 (Good)   — good recall (same FSRS bucket)
- *   SM-2 5 (perfect) → FSRS 4 (Easy)   — effortless recall
+ *   UI 1 (again)   → FSRS 1 (Again)  — total failure
+ *   UI 2 (hard)    → FSRS 2 (Hard)   — recalled but struggled
+ *   UI 3 (ok)      → FSRS 3 (Good)   — standard correct recall
+ *   UI 4 (good)    → FSRS 3 (Good)   — good recall (same FSRS bucket)
+ *   UI 5 (perfect) → FSRS 4 (Easy)   — effortless recall
  *
- * This is the function that useFlashcardEngine.ts will call
- * when PATH B is deployed.
+ * Called by useFlashcardEngine.ts and any future consumer that
+ * forwards ratings to the FSRS PATH B backend.
  */
-export function smRatingToFsrsGrade(rating: SmRating): FsrsGrade {
+export function uiRatingToFsrsGrade(rating: SmRating): FsrsGrade {
   switch (rating) {
     case 1: return 1; // Again → Again
     case 2: return 2; // Hard → Hard
@@ -104,10 +109,17 @@ export function smRatingToFsrsGrade(rating: SmRating): FsrsGrade {
     default: {
       // Defensive: clamp unknown values
       const clamped = Math.max(1, Math.min(5, rating)) as SmRating;
-      return smRatingToFsrsGrade(clamped);
+      return uiRatingToFsrsGrade(clamped);
     }
   }
 }
+
+/**
+ * @deprecated Use `uiRatingToFsrsGrade`. Kept as an alias to avoid
+ * breaking external consumers during the SM-2 → UI rename.
+ * Will be removed once all callers migrate.
+ */
+export const smRatingToFsrsGrade = uiRatingToFsrsGrade;
 
 /**
  * Convert FSRS grade (1-4) to continuous float (0.0-1.0).
@@ -149,10 +161,10 @@ export function isRecovering(
 
 /**
  * Complete grade translation pipeline for a flashcard review.
- * Takes an SM-2 UI rating and returns all the grade representations
+ * Takes a 1-5 UI rating and returns all the grade representations
  * needed by different parts of the system.
  *
- * Usage example (future, when PATH B is deployed):
+ * Usage example:
  * ```ts
  * const { fsrsGrade, continuousGrade, isCorrectFsrs, isCorrectBkt } =
  *   translateRating(userRating);
@@ -162,11 +174,12 @@ export function isRecovering(
  * ```
  */
 export function translateRating(rating: SmRating) {
-  const fsrsGrade = smRatingToFsrsGrade(rating);
+  const fsrsGrade = uiRatingToFsrsGrade(rating);
   const continuousGrade = fsrsGradeToFloat(fsrsGrade);
 
   return {
-    /** Original SM-2 rating from UI (1-5) */
+    /** Original 1-5 UI rating (kept under `smRating` key for
+     *  backward compatibility with pre-rename consumers) */
     smRating: rating,
     /** FSRS grade for backend (1-4) */
     fsrsGrade,

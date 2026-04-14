@@ -75,7 +75,7 @@ function makeBktState(overrides: Partial<BktState> = {}): BktState {
 
 describe('FSRS Grade Translation Pipeline', () => {
 
-  // Test 1: New card scheduling — SM-2 rating 1 (Again) maps to FSRS grade 1
+  // Test 1: New card scheduling — UI rating 1 (Again) maps to FSRS grade 1
   it('maps Again rating to FSRS grade 1 with continuous grade 0.0', () => {
     const result = translateRating(1);
     expect(result.fsrsGrade).toBe(1);
@@ -85,7 +85,7 @@ describe('FSRS Grade Translation Pipeline', () => {
   });
 
   // Test 2: Good rating increases interval — FSRS grade 3 is "correct"
-  it('maps Good rating (SM-2=3) to FSRS grade 3 with positive recall signal', () => {
+  it('maps Good rating (UI=3) to FSRS grade 3 with positive recall signal', () => {
     const result = translateRating(3);
     expect(result.fsrsGrade).toBe(3);
     expect(result.continuousGrade).toBe(0.65);
@@ -106,8 +106,8 @@ describe('FSRS Grade Translation Pipeline', () => {
     expect(isCorrect(2, 'bkt')).toBe(false);
   });
 
-  // Test 5: SM-2 ratings 3 and 4 collapse into the same FSRS grade 3
-  it('SM-2 ratings 3 (ok) and 4 (good) both map to FSRS grade 3 (Good)', () => {
+  // Test 5: UI ratings 3 and 4 collapse into the same FSRS grade 3
+  it('UI ratings 3 (ok) and 4 (good) both map to FSRS grade 3 (Good)', () => {
     expect(smRatingToFsrsGrade(3)).toBe(3);
     expect(smRatingToFsrsGrade(4)).toBe(3);
   });
@@ -464,7 +464,7 @@ describe('E2E: Full Review Cycle — Grade → Mastery → Stats → Color', () 
     const fsrsGrades = translated.map(t => t.fsrsGrade);
     expect(fsrsGrades).toEqual([1, 3, 3, 4, 2]);
 
-    // Step 3: Compute session stats from the SM-2 ratings
+    // Step 3: Compute session stats from the UI ratings
     const correct = countCorrect(smRatings);
     expect(correct).toBe(3); // ratings 3, 4, 5 are >= 3
 

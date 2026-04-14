@@ -267,7 +267,7 @@ describe('useFlashcardEngine', () => {
   // ══════════════════════════════════════════════════════════
 
   describe('handleRate (non-last card)', () => {
-    it('calls queueReview with the current card', async () => {
+    it('calls queueReview with the current card (UI→FSRS translated grade)', async () => {
       const { result } = renderHook(() => useFlashcardEngine(DEFAULT_OPTS));
 
       await act(async () => {
@@ -275,14 +275,16 @@ describe('useFlashcardEngine', () => {
       });
 
       act(() => {
-        result.current.handleRate(4);
+        result.current.handleRate(4); // UI rating "Fácil"
       });
 
       expect(mockQueueReview).toHaveBeenCalledTimes(1);
+      // Audit P0 #1: engine translates UI 4 → FSRS 3 (Good) via
+      // uiRatingToFsrsGrade before forwarding to useReviewBatch.
       expect(mockQueueReview).toHaveBeenCalledWith(
         expect.objectContaining({
           card: THREE_CARDS[0],
-          grade: 4,
+          grade: 3,
         }),
       );
     });

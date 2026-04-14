@@ -119,7 +119,7 @@ export const MasteryDonut = React.memo(function MasteryDonut({ data, totalCards 
       className={`${components.chartCard.base} min-w-0`}
     >
       <h3 className="text-lg font-semibold text-gray-900 mb-1" style={headingStyle}>Nivel de Dominio</h3>
-      <p className="text-sm text-gray-500 mb-4 sm:mb-6">Basado en la metodologia SM2</p>
+      <p className="text-sm text-gray-500 mb-4 sm:mb-6">Basado en la metodología FSRS</p>
 
       <div className="h-[180px] sm:h-[220px] relative min-w-0">
         <ChartErrorBoundary height="100%">

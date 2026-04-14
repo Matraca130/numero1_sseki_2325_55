@@ -54,6 +54,19 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
     // Ignore when typing in inputs
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
+    // AUDIT P0 #3: Escape actually closes the session (the "Salir (Esc)"
+    // button advertised this but nothing was intercepting it).
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onBack();
+      return;
+    }
+
+    // AUDIT P0 #3: ignore key events fired with modifiers so browser
+    // shortcuts (Ctrl+R, Cmd+1 to switch tabs, Alt+Arrow, etc.) don't
+    // accidentally trigger a rating or reveal.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
     if (!isRevealed) {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
@@ -67,7 +80,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
         handleRate(num);
       }
     }
-  }, [isRevealed, setIsRevealed, handleRate]);
+  }, [isRevealed, setIsRevealed, handleRate, onBack]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -267,18 +280,18 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
               {/* ── Reveal Button (only when NOT revealed) ── */}
               {!isRevealed && (
                 <div className="mt-auto flex flex-col items-center pb-8 md:pb-10 gap-3">
-                  <motion.div
-                    role="button"
-                    tabIndex={0}
+                  {/* AUDIT P1 #4: native <button> instead of role=button div */}
+                  <motion.button
+                    type="button"
                     onClick={() => setIsRevealed(true)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsRevealed(true); }}
+                    aria-label="Mostrar respuesta (Espacio o Enter)"
                     className="bg-[#1B3B36] text-white px-8 py-3.5 rounded-full shadow-lg shadow-[#1B3B36]/20 hover:-translate-y-1 hover:shadow-xl hover:bg-[#244e47] transition-all flex items-center gap-2.5 text-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#2a8c7a] focus-visible:ring-offset-2"
                     style={{ fontWeight: 600 }}
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.97 }}
                   >
                     <Eye size={16} /> Mostrar Respuesta
-                  </motion.div>
+                  </motion.button>
                   <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-gray-300">
                     <Keyboard size={10} />
                     Espacio o Enter para revelar
@@ -303,7 +316,9 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
                       {RATINGS.map((rate) => (
                         <button
                           key={rate.value}
+                          type="button"
                           onClick={() => handleRate(rate.value)}
+                          aria-label={`Calificar ${rate.value}: ${rate.label}`}
                           className="group flex flex-col items-center gap-1.5 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2a8c7a] rounded-xl"
                         >
                           <div className={clsx(
