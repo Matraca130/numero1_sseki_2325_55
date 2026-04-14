@@ -51,7 +51,7 @@ export interface StudentPreferences {
   language: string; // 'es-AR', 'en', 'es'
   dailyGoalMinutes: number;
   notificationsEnabled: boolean;
-  spacedRepetitionAlgorithm: 'sm2' | 'fsrs' | 'simple';
+  spacedRepetitionAlgorithm: 'fsrs' | 'simple';
 }
 
 /** Aggregate study statistics */
@@ -103,7 +103,8 @@ export interface FlashcardReview {
   reviewedAt: string; // ISO date
   rating: 1 | 2 | 3 | 4 | 5; // 1=again, 5=easy
   responseTimeMs: number;
-  // SM-2 fields
+  // Legacy scheduling fields (kept for historical review logs;
+  // live scheduling is driven by FSRS v4 on the backend)
   ease: number;
   interval: number; // days until next review
   repetitions: number;
