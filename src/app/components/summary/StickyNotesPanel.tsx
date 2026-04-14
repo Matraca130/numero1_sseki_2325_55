@@ -104,9 +104,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     containerRef,
     wrapperPositionStyle,
     isDragging,
-    handleDragPointerDown,
-    handleDragPointerMove,
-    handleDragPointerUp,
+    dragHandlers,
   } = useStickyNotesPosition(expanded);
 
   // Load notes when summary changes — local first (instant), then backend (truth).
@@ -314,10 +312,8 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
             {/* Header — doubles as drag handle */}
             <div
               className="flex items-center justify-between px-3 py-2 border-b border-amber-200/70 cursor-grab active:cursor-grabbing touch-none"
-              onPointerDown={handleDragPointerDown}
-              onPointerMove={handleDragPointerMove}
-              onPointerUp={handleDragPointerUp}
-              onPointerCancel={handleDragPointerUp}
+              {...dragHandlers}
+              onPointerCancel={dragHandlers.onPointerUp}
               title="Arrastrar para mover"
             >
               <div className="flex items-center gap-2 min-w-0">

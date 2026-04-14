@@ -48,13 +48,22 @@ function clampToViewport(pos: Position, width: number, height: number): Position
   };
 }
 
+export interface StickyNotesDragHandlers {
+  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+}
+
 export interface StickyNotesPositionApi {
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
   wrapperPositionStyle: React.CSSProperties;
   isDragging: boolean;
-  handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-  handleDragPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
-  handleDragPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+  /**
+   * Pointer handlers for the drag handle. Designed to be spread directly
+   * onto the JSX element that acts as the drag surface:
+   *   <div {...dragHandlers} onPointerCancel={dragHandlers.onPointerUp} />
+   */
+  dragHandlers: StickyNotesDragHandlers;
 }
 
 /**
@@ -71,7 +80,7 @@ export function useStickyNotesPosition(expanded: boolean): StickyNotesPositionAp
   const dragOffsetRef = useRef<Position>({ x: 0, y: 0 });
   const didDragRef = useRef(false);
 
-  const handleDragPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     // Ignore drags that start on interactive children (buttons, inputs, etc.)
     const target = e.target as HTMLElement;
     if (target.closest('button, input, textarea, a, [contenteditable="true"]')) return;
@@ -92,7 +101,7 @@ export function useStickyNotesPosition(expanded: boolean): StickyNotesPositionAp
     e.preventDefault();
   }, []);
 
-  const handleDragPointerMove = useCallback(
+  const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDragging) return;
       const container = containerRef.current;
@@ -112,7 +121,7 @@ export function useStickyNotesPosition(expanded: boolean): StickyNotesPositionAp
     [isDragging],
   );
 
-  const handleDragPointerUp = useCallback(
+  const onPointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDragging) return;
       setIsDragging(false);
@@ -162,8 +171,10 @@ export function useStickyNotesPosition(expanded: boolean): StickyNotesPositionAp
     containerRef,
     wrapperPositionStyle,
     isDragging,
-    handleDragPointerDown,
-    handleDragPointerMove,
-    handleDragPointerUp,
+    dragHandlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+    },
   };
 }
