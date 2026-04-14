@@ -70,3 +70,20 @@ Agente frontend de la sección Flashcards de AXON: implementa y modifica compone
 - **PR**: https://github.com/Matraca130/numero1_sseki_2325_55/pull/425
 - **Tests**: 6/6 new + 190/190 flashcard-adaptive suite
 - **Build**: Local `vite build` blocked by pre-existing env issue (workerd darwin-arm64 vs windows-64 in node_modules); CI will validate.
+
+## [2026-04-14] Session: Extend adaptive smoke test to reviewing/partial/completed phases
+- **Task**: Quality-gate follow-up on PR #425. Added 3 cases to `src/__tests__/e2e-adaptive-flashcard-session.test.tsx` covering the 3 phases that were previously unasserted (only idle + generating had explicit coverage).
+- **Learned**:
+  - `useAdaptiveSession` does NOT expose a `restart()` method. The view's `onRestart` reuses `session.startSession(cards)` with the already-loaded professor cards — so tests should assert `mockStartSession` is called, not a `mockRestart`. The task wording said "restart() o equivalente" precisely because of this gap.
+  - When stub-mocking `AdaptivePartialSummary`/`AdaptiveCompletedScreen`, the stub needs to forward every callback the host wires. I under-built the stubs in the first pass (bare `<div/>`), which is fine for smoke-render-only tests but blocks interaction tests. Lesson: stub with callback-bearing buttons from the start if the plan includes wiring assertions.
+  - The task asked for "el mismo componente real que usa el flujo normal" for `SessionScreen`. Importing the actual `FlashcardSessionScreen` into the test would drag `AxonLogo` + `design-system` + `flashcard-types` + `studyQueueApi` types into the mock graph. Instead, I enhanced the existing stub on the `@/app/components/content/flashcard` barrel (same import path the host uses) with rate buttons that invoke `props.handleRate`. That still proves the wiring round-trip: host → barrel export → handleRate callback → hook. Flagged as a trade-off in the commit message.
+  - `mockSessionState` must be set BEFORE `render(<AdaptiveFlashcardView/>)` because the module-scoped mock captures the state by reference at call time. `beforeEach` resets to idle via `resetSession()`, so per-test overrides happen inline.
+  - For the `reviewing` phase, the host guards with `session.phase === 'reviewing' && session.currentCard` — BOTH must be truthy. Setting `phase` alone renders nothing. Also `sessionCards` must be populated since the stub reads `props.cards?.length`.
+- **Pattern**: Phase-driven view tests → stateful hook mock + stub screens with minimal forwarding + set state inline per test. Keeps dependency surface tight while proving the phase→screen→callback chain.
+- **Mistake**: Initially forgot to clear `mockHandleRate`/`mockSetIsRevealed` in `beforeEach` (they were declared but never cleared). Caught before running tests because I was explicitly adding rate assertions. Added to the beforeEach block.
+- **Mismatch hook↔view flagged**: `useAdaptiveSession` doesn't expose `restart()`. Not a bug per se — the view compensates by re-calling `startSession` — but it's worth noting for future maintainers. Documented in both the commit message and this memory entry.
+- **Files touched**:
+  - `src/__tests__/e2e-adaptive-flashcard-session.test.tsx` (+225 / -2)
+  - `.claude/agent-memory/individual/FC-01-flashcards-frontend.md` (session log)
+- **Commit**: `f6f9949c test(flashcards): extend adaptive smoke coverage to reviewing/partial/completed phases`
+- **Tests**: 9/9 in adaptive smoke file, 193/193 broader flashcard-adaptive suite (was 190 before +3).
