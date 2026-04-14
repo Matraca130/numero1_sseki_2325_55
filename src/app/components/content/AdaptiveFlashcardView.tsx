@@ -28,6 +28,7 @@ import { AnimatePresence } from 'motion/react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useAdaptiveSession } from '@/app/hooks/useAdaptiveSession';
 import { getFlashcardsByTopic, type FlashcardItem } from '@/app/services/flashcardApi';
+import { logger } from '@/app/lib/logger';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { LoadingPage, EmptyState, ErrorState } from '@/app/components/shared/PageStates';
 import type { Flashcard } from '@/app/types/content';
@@ -104,7 +105,7 @@ export function AdaptiveFlashcardView() {
         .map(mapItemToCard);
       setCards(active);
     } catch (err) {
-      if (import.meta.env.DEV) console.warn('[AdaptiveFlashcardView] Failed to load cards:', err);
+      logger.warn('[AdaptiveFlashcardView] Failed to load cards', err);
       setLoadError('No pudimos cargar las flashcards del tema. Intenta de nuevo.');
       setCards(null);
     } finally {
