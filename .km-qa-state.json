@@ -1,35 +1,19 @@
 {
-  "cycle": 4,
-  "last_run": "2026-04-14T11:32:00Z",
+  "cycle": 5,
+  "last_run": "2026-04-14T11:55:00Z",
   "findings_history": [
+    { "cycle": 1, "date": "2026-04-14", "summary": "90 new assertions, memo×4 components" },
+    { "cycle": 2, "date": "2026-04-14", "summary": "50 new assertions (useGraphInit, useFullscreen)" },
+    { "cycle": 3, "date": "2026-04-14", "summary": "Fixed 17 stale assertions (58→41)" },
+    { "cycle": 4, "date": "2026-04-14", "summary": "Fixed 15 knowledgeMapView failures (41→26)" },
     {
-      "cycle": 1, "date": "2026-04-14",
-      "tests": { "gaps_found": 32, "tests_written": 2, "tests_enhanced": 1, "total_new_assertions": 90, "all_passing": true },
-      "code_quality": { "issues_found": 16, "fixed": 0, "deferred": 16 },
-      "security": { "findings": 0, "fixed": 0 },
-      "performance": { "issues_found": 8, "optimized": 4, "perf_test_pass": true }
-    },
-    {
-      "cycle": 2, "date": "2026-04-14",
-      "tests": { "gaps_found": 27, "tests_written": 2, "total_new_assertions": 50, "all_passing": true },
-      "code_quality": { "issues_found": 0, "fixed": 0, "deferred": 16 },
-      "security": { "findings": 0, "fixed": 0 },
-      "performance": { "issues_found": 0, "optimized": 0, "perf_test_pass": true }
-    },
-    {
-      "cycle": 3, "date": "2026-04-14",
-      "tests": { "pre_existing_failures_fixed": 17, "remaining_failures": 41, "remaining_failing_files": 9 },
-      "code_quality": { "issues_found": 0, "fixed": 0, "deferred": 16 },
-      "security": { "findings": 0, "fixed": 0 },
-      "performance": { "issues_found": 0, "optimized": 0, "perf_test_pass": true }
-    },
-    {
-      "cycle": 4, "date": "2026-04-14",
+      "cycle": 5,
+      "date": "2026-04-14",
       "tests": {
-        "pre_existing_failures_fixed": 15,
-        "remaining_failures": 26,
-        "remaining_failing_files": 8,
-        "notes": "Fixed knowledgeMapView.contract.test.ts (15 failures → 0): updated all hook-extracted callback tests to read from useMapNodeActions, useMapEdgeActions, useMapStickyNotes instead of KnowledgeMapView.tsx. Updated side panel exclusivity tests. File now fully green (65/65)."
+        "pre_existing_failures_fixed": 26,
+        "remaining_failures": 0,
+        "remaining_failing_files": 0,
+        "notes": "ALL 1600 TESTS PASSING. Fixed: addNodeEdgeModal (7: toast/aria i18n), graphToolbar (5: layout count 3→7, aria-pressed→aria-checked), mapComparisonPanel (1: memo export), miniKnowledgeGraph (3: memo export, Portuguese lang), presentationMode (1: memo export), recent-fixes (5: tooltip→useGraphInit, state→useGraphEvents, shortcuts→GraphShortcutsDialog), shareMapModal (2: toast i18n), graphTemplatePanel (1: aria i18n)."
       },
       "code_quality": { "issues_found": 0, "fixed": 0, "deferred": 16 },
       "security": { "findings": 0, "fixed": 0 },
@@ -37,12 +21,13 @@
     }
   ],
   "cumulative": {
-    "total_failures_fixed": 32,
+    "total_failures_fixed": 58,
     "failures_start": 58,
-    "failures_now": 26,
-    "test_files_fully_fixed": 4,
+    "failures_now": 0,
+    "test_files_fully_fixed": 11,
     "new_test_files": 4,
     "new_assertions": 140,
-    "components_memoized": 4
+    "components_memoized": 4,
+    "milestone": "ALL GREEN — 48/48 files, 1600/1600 tests"
   }
 }

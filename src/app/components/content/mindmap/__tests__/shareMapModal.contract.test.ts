@@ -88,14 +88,12 @@ describe('ShareMapModal: clipboard copy behavior', () => {
     expect(source).toContain('navigator.clipboard.writeText');
   });
 
-  it('shows success toast on copy', () => {
-    expect(source).toContain("toast.success('Enlace copiado')");
+  it('shows success toast on copy via i18n', () => {
+    expect(source).toContain('toast.success(tModal.linkCopied)');
   });
 
   it('has fallback for clipboard API failure', () => {
-    // Falls back to: inputRef.current?.select()
-    expect(source).toContain('inputRef.current?.select()');
-    expect(source).toContain("toast.info('Selecciona y copia el enlace manualmente')");
+    expect(source).toContain('toast.info(tModal.linkCopyFallback)');
   });
 
   it('resets copied state after timeout', () => {

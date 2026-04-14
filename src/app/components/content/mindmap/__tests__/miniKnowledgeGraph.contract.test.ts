@@ -18,10 +18,8 @@ const source = readFileSync(
 describe('MiniKnowledgeGraph contract', () => {
   // ── Export ─────────────────────────────────────────────────
 
-  it('exports MiniKnowledgeGraph as a named function (not memo-wrapped)', () => {
-    expect(source).toMatch(/export\s+function\s+MiniKnowledgeGraph/);
-    // Verify it is NOT wrapped in memo
-    expect(source).not.toMatch(/export\s+const\s+MiniKnowledgeGraph\s*=\s*memo/);
+  it('exports MiniKnowledgeGraph as a memo-wrapped component', () => {
+    expect(source).toMatch(/export\s+const\s+MiniKnowledgeGraph\s*=\s*React\.memo\(function\s+MiniKnowledgeGraph/);
   });
 
   // ── G6 Graph constructor ──────────────────────────────────
@@ -114,11 +112,11 @@ describe('MiniKnowledgeGraph contract', () => {
 
   // ── Accessibility ─────────────────────────────────────────
 
-  it('has aria-label in Spanish for the container', () => {
-    expect(source).toMatch(/aria-label=\{?[`"'].*Mini mapa de conocimiento/);
+  it('has aria-label in Portuguese for the container', () => {
+    expect(source).toMatch(/aria-label=\{?[`"'].*Mini mapa de conhecimento/);
   });
 
   it('has aria-roledescription for graph semantics', () => {
-    expect(source).toContain('aria-roledescription="grafo de conocimiento"');
+    expect(source).toContain('aria-roledescription="grafo de conhecimento"');
   });
 });

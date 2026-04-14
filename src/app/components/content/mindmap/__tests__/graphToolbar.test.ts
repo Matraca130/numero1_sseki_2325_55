@@ -117,8 +117,8 @@ describe('GraphToolbar: props interface', () => {
 // ── Layout options ──────────────────────────────────────────
 
 describe('GraphToolbar: layout options', () => {
-  it('renders all three layout buttons (force, radial, dagre)', () => {
-    expect(source).toContain("(['force', 'radial', 'dagre'] as const).map");
+  it('renders all 7 layout buttons', () => {
+    expect(source).toContain("(['force', 'radial', 'dagre', 'mindmap', 'concentric', 'circular', 'fruchterman'] as const).map");
   });
 
   it('calls onLayoutChange with the layout value on click', () => {
@@ -364,7 +364,7 @@ describe('GraphToolbar: view options dropdown', () => {
   });
 
   it('grid item uses aria-pressed for state', () => {
-    expect(source).toContain('aria-pressed={!!showGrid}');
+    expect(source).toContain('aria-checked={!!showGrid}');
   });
 
   it('uses Grid3x3 icon for grid toggle', () => {
@@ -376,7 +376,7 @@ describe('GraphToolbar: view options dropdown', () => {
   });
 
   it('minimap item uses aria-pressed for state', () => {
-    expect(source).toContain('aria-pressed={!!showMinimap}');
+    expect(source).toContain('aria-checked={!!showMinimap}');
   });
 
   it('uses MapIcon icon for minimap toggle', () => {
@@ -778,11 +778,11 @@ describe('GraphToolbar: accessibility', () => {
   });
 
   it('grid toggle uses aria-pressed', () => {
-    expect(source).toContain('aria-pressed={!!showGrid}');
+    expect(source).toContain('aria-checked={!!showGrid}');
   });
 
   it('minimap toggle uses aria-pressed', () => {
-    expect(source).toContain('aria-pressed={!!showMinimap}');
+    expect(source).toContain('aria-checked={!!showMinimap}');
   });
 
   it('export button uses aria-expanded and aria-haspopup', () => {

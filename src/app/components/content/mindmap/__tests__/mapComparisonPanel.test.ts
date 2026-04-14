@@ -144,8 +144,8 @@ describe('MapComparisonPanel: module contract', () => {
     expect(existsSync(COMPONENT_PATH)).toBe(true);
   });
 
-  it('exports MapComparisonPanel as a named export', () => {
-    expect(source).toMatch(/export\s+function\s+MapComparisonPanel/);
+  it('exports MapComparisonPanel as a memo-wrapped named component', () => {
+    expect(source).toMatch(/export\s+const\s+MapComparisonPanel\s*=\s*memo\(function\s+MapComparisonPanel/);
   });
 
   it('has no default export', () => {

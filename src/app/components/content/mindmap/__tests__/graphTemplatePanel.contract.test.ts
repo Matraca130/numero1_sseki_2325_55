@@ -96,8 +96,8 @@ describe('GraphTemplatePanel contract', () => {
     expect(source).toContain('<X ');
   });
 
-  it('close button has aria-label', () => {
-    expect(source).toContain('aria-label="Cerrar panel de plantillas"');
+  it('close button has aria-label via i18n', () => {
+    expect(source).toContain('aria-label={t.closePanelAriaLabel}');
   });
 
   // ── Dialog semantics ──────────────────────────────────────

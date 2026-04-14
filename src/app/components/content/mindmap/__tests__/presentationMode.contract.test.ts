@@ -18,8 +18,8 @@ const source = readFileSync(
 describe('PresentationMode contract', () => {
   // ── Export ─────────────────────────────────────────────────
 
-  it('exports PresentationMode as a named function', () => {
-    expect(source).toMatch(/export\s+function\s+PresentationMode/);
+  it('exports PresentationMode as a memo-wrapped named component', () => {
+    expect(source).toMatch(/export\s+const\s+PresentationMode\s*=\s*memo\(function\s+PresentationMode/);
   });
 
   // ── Focus management ──────────────────────────────────────
