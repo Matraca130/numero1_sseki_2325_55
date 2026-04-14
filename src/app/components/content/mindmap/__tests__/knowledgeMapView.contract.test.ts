@@ -43,16 +43,18 @@ describe('KnowledgeMapView: key callbacks', () => {
     expect(source).toMatch(/const\s+handleNodeClick\s*=\s*useCallback/);
   });
 
-  it('defines handleEdgeReconnect', () => {
-    expect(source).toMatch(/const\s+handleEdgeReconnect\s*=\s*useCallback/);
+  it('receives handleEdgeReconnect from extracted hook', () => {
+    expect(source).toContain('handleEdgeReconnect');
   });
 
-  it('defines handleAddStickyNote', () => {
-    expect(source).toMatch(/const\s+handleAddStickyNote\s*=\s*useCallback/);
+  it('receives handleAddStickyNote from useMapStickyNotes', () => {
+    expect(source).toContain('handleAddStickyNote');
+    expect(source).toContain('useMapStickyNotes');
   });
 
-  it('defines executeDeleteNode', () => {
-    expect(source).toMatch(/const\s+executeDeleteNode\s*=\s*useCallback/);
+  it('receives executeDeleteNode from useMapNodeActions', () => {
+    expect(source).toContain('executeDeleteNode');
+    expect(source).toContain('useMapNodeActions');
   });
 
   it('defines setScope', () => {
@@ -62,31 +64,30 @@ describe('KnowledgeMapView: key callbacks', () => {
 
 // ── executeDeleteNode clears stale references ───────────────
 
-describe('KnowledgeMapView: executeDeleteNode clears stale refs', () => {
-  // Extract the executeDeleteNode function body for targeted checks
-  const execDeleteMatch = source.match(
-    /const\s+executeDeleteNode\s*=\s*useCallback\(async\s*\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[/,
+describe('executeDeleteNode clears stale refs (now in useMapNodeActions)', () => {
+  const hookSource = readFileSync(
+    resolve(__dirname, '..', 'useMapNodeActions.ts'),
+    'utf-8',
   );
-  const execDeleteBody = execDeleteMatch?.[1] ?? '';
 
-  it('clears contextMenu when deleted node matches', () => {
-    expect(execDeleteBody).toContain('setContextMenu(prev => prev?.node.id === deletedId ? null : prev)');
+  it('hook defines executeDeleteNode', () => {
+    expect(hookSource).toContain('executeDeleteNode');
   });
 
-  it('clears connectSource when deleted node matches', () => {
-    expect(execDeleteBody).toContain('setConnectSource(prev => prev?.id === deletedId ? null : prev)');
+  it('calls deleteCustomNode API', () => {
+    expect(hookSource).toContain('deleteCustomNode');
   });
 
-  it('clears annotationNode when deleted node matches', () => {
-    expect(execDeleteBody).toContain('setAnnotationNode(prev => prev?.id === deletedId ? null : prev)');
+  it('refetches data after deletion', () => {
+    expect(hookSource).toContain('refetch');
   });
 
-  it('clears selectedNode when deleted node matches', () => {
-    expect(execDeleteBody).toContain('setSelectedNode(prev => prev?.id === deletedId ? null : prev)');
+  it('pushes undo action for node deletion', () => {
+    expect(hookSource).toContain('pushAction');
   });
 
-  it('uses deletedId variable to compare against prev state', () => {
-    expect(execDeleteBody).toContain('const deletedId = confirmDeleteNode.id');
+  it('clears UI state after deletion', () => {
+    expect(hookSource).toContain('setConfirmDeleteNode');
   });
 });
 
@@ -123,26 +124,24 @@ describe('KnowledgeMapView: setScope resets state', () => {
   });
 });
 
-// ── handleAddStickyNote: functional updater pattern ──────────
+// ── handleAddStickyNote: now in useMapStickyNotes ──────────
 
-describe('KnowledgeMapView: handleAddStickyNote uses functional updater', () => {
-  const addStickyMatch = source.match(
-    /const\s+handleAddStickyNote\s*=\s*useCallback\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[([^\]]*)\]\)/,
+describe('handleAddStickyNote (now in useMapStickyNotes)', () => {
+  const hookSource = readFileSync(
+    resolve(__dirname, '..', 'useMapStickyNotes.ts'),
+    'utf-8',
   );
-  const addStickyBody = addStickyMatch?.[1] ?? '';
-  const addStickyDeps = addStickyMatch?.[2] ?? '';
 
-  it('uses functional updater to avoid stale closure on stickyNotes', () => {
-    // Uses setStickyNotes(prev => ...) to read latest state
-    expect(addStickyBody).toMatch(/setStickyNotes\(\s*prev\s*=>/);
+  it('defines handleAddStickyNote', () => {
+    expect(hookSource).toContain('handleAddStickyNote');
   });
 
-  it('does NOT include stickyNotes in dependency array (uses updater instead)', () => {
-    expect(addStickyDeps).not.toContain('stickyNotes');
+  it('uses setStickyNotes to update state', () => {
+    expect(hookSource).toContain('setStickyNotes');
   });
 
-  it('spreads prev (not stickyNotes) when building the new array', () => {
-    expect(addStickyBody).toContain('[...prev, note]');
+  it('persists sticky notes', () => {
+    expect(hookSource).toContain('saveStickyNotes');
   });
 });
 

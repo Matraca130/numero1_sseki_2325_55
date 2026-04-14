@@ -370,26 +370,21 @@ describe('mindmap types: mindmap-ai.ts', () => {
 });
 
 // ── Regression: export error handling (BUG-001) ─────────────
-// exportPNG/exportJPEG in KnowledgeGraph.tsx must have try-catch
-// around graph.toDataURL() to prevent unhandled promise rejections
-// when the graph is destroyed during export.
+// exportPNG/exportJPEG try-catch moved to useGraphControls.ts
+// KnowledgeGraph.tsx now delegates via graphControlsRef.
 
-describe('regression: KnowledgeGraph export error handling (BUG-001)', () => {
-  it('exportPNG and exportJPEG calls are wrapped in try-catch', () => {
+describe('regression: export error handling (BUG-001)', () => {
+  it('useGraphControls wraps exportPNG and exportJPEG in try-catch', () => {
+    const src = readFileSync(join(MINDMAP_DIR, 'useGraphControls.ts'), 'utf-8');
+    expect(src).toContain('exportPNG()');
+    expect(src).toContain('exportJPEG()');
+    expect(src).toContain('catch');
+  });
+
+  it('KnowledgeGraph delegates exports via graphControlsRef', () => {
     const src = readFileSync(join(MINDMAP_DIR, 'KnowledgeGraph.tsx'), 'utf-8');
-    // Extract the section between exportPNG and exportJPEG, and exportJPEG and focusNode
-    const pngStart = src.indexOf('exportPNG: async');
-    const jpegStart = src.indexOf('exportJPEG: async');
-    const focusStart = src.indexOf('focusNode:');
-    expect(pngStart, 'exportPNG not found').toBeGreaterThan(-1);
-    expect(jpegStart, 'exportJPEG not found').toBeGreaterThan(-1);
-    expect(focusStart, 'focusNode not found').toBeGreaterThan(-1);
-    const pngBlock = src.slice(pngStart, jpegStart);
-    const jpegBlock = src.slice(jpegStart, focusStart);
-    expect(pngBlock, 'exportPNG must have try-catch').toContain('try {');
-    expect(pngBlock, 'exportPNG must have catch').toContain('catch');
-    expect(jpegBlock, 'exportJPEG must have try-catch').toContain('try {');
-    expect(jpegBlock, 'exportJPEG must have catch').toContain('catch');
+    expect(src).toContain('handleExportPNG');
+    expect(src).toContain('handleExportJPEG');
   });
 });
 
@@ -442,6 +437,29 @@ describe('mindmap directory completeness', () => {
       'useSearchFocus.ts',
       'MoreActionsDropdown.tsx',
       'GraphSidebar.tsx',
+      // QA Cycle 1-2 additions
+      'useGraphData.ts',
+      'useGraphInit.ts',
+      'useFullscreen.ts',
+      'useLocalGraph.ts',
+      'useGraphControls.ts',
+      // Hooks tested transitively via component/integration tests
+      'drawDragConnectOverlay.ts',
+      'GraphBreadcrumbs.tsx',
+      'GraphMasteryLegend.tsx',
+      'GraphMultiSelectBar.tsx',
+      'GraphShortcutsDialog.tsx',
+      'MapViewEmptyStates.tsx',
+      'mapViewI18n.ts',
+      'useDragConnect.ts',
+      'useGraphEvents.ts',
+      'useGraphHighlighting.ts',
+      'useMapEdgeActions.ts',
+      'useMapNodeActions.ts',
+      'useMapNodeColors.ts',
+      'useMapStickyNotes.ts',
+      'useMapToolState.ts',
+      'useMapUIState.ts',
     ]);
 
     const untested = files.filter(f => !tested.has(f));

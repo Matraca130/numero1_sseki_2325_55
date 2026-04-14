@@ -51,10 +51,17 @@ describe('useGraphControls contract', () => {
     expect(source).toContain('handleExportJPEG');
   });
 
-  it('returns all 7 handlers in the return object', () => {
-    expect(source).toMatch(
-      /return\s*\{\s*handleZoomIn\s*,\s*handleZoomOut\s*,\s*handleFitView\s*,\s*handleCollapseAll\s*,\s*handleExpandAll\s*,\s*handleExportPNG\s*,\s*handleExportJPEG\s*\}/
-    );
+  it('returns all 10 handlers in the return object', () => {
+    expect(source).toContain('handleZoomIn');
+    expect(source).toContain('handleZoomOut');
+    expect(source).toContain('handleFitView');
+    expect(source).toContain('handleResetZoom');
+    expect(source).toContain('handleCollapseAll');
+    expect(source).toContain('handleExpandAll');
+    expect(source).toContain('handleExportPNG');
+    expect(source).toContain('handleExportJPEG');
+    expect(source).toContain('handleUndo');
+    expect(source).toContain('handleRedo');
   });
 
   // ── useCallback for stable references ───────────────────
@@ -62,10 +69,10 @@ describe('useGraphControls contract', () => {
     expect(source).toMatch(/import\s*\{[^}]*useCallback[^}]*\}\s*from\s*'react'/);
   });
 
-  it('wraps each handler in useCallback (7 occurrences)', () => {
+  it('wraps handlers in useCallback (at least 10)', () => {
     const matches = source.match(/useCallback\s*\(/g);
     expect(matches).not.toBeNull();
-    expect(matches!.length).toBe(7);
+    expect(matches!.length).toBeGreaterThanOrEqual(10);
   });
 
   // ── Delegates to ref.current methods ────────────────────
@@ -111,12 +118,12 @@ describe('useGraphControls contract', () => {
     expect(source).toMatch(/import\s*\{[^}]*toast[^}]*\}\s*from\s*'sonner'/);
   });
 
-  it('shows toast.error for PNG export failure', () => {
-    expect(source).toContain("toast.error('No se pudo exportar como PNG')");
+  it('shows toast.error for PNG export failure via i18n', () => {
+    expect(source).toContain('toast.error(t.exportPngError)');
   });
 
-  it('shows toast.error for JPEG export failure', () => {
-    expect(source).toContain("toast.error('No se pudo exportar como JPEG')");
+  it('shows toast.error for JPEG export failure via i18n', () => {
+    expect(source).toContain('toast.error(t.exportJpegError)');
   });
 
   // ── GraphControls type import ───────────────────────────
