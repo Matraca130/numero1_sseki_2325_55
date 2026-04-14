@@ -7,7 +7,7 @@
 //
 // Dark-mode-ready prose styles.
 // ============================================================
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Layers } from 'lucide-react';
 import type { Chunk, SummaryKeyword } from '@/app/services/summariesApi';
@@ -26,7 +26,35 @@ function isHtml(content: string): boolean {
   return /<[a-z][\s\S]*>/i.test(content);
 }
 
+interface ProcessedChunk {
+  id: string;
+  isHtml: boolean;
+  html?: string;
+  plainLines?: string[];
+}
+
 export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keywords = [], loading }: ChunkRendererProps) {
+  // Memoize the expensive sanitize/replace/enrich pipeline.
+  // Re-runs only when chunks or keywords references change.
+  const processed = useMemo<ProcessedChunk[]>(() => {
+    if (!chunks || chunks.length === 0) return [];
+    const sorted = [...chunks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    return sorted.map(chunk => {
+      if (isHtml(chunk.content)) {
+        return {
+          id: chunk.id,
+          isHtml: true,
+          html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords, { escapeHtml: true }), 'light')),
+        };
+      }
+      return {
+        id: chunk.id,
+        isHtml: false,
+        plainLines: replaceKeywordPlaceholders(chunk.content, keywords).split('\n'),
+      };
+    });
+  }, [chunks, keywords]);
+
   if (loading) {
     return (
       <div className="space-y-4 p-6">
@@ -41,7 +69,7 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keyword
     );
   }
 
-  if (chunks.length === 0) {
+  if (processed.length === 0) {
     return (
       <div className="text-center py-12">
         <Layers size={28} className="text-gray-300 mx-auto mb-3" />
@@ -50,11 +78,9 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keyword
     );
   }
 
-  const sorted = [...chunks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-
   return (
     <div className="space-y-4 p-6">
-      {sorted.map((chunk, idx) => (
+      {processed.map((chunk, idx) => (
         <motion.div
           key={chunk.id}
           initial={{ opacity: 0, y: 4 }}
@@ -62,19 +88,19 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keyword
           transition={{ delay: idx * 0.02 }}
           className="group"
         >
-          {isHtml(chunk.content) ? (
+          {chunk.isHtml ? (
             <div
               className="axon-prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords, { escapeHtml: true }), 'light')) }}
+              dangerouslySetInnerHTML={{ __html: chunk.html! }}
             />
           ) : (
             <div className="text-gray-600 leading-relaxed">
-              {replaceKeywordPlaceholders(chunk.content, keywords).split('\n').map((line, lineIdx) =>
+              {chunk.plainLines!.map((line, lineIdx) =>
                 renderPlainLine(line, lineIdx, 'light')
               )}
             </div>
           )}
-          {idx < sorted.length - 1 && (
+          {idx < processed.length - 1 && (
             <div className="border-b border-gray-50 mt-4" />
           )}
         </motion.div>
