@@ -133,7 +133,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
               >
                 {/<[a-z][\s\S]*>/i.test(chunk.content) ? (
                   <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>
-                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords))) }} />
+                    <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords, { escapeHtml: true }))) }} />
                   </KeywordHighlighterInline>
                 ) : (
                   <KeywordHighlighterInline summaryId={summaryId} onNavigateKeyword={onNavigateKeyword}>

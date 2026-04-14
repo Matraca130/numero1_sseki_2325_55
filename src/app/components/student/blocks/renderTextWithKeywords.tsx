@@ -88,21 +88,48 @@ function wrapBareKeywordUuids(text: string, keywords: SummaryKeyword[]): string 
 }
 
 /**
+ * Escape HTML-significant characters to their entity equivalents.
+ * Used to prevent XSS when injecting untrusted strings (e.g. keyword names
+ * authored by professors) into HTML strings that will be rendered via
+ * dangerouslySetInnerHTML. Defense-in-depth: even though sanitizeHtml
+ * (DOMPurify) runs later in the pipeline, escaping at injection time
+ * prevents ever producing a dangerous HTML fragment in the first place.
+ */
+const HTML_ESCAPE_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+function escapeHtml(s: string): string {
+  return String(s).replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
+}
+
+/**
  * Replace {{uuid}} or {{name}} placeholders with keyword names in a plain string.
  * Also resolves bare keyword UUIDs (without {{}}).
  * Useful for HTML content rendered via dangerouslySetInnerHTML where React
  * components (KeywordChip) cannot be injected.
+ *
+ * Security: When `options.escapeHtml` is true (required for HTML contexts),
+ * keyword names are HTML-escaped before injection to prevent stored XSS via
+ * maliciously-named keywords. Plain-text consumers (React text children,
+ * string-matching utilities) should leave `escapeHtml` as the default `false`.
  */
 export function replaceKeywordPlaceholders(
   text: string,
   keywords: SummaryKeyword[] = [],
+  options: { escapeHtml?: boolean } = {},
 ): string {
+  const { escapeHtml: shouldEscape = false } = options;
   const normalized = wrapBareKeywordUuids(text, keywords);
   return normalized.replace(/\{\{([^}]+)\}\}/g, (_match, ref: string) => {
     const kw = keywords.find(
       k => (k.id === ref || k.name.toLowerCase() === ref.toLowerCase()) && k.is_active !== false,
     );
-    return kw ? kw.name : _match;
+    if (!kw) return _match;
+    return shouldEscape ? escapeHtml(kw.name) : kw.name;
   });
 }
 

@@ -461,7 +461,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
       return (
         <div
           className="axon-prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(replaceKeywordPlaceholders(html, keywords)) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(replaceKeywordPlaceholders(html, keywords, { escapeHtml: true })) }}
           role="article"
         />
       );
@@ -645,7 +645,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             {/<[a-z][\s\S]*>/i.test(text) ? (
               <div
                 className="text-sm text-gray-700 leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(replaceKeywordPlaceholders(text, keywords)) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(replaceKeywordPlaceholders(text, keywords, { escapeHtml: true })) }}
               />
             ) : (
               <p className="text-sm text-gray-700 leading-relaxed">{replaceKeywordPlaceholders(text, keywords)}</p>
