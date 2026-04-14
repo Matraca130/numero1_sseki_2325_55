@@ -19,20 +19,27 @@ export interface MasteryStats {
 
 // ── Constants ──
 
+/**
+ * SM-2 5-level grading scale — the ONLY scale the UI renders.
+ *
+ * Flow of a rating through the system:
+ *   1. User clicks one of these buttons → rating: 1..5
+ *   2. `useFlashcardEngine.handleRate(rating)` receives it
+ *   3. `smRatingToFsrsGrade(rating)` (from `@/app/lib/grade-mapper`)
+ *      translates 1..5 → FSRS 1..4
+ *   4. The FSRS grade is what reaches `useReviewBatch` and the
+ *      backend `POST /review-batch` endpoint (PATH B)
+ *
+ * Do NOT pass these values directly to `queueReview()` or any
+ * backend call — always run them through `smRatingToFsrsGrade()`
+ * first. See audit 2026-04-14 P0 #1 for history.
+ */
 export const RATINGS = [
   { value: 1, label: 'No sé', color: 'bg-rose-500', hover: 'hover:bg-rose-600', text: 'text-rose-500', desc: 'Repetir pronto' },
   { value: 2, label: 'Difícil', color: 'bg-orange-500', hover: 'hover:bg-orange-600', text: 'text-orange-500', desc: 'Necesito repasar' },
   { value: 3, label: 'Regular', color: 'bg-yellow-400', hover: 'hover:bg-yellow-500', text: 'text-yellow-500', desc: 'Algo de duda' },
   { value: 4, label: 'Fácil', color: 'bg-lime-500', hover: 'hover:bg-lime-600', text: 'text-lime-600', desc: 'Lo entendí bien' },
   { value: 5, label: 'Perfecto', color: 'bg-emerald-500', hover: 'hover:bg-emerald-600', text: 'text-emerald-500', desc: 'Memorizado' },
-] as const;
-
-/** FSRS 4-level grading scale (used by FlashcardReviewer + ReviewSessionView) */
-export const GRADES = [
-  { value: 1, label: 'Otra vez', color: 'bg-red-500 hover:bg-red-600', desc: 'No la sabía' },
-  { value: 2, label: 'Difícil', color: 'bg-orange-500 hover:bg-orange-600', desc: 'Con mucho esfuerzo' },
-  { value: 3, label: 'Bien', color: 'bg-emerald-500 hover:bg-emerald-600', desc: 'Con algo de esfuerzo' },
-  { value: 4, label: 'Fácil', color: 'bg-blue-500 hover:bg-blue-600', desc: 'Muy fácil' },
 ] as const;
 
 // ── Pure Utilities ──
