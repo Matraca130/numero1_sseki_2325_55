@@ -102,14 +102,74 @@ vi.mock('@/app/components/content/flashcard/adaptive', () => ({
       {onCancel && <button onClick={onCancel}>Cancel</button>}
     </div>
   ),
-  AdaptivePartialSummary: () => <div data-testid="partial-summary" />,
-  AdaptiveCompletedScreen: () => <div data-testid="completed-screen" />,
+  AdaptivePartialSummary: ({
+    allStats,
+    completedRounds,
+    lastGenerationResult,
+    onGenerateMore,
+    onFinish,
+  }: any) => (
+    <div data-testid="partial-summary">
+      <span data-testid="partial-stats-count">{allStats?.length ?? 0}</span>
+      <span data-testid="partial-rounds-count">{completedRounds?.length ?? 0}</span>
+      <span data-testid="partial-last-gen">
+        {lastGenerationResult ? 'has-gen' : 'no-gen'}
+      </span>
+      <button data-testid="partial-generate-more" onClick={() => onGenerateMore?.(10)}>
+        Generar más
+      </button>
+      <button data-testid="partial-finish" onClick={() => onFinish?.()}>
+        Finalizar
+      </button>
+    </div>
+  ),
+  AdaptiveCompletedScreen: ({
+    allStats,
+    completedRounds,
+    onRestart,
+    onExit,
+  }: any) => (
+    <div data-testid="completed-screen">
+      <span data-testid="completed-stats-count">{allStats?.length ?? 0}</span>
+      <span data-testid="completed-rounds-count">{completedRounds?.length ?? 0}</span>
+      <button data-testid="completed-restart" onClick={() => onRestart?.()}>
+        Reiniciar
+      </button>
+      <button data-testid="completed-exit" onClick={() => onExit?.()}>
+        Salir
+      </button>
+    </div>
+  ),
 }));
 
+// SessionScreen stub: mirrors the real component's public surface enough
+// for wiring assertions. We expose rate buttons that forward to the
+// `handleRate` prop so tests can verify the host → hook round-trip.
+// (We intentionally do NOT import the real FlashcardSessionScreen: its
+// transitive deps — AxonLogo, design-system, flashcard-types — would
+// balloon the mock surface. The host imports SessionScreen from this
+// exact barrel, so asserting against the stub still proves wiring.)
 vi.mock('@/app/components/content/flashcard', () => ({
   SessionScreen: (props: any) => (
     <div data-testid="session-screen">
       <span data-testid="session-card-count">{props.cards?.length ?? 0}</span>
+      <span data-testid="session-current-index">{props.currentIndex}</span>
+      <span data-testid="session-course-color">{props.courseColor}</span>
+      <button data-testid="session-show-answer" onClick={() => props.setIsRevealed?.(true)}>
+        Mostrar respuesta
+      </button>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          data-testid={`session-rate-${n}`}
+          onClick={() => props.handleRate?.(n)}
+        >
+          Rate {n}
+        </button>
+      ))}
+      <button data-testid="session-back" onClick={() => props.onBack?.()}>
+        Back
+      </button>
     </div>
   ),
 }));
@@ -184,6 +244,8 @@ describe('AdaptiveFlashcardView', () => {
     mockGenerateMore.mockClear();
     mockAbortGeneration.mockClear();
     mockFinishSession.mockClear();
+    mockHandleRate.mockClear();
+    mockSetIsRevealed.mockClear();
     mockGetFlashcardsByTopic.mockReset();
     mockSearchParams = new URLSearchParams({
       topicId: 'topic-xyz',
@@ -314,5 +376,166 @@ describe('AdaptiveFlashcardView', () => {
     await waitFor(() => {
       expect(screen.getByTestId('idle-landing')).toBeTruthy();
     });
+  });
+
+  // ══ Phase coverage: reviewing / partial-summary / completed ══
+  //
+  // These 3 tests pin the phase→screen mapping and wire-through of the
+  // hook's callbacks. They mock useAdaptiveSession with a fixed phase
+  // payload BEFORE render, then interact with the stubbed screens to
+  // assert that the expected hook method (or navigate) is invoked.
+
+  it('phase=reviewing renders SessionScreen and forwards rating to hook.handleRate', async () => {
+    const reviewingCards = [
+      { id: 'fc-1', front: 'q1', back: 'a1', question: 'q1', answer: 'a1', mastery: 0 },
+      { id: 'fc-2', front: 'q2', back: 'a2', question: 'q2', answer: 'a2', mastery: 0 },
+    ];
+
+    mockGetFlashcardsByTopic.mockResolvedValueOnce({
+      items: [
+        { id: 'fc-1', summary_id: 's1', keyword_id: 'k1', front: 'q1', back: 'a1', source: 'manual', is_active: true, deleted_at: null, created_at: '', updated_at: '' },
+        { id: 'fc-2', summary_id: 's1', keyword_id: 'k2', front: 'q2', back: 'a2', source: 'manual', is_active: true, deleted_at: null, created_at: '', updated_at: '' },
+      ],
+      total: 2,
+      limit: 100,
+      offset: 0,
+    });
+
+    mockSessionState = {
+      ...mockSessionState,
+      phase: 'reviewing',
+      currentCard: reviewingCards[0],
+      currentIndex: 0,
+      isRevealed: false,
+      sessionCards: reviewingCards,
+      sessionStats: [],
+      currentRound: { roundNumber: 1, source: 'professor', cardCount: 2, ratings: [] },
+      currentRoundSource: 'professor',
+    };
+
+    render(<AdaptiveFlashcardView />);
+
+    // The real FlashcardSessionScreen is imported from the flashcard
+    // barrel; our stub renders under data-testid="session-screen".
+    await waitFor(() => {
+      expect(screen.getByTestId('session-screen')).toBeTruthy();
+    });
+
+    // Host must pass through the session state to the screen props.
+    expect(screen.getByTestId('session-card-count').textContent).toBe('2');
+    expect(screen.getByTestId('session-current-index').textContent).toBe('0');
+    // Host passes ADAPTIVE_ACCENT (teal #14b8a6) as courseColor.
+    expect(screen.getByTestId('session-course-color').textContent).toBe('#14b8a6');
+
+    // Simulate rating "3" via the stub's rate button, which calls the
+    // handleRate prop the host wired to session.handleRate.
+    fireEvent.click(screen.getByTestId('session-rate-3'));
+    expect(mockHandleRate).toHaveBeenCalledTimes(1);
+    expect(mockHandleRate).toHaveBeenCalledWith(3);
+
+    // Back button should still navigate to /student/flashcards.
+    fireEvent.click(screen.getByTestId('session-back'));
+    expect(mockNavigate).toHaveBeenCalledWith('/student/flashcards');
+  });
+
+  it('phase=partial-summary renders AdaptivePartialSummary and wires onGenerateMore/onFinish', async () => {
+    mockGetFlashcardsByTopic.mockResolvedValueOnce({
+      items: [
+        { id: 'fc-1', summary_id: 's1', keyword_id: 'k1', front: 'q1', back: 'a1', source: 'manual', is_active: true, deleted_at: null, created_at: '', updated_at: '' },
+      ],
+      total: 1,
+      limit: 100,
+      offset: 0,
+    });
+
+    mockSessionState = {
+      ...mockSessionState,
+      phase: 'partial-summary',
+      allStats: [3, 4, 3, 5],
+      completedRounds: [
+        { roundNumber: 1, source: 'professor', cardCount: 4, ratings: [3, 4, 3, 5] },
+      ],
+      lastGenerationResult: {
+        cards: [],
+        errors: [],
+        stats: {
+          requested: 10,
+          generated: 8,
+          failed: 2,
+          uniqueKeywords: 5,
+          avgPKnow: 0.6,
+          totalTokens: 1000,
+          elapsedMs: 4200,
+        },
+      },
+    };
+
+    render(<AdaptiveFlashcardView />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('partial-summary')).toBeTruthy();
+    });
+    // Hook state travelled through the host into the screen.
+    expect(screen.getByTestId('partial-stats-count').textContent).toBe('4');
+    expect(screen.getByTestId('partial-rounds-count').textContent).toBe('1');
+    expect(screen.getByTestId('partial-last-gen').textContent).toBe('has-gen');
+
+    // onGenerateMore → hook.generateMore(count)
+    fireEvent.click(screen.getByTestId('partial-generate-more'));
+    expect(mockGenerateMore).toHaveBeenCalledTimes(1);
+    expect(mockGenerateMore).toHaveBeenCalledWith(10);
+
+    // onFinish → host.handleFinishAndExit → hook.finishSession()
+    fireEvent.click(screen.getByTestId('partial-finish'));
+    await waitFor(() => {
+      expect(mockFinishSession).toHaveBeenCalledTimes(1);
+    });
+    // finishSession is the hook's responsibility; host does NOT navigate
+    // away synchronously (the hook flips phase → completed on its own).
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('phase=completed renders AdaptiveCompletedScreen and wires onRestart/onExit', async () => {
+    mockGetFlashcardsByTopic.mockResolvedValueOnce({
+      items: [
+        { id: 'fc-1', summary_id: 's1', keyword_id: 'k1', front: 'q1', back: 'a1', source: 'manual', is_active: true, deleted_at: null, created_at: '', updated_at: '' },
+        { id: 'fc-2', summary_id: 's1', keyword_id: 'k2', front: 'q2', back: 'a2', source: 'manual', is_active: true, deleted_at: null, created_at: '', updated_at: '' },
+      ],
+      total: 2,
+      limit: 100,
+      offset: 0,
+    });
+
+    mockSessionState = {
+      ...mockSessionState,
+      phase: 'completed',
+      allStats: [3, 4, 5, 3, 4],
+      completedRounds: [
+        { roundNumber: 1, source: 'professor', cardCount: 2, ratings: [3, 4] },
+        { roundNumber: 2, source: 'ai', cardCount: 3, ratings: [5, 3, 4] },
+      ],
+    };
+
+    render(<AdaptiveFlashcardView />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('completed-screen')).toBeTruthy();
+    });
+    expect(screen.getByTestId('completed-stats-count').textContent).toBe('5');
+    expect(screen.getByTestId('completed-rounds-count').textContent).toBe('2');
+
+    // onRestart: the hook does NOT expose a `restart` method. The host
+    // re-invokes session.startSession(cards) with the previously loaded
+    // professor cards. Assert that, not a non-existent hook.restart().
+    fireEvent.click(screen.getByTestId('completed-restart'));
+    expect(mockStartSession).toHaveBeenCalledTimes(1);
+    const passed = mockStartSession.mock.calls[0][0];
+    expect(Array.isArray(passed)).toBe(true);
+    expect(passed).toHaveLength(2);
+    expect(passed[0].id).toBe('fc-1');
+
+    // onExit → navigate back to /student/flashcards
+    fireEvent.click(screen.getByTestId('completed-exit'));
+    expect(mockNavigate).toHaveBeenCalledWith('/student/flashcards');
   });
 });
