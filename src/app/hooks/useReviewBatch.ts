@@ -43,7 +43,9 @@ export interface ReviewableCard {
 export interface QueueReviewParams {
   /** Card being reviewed — only needs id + subtopic_id */
   card: ReviewableCard;
-  /** Grade from the UI (1-5). */
+  /** FSRS grade (1-4). Callers using the SM-2 UI scale (1-5) must
+   *  translate via `smRatingToFsrsGrade` from `@/app/lib/grade-mapper`
+   *  BEFORE calling queueReview. */
   grade: number;
   /** Time in ms the student took to respond */
   responseTimeMs: number;
@@ -54,6 +56,14 @@ export interface QueueReviewParams {
    * Defaults to 0 if omitted (safe for first review).
    */
   currentPKnow?: number;
+  /**
+   * Backend session id for this review.
+   * When provided, each call to queueReview also writes the
+   * running batch to localStorage so a tab crash / hard refresh
+   * does not lose the already-answered cards (audit P1 #5).
+   * Local/offline ids (prefix `local-`) are ignored.
+   */
+  sessionId?: string | null;
   // NOTE: existingFsrs is NO LONGER accepted.
   // PATH B: the backend reads FSRS state from the DB.
 }
@@ -157,7 +167,7 @@ export function useReviewBatch() {
   const sessionBktRef = useRef<Map<string, number>>(new Map());
 
   const queueReview = useCallback((params: QueueReviewParams): QueueReviewResult => {
-    const { card, grade, responseTimeMs, currentPKnow } = params;
+    const { card, grade, responseTimeMs, currentPKnow, sessionId } = params;
 
     const isCorrect = grade >= 3;
 
@@ -184,6 +194,15 @@ export function useReviewBatch() {
     }
 
     batchQueueRef.current.push(batchItem);
+
+    // AUDIT P1 #5: persist the in-progress batch after every queued
+    // review so an unexpected tab close / crash / refresh still lets
+    // `retryPendingBatches()` replay the answers on next mount.
+    // Skip local/offline sessions — the backend has no record to
+    // attach them to yet.
+    if (sessionId && !sessionId.startsWith('local-')) {
+      savePendingBatch(sessionId, batchQueueRef.current);
+    }
 
     return { isCorrect, estimatedPKnow, previousPKnow: resolvedPKnow };
   }, []);

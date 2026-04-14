@@ -188,6 +188,9 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
         grade: fsrsGrade,
         responseTimeMs,
         currentPKnow: sq?.p_know,
+        // AUDIT P1 #5: pass sessionId so useReviewBatch persists
+        // the running batch to localStorage on every queued review.
+        sessionId: sessionIdRef.current,
       });
 
       // Build optimistic update (engine-specific, not in hook)
