@@ -75,6 +75,7 @@ import {
   type AdaptiveGenerationResult,
 } from '@/app/services/adaptiveGenerationApi';
 import { countCorrect } from '@/app/lib/session-stats';
+import { smRatingToFsrsGrade, type SmRating } from '@/app/lib/grade-mapper';
 import type { OptimisticCardUpdate, CardMasteryDelta } from './useFlashcardEngine';
 
 // ── Types ─────────────────────────────────────────────────
@@ -255,8 +256,15 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     const responseTimeMs = Date.now() - cardStartTimeRef.current;
     const sq = masteryMap?.get(card.id);
 
+    // AUDIT P0 #1: translate SM-2 UI rating (1-5) to FSRS grade (1-4)
+    // before handing it to the batch hook / backend. Without this, a SM-2
+    // rating of 5 would reach the backend as grade=5 and get silently
+    // clamped, corrupting FSRS stability/difficulty updates. Mirrors the
+    // same fix applied in useFlashcardEngine on fix/flashcards-session-p0.
+    const fsrsGrade = smRatingToFsrsGrade(rating as SmRating);
+
     const result: QueueReviewResult = queueReview({
-      card, grade: rating, responseTimeMs, currentPKnow: sq?.p_know,
+      card, grade: fsrsGrade, responseTimeMs, currentPKnow: sq?.p_know,
     });
 
     optimisticRef.current.set(card.id, {
