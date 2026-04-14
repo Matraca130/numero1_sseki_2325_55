@@ -8,7 +8,7 @@
 //   - P2: Body scroll lock via MobileDrawer
 //   - Extracted SidebarContent to avoid JSX-in-variable anti-pattern
 // ============================================================
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/app/context/AuthContext';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
@@ -161,20 +161,20 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
     navigate('/login', { replace: true });
-  };
+  }, [signOut, navigate]);
 
-  const handleSwitchRole = () => {
+  const handleSwitchRole = useCallback(() => {
     navigate('/select-org', { replace: true });
-  };
+  }, [navigate]);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const institutionName = activeMembership?.institution?.name || 'Institucion';
 
-  const sidebarProps = {
+  const sidebarProps = useMemo(() => ({
     accent,
     roleLabel,
     roleIcon,
@@ -183,7 +183,7 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
     onNavClick: closeSidebar,
     onSwitchRole: handleSwitchRole,
     onSignOut: handleSignOut,
-  };
+  }), [accent, roleLabel, roleIcon, navItems, institutionName, closeSidebar, handleSwitchRole, handleSignOut]);
 
   return (
     <div className="flex h-screen w-full bg-[#F0F2F5] text-gray-900 font-sans overflow-hidden">

@@ -10,7 +10,7 @@
 //   6. ErrorBoundary wrapping chart sections
 //   7. EmptyState for zero study data
 // ============================================================
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
@@ -37,6 +37,10 @@ import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { ActivityChart, MasteryDonut, type ActivityDataPoint, type MasteryDataPoint } from '@/app/components/dashboard/DashboardCharts';
 import { DashboardStudyPlans } from '@/app/components/dashboard/DashboardStudyPlans';
 
+// ── Module-level constants (stable reference across renders) ──
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+const SUBJECT_COLORS = ['#0d9488', '#14b8a6', '#0891b2', '#7c3aed', '#f59e0b', '#ef4444'];
+
 export function DashboardView() {
   const { currentCourse } = useNavigation();
   const { stats, dailyActivity, bktStates, isConnected } = useStudentDataContext();
@@ -55,37 +59,43 @@ export function DashboardView() {
   const retryCharts = useCallback(() => setChartRetryKey(k => k + 1), []);
 
   // ── Build chart data from real daily activity ──
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-  const sliceDays = timeRange === 'week' ? 7 : 30;
-  const activityData: ActivityDataPoint[] = isConnected && dailyActivity.length > 0
-    ? dailyActivity.slice(-sliceDays).map(d => ({
-        date: dayNames[new Date(d.date + 'T12:00:00').getDay()],
+  const activityData: ActivityDataPoint[] = useMemo(() => {
+    const sliceDays = timeRange === 'week' ? 7 : 30;
+    if (isConnected && dailyActivity.length > 0) {
+      return dailyActivity.slice(-sliceDays).map(d => ({
+        date: DAY_NAMES[new Date(d.date + 'T12:00:00').getDay()],
         videos: Math.round(d.studyMinutes * 0.3),
         cards: d.cardsReviewed,
         amt: d.studyMinutes,
-      }))
-    : dayNames.slice(1).concat(dayNames[0]).map(d => ({ date: d, videos: 0, cards: 0, amt: 0 }));
+      }));
+    }
+    return DAY_NAMES.slice(1).concat(DAY_NAMES[0]).map(d => ({ date: d, videos: 0, cards: 0, amt: 0 }));
+  }, [isConnected, dailyActivity, timeRange]);
 
   // ── Build mastery data from BKT states ──
-  const totalBkt = bktStates.length || 1;
-  const masteredBkt = bktStates.filter(b => b.p_know >= 0.9).length;
-  const learningBkt = bktStates.filter(b => b.p_know >= 0.5 && b.p_know < 0.9).length;
-  const reviewingBkt = bktStates.filter(b => b.p_know >= 0.3 && b.p_know < 0.5).length;
-  const notStartedBkt = Math.max(0, totalBkt - masteredBkt - learningBkt - reviewingBkt);
+  const { masteryData, totalCards } = useMemo(() => {
+    const totalBkt = bktStates.length || 1;
+    const masteredBkt = bktStates.filter(b => b.p_know >= 0.9).length;
+    const learningBkt = bktStates.filter(b => b.p_know >= 0.5 && b.p_know < 0.9).length;
+    const reviewingBkt = bktStates.filter(b => b.p_know >= 0.3 && b.p_know < 0.5).length;
+    const notStartedBkt = Math.max(0, totalBkt - masteredBkt - learningBkt - reviewingBkt);
 
-  const totalCards = isConnected && bktStates.length > 0 ? bktStates.length : 0;
+    const data: MasteryDataPoint[] = [
+      { name: 'No Iniciado', value: notStartedBkt || (isConnected ? 0 : 250), color: '#d1d5db' },
+      { name: 'Aprendiendo', value: learningBkt || (isConnected ? 0 : 100), color: '#fbbf24' },
+      { name: 'Revisando', value: reviewingBkt || (isConnected ? 0 : 80), color: '#14b8a6' },
+      { name: 'Dominado', value: masteredBkt || (isConnected ? 0 : 70), color: '#0d9488' },
+    ];
 
-  const masteryData: MasteryDataPoint[] = [
-    { name: 'No Iniciado', value: notStartedBkt || (isConnected ? 0 : 250), color: '#d1d5db' },
-    { name: 'Aprendiendo', value: learningBkt || (isConnected ? 0 : 100), color: '#fbbf24' },
-    { name: 'Revisando', value: reviewingBkt || (isConnected ? 0 : 80), color: '#14b8a6' },
-    { name: 'Dominado', value: masteredBkt || (isConnected ? 0 : 70), color: '#0d9488' },
-  ];
+    return {
+      masteryData: data,
+      totalCards: isConnected && bktStates.length > 0 ? bktStates.length : 0,
+    };
+  }, [bktStates, isConnected]);
 
   // ── Subject progress from BKT + content tree ──
-  const subjectProgress = (() => {
+  const subjectProgress = useMemo(() => {
     if (!tree?.courses?.length) return [];
-    const COLORS = ['#0d9488', '#14b8a6', '#0891b2', '#7c3aed', '#f59e0b', '#ef4444'];
     return tree.courses.map((course, i) => {
       const topicIds: string[] = [];
       course.semesters?.forEach(s => s.sections?.forEach(sec => sec.topics?.forEach(t => topicIds.push(t.id))));
@@ -94,10 +104,10 @@ export function DashboardView() {
         name: course.name,
         total: topicIds.length,
         completed: relevantBkt.filter(b => b.p_know >= 0.9).length,
-        color: COLORS[i % COLORS.length],
+        color: SUBJECT_COLORS[i % SUBJECT_COLORS.length],
       };
     });
-  })();
+  }, [tree, bktStates]);
 
   // ── KPI values from real stats ──
   const kpiCards = isConnected && stats ? stats.totalCardsReviewed.toLocaleString('es-MX') : '0';
