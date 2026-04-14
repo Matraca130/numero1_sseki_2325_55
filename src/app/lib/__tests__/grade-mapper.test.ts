@@ -6,7 +6,7 @@
 // ============================================================
 
 import {
-  smRatingToFsrsGrade,
+  uiRatingToFsrsGrade,
   fsrsGradeToFloat,
   isCorrect,
   isRecovering,
@@ -17,27 +17,27 @@ import {
   type FsrsGrade,
 } from '@/app/lib/grade-mapper';
 
-// ── smRatingToFsrsGrade ─────────────────────────────────────
+// ── uiRatingToFsrsGrade ─────────────────────────────────────
 
-describe('smRatingToFsrsGrade', () => {
-  it('SM-2 1 (again) → FSRS 1 (Again)', () => {
-    expect(smRatingToFsrsGrade(1)).toBe(1);
+describe('uiRatingToFsrsGrade', () => {
+  it('UI 1 (again) → FSRS 1 (Again)', () => {
+    expect(uiRatingToFsrsGrade(1)).toBe(1);
   });
 
-  it('SM-2 2 (hard) → FSRS 2 (Hard)', () => {
-    expect(smRatingToFsrsGrade(2)).toBe(2);
+  it('UI 2 (hard) → FSRS 2 (Hard)', () => {
+    expect(uiRatingToFsrsGrade(2)).toBe(2);
   });
 
-  it('SM-2 3 (ok) → FSRS 3 (Good)', () => {
-    expect(smRatingToFsrsGrade(3)).toBe(3);
+  it('UI 3 (ok) → FSRS 3 (Good)', () => {
+    expect(uiRatingToFsrsGrade(3)).toBe(3);
   });
 
-  it('SM-2 4 (good) → FSRS 3 (Good) — same bucket as 3', () => {
-    expect(smRatingToFsrsGrade(4)).toBe(3);
+  it('UI 4 (good) → FSRS 3 (Good) — same bucket as 3', () => {
+    expect(uiRatingToFsrsGrade(4)).toBe(3);
   });
 
-  it('SM-2 5 (perfect) → FSRS 4 (Easy)', () => {
-    expect(smRatingToFsrsGrade(5)).toBe(4);
+  it('UI 5 (perfect) → FSRS 4 (Easy)', () => {
+    expect(uiRatingToFsrsGrade(5)).toBe(4);
   });
 });
 

@@ -267,7 +267,7 @@ describe('useFlashcardEngine', () => {
   // ══════════════════════════════════════════════════════════
 
   describe('handleRate (non-last card)', () => {
-    it('calls queueReview with the current card (SM-2→FSRS translated grade)', async () => {
+    it('calls queueReview with the current card (UI→FSRS translated grade)', async () => {
       const { result } = renderHook(() => useFlashcardEngine(DEFAULT_OPTS));
 
       await act(async () => {
@@ -275,12 +275,12 @@ describe('useFlashcardEngine', () => {
       });
 
       act(() => {
-        result.current.handleRate(4); // SM-2 rating "Fácil"
+        result.current.handleRate(4); // UI rating "Fácil"
       });
 
       expect(mockQueueReview).toHaveBeenCalledTimes(1);
-      // Audit P0 #1: engine translates SM-2 4 → FSRS 3 (Good) via
-      // smRatingToFsrsGrade before forwarding to useReviewBatch.
+      // Audit P0 #1: engine translates UI 4 → FSRS 3 (Good) via
+      // uiRatingToFsrsGrade before forwarding to useReviewBatch.
       expect(mockQueueReview).toHaveBeenCalledWith(
         expect.objectContaining({
           card: THREE_CARDS[0],

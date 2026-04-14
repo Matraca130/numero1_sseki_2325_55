@@ -20,18 +20,21 @@ export interface MasteryStats {
 // ── Constants ──
 
 /**
- * SM-2 5-level grading scale — the ONLY scale the UI renders.
+ * 5-level UI rating buttons — the ONLY scale the flashcard
+ * session screen renders. Axon does NOT use the SM-2 algorithm;
+ * the extra granularity is purely a UX choice. Real scheduling
+ * runs on FSRS v4 on the backend.
  *
  * Flow of a rating through the system:
  *   1. User clicks one of these buttons → rating: 1..5
  *   2. `useFlashcardEngine.handleRate(rating)` receives it
- *   3. `smRatingToFsrsGrade(rating)` (from `@/app/lib/grade-mapper`)
+ *   3. `uiRatingToFsrsGrade(rating)` (from `@/app/lib/grade-mapper`)
  *      translates 1..5 → FSRS 1..4
  *   4. The FSRS grade is what reaches `useReviewBatch` and the
  *      backend `POST /review-batch` endpoint (PATH B)
  *
  * Do NOT pass these values directly to `queueReview()` or any
- * backend call — always run them through `smRatingToFsrsGrade()`
+ * backend call — always run them through `uiRatingToFsrsGrade()`
  * first. See audit 2026-04-14 P0 #1 for history.
  */
 export const RATINGS = [

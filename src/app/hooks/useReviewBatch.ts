@@ -43,9 +43,9 @@ export interface ReviewableCard {
 export interface QueueReviewParams {
   /** Card being reviewed — only needs id + subtopic_id */
   card: ReviewableCard;
-  /** FSRS grade (1-4). Callers using the SM-2 UI scale (1-5) must
-   *  translate via `smRatingToFsrsGrade` from `@/app/lib/grade-mapper`
-   *  BEFORE calling queueReview. */
+  /** FSRS grade (1-4). Callers rendering the 1-5 UI rating buttons
+   *  must translate via `uiRatingToFsrsGrade` from
+   *  `@/app/lib/grade-mapper` BEFORE calling queueReview. */
   grade: number;
   /** Time in ms the student took to respond */
   responseTimeMs: number;

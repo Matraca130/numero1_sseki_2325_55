@@ -24,7 +24,7 @@ import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import * as sessionApi from '@/app/services/studySessionApi';
 import { useReviewBatch } from './useReviewBatch';
 import { postSessionAnalytics } from '@/app/lib/sessionAnalytics';
-import { smRatingToFsrsGrade, type SmRating } from '@/app/lib/grade-mapper';
+import { uiRatingToFsrsGrade, type SmRating } from '@/app/lib/grade-mapper';
 
 // ── Optimistic update type ────────────────────────────────
 
@@ -174,11 +174,12 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
     if (card) {
       const sq = masteryMap?.get(card.id);
 
-      // AUDIT P0 #1: translate SM-2 UI rating (1-5) to FSRS grade (1-4)
+      // AUDIT P0 #1: translate the 1-5 UI rating to FSRS grade (1-4)
       // before handing it to the batch hook / backend. Without this,
-      // a SM-2 rating of 5 would reach the backend as grade=5 and get
+      // a UI rating of 5 would reach the backend as grade=5 and get
       // silently clamped, corrupting FSRS stability/difficulty updates.
-      const fsrsGrade = smRatingToFsrsGrade(rating as SmRating);
+      // (Axon does not use SM-2 — the 1-5 scale is purely UX.)
+      const fsrsGrade = uiRatingToFsrsGrade(rating as SmRating);
 
       // queueReview handles: BKT heuristic estimation,
       // intra-session BKT accumulation, and BatchReviewItem queuing.
