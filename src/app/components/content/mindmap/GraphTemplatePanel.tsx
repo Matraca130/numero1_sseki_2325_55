@@ -12,7 +12,7 @@
 // LANG: i18n (pt / es)
 // ============================================================
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import {
   LayoutTemplate, X, Save, Loader2, Trash2, Download, Plus, FileStack,
 } from 'lucide-react';
@@ -156,7 +156,7 @@ interface GraphTemplatePanelProps {
 
 // ── Component ────────────────────────────────────────────────
 
-export function GraphTemplatePanel({
+export const GraphTemplatePanel = memo(function GraphTemplatePanel({
   open,
   onClose,
   institutionId,
@@ -616,4 +616,4 @@ export function GraphTemplatePanel({
       )}
     </>
   );
-}
+});

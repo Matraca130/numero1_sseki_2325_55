@@ -9,7 +9,7 @@
 // Mobile: On-screen arrow buttons.
 // ============================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useFocusTrap } from './useFocusTrap';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -37,7 +37,7 @@ interface PresentationModeProps {
 
 // ── Component ───────────────────────────────────────────────
 
-export function PresentationMode({
+export const PresentationMode = memo(function PresentationMode({
   nodes, edges, initialIndex = 0, onExit, onNodeFocus,
 }: PresentationModeProps) {
   const sorted = useMemo(() => topologicalSort(nodes, edges), [nodes, edges]);
@@ -271,4 +271,4 @@ export function PresentationMode({
       </div>
     </motion.div>
   );
-}
+});

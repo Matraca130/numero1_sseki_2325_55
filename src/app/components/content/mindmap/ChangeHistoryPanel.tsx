@@ -8,7 +8,7 @@
 // LANG: Spanish
 // ============================================================
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { Clock, Plus, Link2, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { colors, headingStyle } from '@/app/design-system';
@@ -70,7 +70,7 @@ const ICON_COLOR: Record<HistoryActionType, string> = {
 
 // ── Component ────────────────────────────────────────────────
 
-export function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHistoryPanelProps) {
+export const ChangeHistoryPanel = memo(function ChangeHistoryPanel({ open, onClose, entries, onClear }: ChangeHistoryPanelProps) {
   const focusTrapRef = useFocusTrap(open);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -284,4 +284,4 @@ function TimelineEntry({ entry, index }: { entry: HistoryEntry; index: number })
       </div>
     </motion.div>
   );
-}
+});

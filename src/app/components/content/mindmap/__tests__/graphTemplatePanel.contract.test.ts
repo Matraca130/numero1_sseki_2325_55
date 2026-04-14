@@ -18,8 +18,8 @@ const source = readFileSync(
 describe('GraphTemplatePanel contract', () => {
   // ── Export ─────────────────────────────────────────────────
 
-  it('exports GraphTemplatePanel as a named function', () => {
-    expect(source).toMatch(/export\s+function\s+GraphTemplatePanel/);
+  it('exports GraphTemplatePanel as a memo-wrapped named component', () => {
+    expect(source).toMatch(/export\s+const\s+GraphTemplatePanel\s*=\s*memo\(function\s+GraphTemplatePanel/);
   });
 
   // ── Focus management ──────────────────────────────────────

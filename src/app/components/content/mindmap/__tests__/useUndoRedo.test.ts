@@ -10,7 +10,12 @@
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
+
+const SOURCE_PATH = resolve(__dirname, '..', 'useUndoRedo.ts');
+const source = readFileSync(SOURCE_PATH, 'utf-8');
 
 // ── Mock dependencies ───────────────────────────────────────
 
@@ -334,5 +339,91 @@ describe('Action type coverage', () => {
     expect(types.has('delete-node')).toBe(true);
     expect(types.has('create-edge')).toBe(true);
     expect(types.has('delete-edge')).toBe(true);
+  });
+});
+
+// ── Source contract tests (added Cycle 1) ───────────────────
+
+describe('useUndoRedo module contract', () => {
+  it('exports useUndoRedo function', () => {
+    expect(source).toContain('export function useUndoRedo');
+  });
+
+  it('defines MAX_HISTORY = 30', () => {
+    expect(source).toContain('const MAX_HISTORY = 30');
+  });
+
+  it('defines all 5 action types including reconnect-edge', () => {
+    expect(source).toContain("type: 'create-node'");
+    expect(source).toContain("type: 'delete-node'");
+    expect(source).toContain("type: 'create-edge'");
+    expect(source).toContain("type: 'delete-edge'");
+    expect(source).toContain("type: 'reconnect-edge'");
+  });
+
+  it('returns pushAction, clearHistory, undo, redo, canUndo, canRedo, busy, historyCount', () => {
+    expect(source).toContain('pushAction');
+    expect(source).toContain('clearHistory');
+    expect(source).toContain('canUndo');
+    expect(source).toContain('canRedo');
+    expect(source).toContain('busy');
+    expect(source).toContain('historyCount');
+  });
+
+  it('invalidates graph cache on unmounted undo/redo', () => {
+    expect(source).toContain('invalidateGraphCache');
+  });
+});
+
+describe('keyboard shortcuts contract', () => {
+  it('handles Ctrl+Z for undo', () => {
+    expect(source).toContain("e.key === 'z' && !e.shiftKey");
+  });
+
+  it('handles Ctrl+Y and Ctrl+Shift+Z for redo', () => {
+    expect(source).toContain("e.key === 'y'");
+    expect(source).toContain("e.key === 'z' && e.shiftKey");
+  });
+
+  it('ignores input, textarea, select, and contentEditable', () => {
+    expect(source).toContain("tag === 'INPUT'");
+    expect(source).toContain("tag === 'TEXTAREA'");
+    expect(source).toContain('isContentEditable');
+  });
+
+  it('ignores dialog/alertdialog context', () => {
+    expect(source).toContain('role="dialog"');
+  });
+
+  it('ignores key repeats', () => {
+    expect(source).toContain('e.repeat');
+  });
+});
+
+describe('busy guard contract', () => {
+  it('uses sync busyRef to prevent concurrent operations', () => {
+    expect(source).toContain('busyRef.current = true');
+    expect(source).toContain('busyRef.current = false');
+  });
+
+  it('checks busyRef at start of undo and redo', () => {
+    const busyChecks = source.match(/if \(busyRef\.current/g);
+    expect(busyChecks).not.toBeNull();
+    expect(busyChecks!.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('reconnect-edge pattern', () => {
+  it('stores oldEdgeId, oldPayload, newEdgeId, newPayload', () => {
+    expect(source).toContain('oldEdgeId');
+    expect(source).toContain('oldPayload');
+    expect(source).toContain('newEdgeId');
+    expect(source).toContain('newPayload');
+  });
+
+  it('implements compensating rollback on failure', () => {
+    const rollbackBlocks = source.match(/best-effort rollback/g);
+    expect(rollbackBlocks).not.toBeNull();
+    expect(rollbackBlocks!.length).toBeGreaterThanOrEqual(2);
   });
 });

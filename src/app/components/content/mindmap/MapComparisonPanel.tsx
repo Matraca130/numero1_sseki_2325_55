@@ -17,7 +17,7 @@
 // LANG: Spanish
 // ============================================================
 
-import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { useMemo, useCallback, useEffect, useRef, memo } from 'react';
 import { useFocusTrap } from './useFocusTrap';
 import { GitCompareArrows, X, CheckCircle2, AlertTriangle, XCircle, HelpCircle, Plus, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -184,7 +184,7 @@ function MasteryDonut({ stats }: { stats: CoverageStats }) {
 
 // ── Component ────────────────────────────────────────────────
 
-export function MapComparisonPanel({
+export const MapComparisonPanel = memo(function MapComparisonPanel({
   open,
   onClose,
   graphData,
@@ -581,4 +581,4 @@ function CustomEdgeItem({ edge, nodeLabels }: { edge: MapEdge; nodeLabels: Map<s
       )}
     </div>
   );
-}
+});
