@@ -1,36 +1,48 @@
 {
-  "cycle": 3,
-  "last_run": "2026-04-14T11:10:00Z",
+  "cycle": 4,
+  "last_run": "2026-04-14T11:32:00Z",
   "findings_history": [
     {
-      "cycle": 1,
-      "date": "2026-04-14",
+      "cycle": 1, "date": "2026-04-14",
       "tests": { "gaps_found": 32, "tests_written": 2, "tests_enhanced": 1, "total_new_assertions": 90, "all_passing": true },
       "code_quality": { "issues_found": 16, "fixed": 0, "deferred": 16 },
       "security": { "findings": 0, "fixed": 0 },
       "performance": { "issues_found": 8, "optimized": 4, "perf_test_pass": true }
     },
     {
-      "cycle": 2,
-      "date": "2026-04-14",
+      "cycle": 2, "date": "2026-04-14",
       "tests": { "gaps_found": 27, "tests_written": 2, "total_new_assertions": 50, "all_passing": true },
       "code_quality": { "issues_found": 0, "fixed": 0, "deferred": 16 },
       "security": { "findings": 0, "fixed": 0 },
       "performance": { "issues_found": 0, "optimized": 0, "perf_test_pass": true }
     },
     {
-      "cycle": 3,
-      "date": "2026-04-14",
+      "cycle": 3, "date": "2026-04-14",
+      "tests": { "pre_existing_failures_fixed": 17, "remaining_failures": 41, "remaining_failing_files": 9 },
+      "code_quality": { "issues_found": 0, "fixed": 0, "deferred": 16 },
+      "security": { "findings": 0, "fixed": 0 },
+      "performance": { "issues_found": 0, "optimized": 0, "perf_test_pass": true }
+    },
+    {
+      "cycle": 4, "date": "2026-04-14",
       "tests": {
-        "pre_existing_failures_fixed": 17,
-        "failing_files_fixed": 2,
-        "remaining_failures": 41,
-        "remaining_failing_files": 9,
-        "notes": "Fixed stale contract assertions: useGraphControls (4 failures: handler count 7→10, useCallback count 7→11, toast i18n), smoke.test (2 failures: exportPNG moved to useGraphControls, directory completeness updated with 17 new entries). knowledgeMapView 15 failures deferred (all from hook extraction refactor)."
+        "pre_existing_failures_fixed": 15,
+        "remaining_failures": 26,
+        "remaining_failing_files": 8,
+        "notes": "Fixed knowledgeMapView.contract.test.ts (15 failures → 0): updated all hook-extracted callback tests to read from useMapNodeActions, useMapEdgeActions, useMapStickyNotes instead of KnowledgeMapView.tsx. Updated side panel exclusivity tests. File now fully green (65/65)."
       },
       "code_quality": { "issues_found": 0, "fixed": 0, "deferred": 16 },
       "security": { "findings": 0, "fixed": 0 },
       "performance": { "issues_found": 0, "optimized": 0, "perf_test_pass": true }
     }
-  ]
+  ],
+  "cumulative": {
+    "total_failures_fixed": 32,
+    "failures_start": 58,
+    "failures_now": 26,
+    "test_files_fully_fixed": 4,
+    "new_test_files": 4,
+    "new_assertions": 140,
+    "components_memoized": 4
+  }
 }

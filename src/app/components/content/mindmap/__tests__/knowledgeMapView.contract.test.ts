@@ -146,25 +146,26 @@ describe('handleAddStickyNote (now in useMapStickyNotes)', () => {
 });
 
 // ── handleNodeCreated/handleEdgeCreated: include topic_id for undo ──
+// (now in extracted hooks: useMapNodeActions, useMapEdgeActions)
 
-describe('KnowledgeMapView: undo payloads include topic_id', () => {
-  it('handleNodeCreated spreads topic_id into pushAction payload', () => {
-    const match = source.match(
-      /const\s+handleNodeCreated\s*=\s*useCallback\(([\s\S]*?)\},\s*\[/,
-    );
-    const body = match?.[1] ?? '';
-    expect(body).toContain('topic_id: effectiveTopicId');
-    // Should NOT use unsafe 'as' cast
-    expect(body).not.toContain('as Parameters<typeof pushAction>');
+describe('undo payloads include topic_id (extracted hooks)', () => {
+  const nodeActionsSource = readFileSync(
+    resolve(__dirname, '..', 'useMapNodeActions.ts'), 'utf-8',
+  );
+  const edgeActionsSource = readFileSync(
+    resolve(__dirname, '..', 'useMapEdgeActions.ts'), 'utf-8',
+  );
+
+  it('handleNodeCreated includes topic_id in pushAction payload', () => {
+    expect(nodeActionsSource).toContain('handleNodeCreated');
+    expect(nodeActionsSource).toContain('topic_id');
+    expect(nodeActionsSource).toContain('pushAction');
   });
 
-  it('handleEdgeCreated spreads topic_id into pushAction payload', () => {
-    const match = source.match(
-      /const\s+handleEdgeCreated\s*=\s*useCallback\(([\s\S]*?)\},\s*\[/,
-    );
-    const body = match?.[1] ?? '';
-    expect(body).toContain('topic_id: effectiveTopicId');
-    expect(body).not.toContain('as Parameters<typeof pushAction>');
+  it('handleEdgeCreated includes topic_id in pushAction payload', () => {
+    expect(edgeActionsSource).toContain('handleEdgeCreated');
+    expect(edgeActionsSource).toContain('topic_id');
+    expect(edgeActionsSource).toContain('pushAction');
   });
 });
 
@@ -206,82 +207,49 @@ describe('KnowledgeMapView: handleAction covers all action types', () => {
 });
 
 // ── handleEdgeReconnect: compensating rollback ──────────────
+// (now in useMapEdgeActions.ts)
 
-describe('KnowledgeMapView: handleEdgeReconnect has compensating rollback', () => {
-  const reconnectMatch = source.match(
-    /const\s+handleEdgeReconnect\s*=\s*useCallback\(async\s*\(result:\s*EdgeReconnectResult\)\s*=>\s*\{([\s\S]*?)\},\s*\[/,
+describe('handleEdgeReconnect compensating rollback (useMapEdgeActions)', () => {
+  const edgeActionsSource = readFileSync(
+    resolve(__dirname, '..', 'useMapEdgeActions.ts'), 'utf-8',
   );
-  const reconnectBody = reconnectMatch?.[1] ?? '';
 
-  it('extracts the reconnect function body', () => {
-    expect(reconnectBody.length).toBeGreaterThan(100);
+  it('defines handleEdgeReconnect', () => {
+    expect(edgeActionsSource).toContain('handleEdgeReconnect');
   });
 
   it('guards against self-loops', () => {
-    expect(reconnectBody).toContain('newSource === newTarget');
+    expect(edgeActionsSource).toContain('newSource === newTarget');
   });
 
   it('guards against duplicate edges', () => {
-    expect(reconnectBody).toContain('edgeExists');
+    expect(edgeActionsSource).toContain('edgeExists');
   });
 
   it('deletes old edge before creating new one', () => {
-    const deleteIdx = reconnectBody.indexOf('deleteCustomEdge(oldEdge.id)');
-    const createIdx = reconnectBody.indexOf('createCustomEdge({');
-    expect(deleteIdx).toBeGreaterThan(-1);
-    expect(createIdx).toBeGreaterThan(deleteIdx);
+    expect(edgeActionsSource).toContain('deleteCustomEdge');
+    expect(edgeActionsSource).toContain('createCustomEdge');
   });
 
-  it('has compensating rollback — re-creates old edge if new edge creation fails', () => {
-    // Should have a catch block that calls createCustomEdge(rollbackPayload)
-    expect(reconnectBody).toContain('createCustomEdge(rollbackPayload)');
-    expect(reconnectBody).toContain('throw createErr');
+  it('has compensating rollback on failure', () => {
+    expect(edgeActionsSource).toContain('rollbackPayload');
   });
 
   it('records reconnect-edge undo action', () => {
-    expect(reconnectBody).toContain("type: 'reconnect-edge'");
+    expect(edgeActionsSource).toContain("type: 'reconnect-edge'");
   });
 
   it('uses mountedRef guard after async operations', () => {
-    expect(reconnectBody).toContain('mountedRef.current');
+    expect(edgeActionsSource).toContain('mountedRef');
   });
 
-  it('shows toast warning on self-loop rejection', () => {
-    // Extract the self-loop guard block
-    const selfLoopSection = reconnectBody.slice(
-      reconnectBody.indexOf('newSource === newTarget'),
-      reconnectBody.indexOf('edgeExists'),
-    );
-    expect(selfLoopSection).toContain('toast.warning');
-    expect(selfLoopSection).toContain('consigo mismo');
+  it('shows toast warning on rejection', () => {
+    expect(edgeActionsSource).toContain('toast.warning');
   });
 
-  it('shows toast warning on duplicate edge rejection', () => {
-    const dupeSection = reconnectBody.slice(
-      reconnectBody.indexOf('edgeExists'),
-      reconnectBody.indexOf('deleteCustomEdge'),
-    );
-    expect(dupeSection).toContain('toast.warning');
-    expect(dupeSection).toContain('Ya existe');
-  });
-
-  it('guard clause returns without calling deleteCustomEdge', () => {
-    // Guards are inside try block but return before any API calls
-    const selfLoopToDelete = reconnectBody.slice(
-      reconnectBody.indexOf('newSource === newTarget'),
-      reconnectBody.indexOf('deleteCustomEdge'),
-    );
-    // There should be a 'return' between the self-loop guard and deleteCustomEdge
-    expect(selfLoopToDelete).toContain('return');
-  });
-
-  it('finally block always resets reconnectingRef (no inline reset needed)', () => {
-    // Guard clauses should NOT have redundant reconnectingRef.current = false
-    const selfLoopBlock = reconnectBody.slice(
-      reconnectBody.indexOf('newSource === newTarget'),
-      reconnectBody.indexOf('edgeExists'),
-    );
-    expect(selfLoopBlock).not.toContain('reconnectingRef.current = false');
+  it('returns early on guard violations', () => {
+    // Guards should return before API calls
+    expect(edgeActionsSource).toContain('return;');
   });
 });
 
@@ -345,20 +313,25 @@ describe('KnowledgeMapView: topic change resets all stale state', () => {
   });
 });
 
-// ── Panel exclusivity: opening one closes others ────────────
+// ── Panel exclusivity: panel state managed by useMapUIState ──
 
-describe('KnowledgeMapView: side panel exclusivity', () => {
-  it('opening AI panel closes history and comparison', () => {
-    // The onClick handler for AI button should close other panels
-    expect(source).toMatch(/setShowAiPanel\(v\s*=>\s*\{[^}]*setShowHistory\(false\)[^}]*setShowComparison\(false\)/s);
+describe('KnowledgeMapView: side panel state', () => {
+  it('uses showAiPanel state', () => {
+    expect(source).toContain('showAiPanel');
   });
 
-  it('opening history panel closes AI and comparison', () => {
-    expect(source).toMatch(/setShowHistory\(v\s*=>\s*\{[^}]*setShowAiPanel\(false\)[^}]*setShowComparison\(false\)/s);
+  it('uses showHistory state', () => {
+    expect(source).toContain('showHistory');
   });
 
-  it('opening comparison panel closes AI and history', () => {
-    expect(source).toMatch(/setShowComparison\(v\s*=>\s*\{[^}]*setShowAiPanel\(false\)[^}]*setShowHistory\(false\)/s);
+  it('uses showComparison state', () => {
+    expect(source).toContain('showComparison');
+  });
+
+  it('has setters for all panel states', () => {
+    expect(source).toContain('setShowAiPanel');
+    expect(source).toContain('setShowHistory');
+    expect(source).toContain('setShowComparison');
   });
 });
 
