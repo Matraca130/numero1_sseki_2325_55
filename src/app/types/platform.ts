@@ -205,8 +205,10 @@ export interface Topic {
 }
 
 // Canonical Summary type lives in summariesApi.ts (matches actual API response).
-// Re-exported here for backward compatibility.
-export type { Summary } from '@/app/services/summariesApi';
+// Imported locally so it can be referenced by ContentHierarchy below, and
+// re-exported for backward compatibility with consumers that import it from here.
+import type { Summary } from '@/app/services/summariesApi';
+export type { Summary };
 
 export interface Keyword {
   id: UUID;

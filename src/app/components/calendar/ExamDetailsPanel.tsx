@@ -20,7 +20,7 @@ import { es } from 'date-fns/locale';
 
 import { useMediaQuery } from '@/app/hooks/useMediaQuery';
 import { createFocusManager } from '@/app/lib/calendar-focus';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { EVENT_COLORS, type EventType } from '@/app/lib/calendar-constants';
 import { cn } from '@/app/components/ui/utils';
 

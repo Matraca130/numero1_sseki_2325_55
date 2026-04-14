@@ -23,7 +23,12 @@ import { headingStyle, components, colors } from '@/app/design-system';
 import { MobileDrawer } from '@/app/components/layout/MobileDrawer';
 
 // Mock data
-interface CalendarEvent {
+/**
+ * Local mock-data shape for the hardcoded CALENDAR_EVENTS array.
+ * NOT the canonical CalendarEvent (see `@/app/types/calendar`).
+ * This type represents a day slot in the mock UI skeleton.
+ */
+interface MockCalendarDayEvent {
   day: number;
   title: string;
   category: 'science' | 'arts' | 'core';
@@ -31,7 +36,7 @@ interface CalendarEvent {
   hasReview?: boolean;
 }
 
-const CALENDAR_EVENTS: CalendarEvent[] = [
+const CALENDAR_EVENTS: MockCalendarDayEvent[] = [
   { day: 4, title: 'Fisiología II', category: 'science', time: '10:00 - 11:30' },
   { day: 6, title: 'Anatomía Patológica', category: 'arts', time: '14:00 - 15:30', hasReview: true },
   { day: 11, title: 'Fisiología II', category: 'science', time: '10:00 - 11:30' },

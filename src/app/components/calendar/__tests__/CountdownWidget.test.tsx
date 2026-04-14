@@ -5,7 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import { CountdownWidget } from '../CountdownWidget';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 
 // Mock ExamPrepPanel to avoid react-query dependency
 vi.mock('../ExamPrepPanel', () => ({

@@ -11,7 +11,7 @@
 import { useMemo } from 'react';
 import { parseISO, getISOWeek, getISOWeekYear } from 'date-fns';
 
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 
 // ── Helpers ────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WeekView } from '../WeekView';
 import type { WeekViewProps } from '../WeekView';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 
 // ── Helpers ─────────────────────────────────────────────────
 

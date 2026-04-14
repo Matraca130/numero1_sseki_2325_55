@@ -13,7 +13,7 @@
 import { useMemo } from 'react';
 import { ZINDEX, HEATMAP_CLASSES } from '@/app/lib/calendar-constants';
 import type { HeatmapLevel } from '@/app/lib/calendar-constants';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { cn } from '@/app/components/ui/utils';
 
 // ── Props ───────────────────────────────────────────────────

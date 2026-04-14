@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useFinalsWeek, toISOWeekKey } from '@/app/hooks/useFinalsWeek';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 
 // ── Fixture Helper ─────────────────────────────────────────────
 

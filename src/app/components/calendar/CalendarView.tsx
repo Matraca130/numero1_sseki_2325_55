@@ -35,7 +35,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSwipeable } from 'react-swipeable';
 
 import { useCalendarEvents } from '@/app/hooks/useCalendarEvents';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { useCalendarUI } from '@/app/hooks/useCalendarUI';
 import { useHeatmap } from '@/app/hooks/useHeatmap';
 import type { HeatmapLevel } from '@/app/lib/calendar-constants';
