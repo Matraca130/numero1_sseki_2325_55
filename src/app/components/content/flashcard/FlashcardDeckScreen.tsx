@@ -136,11 +136,20 @@ export function DeckScreen({ topic, sectionIdx, sectionName, onStart, onBack, on
                 </div>
               </div>
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
-                {FILTER_PILLS.map(f => (
-                  <button key={f.key} onClick={() => setFilterMastery(f.key)} className={clsx("px-2.5 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap shrink-0", filterMastery === f.key ? `${f.color} ring-1 ring-current/20 shadow-sm` : "text-gray-400 hover:text-gray-600 hover:bg-gray-50")}>
-                    {f.label} ({countForFilter(f.key)})
-                  </button>
-                ))}
+                {FILTER_PILLS.map(f => {
+                  const isActive = filterMastery === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setFilterMastery(f.key)}
+                      aria-pressed={isActive}
+                      className={clsx("px-2.5 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap shrink-0", isActive ? `${f.color} ring-1 ring-current/20 shadow-sm` : "text-gray-400 hover:text-gray-600 hover:bg-gray-50")}
+                    >
+                      {f.label} ({countForFilter(f.key)})
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
