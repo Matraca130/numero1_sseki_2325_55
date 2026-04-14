@@ -29,6 +29,7 @@ import { BlockAnnotationsPanel } from './BlockAnnotationsPanel';
 import { BlockQuizModal } from './BlockQuizModal';
 import { useSummaryBlockMastery } from '@/app/hooks/queries/useSummaryBlockMastery';
 import { useCreateAnnotationMutation, useDeleteAnnotationMutation, useUpdateAnnotationMutation } from '@/app/hooks/queries/useAnnotationMutations';
+import { AnnotationProvider } from '@/app/context/AnnotationContext';
 import type { TextAnnotation } from '@/app/services/studentSummariesApi';
 
 // ── Props ─────────────────────────────────────────────────
@@ -194,64 +195,67 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
         role="region"
         aria-label="Contenido del resumen"
       >
-        {sorted.map((block, idx) => {
-          const content = (
-            <motion.div
-              key={block.id}
-              data-block-id={block.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03 }}
-              aria-label={`Bloque ${block.type}`}
-              {...(layout === 'flow' ? { style: { marginBottom: 16 } } : {})}
-            >
-              <ViewerBlock
-                block={block}
-                isMobile={isMobile}
-                keywords={keywords}
-                masteryLevel={masteryLevels[block.id]}
-                summaryId={summaryId}
-                createAnnotationMutation={createAnnotationMutation}
-                deleteAnnotationMutation={deleteAnnotationMutation}
-                updateAnnotationMutation={updateAnnotationMutation}
-                annotations={annotations}
-                onImageClick={handleImageClick}
-                onKeywordClick={onKeywordClick}
-                onVideoPlay={(videoId) => setActiveVideoId(videoId)}
-                onBookmarkToggle={() => toggleBookmark(block.id)}
-                isBookmarked={isBookmarked(block.id)}
-                onNotesToggle={() => toggleAnnotations(block.id)}
-                onQuizTrigger={() => setQuizBlockId(block.id)}
-              />
-              {annotationsOpen[block.id] && (
-                <div className="mt-2">
-                  <BlockAnnotationsPanel blockId={block.id} summaryId={summaryId} />
-                </div>
-              )}
-            </motion.div>
-          );
+        <AnnotationProvider
+          summaryId={summaryId}
+          annotations={annotations}
+          createAnnotationMutation={createAnnotationMutation}
+          updateAnnotationMutation={updateAnnotationMutation}
+          deleteAnnotationMutation={deleteAnnotationMutation}
+        >
+          {sorted.map((block, idx) => {
+            const content = (
+              <motion.div
+                key={block.id}
+                data-block-id={block.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                aria-label={`Bloque ${block.type}`}
+                {...(layout === 'flow' ? { style: { marginBottom: 16 } } : {})}
+              >
+                <ViewerBlock
+                  block={block}
+                  isMobile={isMobile}
+                  keywords={keywords}
+                  masteryLevel={masteryLevels[block.id]}
+                  onImageClick={handleImageClick}
+                  onKeywordClick={onKeywordClick}
+                  onVideoPlay={(videoId) => setActiveVideoId(videoId)}
+                  onBookmarkToggle={() => toggleBookmark(block.id)}
+                  isBookmarked={isBookmarked(block.id)}
+                  onNotesToggle={() => toggleAnnotations(block.id)}
+                  onQuizTrigger={() => setQuizBlockId(block.id)}
+                />
+                {annotationsOpen[block.id] && (
+                  <div className="mt-2">
+                    <BlockAnnotationsPanel blockId={block.id} summaryId={summaryId} />
+                  </div>
+                )}
+              </motion.div>
+            );
 
-          if (isMobile || layout === 'flow') {
-            return content;
-          }
+            if (isMobile || layout === 'flow') {
+              return content;
+            }
 
-          // Desktop: absolute positioned (canvas mode)
-          return (
-            <div
-              key={block.id}
-              className="absolute"
-              style={{
-                left: `${block.position_x || 0}px`,
-                top: `${block.position_y || 0}px`,
-                width: `${block.width || 300}px`,
-                // height auto for content blocks, fixed for images/videos
-                ...(block.type === 'divider' ? {} : {}),
-              }}
-            >
-              {content}
-            </div>
-          );
-        })}
+            // Desktop: absolute positioned (canvas mode)
+            return (
+              <div
+                key={block.id}
+                className="absolute"
+                style={{
+                  left: `${block.position_x || 0}px`,
+                  top: `${block.position_y || 0}px`,
+                  width: `${block.width || 300}px`,
+                  // height auto for content blocks, fixed for images/videos
+                  ...(block.type === 'divider' ? {} : {}),
+                }}
+              >
+                {content}
+              </div>
+            );
+          })}
+        </AnnotationProvider>
       </div>
 
       {/* ── Image Lightbox ───────────────────────────────── */}
