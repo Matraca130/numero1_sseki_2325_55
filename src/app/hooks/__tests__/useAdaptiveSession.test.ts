@@ -183,8 +183,10 @@ describe('useAdaptiveSession', () => {
     });
 
     expect(mockQueueReview).toHaveBeenCalledTimes(1);
+    // AUDIT P0 #1: SM-2 UI rating 4 ("Bien") now maps to FSRS grade 3
+    // via smRatingToFsrsGrade before hitting useReviewBatch.
     expect(mockQueueReview).toHaveBeenCalledWith(
-      expect.objectContaining({ grade: 4 }),
+      expect.objectContaining({ grade: 3 }),
     );
 
     // After delay, should advance
