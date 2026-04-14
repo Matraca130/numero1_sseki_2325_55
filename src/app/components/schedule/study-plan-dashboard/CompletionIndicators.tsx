@@ -7,15 +7,29 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock } from 'lucide-react';
 import clsx from 'clsx';
-import { METHOD_ICONS, METHOD_LABELS, METHOD_COLORS } from '@/app/utils/studyMethodStyles';
+import { METHOD_ICONS, METHOD_LABELS, METHOD_COLORS, METHOD_PILL, type MethodPillStyle } from '@/app/utils/studyMethodStyles';
 import { gradients } from '@/app/design-system';
 
-export const METHOD_TAG_FIGMA: Record<string, { bg: string; border: string; text: string; iconStroke: string }> = {
-  flashcard: { bg: '#f0fdf6', border: 'rgba(198,240,223,0.8)', text: '#6ba88e', iconStroke: '#6ba88e' },
-  quiz: { bg: gradients.methodQuiz.css, border: 'rgba(253,230,138,0.6)', text: '#b45309', iconStroke: '#b45309' },
-  video: { bg: '#eff6ff', border: 'rgba(191,219,254,0.8)', text: '#3b82f6', iconStroke: '#3b82f6' },
-  resumo: { bg: '#faf5ff', border: 'rgba(221,214,254,0.8)', text: '#7c3aed', iconStroke: '#7c3aed' },
-  '3d': { bg: '#fff7ed', border: 'rgba(254,215,170,0.8)', text: '#c2410c', iconStroke: '#c2410c' },
+/**
+ * Figma-accurate variant of METHOD_PILL used by task cards.
+ * Identical to the shared METHOD_PILL except:
+ *   - quiz.bg uses the methodQuiz gradient (instead of solid hex)
+ *   - adds iconStroke (derived from text) for explicit icon coloring
+ * Built by extending the shared palette — no duplicated hex literals.
+ */
+type MethodTagFigmaStyle = MethodPillStyle & { iconStroke: string };
+
+const withIconStroke = (style: MethodPillStyle): MethodTagFigmaStyle => ({
+  ...style,
+  iconStroke: style.text,
+});
+
+export const METHOD_TAG_FIGMA: Record<string, MethodTagFigmaStyle> = {
+  flashcard: withIconStroke(METHOD_PILL.flashcard),
+  quiz: { ...withIconStroke(METHOD_PILL.quiz), bg: gradients.methodQuiz.css },
+  video: withIconStroke(METHOD_PILL.video),
+  resumo: withIconStroke(METHOD_PILL.resumo),
+  '3d': withIconStroke(METHOD_PILL['3d']),
 };
 
 export function CompletionCircle({ completed, onClick }: { completed: boolean; onClick: () => void }) {

@@ -29,6 +29,26 @@ export const METHOD_COLORS: Record<string, string> = {
   '3d': 'bg-orange-100 text-orange-700 border-orange-200',
 };
 
+/**
+ * Pill-style color palette (solid hex) for method tags/badges.
+ * Used by schedule views (WeekMonthViews) and extended by CompletionIndicators
+ * for its Figma-accurate gradient variant.
+ * Single source of truth — do NOT duplicate these hex values locally.
+ */
+export interface MethodPillStyle {
+  bg: string;
+  text: string;
+  border: string;
+}
+
+export const METHOD_PILL: Record<string, MethodPillStyle> = {
+  flashcard: { bg: '#f0fdf6', text: '#6ba88e', border: 'rgba(198,240,223,0.8)' },
+  quiz:      { bg: '#fefce8', text: '#b45309', border: 'rgba(253,230,138,0.6)' },
+  video:     { bg: '#eff6ff', text: '#3b82f6', border: 'rgba(191,219,254,0.8)' },
+  resumo:    { bg: '#faf5ff', text: '#7c3aed', border: 'rgba(221,214,254,0.8)' },
+  '3d':      { bg: '#fff7ed', text: '#c2410c', border: 'rgba(254,215,170,0.8)' },
+};
+
 /** Full study method definition (used in wizard) */
 export interface StudyMethodDef {
   id: string;
