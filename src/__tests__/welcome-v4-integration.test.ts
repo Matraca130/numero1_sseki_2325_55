@@ -153,38 +153,40 @@ describe('LeaderboardCard type safety', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('WelcomeView v4 real data contract', () => {
+  // NOTE: Since WelcomeView was split into a shell + `welcome/useWelcomeData.ts`
+  // + section components, we check the combined surface of the shell and
+  // the data hook for the real-data invariants.
+  const welcomeSurface = () =>
+    readSource('app/components/content/WelcomeView.tsx') +
+    '\n' +
+    readSource('app/components/welcome/useWelcomeData.ts');
+
   it('imports useGamificationProfile hook', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('useGamificationProfile');
+    expect(welcomeSurface()).toContain('useGamificationProfile');
   });
 
   it('imports useStreakStatus hook', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('useStreakStatus');
+    expect(welcomeSurface()).toContain('useStreakStatus');
   });
 
   it('imports useXPHistory hook', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('useXPHistory');
+    expect(welcomeSurface()).toContain('useXPHistory');
   });
 
   it('imports useStudyQueue hook', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('useStudyQueue');
+    expect(welcomeSurface()).toContain('useStudyQueue');
   });
 
   it('imports useCourseMastery hook', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('useCourseMastery');
+    expect(welcomeSurface()).toContain('useCourseMastery');
   });
 
   it('imports useRecentSessions hook', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('useRecentSessions');
+    expect(welcomeSurface()).toContain('useRecentSessions');
   });
 
   it('uses daily_goal_minutes (not daily_goal)', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
+    const source = welcomeSurface();
     expect(source).toContain('daily_goal_minutes');
     const lines = source.split('\n').filter(
       l => /daily_goal(?!_minutes)/.test(l) && !l.trim().startsWith('//') && !l.trim().startsWith('*')
@@ -193,12 +195,11 @@ describe('WelcomeView v4 real data contract', () => {
   });
 
   it('uses getLevelInfo for XP level bar', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
-    expect(source).toContain('getLevelInfo');
+    expect(welcomeSurface()).toContain('getLevelInfo');
   });
 
   it('does NOT use hardcoded/mock study data', () => {
-    const source = readSource('app/components/content/WelcomeView.tsx');
+    const source = welcomeSurface();
     expect(source).not.toContain("'Dr. Reed'");
     expect(source).not.toContain("Video de Anatomia");
     expect(source).not.toContain("Quiz de Histologia");
