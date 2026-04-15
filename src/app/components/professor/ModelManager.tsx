@@ -10,7 +10,7 @@
 // Uses lib/model3d-api.ts for all operations.
 // ============================================================
 
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useReducer, memo } from 'react';
 import {
   Box, Pencil, Trash2, X, Save, Loader2, Upload,
   Eye, EyeOff, ChevronDown, ChevronUp, ExternalLink, View,
@@ -30,6 +30,10 @@ import {
 import type { Model3D, UploadProgress } from '@/app/lib/model3d-api';
 import { ModelUploadZone } from '@/app/components/professor/ModelUploadZone';
 import { useNavigate } from 'react-router';
+import {
+  modelManagerReducer,
+  initialModelManagerState,
+} from '@/app/components/professor/modelManagerReducer';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -44,26 +48,20 @@ interface ModelManagerProps {
 
 export function ModelManager({ topicId, topicName }: ModelManagerProps) {
   const navigate = useNavigate();
-  const [models, setModels] = useState<Model3D[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showUpload, setShowUpload] = useState(false);
-  const [showManualForm, setShowManualForm] = useState(false);
-
-  // Upload state
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-  const [uploadTitle, setUploadTitle] = useState('');
+  const [state, dispatch] = useReducer(modelManagerReducer, initialModelManagerState);
+  const { models, loading, showUpload, showManualForm, uploadProgress, uploadTitle } = state;
 
   // ── Fetch ──
   const fetchModels = useCallback(async () => {
-    setLoading(true);
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const res = await getModels3D(topicId);
-      setModels(res?.items || []);
+      dispatch({ type: 'SET_MODELS', payload: res?.items || [] });
     } catch (err: unknown) {
       logger.error('ModelManager', 'fetch error:', err);
       toast.error('Error al cargar modelos 3D');
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [topicId]);
 
@@ -74,7 +72,9 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
     const title = uploadTitle.trim() || file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
 
     try {
-      await uploadAndCreateModel(file, topicId, title, setUploadProgress);
+      await uploadAndCreateModel(file, topicId, title, (p) =>
+        dispatch({ type: 'SET_UPLOAD_PROGRESS', payload: p }),
+      );
       toast.success('Modelo 3D subido exitosamente');
       fetchModels();
     } catch (err: unknown) {
@@ -84,7 +84,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
   }, [topicId, uploadTitle, fetchModels]);
 
   const handleUploadReset = useCallback(() => {
-    setUploadProgress(null);
+    dispatch({ type: 'SET_UPLOAD_PROGRESS', payload: null });
   }, []);
 
   // ── Manual create (paste URL) ──
@@ -103,7 +103,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
         file_size_bytes: data.file_size_bytes,
       });
       toast.success('Modelo 3D creado');
-      setShowManualForm(false);
+      dispatch({ type: 'CLOSE_MANUAL_FORM' });
       fetchModels();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al crear modelo');
@@ -123,16 +123,13 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
 
   // ── Delete ──
   const handleDelete = useCallback(async (id: string) => {
-    let deletedModel: Model3D | undefined;
-
-    // Optimistic: remove from UI + capture for rollback
-    setModels(prev => {
-      deletedModel = prev.find(m => m.id === id);
-      return prev.filter(m => m.id !== id);
-    });
+    // Optimistic: remove from UI; reducer captures the deleted model in state.lastDeleted.
+    dispatch({ type: 'OPTIMISTIC_DELETE', payload: { id } });
 
     try {
       await deleteModel3D(id);
+      // Deletion confirmed; discard rollback snapshot.
+      dispatch({ type: 'CLEAR_LAST_DELETED' });
       toast.success('Modelo eliminado', {
         action: {
           label: 'Deshacer',
@@ -149,9 +146,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
       });
     } catch (err: unknown) {
       // Rollback on network error
-      if (deletedModel) {
-        setModels(prev => [...prev, deletedModel!]);
-      }
+      dispatch({ type: 'ROLLBACK_DELETE' });
       toast.error(err instanceof Error ? err.message : 'Error al eliminar');
     }
   }, [fetchModels]);
@@ -179,7 +174,9 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setShowManualForm(!showManualForm); setShowUpload(false); }}
+              onClick={() =>
+                dispatch({ type: showManualForm ? 'CLOSE_MANUAL_FORM' : 'OPEN_MANUAL_FORM' })
+              }
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               title="Crear con URL manual"
             >
@@ -187,7 +184,9 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
               URL Manual
             </button>
             <button
-              onClick={() => { setShowUpload(!showUpload); setShowManualForm(false); }}
+              onClick={() =>
+                dispatch({ type: showUpload ? 'CLOSE_UPLOAD' : 'OPEN_UPLOAD' })
+              }
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors"
             >
               <Upload size={13} />
@@ -213,7 +212,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
                   Subir archivo 3D
                 </h3>
                 <button
-                  onClick={() => { setShowUpload(false); handleUploadReset(); }}
+                  onClick={() => dispatch({ type: 'CLOSE_UPLOAD' })}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X size={16} />
@@ -226,7 +225,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
                 <input
                   type="text"
                   value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
+                  onChange={(e) => dispatch({ type: 'SET_UPLOAD_TITLE', payload: e.target.value })}
                   placeholder="Se usara el nombre del archivo si se deja vacio"
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2a8c7a]/20 focus:border-[#2a8c7a]"
                 />
@@ -254,7 +253,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
           >
             <ManualModelForm
               onSubmit={handleManualCreate}
-              onCancel={() => setShowManualForm(false)}
+              onCancel={() => dispatch({ type: 'CLOSE_MANUAL_FORM' })}
             />
           </motion.div>
         )}
@@ -278,7 +277,7 @@ export function ModelManager({ topicId, topicName }: ModelManagerProps) {
             Arrastra un archivo .glb o .gltf, o pega una URL directa.
           </p>
           <button
-            onClick={() => setShowUpload(true)}
+            onClick={() => dispatch({ type: 'OPEN_UPLOAD' })}
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#2a8c7a] hover:bg-[#244e47] rounded-lg transition-colors"
           >
             <Upload size={14} />
