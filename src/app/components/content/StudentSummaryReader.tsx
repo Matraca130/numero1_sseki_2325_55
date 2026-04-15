@@ -1,9 +1,9 @@
 // Axon — StudentSummaryReader (read-only summary with student features)
 // Refactored (Phase C.1): state/effects extracted to useStudentSummaryReader hook.
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
-  Layers, Tag, Video as VideoIcon,
+  Tag, Video as VideoIcon,
   StickyNote, Minimize2,
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
@@ -15,18 +15,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/ta
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
 import { VideoPlayer } from '@/app/components/student/VideoPlayer';
-import {
-  PageNavigation,
-  CompletionCard,
-  XpToast,
-  proseClasses,
-} from '@/app/components/design-kit';
-import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
+import { XpToast } from '@/app/components/design-kit';
 import { SummaryReaderToolbar } from '@/app/components/student/SummaryReaderToolbar';
-
-// ── Extracted helpers (Phase B.1) ─────────────────────────
-import { renderPlainLine } from '@/app/lib/summary-content-helpers';
-import { sanitizeHtml } from '@/app/lib/sanitize';
+import { SummaryReaderBody } from '@/app/components/student/SummaryReaderBody';
 
 // ── Extracted atoms (Phase B.2) ───────────────────────────
 import { TabBadge } from '@/app/components/student/reader-atoms';
@@ -34,7 +25,6 @@ import { TabBadge } from '@/app/components/student/reader-atoms';
 // ── Extracted tab components (Phase B.4-B.5) ──────────────
 import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
-import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
 import { StudyTimer } from '@/app/components/student/StudyTimer';
 
 // ── Extracted state hook (Phase C.1) ──────────────────────
@@ -174,91 +164,26 @@ export function StudentSummaryReader({
         {s.showTimer && <StudyTimer onClose={() => s.setShowTimer(false)} />}
 
         {/* ── Main content area (white card) ── */}
-        <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-b-[20px] border-2 border-t-0 border-zinc-200 dark:border-[#2d2e34] shadow-sm overflow-hidden">
-
-          {/* ── Reading mode fallback when no content_markdown ── */}
-          {s.viewMode === 'reading' && !summary?.content_markdown && (
-            <p style={{ color: '#888', textAlign: 'center', padding: '2rem' }}>
-              Este resumen no tiene contenido en formato texto. Cambiando a modo enriquecido...
-            </p>
-          )}
-
-          {/* ── Reading mode: plain markdown ── */}
-          {s.viewMode === 'reading' && summary.content_markdown && (
-            <div
-              className="px-6 sm:px-8 py-8"
-              style={{
-                fontSize: `${s.readingSettings.fontSize}px`,
-                lineHeight: s.readingSettings.lineHeight,
-                fontFamily: s.readingSettings.fontFamily,
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={s.safePage}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {s.isHtmlContent ? (
-                    <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={s.handleNavigateKeywordWrapped}>
-                      <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.htmlPages[s.safePage] || '') }} />
-                    </KeywordHighlighterInline>
-                  ) : (
-                    <KeywordHighlighterInline summaryId={summary.id} onNavigateKeyword={s.handleNavigateKeywordWrapped}>
-                      <div className="axon-prose max-w-none">
-                        {s.textPages[s.safePage]?.map((line, i) => renderPlainLine(line, i))}
-                      </div>
-                    </KeywordHighlighterInline>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Pagination */}
-              {s.totalPages > 1 && (
-                <PageNavigation
-                  currentPage={s.safePage}
-                  totalPages={s.totalPages}
-                  onPrev={() => s.setContentPage(Math.max(0, s.safePage - 1))}
-                  onNext={() => s.setContentPage(Math.min(s.totalPages - 1, s.safePage + 1))}
-                  onPageClick={(i) => s.setContentPage(i)}
-                />
-              )}
-            </div>
-          )}
-
-          {/* ── Enriched mode: structured blocks ── */}
-          {s.viewMode === 'enriched' && (
-            <div className="py-4">
-              <ReaderChunksTab
-                summaryId={summary.id}
-                chunks={s.chunks}
-                chunksLoading={s.chunksLoading}
-                hasBlocks={s.hasBlocks}
-                blocksLoading={s.blocksLoading}
-                onNavigateKeyword={s.handleNavigateKeywordWrapped}
-                readingSettings={s.readingSettings}
-                keywords={s.keywords}
-                annotations={s.textAnnotations}
-              />
-            </div>
-          )}
-
-          {/* Completion card when read */}
-          {s.isCompleted && (
-            <div className="px-6 sm:px-8 pb-6">
-              <CompletionCard
-                title="Resumen completado!"
-                subtitle={`Has leido "${summary.title || 'este resumen'}"`}
-                xpEarned={15}
-                actions={[
-                  { label: `Flashcards`, icon: Layers, onClick: () => s.setActiveTab('keywords'), variant: 'secondary' },
-                ]}
-              />
-            </div>
-          )}
-        </div>
+        <SummaryReaderBody
+          summary={summary}
+          viewMode={s.viewMode}
+          readingSettings={s.readingSettings}
+          isHtmlContent={s.isHtmlContent}
+          htmlPages={s.htmlPages}
+          textPages={s.textPages}
+          safePage={s.safePage}
+          totalPages={s.totalPages}
+          setContentPage={s.setContentPage}
+          onNavigateKeyword={s.handleNavigateKeywordWrapped}
+          chunks={s.chunks}
+          chunksLoading={s.chunksLoading}
+          hasBlocks={s.hasBlocks}
+          blocksLoading={s.blocksLoading}
+          keywords={s.keywords}
+          annotations={s.textAnnotations}
+          isCompleted={s.isCompleted}
+          onGoToKeywordsTab={() => s.setActiveTab('keywords')}
+        />
 
         {/* ── Secondary tabs: Keywords, Videos, Notes (below content) ── */}
         <div className="mt-6">
