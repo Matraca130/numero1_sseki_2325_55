@@ -3,10 +3,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronLeft, Layers, Tag, Video as VideoIcon,
-  CheckCircle2, Clock, Loader2,
-  StickyNote, Search as SearchIcon,
-  Timer, Settings, PanelLeftOpen, Minimize2,
+  Layers, Tag, Video as VideoIcon,
+  StickyNote, Minimize2,
 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
@@ -24,8 +22,7 @@ import {
   proseClasses,
 } from '@/app/components/design-kit';
 import { KeywordHighlighterInline } from '@/app/components/student/KeywordHighlighterInline';
-import { ThemeToggle } from '@/app/components/student/ThemeToggle';
-import { colors } from '@/app/design-system';
+import { SummaryReaderToolbar } from '@/app/components/student/SummaryReaderToolbar';
 
 // ── Extracted helpers (Phase B.1) ─────────────────────────
 import { renderPlainLine } from '@/app/lib/summary-content-helpers';
@@ -39,7 +36,6 @@ import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotations
 import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
 import { ReaderChunksTab } from '@/app/components/student/ReaderChunksTab';
 import { StudyTimer } from '@/app/components/student/StudyTimer';
-import ReadingSettingsPanel from '@/app/components/student/ReadingSettingsPanel';
 
 // ── Extracted state hook (Phase C.1) ──────────────────────
 import { useStudentSummaryReader } from '@/app/hooks/useStudentSummaryReader';
@@ -73,21 +69,6 @@ export function StudentSummaryReader({
     onNavigateKeyword,
     initialTab,
   });
-
-  // ── Shared toolbar button style ──
-  const toolbarBtnStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
-    padding: 10,
-    cursor: 'pointer',
-    color: colors.reader.iconDefault,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 44,
-    minHeight: 44,
-    borderRadius: 6,
-  };
 
   return (
     <>
@@ -166,142 +147,27 @@ export function StudentSummaryReader({
 
         {/* ── Compact header toolbar with title ── */}
         {!s.readingSettings.focusMode && (
-        <header
-          role="banner"
-          aria-label="Barra de herramientas del resumen"
-          className="flex items-center justify-between"
-          style={{
-            background: s.isDark ? colors.reader.headerBgDark : colors.reader.headerBg,
-            padding: '10px 20px',
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            borderBottom: s.isDark ? '1px solid #2d2e34' : '1px solid transparent',
-            borderRadius: '12px 12px 0 0',
-          }}
-        >
-          {/* Left side: back + title */}
-          <div className="flex items-center min-w-0" style={{ gap: 10 }}>
-            <button
-              onClick={onBack}
-              aria-label="Volver a resúmenes"
-              style={{ ...toolbarBtnStyle, flexShrink: 0 }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="min-w-0">
-              <h1
-                className="truncate"
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: '#fff',
-                  fontFamily: 'Georgia, serif',
-                  lineHeight: 1.2,
-                  margin: 0,
-                }}
-              >
-                {summary.title || 'Sin título'}
-              </h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span style={{ color: colors.reader.iconSubtle, fontSize: 11 }}>
-                  {new Date(summary.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </span>
-                {readingState?.time_spent_seconds != null && readingState.time_spent_seconds > 0 && (
-                  <span className="flex items-center gap-1" style={{ color: colors.reader.iconSubtle, fontSize: 11 }}>
-                    <Clock className="w-3 h-3" />
-                    {Math.round(readingState.time_spent_seconds / 60)} min
-                  </span>
-                )}
-                {s.isCompleted && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: 'rgba(16,185,129,0.2)', color: colors.reader.iconActive }}>
-                    <CheckCircle2 className="w-2.5 h-2.5" /> Leído
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right side: tool icons */}
-          <div className="flex items-center" style={{ gap: 6 }}>
-            {/* Mark complete */}
-            <button
-              onClick={s.isCompleted ? s.handleUnmarkCompleted : s.handleMarkCompleted}
-              disabled={s.markingRead}
-              title={s.isCompleted ? 'Marcar no leído' : 'Marcar como leído'}
-              aria-label={s.isCompleted ? 'Marcar no leído' : 'Marcar como leído'}
-              style={{
-                background: s.isCompleted ? 'rgba(16,185,129,0.2)' : 'none',
-                border: 'none',
-                padding: 6,
-                cursor: 'pointer',
-                color: s.isCompleted ? colors.reader.iconActive : colors.reader.iconDefault,
-                display: 'flex',
-                borderRadius: 6,
-              }}
-            >
-              {s.markingRead ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-            </button>
-
-            {/* Search toggle */}
-            <button
-              onClick={() => s.setSearchOpen((v) => !v)}
-              title="Buscar (Ctrl+F)"
-              aria-label="Buscar"
-              style={{ ...toolbarBtnStyle, background: s.searchOpen ? 'rgba(42,140,122,0.15)' : 'none', color: s.searchOpen ? '#2a8c7a' : colors.reader.iconDefault }}
-            >
-              <SearchIcon size={16} />
-            </button>
-
-            {/* Timer toggle */}
-            <button
-              onClick={() => s.setShowTimer((prev) => !prev)}
-              title="Temporizador de estudio"
-              aria-label={s.showTimer ? 'Cerrar timer' : 'Abrir timer'}
-              style={{ ...toolbarBtnStyle, background: s.showTimer ? 'rgba(42,140,122,0.15)' : 'none', color: s.showTimer ? '#2a8c7a' : colors.reader.iconDefault }}
-            >
-              <Timer size={16} />
-            </button>
-
-            {/* Separator */}
-            <div role="separator" aria-hidden="true" style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
-
-            {/* Theme toggle */}
-            <ThemeToggle isDark={s.isDark} onToggle={s.toggleTheme} />
-
-            {/* Settings toggle */}
-            <div className="relative">
-              <button
-                onClick={() => s.setShowSettings((prev) => !prev)}
-                title="Configuración de lectura"
-                aria-label={s.showSettings ? 'Cerrar configuración' : 'Configuración de lectura'}
-                style={{ ...toolbarBtnStyle, background: s.showSettings ? 'rgba(42,140,122,0.15)' : 'none', color: s.showSettings ? '#2a8c7a' : colors.reader.iconDefault }}
-              >
-                <Settings size={16} />
-              </button>
-              {s.showSettings && (
-                <ReadingSettingsPanel
-                  settings={s.readingSettings}
-                  onChange={s.updateReadingSettings}
-                  onClose={() => s.setShowSettings(false)}
-                />
-              )}
-            </div>
-
-            {/* Separator */}
-            <div role="separator" aria-hidden="true" style={{ width: 1, height: 20, background: '#6b9e95', margin: '0 4px' }} />
-
-            {/* Sidebar toggle */}
-            <button
-              onClick={() => s.setSidebarCollapsed((v) => !v)}
-              title="Outline"
-              aria-label={s.sidebarCollapsed ? 'Mostrar panel de estructura' : 'Ocultar panel de estructura'}
-              style={{ ...toolbarBtnStyle, background: !s.sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none', color: !s.sidebarCollapsed ? '#2a8c7a' : colors.reader.iconDefault }}
-            >
-              <PanelLeftOpen size={16} />
-            </button>
-          </div>
-        </header>
+          <SummaryReaderToolbar
+            summary={summary}
+            readingState={readingState}
+            isDark={s.isDark}
+            isCompleted={s.isCompleted}
+            markingRead={s.markingRead}
+            searchOpen={s.searchOpen}
+            showTimer={s.showTimer}
+            showSettings={s.showSettings}
+            sidebarCollapsed={s.sidebarCollapsed}
+            readingSettings={s.readingSettings}
+            onBack={onBack}
+            onToggleRead={s.isCompleted ? s.handleUnmarkCompleted : s.handleMarkCompleted}
+            onToggleSearch={() => s.setSearchOpen((v) => !v)}
+            onToggleTimer={() => s.setShowTimer((prev) => !prev)}
+            onToggleTheme={s.toggleTheme}
+            onToggleSettings={() => s.setShowSettings((prev) => !prev)}
+            onCloseSettings={() => s.setShowSettings(false)}
+            onToggleSidebar={() => s.setSidebarCollapsed((v) => !v)}
+            onUpdateReadingSettings={s.updateReadingSettings}
+          />
         )}
 
         {/* ── Study Timer (fixed position, self-managed) ── */}
