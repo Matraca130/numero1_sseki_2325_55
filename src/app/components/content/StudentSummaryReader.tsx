@@ -2,32 +2,19 @@
 // Refactored (Phase C.1): state/effects extracted to useStudentSummaryReader hook.
 import React from 'react';
 import { motion } from 'motion/react';
-import {
-  Tag, Video as VideoIcon,
-  StickyNote, Minimize2,
-} from 'lucide-react';
+import { Minimize2 } from 'lucide-react';
 import { ReadingProgress } from '@/app/components/student/ReadingProgress';
 import { SidebarOutline } from '@/app/components/student/SidebarOutline';
 import { StickyNotesPanel } from '@/app/components/summary/StickyNotesPanel';
 import { MasteryLegend } from '@/app/components/student/MasteryLegend';
 import { SearchBar } from '@/app/components/student/SearchBar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
-import { VideoPlayer } from '@/app/components/student/VideoPlayer';
 import { XpToast } from '@/app/components/design-kit';
 import { SummaryReaderToolbar } from '@/app/components/student/SummaryReaderToolbar';
 import { SummaryReaderBody } from '@/app/components/student/SummaryReaderBody';
-
-// ── Extracted atoms (Phase B.2) ───────────────────────────
-import { TabBadge } from '@/app/components/student/reader-atoms';
-
-// ── Extracted tab components (Phase B.4-B.5) ──────────────
-import { ReaderAnnotationsTab } from '@/app/components/student/ReaderAnnotationsTab';
-import { ReaderKeywordsTab } from '@/app/components/student/ReaderKeywordsTab';
+import { SummaryReaderBottomTabs } from '@/app/components/student/SummaryReaderBottomTabs';
 import { StudyTimer } from '@/app/components/student/StudyTimer';
-
-// ── Extracted state hook (Phase C.1) ──────────────────────
 import { useStudentSummaryReader } from '@/app/hooks/useStudentSummaryReader';
 
 // ── Props ─────────────────────────────────────────────────
@@ -186,63 +173,30 @@ export function StudentSummaryReader({
         />
 
         {/* ── Secondary tabs: Keywords, Videos, Notes (below content) ── */}
-        <div className="mt-6">
-          <Tabs value={s.activeTab} onValueChange={s.setActiveTab}>
-            <TabsList className="mb-4 bg-white dark:bg-[#1e1f25] border border-zinc-200 dark:border-[#2d2e34] rounded-xl p-1">
-              <TabsTrigger value="keywords" className="gap-1.5 rounded-lg">
-                <Tag className="w-3.5 h-3.5" />
-                <span lang="en">Keywords</span>
-                {!s.keywordsLoading && <TabBadge count={s.keywords.length} active={s.activeTab === 'keywords'} />}
-              </TabsTrigger>
-              <TabsTrigger value="videos" className="gap-1.5 rounded-lg">
-                <VideoIcon className="w-3.5 h-3.5" />
-                <span lang="en">Videos</span>
-                {!s.videosLoading && <TabBadge count={s.videosCount} active={s.activeTab === 'videos'} />}
-              </TabsTrigger>
-              <TabsTrigger value="annotations" className="gap-1.5 rounded-lg">
-                <StickyNote className="w-3.5 h-3.5" />
-                Mis Notas
-                {!s.annotationsLoading && s.textAnnotations.length > 0 && <TabBadge count={s.textAnnotations.length} active={s.activeTab === 'annotations'} />}
-              </TabsTrigger>
-            </TabsList>
-
-            {/* ── KEYWORDS TAB ── */}
-            <TabsContent value="keywords">
-              <ReaderKeywordsTab
-                keywords={s.keywords}
-                keywordsLoading={s.keywordsLoading}
-                expandedKeyword={s.expandedKeyword}
-                onToggleExpand={s.toggleKeywordExpand}
-                subtopics={s.subtopics}
-                subtopicsLoading={s.subtopicsLoading}
-                kwNotes={s.kwNotes}
-                kwNotesLoading={s.kwNotesLoading}
-                onCreateKwNote={s.handleCreateKwNote}
-                onUpdateKwNote={s.handleUpdateKwNote}
-                onDeleteKwNote={s.handleDeleteKwNote}
-                savingKwNote={s.savingKwNote}
-              />
-            </TabsContent>
-
-            {/* ── VIDEOS TAB ── */}
-            <TabsContent value="videos">
-              <div className="bg-white dark:bg-[#1e1f25] rounded-2xl border border-zinc-200 dark:border-[#2d2e34] overflow-hidden">
-                <VideoPlayer summaryId={summary.id} />
-              </div>
-            </TabsContent>
-
-            {/* ── ANNOTATIONS TAB ── */}
-            <TabsContent value="annotations">
-              <ReaderAnnotationsTab
-                annotations={s.textAnnotations}
-                annotationsLoading={s.annotationsLoading}
-                onCreateAnnotation={s.handleCreateAnnotation}
-                onDeleteAnnotation={s.handleDeleteAnnotation}
-                savingAnnotation={s.savingAnnotation}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
+        <SummaryReaderBottomTabs
+          summaryId={summary.id}
+          activeTab={s.activeTab}
+          onActiveTabChange={s.setActiveTab}
+          keywords={s.keywords}
+          keywordsLoading={s.keywordsLoading}
+          expandedKeyword={s.expandedKeyword}
+          onToggleExpand={s.toggleKeywordExpand}
+          subtopics={s.subtopics}
+          subtopicsLoading={s.subtopicsLoading}
+          kwNotes={s.kwNotes}
+          kwNotesLoading={s.kwNotesLoading}
+          onCreateKwNote={s.handleCreateKwNote}
+          onUpdateKwNote={s.handleUpdateKwNote}
+          onDeleteKwNote={s.handleDeleteKwNote}
+          savingKwNote={s.savingKwNote}
+          videosLoading={s.videosLoading}
+          videosCount={s.videosCount}
+          textAnnotations={s.textAnnotations}
+          annotationsLoading={s.annotationsLoading}
+          onCreateAnnotation={s.handleCreateAnnotation}
+          onDeleteAnnotation={s.handleDeleteAnnotation}
+          savingAnnotation={s.savingAnnotation}
+        />
         </div>{/* end flex-1 content wrapper */}
       </div>{/* end flex layout */}
     </motion.div>
