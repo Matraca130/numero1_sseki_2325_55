@@ -17,7 +17,7 @@ import type { HighlightColor } from './HighlightToolbar';
 import BookmarkButton from './BookmarkButton';
 import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
-import type { TextAnnotation } from '@/app/services/studentSummariesApi';
+import { useAnnotations } from '@/app/context/AnnotationContext';
 import { sanitizeHtml } from '@/app/lib/sanitize';
 import { replaceKeywordPlaceholders } from './blocks/renderTextWithKeywords';
 import {
@@ -48,16 +48,9 @@ interface ViewerBlockProps {
   onNotesToggle?: () => void;
   /** Trigger quiz modal for this block */
   onQuizTrigger?: () => void;
-  /** Summary ID for text annotation persistence (highlighting) */
-  summaryId?: string;
-  /** Shared annotation mutation (lifted from parent to avoid N instances) */
-  createAnnotationMutation?: { mutate: Function; isPending?: boolean };
-  /** Shared delete mutation for removing individual annotations */
-  deleteAnnotationMutation?: { mutate: Function; isPending?: boolean };
-  /** Shared update mutation for editing annotation notes */
-  updateAnnotationMutation?: { mutate: Function; isPending?: boolean };
-  /** Text annotations for rendering highlights on this block */
-  annotations?: TextAnnotation[];
+  // NOTE: summaryId, annotations, and the three annotation mutations
+  // are no longer props — they come from <AnnotationProvider> via
+  // the `useAnnotations()` hook. See src/app/context/AnnotationContext.tsx.
 }
 
 // ── Callout icon map ──────────────────────────────────────
@@ -170,13 +163,19 @@ export const ViewerBlock = React.memo(function ViewerBlock({
   isBookmarked,
   onNotesToggle,
   onQuizTrigger,
-  summaryId,
-  createAnnotationMutation,
-  deleteAnnotationMutation,
-  updateAnnotationMutation,
-  annotations = [],
 }: ViewerBlockProps) {
   const c = block.content || {};
+
+  // ── Annotation context (null when no <AnnotationProvider> above) ──
+  // When null we render as a pure read-only block: no highlight
+  // toolbar, no footnotes, no note editor — identical behaviour to
+  // the old ViewerBlock when its annotation props were omitted.
+  const annotationCtx = useAnnotations();
+  const summaryId = annotationCtx?.summaryId;
+  const annotations = annotationCtx?.annotations ?? [];
+  const createAnnotationMutation = annotationCtx?.createAnnotationMutation;
+  const updateAnnotationMutation = annotationCtx?.updateAnnotationMutation;
+  const deleteAnnotationMutation = annotationCtx?.deleteAnnotationMutation;
 
   // Extract text for TTS (only for text-bearing blocks)
   const ttsText = extractBlockText(block);
@@ -288,7 +287,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
         block_id: block.id,
       },
       {
-        onSuccess: (created: any) => {
+        onSuccess: (created) => {
           window.getSelection()?.removeAllRanges();
           setToolbar(null);
           setSelectionRange(null);
