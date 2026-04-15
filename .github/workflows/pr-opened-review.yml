@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: [main]
     types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -11,20 +17,49 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: pr-opened-review-${{ github.event.pull_request.number }}
+  group: pr-opened-review-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   review-trigger:
     name: Review PR trigger
-    if: github.event.pull_request.draft == false
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
+    env:
+      HAS_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
 
     steps:
+      - name: Resolve PR metadata
+        id: pr
+        uses: actions/github-script@v7
+        env:
+          MANUAL_PR_NUMBER: ${{ github.event.inputs.pr_number || '' }}
+        with:
+          script: |
+            const manualPrNumber = Number(process.env.MANUAL_PR_NUMBER || 0);
+            const pullRequest = context.payload.pull_request;
+            const prNumber = pullRequest?.number || manualPrNumber;
+
+            if (!prNumber) {
+              core.setFailed('No pull request number was provided.');
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const { data: pr } = pullRequest
+              ? { data: pullRequest }
+              : await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+
+            core.setOutput('number', String(pr.number));
+            core.setOutput('checkout_ref', `refs/pull/${pr.number}/merge`);
+            core.setOutput('html_url', pr.html_url);
+            core.setOutput('title', pr.title);
+
       - name: Checkout PR code
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.pr.outputs.checkout_ref }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -32,6 +67,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         id: install
@@ -50,26 +86,146 @@ jobs:
         continue-on-error: true
         run: npm run build
 
+      - name: Review diff with GPT
+        id: ai_review
+        if: always() && env.HAS_OPENAI_API_KEY == 'true'
+        uses: actions/github-script@v7
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL || 'gpt-5.4' }}
+          OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'xhigh' }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_URL: ${{ steps.pr.outputs.html_url }}
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const prNumber = Number(process.env.PR_NUMBER);
+            const model = process.env.OPENAI_REVIEW_MODEL || 'gpt-5.4';
+            const effort = process.env.OPENAI_REASONING_EFFORT || 'xhigh';
+
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+
+            const patches = files.map((file) => {
+              const patch = file.patch || '[No textual patch available: binary, renamed-only, or too large]';
+              return [
+                `FILE: ${file.filename}`,
+                `STATUS: ${file.status}`,
+                `CHANGES: +${file.additions}/-${file.deletions}`,
+                patch,
+              ].join('\n');
+            }).join('\n\n---\n\n');
+
+            const maxDiffChars = 70000;
+            const diff = patches.length > maxDiffChars
+              ? `${patches.slice(0, maxDiffChars)}\n\n[Diff truncated to ${maxDiffChars} characters. Prioritize visible high-risk issues.]`
+              : patches;
+
+            const instructions = [
+              'You are a senior code reviewer for a production React/Vite repository.',
+              'Lead with concrete findings only. Focus on bugs, regressions, security/data risks, broken UX, compatibility, and missing tests.',
+              'Do not praise the PR. Do not summarize unless there are no findings.',
+              'For each finding include severity, file path, affected behavior, and a suggested fix.',
+              'If no blocking issues are visible, say that clearly and list residual risks or test gaps.',
+            ].join('\n');
+
+            const prompt = [
+              `Repository: ${owner}/${repo}`,
+              `Pull request: #${pr.number} ${pr.title}`,
+              `URL: ${pr.html_url}`,
+              `Author: ${pr.user?.login || 'unknown'}`,
+              '',
+              'Local validation results from this workflow:',
+              `- npm ci: ${{ steps.install.outcome }}`,
+              `- npm test: ${{ steps.tests.outcome }}`,
+              `- npm run build: ${{ steps.build.outcome }}`,
+              '',
+              'PR body:',
+              pr.body || '[No PR body]',
+              '',
+              'Unified diff and changed file metadata:',
+              diff || '[No changed files reported]',
+            ].join('\n');
+
+            const response = await fetch('https://api.openai.com/v1/responses', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model,
+                reasoning: { effort },
+                instructions,
+                input: prompt,
+                max_output_tokens: 5000,
+                store: false,
+              }),
+            });
+
+            const payloadText = await response.text();
+            let payload;
+            try {
+              payload = JSON.parse(payloadText);
+            } catch (error) {
+              payload = { raw: payloadText };
+            }
+
+            if (!response.ok) {
+              const message = payload?.error?.message || payloadText || `OpenAI request failed with ${response.status}`;
+              fs.writeFileSync('ai-review.md', `AI review failed: ${message}\n\nModel requested: ${model}\nReasoning effort: ${effort}\n`);
+              core.warning(message);
+              core.setOutput('status', 'failed');
+              return;
+            }
+
+            const text = (payload.output || [])
+              .flatMap((item) => item.content || [])
+              .filter((content) => content.type === 'output_text' && content.text)
+              .map((content) => content.text)
+              .join('\n\n')
+              .trim();
+
+            fs.writeFileSync('ai-review.md', text || 'AI review returned no text.');
+            core.setOutput('status', 'success');
+            core.setOutput('model', model);
+            core.setOutput('effort', effort);
+
       - name: Comment PR review summary
         if: always()
         uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_URL: ${{ steps.pr.outputs.html_url }}
+          AI_REVIEW_STATUS: ${{ steps.ai_review.outputs.status || 'skipped' }}
+          AI_REVIEW_MODEL: ${{ steps.ai_review.outputs.model || vars.OPENAI_REVIEW_MODEL || 'gpt-5.4' }}
+          AI_REASONING_EFFORT: ${{ steps.ai_review.outputs.effort || vars.OPENAI_REASONING_EFFORT || 'xhigh' }}
+          HAS_OPENAI_API_KEY: ${{ env.HAS_OPENAI_API_KEY }}
         with:
           script: |
+            const fs = require('fs');
             const marker = '<!-- codex-pr-opened-review -->';
-            const pr = context.payload.pull_request;
             const { owner, repo } = context.repo;
+            const prNumber = Number(process.env.PR_NUMBER);
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
 
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner,
               repo,
-              pull_number: pr.number,
+              pull_number: prNumber,
               per_page: 100,
             });
 
             const formatStatus = (value) => {
               if (value === 'success') return 'PASS';
               if (value === 'skipped') return 'SKIPPED';
+              if (!value) return 'SKIPPED';
               return 'FAIL';
             };
 
@@ -79,8 +235,22 @@ jobs:
               .join('\n');
             const extraFiles = files.length > 30 ? `\n- ...and ${files.length - 30} more file(s)` : '';
 
+            let aiReview = '';
+            if (fs.existsSync('ai-review.md')) {
+              aiReview = fs.readFileSync('ai-review.md', 'utf8').trim();
+            } else if (process.env.HAS_OPENAI_API_KEY !== 'true') {
+              aiReview = 'AI review skipped because the repository secret `OPENAI_API_KEY` is not configured.';
+            } else {
+              aiReview = 'AI review did not produce an output.';
+            }
+
+            const maxAiChars = 30000;
+            if (aiReview.length > maxAiChars) {
+              aiReview = `${aiReview.slice(0, maxAiChars)}\n\n[AI review truncated in PR comment. See workflow logs for full context.]`;
+            }
+
             const body = `${marker}
-            ## Automated PR check
+            ## Automated PR review
 
             GitHub Actions detected this PR event and ran the first review pass.
 
@@ -89,20 +259,26 @@ jobs:
             | Install dependencies | ${formatStatus('${{ steps.install.outcome }}')} |
             | Unit tests | ${formatStatus('${{ steps.tests.outcome }}')} |
             | Build | ${formatStatus('${{ steps.build.outcome }}')} |
+            | GPT review | ${process.env.AI_REVIEW_STATUS} |
 
-            PR event: `${context.payload.action}`  
+            Model: `${process.env.AI_REVIEW_MODEL}`  
+            Reasoning effort: `${process.env.AI_REASONING_EFFORT}`  
+            PR event: `${context.payload.action || context.eventName}`  
             Run: ${runUrl}
 
-            Changed files (${files.length}):
-            ${changedFiles || '- No changed files reported'}${extraFiles}
+            ### GPT review
 
-            Next step: review any failing checks and inspect the changed files above for behavior, test coverage, and security risks.
+            ${aiReview}
+
+            ### Changed files (${files.length})
+
+            ${changedFiles || '- No changed files reported'}${extraFiles}
             `.replace(/^            /gm, '').trim();
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
               repo,
-              issue_number: pr.number,
+              issue_number: prNumber,
               per_page: 100,
             });
 
@@ -121,12 +297,12 @@ jobs:
               await github.rest.issues.createComment({
                 owner,
                 repo,
-                issue_number: pr.number,
+                issue_number: prNumber,
                 body,
               });
             }
 
-      - name: Fail when review checks fail
+      - name: Fail when validation checks fail
         if: always()
         run: |
           if [ "${{ steps.install.outcome }}" != "success" ]; then
