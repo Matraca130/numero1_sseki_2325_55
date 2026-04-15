@@ -1,0 +1,144 @@
+name: PR Opened Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-opened-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review-trigger:
+    name: Review PR trigger
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        run: npm ci --no-audit
+
+      - name: Run tests
+        id: tests
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm test
+
+      - name: Build project
+        id: build
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run build
+
+      - name: Comment PR review summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- codex-pr-opened-review -->';
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const formatStatus = (value) => {
+              if (value === 'success') return 'PASS';
+              if (value === 'skipped') return 'SKIPPED';
+              return 'FAIL';
+            };
+
+            const changedFiles = files
+              .slice(0, 30)
+              .map((file) => `- ${file.status}: ${file.filename} (+${file.additions}/-${file.deletions})`)
+              .join('\n');
+            const extraFiles = files.length > 30 ? `\n- ...and ${files.length - 30} more file(s)` : '';
+
+            const body = `${marker}
+            ## Automated PR check
+
+            GitHub Actions detected this PR event and ran the first review pass.
+
+            | Check | Result |
+            | --- | --- |
+            | Install dependencies | ${formatStatus('${{ steps.install.outcome }}')} |
+            | Unit tests | ${formatStatus('${{ steps.tests.outcome }}')} |
+            | Build | ${formatStatus('${{ steps.build.outcome }}')} |
+
+            PR event: `${context.payload.action}`  
+            Run: ${runUrl}
+
+            Changed files (${files.length}):
+            ${changedFiles || '- No changed files reported'}${extraFiles}
+
+            Next step: review any failing checks and inspect the changed files above for behavior, test coverage, and security risks.
+            `.replace(/^            /gm, '').trim();
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pr.number,
+              per_page: 100,
+            });
+
+            const previous = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr.number,
+                body,
+              });
+            }
+
+      - name: Fail when review checks fail
+        if: always()
+        run: |
+          if [ "${{ steps.install.outcome }}" != "success" ]; then
+            echo "::error::Dependency installation failed."
+            exit 1
+          fi
+          if [ "${{ steps.tests.outcome }}" != "success" ]; then
+            echo "::error::Tests failed."
+            exit 1
+          fi
+          if [ "${{ steps.build.outcome }}" != "success" ]; then
+            echo "::error::Build failed."
+            exit 1
+          fi
+          echo "PR opened review checks passed."
