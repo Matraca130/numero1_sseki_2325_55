@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useHeatmap } from '@/app/hooks/useHeatmap';
-import type { HeatmapEntry } from '@/app/hooks/useCalendarEvents';
+import type { HeatmapEntry } from '@/app/types/calendar';
 
 describe('useHeatmap', () => {
   it('returns empty map and 0 streak for empty input', () => {

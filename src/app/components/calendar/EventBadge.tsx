@@ -13,7 +13,7 @@
 
 import { EVENT_COLORS } from '@/app/lib/calendar-constants';
 import type { EventType } from '@/app/lib/calendar-constants';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { useMediaQuery } from '@/app/hooks/useMediaQuery';
 
 // ── Props ───────────────────────────────────────────────────

@@ -20,7 +20,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Trash2, Loader2 } from 'lucide-react';
 
 import { apiCall } from '@/app/lib/api';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';

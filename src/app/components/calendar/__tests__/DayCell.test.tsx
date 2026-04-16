@@ -5,7 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DayCell } from '../DayCell';
 import type { DayCellProps } from '../DayCell';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { HEATMAP_CLASSES } from '@/app/lib/calendar-constants';
 import type { HeatmapLevel } from '@/app/lib/calendar-constants';
 

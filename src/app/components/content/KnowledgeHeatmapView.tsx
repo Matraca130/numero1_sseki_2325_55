@@ -23,7 +23,12 @@ import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
 import { headingStyle, components, colors } from '@/app/design-system';
 import { MobileDrawer } from '@/app/components/layout/MobileDrawer';
 
-interface CalendarEvent {
+/**
+ * Local mock-data shape for the hardcoded CALENDAR_EVENTS array.
+ * NOT the canonical CalendarEvent (see `@/app/types/calendar`).
+ * This type represents a day slot in the mock UI skeleton.
+ */
+interface MockCalendarDayEvent {
   day: number;
   title: string;
   category: 'science' | 'arts' | 'core';
@@ -39,7 +44,7 @@ interface HeatLevel {
   level: 'high' | 'med' | 'none';
 }
 
-const CALENDAR_EVENTS: CalendarEvent[] = [
+const CALENDAR_EVENTS: MockCalendarDayEvent[] = [
   { day: 4, title: 'Fisiologia II', category: 'science', cards: 15 },
   { day: 6, title: 'Anatomia Patológica', category: 'arts', cards: 48, isUrgent: true, isDue: true },
   { day: 11, title: 'Fisiologia II', category: 'science', time: '10:00 - 11:30' },
@@ -173,7 +178,7 @@ export function KnowledgeHeatmapView() {
   const getEventsForDay = (day: number) => {
     const data = activityMap.get(day);
     const mockEvents = CALENDAR_EVENTS.filter(e => e.day === day);
-    if (isConnected && data && data.minutes > 0) { const realEvent: CalendarEvent = { day, title: `${data.sessions} sesión(es)`, category: 'core', cards: data.cards > 0 ? data.cards : undefined, noteText: `${data.minutes} min estudiados` }; return mockEvents.length > 0 ? mockEvents : [realEvent]; }
+    if (isConnected && data && data.minutes > 0) { const realEvent: MockCalendarDayEvent = { day, title: `${data.sessions} sesión(es)`, category: 'core', cards: data.cards > 0 ? data.cards : undefined, noteText: `${data.minutes} min estudiados` }; return mockEvents.length > 0 ? mockEvents : [realEvent]; }
     return mockEvents;
   };
 

@@ -9,13 +9,13 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import {
-  calendarKeys,
-  type CalendarEvent,
-  type HeatmapEntry,
-  type CalendarTask,
-  type CalendarData,
-} from '@/app/hooks/useCalendarEvents';
+import { calendarKeys } from '@/app/hooks/useCalendarEvents';
+import type {
+  CalendarEvent,
+  HeatmapEntry,
+  CalendarTask,
+  CalendarData,
+} from '@/app/types/calendar';
 
 describe('useCalendarEvents — query keys', () => {
   it('calendarKeys.data returns a tuple with correct structure', () => {

@@ -18,7 +18,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { cn } from '@/app/components/ui/utils';
 import { formatDateISO, getEventColor } from '@/app/lib/calendar-utils';
 

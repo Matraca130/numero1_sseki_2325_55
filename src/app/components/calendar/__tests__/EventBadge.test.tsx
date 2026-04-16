@@ -4,7 +4,7 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { EventBadge, EventBadgeOverflow } from '../EventBadge';
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 
 // ── Mock useMediaQuery (default: desktop) ───────────────────
 

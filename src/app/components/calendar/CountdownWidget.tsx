@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { Clock } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
-import type { CalendarEvent } from '@/app/hooks/useCalendarEvents';
+import type { CalendarEvent } from '@/app/types/calendar';
 import { EVENT_COLORS, type EventType } from '@/app/lib/calendar-constants';
 import { cn } from '@/app/components/ui/utils';
 import { ExamPrepPanel } from './ExamPrepPanel';
