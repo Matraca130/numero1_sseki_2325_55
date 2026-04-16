@@ -20,8 +20,8 @@ export interface ReadingSettings {
 }
 
 export const DEFAULT_READING_SETTINGS: ReadingSettings = {
-  fontSize: 16,
-  lineHeight: 1.6,
+  fontSize: 17,
+  lineHeight: 1.65,
   fontFamily: 'Inter, sans-serif',
   focusMode: false,
 };

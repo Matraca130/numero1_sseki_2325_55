@@ -73,7 +73,7 @@ export function SummaryReaderBody({
       {/* ── Reading mode: plain markdown ── */}
       {viewMode === 'reading' && summary.content_markdown && (
         <div
-          className="px-6 sm:px-8 py-8"
+          className="px-6 sm:px-10 py-8"
           style={{
             fontSize: `${readingSettings.fontSize}px`,
             lineHeight: readingSettings.lineHeight,
