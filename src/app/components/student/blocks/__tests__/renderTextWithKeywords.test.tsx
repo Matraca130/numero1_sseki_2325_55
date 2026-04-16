@@ -252,4 +252,31 @@ describe('replaceKeywordPlaceholders', () => {
     );
     expect(result).toBe('palpitaciones, Síncope, edema');
   });
+
+  it('does NOT escape HTML in keyword names by default (plain-text mode)', () => {
+    const kw = makeKeyword({ id: 'abc-uuid-123', name: '<script>alert(1)</script>' });
+    const result = replaceKeywordPlaceholders('Ver {{abc-uuid-123}} aquí.', [kw]);
+    expect(result).toBe('Ver <script>alert(1)</script> aquí.');
+  });
+
+  it('escapes HTML in keyword names when escapeHtml option is set (XSS defense)', () => {
+    const kw = makeKeyword({ id: 'abc-uuid-123', name: '<img src=x onerror=alert(1)>' });
+    const result = replaceKeywordPlaceholders(
+      'Ver {{abc-uuid-123}} aquí.',
+      [kw],
+      { escapeHtml: true },
+    );
+    // Raw tag must not appear — angle brackets must be escaped
+    expect(result).not.toContain('<img');
+    expect(result).not.toContain('<');
+    expect(result).not.toContain('>');
+    // Entities must be present
+    expect(result).toBe('Ver &lt;img src=x onerror=alert(1)&gt; aquí.');
+  });
+
+  it('escapes all HTML-significant characters (& < > " \')', () => {
+    const kw = makeKeyword({ id: 'k1', name: `A&B<C>D"E'F` });
+    const result = replaceKeywordPlaceholders('X {{k1}} Y', [kw], { escapeHtml: true });
+    expect(result).toBe('X A&amp;B&lt;C&gt;D&quot;E&#39;F Y');
+  });
 });

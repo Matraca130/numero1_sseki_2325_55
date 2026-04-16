@@ -65,7 +65,7 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keyword
           {isHtml(chunk.content) ? (
             <div
               className="axon-prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords), 'light')) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enrichHtmlWithImages(replaceKeywordPlaceholders(chunk.content, keywords, { escapeHtml: true }), 'light')) }}
             />
           ) : (
             <div className="text-gray-600 leading-relaxed">
