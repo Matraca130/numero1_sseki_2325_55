@@ -95,7 +95,7 @@ export function StudentSummaryReader({
         </button>
       )}
 
-      <div className="flex mx-auto p-6 sm:p-8 gap-6 lg:gap-8" style={{ maxWidth: s.readingSettings.focusMode ? 820 : 1280 }}>
+      <div className="flex mx-auto p-6 sm:p-8 gap-6 lg:gap-8" style={{ maxWidth: s.readingSettings.focusMode ? 820 : 1068 }}>
         {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
         {!s.readingSettings.focusMode && s.sidebarBlocks.length > 0 && (
           <div className="relative" style={{ width: 52, flexShrink: 0 }}>
@@ -120,7 +120,7 @@ export function StudentSummaryReader({
           </div>
         )}
 
-        <div id="reader-main-content" tabIndex={-1} className={`flex-1 min-w-0 transition-all duration-200 ${s.readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: s.readingSettings.focusMode ? 720 : 920 }}>
+        <div id="reader-main-content" tabIndex={-1} className={`flex-1 min-w-0 transition-all duration-200 ${s.readingSettings.focusMode ? 'mx-auto' : ''}`} style={{ maxWidth: s.readingSettings.focusMode ? 720 : 860 }}>
 
         {/* ── Compact header toolbar with title ── */}
         {!s.readingSettings.focusMode && (
