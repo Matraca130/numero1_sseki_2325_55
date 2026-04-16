@@ -143,7 +143,7 @@ async function submitBlockReview(
       method: 'POST',
       body: JSON.stringify({ block_id: blockId, summary_id: summaryId, results }),
     });
-    console.log('[BlockQuizModal] Block review submitted:', res);
+    if (import.meta.env.DEV) console.log('[BlockQuizModal] Block review submitted:', res);
   } catch (err: any) {
     console.error('[BlockQuizModal] Failed to submit block review:', err?.message || err);
   }
@@ -180,19 +180,19 @@ export function BlockQuizModal({
     (async () => {
       try {
         // 1. Try pre-generated questions from quiz_questions table
-        console.log(`[BlockQuiz] Fetching questions for block=${blockId} summary=${summaryId}`);
+        if (import.meta.env.DEV) console.log(`[BlockQuiz] Fetching questions for block=${blockId} summary=${summaryId}`);
         const dbResult = await getQuizQuestions(summaryId, {
           block_id: blockId,
           limit: 10,
         });
-        console.log(`[BlockQuiz] Got ${dbResult.items.length} items, block_ids:`, dbResult.items.map(q => q.block_id));
+        if (import.meta.env.DEV) console.log(`[BlockQuiz] Got ${dbResult.items.length} items, block_ids:`, dbResult.items.map(q => q.block_id));
 
         if (!cancelled && dbResult.items.length > 0) {
           // Client-side block_id filter as safety net — ensures only this block's questions show
           const blockItems = dbResult.items.filter(
             (q) => !q.block_id || q.block_id === blockId,
           );
-          console.log(`[BlockQuiz] After block filter: ${blockItems.length} items (from ${dbResult.items.length})`);
+          if (import.meta.env.DEV) console.log(`[BlockQuiz] After block filter: ${blockItems.length} items (from ${dbResult.items.length})`);
           const display = dbToDisplay(blockItems);
           if (display.length > 0) {
             setQuestions(display);
@@ -202,7 +202,7 @@ export function BlockQuizModal({
         }
 
         // 2. Fallback: AI generation
-        console.log(`[BlockQuiz] Falling back to AI generation for block=${blockId}`);
+        if (import.meta.env.DEV) console.log(`[BlockQuiz] Falling back to AI generation for block=${blockId}`);
         const aiResult = await apiCall('/ai/generate', {
           method: 'POST',
           body: JSON.stringify({ summary_id: summaryId, block_id: blockId, type: 'quiz' }),

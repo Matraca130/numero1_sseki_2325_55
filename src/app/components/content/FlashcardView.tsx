@@ -122,6 +122,18 @@ export function FlashcardView() {
     if (topicId) nav.reloadTopicCards(topicId);
   }, [nav]);
 
+  // Cards for the currently selected topic (stable reference per-topic)
+  const topicCards = useMemo(
+    () => nav.selectedTopic?.flashcards || [],
+    [nav.selectedTopic?.flashcards],
+  );
+
+  // Unique keyword IDs for the topic's cards (memoized Set)
+  const topicKeywordIds = useMemo(
+    () => new Set(topicCards.map(c => c.keyword_id).filter(Boolean)),
+    [topicCards],
+  );
+
   // Keyword progress for DeckScreen (Fase 6)
   const currentKeywordProgress = useMemo((): KeywordProgress | undefined => {
     const topicId = nav.selectedTopic?.id;
@@ -132,8 +144,6 @@ export function FlashcardView() {
 
     let fsrsCoverage: KeywordProgress['fsrsCoverage'];
     if (!coverage.loading && coverage.keywordStats.size > 0) {
-      const topicCards = nav.selectedTopic?.flashcards || [];
-      const topicKeywordIds = new Set(topicCards.map(c => c.keyword_id).filter(Boolean));
       let totalMapped = 0, scheduledCards = 0, dueCards = 0, newCards = 0;
       for (const kwId of topicKeywordIds) {
         const stats = coverage.keywordStats.get(kwId!);
@@ -146,7 +156,7 @@ export function FlashcardView() {
       keywordsMastered: summary.keywordsMastered, keywordsTotal: summary.keywordsTotal,
       overallMastery: summary.overallMastery, weakestKeywordName: summary.weakestKeywords[0]?.name, fsrsCoverage,
     };
-  }, [nav.selectedTopic?.id, nav.kwProgressVersion, nav.kwMasteryCache, coverage.loading, coverage.keywordStats, nav.selectedTopic?.flashcards]);
+  }, [nav.selectedTopic?.id, nav.kwProgressVersion, nav.kwMasteryCache, coverage.loading, coverage.keywordStats, topicKeywordIds]);
 
   return (
     <ErrorBoundary>

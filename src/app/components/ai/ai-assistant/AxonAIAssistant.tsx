@@ -3,7 +3,7 @@
  * Floating panel with chat, flashcard gen, quiz gen, and concept explanations.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion, AnimatePresence } from 'motion/react';
@@ -28,7 +28,7 @@ interface AxonAIAssistantProps {
   summaryId?: string;
 }
 
-export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantProps) {
+function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistantProps) {
   const { currentCourse, currentTopic } = useNavigation();
 
   const [mode, setMode] = useState<AssistantMode>('chat');
@@ -324,4 +324,5 @@ export function AxonAIAssistant({ isOpen, onClose, summaryId }: AxonAIAssistantP
   }
 }
 
+export const AxonAIAssistant = memo(AxonAIAssistantComponent);
 export default AxonAIAssistant;
