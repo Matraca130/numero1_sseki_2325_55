@@ -34,6 +34,14 @@ export function ensureHtml(content: string): string {
   return isHtmlContent(content) ? content : plainTextToHtml(content);
 }
 
+// Tags whose entire subtree must be dropped — keeping their text content
+// would leak attacker-controlled strings (e.g. `<script>alert(1)</script>`
+// surviving as the text "alert(1)") and round-trip them into other readers
+// that might unsafely re-interpret them. See issue #442.
+const DROP_SUBTREE = new Set([
+  'script', 'style', 'iframe', 'object', 'embed', 'noscript', 'svg', 'math',
+]);
+
 // Strip everything except <u> and <br>. Block-ish elements (<div>, <p>) are
 // flattened into trailing <br>s so the user's visual line structure is kept
 // even when the browser inserts wrapper tags on Enter or paste.
@@ -49,6 +57,7 @@ export function sanitizeNoteHtml(html: string): string {
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     const el = node as Element;
     const tag = el.tagName.toLowerCase();
+    if (DROP_SUBTREE.has(tag)) return '';
     const inner = Array.from(node.childNodes).map(walk).join('');
     if (tag === 'u') return `<u>${inner}</u>`;
     if (tag === 'br') return '<br>';

@@ -8,6 +8,12 @@ import { cn } from "./utils";
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
+// Allow-list for CSS color values written into the injected <style> tag.
+// Permits hex (#rgb, #rrggbb, #rrggbbaa), functional notations (rgb/hsl/oklch/var),
+// named colors, and CSS variable references. Rejects ';', '{', '}', '*', '/' —
+// the characters needed to break out of the rule and inject arbitrary CSS.
+const SAFE_CSS_COLOR = /^[#a-zA-Z0-9(),.%\s-]+$/;
+
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode;
@@ -87,10 +93,12 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const rawColor =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    if (!rawColor) return null;
+    const color = SAFE_CSS_COLOR.test(rawColor) ? rawColor : "currentColor";
+    return `  --color-${key}: ${color};`;
   })
   .join("\n")}
 }

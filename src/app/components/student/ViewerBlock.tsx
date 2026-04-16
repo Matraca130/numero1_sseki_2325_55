@@ -19,6 +19,7 @@ import clsx from 'clsx';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { useAnnotations } from '@/app/context/AnnotationContext';
 import { sanitizeHtml } from '@/app/lib/sanitize';
+import { safeUrl } from '@/app/lib/urlValidator';
 import { replaceKeywordPlaceholders } from './blocks/renderTextWithKeywords';
 import {
   ProseBlock, KeyPointBlock, StagesBlock, ComparisonBlock,
@@ -574,8 +575,12 @@ export const ViewerBlock = React.memo(function ViewerBlock({
 
     // ── PDF ──────────────────────────────────────────────
     case 'pdf': {
-      const pdfUrl = c.url || c.src || '';
+      // safeUrl strips any non-http(s) payload (javascript:, data:, file:)
+      // that a compromised backend or block editor could stash in c.url.
+      // See issue #443.
+      const pdfUrl = safeUrl(c.url || c.src || '');
       const title = c.title || 'Documento PDF';
+      if (!pdfUrl) return null;
 
       if (isMobile) {
         return (
