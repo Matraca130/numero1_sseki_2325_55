@@ -2,6 +2,8 @@
 
 Automated scan by refactor-scout agent. **17 findings** across the codebase.
 
+> **Note on finding IDs:** This report uses its own numbering scheme (C1, H1, M1, etc.) which is independent from existing codebase audit references (e.g., `H6-2`, `M4-FIX`, `PERF-S2`, `3DP-3` found in `error-utils.ts` and `models3dApi.ts`). When implementing fixes, cross-reference both systems to maintain a clear audit trail.
+
 | Severity | Count |
 |----------|-------|
 | CRITICAL | 3 |
@@ -42,7 +44,7 @@ Two distinct and incompatible `ApiError` classes:
 
 An `instanceof ApiError` check can fail if the wrong class was imported.
 
-**Action:** Remove the one in `apiConfig.ts` and migrate `models3dApi.ts` to use `error-utils.ts`. Or unify both into a single canonical definition.
+**Action:** Remove the one in `apiConfig.ts` and migrate `models3dApi.ts` to use `error-utils.ts`. Or unify both into a single canonical definition. Note that `apiCall` in `lib/api.ts` must also be updated to throw this canonical `ApiError` (it currently throws generic `Error` on lines 149, 166, etc.), otherwise `instanceof ApiError` checks will fail after migration.
 
 ---
 
@@ -91,7 +93,7 @@ Top offenders in production:
 
 Most common pattern: `apiCall<any>(...)` (40+ instances) and `catch (err: any)` (40+ blocks).
 
-**Action:** Prioritize typing API responses with dedicated interfaces. Replace `catch (err: any)` with `catch (err: unknown)` + `getErrorMsg()`.
+**Action:** Prioritize typing API responses with dedicated interfaces. Change the default generic in `apiCall` to `<T = unknown>` (currently `<T = any>` in `src/app/lib/api.ts`) to enforce explicit typing at call sites and prevent new untyped calls. Replace `catch (err: any)` with `catch (err: unknown)` + `getErrorMsg()`.
 
 ### H5 — 30 instances of `onError: (err: any)` in query hooks
 
