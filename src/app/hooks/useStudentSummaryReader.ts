@@ -44,6 +44,8 @@ export function useStudentSummaryReader({
   const { isDark, toggle: toggleTheme } = useThemeToggle(readerRef);
   const [showTimer, setShowTimer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showStickyNotes, setShowStickyNotes] = useState(false);
+  const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const { settings: readingSettings, update: updateReadingSettings } = useReadingSettings();
 
   // ── Wave 1: Sidebar, search, reading progress ─────────
@@ -178,15 +180,22 @@ export function useStudentSummaryReader({
           updateReadingSettings({ ...readingSettings, focusMode: false });
           return;
         }
-        setSearchOpen(false);
-        setSearchQuery('');
-        setShowSettings(false);
-        setShowTimer(false);
+        // Close overlays in order of "top-most first" so a single Esc
+        // dismisses whatever the user is looking at before escalating.
+        if (showBookmarksPanel) { setShowBookmarksPanel(false); return; }
+        if (showStickyNotes)    { setShowStickyNotes(false);    return; }
+        if (showSettings)       { setShowSettings(false);       return; }
+        if (searchOpen)         { setSearchOpen(false); setSearchQuery(''); return; }
+        if (showTimer)          { setShowTimer(false);          return; }
+        // Last: collapse the mobile sidebar drawer if it is open.
+        if (!sidebarCollapsed && typeof window !== 'undefined' && window.innerWidth < 768) {
+          setSidebarCollapsed(true);
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [readingSettings, updateReadingSettings]);
+  }, [readingSettings, updateReadingSettings, showBookmarksPanel, showStickyNotes, showSettings, searchOpen, showTimer, sidebarCollapsed]);
 
   // ── Memoized pagination + keyword-to-page map ───────────
   const { isHtmlContent, htmlPages, textPages, totalPages } = useMemo(() => {
@@ -289,6 +298,8 @@ export function useStudentSummaryReader({
     // panels
     showTimer, setShowTimer,
     showSettings, setShowSettings,
+    showStickyNotes, setShowStickyNotes,
+    showBookmarksPanel, setShowBookmarksPanel,
     // reading settings
     readingSettings, updateReadingSettings,
     // sidebar + search

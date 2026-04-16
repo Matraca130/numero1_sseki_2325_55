@@ -14,7 +14,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { Layers, Bookmark } from 'lucide-react';
+import { Layers } from 'lucide-react';
+import { colors } from '@/app/design-system';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { ViewerBlock } from './ViewerBlock';
@@ -47,9 +48,24 @@ interface SummaryViewerProps {
   layout?: 'canvas' | 'flow';
   /** Text annotations for highlight rendering in blocks */
   annotations?: TextAnnotation[];
+  /** Controlled bookmarks panel visibility. When omitted, the legacy corner
+   *  FAB is rendered; when provided, the parent owns the state (toolbar
+   *  toggle) and the FAB is suppressed. */
+  bookmarksOpen?: boolean;
+  onBookmarksOpenChange?: (next: boolean) => void;
 }
 
-export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordClick, readingSettings, keywords, layout = 'flow', annotations = [] }: SummaryViewerProps) {
+export function SummaryViewer({
+  summaryId,
+  blocks: prefetchedBlocks,
+  onKeywordClick,
+  readingSettings,
+  keywords,
+  layout = 'flow',
+  annotations = [],
+  bookmarksOpen: controlledBookmarks,
+  onBookmarksOpenChange,
+}: SummaryViewerProps) {
   const { user } = useAuth();
 
   // ── Data (React Query — shared cache with useSummaryReaderQueries) ──
@@ -68,7 +84,18 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
 
   // ── Bookmarks state ───────────────────────────────────
   const { bookmarks: bookmarkIds, toggle: toggleBookmark, remove: removeBookmark, isBookmarked } = useBlockBookmarks(summaryId);
-  const [showBookmarks, setShowBookmarks] = useState(false);
+  const isBookmarksControlled = typeof controlledBookmarks === 'boolean';
+  const [uncontrolledShowBookmarks, setUncontrolledShowBookmarks] = useState(false);
+  const showBookmarks = isBookmarksControlled ? controlledBookmarks : uncontrolledShowBookmarks;
+  const setShowBookmarks = (next: boolean | ((v: boolean) => boolean)) => {
+    const resolved =
+      typeof next === 'function' ? (next as (v: boolean) => boolean)(showBookmarks) : next;
+    if (isBookmarksControlled) {
+      onBookmarksOpenChange?.(resolved);
+    } else {
+      setUncontrolledShowBookmarks(resolved);
+    }
+  };
 
   // ── Text annotation mutations (single instance for all blocks) ──
   const createAnnotationMutation = useCreateAnnotationMutation(summaryId);
@@ -305,26 +332,28 @@ export function SummaryViewer({ summaryId, blocks: prefetchedBlocks, onKeywordCl
         />
       )}
 
-      {/* ── Bookmarks toggle + panel ──────────────────── */}
-      <div className="fixed bottom-6 right-24 z-50">
-        <div className="relative">
-          <button
-            onClick={() => setShowBookmarks(prev => !prev)}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white shadow-lg hover:bg-teal-600 transition-colors"
-            aria-label="Marcadores"
+      {/* ── Bookmarks panel ────────────────────────────
+          Controlled mode (from the reader shell's toolbar toggle): anchor
+          to top-right, below the toolbar, as a floating popover — no FAB.
+          Uncontrolled mode (legacy callers): fall back to the original
+          bottom-right FAB + inline dropdown. */}
+      {isBookmarksControlled ? (
+        showBookmarks && (
+          <div
+            className="fixed right-4 sm:right-6 top-[84px]"
+            style={{ zIndex: colors.zIndex.popover }}
           >
-            <Bookmark size={18} />
-          </button>
-          {showBookmarks && (
-            <BookmarksPanel
-              bookmarks={bookmarkItems}
-              onBlockClick={handleBookmarkBlockClick}
-              onRemove={removeBookmark}
-              onClose={() => setShowBookmarks(false)}
-            />
-          )}
-        </div>
-      </div>
+            <div className="relative">
+              <BookmarksPanel
+                bookmarks={bookmarkItems}
+                onBlockClick={handleBookmarkBlockClick}
+                onRemove={removeBookmark}
+                onClose={() => setShowBookmarks(false)}
+              />
+            </div>
+          </div>
+        )
+      ) : null}
     </>
   );
 }

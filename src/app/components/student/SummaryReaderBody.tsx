@@ -39,6 +39,9 @@ interface SummaryReaderBodyProps {
   // Completion
   isCompleted: boolean;
   onGoToKeywordsTab: () => void;
+  // Bookmarks (controlled by toolbar toggle)
+  bookmarksOpen?: boolean;
+  onBookmarksOpenChange?: (next: boolean) => void;
 }
 
 export function SummaryReaderBody({
@@ -60,6 +63,8 @@ export function SummaryReaderBody({
   annotations,
   isCompleted,
   onGoToKeywordsTab,
+  bookmarksOpen,
+  onBookmarksOpenChange,
 }: SummaryReaderBodyProps) {
   return (
     <div className="reader-card bg-white dark:bg-[#1e1f25] rounded-b-[20px] border-2 border-t-0 border-zinc-200 dark:border-[#2d2e34] shadow-sm overflow-hidden">
@@ -128,6 +133,8 @@ export function SummaryReaderBody({
             readingSettings={readingSettings}
             keywords={keywords}
             annotations={annotations}
+            bookmarksOpen={bookmarksOpen}
+            onBookmarksOpenChange={onBookmarksOpenChange}
           />
         </div>
       )}

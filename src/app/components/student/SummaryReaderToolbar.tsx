@@ -6,6 +6,7 @@ import React from 'react';
 import {
   ChevronLeft, CheckCircle2, Clock, Loader2,
   Search as SearchIcon, Timer, Settings, PanelLeftOpen,
+  StickyNote, Bookmark,
 } from 'lucide-react';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
@@ -22,6 +23,8 @@ interface SummaryReaderToolbarProps {
   searchOpen: boolean;
   showTimer: boolean;
   showSettings: boolean;
+  showStickyNotes: boolean;
+  showBookmarks: boolean;
   sidebarCollapsed: boolean;
   readingSettings: ReadingSettings;
   onBack: () => void;
@@ -32,6 +35,8 @@ interface SummaryReaderToolbarProps {
   onToggleSettings: () => void;
   onCloseSettings: () => void;
   onToggleSidebar: () => void;
+  onToggleStickyNotes: () => void;
+  onToggleBookmarks: () => void;
   onUpdateReadingSettings: (s: ReadingSettings) => void;
 }
 
@@ -58,6 +63,8 @@ export function SummaryReaderToolbar({
   searchOpen,
   showTimer,
   showSettings,
+  showStickyNotes,
+  showBookmarks,
   sidebarCollapsed,
   readingSettings,
   onBack,
@@ -68,6 +75,8 @@ export function SummaryReaderToolbar({
   onToggleSettings,
   onCloseSettings,
   onToggleSidebar,
+  onToggleStickyNotes,
+  onToggleBookmarks,
   onUpdateReadingSettings,
 }: SummaryReaderToolbarProps) {
   return (
@@ -166,6 +175,26 @@ export function SummaryReaderToolbar({
           style={{ ...toolbarBtnStyle, background: showTimer ? 'rgba(42,140,122,0.15)' : 'none', color: showTimer ? '#2a8c7a' : colors.reader.iconDefault }}
         >
           <Timer size={16} />
+        </button>
+
+        {/* Sticky notes toggle */}
+        <button
+          onClick={onToggleStickyNotes}
+          title="Notas flotantes"
+          aria-label={showStickyNotes ? 'Cerrar notas flotantes' : 'Abrir notas flotantes'}
+          style={{ ...toolbarBtnStyle, background: showStickyNotes ? 'rgba(42,140,122,0.15)' : 'none', color: showStickyNotes ? '#2a8c7a' : colors.reader.iconDefault }}
+        >
+          <StickyNote size={16} />
+        </button>
+
+        {/* Bookmarks toggle */}
+        <button
+          onClick={onToggleBookmarks}
+          title="Marcadores"
+          aria-label={showBookmarks ? 'Cerrar marcadores' : 'Abrir marcadores'}
+          style={{ ...toolbarBtnStyle, background: showBookmarks ? 'rgba(42,140,122,0.15)' : 'none', color: showBookmarks ? '#2a8c7a' : colors.reader.iconDefault }}
+        >
+          <Bookmark size={16} />
         </button>
 
         {/* Separator */}
