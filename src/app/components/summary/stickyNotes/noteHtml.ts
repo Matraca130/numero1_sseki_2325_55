@@ -45,11 +45,14 @@ const DROP_SUBTREE = new Set([
 // Strip everything except <u> and <br>. Block-ish elements (<div>, <p>) are
 // flattened into trailing <br>s so the user's visual line structure is kept
 // even when the browser inserts wrapper tags on Enter or paste.
+//
+// Security: uses DOMParser instead of innerHTML to avoid triggering
+// inline event handlers (e.g. <img onerror>) during parsing.
 export function sanitizeNoteHtml(html: string): string {
   if (!html) return '';
-  if (typeof document === 'undefined') return html;
-  const root = document.createElement('div');
-  root.innerHTML = html;
+  if (typeof document === 'undefined') return escapeHtml(html.replace(/<[^>]*>/g, ''));
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const root = doc.body;
   const walk = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
       return escapeHtml(node.textContent ?? '');
@@ -70,10 +73,14 @@ export function sanitizeNoteHtml(html: string): string {
 }
 
 // Extract plain text from our HTML format for the picker preview.
+// Security: uses DOMParser instead of innerHTML to avoid triggering
+// inline event handlers during parsing.
 export function htmlToPlainText(html: string): string {
   if (!html) return '';
-  if (typeof document === 'undefined') return html;
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html.replace(/<br\s*\/?>/gi, '\n');
-  return tmp.textContent ?? '';
+  if (typeof document === 'undefined') return html.replace(/<[^>]*>/g, '');
+  const doc = new DOMParser().parseFromString(
+    html.replace(/<br\s*\/?>/gi, '\n'),
+    'text/html',
+  );
+  return doc.body.textContent ?? '';
 }

@@ -39,13 +39,12 @@ export const StickyNoteEditor = forwardRef<HTMLDivElement, StickyNoteEditorProps
     // re-setting innerHTML on every render, which would clobber the caret.
     const lastValueRef = useRef<string>(value);
 
+    // Security: sanitize before setting innerHTML to prevent XSS from
+    // tampered localStorage or backend content reaching the editor.
     useEffect(() => {
       const el = localRef.current;
       if (!el) return;
       if (value !== lastValueRef.current) {
-        // Sanitize on read, not only on write. Guards against stored notes
-        // whose HTML predates the sanitize-on-write pass or was produced by
-        // a compromised backend. See issue #442.
         el.innerHTML = sanitizeNoteHtml(value);
         lastValueRef.current = value;
       }
@@ -85,12 +84,13 @@ export const StickyNoteEditor = forwardRef<HTMLDivElement, StickyNoteEditorProps
       [],
     );
 
+    // Security: use DOMParser instead of innerHTML for the emptiness check
+    // to avoid triggering inline event handlers on untrusted content.
     const isEmpty = useMemo(() => {
       if (!value) return true;
       if (typeof document === 'undefined') return false;
-      const tmp = document.createElement('div');
-      tmp.innerHTML = sanitizeNoteHtml(value);
-      return (tmp.textContent ?? '').trim() === '';
+      const doc = new DOMParser().parseFromString(value, 'text/html');
+      return (doc.body.textContent ?? '').trim() === '';
     }, [value]);
 
     return (

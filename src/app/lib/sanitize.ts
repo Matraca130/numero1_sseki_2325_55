@@ -9,6 +9,14 @@
 
 import DOMPurify from 'dompurify';
 
+// Security: enforce rel="noopener noreferrer" on all anchor tags that open
+// in a new tab to prevent reverse tab-nabbing attacks.
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A' && node.getAttribute('target') === '_blank') {
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+});
+
 /**
  * Sanitize HTML for safe rendering via dangerouslySetInnerHTML.
  * Allows common formatting tags + images but strips scripts, event handlers,
