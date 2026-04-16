@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
 import { headingStyle, components, animation } from '@/app/design-system';
+import { safeUrl } from '@/app/lib/urlValidator';
 import {
   Settings,
   Send,
@@ -333,7 +334,7 @@ function TelegramLinkFlow() {
                 {linkData.instructions || 'Abre nuestro bot de Telegram y envia este codigo para completar la vinculacion.'}
               </p>
               <a
-                href={linkData.botUrl}
+                href={safeUrl(linkData.botUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${components.buttonPrimary.base} ${components.buttonPrimary.sizes.md} inline-flex items-center gap-2`}

@@ -18,6 +18,7 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
+import { sanitizeNoteHtml } from './noteHtml';
 
 export interface StickyNoteEditorProps {
   value: string;
@@ -42,7 +43,10 @@ export const StickyNoteEditor = forwardRef<HTMLDivElement, StickyNoteEditorProps
       const el = localRef.current;
       if (!el) return;
       if (value !== lastValueRef.current) {
-        el.innerHTML = value;
+        // Sanitize on read, not only on write. Guards against stored notes
+        // whose HTML predates the sanitize-on-write pass or was produced by
+        // a compromised backend. See issue #442.
+        el.innerHTML = sanitizeNoteHtml(value);
         lastValueRef.current = value;
       }
     }, [value]);
@@ -85,7 +89,7 @@ export const StickyNoteEditor = forwardRef<HTMLDivElement, StickyNoteEditorProps
       if (!value) return true;
       if (typeof document === 'undefined') return false;
       const tmp = document.createElement('div');
-      tmp.innerHTML = value;
+      tmp.innerHTML = sanitizeNoteHtml(value);
       return (tmp.textContent ?? '').trim() === '';
     }, [value]);
 
