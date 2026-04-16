@@ -47,7 +47,10 @@ export function LoginPage() {
         if (!res.success) {
           setError(res.error || 'Error al iniciar sesión');
         } else {
-          const from = (location.state as any)?.from?.pathname || '/';
+          const rawFrom = (location.state as any)?.from?.pathname;
+          const from = typeof rawFrom === 'string' && rawFrom.startsWith('/') && !rawFrom.startsWith('//')
+            ? rawFrom
+            : '/';
           navigate(from, { replace: true });
         }
       } else {
