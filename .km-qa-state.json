@@ -1,6 +1,6 @@
 {
-  "cycle": 7,
-  "last_run": "2026-04-17T01:11:00Z",
+  "cycle": 8,
+  "last_run": "2026-04-17T13:51:00Z",
   "status": "maintenance",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -17,15 +17,20 @@
       "cycle": 7,
       "date": "2026-04-17",
       "notes": "Covered new graphStyles.ts (extracted from useGraphInit in a refactor) with 29 assertions — computeNodeStyle and computeEdgeStyle, including mastery donuts, collapsed/expanded suffixes, custom colors, directed edges, line styles, label metadata. Relaxed LRU cache perf threshold 20ms→100ms (was flaky on Windows with Docker running). Security scan: no dangerouslySetInnerHTML, no eval, no 'as any' in production. Code quality: no new findings — 12 long files still deferred from cycle 6. All 1630 tests green."
+    },
+    {
+      "cycle": 8,
+      "date": "2026-04-17",
+      "notes": "Upgraded warnIfNotDestroyed and createBatchDraw from contract-only checks to 11 executable unit tests covering: destroyed-error swallowing, non-Error values, case sensitivity, raf scheduling, pending flag synchrony, call coalescing, destroyed-graph skip, null-ref skip, sequential batches. No TODO/FIXME/HACK, no @ts-ignore, no console.log in production code. 12 long files still deferred. All 1641 tests green."
     }
   ],
   "cumulative": {
     "total_failures_fixed": 58,
     "failures_now": 0,
-    "test_files": 49,
-    "total_tests": 1630,
-    "new_test_files_added": 5,
-    "new_assertions_added": 169,
+    "test_files": 50,
+    "total_tests": 1641,
+    "new_test_files_added": 6,
+    "new_assertions_added": 180,
     "components_memoized": 4,
     "milestone": "ALL GREEN — maintenance mode reached"
   }
