@@ -1,6 +1,6 @@
 {
-  "cycle": 6,
-  "last_run": "2026-04-14T12:21:00Z",
+  "cycle": 7,
+  "last_run": "2026-04-17T01:11:00Z",
   "status": "maintenance",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -12,15 +12,20 @@
       "cycle": 6,
       "date": "2026-04-14",
       "notes": "Maintenance scan. No new actionable issues. 17 useEffect blocks flagged as 'missing cleanup' are all false positives (state-sync effects). 13 eslint-disable comments all have reasons. Codebase is healthy. Remaining deferred: 12 files >400 lines (large refactors, not QA)."
+    },
+    {
+      "cycle": 7,
+      "date": "2026-04-17",
+      "notes": "Covered new graphStyles.ts (extracted from useGraphInit in a refactor) with 29 assertions — computeNodeStyle and computeEdgeStyle, including mastery donuts, collapsed/expanded suffixes, custom colors, directed edges, line styles, label metadata. Relaxed LRU cache perf threshold 20ms→100ms (was flaky on Windows with Docker running). Security scan: no dangerouslySetInnerHTML, no eval, no 'as any' in production. Code quality: no new findings — 12 long files still deferred from cycle 6. All 1630 tests green."
     }
   ],
   "cumulative": {
     "total_failures_fixed": 58,
     "failures_now": 0,
-    "test_files": 48,
-    "total_tests": 1600,
-    "new_test_files_added": 4,
-    "new_assertions_added": 140,
+    "test_files": 49,
+    "total_tests": 1630,
+    "new_test_files_added": 5,
+    "new_assertions_added": 169,
     "components_memoized": 4,
     "milestone": "ALL GREEN — maintenance mode reached"
   }

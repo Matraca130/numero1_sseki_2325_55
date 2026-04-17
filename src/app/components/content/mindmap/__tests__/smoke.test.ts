@@ -443,6 +443,8 @@ describe('mindmap directory completeness', () => {
       'useFullscreen.ts',
       'useLocalGraph.ts',
       'useGraphControls.ts',
+      // QA Cycle 7 additions
+      'graphStyles.ts',
       // Hooks tested transitively via component/integration tests
       'drawDragConnectOverlay.ts',
       'GraphBreadcrumbs.tsx',

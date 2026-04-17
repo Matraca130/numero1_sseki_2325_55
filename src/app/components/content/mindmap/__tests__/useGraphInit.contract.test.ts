@@ -28,12 +28,13 @@ describe('useGraphInit exports', () => {
     expect(source).toContain('export function createBatchDraw');
   });
 
-  it('exports computeNodeStyle function', () => {
-    expect(source).toContain('export function computeNodeStyle');
+  it('re-imports computeNodeStyle from graphStyles', () => {
+    expect(source).toContain('computeNodeStyle');
+    expect(source).toContain("from './graphStyles'");
   });
 
-  it('exports computeEdgeStyle function', () => {
-    expect(source).toContain('export function computeEdgeStyle');
+  it('re-imports computeEdgeStyle from graphStyles', () => {
+    expect(source).toContain('computeEdgeStyle');
   });
 
   it('exports UseGraphInitOptions interface', () => {
@@ -124,10 +125,10 @@ describe('G6 integration', () => {
     expect(source).toContain("import { Graph } from '@antv/g6'");
   });
 
-  it('uses graphHelpers for node/edge styling', () => {
-    expect(source).toContain('getNodeFill');
-    expect(source).toContain('getNodeStroke');
-    expect(source).toContain('getEdgeColor');
+  it('delegates node/edge styling to graphStyles', () => {
+    expect(source).toContain('computeNodeStyle');
+    expect(source).toContain('computeEdgeStyle');
+    expect(source).toContain("from './graphStyles'");
   });
 
   it('uses graphHelpers for tree operations', () => {

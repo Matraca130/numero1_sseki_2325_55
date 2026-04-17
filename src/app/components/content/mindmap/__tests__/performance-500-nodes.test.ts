@@ -458,7 +458,7 @@ describe('BFS traversal (useLocalGraph logic) performance', () => {
 // ============================================================
 
 describe('LRU cache performance', () => {
-  it('1000 get/set operations within 20ms', () => {
+  it('1000 get/set operations within 100ms', () => {
     const lru = new LRUCache<GraphData>(20, 5 * 60 * 1000);
 
     const elapsed = timeMs(() => {
@@ -468,7 +468,7 @@ describe('LRU cache performance', () => {
         lru.get(key);
       }
     });
-    expect(elapsed).toBeLessThan(20);
+    expect(elapsed).toBeLessThan(100);
   });
 
   it('respects max entries (evicts LRU)', () => {
