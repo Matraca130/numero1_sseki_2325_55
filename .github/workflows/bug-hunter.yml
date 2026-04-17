@@ -1,0 +1,27 @@
+name: Bug Hunter
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @anthropic-ai/claude-code
+      - name: Run Claude bug hunter
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          claude -p "Scan this frontend repo (TypeScript + React + Vite) for bugs: type unsafety (any, unsafe casts), React anti-patterns (missing keys, stale closures, effect deps), dead code, missing error handling, XSS vectors, leaked secrets, broken imports. For each confirmed bug open a GitHub issue: title 'bug: <short desc>', label 'bug-hunter', body with file:line and fix suggestion. Check existing open issues with label bug-hunter first and skip duplicates. Max 5 new issues per run. Be strict - only report real bugs, no nits." \
+            --dangerously-skip-permissions \
+            --allowedTools "Read,Glob,Grep,Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh issue view:*)"
