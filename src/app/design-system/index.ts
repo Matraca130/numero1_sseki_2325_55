@@ -26,14 +26,10 @@
  *   ├── brand.ts             ← Identidad de marca, logo sizes/themes
  *   ├── colors.ts            ← Paleta completa (primary, surface, text, semantic, mastery)
  *   ├── typography.ts        ← Familias tipograficas, reglas, headingStyle/bodyStyle
- *   ├── shapes.ts            ← Border radius por tipo de elemento
- *   ├── shadows.ts           ← Niveles de sombra
  *   ├── components.ts        ← Recetas Tailwind + helpers (iconClasses, cardClasses, etc.)
  *   ├── section-colors.ts    ← Paletas de acento (teal, multi, disciplines)
- *   ├── navigation.ts        ← Vistas, sidebar items, shortcuts
  *   ├── layout.ts            ← Dimensiones, spacing, grids
  *   ├── animation.ts         ← Presets de Motion
- *   ├── rules.ts             ← Reglas obligatorias y prohibidas
  *   ├── severity.ts          ← Tokens de severidad (mild/moderate/critical)
  *   └── gradients.ts         ← Gradientes decorativos tokenizados
  */
@@ -55,17 +51,7 @@ export { colors } from './colors';
 export { typography, headingStyle, bodyStyle } from './typography';
 
 // ─────────────────────────────────────────────
-// 4. SHAPES & RADIUS
-// ─────────────────────────────────────────────
-export { shapes } from './shapes';
-
-// ─────────────────────────────────────────────
-// 5. SHADOWS
-// ─────────────────────────────────────────────
-export { shadows } from './shadows';
-
-// ─────────────────────────────────────────────
-// 6. COMPONENT PATTERNS + HELPERS
+// 4. COMPONENT PATTERNS + HELPERS
 // ─────────────────────────────────────────────
 export {
   components,
@@ -78,12 +64,12 @@ export {
 export type { ButtonSize, IconSize } from './components';
 
 // ─────────────────────────────────────────────
-// 7. SECTION ACCENT COLORS
+// 5. SECTION ACCENT COLORS
 // ─────────────────────────────────────────────
 export { sectionColors } from './section-colors';
 
 // ─────────────────────────────────────────────
-// 7b. MASTERY CONVENIENCE RE-EXPORTS
+// 5b. MASTERY CONVENIENCE RE-EXPORTS
 // ─────────────────────────────────────────────
 // The canonical 5-level Delta Mastery Scale lives in colors.mastery.
 // Tokens + helpers live in design-system/mastery.ts (NOT in MasteryBar)
@@ -100,7 +86,7 @@ export {
 export type { MasteryColorSet as MasteryBarColorSet } from './mastery';
 
 // ─────────────────────────────────────────────
-// 7c. MASTERY HELPERS RE-EXPORTS (Delta color scale logic)
+// 5c. MASTERY HELPERS RE-EXPORTS (Delta color scale logic)
 // ─────────────────────────────────────────────
 // The mastery-helpers module computes delta-based mastery colors
 // using the canonical 5-level scale from colors.mastery.
@@ -117,32 +103,22 @@ export {
 export type { DeltaColorLevel, BktState } from '@/app/lib/mastery-helpers';
 
 // ─────────────────────────────────────────────
-// 8. NAVIGATION
-// ─────────────────────────────────────────────
-export { navigation } from './navigation';
-
-// ─────────────────────────────────────────────
-// 9. SPACING & LAYOUT
+// 6. SPACING & LAYOUT
 // ─────────────────────────────────────────────
 export { layout } from './layout';
 
 // ─────────────────────────────────────────────
-// 10. ANIMATION
+// 7. ANIMATION
 // ─────────────────────────────────────────────
 export { animation } from './animation';
 
 // ─────────────────────────────────────────────
-// 11. DESIGN RULES
-// ─────────────────────────────────────────────
-export { designRules } from './rules';
-
-// ─────────────────────────────────────────────
-// 12. SEVERITY TOKENS
+// 8. SEVERITY TOKENS
 // ─────────────────────────────────────────────
 export { SEVERITY } from './severity';
 export type { SeverityLevel } from './severity';
 
 // ─────────────────────────────────────────────
-// 13. GRADIENT TOKENS
+// 9. GRADIENT TOKENS
 // ─────────────────────────────────────────────
 export { gradients } from './gradients';
