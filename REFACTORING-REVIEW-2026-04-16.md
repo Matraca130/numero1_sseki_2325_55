@@ -109,7 +109,7 @@ Affected: `useKeywordConnectionsQueries.ts`, `useVideosManagerQueries.ts`, `useK
 |------|-------|--------|
 | `src/app/components/DiagnosticsPage.tsx` | 415 | Exports `DiagnosticsPage` but nobody imports it or references it in routes |
 | `src/app/routes/professor-placeholders.tsx` | ~55 | 5 exported functions, none imported (real professors already exist) |
-| `src/app/components/content/StudentPlaceholder.tsx` | ~? | Exports component, never imported |
+| `src/app/components/content/StudentPlaceholder.tsx` | 89 | Exports component, never imported |
 | `src/app/utils/studyPlanMapper.ts` | ~85 | Only imported by its own test (logic duplicated in helpers.ts) |
 
 **Action:** Delete these files and their associated tests.
@@ -185,6 +185,8 @@ Agent memory and `cross-cutting.md` mention `legacy-stubs.ts` as "marked for del
 ### L3 — Inconsistent pattern: barrel re-exports vs direct modules
 
 Several components have a 6-7 line barrel re-export file in the root that simply re-exports from a subdirectory. This is a consistent and acceptable pattern, but adds indirection. Not a critical issue.
+
+**Action:** Informational only — no change needed. The barrel pattern is consistent across the codebase and serves as a stable import path.
 
 ---
 
