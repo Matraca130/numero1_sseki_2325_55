@@ -10,10 +10,14 @@
 import DOMPurify from 'dompurify';
 
 // Security: enforce rel="noopener noreferrer" on all anchor tags that open
-// in a new tab to prevent reverse tab-nabbing attacks.
+// in a new tab to prevent reverse tab-nabbing attacks. Merge with any
+// pre-existing rel tokens (e.g., nofollow) instead of overwriting them.
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A' && node.getAttribute('target') === '_blank') {
-    node.setAttribute('rel', 'noopener noreferrer');
+    const existing = (node.getAttribute('rel') ?? '').split(/\s+/).filter(Boolean);
+    const required = ['noopener', 'noreferrer'];
+    const merged = Array.from(new Set([...existing, ...required])).join(' ');
+    node.setAttribute('rel', merged);
   }
 });
 
