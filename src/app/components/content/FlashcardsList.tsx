@@ -8,6 +8,7 @@
 // ============================================================
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 import type { Keyword } from '@/app/types/platform';
 import type { Subtopic } from '@/app/types/flashcard-manager';
@@ -67,7 +68,12 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
 
   const handleRegenerateImage = async () => {
     const promptText = extractText(card.front) || card.front;
-    await generateImage(card.id, { imagePrompt: promptText });
+    try {
+      await generateImage(card.id, { imagePrompt: promptText });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'No se pudo generar la imagen';
+      toast.error(message);
+    }
   };
 
   // Find subtopic name

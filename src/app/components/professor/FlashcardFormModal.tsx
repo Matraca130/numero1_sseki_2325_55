@@ -277,8 +277,9 @@ export function FlashcardFormModal({
           setGeneratingImage(true);
           try {
             await generateImage(created.id, { imagePrompt: front.trim() });
-          } catch (imgErr: any) {
-            console.error('[FlashcardForm] Image generation failed:', imgErr);
+          } catch (imgErr: unknown) {
+            const detail = imgErr instanceof Error ? imgErr.message : String(imgErr);
+            console.error('[FlashcardForm] Image generation failed:', detail);
             // Toast already shown by hook; non-fatal — card itself was created
           } finally {
             setGeneratingImage(false);
@@ -287,10 +288,11 @@ export function FlashcardFormModal({
       }
       onSaved();
       onClose();
-    } catch (err: any) {
-      console.error('[FlashcardForm] Error:', err);
-      setError(err.message || 'Error al guardar');
-      toast.error(err.message || 'Error al guardar');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al guardar';
+      console.error('[FlashcardForm] Error:', message);
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
