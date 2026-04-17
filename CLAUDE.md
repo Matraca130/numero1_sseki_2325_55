@@ -304,3 +304,26 @@ El Arquitecto lee el AGENT-REGISTRY, selecciona agentes, resuelve dependencias, 
 - El Quality Gate (XX-02) audita despues de cada agente y auto-registra lecciones
 - Los agentes leen sus lecciones previas al iniciar → no repiten errores
 - **NUNCA** lanzar un agente sin que lea su `.claude/agents/<nombre>.md` primero
+
+---
+
+## Mandatory reads before touching mastery/color code
+
+Cualquier cambio en archivos que referencien `p_know`, `mastery`, o colores de
+mastery **DEBE** leer primero [`MASTERY-SYSTEMS.md`](./MASTERY-SYSTEMS.md).
+
+Los **tres sistemas** (Rating input / Card mastery absoluto / Keyword delta
+mastery) **NO son intercambiables**. Mezclarlos causa bugs reales de UX
+(colores que parpadean, categorizaciones contradictorias, drift de thresholds).
+
+### Trigger files (lista no exhaustiva)
+
+- `src/app/hooks/flashcard-types.ts` → Sistema A (rating INPUT)
+- `src/app/components/content/flashcard/mastery-colors.ts` → Sistema B (card mastery absoluto)
+- `src/app/lib/mastery-helpers.ts` → Sistema C (keyword delta mastery)
+- Cualquier archivo que matchee `**/*Flashcard*.tsx`, `**/*Mastery*.tsx`,
+  `**/*Keyword*.tsx`, `**/*BKT*.ts`
+- Cualquier archivo que haga `filter(x => x.p_know >= CONSTANT)` o similar
+
+**Regla práctica:** si tu diff toca un threshold numérico contra `p_know` o
+`mastery`, comenta en el PR a qué sistema (A / B / C) pertenece la decisión.
