@@ -33,13 +33,15 @@ vi.mock('@/app/services/stickyNotesApi', () => ({
   deleteStickyNote: (...args: any[]) => mockDeleteStickyNote(...args),
 }));
 
-import { StickyNotesPanel } from '@/app/components/summary/StickyNotesPanel';
+import {
+  StickyNotesPanel,
+  STICKY_NOTES_DEBOUNCE_MS as DEBOUNCE_MS,
+} from '@/app/components/summary/StickyNotesPanel';
 
 // ── Test helpers ────────────────────────────────────────────
 
 const SUMMARY_A = '11111111-1111-1111-1111-111111111111';
 const SUMMARY_B = '22222222-2222-2222-2222-222222222222';
-const DEBOUNCE_MS = 600; // matches the value in StickyNotesPanel.tsx
 
 function makeRow(summaryId: string, content: string) {
   return {
@@ -335,8 +337,8 @@ describe('open/closed persistence', () => {
     mockGetStickyNote.mockResolvedValueOnce(makeRow(SUMMARY_A, 'has content'));
 
     render(<StickyNotesPanel summaryId={SUMMARY_A} />);
-    const fab = await screen.findByRole('button', { name: /Abrir notas/i });
-    const badge = fab.querySelector('span.bg-amber-500');
+    await screen.findByRole('button', { name: /Abrir notas/i });
+    const badge = await screen.findByTestId('sticky-notes-fab-badge');
     expect(badge).toBeInTheDocument();
   });
 });
