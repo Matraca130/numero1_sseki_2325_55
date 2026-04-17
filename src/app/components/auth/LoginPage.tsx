@@ -48,9 +48,18 @@ export function LoginPage() {
           setError(res.error || 'Error al iniciar sesión');
         } else {
           const rawFrom = (location.state as any)?.from?.pathname;
-          const from = typeof rawFrom === 'string' && rawFrom.startsWith('/') && !rawFrom.startsWith('//')
-            ? rawFrom
-            : '/';
+          let from = '/';
+          if (typeof rawFrom === 'string' && rawFrom.length > 0) {
+            try {
+              const url = new URL(rawFrom, window.location.origin);
+              const path = url.pathname + url.search + url.hash;
+              if (url.origin === window.location.origin && path.startsWith('/') && !path.startsWith('//')) {
+                from = path;
+              }
+            } catch {
+              // Invalid URL — fall through to '/'
+            }
+          }
           navigate(from, { replace: true });
         }
       } else {
