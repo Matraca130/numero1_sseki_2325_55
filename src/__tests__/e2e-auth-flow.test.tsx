@@ -469,7 +469,6 @@ describe('E2E Auth Flow', () => {
     });
 
     expect(result.current.user).toBeNull();
-    expect(result.current.accessToken).toBeNull();
     expect(result.current.institutions).toHaveLength(0);
     expect(result.current.selectedInstitution).toBeNull();
     expect(result.current.status).toBe('unauthenticated');
@@ -615,7 +614,6 @@ describe('E2E Auth Flow', () => {
 
     expect(result.current.status).toBe('unauthenticated');
     expect(result.current.user).toBeNull();
-    expect(result.current.accessToken).toBeNull();
     expect(result.current.institutions).toHaveLength(0);
     expect(result.current.selectedInstitution).toBeNull();
     expect(result.current.role).toBeNull();

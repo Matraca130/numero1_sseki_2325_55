@@ -65,12 +65,17 @@ export function LoginPage() {
       } else {
         if (!name.trim()) { setError('El nombre es obligatorio'); setLoading(false); return; }
         if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); setLoading(false); return; }
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+          setError('La contrasena debe incluir mayusculas, minusculas y numeros');
+          setLoading(false);
+          return;
+        }
         const res = await signup(email, password, name);
         if (!res.success) {
           setError(res.error || 'Error al crear cuenta');
         } else {
-          setSuccess('Cuenta creada exitosamente');
-          navigate('/', { replace: true });
+          setSuccess('Revisa tu email para confirmar tu cuenta. Luego podras iniciar sesion.');
+          setMode('signin');
         }
       }
     } catch (err: any) {

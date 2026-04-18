@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import { supabase } from '@/app/lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────
 export interface ErrorBoundaryProps {
@@ -74,6 +75,7 @@ function PageFallback({
         </button>
         <button
           onClick={() => {
+            supabase.auth.signOut().catch(() => {});
             localStorage.removeItem('axon_active_membership');
             localStorage.removeItem('axon_access_token');
             localStorage.removeItem('axon_user');
