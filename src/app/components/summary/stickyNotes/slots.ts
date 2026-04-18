@@ -63,13 +63,14 @@ export function parseSlots(raw: string | null | undefined): Slots {
       for (let i = 0; i < SLOT_COUNT; i++) {
         const item = parsed[i];
         if (typeof item === 'string') {
-          out[i] = { title: '', content: ensureHtml(item) };
+          // Security: sanitize on load to prevent XSS from tampered storage/backend
+          out[i] = { title: '', content: sanitizeNoteHtml(ensureHtml(item)) };
         } else if (item && typeof item === 'object') {
           const rawContent =
             typeof item.content === 'string' ? item.content : '';
           out[i] = {
             title: typeof item.title === 'string' ? item.title : '',
-            content: ensureHtml(rawContent),
+            content: sanitizeNoteHtml(ensureHtml(rawContent)),
           };
         }
       }
@@ -79,7 +80,7 @@ export function parseSlots(raw: string | null | undefined): Slots {
     /* legacy plain text */
   }
   const out = emptySlots();
-  out[0] = { title: '', content: ensureHtml(String(raw)) };
+  out[0] = { title: '', content: sanitizeNoteHtml(ensureHtml(String(raw))) };
   return out;
 }
 

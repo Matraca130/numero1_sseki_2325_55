@@ -201,11 +201,11 @@ describe('sanitizeHtml — links', () => {
     expect(clean).toContain('>link</a>');
   });
 
-  it('preserves target and rel attributes', () => {
+  it('preserves target and enforces rel="noopener noreferrer" on _blank links', () => {
     const dirty = '<a href="https://example.com" target="_blank" rel="noopener">link</a>';
     const clean = sanitizeHtml(dirty);
     expect(clean).toContain('target="_blank"');
-    expect(clean).toContain('rel="noopener"');
+    expect(clean).toContain('rel="noopener noreferrer"');
   });
 });
 
