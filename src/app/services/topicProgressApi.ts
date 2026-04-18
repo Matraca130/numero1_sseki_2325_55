@@ -253,17 +253,28 @@ export async function getCourseProgress(
 async function fetchCourseProgressFallback(
   sections: { sectionId: string; topicIds: string[] }[],
 ): Promise<CourseProgressResponse> {
-  const summariesByTopic: Record<string, Summary[]> = {};
-  const keywordCountsByTopic: Record<string, number> = {};
+  // Null-proto destinations so a rogue `__proto__` / `constructor` key in the
+  // API response cannot pollute Object.prototype.
+  const summariesByTopic = Object.create(null) as Record<string, Summary[]>;
+  const keywordCountsByTopic = Object.create(null) as Record<string, number>;
 
   const results = await Promise.allSettled(
     sections.map(sec => getTopicsOverview(sec.topicIds))
   );
 
+  const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+  const safeMerge = <V,>(dest: Record<string, V>, src: Record<string, V> | undefined) => {
+    if (!src || typeof src !== 'object') return;
+    for (const k of Object.keys(src)) {
+      if (UNSAFE_KEYS.has(k)) continue;
+      dest[k] = src[k];
+    }
+  };
+
   for (const r of results) {
     if (r.status !== 'fulfilled') continue;
-    Object.assign(summariesByTopic, r.value.summaries_by_topic);
-    Object.assign(keywordCountsByTopic, r.value.keyword_counts_by_topic);
+    safeMerge(summariesByTopic, r.value.summaries_by_topic);
+    safeMerge(keywordCountsByTopic, r.value.keyword_counts_by_topic);
   }
 
   return { summaries_by_topic: summariesByTopic, keyword_counts_by_topic: keywordCountsByTopic };
