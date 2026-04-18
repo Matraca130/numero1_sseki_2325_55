@@ -8,19 +8,28 @@
 // ============================================================
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
 import type { Keyword } from '@/app/types/platform';
 import type { Subtopic } from '@/app/types/flashcard-manager';
 import { detectCardType } from '@/app/lib/flashcard-utils';
 import { extractImageUrl, extractText } from '../professor/FlashcardPreview';
+import { useFlashcardImage } from '@/app/hooks/useFlashcardImage';
 import {
   CreditCard, Plus, Pencil, Trash2,
   Tag,
   Eye, EyeOff, ArchiveRestore,
   ToggleLeft, ToggleRight,
   Copy, CheckSquare, Square,
-  Loader2,
+  Loader2, Wand2,
 } from 'lucide-react';
+
+// WCAG 2.1 SC 2.5.5: actions should be ≥44×44 on touch devices.
+// We keep desktop visuals compact (p-1.5) and only enforce touch
+// targets at <sm via responsive padding. Action row is visible by
+// default on mobile (no hover on touch).
+const ACTION_BTN_CLS =
+  'p-2 sm:p-1.5 rounded-lg min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center transition-all';
 
 // ── FlashcardCardItem (memoized) ──────────────────────────
 
@@ -54,6 +63,18 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
   const isDeleted = !!card.deleted_at;
   const isInactive = !card.is_active && !isDeleted;
   const cardType = detectCardType(card.front, card.back);
+  const hasImage = !!(card.front_image_url || extractImageUrl(card.front));
+  const { generateImage, isGenerating } = useFlashcardImage();
+
+  const handleRegenerateImage = async () => {
+    const promptText = extractText(card.front) || card.front;
+    try {
+      await generateImage(card.id, { imagePrompt: promptText });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'No se pudo generar la imagen';
+      toast.error(message);
+    }
+  };
 
   // Find subtopic name
   const subtopicName = useMemo(() => {
@@ -82,12 +103,16 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
       }`}
     >
       {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           {/* Selection checkbox */}
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect(card.id); }}
-            className={`p-0.5 rounded transition-all ${isSelected ? 'text-purple-600' : 'text-gray-300 hover:text-gray-500'}`}
+            aria-label={isSelected ? 'Deseleccionar flashcard' : 'Seleccionar flashcard'}
+            aria-pressed={isSelected}
+            className={`p-2 sm:p-0.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded transition-all ${
+              isSelected ? 'text-purple-600' : 'text-gray-300 hover:text-gray-500'
+            }`}
           >
             {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
           </button>
@@ -138,11 +163,13 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
           )}
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Action row: always visible on touch (<sm), hover on sm+ */}
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
           <button
             onClick={() => setFlipped(!flipped)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all"
+            className={`${ACTION_BTN_CLS} hover:bg-gray-100 text-gray-400 hover:text-gray-600`}
             title={flipped ? 'Ver frente' : 'Ver reverso'}
+            aria-label={flipped ? 'Ver frente' : 'Ver reverso'}
           >
             {flipped ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
@@ -150,33 +177,46 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
             <>
               <button
                 onClick={() => onToggleActive(card.id, card.is_active)}
-                className={`p-1.5 rounded-lg transition-all ${
+                className={`${ACTION_BTN_CLS} ${
                   card.is_active
                     ? 'hover:bg-amber-50 text-gray-400 hover:text-amber-600'
                     : 'hover:bg-green-50 text-gray-400 hover:text-green-600'
                 }`}
                 title={card.is_active ? 'Desactivar' : 'Activar'}
+                aria-label={card.is_active ? 'Desactivar' : 'Activar'}
               >
                 {card.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
               </button>
               <button
                 onClick={() => onEdit(card)}
-                className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-all"
+                className={`${ACTION_BTN_CLS} hover:bg-purple-50 text-gray-400 hover:text-purple-600`}
                 title="Editar"
+                aria-label="Editar flashcard"
               >
                 <Pencil size={14} />
               </button>
               <button
+                onClick={handleRegenerateImage}
+                disabled={isGenerating}
+                className={`${ACTION_BTN_CLS} hover:bg-amber-50 text-gray-400 hover:text-amber-600 disabled:opacity-50`}
+                title={hasImage ? 'Regenerar imagen con IA' : 'Generar imagen con IA'}
+                aria-label={hasImage ? 'Regenerar imagen con IA' : 'Generar imagen con IA'}
+              >
+                {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              </button>
+              <button
                 onClick={() => onDuplicate(card)}
-                className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all"
+                className={`${ACTION_BTN_CLS} hover:bg-blue-50 text-gray-400 hover:text-blue-600`}
                 title="Duplicar"
+                aria-label="Duplicar flashcard"
               >
                 <Copy size={14} />
               </button>
               <button
                 onClick={() => onDelete(card.id)}
-                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
+                className={`${ACTION_BTN_CLS} hover:bg-red-50 text-gray-400 hover:text-red-500`}
                 title="Eliminar"
+                aria-label="Eliminar flashcard"
               >
                 <Trash2 size={14} />
               </button>
@@ -185,8 +225,9 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
           {isDeleted && (
             <button
               onClick={() => onRestore(card.id)}
-              className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-all"
+              className={`${ACTION_BTN_CLS} hover:bg-green-50 text-gray-400 hover:text-green-600`}
               title="Restaurar"
+              aria-label="Restaurar flashcard"
             >
               <ArchiveRestore size={14} />
             </button>
@@ -288,7 +329,7 @@ export const FlashcardsList = React.memo(function FlashcardsList({
         {!searchQuery && (
           <button
             onClick={onCreate}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-all min-h-[44px]"
           >
             <Plus size={16} />
             Crear primera flashcard
@@ -298,9 +339,9 @@ export const FlashcardsList = React.memo(function FlashcardsList({
     );
   }
 
-  // Flashcard grid
+  // Flashcard grid — md: covers tablet breakpoint that was skipped
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
       <AnimatePresence mode="popLayout">
         {filteredCards.map(card => (
           <FlashcardCardItem

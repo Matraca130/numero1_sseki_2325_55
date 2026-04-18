@@ -244,7 +244,6 @@ vi.mock('@/app/context/AuthContext', () => ({
   AuthProvider: ({ children }: any) => children,
   useAuth: () => ({
     user: MOCK_USER,
-    accessToken: 'test-jwt',
     institutions: [MOCK_INSTITUTION],
     selectedInstitution: MOCK_INSTITUTION,
     role: 'student',

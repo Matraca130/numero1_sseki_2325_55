@@ -1,6 +1,13 @@
 // ============================================================
 // Flashcard Types, Constants & Pure Utilities
 // Shared across all flashcard screens and hooks.
+//
+// ── Mastery systems (see MASTERY-SYSTEMS.md in repo root) ──
+// RATINGS below is SISTEMA A — rating INPUT (1-5, momentáneo).
+// NO es mastery output. Para color de card dominada usar Sistema B
+// (components/content/flashcard/mastery-colors.ts). Para color de
+// keyword con priority usar Sistema C (lib/mastery-helpers.ts).
+// NO intercambiar sistemas — cada uno existe por razones distintas.
 // ============================================================
 
 import type { Flashcard } from '@/app/types/content';

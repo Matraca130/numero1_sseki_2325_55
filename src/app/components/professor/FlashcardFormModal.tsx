@@ -14,9 +14,10 @@ import { FlashcardTypeSelector } from './FlashcardTypeSelector';
 import type { CardType } from './FlashcardTypeSelector';
 import { FlashcardPreview } from './FlashcardPreview';
 import { FlashcardImageUpload } from './FlashcardImageUpload';
+import { useFlashcardImage } from '@/app/hooks/useFlashcardImage';
 import {
   Plus, Pencil, X, Check, AlertCircle, Loader2, Sparkles,
-  Link2, Trash,
+  Link2, Trash, Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -125,9 +126,13 @@ export function FlashcardFormModal({
   const [keywordId, setKeywordId] = useState('');
   const [subtopicId, setSubtopicId] = useState('');
   const [source, setSource] = useState<'manual' | 'ai'>('manual');
+  const [generateImageWithAi, setGenerateImageWithAi] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subtopicsLoading, setSubtopicsLoading] = useState(false);
+
+  const { generateImage } = useFlashcardImage();
 
   const isEditing = !!editingCard;
   const currentSubtopics = keywordId ? (subtopicsMap.get(keywordId) || []) : [];
@@ -171,6 +176,7 @@ export function FlashcardFormModal({
       setKeywordId('');
       setSubtopicId('');
       setSource('manual');
+      setGenerateImageWithAi(false);
     }
     setError(null);
   }, [editingCard, isOpen]);
@@ -254,7 +260,7 @@ export function FlashcardFormModal({
         toast.success('Flashcard actualizada');
       } else {
         const resolvedKeywordId = keywordId || await ensureGeneralKeyword(summaryId);
-        await flashcardApi.createFlashcard({
+        const created = await flashcardApi.createFlashcard({
           summary_id: summaryId,
           keyword_id: resolvedKeywordId,
           subtopic_id: subtopicId || null,
@@ -265,13 +271,28 @@ export function FlashcardFormModal({
           back_image_url: backImageUrl.trim() || null,
         });
         toast.success('Flashcard creada');
+
+        // Generate AI image if requested (no manual upload provided)
+        if (generateImageWithAi && !frontImageUrl.trim() && created?.id) {
+          setGeneratingImage(true);
+          try {
+            await generateImage(created.id, { imagePrompt: front.trim() });
+          } catch (imgErr: unknown) {
+            const detail = imgErr instanceof Error ? imgErr.message : String(imgErr);
+            console.error('[FlashcardForm] Image generation failed:', detail);
+            // Toast already shown by hook; non-fatal — card itself was created
+          } finally {
+            setGeneratingImage(false);
+          }
+        }
       }
       onSaved();
       onClose();
-    } catch (err: any) {
-      console.error('[FlashcardForm] Error:', err);
-      setError(err.message || 'Error al guardar');
-      toast.error(err.message || 'Error al guardar');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al guardar';
+      console.error('[FlashcardForm] Error:', message);
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -448,7 +469,7 @@ export function FlashcardFormModal({
                 </div>
 
                 {/* Source */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Fuente:</span>
                   <div className="flex gap-1.5">
                     <button
@@ -475,6 +496,27 @@ export function FlashcardFormModal({
                     </button>
                   </div>
                 </div>
+
+                {/* AI image generation toggle (create mode only, when no manual front image) */}
+                {!isEditing && !frontImageUrl.trim() && (
+                  <label className="flex items-start gap-2 px-3 py-2.5 rounded-xl border border-purple-200 bg-purple-50/40 cursor-pointer hover:bg-purple-50 transition-all">
+                    <input
+                      type="checkbox"
+                      checked={generateImageWithAi}
+                      onChange={(e) => setGenerateImageWithAi(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-purple-600 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-[12px] font-semibold text-purple-700">
+                        <Wand2 size={12} />
+                        Generar imagen con IA
+                      </div>
+                      <p className="text-[10px] text-purple-500/80 mt-0.5">
+                        Tras crear la flashcard, se generará una imagen automáticamente con Gemini usando el texto del frente como prompt.
+                      </p>
+                    </div>
+                  </label>
+                )}
 
                 {error && (
                   <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-lg px-3 py-2 text-sm">
@@ -509,11 +551,15 @@ export function FlashcardFormModal({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={saving}
+              disabled={saving || generatingImage}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2a8c7a] text-white text-sm font-semibold hover:bg-[#244e47] disabled:opacity-50 transition-all"
             >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              {isEditing ? 'Guardar cambios' : 'Crear flashcard'}
+              {(saving || generatingImage) ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {generatingImage
+                ? 'Generando imagen...'
+                : saving
+                  ? 'Guardando...'
+                  : isEditing ? 'Guardar cambios' : 'Crear flashcard'}
             </button>
           </div>
         </motion.div>

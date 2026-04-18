@@ -6,6 +6,7 @@ import React from 'react';
 import {
   ChevronLeft, CheckCircle2, Clock, Loader2,
   Search as SearchIcon, Timer, Settings, PanelLeftOpen,
+  StickyNote, Bookmark,
 } from 'lucide-react';
 import type { Summary } from '@/app/services/summariesApi';
 import type { ReadingState } from '@/app/services/studentSummariesApi';
@@ -22,6 +23,8 @@ interface SummaryReaderToolbarProps {
   searchOpen: boolean;
   showTimer: boolean;
   showSettings: boolean;
+  showStickyNotes: boolean;
+  showBookmarks: boolean;
   sidebarCollapsed: boolean;
   readingSettings: ReadingSettings;
   onBack: () => void;
@@ -32,6 +35,8 @@ interface SummaryReaderToolbarProps {
   onToggleSettings: () => void;
   onCloseSettings: () => void;
   onToggleSidebar: () => void;
+  onToggleStickyNotes: () => void;
+  onToggleBookmarks: () => void;
   onUpdateReadingSettings: (s: ReadingSettings) => void;
 }
 
@@ -58,6 +63,8 @@ export function SummaryReaderToolbar({
   searchOpen,
   showTimer,
   showSettings,
+  showStickyNotes,
+  showBookmarks,
   sidebarCollapsed,
   readingSettings,
   onBack,
@@ -68,6 +75,8 @@ export function SummaryReaderToolbar({
   onToggleSettings,
   onCloseSettings,
   onToggleSidebar,
+  onToggleStickyNotes,
+  onToggleBookmarks,
   onUpdateReadingSettings,
 }: SummaryReaderToolbarProps) {
   return (
@@ -135,6 +144,7 @@ export function SummaryReaderToolbar({
           disabled={markingRead}
           title={isCompleted ? 'Marcar no leído' : 'Marcar como leído'}
           aria-label={isCompleted ? 'Marcar no leído' : 'Marcar como leído'}
+          aria-pressed={isCompleted}
           style={{
             background: isCompleted ? 'rgba(16,185,129,0.2)' : 'none',
             border: 'none',
@@ -153,6 +163,7 @@ export function SummaryReaderToolbar({
           onClick={onToggleSearch}
           title="Buscar (Ctrl+F)"
           aria-label="Buscar"
+          aria-pressed={searchOpen}
           style={{ ...toolbarBtnStyle, background: searchOpen ? 'rgba(42,140,122,0.15)' : 'none', color: searchOpen ? '#2a8c7a' : colors.reader.iconDefault }}
         >
           <SearchIcon size={16} />
@@ -163,9 +174,32 @@ export function SummaryReaderToolbar({
           onClick={onToggleTimer}
           title="Temporizador de estudio"
           aria-label={showTimer ? 'Cerrar timer' : 'Abrir timer'}
+          aria-pressed={showTimer}
           style={{ ...toolbarBtnStyle, background: showTimer ? 'rgba(42,140,122,0.15)' : 'none', color: showTimer ? '#2a8c7a' : colors.reader.iconDefault }}
         >
           <Timer size={16} />
+        </button>
+
+        {/* Sticky notes toggle */}
+        <button
+          onClick={onToggleStickyNotes}
+          title="Notas flotantes"
+          aria-label={showStickyNotes ? 'Cerrar notas flotantes' : 'Abrir notas flotantes'}
+          aria-pressed={showStickyNotes}
+          style={{ ...toolbarBtnStyle, background: showStickyNotes ? 'rgba(42,140,122,0.15)' : 'none', color: showStickyNotes ? '#2a8c7a' : colors.reader.iconDefault }}
+        >
+          <StickyNote size={16} />
+        </button>
+
+        {/* Bookmarks toggle */}
+        <button
+          onClick={onToggleBookmarks}
+          title="Marcadores"
+          aria-label={showBookmarks ? 'Cerrar marcadores' : 'Abrir marcadores'}
+          aria-pressed={showBookmarks}
+          style={{ ...toolbarBtnStyle, background: showBookmarks ? 'rgba(42,140,122,0.15)' : 'none', color: showBookmarks ? '#2a8c7a' : colors.reader.iconDefault }}
+        >
+          <Bookmark size={16} />
         </button>
 
         {/* Separator */}
@@ -180,6 +214,7 @@ export function SummaryReaderToolbar({
             onClick={onToggleSettings}
             title="Configuración de lectura"
             aria-label={showSettings ? 'Cerrar configuración' : 'Configuración de lectura'}
+            aria-pressed={showSettings}
             style={{ ...toolbarBtnStyle, background: showSettings ? 'rgba(42,140,122,0.15)' : 'none', color: showSettings ? '#2a8c7a' : colors.reader.iconDefault }}
           >
             <Settings size={16} />
@@ -201,6 +236,7 @@ export function SummaryReaderToolbar({
           onClick={onToggleSidebar}
           title="Outline"
           aria-label={sidebarCollapsed ? 'Mostrar panel de estructura' : 'Ocultar panel de estructura'}
+          aria-pressed={!sidebarCollapsed}
           style={{ ...toolbarBtnStyle, background: !sidebarCollapsed ? 'rgba(42,140,122,0.15)' : 'none', color: !sidebarCollapsed ? '#2a8c7a' : colors.reader.iconDefault }}
         >
           <PanelLeftOpen size={16} />

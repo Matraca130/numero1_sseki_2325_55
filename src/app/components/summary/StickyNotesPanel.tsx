@@ -77,16 +77,63 @@ interface StickyNotesPanelProps {
   summaryId: string | null | undefined;
   /** Optional label shown in the header. */
   contextLabel?: string;
+  /** Controlled open state. When omitted, falls back to legacy localStorage
+   *  behavior (panel self-manages via OPEN_STORAGE_KEY). The reader shell
+   *  passes this to tie open/close to a toolbar button and avoid the
+   *  permanent corner FAB. */
+  open?: boolean;
+  /** Called when the user presses X / clicks the FAB to close. Required
+   *  whenever `open` is provided — the parent owns the state. */
+  onOpenChange?: (next: boolean) => void;
 }
 
-export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelProps) {
-  const [open, setOpen] = useState<boolean>(() => {
+const STORAGE_PREFIX = 'axon:sticky-notes:';
+export const STICKY_NOTES_DEBOUNCE_MS = 600;
+
+type SyncStatus = 'idle' | 'saving' | 'saved' | 'offline';
+
+function readLocalNote(summaryId: string): string {
+  try {
+    return localStorage.getItem(STORAGE_PREFIX + summaryId) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeLocalNote(summaryId: string, value: string) {
+  try {
+    if (value) {
+      localStorage.setItem(STORAGE_PREFIX + summaryId, value);
+    } else {
+      localStorage.removeItem(STORAGE_PREFIX + summaryId);
+    }
+  } catch {
+    /* localStorage not available */
+  }
+}
+
+export function StickyNotesPanel({
+  summaryId,
+  contextLabel,
+  open: controlledOpen,
+  onOpenChange,
+}: StickyNotesPanelProps) {
+  const isControlled = typeof controlledOpen === 'boolean';
+  const [uncontrolledOpen, setUncontrolledOpen] = useState<boolean>(() => {
     try {
       return localStorage.getItem(OPEN_STORAGE_KEY) !== '0';
     } catch {
       return true;
     }
   });
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(next);
+    } else {
+      setUncontrolledOpen(next);
+    }
+  };
   const [expanded, setExpanded] = useState(false);
   const [slots, setSlots] = useState<Slots>(emptySlots);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
@@ -136,14 +183,16 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
     })();
   }, [summaryId]);
 
-  // Persist open/closed state
+  // Persist open/closed state (uncontrolled mode only — in controlled mode
+  // the reader shell owns the state and won't want localStorage side effects).
   useEffect(() => {
+    if (isControlled) return;
     try {
       localStorage.setItem(OPEN_STORAGE_KEY, open ? '1' : '0');
     } catch {
       /* ignore */
     }
-  }, [open]);
+  }, [open, isControlled]);
 
   // Persist last-opened slot per summary. Skip writes until after the
   // load effect has populated state for this summaryId, otherwise the
@@ -176,7 +225,7 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
         } catch {
           setSyncStatus('offline');
         }
-      }, 600);
+      }, STICKY_NOTES_DEBOUNCE_MS);
     },
     [summaryId],
   );
@@ -286,6 +335,11 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
   // Render into a portal at document.body so we escape any ancestor
   // stacking context (transformed motion.div, layout headers with z-index,
   // overflow:hidden containers, etc.) and stay on top of the app header.
+  //
+  // Controlled + closed: render nothing (parent's toolbar toggle owns the UI).
+  // Uncontrolled + closed: render the legacy corner FAB.
+  if (isControlled && !open) return null;
+
   return createPortal(
     <div
       ref={containerRef}
@@ -514,7 +568,10 @@ export function StickyNotesPanel({ summaryId, contextLabel }: StickyNotesPanelPr
           >
             <StickyNote size={18} />
             {hasAnyContent && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-50" />
+              <span
+                data-testid="sticky-notes-fab-badge"
+                className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-50"
+              />
             )}
           </motion.button>
         )}

@@ -1,5 +1,10 @@
 // ============================================================
-// Axon — Mastery Helper Functions
+// Axon — Mastery Helper Functions — SISTEMA C (keyword delta mastery)
+//
+// See MASTERY-SYSTEMS.md in repo root for the full 3-system overview.
+// Este archivo es SOLO para keywords con clinical priority. NO usar
+// para cards individuales (Sistema B en flashcard/mastery-colors.ts)
+// ni para rating INPUT (Sistema A en hooks/flashcard-types.ts).
 //
 // Reads BKT data (written by Quiz and Flashcard agents) and
 // returns visual mastery colors/labels using the Delta Mastery Scale.

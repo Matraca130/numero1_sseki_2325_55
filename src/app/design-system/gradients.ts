@@ -194,4 +194,11 @@ export const gradients = {
   methodQuiz: {
     css: 'linear-gradient(90deg, rgb(254,248,224), rgb(254,243,198))',
   },
+
+  // ── Leaderboard ────────────────────────────
+  /** "Tu posición" rank banner background: soft blue diagonal */
+  userRankBanner: {
+    css: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+    border: '#bfdbfe',
+  },
 } as const;

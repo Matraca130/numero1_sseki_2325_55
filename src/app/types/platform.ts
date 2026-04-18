@@ -27,7 +27,7 @@ export interface Institution {
   logo_url?: string | null;
   owner_id?: UUID;
   is_active?: boolean;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
   created_at: ISODate;
   updated_at: ISODate;
   owner?: {
@@ -98,7 +98,7 @@ export interface PlatformPlan {
   max_students: number | null;
   max_courses: number | null;
   max_storage_mb: number | null;
-  features: Record<string, any>;
+  features: Record<string, unknown>;
   is_active: boolean;
   created_at: ISODate;
   updated_at: ISODate;

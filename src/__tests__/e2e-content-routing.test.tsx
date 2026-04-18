@@ -52,7 +52,6 @@ vi.mock('@/app/services/contentTreeApi', () => ({
 
 const mockAuthValue = {
   user: { id: 'u1', email: 'test@test.com', full_name: 'Test' },
-  accessToken: 'tok',
   institutions: [],
   selectedInstitution: { id: 'inst-1', name: 'Test Inst', role: 'professor' as const, membership_id: 'm1' },
   role: 'professor' as string | null,

@@ -146,7 +146,6 @@ function setupAuthenticatedUser() {
   mockUseAuth.mockReturnValue({
     user: MOCK_USER,
     status: 'authenticated',
-    accessToken: 'mock-jwt-token',
     institutions: [],
     selectedInstitution: null,
     role: 'student',
@@ -159,7 +158,6 @@ function setupUnauthenticatedUser() {
   mockUseAuth.mockReturnValue({
     user: null,
     status: 'unauthenticated',
-    accessToken: null,
     institutions: [],
     selectedInstitution: null,
     role: null,
@@ -172,7 +170,6 @@ function setupLoadingAuth() {
   mockUseAuth.mockReturnValue({
     user: null,
     status: 'loading',
-    accessToken: null,
     institutions: [],
     selectedInstitution: null,
     role: null,

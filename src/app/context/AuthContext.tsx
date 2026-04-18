@@ -10,7 +10,7 @@
 //   6. Route by role.
 //
 // State:
-//   { user, accessToken, institutions, selectedInstitution, role, loading, authError }
+//   { user, institutions, selectedInstitution, role, loading, authError }
 //
 // The role is NOT in the JWT. It comes from GET /institutions.
 // A user can be professor in one institution and student in another.
@@ -82,7 +82,6 @@ export interface Membership {
 interface AuthContextType {
   // New clean names
   user: AuthUser | null;
-  accessToken: string | null;
   institutions: UserInstitution[];
   selectedInstitution: UserInstitution | null;
   role: string | null;
@@ -300,12 +299,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Cross-tab session synchronization ───────────────────
+  // If user logs out in another tab, the 'storage' event fires here.
+  // Detect removal of axon_access_token and clear local auth state.
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'axon_access_token' && e.newValue === null) {
+        setUser(null);
+        setAccessTokenState(null);
+        setSelectedInstitution(null);
+        setInstitutions([]);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   // ── Login ─────────────────────────────────────────────
   const login = useCallback(async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        console.error('[Auth] signIn error:', error.message);
+        if (import.meta.env.DEV) console.error('[Auth] signIn error:', error.message);
         return { success: false, error: error.message };
       }
       const token = data.session?.access_token;
@@ -321,7 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[Auth] Login error:', err);
+      if (import.meta.env.DEV) console.error('[Auth] Login error:', err);
       return { success: false, error: msg };
     }
   }, [loadSession]);
@@ -346,7 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         json = JSON.parse(text);
       } catch {
-        console.error('[Auth] /signup non-JSON response:', text.substring(0, 300));
+        if (import.meta.env.DEV) console.error('[Auth] /signup non-JSON response:', text.substring(0, 300));
         return { success: false, error: 'Server returned invalid response' };
       }
       if (!res.ok || json?.error) {
@@ -367,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[Auth] Signup error:', err);
+      if (import.meta.env.DEV) console.error('[Auth] Signup error:', err);
       return { success: false, error: msg };
     }
   }, [loadSession]);
@@ -445,7 +460,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextType>(() => ({
     // New clean names
     user,
-    accessToken,
     institutions,
     selectedInstitution,
     role,
@@ -465,7 +479,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp: signUpCompat,
     signOut: logout,
   }), [
-    user, accessToken, institutions, selectedInstitution, role, loading, authError,
+    user, institutions, selectedInstitution, role, loading, authError,
     login, signup, logout, selectInstitution,
     status, memberships, activeMembership, setActiveMembership, signUpCompat,
   ]);

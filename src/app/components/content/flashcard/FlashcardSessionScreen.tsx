@@ -54,17 +54,12 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
     // Ignore when typing in inputs
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-    // AUDIT P0 #3: Escape actually closes the session (the "Salir (Esc)"
-    // button advertised this but nothing was intercepting it).
     if (e.key === 'Escape') {
       e.preventDefault();
       onBack();
       return;
     }
 
-    // AUDIT P0 #3: ignore key events fired with modifiers so browser
-    // shortcuts (Ctrl+R, Cmd+1 to switch tabs, Alt+Arrow, etc.) don't
-    // accidentally trigger a rating or reveal.
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     if (!isRevealed) {

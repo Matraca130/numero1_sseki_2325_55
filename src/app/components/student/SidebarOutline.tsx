@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   FileText,
   Zap,
@@ -13,10 +13,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { colors } from '@/app/design-system';
 import { getMasteryInfo } from '@/app/components/student/MasteryBar';
+
+// Tailwind `md:` breakpoint. Keep in sync with `StudentSummaryReader` so the
+// "hidden md:block" rail and the mobile drawer condition agree.
+const MOBILE_MAX_PX = 767;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -105,6 +110,20 @@ export function SidebarOutline({
 }: SidebarOutlineProps) {
   const ToggleIcon = collapsed ? ChevronRight : ChevronLeft;
 
+  // ── Viewport-class reactive (mobile = full-viewport drawer) ───────────
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`).matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   // Close on Escape key
   useEffect(() => {
     if (collapsed) return;
@@ -115,51 +134,92 @@ export function SidebarOutline({
     return () => window.removeEventListener('keydown', handler);
   }, [collapsed, onToggleCollapse]);
 
+  // Lock body scroll while the mobile drawer is open so background doesn't
+  // scroll underneath the translucent backdrop.
+  useEffect(() => {
+    if (!(isMobile && !collapsed)) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobile, collapsed]);
+
+  // On mobile, when collapsed, render nothing — the parent hides the 52px
+  // rail with `hidden md:block`, and the drawer is triggered from the toolbar.
+  if (isMobile && collapsed) return null;
+
+  // ── Layout variants ────────────────────────────────────────────────────
+  // Desktop rail:  sticky 52px (top:72, shadow-less, right border).
+  // Desktop overlay:  absolute 280px with shadow + click-away.
+  // Mobile drawer:  fixed full-height slide-in (max-w 320) with solid backdrop.
+
+  const variant: 'rail' | 'desktopOverlay' | 'mobileDrawer' = isMobile
+    ? 'mobileDrawer'
+    : collapsed
+      ? 'rail'
+      : 'desktopOverlay';
+
   return (
     <>
-      {/* ── Click-away layer — transparent, no visual effect ── */}
+      {/* ── Backdrop / click-away layer ── */}
       {!collapsed && (
         <div
-          className="fixed inset-0"
-          style={{ zIndex: 110 }}
+          className={variant === 'mobileDrawer' ? 'fixed inset-0 bg-black/50 backdrop-blur-sm' : 'fixed inset-0'}
+          style={{ zIndex: variant === 'mobileDrawer' ? colors.zIndex.drawerBackdrop : colors.zIndex.sidebarRail + 5 }}
           onClick={onToggleCollapse}
           aria-hidden="true"
         />
       )}
 
       <aside
-        role="navigation"
+        role={variant === 'mobileDrawer' ? 'dialog' : 'navigation'}
+        aria-modal={variant === 'mobileDrawer' ? true : undefined}
         aria-label="Estructura del resumen"
         aria-expanded={!collapsed}
         className={[
           'overflow-y-auto custom-scrollbar-light',
           'bg-white dark:bg-[#1e1f25]',
           'transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-          collapsed
+          variant === 'rail'
             ? 'sticky top-[72px] max-h-[calc(100vh-88px)] border-r border-gray-200 dark:border-[#2d2e34]'
-            : [
-                'absolute left-0',
-                'shadow-xl rounded-2xl',
-                'border border-gray-200/80 dark:border-[#2d2e34]',
-              ].join(' '),
+            : variant === 'desktopOverlay'
+              ? 'absolute left-0 shadow-xl rounded-2xl border border-gray-200/80 dark:border-[#2d2e34]'
+              : 'fixed left-0 top-0 h-dvh shadow-2xl border-r border-gray-200 dark:border-[#2d2e34]',
         ].join(' ')}
         style={{
-          width: collapsed ? 52 : 280,
-          ...(collapsed
-            ? {}
-            : { top: 0, maxHeight: 'calc(100vh - 120px)', zIndex: 120 }),
+          width:
+            variant === 'rail' ? 52 : variant === 'desktopOverlay' ? 280 : 'min(86vw, 320px)',
+          ...(variant === 'desktopOverlay'
+            ? { top: 0, maxHeight: 'calc(100vh - 120px)', zIndex: colors.zIndex.drawer }
+            : variant === 'mobileDrawer'
+              ? { zIndex: colors.zIndex.drawer }
+              : {}),
         }}
       >
         {/* -- Header -- */}
         <div
           className="flex items-center justify-between"
-          style={{ padding: collapsed ? '0 0 8px' : '12px 12px 8px' }}
+          style={{
+            padding:
+              variant === 'rail' && collapsed
+                ? '0 0 8px'
+                : variant === 'mobileDrawer'
+                  ? '16px 14px 10px'
+                  : '12px 12px 8px',
+          }}
         >
           {!collapsed && (
             <span
               className="uppercase select-none text-gray-400 dark:text-gray-500"
               aria-hidden={collapsed ? true : undefined}
-              style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, paddingLeft: 4, whiteSpace: 'nowrap' }}
+              style={{
+                fontSize: variant === 'mobileDrawer' ? 11 : 10,
+                fontWeight: 700,
+                letterSpacing: 1,
+                paddingLeft: 4,
+                whiteSpace: 'nowrap',
+              }}
             >
               Estructura
             </span>
@@ -168,10 +228,19 @@ export function SidebarOutline({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-50 dark:bg-[#1a2e2a] text-teal-500 hover:bg-teal-100 dark:hover:bg-[#224038] transition-colors focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none"
-            aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+            className={[
+              'flex items-center justify-center rounded-md bg-teal-50 dark:bg-[#1a2e2a] text-teal-500',
+              'hover:bg-teal-100 dark:hover:bg-[#224038] transition-colors',
+              'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 focus-visible:outline-none',
+              variant === 'mobileDrawer' ? 'h-9 w-9' : 'h-7 w-7',
+            ].join(' ')}
+            aria-label={collapsed ? 'Expandir sidebar' : 'Cerrar estructura'}
           >
-            <ToggleIcon size={14} className="text-teal-500" />
+            {variant === 'mobileDrawer' ? (
+              <X size={16} className="text-teal-500" />
+            ) : (
+              <ToggleIcon size={14} className="text-teal-500" />
+            )}
           </button>
         </div>
 

@@ -115,4 +115,18 @@ export const colors = {
     iconSubtle:   '#8cb8af',   // Dimmer teal — dates, metadata
     iconActive:   '#6ee7b7',   // Emerald-300 — completed state
   },
+
+  /** Unified z-index scale for the student reader surface.
+   *  Keep layers explicit to avoid "z-index soup": toolbar < sidebar rail <
+   *  drawer backdrop < drawer < popovers < floating widgets < modals < focus-exit. */
+  zIndex: {
+    toolbar:         100,  // Sticky top header (SummaryReaderToolbar)
+    sidebarRail:     105,  // Collapsed 52px rail (desktop)
+    drawerBackdrop:  114,  // Darkening layer behind slide-in drawers
+    drawer:          115,  // Mobile sidebar drawer / outline overlay
+    popover:         140,  // Bookmarks, ReadingSettings dropdown
+    floatingWidget:  400,  // StudyTimer, StickyNotes (draggable widgets)
+    modal:           500,  // Full-screen modals (BlockQuiz, ImageLightbox)
+    focusExit:       600,  // Focus-mode exit button (highest)
+  },
 } as const;
