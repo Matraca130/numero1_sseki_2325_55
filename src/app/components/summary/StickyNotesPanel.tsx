@@ -87,6 +87,31 @@ interface StickyNotesPanelProps {
   onOpenChange?: (next: boolean) => void;
 }
 
+const STORAGE_PREFIX = 'axon:sticky-notes:';
+export const STICKY_NOTES_DEBOUNCE_MS = 600;
+
+type SyncStatus = 'idle' | 'saving' | 'saved' | 'offline';
+
+function readLocalNote(summaryId: string): string {
+  try {
+    return localStorage.getItem(STORAGE_PREFIX + summaryId) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeLocalNote(summaryId: string, value: string) {
+  try {
+    if (value) {
+      localStorage.setItem(STORAGE_PREFIX + summaryId, value);
+    } else {
+      localStorage.removeItem(STORAGE_PREFIX + summaryId);
+    }
+  } catch {
+    /* localStorage not available */
+  }
+}
+
 export function StickyNotesPanel({
   summaryId,
   contextLabel,
@@ -200,7 +225,7 @@ export function StickyNotesPanel({
         } catch {
           setSyncStatus('offline');
         }
-      }, 600);
+      }, STICKY_NOTES_DEBOUNCE_MS);
     },
     [summaryId],
   );
@@ -543,7 +568,10 @@ export function StickyNotesPanel({
           >
             <StickyNote size={18} />
             {hasAnyContent && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-50" />
+              <span
+                data-testid="sticky-notes-fab-badge"
+                className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-50"
+              />
             )}
           </motion.button>
         )}
