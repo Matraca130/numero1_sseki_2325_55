@@ -1,4 +1,12 @@
-// Mastery Colors — Single Source of Truth
+// ============================================================
+// Mastery Colors — SISTEMA B (card mastery absoluto)
+// See MASTERY-SYSTEMS.md in repo root for the full 3-system overview.
+//
+// Este archivo expone colores por card/topic individual sobre p_know [0-1].
+// NO usar para rating INPUT (eso es Sistema A en flashcard-types.ts
+// RATINGS) ni para keywords con priority (Sistema C en
+// lib/mastery-helpers.ts). Los tres sistemas NO son intercambiables.
+// ============================================================
 export interface MasteryColorSet {
   level: 0 | 1 | 2 | 3 | 4 | 5;
   hex: string;
