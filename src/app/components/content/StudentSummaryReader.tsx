@@ -95,10 +95,12 @@ export function StudentSummaryReader({
         </button>
       )}
 
-      <div className="flex mx-auto p-6 sm:p-8 gap-6 lg:gap-8" style={{ maxWidth: s.readingSettings.focusMode ? 820 : 1068 }}>
-        {/* ── Sidebar outline (Wave 1) — hidden in focus mode ── */}
+      <div className="flex flex-col md:flex-row mx-auto p-3 sm:p-6 md:p-7 lg:p-8 gap-4 md:gap-6 lg:gap-8" style={{ maxWidth: s.readingSettings.focusMode ? 820 : 1068 }}>
+        {/* ── Sidebar outline (Wave 1) — hidden in focus mode; on mobile the rail
+             collapses to 0px so the drawer can own the viewport, but the
+             component stays mounted so its `mobileDrawer` variant can render. ── */}
         {!s.readingSettings.focusMode && s.sidebarBlocks.length > 0 && (
-          <div className="relative" style={{ width: 52, flexShrink: 0 }}>
+          <div className="relative w-0 md:w-[52px] shrink-0">
             <SidebarOutline
               blocks={s.sidebarBlocks}
               activeBlockId={s.activeBlockId}
@@ -133,6 +135,8 @@ export function StudentSummaryReader({
             searchOpen={s.searchOpen}
             showTimer={s.showTimer}
             showSettings={s.showSettings}
+            showStickyNotes={s.showStickyNotes}
+            showBookmarks={s.showBookmarksPanel}
             sidebarCollapsed={s.sidebarCollapsed}
             readingSettings={s.readingSettings}
             onBack={onBack}
@@ -143,6 +147,8 @@ export function StudentSummaryReader({
             onToggleSettings={() => s.setShowSettings((prev) => !prev)}
             onCloseSettings={() => s.setShowSettings(false)}
             onToggleSidebar={() => s.setSidebarCollapsed((v) => !v)}
+            onToggleStickyNotes={() => s.setShowStickyNotes((prev) => !prev)}
+            onToggleBookmarks={() => s.setShowBookmarksPanel((prev) => !prev)}
             onUpdateReadingSettings={s.updateReadingSettings}
           />
         )}
@@ -170,6 +176,8 @@ export function StudentSummaryReader({
           annotations={s.textAnnotations}
           isCompleted={s.isCompleted}
           onGoToKeywordsTab={() => s.setActiveTab('keywords')}
+          bookmarksOpen={s.showBookmarksPanel}
+          onBookmarksOpenChange={s.setShowBookmarksPanel}
         />
 
         {/* ── Secondary tabs: Keywords, Videos, Notes (below content) ── */}
@@ -203,6 +211,8 @@ export function StudentSummaryReader({
     <StickyNotesPanel
       summaryId={summary.id}
       contextLabel={summary.title || topicName}
+      open={s.showStickyNotes}
+      onOpenChange={s.setShowStickyNotes}
     />
     </>
   );

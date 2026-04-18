@@ -43,6 +43,9 @@ export interface ReaderChunksTabProps {
   keywords?: SummaryKeyword[];
   /** Text annotations for highlighting (from useSummaryReaderQueries) */
   annotations?: TextAnnotation[];
+  /** Controlled bookmarks panel visibility (forwarded to SummaryViewer). */
+  bookmarksOpen?: boolean;
+  onBookmarksOpenChange?: (next: boolean) => void;
 }
 
 // ── Component (P-05 FIX: React.memo) ─────────────────────
@@ -57,6 +60,8 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
   readingSettings,
   keywords,
   annotations = [],
+  bookmarksOpen,
+  onBookmarksOpenChange,
 }: ReaderChunksTabProps) {
   // ── Lightbox for chunk images (P1 fix) ──────────────────
   const chunksContainerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +118,7 @@ export const ReaderChunksTab = React.memo(function ReaderChunksTab({
               />
             </div>
           ) : (
-            <SummaryViewer summaryId={summaryId} layout="flow" readingSettings={readingSettings} keywords={keywords} annotations={annotations} />
+            <SummaryViewer summaryId={summaryId} layout="flow" readingSettings={readingSettings} keywords={keywords} annotations={annotations} bookmarksOpen={bookmarksOpen} onBookmarksOpenChange={onBookmarksOpenChange} />
           )
         ) : chunksLoading ? (
           <ListSkeleton />
