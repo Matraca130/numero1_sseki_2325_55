@@ -75,3 +75,17 @@ Agente tester de la sección Quiz de AXON — escribe y ejecuta tests para quiz 
   - `src/app/lib/__tests__/quiz-utils.test.ts` (34 tests — LETTERS, normalizeText, checkAnswer por tipo)
 - Resultado: 124/124 passing. `npm run build` falla en el worktree por `node_modules/three` ausente (no relacionado con mis cambios). `tsc --noEmit` sobre los archivos nuevos: sin errores.
 - Zona respetada: solo Writes en `src/app/services/__tests__/` y `src/app/lib/__tests__/`, y update de memoria. Cero scope creep.
+
+---
+
+## Sesión 2026-04-18 (wave 2) — BKT + mastery hooks
+
+**Archivos:** bktApi, smartGenerateApi, useKeywordMastery (Sistema C verificado, delta), useTopicMastery (Sistema B, absoluto).
+
+**Resultado:** 88 tests verdes (23+15+27+23).
+
+### Lecciones
+1. **Arrays en deps de hook → referencias estables.** Pasar `['t-1']` literal en cada render triggerea loop infinito (13k+ spies). Usar `const IDS = Object.freeze(['t-1'])` hoisted y reutilizado.
+2. **`??` no cubre `[]`.** El nullish-coalescing solo substituye `null`/`undefined`. Un array vacío pasa por el operador — testear explícitamente la rama `[]`.
+3. **`mockRejectedValueOnce` cubre UNA sola call.** Si un test hace `expect(...).rejects.toThrow(/A/)` y luego `expect(...).rejects.toThrow(/B/)` sobre la misma función, hay que primear N veces. Mismo para `mockResolvedValueOnce`.
+4. **Mockear `getAxonToday`** para determinismo en lógica `due < now` (date-sensitive tests).
