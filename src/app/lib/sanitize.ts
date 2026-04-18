@@ -9,6 +9,17 @@
 
 import DOMPurify from 'dompurify';
 
+// Force rel="noopener noreferrer" on any anchor with target="_blank".
+// DOMPurify does not add it automatically, and without it a tab opened from
+// sanitized user/backend HTML can rewrite window.opener.
+if (typeof window !== 'undefined') {
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node instanceof HTMLAnchorElement && node.getAttribute('target') === '_blank') {
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+}
+
 /**
  * Sanitize HTML for safe rendering via dangerouslySetInnerHTML.
  * Allows common formatting tags + images but strips scripts, event handlers,

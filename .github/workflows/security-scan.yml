@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit
 
-      - name: Run npm audit (fail on high/critical)
-        run: npm audit --audit-level=high
+      - name: Run npm audit (fail on moderate/high/critical)
+        run: npm audit --audit-level=moderate
 
       - name: Generate audit report
         if: always()
