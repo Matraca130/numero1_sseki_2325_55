@@ -43,3 +43,33 @@ Agente de infraestructura backend de AXON: mantiene los cimientos (CRUD factory,
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
+
+---
+
+## Sesión 2026-04-18 — Cobertura tests para lib core y services transversales
+
+**Tarea:** Escribir tests Vitest para utilidades core y services transversales sin cobertura.
+
+**Archivos creados (solo tests, sin modificar código productivo):**
+- `src/app/lib/__tests__/concurrency.test.ts` (10 tests)
+- `src/app/lib/__tests__/session-stats.test.ts` (20 tests)
+- `src/app/lib/__tests__/content-tree-helpers.test.ts` (tests varios)
+- `src/app/lib/__tests__/flashcard-utils.test.ts` (transformaciones)
+- `src/app/lib/__tests__/sessionAnalytics.test.ts` (9 tests)
+- `src/app/services/__tests__/platformApi.test.ts` (55 tests)
+- `src/app/services/__tests__/searchApi.test.ts` (tests de URL/método/body)
+
+**Total:** 150+ tests, todos verdes localmente.
+
+**Lecciones:**
+- Las utilidades puras (concurrency, session-stats, sessionAnalytics, flashcard-utils, content-tree-helpers) se testean mejor sin mocks. Tests deterministas.
+- Services (searchApi, platformApi) usan `vi.mock('@/app/lib/api', () => ({ apiCall: vi.fn() }))`. Asserts de URL, método, body, query string.
+- No tocar código productivo — solo archivos `__tests__/`.
+
+**Métricas actualizadas:**
+| Métrica | Valor |
+|---------|-------|
+| Sesiones ejecutadas | 1 |
+| Tests nuevos | 150+ |
+| Quality-gate PASS | 1 |
+| Scope creep | 0 |

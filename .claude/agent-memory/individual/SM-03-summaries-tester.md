@@ -38,3 +38,25 @@
 - **Mistake:** First version of the component test used fake timers naively. Cost: ~10 min of debug + a rewrite. Lesson: when in doubt, real timers are simpler.
 - **Score impact:** Q1 (test coverage) goes from 0/10 to ~8/10 for the sticky-notes feature.
 
+
+---
+
+## Sesión 2026-04-18 — Cobertura services + hooks de summaries/study-sessions
+
+**Tarea:** Escribir tests Vitest para services/hooks del dominio Summaries y Study Sessions.
+
+**Archivos creados:**
+- `src/app/services/__tests__/studentSummariesApi.test.ts`
+- `src/app/services/__tests__/studySessionApi.test.ts`
+- `src/app/services/__tests__/stickyNotesApi.test.ts`
+- `src/app/hooks/__tests__/useReadingTimeTracker.test.ts`
+- `src/app/hooks/__tests__/useStudentSummaryReader.test.ts`
+
+**Total:** ~117 tests, todos verdes.
+
+**Lecciones:**
+- `useReadingTimeTracker` usa timers internos: mejor usar timers reales con pequeños `await wait(...)` que fake timers (evita leaks cross-test).
+- `apiCall` mock: verificar URL, método, body, query params (incluido paginación).
+- `studySessionApi` está técnicamente en zona Study (ST-02/03). Justificado aquí por dependencia cross-section; próxima vez comentar el header del test con el owner real o coordinar con ST.
+
+**Quality-gate 2026-04-18:** VERDE en los 5 archivos de esta sesión. 1 amarillo (studySessionApi ownership) sin bloqueo.
