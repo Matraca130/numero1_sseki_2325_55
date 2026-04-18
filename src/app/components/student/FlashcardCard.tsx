@@ -181,7 +181,7 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Frente</span>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-8 py-8 gap-3">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-6 sm:py-8 gap-3">
             <FlashcardImage
               imageUrl={frontImageUrl ?? null}
               alt={extractText(front) || "Flashcard image"}
@@ -200,7 +200,7 @@ export function FlashcardCard({ front, back, frontImageUrl, backImageUrl, keywor
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#0d9488]/70">Reverso</span>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-8 py-8 gap-3">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-6 sm:py-8 gap-3">
             <FlashcardImage
               imageUrl={backImageUrl ?? null}
               alt={extractText(back) || "Flashcard image"}

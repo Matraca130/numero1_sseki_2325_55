@@ -561,7 +561,7 @@ export function useFlashcardNavigation() {
             back_image_url: null,
             need_score: 0,
             retention: 0,
-            mastery_color: upd.p_know >= 0.75 ? 'green' : upd.p_know >= 0.4 ? 'yellow' : upd.p_know >= 0.2 ? 'orange' : 'red',
+            mastery_color: upd.p_know >= 0.75 ? 'green' : upd.p_know >= 0.40 ? 'yellow' : upd.p_know > 0 ? 'red' : 'gray',
             p_know: upd.p_know,
             fsrs_state: upd.fsrs_state as any,
             due_at: upd.due_at,
