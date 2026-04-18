@@ -25,7 +25,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router';
-import { Brain, Map as MapIcon, RefreshCw, Globe, X, Trash2, ChevronDown, Link2 } from 'lucide-react';
+import { X, Link2 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MoreActionsDropdown } from './mindmap/MoreActionsDropdown';
@@ -533,6 +533,18 @@ export function KnowledgeMapView() {
     setConnectTarget(null);
   }, []);
 
+  const handleNavigateBack = useCallback(() => navigate(-1), [navigate]);
+  const handleUndo = useCallback(() => { undo(); haptic(30); }, [undo]);
+  const handleRedo = useCallback(() => { redo(); haptic(30); }, [redo]);
+  const handleAddConcept = useCallback(() => setAddModalOpen(true), []);
+  const handleTogglePresentation = useCallback(() => setPresentationMode(true), []);
+  const handleToggleShare = useCallback(() => setShowShareModal(true), []);
+  const handleAnnotationClose = useCallback(() => setAnnotationNode(null), []);
+  const handleShareClose = useCallback(() => setShowShareModal(false), []);
+  const handleExitPresentation = useCallback(() => setPresentationMode(false), []);
+  const handleCancelConnect = useCallback(() => { setConnectSource(null); setConnectTarget(null); setActiveTool('pointer'); }, []);
+  const handleCancelDelete = useCallback(() => setConfirmDeleteNode(null), []);
+
   // ── Derived data ────────────────────────────────────────
 
   const masteryStats = useMemo(() => {
@@ -614,7 +626,7 @@ export function KnowledgeMapView() {
           <div className={`absolute top-3 right-3 z-20 ${isFullscreen ? 'left-3' : 'left-3 sm:left-14'}`}>
             <ErrorBoundary fallback={() => null}>
               <GraphSidebar
-                onBack={() => navigate(-1)}
+                onBack={handleNavigateBack}
                 topicName={scope === 'course' ? (currentCourse?.name || t.allTopics) : (currentTopic?.title || t.mapFallbackLabel)}
                 topicOptions={allTopics.length > 1 && scope === 'topic' ? allTopics : undefined}
                 selectedTopicId={topicId || ''}
@@ -637,15 +649,15 @@ export function KnowledgeMapView() {
                 collapsedCount={collapsedCount}
                 canUndo={canUndo}
                 canRedo={canRedo}
-                onUndo={() => { undo(); haptic(30); }}
-                onRedo={() => { redo(); haptic(30); }}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
                 undoBusy={undoBusy}
                 deletingNode={deletingNodeRef.current}
                 reconnecting={reconnectingRef.current}
                 scope={scope}
                 onScopeChange={setScope}
                 hasCourseTopics={hasCourseTopics}
-                onAddConcept={() => setAddModalOpen(true)}
+                onAddConcept={handleAddConcept}
                 canAdd={!!(effectiveTopicId && scope === 'topic')}
                 showAiPanel={showAiPanel}
                 onToggleAi={toggleAiPanel}
@@ -662,8 +674,8 @@ export function KnowledgeMapView() {
                 moreActionsSlot={
                   <MoreActionsDropdown
                     onToggleHistory={toggleHistory}
-                    onTogglePresentation={() => setPresentationMode(true)}
-                    onToggleShare={() => setShowShareModal(true)}
+                    onTogglePresentation={handleTogglePresentation}
+                    onToggleShare={handleToggleShare}
                     onToggleComparison={toggleComparison}
                     onToggleFullscreen={toggleFullscreen}
                     onRefresh={refetch}
@@ -718,7 +730,7 @@ export function KnowledgeMapView() {
 
           {/* Hint when all nodes are collapsed — canvas appears empty */}
           {collapsedCount > 0 && filteredGraphData && collapsedCount >= filteredGraphData.nodes.length && (
-            <AllCollapsedHint onExpandAll={() => graphControlsRef.current?.expandAll()} t={t} />
+            <AllCollapsedHint onExpandAll={handleExpandAll} t={t} />
           )}
 
           {/* Sticky notes layer — floats above graph, below modals */}
@@ -744,7 +756,7 @@ export function KnowledgeMapView() {
                 {t.selectTarget}
               </span>
               <button
-                onClick={() => { setConnectSource(null); setConnectTarget(null); setActiveTool('pointer'); }}
+                onClick={handleCancelConnect}
                 className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 aria-label={t.cancelConnection}
               >
@@ -851,7 +863,7 @@ export function KnowledgeMapView() {
           )}>
             <NodeAnnotationModal
               node={annotationNode}
-              onClose={() => setAnnotationNode(null)}
+              onClose={handleAnnotationClose}
               onSaved={refetch}
             />
           </ErrorBoundary>
@@ -917,7 +929,7 @@ export function KnowledgeMapView() {
         )}>
           <ShareMapModal
             open={showShareModal}
-            onClose={() => setShowShareModal(false)}
+            onClose={handleShareClose}
             topicId={effectiveTopicId}
             topicName={currentTopic?.title || allTopics.find(t => t.id === topicId)?.name}
             locale={locale}
@@ -939,7 +951,7 @@ export function KnowledgeMapView() {
               description={t.deleteDialogDescription(confirmDeleteNode.label)}
               cancelLabel={t.cancel}
               confirmLabel={t.deleteLabel}
-              onCancel={() => setConfirmDeleteNode(null)}
+              onCancel={handleCancelDelete}
               onConfirm={executeDeleteNode}
             />
           )}
@@ -962,7 +974,7 @@ export function KnowledgeMapView() {
               <PresentationMode
                 nodes={filteredGraphData.nodes}
                 edges={filteredGraphData.edges}
-                onExit={() => setPresentationMode(false)}
+                onExit={handleExitPresentation}
                 onNodeFocus={handlePresentationFocus}
               />
             )}

@@ -75,7 +75,7 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
       prevMultiRef.current = new Set(ids);
       batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- multi-select IDs accessed via ref; only batchDraw needed
   }, [batchDraw]);
 
   // ── Highlight/review styling ──
@@ -152,7 +152,7 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
       if (edgeUpdates.length > 0) graph.updateEdgeData(edgeUpdates);
       batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- graph/batchDraw accessed via stable refs
   }, [highlightNodeIds, reviewNodeIds, ready, highlightEpoch]);
 
   // ── Selected node highlight ──

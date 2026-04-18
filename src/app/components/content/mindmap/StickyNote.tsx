@@ -197,24 +197,23 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value.slice(0, 200); // Max 200 chars
-    onUpdate({ ...note, text });
-  }, [note, onUpdate]);
+    onUpdateRef.current({ ...noteDataRef.current, text });
+  }, []);
 
   // ── Color cycle on double-click header ──────────────────
 
   const handleHeaderDoubleClick = useCallback(() => {
-    const currentIdx = STICKY_COLORS.findIndex(c => c.hex === note.color);
+    const currentIdx = STICKY_COLORS.findIndex(c => c.hex === noteDataRef.current.color);
     const nextIdx = (currentIdx + 1) % STICKY_COLORS.length;
-    onUpdate({ ...note, color: STICKY_COLORS[nextIdx].hex });
-  }, [note, onUpdate]);
+    onUpdateRef.current({ ...noteDataRef.current, color: STICKY_COLORS[nextIdx].hex });
+  }, []);
 
   // Auto-focus textarea on creation (empty text)
   useEffect(() => {
     if (note.text === '' && textareaRef.current) {
       textareaRef.current.focus();
     }
-    // Only on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-focus only on mount, not when note.text changes
   }, []);
 
   return (
@@ -325,7 +324,7 @@ interface StickyNotesLayerProps {
  * Renders all sticky notes for a topic as an absolute overlay.
  * Parent must be position: relative.
  */
-export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesLayerProps) {
+export const StickyNotesLayer = memo(function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesLayerProps) {
   // Debounce localStorage writes to avoid jank during drag (M-1 perf fix)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSave = useCallback((tid: string, data: StickyNoteData[]) => {
@@ -381,4 +380,4 @@ export function StickyNotesLayer({ topicId, notes, onNotesChange }: StickyNotesL
       ))}
     </>
   );
-}
+});

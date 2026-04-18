@@ -147,7 +147,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const pendingDrawRef = useRef(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- factory uses refs, stable for component lifetime
   const batchDraw = useCallback(createBatchDraw(graphRef, pendingDrawRef), []);
   const mountedRef = useRef(true);
   const layoutInProgressRef = useRef(false);
@@ -815,7 +815,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
       try { graph.destroy(); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] G6 may throw if mid-render", e); }
       graphRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- G6 graph init; callbacks/config accessed via refs
   }, [currentDataKey, showMinimap, gridEnabled]);
 
   // Smooth layout switching
@@ -941,7 +941,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     } catch (e: unknown) { warnIfNotDestroyed(e); }
 
     setHighlightEpoch(e => e + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- graph data sync; batchDraw and graphRef are stable refs
   }, [g6Data, ready, collapsedNodes]);
 
   // Highlight selected node

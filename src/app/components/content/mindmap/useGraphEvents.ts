@@ -128,7 +128,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
       spotlightedIdsRef.current.clear();
       batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- graph/callbacks accessed via refs; stable identity intentional
   }, []);
 
   const applySpotlight = useCallback((graph: Graph, nodeId: string) => {
@@ -193,7 +193,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
       spotlightedIdsRef.current = nextSpotlightIds;
       batchDraw();
     } catch (e: unknown) { warnIfNotDestroyed(e); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- graph access via refs; only clearSpotlight needed as dep
   }, [clearSpotlight]);
 
   // ── Event handlers effect ──
@@ -451,7 +451,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
       } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may already be destroyed", e); }
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- event handlers accessed via refs; only re-binds on ready/graphVersion
   }, [ready, graphVersion]);
 
   return {
