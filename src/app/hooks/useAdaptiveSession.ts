@@ -75,7 +75,7 @@ import {
   type AdaptiveGenerationResult,
 } from '@/app/services/adaptiveGenerationApi';
 import { countCorrect } from '@/app/lib/session-stats';
-import { smRatingToFsrsGrade, type SmRating } from '@/app/lib/grade-mapper';
+import { uiRatingToFsrsGrade, type SmRating } from '@/app/lib/grade-mapper';
 import type { OptimisticCardUpdate, CardMasteryDelta } from './useFlashcardEngine';
 
 // ── Types ─────────────────────────────────────────────────
@@ -261,7 +261,7 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
     // rating of 5 would reach the backend as grade=5 and get silently
     // clamped, corrupting FSRS stability/difficulty updates. Mirrors the
     // same fix applied in useFlashcardEngine on fix/flashcards-session-p0.
-    const fsrsGrade = smRatingToFsrsGrade(rating as SmRating);
+    const fsrsGrade = uiRatingToFsrsGrade(rating as SmRating);
 
     const result: QueueReviewResult = queueReview({
       card, grade: fsrsGrade, responseTimeMs, currentPKnow: sq?.p_know,

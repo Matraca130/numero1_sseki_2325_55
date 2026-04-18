@@ -115,13 +115,6 @@ export function uiRatingToFsrsGrade(rating: SmRating): FsrsGrade {
 }
 
 /**
- * @deprecated Use `uiRatingToFsrsGrade`. Kept as an alias to avoid
- * breaking external consumers during the SM-2 → UI rename.
- * Will be removed once all callers migrate.
- */
-export const smRatingToFsrsGrade = uiRatingToFsrsGrade;
-
-/**
  * Convert FSRS grade (1-4) to continuous float (0.0-1.0).
  * Used by the backend FSRS engine for stability/difficulty calculations.
  */
