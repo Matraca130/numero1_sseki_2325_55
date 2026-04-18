@@ -18,10 +18,8 @@ export const publicAnonKey = ANON_KEY;
 
 // ── Auth tokens ───────────────────────────────────────
 
-const TOKEN_KEY = 'axon_access_token';
-
 export function getRealToken(): string | null {
-  return getAccessToken() || localStorage.getItem(TOKEN_KEY);
+  return getAccessToken();
 }
 
 export function getAnonKey(): string {

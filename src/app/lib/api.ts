@@ -56,6 +56,7 @@ let _handlingUnauthorized = false;
 function handleUnauthorized(): void {
   if (_handlingUnauthorized) return;
   _handlingUnauthorized = true;
+  setTimeout(() => { _handlingUnauthorized = false; }, 3000);
 
   // Clear module-level token
   _accessToken = null;

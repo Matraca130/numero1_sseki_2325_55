@@ -63,7 +63,6 @@ export function createMockInstitution(
 
 interface AuthContextOverrides {
   user?: AuthUser | null;
-  accessToken?: string | null;
   institutions?: UserInstitution[];
   selectedInstitution?: UserInstitution | null;
   role?: 'owner' | 'admin' | 'professor' | 'student' | null;
@@ -82,7 +81,6 @@ function buildAuthValue(overrides: AuthContextOverrides = {}) {
   return {
     // New clean names
     user,
-    accessToken: overrides.accessToken !== undefined ? overrides.accessToken : 'mock-jwt-token',
     institutions: overrides.institutions ?? (selectedInstitution ? [selectedInstitution] : []),
     selectedInstitution,
     role,
