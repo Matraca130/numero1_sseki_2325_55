@@ -196,7 +196,7 @@ export const gradients = {
   },
 
   // ── Leaderboard ────────────────────────────
-  /** "Tu posicion" rank banner background: soft blue diagonal */
+  /** "Tu posición" rank banner background: soft blue diagonal */
   userRankBanner: {
     css: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
     border: '#bfdbfe',
