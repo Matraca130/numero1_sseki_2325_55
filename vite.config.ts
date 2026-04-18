@@ -18,6 +18,7 @@ const clientManualChunks = {
   'vendor-recharts': ['recharts'],
   'vendor-supabase': ['@supabase/supabase-js'],
   'vendor-dates': ['date-fns'],
+  'vendor-p5': ['p5'],
 };
 
 export default defineConfig(({ isSsrBuild }) => ({
