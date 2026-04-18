@@ -91,10 +91,12 @@ const { hex, label } = getMasteryColorFromPct(p_know);
 
 **Nota sobre escalas:**
 
-- `getMasteryColor(mastery)` espera `0-5` (entero o decimal, se clampea).
-- `getMasteryColorFromPct(ratio)` espera `0.0-1.0` (p_know crudo).
-- Conversión: `pct ≥ 0.90 → 5`, `≥ 0.75 → 4`, `≥ 0.60 → 3`, `≥ 0.40 → 2`,
-  `≥ 0.20 → 1`, else `0`.
+- `getMasteryColor(mastery)` espera `0-5` (entero o decimal — se redondea con
+  `Math.round` y se clampea a [0, 5]). Ej: `mastery = 4.4 → level 4`, `4.5 → level 5`.
+- `getMasteryColorFromPct(ratio)` espera `0.0-1.0` (p_know crudo, **sin** redondeo —
+  usa thresholds de corte directo con `>=`).
+- Conversión en `getMasteryColorFromPct`: `pct ≥ 0.90 → 5`, `≥ 0.75 → 4`,
+  `≥ 0.60 → 3`, `≥ 0.40 → 2`, `≥ 0.20 → 1`, else `0`.
 
 ---
 
@@ -118,8 +120,11 @@ la importancia clínica** que el profesor le asignó.
 ```
 clinicalPriority = (priority - 1) / 2       # mapea priority 1..3 a 0.0..1.0
 threshold = 0.70 + clinicalPriority * 0.20  # 0.70 (low) a 0.90 (high)
-delta = keyword_mastery / threshold
+delta = round(keyword_mastery / threshold, 2)  # Math.round(x*100)/100
 ```
+
+> **Nota:** `delta` se redondea a 2 decimales (`Math.round(delta * 100) / 100`)
+> para evitar errores de punto flotante en los thresholds (ej: `0.849999...` vs `0.85`).
 
 **Ejemplo — "cardiopatía isquémica" (priority 3):**
 
