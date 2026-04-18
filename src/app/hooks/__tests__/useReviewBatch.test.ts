@@ -427,6 +427,55 @@ describe('submitBatch', () => {
 
     expect(localStorageMock.removeItem).toHaveBeenCalledWith(LS_KEY);
   });
+
+  it('keeps only failed items in localStorage when batch returns partial errors', async () => {
+    mockSubmitReviewBatch.mockResolvedValueOnce({
+      processed: 2,
+      reviews_created: 1,
+      fsrs_updated: 1,
+      bkt_updated: 1,
+      errors: [{ index: 1, step: 'bkt', message: 'subtopic missing' }],
+      results: [
+        {
+          item_id: 'card-1',
+          fsrs: {
+            stability: 5,
+            difficulty: 0.3,
+            due_at: '2026-04-01',
+            state: 'review',
+            reps: 1,
+            lapses: 0,
+            consecutive_lapses: 0,
+            is_leech: false,
+          },
+          bkt: { subtopic_id: 'sub-1', p_know: 0.7, max_p_know: 0.7, delta: 0.2 },
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useReviewBatch());
+
+    act(() => {
+      result.current.queueReview(makeParams({ card: makeCard('card-1', 'sub-1'), grade: 4 }));
+      result.current.queueReview(makeParams({ card: makeCard('card-2', 'sub-2'), grade: 3 }));
+    });
+
+    let submitResult!: BatchSubmitResult | null;
+    await act(async () => {
+      submitResult = await result.current.submitBatch('session-partial');
+    });
+
+    expect(submitResult).not.toBeNull();
+    expect(submitResult!.computedResults.get('card-1')?.bkt?.p_know).toBe(0.7);
+    expect(mockFallbackToIndividualPosts).not.toHaveBeenCalled();
+
+    const saved = JSON.parse(localStorageStore[LS_KEY]);
+    expect(saved.sessionId).toBe('session-partial');
+    expect(saved.items).toEqual([
+      expect.objectContaining({ item_id: 'card-2', subtopic_id: 'sub-2', grade: 3 }),
+    ]);
+    expect(localStorageMock.removeItem).not.toHaveBeenCalledWith(LS_KEY);
+  });
 });
 
 // ════════════════════════════════════════════════════════════
@@ -553,6 +602,37 @@ describe('localStorage persistence', () => {
     expect(retried).toBe(true);
     expect(mockSubmitReviewBatch).toHaveBeenCalledWith('session-retry', pending.items);
     expect(localStorageMock.removeItem).toHaveBeenCalledWith(LS_KEY);
+  });
+
+  it('retryPendingBatches keeps only failed items when retry returns partial errors', async () => {
+    const pending = {
+      sessionId: 'session-retry-partial',
+      items: [
+        { item_id: 'card-ok', instrument_type: 'flashcard', grade: 4 },
+        { item_id: 'card-fail', instrument_type: 'flashcard', grade: 2, subtopic_id: 'sub-fail' },
+      ],
+      savedAt: new Date().toISOString(),
+    };
+    localStorageStore[LS_KEY] = JSON.stringify(pending);
+
+    mockSubmitReviewBatch.mockResolvedValueOnce({
+      processed: 2,
+      reviews_created: 1,
+      fsrs_updated: 1,
+      bkt_updated: 0,
+      errors: [{ index: 1, step: 'review', message: 'duplicate session row' }],
+    });
+
+    const retried = await retryPendingBatches();
+
+    expect(retried).toBe(false);
+    expect(mockFallbackToIndividualPosts).not.toHaveBeenCalled();
+
+    const saved = JSON.parse(localStorageStore[LS_KEY]);
+    expect(saved.sessionId).toBe('session-retry-partial');
+    expect(saved.items).toEqual([
+      expect.objectContaining({ item_id: 'card-fail', subtopic_id: 'sub-fail', grade: 2 }),
+    ]);
   });
 
   it('retryPendingBatches falls back to individual if batch retry fails', async () => {

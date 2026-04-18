@@ -108,6 +108,8 @@ interface PendingBatch {
   savedAt: string;
 }
 
+type BatchError = NonNullable<BatchReviewResponse['errors']>[number];
+
 function savePendingBatch(sessionId: string, items: BatchReviewItem[]): void {
   try {
     const pending: PendingBatch = { sessionId, items, savedAt: new Date().toISOString() };
@@ -132,6 +134,51 @@ function loadPendingBatch(): PendingBatch | null {
   } catch { clearPendingBatch(); return null; }
 }
 
+function collectFailedItems(
+  items: BatchReviewItem[],
+  errors?: BatchError[],
+): BatchReviewItem[] {
+  if (!errors?.length) return [];
+
+  const failedIndexes = new Set<number>();
+  for (const error of errors) {
+    if (Number.isInteger(error.index) && error.index >= 0 && error.index < items.length) {
+      failedIndexes.add(error.index);
+    }
+  }
+
+  return [...failedIndexes]
+    .sort((a, b) => a - b)
+    .map((index) => items[index])
+    .filter((item): item is BatchReviewItem => Boolean(item));
+}
+
+function persistPendingFailures(
+  sessionId: string,
+  items: BatchReviewItem[],
+  errors?: BatchError[],
+): BatchReviewItem[] {
+  if (!errors?.length) {
+    clearPendingBatch();
+    return [];
+  }
+
+  const failedItems = collectFailedItems(items, errors);
+  if (failedItems.length > 0) {
+    savePendingBatch(sessionId, failedItems);
+    return failedItems;
+  }
+
+  if (import.meta.env.DEV) {
+    console.warn(
+      '[ReviewBatch] Partial errors did not include valid indexes; keeping full batch for retry.',
+      errors,
+    );
+  }
+  savePendingBatch(sessionId, items);
+  return items;
+}
+
 export async function retryPendingBatches(): Promise<boolean> {
   const pending = loadPendingBatch();
   if (!pending || pending.items.length === 0) return false;
@@ -141,10 +188,21 @@ export async function retryPendingBatches(): Promise<boolean> {
   }
 
   try {
-    await sessionApi.submitReviewBatch(pending.sessionId, pending.items);
-    clearPendingBatch();
-    if (import.meta.env.DEV) console.log('[ReviewBatch] Pending batch retried successfully');
-    return true;
+    const response = await sessionApi.submitReviewBatch(pending.sessionId, pending.items);
+    const failedItems = persistPendingFailures(pending.sessionId, pending.items, response.errors);
+
+    if (failedItems.length === 0) {
+      if (import.meta.env.DEV) console.log('[ReviewBatch] Pending batch retried successfully');
+      return true;
+    }
+
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[ReviewBatch] Pending batch retry still has ${failedItems.length} failed item(s); keeping them in localStorage`,
+        response.errors,
+      );
+    }
+    return false;
   } catch (batchErr) {
     try {
       await sessionApi.fallbackToIndividualPosts(pending.sessionId, pending.items);
@@ -238,7 +296,13 @@ export function useReviewBatch() {
         }
       }
 
-      clearPendingBatch();
+      const failedItems = persistPendingFailures(sessionId, batchItems, response.errors);
+      if (failedItems.length > 0 && import.meta.env.DEV) {
+        console.warn(
+          `[ReviewBatch] Keeping ${failedItems.length} failed item(s) in localStorage for retry`,
+          response.errors,
+        );
+      }
       batchQueueRef.current = [];
       return { response, computedResults };
     } catch (batchErr) {
