@@ -185,7 +185,7 @@ export function SidebarOutline({
             ? 'sticky top-[72px] max-h-[calc(100vh-88px)] border-r border-gray-200 dark:border-[#2d2e34]'
             : variant === 'desktopOverlay'
               ? 'absolute left-0 shadow-xl rounded-2xl border border-gray-200/80 dark:border-[#2d2e34]'
-              : 'fixed left-0 top-0 h-screen shadow-2xl border-r border-gray-200 dark:border-[#2d2e34]',
+              : 'fixed left-0 top-0 h-dvh shadow-2xl border-r border-gray-200 dark:border-[#2d2e34]',
         ].join(' ')}
         style={{
           width:

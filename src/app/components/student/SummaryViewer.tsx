@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { Layers } from 'lucide-react';
+import { Layers, Bookmark } from 'lucide-react';
 import { colors } from '@/app/design-system';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
@@ -353,7 +353,27 @@ export function SummaryViewer({
             </div>
           </div>
         )
-      ) : null}
+      ) : (
+        <div className="fixed bottom-6 right-24 z-50">
+          <div className="relative">
+            <button
+              onClick={() => setShowBookmarks(prev => !prev)}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white shadow-lg hover:bg-teal-600 transition-colors"
+              aria-label="Marcadores"
+            >
+              <Bookmark size={18} />
+            </button>
+            {showBookmarks && (
+              <BookmarksPanel
+                bookmarks={bookmarkItems}
+                onBlockClick={handleBookmarkBlockClick}
+                onRemove={removeBookmark}
+                onClose={() => setShowBookmarks(false)}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
