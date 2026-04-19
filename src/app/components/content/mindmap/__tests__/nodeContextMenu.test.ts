@@ -547,11 +547,11 @@ describe('NodeContextMenu: mobile responsive (isSmallScreen)', () => {
   });
 
   it('backdrop click calls onClose', () => {
-    // The backdrop div has an onClick
-    const backdropSection = source.slice(
-      source.indexOf('{/* Backdrop (mobile only) */}'),
-      source.indexOf('<motion.div\n'),
-    );
+    // The backdrop motion.div (rendered only on mobile) has onClick={onClose}
+    const backdropStart = source.indexOf('{/* Backdrop (mobile only) */}');
+    // Find the closing tag of the backdrop motion.div (the self-closing />)
+    const backdropEnd = source.indexOf('/>', backdropStart);
+    const backdropSection = source.slice(backdropStart, backdropEnd);
     expect(backdropSection).toContain('onClick={onClose}');
   });
 
