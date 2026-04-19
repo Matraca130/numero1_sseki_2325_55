@@ -22,7 +22,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
-import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS } from './graphHelpers';
+import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture } from './graphHelpers';
 import type { NodeScreenPos } from './graphHelpers';
 
 /** Snap distance in pixels (screen coords) to detect proximity to an endpoint */
@@ -461,7 +461,7 @@ export function useEdgeReconnect({
         return;
       }
 
-      try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] may not be captured", e); }
+      safeReleasePointerCapture(container, ds.capturedPointerId, 'useEdgeReconnect');
       if (overlayCanvasRef.current) {
         overlayCanvasRef.current.style.pointerEvents = 'none';
         overlayCanvasRef.current.style.cursor = '';
@@ -504,7 +504,7 @@ export function useEdgeReconnect({
       if (!ds) return;
 
       if (ds.activated) {
-        try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] may not be captured", e); }
+        safeReleasePointerCapture(container, ds.capturedPointerId, 'useEdgeReconnect');
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'none';
           overlayCanvasRef.current.style.cursor = '';
@@ -556,7 +556,7 @@ export function useEdgeReconnect({
       const ds = dragStateRef.current;
       if (ds) {
         if (ds.capturedPointerId >= 0) {
-          try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] already released", e); }
+          safeReleasePointerCapture(container, ds.capturedPointerId, 'useEdgeReconnect');
         }
         if (ds.activated && graph) {
           try {

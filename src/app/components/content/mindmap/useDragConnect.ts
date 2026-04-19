@@ -20,7 +20,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
-import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS } from './graphHelpers';
+import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture } from './graphHelpers';
 import type { NodeScreenPos } from './graphHelpers';
 import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
@@ -455,7 +455,7 @@ export function useDragConnect({
         return;
       }
 
-      try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] ", e); }
+      safeReleasePointerCapture(container, ds.capturedPointerId, 'useDragConnect');
       if (overlayCanvasRef.current) {
         overlayCanvasRef.current.style.pointerEvents = 'none';
         overlayCanvasRef.current.style.cursor = '';
@@ -504,7 +504,7 @@ export function useDragConnect({
       if (!ds) return;
 
       if (ds.activated) {
-        try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] ", e); }
+        safeReleasePointerCapture(container, ds.capturedPointerId, 'useDragConnect');
         if (overlayCanvasRef.current) {
           overlayCanvasRef.current.style.pointerEvents = 'none';
           overlayCanvasRef.current.style.cursor = '';
@@ -552,7 +552,7 @@ export function useDragConnect({
       cancelAnimationFrame(rafRef.current);
       const ds = dragStateRef.current;
       if (ds?.activated) {
-        try { container.releasePointerCapture(ds.capturedPointerId); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] ", e); }
+        safeReleasePointerCapture(container, ds.capturedPointerId, 'useDragConnect');
       }
       dragStateRef.current = null;
       hoveredNodeRef.current = null;

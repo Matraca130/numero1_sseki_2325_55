@@ -194,3 +194,21 @@ export function findNearestNode(
   }
   return best;
 }
+
+// ── Pointer capture helper ────────────────────────────────────
+
+/**
+ * Safely release pointer capture, swallowing the error that fires when the
+ * capture was already released (common during fast drag-cancel / unmount).
+ */
+export function safeReleasePointerCapture(
+  el: Element,
+  pointerId: number,
+  tag: string,
+): void {
+  try {
+    el.releasePointerCapture(pointerId);
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn(`[${tag}] releasePointerCapture failed`, e);
+  }
+}

@@ -9,6 +9,7 @@
 import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
+import { safeReleasePointerCapture } from './graphHelpers';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -150,7 +151,7 @@ export const StickyNote = memo(function StickyNote({ note, onUpdate, onDelete }:
     setDragOffset(null);
     setIsDragging(false);
     if (captureRef.current) {
-      try { captureRef.current.el.releasePointerCapture(captureRef.current.pid); } catch (e) { if (import.meta.env.DEV) console.warn("[StickyNote] may already be released", e); }
+      safeReleasePointerCapture(captureRef.current.el, captureRef.current.pid, 'StickyNote');
       captureRef.current = null;
     }
   }, [isDragging, dragOffset]);
