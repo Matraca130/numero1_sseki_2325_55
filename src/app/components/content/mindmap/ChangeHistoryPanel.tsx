@@ -186,7 +186,7 @@ export const ChangeHistoryPanel = memo(function ChangeHistoryPanel({ open, onClo
       )}
     </AnimatePresence>
   );
-}
+});
 
 // ── Sub-components ───────────────────────────────────────────
 
@@ -284,4 +284,4 @@ function TimelineEntry({ entry, index }: { entry: HistoryEntry; index: number })
       </div>
     </motion.div>
   );
-});
+}
