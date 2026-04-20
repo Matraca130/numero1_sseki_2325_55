@@ -23,7 +23,7 @@
 // RUN: npx vitest run src/app/hooks/__tests__/useReadingTimeTracker.test.ts
 // ============================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, cleanup } from '@testing-library/react';
 
 // ── Mocks ──────────────────────────────────────────────────
 
@@ -56,6 +56,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Defensively unmount any hooks still attached to prevent beforeunload /
+  // visibilitychange listeners from leaking into the next test and causing
+  // double-fires on shared window/document events.
+  cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
