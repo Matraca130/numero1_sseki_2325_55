@@ -454,7 +454,7 @@ export const MapComparisonPanel = memo(function MapComparisonPanel({
       )}
     </AnimatePresence>
   );
-}
+});
 
 // ── Sub-components ───────────────────────────────────────────
 
