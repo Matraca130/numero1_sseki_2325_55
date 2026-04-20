@@ -581,4 +581,4 @@ function CustomEdgeItem({ edge, nodeLabels }: { edge: MapEdge; nodeLabels: Map<s
       )}
     </div>
   );
-});
+}
