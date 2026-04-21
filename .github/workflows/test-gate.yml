@@ -93,9 +93,10 @@ jobs:
   frontend-tests:
     name: Frontend Tests (Vitest)
     runs-on: ubuntu-latest
-    # Suite sits at ~5m on shared runners (recent main runs: 5:23-5:52, one at
-    # 6:41); the 5m cap was tripping intermittently. Bump to 10m for headroom.
-    timeout-minutes: 10
+    # Suite now runs 200+ test files (~5-10m wall-clock on shared runners).
+    # Previous caps (5m then 10m) both tripped. 20m keeps ample headroom while
+    # still catching a genuine hang.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
