@@ -93,10 +93,11 @@ jobs:
   frontend-tests:
     name: Frontend Tests (Vitest)
     runs-on: ubuntu-latest
-    # Suite now runs 200+ test files (~5-10m wall-clock on shared runners).
-    # Previous caps (5m then 10m) both tripped. 20m keeps ample headroom while
-    # still catching a genuine hang.
-    timeout-minutes: 20
+    # Suite runs 200+ test files (~5-8m wall-clock on shared runners).
+    # 15m keeps ample headroom for runner variance while still catching a
+    # genuine hang. (A deterministic hang in e2e-adaptive-flashcard-session
+    # is excluded in vitest.config.ts pending a follow-up fix.)
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
