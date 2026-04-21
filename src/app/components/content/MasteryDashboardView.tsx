@@ -73,6 +73,25 @@ const SUBJECT_ACCENT_COLORS: Record<string, string> = {
   'General': 'bg-gray-300',
 };
 
+// Module-scope constants — avoid re-allocation on every render.
+const DAYS_OF_WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const PREV_MONTH_DAYS = [26, 27, 28, 29, 30];
+const MONTH_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
+
+// Pre-index mock events by day once at module load (stable input).
+const MOCK_EVENTS_BY_DAY: Map<number, MockCalendarDayEvent[]> = (() => {
+  const m = new Map<number, MockCalendarDayEvent[]>();
+  for (const e of CALENDAR_EVENTS) {
+    const list = m.get(e.day);
+    if (list) list.push(e);
+    else m.set(e.day, [e]);
+  }
+  return m;
+})();
+
+// Shared empty tuple — avoids allocating a new [] per day on each render.
+const EMPTY_EVENTS: MockCalendarDayEvent[] = [];
+
 // ── Daily Sidebar Content (extracted for reuse in drawer) ──
 function DailySidebarContent({ navigateTo, displayTasks, remainingTasks, completionPct }: {
   navigateTo: (route: string) => void;
@@ -160,11 +179,16 @@ export function MasteryDashboardView() {
     return map;
   }, [tree]);
 
-  const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const prevMonthDays = [26, 27, 28, 29, 30];
-  const daysInMonth = 28;
+  const daysOfWeek = DAYS_OF_WEEK;
+  const prevMonthDays = PREV_MONTH_DAYS;
   const today = 14;
-  const completionPct = isConnected && bktStates.length > 0 ? Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100) : 65;
+
+  const completionPct = useMemo(
+    () => isConnected && bktStates.length > 0
+      ? Math.round(bktStates.reduce((s, b) => s + b.p_know, 0) / bktStates.length * 100)
+      : 65,
+    [isConnected, bktStates],
+  );
 
   const activityMap = useMemo(() => {
     const map = new Map<number, { minutes: number; cards: number; sessions: number }>();
@@ -172,21 +196,40 @@ export function MasteryDashboardView() {
     return map;
   }, [isConnected, dailyActivity]);
 
-  const displayTasks = useMemo(() => {
-    if (!isConnected || bktStates.length === 0) return TODAY_TASKS;
-    const urgentTopics = [...bktStates].filter(b => b.p_know < 0.5).sort((a, b) => a.p_know - b.p_know).slice(0, 3);
-    const reviewTasks = urgentTopics.map((b, i) => ({ id: `review-${i}`, type: 'review' as const, subject: topicLookup.get(b.subtopic_id) || `Tema ${b.subtopic_id.slice(0, 6)}`, title: 'Revisión Espaciada', retention: Math.round(b.p_know * 100), urgency: 'urgent' as const }));
-    return [...reviewTasks, ...TODAY_TASKS.filter(t => t.type === 'session')];
+  const { displayTasks, remainingTasks } = useMemo(() => {
+    const tasks = (!isConnected || bktStates.length === 0)
+      ? TODAY_TASKS
+      : (() => {
+          const urgent = [...bktStates].filter(b => b.p_know < 0.5).sort((a, b) => a.p_know - b.p_know).slice(0, 3);
+          const reviewTasks = urgent.map((b, i) => ({
+            id: `review-${i}`,
+            type: 'review' as const,
+            subject: topicLookup.get(b.subtopic_id) || `Tema ${b.subtopic_id.slice(0, 6)}`,
+            title: 'Revisión Espaciada',
+            retention: Math.round(b.p_know * 100),
+            urgency: 'urgent' as const,
+          }));
+          return [...reviewTasks, ...TODAY_TASKS.filter(t => t.type === 'session')];
+        })();
+    let remaining = 0;
+    for (const t of tasks) if (t.type === 'session') remaining++;
+    return { displayTasks: tasks, remainingTasks: remaining };
   }, [isConnected, bktStates, topicLookup]);
 
-  const remainingTasks = displayTasks.filter(t => t.type === 'session').length;
-
-  const getEventsForDay = (day: number) => {
-    const actData = activityMap.get(day);
-    const mockEvents = CALENDAR_EVENTS.filter(e => e.day === day);
-    if (isConnected && actData && actData.minutes > 0 && mockEvents.length === 0) return [{ day, title: `${actData.sessions} sesión(es)`, category: 'core' as const, time: `${actData.minutes} min`, hasReview: actData.cards > 0 }];
-    return mockEvents;
-  };
+  // Pre-compute events per day once per activityMap/isConnected change.
+  const eventsByDay = useMemo(() => {
+    const map = new Map<number, MockCalendarDayEvent[]>();
+    for (const day of MONTH_DAYS) {
+      const mock = MOCK_EVENTS_BY_DAY.get(day);
+      const actData = activityMap.get(day);
+      if (isConnected && actData && actData.minutes > 0 && (!mock || mock.length === 0)) {
+        map.set(day, [{ day, title: `${actData.sessions} sesión(es)`, category: 'core' as const, time: `${actData.minutes} min`, hasReview: actData.cards > 0 }]);
+      } else if (mock && mock.length > 0) {
+        map.set(day, mock);
+      }
+    }
+    return map;
+  }, [activityMap, isConnected]);
 
   return (
     <div className="h-full flex flex-col bg-[#f5f6fa]">
@@ -207,17 +250,17 @@ export function MasteryDashboardView() {
           <div className="flex-1 px-2 lg:px-8 pb-4 lg:pb-8 overflow-y-auto custom-scrollbar-light">
             <div className="grid grid-cols-7 h-full min-h-[400px] lg:min-h-[600px] border-l border-t border-gray-200 rounded-bl-xl rounded-br-xl bg-white">
               {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-[#F0F2F5]/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                const events = getEventsForDay(day);
+              {MONTH_DAYS.map(day => {
+                const events = eventsByDay.get(day) ?? EMPTY_EVENTS;
                 const isCurrentDay = day === today;
                 return (
                   <div key={day} className={clsx("border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] relative group transition-colors", isCurrentDay ? "bg-teal-500/5 ring-inset ring-2 ring-teal-500/20" : "hover:bg-white/40")}>
                     <span className={clsx("font-mono text-[10px] lg:text-sm", isCurrentDay ? "text-teal-600 font-bold" : "text-gray-500")}>{day}</span>
                     {isCurrentDay && <div className="absolute top-1 lg:top-2 right-1 lg:right-2 w-1.5 lg:w-2 h-1.5 lg:h-2 bg-teal-500 rounded-full" />}
                     <div className="mt-1 lg:mt-2 space-y-1 hidden lg:block">
-                      {events.map((event, i) => (<div key={i} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer hover:brightness-95 transition-all shadow-sm relative overflow-hidden", CATEGORY_STYLES[event.category])}><div className="mb-0.5 pr-4 truncate" style={{ fontWeight: 700 }}>{event.title}</div>{event.time && <div className="opacity-80 font-mono text-[10px]">{event.time}</div>}{event.hasReview && <div className="absolute top-1.5 right-1.5 text-blue-600 bg-white/40 rounded-full p-0.5"><Brain size={12} /></div>}</div>))}
+                      {events.map((event, i) => (<div key={`${day}-${event.title}-${event.category}-${i}`} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer hover:brightness-95 transition-all shadow-sm relative overflow-hidden", CATEGORY_STYLES[event.category])}><div className="mb-0.5 pr-4 truncate" style={{ fontWeight: 700 }}>{event.title}</div>{event.time && <div className="opacity-80 font-mono text-[10px]">{event.time}</div>}{event.hasReview && <div className="absolute top-1.5 right-1.5 text-blue-600 bg-white/40 rounded-full p-0.5"><Brain size={12} /></div>}</div>))}
                     </div>
-                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={i} className={clsx("w-1.5 h-1.5 rounded-full", CATEGORY_DOT_COLORS[event.category] ?? 'bg-emerald-500')} />))}</div>)}
+                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={`${day}-dot-${event.title}-${event.category}-${i}`} className={clsx("w-1.5 h-1.5 rounded-full", CATEGORY_DOT_COLORS[event.category] ?? 'bg-emerald-500')} />))}</div>)}
                   </div>
                 );
               })}

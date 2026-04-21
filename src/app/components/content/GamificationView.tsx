@@ -179,7 +179,7 @@ function DailyGoalRing({ used, goal, className = '' }: { used: number; goal: num
 
 // ── Today's XP Breakdown (replaces static "Cómo ganar XP") ─
 function TodayXpBreakdown({ transactions }: { transactions: { action: string; xp_final: number }[] }) {
-  const breakdown = useMemo(() => {
+  const { breakdown, totalToday } = useMemo(() => {
     const map: Record<string, { label: string; total: number; count: number }> = {};
     const labels: Record<string, string> = {
       review_flashcard: 'Flashcards',
@@ -194,16 +194,17 @@ function TodayXpBreakdown({ transactions }: { transactions: { action: string; xp
       complete_plan: 'Plan',
       rag_question: 'AI',
     };
+    let total = 0;
     for (const tx of transactions) {
       const key = labels[tx.action] ?? 'Otro';
       if (!map[key]) map[key] = { label: key, total: 0, count: 0 };
       map[key].total += tx.xp_final;
       map[key].count += 1;
+      total += tx.xp_final;
     }
-    return Object.values(map).sort((a, b) => b.total - a.total);
+    const sorted = Object.values(map).sort((a, b) => b.total - a.total);
+    return { breakdown: sorted, totalToday: total };
   }, [transactions]);
-
-  const totalToday = breakdown.reduce((s, b) => s + b.total, 0);
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4">

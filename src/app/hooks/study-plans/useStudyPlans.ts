@@ -325,15 +325,28 @@ export function useStudyPlans(opts?: UseStudyPlansOptions) {
     }
   }, [fetchAll]);
 
-  return {
-    plans,
-    loading,
-    error,
-    refresh: fetchAll,
-    createPlanFromWizard,
-    toggleTaskComplete,
-    reorderTasks,
-    updatePlanStatus,
-    deletePlan,
-  };
+  return useMemo(
+    () => ({
+      plans,
+      loading,
+      error,
+      refresh: fetchAll,
+      createPlanFromWizard,
+      toggleTaskComplete,
+      reorderTasks,
+      updatePlanStatus,
+      deletePlan,
+    }),
+    [
+      plans,
+      loading,
+      error,
+      fetchAll,
+      createPlanFromWizard,
+      toggleTaskComplete,
+      reorderTasks,
+      updatePlanStatus,
+      deletePlan,
+    ],
+  );
 }

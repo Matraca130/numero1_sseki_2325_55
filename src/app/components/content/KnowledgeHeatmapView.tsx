@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
@@ -59,6 +59,28 @@ const CALENDAR_EVENTS: MockCalendarDayEvent[] = [
 const HEAT_LEVELS: HeatLevel[] = [
   { day: 4, level: 'med' }, { day: 6, level: 'high' }, { day: 10, level: 'med' }, { day: 18, level: 'med' }, { day: 25, level: 'high' },
 ];
+
+// Module-scope constants — avoid re-allocation on every render.
+const DAYS_OF_WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const PREV_MONTH_DAYS = [26, 27, 28, 29, 30];
+const MONTH_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
+const DESKTOP_MQ = '(min-width: 1024px)';
+
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(DESKTOP_MQ).matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia(DESKTOP_MQ);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    setIsDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isDesktop;
+}
 
 const TIMELINE_DATA = {
   activeSession: { subject: 'Fisiologia II: Integração', retentionBoost: 15, progress: 65 },
@@ -158,15 +180,22 @@ export function KnowledgeHeatmapView() {
     return map;
   }, [tree]);
 
-  const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const prevMonthDays = [26, 27, 28, 29, 30];
+  const daysOfWeek = DAYS_OF_WEEK;
+  const prevMonthDays = PREV_MONTH_DAYS;
   const daysInMonth = 28;
   const today = 14;
 
-  const activityMap = new Map<number, { minutes: number; cards: number; retention: number | null; sessions: number }>();
-  if (isConnected && dailyActivity.length > 0) {
-    dailyActivity.forEach(d => { const date = new Date(d.date + 'T12:00:00'); if (date.getMonth() === 1 && date.getFullYear() === 2026) activityMap.set(date.getDate(), { minutes: d.studyMinutes, cards: d.cardsReviewed, retention: d.retentionPercent ?? null, sessions: d.sessionsCount }); });
-  }
+  // Layout-triggering media queries must be read in an effect, not during
+  // render, to avoid forced synchronous style/layout reads each render.
+  const isDesktop = useIsDesktop();
+
+  const activityMap = useMemo(() => {
+    const map = new Map<number, { minutes: number; cards: number; retention: number | null; sessions: number }>();
+    if (isConnected && dailyActivity.length > 0) {
+      dailyActivity.forEach(d => { const date = new Date(d.date + 'T12:00:00'); if (date.getMonth() === 1 && date.getFullYear() === 2026) map.set(date.getDate(), { minutes: d.studyMinutes, cards: d.cardsReviewed, retention: d.retentionPercent ?? null, sessions: d.sessionsCount }); });
+    }
+    return map;
+  }, [isConnected, dailyActivity]);
 
   const getHeatLevel = (day: number): 'high' | 'med' | 'none' => {
     const data = activityMap.get(day);
@@ -182,11 +211,26 @@ export function KnowledgeHeatmapView() {
     return mockEvents;
   };
 
-  const overallRetention = isConnected && bktStates.length > 0 ? Math.round(bktStates.reduce((sum, b) => sum + b.p_know, 0) / bktStates.length * 100) : TIMELINE_DATA.overallRetention;
+  const overallRetention = useMemo(
+    () => isConnected && bktStates.length > 0
+      ? Math.round(bktStates.reduce((sum, b) => sum + b.p_know, 0) / bktStates.length * 100)
+      : TIMELINE_DATA.overallRetention,
+    [isConnected, bktStates],
+  );
 
-  const criticalTopic = isConnected && bktStates.length > 0
-    ? (() => { const sorted = [...bktStates].sort((a, b) => a.p_know - b.p_know); const worst = sorted[0]; return worst ? { topicId: worst.subtopic_id, topicTitle: topicLookup.get(worst.subtopic_id) || `Subtópico ${worst.subtopic_id.slice(0, 8)}`, masteryPercent: Math.round(worst.p_know * 100), flashcardsDue: worst.total_attempts > 0 ? Math.max(1, 5 - worst.correct_attempts) : 5 } : null; })()
-    : null;
+  const criticalTopic = useMemo(() => {
+    if (!(isConnected && bktStates.length > 0)) return null;
+    let worst = bktStates[0];
+    for (let i = 1; i < bktStates.length; i++) {
+      if (bktStates[i].p_know < worst.p_know) worst = bktStates[i];
+    }
+    return worst ? {
+      topicId: worst.subtopic_id,
+      topicTitle: topicLookup.get(worst.subtopic_id) || `Subtópico ${worst.subtopic_id.slice(0, 8)}`,
+      masteryPercent: Math.round(worst.p_know * 100),
+      flashcardsDue: worst.total_attempts > 0 ? Math.max(1, 5 - worst.correct_attempts) : 5,
+    } : null;
+  }, [isConnected, bktStates, topicLookup]);
 
   const heatBg = (level: string) => {
     if (level === 'high') return 'bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.08)_0%,transparent_80%)]';
@@ -228,7 +272,7 @@ export function KnowledgeHeatmapView() {
                   return (
                     <motion.div key={`popover-${selectedDay}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                       className={clsx("absolute z-50 bg-white rounded-xl shadow-xl border border-zinc-200 p-4", "left-2 right-2 bottom-2 lg:bottom-auto lg:left-auto lg:right-auto lg:w-72")}
-                      style={{ ...(window.matchMedia('(min-width: 1024px)').matches ? { top: `${topPx}px`, left: `${leftPx}px` } : {}) }}>
+                      style={isDesktop ? { top: `${topPx}px`, left: `${leftPx}px` } : undefined}>
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-pink-700" style={{ fontWeight: 700, fontFamily: "Georgia, serif" }}>{dayEvents[0]?.title || `Día ${selectedDay}`}</h4>
                         <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2 -mt-2"><X size={14} /></button>
@@ -250,7 +294,7 @@ export function KnowledgeHeatmapView() {
                 })()}
               </AnimatePresence>
               {prevMonthDays.map(d => (<div key={`prev-${d}`} className="border-r border-b border-gray-200 p-1 lg:p-2 min-h-[60px] lg:min-h-[120px] bg-[#F0F2F5]/30"><span className="text-gray-300 font-mono text-[10px] lg:text-sm">{d}</span></div>))}
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+              {MONTH_DAYS.map(day => {
                 const heat = getHeatLevel(day);
                 const events = getEventsForDay(day);
                 const isCurrentDay = day === today;
@@ -262,7 +306,7 @@ export function KnowledgeHeatmapView() {
                     {heat !== 'none' && (<div className="absolute top-1 lg:top-2 right-1 lg:right-2 flex gap-0.5 lg:gap-1"><div className={clsx("w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full", heat === 'high' ? 'bg-red-500' : 'bg-orange-500')} />{hasUrgent && <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-red-500 animate-pulse" />}</div>)}
                     {isCurrentDay && <div className="absolute top-1 lg:top-2 right-1 lg:right-2 w-1.5 lg:w-2 h-1.5 lg:h-2 bg-teal-500 rounded-full animate-pulse" />}
                     <div className="mt-1 lg:mt-2 space-y-1 hidden lg:block">
-                      {events.map((event, i) => (<div key={i} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer transition-all shadow-sm", CATEGORY_STYLES[event.category], event.isUrgent && "ring-2 ring-pink-400/30")}>
+                      {events.map((event, i) => (<div key={`${day}-${event.title}-${event.category}-${i}`} className={clsx("p-1.5 rounded-lg text-xs cursor-pointer transition-all shadow-sm", CATEGORY_STYLES[event.category], event.isUrgent && "ring-2 ring-pink-400/30")}>
                         {event.title && <div className="mb-0.5 pr-4 truncate" style={{ fontWeight: 700 }}>{event.title}</div>}
                         {event.cards && <div className="flex items-center gap-1 text-[10px] opacity-80"><RotateCcw size={10} /> {event.cards} cards</div>}
                         {event.time && <div className="opacity-80 font-mono text-[10px]">{event.time}</div>}
@@ -270,7 +314,7 @@ export function KnowledgeHeatmapView() {
                         {event.noteText && <div className="text-xs text-gray-500 italic bg-white/50 border border-white rounded p-1.5 mt-1">{event.noteText}</div>}
                       </div>))}
                     </div>
-                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={i} className={clsx("w-1.5 h-1.5 rounded-full", CATEGORY_DOT_COLORS[event.category] ?? 'bg-emerald-500')} />))}</div>)}
+                    {events.length > 0 && (<div className="lg:hidden flex gap-0.5 mt-1 justify-center">{events.slice(0, 3).map((event, i) => (<div key={`${day}-dot-${event.title}-${event.category}-${i}`} className={clsx("w-1.5 h-1.5 rounded-full", CATEGORY_DOT_COLORS[event.category] ?? 'bg-emerald-500')} />))}</div>)}
                   </div>
                 );
               })}

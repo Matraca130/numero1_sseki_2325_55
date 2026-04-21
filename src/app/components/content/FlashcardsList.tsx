@@ -35,7 +35,7 @@ const ACTION_BTN_CLS =
 
 interface FlashcardCardItemProps {
   card: FlashcardItem;
-  keywords: Keyword[];
+  keyword: Keyword | undefined;
   subtopicsMap: Map<string, Subtopic[]>;
   onEdit: (card: FlashcardItem) => void;
   onDelete: (id: string) => void;
@@ -48,7 +48,7 @@ interface FlashcardCardItemProps {
 
 const FlashcardCardItem = React.memo(function FlashcardCardItem({
   card,
-  keywords,
+  keyword,
   subtopicsMap,
   onEdit,
   onDelete,
@@ -59,7 +59,6 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
   onToggleSelect,
 }: FlashcardCardItemProps) {
   const [flipped, setFlipped] = useState(false);
-  const keyword = keywords.find(k => k.id === card.keyword_id);
   const isDeleted = !!card.deleted_at;
   const isInactive = !card.is_active && !isDeleted;
   const cardType = detectCardType(card.front, card.back);
@@ -339,6 +338,16 @@ export const FlashcardsList = React.memo(function FlashcardsList({
     );
   }
 
+  // Build id→Keyword map once per keywords change so each card lookup is O(1).
+  const keywordMap = useMemo(() => {
+    const m = new Map<string, Keyword>();
+    for (const k of keywords) m.set(k.id, k);
+    return m;
+  }, [keywords]);
+
+  // O(1) selection lookup — Set avoids O(N) .includes() per card.
+  const selectedSet = useMemo(() => new Set(selectedFlashcards), [selectedFlashcards]);
+
   // Flashcard grid — md: covers tablet breakpoint that was skipped
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -347,14 +356,14 @@ export const FlashcardsList = React.memo(function FlashcardsList({
           <FlashcardCardItem
             key={card.id}
             card={card}
-            keywords={keywords}
+            keyword={card.keyword_id ? keywordMap.get(card.keyword_id) : undefined}
             subtopicsMap={subtopicsMap}
             onEdit={onEdit}
             onDelete={onDelete}
             onRestore={onRestore}
             onToggleActive={onToggleActive}
             onDuplicate={onDuplicate}
-            isSelected={selectedFlashcards.includes(card.id)}
+            isSelected={selectedSet.has(card.id)}
             onToggleSelect={onToggleSelect}
           />
         ))}
