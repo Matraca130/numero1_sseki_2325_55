@@ -31,6 +31,15 @@ export default defineConfig({
       '.git',
       'src/__tests__/e2e-adaptive-flashcard-session.test.tsx',
     ],
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: false,
+        isolate: true,
+      },
+    },
+    testTimeout: 10_000,
+    hookTimeout: 10_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html'],
