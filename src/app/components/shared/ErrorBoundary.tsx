@@ -76,10 +76,14 @@ function PageFallback({
         <button
           onClick={() => {
             supabase.auth.signOut().catch(() => {});
-            localStorage.removeItem('axon_active_membership');
-            localStorage.removeItem('axon_access_token');
-            localStorage.removeItem('axon_user');
-            localStorage.removeItem('axon_memberships');
+            // Guarded: if the original error came from localStorage (private mode)
+            // the recovery button must NOT crash here — proceed to redirect.
+            try {
+              localStorage.removeItem('axon_active_membership');
+              localStorage.removeItem('axon_access_token');
+              localStorage.removeItem('axon_user');
+              localStorage.removeItem('axon_memberships');
+            } catch { /* private browsing — proceed */ }
             onReset();
             window.location.href = '/login';
           }}

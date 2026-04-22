@@ -128,7 +128,20 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
     finally { setIsLoading(false); }
   };
 
-  const copyText = (text: string, id: string) => { navigator.clipboard.writeText(text); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); };
+  const copyText = (text: string, id: string) => {
+    // Await the promise so the "Copied" indicator only flips when the write
+    // actually succeeded. Handle rejection (denied permission, non-secure
+    // context, iframe sandbox) via the existing in-panel system-message UX
+    // instead of letting an unhandled rejection bubble up.
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      })
+      .catch(() => {
+        addMessage('system', 'No se pudo copiar al portapapeles', true);
+      });
+  };
 
   const handleRagFeedback = async (msgId: string, feedback: 'positive' | 'negative') => {
     const logId = messageLogIds.get(msgId);

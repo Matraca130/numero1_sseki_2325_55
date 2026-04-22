@@ -105,12 +105,19 @@ export function getStoredLayers(modelId: string): ModelLayerConfig[] {
 
 /** Write-through to localStorage (keeps cache fresh) */
 export function setStoredParts(modelId: string, parts: ModelPartConfig[]): void {
-  localStorage.setItem(PARTS_KEY(modelId), JSON.stringify(parts));
+  // Part JSON can reach hundreds of KB; browsers enforce a ~5 MB localStorage
+  // quota and throw SecurityError in private mode. A cache miss on next load
+  // is acceptable — do NOT let cache writes fail the 3D viewer load.
+  try {
+    localStorage.setItem(PARTS_KEY(modelId), JSON.stringify(parts));
+  } catch { /* quota exceeded or private browsing — cache write is best-effort */ }
 }
 
 /** Write-through to localStorage (keeps cache fresh) */
 export function setStoredLayers(modelId: string, layers: ModelLayerConfig[]): void {
-  localStorage.setItem(LAYERS_KEY(modelId), JSON.stringify(layers));
+  try {
+    localStorage.setItem(LAYERS_KEY(modelId), JSON.stringify(layers));
+  } catch { /* quota exceeded or private browsing — cache write is best-effort */ }
 }
 
 /**

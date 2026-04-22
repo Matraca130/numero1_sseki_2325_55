@@ -12,6 +12,29 @@
 
 const RETRY_KEY = 'axon-chunk-retry';
 
+// In-memory fallback for private-browsing contexts where sessionStorage throws
+// SecurityError. We still want loop-prevention across this chunk-retry flow
+// even when storage is unavailable (the reload clears it anyway).
+let _memRetry = false;
+
+function getRetried(): boolean {
+  try {
+    return sessionStorage.getItem(RETRY_KEY) === '1';
+  } catch {
+    return _memRetry;
+  }
+}
+
+function setRetried(): void {
+  _memRetry = true;
+  try { sessionStorage.setItem(RETRY_KEY, '1'); } catch { /* private mode */ }
+}
+
+function clearRetried(): void {
+  _memRetry = false;
+  try { sessionStorage.removeItem(RETRY_KEY); } catch { /* private mode */ }
+}
+
 /**
  * Wraps a dynamic import with stale-chunk detection and auto-reload.
  *
@@ -33,15 +56,14 @@ export function lazyRetry<T>(importFn: () => Promise<T>): Promise<T> {
       throw error;
     }
 
-    // Prevent infinite reload loop: only retry once per session
-    const hasRetried = sessionStorage.getItem(RETRY_KEY);
-    if (hasRetried) {
-      sessionStorage.removeItem(RETRY_KEY);
+    // Prevent infinite reload loop: only retry once per session.
+    if (getRetried()) {
+      clearRetried();
       throw error;
     }
 
     // Mark that we're retrying and reload to get new chunk manifest
-    sessionStorage.setItem(RETRY_KEY, '1');
+    setRetried();
     if (import.meta.env.DEV) {
       console.warn('[lazyRetry] Stale chunk detected, reloading...', error.message);
     }

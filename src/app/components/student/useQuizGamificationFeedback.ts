@@ -76,30 +76,46 @@ export function useQuizGamificationFeedback(): QuizGamificationFeedback {
   useEffect(() => {
     if (firedRef.current) return;
     firedRef.current = true;
+    let cancelled = false;
+    let initialDelayId: ReturnType<typeof setTimeout> | undefined;
+    let finalizeDelayId: ReturnType<typeof setTimeout> | undefined;
 
     (async () => {
       try {
         // Wait for backend afterWrite hooks to complete
         // (quiz_attempt → award XP → update profile)
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise<void>((r) => { initialDelayId = setTimeout(r, 800); });
+        if (cancelled) return;
 
         // Step 1: Refresh profile — this triggers xpDelta and
         // levelUpEvent detection inside useGamificationProfile
         await gamification.refresh();
+        if (cancelled) return;
 
         // Step 2: Check for new badges earned from this quiz
         await gamification.triggerBadgeCheck();
       } catch (err) {
-        logger.error('[QuizGamificationFeedback] Post-quiz feedback error (non-blocking):', err);
+        if (!cancelled) {
+          logger.error('[QuizGamificationFeedback] Post-quiz feedback error (non-blocking):', err);
+        }
       } finally {
-        // Mark as done — sync effects below will pick up the data
-        // Small delay to ensure React has batched the state updates
-        setTimeout(() => {
-          setIsLoading(false);
-          setIsConfirmed(true);
-        }, 100);
+        // Mark as done — sync effects below will pick up the data.
+        // Small delay to ensure React has batched the state updates.
+        if (!cancelled) {
+          finalizeDelayId = setTimeout(() => {
+            if (cancelled) return;
+            setIsLoading(false);
+            setIsConfirmed(true);
+          }, 100);
+        }
       }
     })();
+
+    return () => {
+      cancelled = true;
+      if (initialDelayId) clearTimeout(initialDelayId);
+      if (finalizeDelayId) clearTimeout(finalizeDelayId);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty — fire once on mount
 

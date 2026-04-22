@@ -25,10 +25,15 @@ export const QuizCountdownTimer = React.memo(function QuizCountdownTimer({
   useEffect(() => { setRemaining(timeLimitSec); hasFiredRef.current = false; }, [resetKey, timeLimitSec]);
 
   useEffect(() => {
-    if (paused || remaining <= 0) return;
+    // Deps intentionally exclude `remaining`: including it would tear down
+    // and recreate the interval on every tick, causing timer drift. The
+    // functional updater already reads the latest value from closure, and
+    // the zero-guard lives inside the updater so no effect re-run is needed.
+    if (paused) return;
     const interval = setInterval(() => {
       setRemaining(prev => {
-        const next = Math.max(0, prev - 1);
+        if (prev <= 0) return 0;
+        const next = prev - 1;
         if (next === 0 && !hasFiredRef.current) {
           hasFiredRef.current = true;
           setTimeout(() => onTimeoutRef.current(), 0);
@@ -37,7 +42,7 @@ export const QuizCountdownTimer = React.memo(function QuizCountdownTimer({
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [paused, remaining]);
+  }, [paused]);
 
   const pct = timeLimitSec > 0 ? remaining / timeLimitSec : 0;
   const mins = Math.floor(remaining / 60);

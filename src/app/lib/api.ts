@@ -34,12 +34,16 @@ let _accessToken: string | null = null;
 
 export function setAccessToken(t: string | null) {
   _accessToken = t;
-  // Sync to localStorage for backward compat (apiConfig.ts getRealToken)
-  if (t) {
-    localStorage.setItem('axon_access_token', t);
-  } else {
-    localStorage.removeItem('axon_access_token');
-  }
+  // Sync to localStorage for backward compat (apiConfig.ts getRealToken).
+  // Wrap in try/catch: Safari/Firefox private mode throws SecurityError on any
+  // localStorage access. Module-level token is still set correctly either way.
+  try {
+    if (t) {
+      localStorage.setItem('axon_access_token', t);
+    } else {
+      localStorage.removeItem('axon_access_token');
+    }
+  } catch { /* private browsing — ignore */ }
 }
 
 export function getAccessToken(): string | null {
@@ -61,11 +65,13 @@ function handleUnauthorized(): void {
   // Clear module-level token
   _accessToken = null;
 
-  // Clear localStorage auth data
-  localStorage.removeItem('axon_access_token');
-  localStorage.removeItem('axon_active_membership');
-  localStorage.removeItem('axon_user');
-  localStorage.removeItem('axon_memberships');
+  // Clear localStorage auth data (guarded for private-browsing SecurityError)
+  try {
+    localStorage.removeItem('axon_access_token');
+    localStorage.removeItem('axon_active_membership');
+    localStorage.removeItem('axon_user');
+    localStorage.removeItem('axon_memberships');
+  } catch { /* private browsing — proceed with redirect anyway */ }
 
   // Sign out from Supabase (fire-and-forget)
   supabase.auth.signOut().catch(() => {});
@@ -122,11 +128,13 @@ export async function apiCall<T = any>(
     // Timeout via AbortController
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
+    let onExternalAbort: (() => void) | undefined;
 
     if (timeoutMs > 0) {
       controller = new AbortController();
       if (fetchOptions.signal) {
-        fetchOptions.signal.addEventListener('abort', () => controller!.abort());
+        onExternalAbort = () => controller!.abort();
+        fetchOptions.signal.addEventListener('abort', onExternalAbort);
       }
       timeoutId = setTimeout(() => controller!.abort(), timeoutMs);
     }
@@ -138,25 +146,36 @@ export async function apiCall<T = any>(
         signal: controller?.signal || fetchOptions.signal,
       });
 
-      const text = await res.text();
-
-      let json: any;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        if (import.meta.env.DEV) {
-          console.error(`[API] Non-JSON response from ${path}:`, text.substring(0, 300));
-        }
-        throw new Error(`Invalid response from server (${res.status})`);
-      }
-
-      // 401 → token expired/revoked → sign out and redirect
+      // 401 → token expired/revoked → sign out and redirect.
+      // Evaluate this BEFORE body parse so empty 401 bodies still trigger logout.
       if (res.status === 401) {
         if (import.meta.env.DEV) {
           console.warn(`[API] 401 Unauthorized at ${path} — signing out`);
         }
         handleUnauthorized();
         throw new Error('Session expired');
+      }
+
+      const text = await res.text();
+
+      // Empty-body 2xx (e.g. 204 No Content) is a legitimate success response;
+      // attempting to JSON.parse('') would throw and turn the success into an error.
+      if (res.ok && text.length === 0) {
+        return undefined as T;
+      }
+
+      let json: any;
+      if (text.length === 0) {
+        json = null;
+      } else {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          if (import.meta.env.DEV) {
+            console.error(`[API] Non-JSON response from ${path}:`, text.substring(0, 300));
+          }
+          throw new Error(`Invalid response from server (${res.status})`);
+        }
       }
 
       if (!res.ok) {
@@ -185,6 +204,11 @@ export async function apiCall<T = any>(
       throw err;
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
+      // Detach the abort bridge so we don't leak listeners on reused signals
+      // (React Query, long-lived useEffect cleanup controllers, etc.)
+      if (onExternalAbort && fetchOptions.signal) {
+        fetchOptions.signal.removeEventListener('abort', onExternalAbort);
+      }
     }
   };
 
@@ -230,8 +254,10 @@ export async function* apiCallStream<T = any>(
   }
 
   const controller = new AbortController();
+  let onExternalAbort: (() => void) | undefined;
   if (fetchOptions.signal) {
-    fetchOptions.signal.addEventListener('abort', () => controller.abort());
+    onExternalAbort = () => controller.abort();
+    fetchOptions.signal.addEventListener('abort', onExternalAbort);
   }
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -312,6 +338,9 @@ export async function* apiCallStream<T = any>(
     throw err;
   } finally {
     clearTimeout(timeoutId);
+    if (onExternalAbort && fetchOptions.signal) {
+      fetchOptions.signal.removeEventListener('abort', onExternalAbort);
+    }
   }
 }
 
