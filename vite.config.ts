@@ -26,6 +26,7 @@ const clientManualChunks: Record<string, string[]> = {
   'vendor-recharts': ['recharts'],
   'vendor-supabase': ['@supabase/supabase-js'],
   'vendor-dates': ['date-fns'],
+  'vendor-p5': ['p5'],
 };
 
 // Non-scoped packages that Mux pulls in as transitives. Naming them
