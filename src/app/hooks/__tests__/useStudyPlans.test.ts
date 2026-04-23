@@ -833,3 +833,82 @@ describe('useStudyPlans — return shape', () => {
     expect(typeof result.current.deletePlan).toBe('function');
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// PR #509 — memoization regression: the return value of useStudyPlans
+// is wrapped in useMemo(…, [plans, loading, error, …]) so that consumers
+// with React.memo wrappers downstream don't re-render when nothing
+// actually changed. These tests guard against accidental de-memoization
+// (e.g. someone converts `return useMemo(() => ({…}), […])` back to a
+// bare object literal, which silently regresses perf without breaking
+// behavior).
+// ─────────────────────────────────────────────────────────────
+
+describe('useStudyPlans — return identity stability (PR #509)', () => {
+  it('returns the same object reference across renders when inputs do not change', async () => {
+    mockGetStudyPlans.mockResolvedValue([]);
+
+    const { result, rerender } = renderHook(() => useStudyPlans());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const first = result.current;
+    rerender();
+    const second = result.current;
+    rerender();
+    const third = result.current;
+
+    expect(second).toBe(first);
+    expect(third).toBe(first);
+  });
+
+  it('preserves function identities across renders', async () => {
+    mockGetStudyPlans.mockResolvedValue([]);
+
+    const { result, rerender } = renderHook(() => useStudyPlans());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const first = {
+      refresh: result.current.refresh,
+      createPlanFromWizard: result.current.createPlanFromWizard,
+      toggleTaskComplete: result.current.toggleTaskComplete,
+      reorderTasks: result.current.reorderTasks,
+      updatePlanStatus: result.current.updatePlanStatus,
+      deletePlan: result.current.deletePlan,
+    };
+
+    rerender();
+
+    expect(result.current.refresh).toBe(first.refresh);
+    expect(result.current.createPlanFromWizard).toBe(first.createPlanFromWizard);
+    expect(result.current.toggleTaskComplete).toBe(first.toggleTaskComplete);
+    expect(result.current.reorderTasks).toBe(first.reorderTasks);
+    expect(result.current.updatePlanStatus).toBe(first.updatePlanStatus);
+    expect(result.current.deletePlan).toBe(first.deletePlan);
+  });
+
+  it('returns a new object reference when plans change', async () => {
+    mockGetStudyPlans.mockResolvedValueOnce([]);
+
+    const { result, rerender } = renderHook(() => useStudyPlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const emptyState = result.current;
+
+    // Next fetch returns a plan — refresh() should yield a new identity.
+    mockGetStudyPlans.mockResolvedValueOnce([createBackendPlan({ id: 'plan-42' })]);
+    mockGetStudyPlanTasks.mockResolvedValueOnce([]);
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+    rerender();
+
+    expect(result.current).not.toBe(emptyState);
+    expect(result.current.plans.length).toBe(1);
+  });
+});
