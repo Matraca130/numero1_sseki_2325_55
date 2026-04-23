@@ -210,6 +210,17 @@ vi.mock('@/app/components/professor/FlashcardImageUpload', () => ({
   FlashcardImageUpload: () => <div data-testid="image-upload" />,
 }));
 
+// ── Mock useFlashcardImage (uses @tanstack/react-query internally;
+//    stubbing the hook avoids needing a QueryClientProvider wrapper
+//    around every render() in this suite).
+vi.mock('@/app/hooks/useFlashcardImage', () => ({
+  useFlashcardImage: () => ({
+    generateImage: vi.fn(),
+    isGenerating: false,
+    error: null,
+  }),
+}));
+
 // ── Mock aiApi ───────────────────────────────────────────────
 vi.mock('@/app/services/aiApi', () => ({
   generateQuestion: vi.fn(),

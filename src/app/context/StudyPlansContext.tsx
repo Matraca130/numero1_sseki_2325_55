@@ -34,10 +34,13 @@ export function StudyPlansProvider({ children }: { children: React.ReactNode }) 
   const { getEstimate } = useStudyTimeEstimatesContext();
   const { sessionHistory } = useStudentDataContext();
 
-  const opts: UseStudyPlansOptions | undefined =
-    topicMastery.size > 0
-      ? { topicMastery, getTimeEstimate: getEstimate, sessionHistory }
-      : undefined;
+  const opts = useMemo<UseStudyPlansOptions | undefined>(
+    () =>
+      topicMastery.size > 0
+        ? { topicMastery, getTimeEstimate: getEstimate, sessionHistory }
+        : undefined,
+    [topicMastery, getEstimate, sessionHistory],
+  );
 
   const hook = useStudyPlans(opts);
 

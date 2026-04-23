@@ -93,7 +93,11 @@ jobs:
   frontend-tests:
     name: Frontend Tests (Vitest)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Suite runs 200+ test files (~5-8m wall-clock on shared runners).
+    # 15m keeps ample headroom for runner variance while still catching a
+    # genuine hang. (A deterministic hang in e2e-adaptive-flashcard-session
+    # is excluded in vitest.config.ts pending a follow-up fix.)
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

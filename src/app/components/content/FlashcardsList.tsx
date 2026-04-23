@@ -35,8 +35,8 @@ const ACTION_BTN_CLS =
 
 interface FlashcardCardItemProps {
   card: FlashcardItem;
-  keywords: Keyword[];
-  subtopicsMap: Map<string, Subtopic[]>;
+  keyword: Keyword | undefined;
+  subtopicName: string | null;
   onEdit: (card: FlashcardItem) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
@@ -48,8 +48,8 @@ interface FlashcardCardItemProps {
 
 const FlashcardCardItem = React.memo(function FlashcardCardItem({
   card,
-  keywords,
-  subtopicsMap,
+  keyword,
+  subtopicName,
   onEdit,
   onDelete,
   onRestore,
@@ -59,7 +59,6 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
   onToggleSelect,
 }: FlashcardCardItemProps) {
   const [flipped, setFlipped] = useState(false);
-  const keyword = keywords.find(k => k.id === card.keyword_id);
   const isDeleted = !!card.deleted_at;
   const isInactive = !card.is_active && !isDeleted;
   const cardType = detectCardType(card.front, card.back);
@@ -75,16 +74,6 @@ const FlashcardCardItem = React.memo(function FlashcardCardItem({
       toast.error(message);
     }
   };
-
-  // Find subtopic name
-  const subtopicName = useMemo(() => {
-    if (!card.subtopic_id) return null;
-    for (const subs of subtopicsMap.values()) {
-      const found = subs.find(s => s.id === card.subtopic_id);
-      if (found) return found.name;
-    }
-    return null;
-  }, [card.subtopic_id, subtopicsMap]);
 
   return (
     <motion.div
@@ -339,6 +328,26 @@ export const FlashcardsList = React.memo(function FlashcardsList({
     );
   }
 
+  // Build id→Keyword map once per keywords change so each card lookup is O(1).
+  const keywordMap = useMemo(() => {
+    const m = new Map<string, Keyword>();
+    for (const k of keywords) m.set(k.id, k);
+    return m;
+  }, [keywords]);
+
+  // Flatten the nested subtopicsMap (keyword → Subtopic[]) into a single
+  // id → name map so per-card lookup is O(1) instead of O(all-subtopics).
+  const subtopicNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const subs of subtopicsMap.values()) {
+      for (const s of subs) m.set(s.id, s.name);
+    }
+    return m;
+  }, [subtopicsMap]);
+
+  // O(1) selection lookup — Set avoids O(N) .includes() per card.
+  const selectedSet = useMemo(() => new Set(selectedFlashcards), [selectedFlashcards]);
+
   // Flashcard grid — md: covers tablet breakpoint that was skipped
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -347,14 +356,14 @@ export const FlashcardsList = React.memo(function FlashcardsList({
           <FlashcardCardItem
             key={card.id}
             card={card}
-            keywords={keywords}
-            subtopicsMap={subtopicsMap}
+            keyword={card.keyword_id ? keywordMap.get(card.keyword_id) : undefined}
+            subtopicName={card.subtopic_id ? subtopicNameById.get(card.subtopic_id) ?? null : null}
             onEdit={onEdit}
             onDelete={onDelete}
             onRestore={onRestore}
             onToggleActive={onToggleActive}
             onDuplicate={onDuplicate}
-            isSelected={selectedFlashcards.includes(card.id)}
+            isSelected={selectedSet.has(card.id)}
             onToggleSelect={onToggleSelect}
           />
         ))}
