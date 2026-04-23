@@ -11,10 +11,30 @@ export type MembershipRole = 'owner' | 'admin' | 'professor' | 'student';
 export type SummaryStatus = 'draft' | 'published' | 'rejected';
 export type FlashcardStatus = 'active' | 'suspended' | 'deleted';
 export type FlashcardSource = 'ai' | 'manual' | 'imported';
-export type QuizType = 'mcq' | 'true_false' | 'fill_blank' | 'open';
+
+/**
+ * Canonical question type (matches quiz_questions.question_type).
+ * Single source of truth — quizConstants.ts imports from here.
+ */
+export type QuestionType = 'mcq' | 'true_false' | 'fill_blank' | 'open';
+
+/** @deprecated Use `QuestionType`. Kept as alias for backward compat with legacy consumers. */
+export type QuizType = QuestionType;
+
 export type QuizStatus = 'active' | 'suspended' | 'deleted';
 export type BktColor = 'red' | 'orange' | 'yellow' | 'green';
-export type FsrsState = 0 | 1 | 2 | 3;
+
+/**
+ * Canonical FSRS card state (matches DB column `fsrs_state` / `state`).
+ * Canonicalized in audit 2026-04-23. The numeric 0|1|2|3 form has been
+ * removed — it was orphan (no consumers in FE) and inconsistent with
+ * the backend which uses string literals.
+ */
+export type FsrsCardState = 'new' | 'learning' | 'review' | 'relearning';
+
+/** @deprecated Use `FsrsCardState` (string union). The previous numeric 0|1|2|3 form had no consumers. */
+export type FsrsState = FsrsCardState;
+
 export type FsrsGrade = 1 | 2 | 3 | 4;
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'orange';
 
@@ -202,6 +222,23 @@ export interface Topic {
   name: string;
   order_index: number;
   created_at?: ISODate;
+}
+
+/**
+ * Canonical Subtopic type (matches `subtopics` DB table).
+ * Consolidated in audit 2026-04-23. Previously duplicated across
+ * `types/flashcard-manager.ts` and `services/summariesApi.ts`.
+ * Timestamps kept optional so minimal literal objects still satisfy the shape.
+ */
+export interface Subtopic {
+  id: UUID;
+  keyword_id: UUID;
+  name: string;
+  order_index: number;
+  is_active?: boolean;
+  created_at?: ISODate;
+  updated_at?: ISODate;
+  deleted_at?: string | null;
 }
 
 // Canonical Summary type lives in summariesApi.ts (matches actual API response).

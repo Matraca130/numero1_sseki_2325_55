@@ -60,16 +60,9 @@ export interface SummaryKeyword {
   deleted_at?: string | null;
 }
 
-export interface Subtopic {
-  id: string;
-  keyword_id: string;
-  name: string;
-  order_index: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
-}
+// Canonical Subtopic lives in types/platform.ts (audit 2026-04-23).
+// Re-exported here so existing API-service consumers keep working.
+export type { Subtopic } from '@/app/types/platform';
 
 export interface Video {
   id: string;

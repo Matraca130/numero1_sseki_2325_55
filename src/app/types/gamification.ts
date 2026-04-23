@@ -74,6 +74,8 @@ export const XP_TABLE: Record<XPAction, number> = {
 export const XP_DAILY_CAP = 500;
 
 // ── Streak ────────────────────────────────────────────
+// MIRROR of backend/supabase/functions/server/streak-engine.ts —
+// keep in sync (duplicated consciously, see audit 2026-04-23).
 
 export interface StreakStatus {
   current_streak: number;

@@ -7,6 +7,10 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router';
 import { useAuth } from '@/app/context/AuthContext';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
+import { Input } from '@/app/components/ui/input';
+import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/components/ui/card';
+import { colors } from '@/app/design-system';
 import { motion } from 'motion/react';
 import { Eye, EyeOff, LogIn, UserPlus, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -88,7 +92,10 @@ export function LoginPage() {
   return (
     <div className="min-h-screen w-full flex bg-zinc-950">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] bg-[#0d2926] relative overflow-hidden">
+      <div
+        className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative overflow-hidden"
+        style={{ backgroundColor: colors.primary[900] }}
+      >
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-teal-600 blur-3xl" />
           <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-teal-700 blur-3xl" />
@@ -148,7 +155,10 @@ export function LoginPage() {
             <AxonLogo size="md" theme="light" />
           </div>
 
-          <div className="bg-zinc-900 rounded-2xl border border-white/[0.06] p-8">
+          <Card
+            className="rounded-2xl border-white/[0.06] p-8 gap-0"
+            style={{ backgroundColor: '#18181b' }}
+          >
             <div className="mb-6">
               <h1 className="text-2xl text-white">
                 {mode === 'signin' ? 'Bienvenido de vuelta' : 'Crear cuenta'}
@@ -186,13 +196,13 @@ export function LoginPage() {
               {mode === 'signup' && (
                 <div>
                   <label htmlFor="signup-name" className="block text-sm text-zinc-200 mb-1.5">Nombre completo</label>
-                  <input
+                  <Input
                     id="signup-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
-                    className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                    className="h-10 px-4 py-2.5 bg-zinc-800 border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus-visible:ring-teal-500/30 focus-visible:border-teal-500/50"
                     required
                     autoComplete="name"
                   />
@@ -201,13 +211,13 @@ export function LoginPage() {
 
               <div>
                 <label htmlFor="login-email" className="block text-sm text-zinc-200 mb-1.5">Email</label>
-                <input
+                <Input
                   id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full px-4 py-2.5 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                  className="h-10 px-4 py-2.5 bg-zinc-800 border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus-visible:ring-teal-500/30 focus-visible:border-teal-500/50"
                   required
                   autoComplete="email"
                 />
@@ -221,13 +231,13 @@ export function LoginPage() {
                   )}
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={mode === 'signup' ? 'Mínimo 8 caracteres' : 'Tu contraseña'}
-                    className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                    className="h-10 px-4 py-2.5 pr-10 bg-zinc-800 border-white/[0.08] rounded-xl text-sm text-white placeholder-zinc-400 focus-visible:ring-teal-500/30 focus-visible:border-teal-500/50"
                     required
                     minLength={mode === 'signup' ? 8 : 1}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
@@ -244,10 +254,21 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <button
+              <Button
                 type="submit"
+                variant="default"
+                size="lg"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-[#2a8c7a] hover:bg-[#244e47] disabled:bg-[#2a8c7a]/50 text-white font-semibold py-2.5 px-4 rounded-full transition-colors duration-200 text-sm disabled:cursor-not-allowed"
+                className="w-full rounded-full text-white font-semibold text-sm disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: loading ? `${colors.primary[500]}80` : colors.primary[500],
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.backgroundColor = colors.primary[600];
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.currentTarget.style.backgroundColor = colors.primary[500];
+                }}
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -261,7 +282,7 @@ export function LoginPage() {
                   : mode === 'signin'
                     ? 'Iniciar sesión'
                     : 'Crear cuenta'}
-              </button>
+              </Button>
             </form>
 
             <div className="mt-6 text-center">
@@ -275,7 +296,7 @@ export function LoginPage() {
                 {mode === 'signin' ? 'Regístrate' : 'Inicia sesión'}
               </button>
             </div>
-          </div>
+          </Card>
 
           {import.meta.env.DEV && (
             <div className="mt-4 flex items-center justify-center gap-2">

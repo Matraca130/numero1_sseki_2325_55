@@ -18,7 +18,13 @@
 
 // ── Core Types ────────────────────────────────────────────
 
-export type QuestionType = 'mcq' | 'true_false' | 'fill_blank' | 'open';
+// Canonical `QuestionType` lives in types/platform.ts (audit 2026-04-23).
+// Imported + re-exported so quizApi.ts / quizQuestionsApi.ts / tests
+// that `import { QuestionType } from '@/app/services/quizConstants'`
+// keep working.
+import type { QuestionType } from '@/app/types/platform';
+export type { QuestionType };
+
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 // ── Question Type Labels ──────────────────────────────────
