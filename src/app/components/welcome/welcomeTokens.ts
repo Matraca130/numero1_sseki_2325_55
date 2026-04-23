@@ -1,6 +1,15 @@
 // ============================================================
 // Axon — Welcome View shared tokens & helpers
 // Extracted from WelcomeView.tsx during refactor/welcome-view-split.
+//
+// Finding #5 cleanup: the `tk` object preserves its public shape (consumers
+// in welcome/* rely on these property names) but its values are now sourced
+// from the canonical design-system palette instead of parallel hex literals.
+//   heroFrom  → colors.primary[700]  (#1B3B36, Dark Teal header/sidebar)
+//   heroTo    → colors.primary[900]  (#0f2b26, deepest dark, hero end)
+//   teal      → colors.primary[500]  (#2a8c7a, Teal Accent)
+//   tealLight → colors.primary[400]  (#2dd4a8, progress gradient start)
+//   pageBg    → colors.surface.page  (#f0f2f5, canonical Axon page bg)
 // ============================================================
 import {
   Brain,
@@ -12,14 +21,15 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react';
+import { colors } from '@/app/design-system';
 
 // ── Tokens ─────────────────────────────────────────────────
 export const tk = {
-  heroFrom: '#1B3B36',
-  heroTo: '#0f2b26',
-  teal: '#2a8c7a',
-  tealLight: '#2dd4a8',
-  pageBg: '#f8f9fb',
+  heroFrom: colors.primary[700],
+  heroTo: colors.primary[900],
+  teal: colors.primary[500],
+  tealLight: colors.primary[400],
+  pageBg: colors.surface.page,
 } as const;
 
 // ── XP Action labels (for activity feed) ───────────────────────

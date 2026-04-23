@@ -15,6 +15,7 @@ import React from 'react';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Button } from '@/app/components/ui/button';
 import { AlertCircle, RefreshCw, Inbox } from 'lucide-react';
+import { colors } from '@/app/design-system';
 import { FadeIn } from './FadeIn';
 
 // ── LoadingPage ───────────────────────────────────────────
@@ -42,13 +43,14 @@ export function LoadingPage({ rows = 4, showCards = true }: LoadingPageProps) {
       {showCards && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 rounded-xl" />
+            // #29: canonical card shape is rounded-2xl
+            <Skeleton key={i} className="h-28 rounded-2xl" />
           ))}
         </div>
       )}
 
-      {/* Table/content skeleton */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+      {/* Table/content skeleton — #29: canonical card shape (rounded-2xl, shadow-sm, border-gray-200) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-3">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-3">
             <Skeleton className="w-9 h-9 rounded-full" />
@@ -94,7 +96,9 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
-  accent = 'blue',
+  // #16: default accent is teal (Axon primary). Previously 'blue' was the
+  // default which violated the rule against blue on interactive/CTA surfaces.
+  accent = 'teal',
 }: EmptyStateProps) {
   return (
     <FadeIn>
@@ -129,8 +133,15 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
     <FadeIn>
       <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+        {/* #28: semantic error accent (AlertCircle) is driven by
+            colors.semantic.error from the design-system. The surface/border/
+            text red scale stays as Tailwind classes — there is no full error
+            color scale token to consolidate with (only a single accent). */}
         <div className="bg-red-50 border border-red-100 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+          <div
+            className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0"
+            style={{ color: colors.semantic.error }}
+          >
             <AlertCircle size={20} />
           </div>
           <div className="flex-1 min-w-0">

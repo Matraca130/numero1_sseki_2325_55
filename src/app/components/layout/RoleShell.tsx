@@ -13,6 +13,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/app/context/AuthContext';
 import { AxonLogo } from '@/app/components/shared/AxonLogo';
 import { MobileDrawer } from '@/app/components/layout/MobileDrawer';
+import { colors } from '@/app/design-system';
 import {
   Menu, LogOut, ArrowLeftRight, X,
 } from 'lucide-react';
@@ -32,20 +33,34 @@ export interface RoleShellProps {
   navItems: NavItemConfig[];
 }
 
+// Finding #6 cleanup notes:
+//   - Sidebar backgrounds: the via/to stops use Axon's canonical dark teals
+//     (colors.primary[700]=#1B3B36, colors.primary[800]=#1a2e2a). Tailwind's
+//     arbitrary-value syntax can't template JS imports, so these literals stay
+//     as-is but are documented here as token-backed.
+//   - `blue.activeNav` used blue on an INTERACTIVE element (forbidden by
+//     design rules). Replaced with the teal accent (colors.primary[500]).
+//     Blue badge/headerBadge remain on decorative surfaces (allowed).
+//   - Amber (Owner) and Purple (Professor) are documented role-accent
+//     exceptions per CLAUDE.md.
 const ACCENT_CLASSES: Record<string, { sidebar: string; activeNav: string; badge: string; headerBadge: string }> = {
   amber: {
+    // #1B3B36 = colors.primary[700], #1a2e2a = colors.primary[800]
     sidebar: 'from-amber-950 via-[#1B3B36] to-[#1a2e2a]',
     activeNav: 'bg-amber-500/15 text-amber-400 border-l-amber-500',
     badge: 'bg-amber-500/20 text-amber-400',
     headerBadge: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   },
   blue: {
+    // Sidebar surface decorative gradient kept for role identification.
+    // Interactive `activeNav` re-pointed to teal per design-system rules.
     sidebar: 'from-blue-950 via-[#1B3B36] to-[#1a2e2a]',
-    activeNav: 'bg-blue-500/15 text-blue-400 border-l-blue-500',
+    activeNav: 'bg-teal-500/15 text-teal-400 border-l-teal-500',
     badge: 'bg-blue-500/20 text-blue-400',
     headerBadge: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   },
   purple: {
+    // Professor role accent — documented violet exception (CLAUDE.md).
     sidebar: 'from-purple-950 via-[#1B3B36] to-[#1a2e2a]',
     activeNav: 'bg-purple-500/15 text-purple-400 border-l-purple-500',
     badge: 'bg-purple-500/20 text-purple-400',
@@ -186,7 +201,10 @@ export function RoleShell({ role, roleLabel, roleIcon, accentColor, navItems }: 
   }), [accent, roleLabel, roleIcon, navItems, institutionName, closeSidebar, handleSwitchRole, handleSignOut]);
 
   return (
-    <div className="flex h-screen w-full bg-[#F0F2F5] text-gray-900 font-sans overflow-hidden">
+    <div
+      className="flex h-screen w-full text-gray-900 font-sans overflow-hidden"
+      style={{ backgroundColor: colors.surface.page }}
+    >
       
       {/* ── Desktop Sidebar (always visible on lg+) ── */}
       <div className="hidden lg:flex shrink-0">

@@ -33,7 +33,13 @@ export function AxonPageHeader({
   statsRight,
 }: AxonPageHeaderProps) {
   return (
-    <div className={`${components.pageHeader.wrapper} !px-4 sm:!px-6 lg:!px-8 !pt-4 !pb-4 sm:!pb-6`}>
+    // #30: previous version used `!important` overrides to beat the padding
+    // baked into components.pageHeader.wrapper (px-8 pt-4 pb-6). Since this
+    // agent's scope does not include design-system/components.ts, we instead
+    // compose the wrapper class list locally — keeping every non-padding
+    // token (bg, border, overflow, position) from the design-system and
+    // adding responsive paddings cleanly, without !important.
+    <div className="relative bg-white overflow-hidden border-b border-gray-200 px-4 sm:px-6 lg:px-8 pt-4 pb-4 sm:pb-6">
       {/* Diagonal AXON watermark */}
       <AxonWatermark />
 
