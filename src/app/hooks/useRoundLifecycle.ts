@@ -14,7 +14,7 @@
 // parent hook wires it to the other sub-hooks.
 // ============================================================
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flashcard } from '@/app/types/content';
 import { countCorrect } from '@/app/lib/session-stats';
 
@@ -44,6 +44,13 @@ export function useRoundLifecycle() {
   const cardStartTimeRef = useRef<number>(Date.now());
   const sessionStartTimeRef = useRef<number>(Date.now());
   const isFinishingRoundRef = useRef(false);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    };
+  }, []);
 
   const resetRounds = useCallback(() => {
     setRoundCards([]);
@@ -99,7 +106,8 @@ export function useRoundLifecycle() {
 
   const advanceCard = useCallback(() => {
     setIsRevealed(false);
-    setTimeout(() => {
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
       cardStartTimeRef.current = Date.now();
     }, CARD_ADVANCE_DELAY_MS);

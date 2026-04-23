@@ -15,7 +15,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiCall } from '@/app/lib/api';
-import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
+import { getFlashcardsByTopic, type FlashcardItem } from '@/app/services/flashcardApi';
 import type { Flashcard } from '@/app/types/content';
 
 // ── Constants ─────────────────────────────────────────────────
@@ -31,7 +31,7 @@ const LOAD_BATCH_DELAY = 200;
 
 // ── Helper: map API flashcard → UI Flashcard ──────────────
 
-function mapApiCard(card: any): Flashcard {
+function mapApiCard(card: FlashcardItem): Flashcard {
   return {
     id: card.id,
     front: card.front || '',

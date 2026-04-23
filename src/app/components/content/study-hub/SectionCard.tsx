@@ -30,9 +30,6 @@ export const COVER_IMAGES = [
   'https://images.unsplash.com/photo-1729339983367-770c2527ce75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxodW1hbiUyMGFuYXRvbXklMjBza2VsZXRvbiUyMG1lZGljYWwlMjBpbGx1c3RyYXRpb24lMjBkYXJrfGVufDF8fHx8MTc3MzM5MzY3NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
 ];
 
-// focusRingStyle: inline style equivalent for elements that need style prop
-const focusRingStyle = {} as React.CSSProperties;
-
 // ── Topic status visual config (Axon palette) ────────────────
 export const STATUS_CONFIG: Record<TopicStatus, {
   label: string;
@@ -306,7 +303,7 @@ export function SectionCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onCollapse(); }}
                   className={`p-2 -ml-2 rounded-full transition-colors cursor-pointer ${focusRing}`}
-                  style={{ color: tint.neutralText, ...focusRingStyle }}
+                  style={{ color: tint.neutralText }}
                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = tint.neutralBg; e.currentTarget.style.color = '#111827'; }}
                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = tint.neutralText; }}
                   aria-label="Volver a secciones"
@@ -349,7 +346,7 @@ export function SectionCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onCollapse(); }}
                   className={`text-xs px-3 py-1.5 rounded-full transition-colors cursor-pointer ${focusRing}`}
-                  style={{ color: axon.tealAccent, fontWeight: 600, ...focusRingStyle }}
+                  style={{ color: axon.tealAccent, fontWeight: 600 }}
                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = tint.tealBg; e.currentTarget.style.color = axon.hoverTeal; }}
                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = axon.tealAccent; }}
                 >
@@ -387,7 +384,6 @@ export function SectionCard({
                       backgroundColor: cfg.rowBgColor,
                       borderColor: isNext ? axon.tealAccent + '40' : cfg.rowBorderColor,
                       ...(isNext ? { boxShadow: `0 0 0 1px ${axon.tealAccent}30` } : {}),
-                      ...focusRingStyle,
                     }}
                   >
                     {/* Sequence number */}
