@@ -13,6 +13,7 @@ import {
   Zap, ArrowLeft, Phone, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { toast } from 'sonner';
 import { VoiceCallPanel } from '../VoiceCallPanel';
 import type { ChatHistoryEntry } from '@/app/services/aiService';
 import type { GeneratedFlashcard, GeneratedQuestion } from '@/app/services/aiService';
@@ -128,7 +129,16 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
     finally { setIsLoading(false); }
   };
 
-  const copyText = (text: string, id: string) => { navigator.clipboard.writeText(text); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); };
+  const copyText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      })
+      .catch(() => {
+        toast.error('No se pudo copiar al portapapeles');
+      });
+  };
 
   const handleRagFeedback = async (msgId: string, feedback: 'positive' | 'negative') => {
     const logId = messageLogIds.get(msgId);
