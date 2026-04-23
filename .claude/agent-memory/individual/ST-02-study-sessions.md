@@ -49,3 +49,33 @@ Mantener y evolucionar el flujo completo de sesiones de estudio: creación de se
 | Quality-gate PASS | 0 | — |
 | Quality-gate FAIL | 0 | — |
 | Scope creep incidents | 0 | — |
+
+---
+
+## 2026-04-23 — God-hook split (useAdaptiveSession + useStudyTimeEstimates)
+
+### Tarea
+Split de dos hooks grandes preservando API pública intacta:
+- `useAdaptiveSession.ts` (487L) → 331L + 3 sub-hooks
+- `useStudyTimeEstimates.ts` (453L) → 175L + pure lib
+
+### Archivos creados
+- `src/app/hooks/useRoundLifecycle.ts` (177L) — rounds, card navigation, stats refs
+- `src/app/hooks/useOptimisticMastery.ts` (145L) — keyword mastery + optimistic card state
+- `src/app/hooks/useAdaptiveGeneration.ts` (134L) — AI batch generation state + abort
+- `src/app/lib/study-time-math.ts` (321L) — pure functions + constants (no React)
+
+### Lecciones
+1. **Expose refs as part of the public return** — cuando un hook expone `optimisticUpdates: ref` o `masteryDeltas: ref`, el sub-hook debe *retornar* ese ref (no re-crear) y el parent lo re-exporta. Así consumidores siguen viendo la misma identidad estable.
+2. **Re-export de funciones puras usadas por tests**: `sessionDurationMinutes` estaba exportada desde el hook y usada por 2 test-files. Después de moverla a `lib/study-time-math.ts`, re-exporté desde el hook con `export const sessionDurationMinutes = sessionDurationMinutesImpl;` para no romper tests.
+3. **Cuidado con el flujo partial-summary → completed**: el finishSession desde partial-summary NO debe re-pushear la ronda (ya fue pusheada por finishCurrentRound). Añadí `refreshSnapshots` al lifecycle para este caso.
+4. **Type-check env está roto en este repo**: los errores de `react module not found` y `import.meta.env` aparecen incluso en archivos no tocados (confirmado en `useFlashcardEngine.ts`). Filtrar siempre por errores NUEVOS respecto al baseline.
+5. **Types re-exportados**: `RoundInfo` y `GenerationProgressInfo` son consumidos por `AdaptivePartialSummary`, `AdaptiveCompletedScreen`, `RoundHistoryList`, `AdaptiveGenerationScreen`. Los definí en los sub-hooks y los re-exporté desde `useAdaptiveSession` con `export type { RoundInfo, GenerationProgressInfo };`.
+
+### Métricas
+| Métrica | Valor | Actualizado |
+|---------|-------|-------------|
+| Sesiones ejecutadas | 2 | 2026-04-23 |
+| Quality-gate PASS | 0 | — |
+| Quality-gate FAIL | 0 | — |
+| Scope creep incidents | 0 | — |

@@ -97,7 +97,8 @@ export interface TopicProgress {
 
 /** Individual flashcard review log (for spaced repetition) */
 export interface FlashcardReview {
-  cardId: number;
+  /** Flashcard UUID (string) — audit 2026-04-23: was `number` (legacy pre-UUID). */
+  cardId: string;
   topicId: string;
   courseId: string;
   reviewedAt: string; // ISO date

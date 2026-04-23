@@ -37,6 +37,11 @@
  * - 2 = Hard  (recalled with serious difficulty, NOT a lapse)
  * - 3 = Good  (recalled correctly)
  * - 4 = Easy  (recalled effortlessly)
+ *
+ * MIRROR of backend/supabase/functions/server/shared-types.ts (FsrsGrade) —
+ * keep in sync (duplicated consciously, see audit 2026-04-23).
+ * Also exported from `types/platform.ts`; the local copy lives here
+ * so grade-mapper.ts has no cross-file type dependency.
  */
 export type FsrsGrade = 1 | 2 | 3 | 4;
 
@@ -63,6 +68,9 @@ export type GradeContext = 'fsrs' | 'bkt' | 'exam';
 /**
  * Mapping from FSRS discrete grade (1-4) to continuous float (0.0-1.0).
  * Per spec v4.2, section 6.1, amendment A3.
+ *
+ * MIRROR of backend/supabase/functions/server/fsrs.ts (GRADE_TO_FLOAT) —
+ * keep in sync (duplicated consciously, see audit 2026-04-23).
  */
 export const FSRS_GRADE_TO_FLOAT: Record<FsrsGrade, number> = {
   1: 0.00,  // Again

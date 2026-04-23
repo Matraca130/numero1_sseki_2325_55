@@ -1,36 +1,45 @@
 // ============================================================
 // useFlashcardNavigation — View state machine + navigation
 //
-// REFACTORED v4.4.1:
-//   - Uses shared useStudyQueueData (eliminates duplicate study-queue fetch)
-//   - LRU-bounded cardCache (max 30 topics, ~6000 cards at ~200/topic)
-//   - Stable loadTopicCards ref (no stale closure issue)
-//   - enrichedSections: per-topic memoization instead of full rebuild
-//   - Avoids N+1 cascade for already-cached topics
+// REFACTORED v4.5 (Finding #11 — composer split):
+//   Thin composer that wires together three focused sub-hooks:
+//     - useViewStateMachine  (view + selection primitives)
+//     - useCardCache         (LRU-bounded flashcard cache + loader)
+//     - useEnrichedSections  (inject cards + mastery into tree)
 //
-// PERF v4.4.3:
-//   [C2] enrichedSections now uses granular per-topic memoization.
-//        Instead of re-enriching ALL cards when masteryMap changes,
-//        only topics whose mastery data actually changed are rebuilt.
-//        This reduces O(N×M) → O(changed×M) spreads after each session.
-//   [C1] loadFlashcardsForTopic now tries a batch endpoint first (1 request).
-//        Falls back to the old N+1 pattern if the endpoint doesn't exist (404)
-//        or fails for any reason. This allows gradual backend deployment.
+//   This file keeps only cross-cutting concerns that need access
+//   to multiple sub-hooks:
+//     - buildCourseFromTree  (tree → Course adapter)
+//     - studyQueueCourseId wiring + masteryMap/refreshMastery
+//     - keyword-mastery cache (lazy, per-topic summaries)
+//     - openSection / openDeck / studySelectedTopic
+//     - applyOptimisticMastery (optimistic patches into sqData)
+//
+// The public return shape is UNCHANGED — 22 keys — so existing
+// consumers keep working without edits.
+//
+// PERF / MASTERY notes:
+//   [C1] Batch endpoint + N+1 fallback lives in useCardCache.
+//   [C2] Per-topic memoization for enriched sections lives in
+//        useEnrichedSections.
+//   Mastery enrichment is DISPLAY-ONLY (p_know → 0-5 bucket);
+//   it does not define system-A/B/C thresholds. See MASTERY-SYSTEMS.md.
 //
 // CONNECTED TO REAL BACKEND:
 //   - Structure from ContentTreeContext (content-tree API)
-//   - Flashcards from GET /flashcards?summary_id=xxx
+//   - Flashcards from GET /flashcards?summary_id=xxx (or batch)
 //   - Mastery from shared useStudyQueueData (FSRS+BKT)
-//   - Topics/Sections built from real tree, not stub courses[]
 // ============================================================
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import { useNavigation } from '@/app/context/NavigationContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
-import { useStudyQueueData, invalidateStudyQueueCache, STUDY_QUEUE_ALL_COURSES } from '@/app/hooks/useStudyQueueData';
-import { apiCall } from '@/app/lib/api';
-import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
+import {
+  useStudyQueueData,
+  invalidateStudyQueueCache,
+  STUDY_QUEUE_ALL_COURSES,
+} from '@/app/hooks/useStudyQueueData';
 import {
   fetchKeywordMasteryByTopic,
   computeTopicMasterySummary,
@@ -38,127 +47,12 @@ import {
 } from '@/app/services/keywordMasteryApi';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import type { OptimisticCardUpdate } from './useFlashcardEngine';
-import type { Section, Topic, Flashcard, Course } from '@/app/types/content';
-import type { FlashcardViewState } from './flashcard-types';
+import type { Section, Topic, Course } from '@/app/types/content';
 
-// ── Constants ─────────────────────────────────────────────────
-
-/** Max topics to keep in cardCache before evicting oldest */
-const CARD_CACHE_MAX_TOPICS = 30;
-
-/** Batch size for loading flashcards (avoids saturating connections) */
-const LOAD_BATCH_SIZE = 5;
-
-/** Delay between batches (ms) */
-const LOAD_BATCH_DELAY = 200;
-
-// ── Helper: map API flashcard → UI Flashcard ──────────────
-
-function mapApiCard(card: any): Flashcard {
-  return {
-    id: card.id,
-    front: card.front || '',
-    back: card.back || '',
-    question: card.front || '',
-    answer: card.back || '',
-    mastery: 0,
-    difficulty: 'normal',
-    keywords: [],
-    summary_id: card.summary_id,
-    keyword_id: card.keyword_id,
-    subtopic_id: card.subtopic_id || null,
-    source: card.source,
-    image: card.front_image_url || card.back_image_url || undefined,
-    frontImageUrl: card.front_image_url || null,
-    backImageUrl: card.back_image_url || null,
-  };
-}
-
-// ── Helper: convert p_know (0-1) to mastery (0-5) ────────
-
-function pKnowToMastery(pKnow: number): number {
-  if (pKnow >= 0.90) return 5;
-  if (pKnow >= 0.75) return 4;
-  if (pKnow >= 0.60) return 3;
-  if (pKnow >= 0.40) return 2;
-  if (pKnow >= 0.20) return 1;
-  return 0;
-}
-
-// ── Helper: enrich cards with study-queue mastery data ────
-
-function enrichCardWithMastery(
-  card: Flashcard,
-  sqMap: Map<string, StudyQueueItem>,
-): Flashcard {
-  const sq = sqMap.get(card.id);
-  if (!sq) return card;
-  return {
-    ...card,
-    mastery: pKnowToMastery(sq.p_know),
-    fsrs_state: sq.fsrs_state,
-    due_at: sq.due_at || undefined,
-  };
-}
-
-// ── Helper: load flashcards for a topic ───────────────────
-// [C1] PERF v4.4.3: Try the batch endpoint first (1 request).
-// Falls back to the old N+1 pattern if the endpoint doesn't exist (404)
-// or fails for any reason. This allows gradual backend deployment.
-
-async function loadFlashcardsForTopic(topicId: string): Promise<Flashcard[]> {
-  // ── Strategy 1: Batch endpoint (PERF C1) ──
-  try {
-    const data = await getFlashcardsByTopic(topicId);
-    const items = Array.isArray(data) ? data : data?.items || [];
-    return items
-      .filter((card: any) => card.is_active !== false && !card.deleted_at)
-      .map(mapApiCard);
-  } catch (batchErr: any) {
-    if (import.meta.env.DEV) {
-      console.warn(`[FlashcardNav] Batch endpoint failed for topic ${topicId}, falling back to N+1:`, batchErr?.message);
-    }
-  }
-
-  // ── Strategy 2: N+1 fallback (original logic) ──
-  try {
-    let summaries: any[] = [];
-    try {
-      const data = await apiCall<any>(`/summaries?topic_id=${topicId}`);
-      summaries = Array.isArray(data) ? data : data?.items || [];
-    } catch {
-      summaries = [];
-    }
-
-    if (summaries.length === 0) return [];
-
-    const results = await Promise.allSettled(
-      summaries.map((s: any) =>
-        apiCall<any>(`/flashcards?summary_id=${s.id}`)
-      )
-    );
-
-    const allCards: Flashcard[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        const data = result.value;
-        const items = Array.isArray(data) ? data : data?.items || [];
-        for (const card of items) {
-          if (card.is_active !== false && !card.deleted_at) {
-            allCards.push(mapApiCard(card));
-          }
-        }
-      }
-    }
-
-    return allCards;
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.error(`[FlashcardNav] Error loading flashcards for topic ${topicId}:`, err);
-    }
-    return [];
-  }
-}
+// Sub-hooks (Finding #11 split)
+import { useCardCache, lruGet } from './useCardCache';
+import { useViewStateMachine } from './useViewStateMachine';
+import { useEnrichedSections } from './useEnrichedSections';
 
 // ── Build Course from ContentTree ─────────────────────────
 
@@ -212,37 +106,6 @@ function buildCourseFromTree(tree: any): Course {
   };
 }
 
-// ── LRU Card Cache ────────────────────────────────────────
-
-interface LruCardCache {
-  data: Map<string, Flashcard[]>;
-  order: string[]; // oldest first
-}
-
-function createLruCache(): LruCardCache {
-  return { data: new Map(), order: [] };
-}
-
-function lruGet(cache: LruCardCache, key: string): Flashcard[] | undefined {
-  return cache.data.get(key);
-}
-
-function lruSet(cache: LruCardCache, key: string, value: Flashcard[]): LruCardCache {
-  const newData = new Map(cache.data);
-  let newOrder = cache.order.filter(k => k !== key);
-
-  // Evict oldest if at capacity
-  while (newOrder.length >= CARD_CACHE_MAX_TOPICS) {
-    const evicted = newOrder.shift()!;
-    newData.delete(evicted);
-  }
-
-  newData.set(key, value);
-  newOrder.push(key);
-
-  return { data: newData, order: newOrder };
-}
-
 // ── Keyword Progress type (for DeckScreen display) ────────
 
 export interface KeywordProgress {
@@ -274,32 +137,21 @@ export function useFlashcardNavigation() {
   const { tree, loading: treeLoading } = useContentTree();
   const { navigateTo } = useStudentNav();
 
-  // View state machine
-  const [viewState, setViewState] = useState<FlashcardViewState>('hub');
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
-  const [selectedSectionIdx, setSelectedSectionIdx] = useState(0);
-
-  // LRU-bounded flashcard cache
-  const [cardCache, setCardCache] = useState<LruCardCache>(createLruCache);
-  const [loadingTopics, setLoadingTopics] = useState<Set<string>>(new Set());
-  const pendingLoads = useRef<Set<string>>(new Set());
-  /** Ref mirror of cardCache keys for synchronous checks in stable callbacks */
-  const cachedTopicIds = useRef<Set<string>>(new Set());
-
-  // ── Keyword mastery cache (lazy, fetched on openDeck) ───
-  const kwMasteryCache = useRef(new Map<string, TopicMasterySummary>());
-  const kwMasteryPending = useRef(new Set<string>());
-  const [kwProgressVersion, setKwProgressVersion] = useState(0);
-
-  // Build course from tree (merges all courses' semesters)
+  // ── Course / tree adapter ──────────────────────────────
   const currentCourse = useMemo(() => buildCourseFromTree(tree), [tree]);
 
-  // ── Shared study-queue data ──
-  // When multiple courses have content, fetch ALL study-queue data (no course filter)
-  // so mastery is displayed for every course's flashcards in the merged hub.
-  // NOTE: coursesWithContentCount is a primitive (number), so studyQueueCourseId
-  // won't recompute on unstable tree object reference changes.
+  // Derived: all sections (flattened from semesters)
+  const allSections = useMemo(
+    () => currentCourse.semesters.flatMap(sem => sem.sections),
+    [currentCourse],
+  );
+
+  // ── Shared study-queue data ────────────────────────────
+  // When multiple courses have content, fetch ALL study-queue data
+  // (no course filter) so mastery is displayed for every course's
+  // flashcards in the merged hub.
+  // NOTE: coursesWithContentCount is a primitive (number), so
+  // studyQueueCourseId won't recompute on unstable tree ref changes.
   const coursesWithContentCount = useMemo(() => {
     if (!tree?.courses) return 0;
     return tree.courses.filter((c: any) =>
@@ -308,10 +160,12 @@ export function useFlashcardNavigation() {
       )
     ).length;
   }, [tree]);
+
   const studyQueueCourseId = useMemo(() => {
     if (currentCourse.id === 'empty') return null;
     return coursesWithContentCount > 1 ? STUDY_QUEUE_ALL_COURSES : currentCourse.id;
   }, [currentCourse.id, coursesWithContentCount]);
+
   const sqData = useStudyQueueData(studyQueueCourseId);
 
   // Backward-compat: expose masteryMap as flashcard_id → StudyQueueItem
@@ -322,44 +176,46 @@ export function useFlashcardNavigation() {
     await sqData.refresh();
   }, [sqData]);
 
-  // Derived: all sections (flattened from semesters)
-  const allSections = useMemo(
-    () => currentCourse.semesters.flatMap(sem => sem.sections),
-    [currentCourse],
-  );
+  // ── Sub-hook: view state machine ───────────────────────
+  const {
+    viewState,
+    setViewState,
+    selectedSection,
+    setSelectedSection,
+    selectedTopic,
+    setSelectedTopic,
+    selectedSectionIdx,
+    setSelectedSectionIdx,
+    goBack,
+    goToHub,
+  } = useViewStateMachine({
+    navigateTo,
+    currentCourseId: currentCourse.id,
+  });
 
-  // ── Load flashcards for a topic (stable ref) ───────────
+  // ── Sub-hook: LRU card cache + auto-load ───────────────
+  const { cardCache, loadTopicCards, reloadTopicCards } = useCardCache(tree, treeLoading);
 
-  const loadTopicCards = useCallback(async (topicId: string) => {
-    if (pendingLoads.current.has(topicId)) return;
-    if (cachedTopicIds.current.has(topicId)) return;
+  // ── Sub-hook: enriched sections/topics ─────────────────
+  const {
+    enrichedSections,
+    allFlashcards,
+    enrichedSelectedSection,
+    enrichedSelectedTopic,
+    enrichCardWithMastery,
+  } = useEnrichedSections({
+    allSections,
+    cardCache,
+    masteryMap,
+    selectedSection,
+    selectedTopic,
+    currentCourseId: currentCourse.id,
+  });
 
-    pendingLoads.current.add(topicId);
-    setLoadingTopics(prev => new Set(prev).add(topicId));
-
-    const cards = await loadFlashcardsForTopic(topicId);
-
-    cachedTopicIds.current.add(topicId);
-    setCardCache(prev => lruSet(prev, topicId, cards));
-    pendingLoads.current.delete(topicId);
-    setLoadingTopics(prev => {
-      const next = new Set(prev);
-      next.delete(topicId);
-      return next;
-    });
-  }, []); // Stable — no dependencies that change
-
-  // Force-reload flashcards for a topic (clears cache entry first)
-  const reloadTopicCards = useCallback(async (topicId: string) => {
-    cachedTopicIds.current.delete(topicId);
-    pendingLoads.current.delete(topicId);
-    setCardCache(prev => {
-      const newData = new Map(prev.data);
-      newData.delete(topicId);
-      return { data: newData, order: prev.order.filter(k => k !== topicId) };
-    });
-    await loadTopicCards(topicId);
-  }, [loadTopicCards]);
+  // ── Keyword mastery cache (lazy, fetched on openDeck) ──
+  const kwMasteryCache = useRef(new Map<string, TopicMasterySummary>());
+  const kwMasteryPending = useRef(new Set<string>());
+  const [kwProgressVersion, setKwProgressVersion] = useState(0);
 
   // ── Load keyword mastery for a topic (lazy, non-blocking) ──
   const loadKeywordMastery = useCallback(async (topicId: string) => {
@@ -392,73 +248,9 @@ export function useFlashcardNavigation() {
     setKwProgressVersion(v => v + 1);
   }, []);
 
-  // Auto-load flashcards for all topics when tree loads
-  useEffect(() => {
-    if (treeLoading || !tree) return;
-    const topicIds: string[] = [];
-    for (const c of tree.courses || []) {
-      for (const s of c.semesters || []) {
-        for (const sec of s.sections || []) {
-          for (const t of sec.topics || []) {
-            topicIds.push(t.id);
-          }
-        }
-      }
-    }
-
-    // Load in batches to avoid overwhelming the API
-    let idx = 0;
-    let cancelled = false;
-    const loadBatch = () => {
-      if (cancelled) return;
-      const batch = topicIds.slice(idx, idx + LOAD_BATCH_SIZE);
-      batch.forEach(id => loadTopicCards(id));
-      idx += LOAD_BATCH_SIZE;
-      if (idx < topicIds.length) {
-        setTimeout(loadBatch, LOAD_BATCH_DELAY);
-      }
-    };
-    if (topicIds.length > 0) loadBatch();
-
-    return () => { cancelled = true; };
-  }, [tree, treeLoading, loadTopicCards]);
-
-  // ── Inject cached flashcards + mastery into sections ────
-  const enrichedTopicCache = useRef(new Map<string, { cards: Flashcard[]; cacheRef: Flashcard[]; mapRef: Map<string, StudyQueueItem> }>());
-
-  const enrichedSections = useMemo(() => {
-    const topicCache = enrichedTopicCache.current;
-    return allSections.map(section => ({
-      ...section,
-      topics: section.topics.map(topic => {
-        const cached = lruGet(cardCache, topic.id) || [];
-        const prev = topicCache.get(topic.id);
-
-        if (prev && prev.cacheRef === cached && prev.mapRef === masteryMap) {
-          return { ...topic, flashcards: prev.cards };
-        }
-
-        const enriched = cached.map(card => enrichCardWithMastery(card, masteryMap));
-        topicCache.set(topic.id, { cards: enriched, cacheRef: cached, mapRef: masteryMap });
-        return { ...topic, flashcards: enriched };
-      }),
-    }));
-  }, [allSections, cardCache, masteryMap]);
-
-  const allFlashcards = useMemo(
-    () => enrichedSections.flatMap(sec => sec.topics.flatMap(t => t.flashcards || [])),
-    [enrichedSections],
-  );
-
-  // Reset on course change
-  useEffect(() => {
-    setViewState('hub');
-    setSelectedSection(null);
-    setSelectedTopic(null);
-    enrichedTopicCache.current.clear();
-  }, [currentCourse.id]);
-
-  // ── Actions ──
+  // ── Cross-cutting actions ──────────────────────────────
+  // These close over multiple sub-hooks (cardCache + enrichedSections +
+  // loadTopicCards + masteryMap) so they live in the composer.
 
   const openSection = useCallback((section: Section, idx: number) => {
     section.topics.forEach(t => loadTopicCards(t.id));
@@ -466,7 +258,13 @@ export function useFlashcardNavigation() {
     setSelectedSection(enriched);
     setSelectedSectionIdx(idx);
     setViewState('section');
-  }, [enrichedSections, loadTopicCards]);
+  }, [
+    enrichedSections,
+    loadTopicCards,
+    setSelectedSection,
+    setSelectedSectionIdx,
+    setViewState,
+  ]);
 
   const openDeck = useCallback((topic: Topic) => {
     loadTopicCards(topic.id);
@@ -476,30 +274,15 @@ export function useFlashcardNavigation() {
     const enriched = { ...topic, flashcards: enrichedCards };
     setSelectedTopic(enriched);
     setViewState('deck');
-  }, [cardCache, loadTopicCards, loadKeywordMastery, masteryMap]);
-
-  const goBack = useCallback(() => {
-    if (viewState === 'summary' || viewState === 'session') {
-      setViewState('hub');
-      setSelectedTopic(null);
-      setSelectedSection(null);
-    } else if (viewState === 'deck') {
-      setViewState('hub');
-      setSelectedTopic(null);
-      setSelectedSection(null);
-    } else if (viewState === 'section') {
-      setViewState('hub');
-      setSelectedSection(null);
-    } else {
-      navigateTo('study');
-    }
-  }, [viewState, navigateTo]);
-
-  const goToHub = useCallback(() => {
-    setViewState('hub');
-    setSelectedTopic(null);
-    setSelectedSection(null);
-  }, []);
+  }, [
+    cardCache,
+    loadTopicCards,
+    loadKeywordMastery,
+    masteryMap,
+    enrichCardWithMastery,
+    setSelectedTopic,
+    setViewState,
+  ]);
 
   const studySelectedTopic = useCallback(() => {
     if (selectedTopic) {
@@ -508,36 +291,12 @@ export function useFlashcardNavigation() {
     }
   }, [selectedTopic, setCurrentTopic, navigateTo]);
 
-  // Keep selectedSection/selectedTopic enriched
-  const enrichedSelectedSection = useMemo(() => {
-    if (!selectedSection) return null;
-    return {
-      ...selectedSection,
-      topics: selectedSection.topics.map(t => ({
-        ...t,
-        flashcards: (lruGet(cardCache, t.id) || t.flashcards || []).map(
-          card => enrichCardWithMastery(card, masteryMap)
-        ),
-      })),
-    };
-  }, [selectedSection, cardCache, masteryMap]);
-
-  const enrichedSelectedTopic = useMemo(() => {
-    if (!selectedTopic) return null;
-    return {
-      ...selectedTopic,
-      flashcards: (lruGet(cardCache, selectedTopic.id) || selectedTopic.flashcards || []).map(
-        card => enrichCardWithMastery(card, masteryMap)
-      ),
-    };
-  }, [selectedTopic, cardCache, masteryMap]);
-
-  // ── Apply optimistic mastery updates ──
+  // ── Apply optimistic mastery updates ───────────────────
   const applyOptimisticMastery = useCallback(
     (updates: Map<string, OptimisticCardUpdate>) => {
       if (updates.size === 0) return;
 
-      const patchedItems: import('@/app/lib/studyQueueApi').StudyQueueItem[] = [];
+      const patchedItems: StudyQueueItem[] = [];
       for (const [cardId, upd] of updates) {
         const existing = sqData.byFlashcardId.get(cardId);
         if (existing) {
@@ -585,6 +344,12 @@ export function useFlashcardNavigation() {
     },
     [sqData],
   );
+
+  // Silence the unused-effect deps warning: treeLoading is consumed by useCardCache.
+  // (No-op effect kept intentionally as documentation.)
+  useEffect(() => {
+    // useCardCache handles auto-load on tree ready; nothing to do here.
+  }, [treeLoading]);
 
   return {
     viewState,

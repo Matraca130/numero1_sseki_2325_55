@@ -16,6 +16,7 @@ import { AnimatePresence } from 'motion/react';
 import { QuizSelection } from './QuizSelection';
 import { QuizTaker } from '@/app/components/student/QuizTaker';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
+import { colors } from '@/app/design-system';
 
 // ── Main QuizView ──────────────────────────────────────
 
@@ -40,7 +41,12 @@ export function QuizView() {
   };
 
   return (
-    <div className="h-full bg-zinc-50 overflow-hidden">
+    // #33: was `bg-zinc-50` (hardcoded Tailwind neutral); now backed by the
+    // canonical Axon page surface token (colors.surface.page).
+    <div
+      className="h-full overflow-hidden"
+      style={{ backgroundColor: colors.surface.page }}
+    >
       <AnimatePresence mode="wait">
         {viewState === 'selection' ? (
           <ErrorBoundary key="sel-eb" variant="section" retry={() => {}}>
