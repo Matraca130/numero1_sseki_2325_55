@@ -75,8 +75,10 @@ function CascadeNavigator({
   // ── 1. Load memberships once to filter professor courses ──
   useEffect(() => {
     if (!institutionId) return;
+    let cancelled = false;
     apiCall<any>(`/memberships?institution_id=${institutionId}`)
       .then(data => {
+        if (cancelled) return;
         const items = Array.isArray(data) ? data : data?.items || [];
         const ids = new Set<string>(
           items
@@ -85,8 +87,9 @@ function CascadeNavigator({
         );
         setProfCourseIds(ids);
       })
-      .catch(err => console.error('[CascadeNav] Memberships error:', err))
-      .finally(() => setMembershipsLoaded(true));
+      .catch(err => { if (!cancelled) console.error('[CascadeNav] Memberships error:', err); })
+      .finally(() => { if (!cancelled) setMembershipsLoaded(true); });
+    return () => { cancelled = true; };
   }, [institutionId]);
 
   // ── 2. Derive courses from tree, filtered by professor memberships ──
@@ -122,17 +125,21 @@ function CascadeNavigator({
   // ── 6. Load summaries when topic selected (flat API call) ──
   useEffect(() => {
     if (!selectedTopicId) { setSummaries([]); return; }
+    let cancelled = false;
     setSummariesLoading(true);
     apiCall<any>(`/summaries?topic_id=${selectedTopicId}`)
       .then(data => {
+        if (cancelled) return;
         const items = Array.isArray(data) ? data : data?.items || [];
         setSummaries(items);
       })
       .catch(err => {
+        if (cancelled) return;
         console.error('[CascadeNav] Summaries error:', err);
         setSummaries([]);
       })
-      .finally(() => setSummariesLoading(false));
+      .finally(() => { if (!cancelled) setSummariesLoading(false); });
+    return () => { cancelled = true; };
   }, [selectedTopicId]);
 
   // ── Reset handlers ──
