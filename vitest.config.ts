@@ -22,9 +22,9 @@ export default defineConfig({
     setupFiles: ['src/test/setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     // NOTE: e2e-adaptive-flashcard-session deterministically hangs in CI —
-    // reproduces on main too. Pre-existing issue unrelated to this PR; needs
-    // a separate fix (see follow-up issue). Excluding here unblocks CI while
-    // the root cause is investigated.
+    // reproduces on main too. Pre-existing issue unrelated to this PR.
+    // Tracked in issue #516 — exclusion is temporary until root cause is
+    // fixed; see https://github.com/Matraca130/numero1_sseki_2325_55/issues/516.
     exclude: [
       'node_modules',
       'dist',

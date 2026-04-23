@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useStudentNav } from '@/app/hooks/useStudentNav';
+import { useBreakpoint } from '@/app/hooks/useBreakpoint';
 import { useStudentDataContext } from '@/app/context/StudentDataContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { CATEGORY_STYLES, CATEGORY_DOT_COLORS } from '@/app/utils/categoryStyles';
@@ -64,23 +65,24 @@ const HEAT_LEVELS: HeatLevel[] = [
 const DAYS_OF_WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const PREV_MONTH_DAYS = [26, 27, 28, 29, 30];
 const MONTH_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
-const DESKTOP_MQ = '(min-width: 1024px)';
 
-function useIsDesktop(): boolean {
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia(DESKTOP_MQ).matches;
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia(DESKTOP_MQ);
-    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    setIsDesktop(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return isDesktop;
-}
+// Pre-index the mock events + heat levels by day so the 28 per-day lookups
+// in the render loop become O(1) instead of re-scanning the arrays on every
+// `getEventsForDay` / `getHeatLevel` call. Mirrors the indexing pattern used
+// in MasteryDashboardView (eventsByDay) — the two views now optimize hot
+// paths the same way.
+const EVENTS_BY_DAY = CALENDAR_EVENTS.reduce<Map<number, MockCalendarDayEvent[]>>(
+  (map, ev) => {
+    const list = map.get(ev.day);
+    if (list) list.push(ev);
+    else map.set(ev.day, [ev]);
+    return map;
+  },
+  new Map(),
+);
+const HEAT_LEVEL_BY_DAY: Map<number, 'high' | 'med' | 'none'> = new Map(
+  HEAT_LEVELS.map((h) => [h.day, h.level]),
+);
 
 const TIMELINE_DATA = {
   activeSession: { subject: 'Fisiologia II: Integração', retentionBoost: 15, progress: 65 },
@@ -187,7 +189,8 @@ export function KnowledgeHeatmapView() {
 
   // Layout-triggering media queries must be read in an effect, not during
   // render, to avoid forced synchronous style/layout reads each render.
-  const isDesktop = useIsDesktop();
+  // Shared `useBreakpoint` hook (SSR-safe, event-driven via matchMedia).
+  const isDesktop = useBreakpoint('lg');
 
   const activityMap = useMemo(() => {
     const map = new Map<number, { minutes: number; cards: number; retention: number | null; sessions: number }>();
@@ -200,13 +203,13 @@ export function KnowledgeHeatmapView() {
   const getHeatLevel = (day: number): 'high' | 'med' | 'none' => {
     const data = activityMap.get(day);
     if (data && data.minutes > 0) { if (data.minutes >= 80) return 'high'; if (data.minutes >= 30) return 'med'; return 'none'; }
-    if (!isConnected || activityMap.size === 0) { const mock = HEAT_LEVELS.find(h => h.day === day); return mock?.level || 'none'; }
+    if (!isConnected || activityMap.size === 0) { return HEAT_LEVEL_BY_DAY.get(day) ?? 'none'; }
     return 'none';
   };
 
   const getEventsForDay = (day: number) => {
     const data = activityMap.get(day);
-    const mockEvents = CALENDAR_EVENTS.filter(e => e.day === day);
+    const mockEvents = EVENTS_BY_DAY.get(day) ?? [];
     if (isConnected && data && data.minutes > 0) { const realEvent: MockCalendarDayEvent = { day, title: `${data.sessions} sesión(es)`, category: 'core', cards: data.cards > 0 ? data.cards : undefined, noteText: `${data.minutes} min estudiados` }; return mockEvents.length > 0 ? mockEvents : [realEvent]; }
     return mockEvents;
   };
