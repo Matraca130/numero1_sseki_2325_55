@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 
 // ── Grade Mapper (FSRS engine core) ─────────────────────────
 import {
-  smRatingToFsrsGrade,
+  uiRatingToFsrsGrade,
   fsrsGradeToFloat,
   isCorrect,
   isRecovering,
@@ -108,8 +108,8 @@ describe('FSRS Grade Translation Pipeline', () => {
 
   // Test 5: UI ratings 3 and 4 collapse into the same FSRS grade 3
   it('UI ratings 3 (ok) and 4 (good) both map to FSRS grade 3 (Good)', () => {
-    expect(smRatingToFsrsGrade(3)).toBe(3);
-    expect(smRatingToFsrsGrade(4)).toBe(3);
+    expect(uiRatingToFsrsGrade(3)).toBe(3);
+    expect(uiRatingToFsrsGrade(4)).toBe(3);
   });
 
   // Test 6: Continuous grade scale covers the full 0.0-1.0 range

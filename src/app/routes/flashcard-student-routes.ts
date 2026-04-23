@@ -18,20 +18,15 @@ export const flashcardStudentRoutes: RouteObject[] = [
     lazy: () => lazyRetry(() => import('@/app/components/content/FlashcardView')).then(m => ({ Component: m.FlashcardView })),
   },
   {
-    // BUG-016 FIX: Was missing — "Con IA" button navigated here but route didn't exist.
-    // AdaptiveFlashcardView reads topicId/courseId/topicTitle from URL search params.
+    // BUG-016 FIX (also Fase 5 v4.5.0): "Con IA" button navigates here.
+    // AdaptiveFlashcardView reads topicId/courseId/topicTitle from URL
+    // search params (set by FlashcardView).
     path: 'adaptive-session',
     lazy: () => lazyRetry(() => import('@/app/components/content/AdaptiveFlashcardView')).then(m => ({ Component: m.AdaptiveFlashcardView })),
   },
   {
     path: 'review-session',
     lazy: () => lazyRetry(() => import('@/app/components/content/ReviewSessionView')).then(m => ({ Component: m.ReviewSessionView })),
-  },
-  {
-    // Fase 5 (v4.5.0): adaptive AI-driven flashcard session.
-    // Query params: topicId, courseId, topicTitle (set by FlashcardView).
-    path: 'adaptive-session',
-    lazy: () => lazyRetry(() => import('@/app/components/content/AdaptiveFlashcardView')).then(m => ({ Component: m.AdaptiveFlashcardView })),
   },
   // Agent 3: agrega nuevas rutas de flashcard aqui
 ];
