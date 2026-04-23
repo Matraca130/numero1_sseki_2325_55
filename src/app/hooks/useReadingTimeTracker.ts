@@ -18,8 +18,7 @@
 // ============================================================
 
 import { useRef, useEffect, useCallback } from 'react';
-import { API_BASE, ANON_KEY, getAccessToken } from '@/app/lib/api';
-import * as studentApi from '@/app/services/studentSummariesApi';
+import { enqueueReadingState, flush as flushReadingQueue, flushBeacon as flushReadingBeacon } from './useReadingStateQueue';
 
 const SAVE_INTERVAL_MS = 30_000; // 30 seconds
 const MIN_ELAPSED_TO_SAVE = 5;   // don't save trivial amounts (<5s)
@@ -33,8 +32,6 @@ export function useReadingTimeTracker(
   const accumulatedRef = useRef(initialTimeSpent);
   // Timestamp of the last save (or mount). Elapsed = now - lastSave.
   const lastSaveTimeRef = useRef(Date.now());
-  // Guard against concurrent saves (periodic + visibility)
-  const savingRef = useRef(false);
   // Ref for scroll position getter — avoids stale closures in save/saveBeacon
   const getScrollPositionRef = useRef(getScrollPosition);
   getScrollPositionRef.current = getScrollPosition;
@@ -47,79 +44,32 @@ export function useReadingTimeTracker(
   }, [initialTimeSpent]);
 
   // ── Core save function ──────────────────────────────────
-  const save = useCallback(async () => {
-    if (savingRef.current) return;
-
+  const save = useCallback(() => {
     const now = Date.now();
     const sessionElapsed = Math.round((now - lastSaveTimeRef.current) / 1000);
 
     if (sessionElapsed < MIN_ELAPSED_TO_SAVE) return;
 
-    savingRef.current = true;
     const newTotal = accumulatedRef.current + sessionElapsed;
-
     const scrollPos = getScrollPositionRef.current?.();
-    try {
-      await studentApi.upsertReadingState({
-        summary_id: summaryId,
-        time_spent_seconds: newTotal,
-        last_read_at: new Date().toISOString(),
-        ...(scrollPos != null && { scroll_position: scrollPos }),
-      });
 
-      // Success: update refs so next save doesn't double-count
-      accumulatedRef.current = newTotal;
-      lastSaveTimeRef.current = Date.now();
-    } catch (err) {
-      // PN-3: Guard console.warn — silently fail, will retry on next interval
-      if (import.meta.env.DEV) {
-        console.warn('[ReadingTimeTracker] Save failed:', err);
-      }
-    } finally {
-      savingRef.current = false;
-    }
-  }, [summaryId]);
+    // Enqueue update synchronously, flush will be batched/debounced
+    enqueueReadingState({
+      summary_id: summaryId,
+      time_spent_seconds: newTotal,
+      last_read_at: new Date().toISOString(),
+      ...(scrollPos != null && { scroll_position: scrollPos }),
+    });
 
-  // ── Fire-and-forget save (for beforeunload) ─────────────
-  // Uses fetch with keepalive:true which survives page unload
-  const saveBeacon = useCallback(() => {
-    const sessionElapsed = Math.round(
-      (Date.now() - lastSaveTimeRef.current) / 1000,
-    );
-    if (sessionElapsed < MIN_ELAPSED_TO_SAVE) return;
-
-    const total = accumulatedRef.current + sessionElapsed;
-    const token = getAccessToken();
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${ANON_KEY}`,
-    };
-    if (token) headers['X-Access-Token'] = token;
-
-    const scrollPos = getScrollPositionRef.current?.();
-    try {
-      fetch(`${API_BASE}/reading-states`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          summary_id: summaryId,
-          time_spent_seconds: total,
-          last_read_at: new Date().toISOString(),
-          ...(scrollPos != null && { scroll_position: scrollPos }),
-        }),
-        keepalive: true, // browser completes request even after page unloads
-      });
-      // Don't await — fire and forget
-    } catch {
-      // Last resort failed — nothing else we can do
-    }
+    // Update refs so next save doesn't double-count
+    accumulatedRef.current = newTotal;
+    lastSaveTimeRef.current = Date.now();
   }, [summaryId]);
 
   // ── Layer 1: Periodic save every 30s ────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      save().catch(() => {});
+      save();
     }, SAVE_INTERVAL_MS);
 
     return () => clearInterval(interval);
@@ -129,25 +79,25 @@ export function useReadingTimeTracker(
   useEffect(() => {
     const handler = () => {
       if (document.visibilityState === 'hidden') {
-        save().catch(() => {});
+        save();
       }
     };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   }, [save]);
 
-  // ── Layer 3: Save on beforeunload (keepalive fetch) ─────
+  // ── Layer 3: Save on beforeunload (beacon) ─────────────
   useEffect(() => {
-    const handler = () => saveBeacon();
+    const handler = () => flushReadingBeacon();
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [saveBeacon]);
+  }, []);
 
   // ── Layer 4: Unmount cleanup (best-effort) ──────────────
   useEffect(() => {
     return () => {
-      // Fire and forget — React doesn't wait for async cleanup
-      save().catch(() => {});
+      save();
+      flushReadingQueue().catch(() => {});
     };
   }, [save]);
 
