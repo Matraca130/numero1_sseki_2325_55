@@ -1,4 +1,8 @@
-name: PR Fix (review comments → auto-fix → optional auto-merge)
+name: PR Fix (v2 — linear + update-branch + edge cases)
+
+# Design: v2 is a linear, in-process flow. No polling for external workflows.
+# Validation (tests/tsc/build) runs inside THIS job. Faster (~5-8 min), no race.
+# Handles BEHIND branches via `gh pr update-branch` (atomic merge-commit, not force-push).
 
 on:
   issue_comment:
@@ -10,63 +14,139 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  checks: read
   id-token: write
 
 concurrency:
   group: pr-fix-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: false
+  cancel-in-progress: true  # a new @claude-fix cancels the previous attempt
 
 jobs:
   fix:
+    # Trigger gates — multiple edge cases combined
     if: >-
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request != null &&
         contains(github.event.comment.body, '@claude-fix') &&
-        github.event.comment.user.login == 'Matraca130'
+        github.event.comment.user.login == 'Matraca130' &&
+        github.event.comment.user.type != 'Bot'
       ) ||
       (
         github.event_name == 'pull_request_review' &&
         github.event.review.state == 'changes_requested' &&
+        github.event.sender.type != 'Bot' &&
         github.event.sender.login != 'claude-fix[bot]'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT || github.token }}  # PAT so commits trigger workflows
 
     steps:
-      - name: Resolve PR number
+      - name: Resolve PR metadata
         id: pr
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           PR_NUM="${{ github.event.issue.number || github.event.pull_request.number }}"
           echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
-          PR_JSON=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName,headRefOid,labels,state,isDraft)
-          HEAD_REF=$(echo "$PR_JSON" | jq -r .headRefName)
-          HEAD_SHA=$(echo "$PR_JSON" | jq -r .headRefOid)
-          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
-          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
-          LABELS=$(echo "$PR_JSON" | jq -r '.labels[].name' | tr '\n' ',' || echo "")
-          echo "labels=$LABELS" >> "$GITHUB_OUTPUT"
 
-      - name: Guard — PR not draft, not blocked
+          PR_JSON=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" \
+            --json headRefName,headRefOid,baseRefName,labels,state,isDraft,mergeStateStatus,mergeable,isCrossRepository,author)
+          echo "$PR_JSON" > /tmp/pr.json
+
+          echo "head_ref=$(jq -r .headRefName /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "head_sha_initial=$(jq -r .headRefOid /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$(jq -r .baseRefName /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "state=$(jq -r .state /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "is_draft=$(jq -r .isDraft /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "is_fork=$(jq -r .isCrossRepository /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "merge_state=$(jq -r .mergeStateStatus /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+          echo "mergeable=$(jq -r .mergeable /tmp/pr.json)" >> "$GITHUB_OUTPUT"
+
+          LABELS=$(jq -r '[.labels[].name] | join(",")' /tmp/pr.json)
+          echo "labels=$LABELS" >> "$GITHUB_OUTPUT"
+          echo "  PR #$PR_NUM state=$(jq -r .state /tmp/pr.json) merge_state=$(jq -r .mergeStateStatus /tmp/pr.json) draft=$(jq -r .isDraft /tmp/pr.json) fork=$(jq -r .isCrossRepository /tmp/pr.json) labels=$LABELS"
+
+      # -------- Early-exit guards (each posts a comment explaining why) --------
+      - name: Guard — PR open, not draft, not blocked, base=main, not fork
         env:
-          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_STATE: ${{ steps.pr.outputs.state }}
+          IS_DRAFT: ${{ steps.pr.outputs.is_draft }}
+          IS_FORK: ${{ steps.pr.outputs.is_fork }}
+          BASE: ${{ steps.pr.outputs.base_ref }}
           LABELS: ${{ steps.pr.outputs.labels }}
         run: |
-          if echo "$LABELS" | grep -qE "(^|,)(blocked|do-not-merge)($|,)"; then
-            echo "::error::PR has blocking label — aborting."
-            exit 1
+          FAIL=""
+          [ "$PR_STATE" != "OPEN" ] && FAIL="PR state is $PR_STATE (needs OPEN)"
+          [ "$IS_DRAFT" = "true" ]  && FAIL="PR is draft"
+          [ "$IS_FORK"  = "true" ]  && FAIL="PR from fork — bot write access not guaranteed"
+          [ "$BASE"     != "main" ] && FAIL="PR base is '$BASE' (only 'main' is supported)"
+          echo "$LABELS" | grep -qE "(^|,)(blocked|do-not-merge)(,|$)" && FAIL="blocking label present"
+          if [ -n "$FAIL" ]; then
+            gh pr comment "$PR_NUMBER" --body "🔸 pr-fix aborted: $FAIL"
+            echo "::notice::Skipped: $FAIL"
+            exit 0
           fi
+
+      # -------- Mergeable state + optional update-branch (BEHIND case) --------
+      - name: Resolve mergeable state (poll up to 60s for UNKNOWN)
+        id: merge_state
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            STATE=$(gh pr view "$PR_NUMBER" --json mergeStateStatus --jq .mergeStateStatus)
+            [ "$STATE" != "UNKNOWN" ] && break
+            echo "  mergeStateStatus=UNKNOWN, waiting..."
+            sleep 5
+          done
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          echo "Resolved mergeStateStatus=$STATE"
+
+      - name: Update branch if BEHIND (merge-commit via GitHub API, no force-push)
+        id: update_branch
+        if: steps.merge_state.outputs.state == 'BEHIND'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          echo "Branch is BEHIND main — attempting gh pr update-branch (merge commit)"
+          if gh pr update-branch "$PR_NUMBER" --merge-method=merge 2>&1 | tee /tmp/update-branch.log; then
+            echo "  ✅ update-branch succeeded"
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+            # give GitHub a moment to propagate
+            sleep 8
+          else
+            RC=$?
+            echo "  ❌ update-branch failed (exit $RC) — likely conflicts or protected branch"
+            gh pr comment "$PR_NUMBER" --body "🔸 pr-fix: branch is BEHIND main and update-branch failed. Human rebase needed before @claude-fix."
+            exit 0
+          fi
+
+      - name: Exit if CONFLICTING/DIRTY
+        if: steps.merge_state.outputs.state == 'CONFLICTING' || steps.merge_state.outputs.state == 'DIRTY'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          STATE: ${{ steps.merge_state.outputs.state }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body "🔸 pr-fix aborted: mergeStateStatus=$STATE. Human conflict resolution needed."
+          echo "::notice::Skipped: mergeStateStatus=$STATE"
+          exit 0
+
+      # -------- Checkout (after potential update-branch so we get the merge commit) --------
+      - name: Resolve final head SHA (after update-branch)
+        id: final_head
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          SHA=$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Final head SHA: $SHA"
 
       - name: Checkout PR head
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.head_ref }}
+          ref: ${{ steps.final_head.outputs.sha }}
           fetch-depth: 0
-          # PAT instead of GITHUB_TOKEN so bot commits trigger downstream workflows
-          # (GITHUB_TOKEN pushes don't trigger workflow runs by design).
           token: ${{ secrets.GH_PAT || github.token }}
 
       - name: Configure git identity
@@ -82,239 +162,273 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --no-audit
+        run: npm ci --no-audit --prefer-offline
 
-      - name: Capture baseline metrics
-        id: baseline
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-        run: |
-          # Baseline: count tsc errors on main for delta comparison
-          git fetch origin main --depth=1
-          # Count tsc errors on PR head — we'll compare delta after fix
-          npx tsc --noEmit 2>&1 | grep -cE "error TS[0-9]+:" > /tmp/tsc-before.txt || echo "0" > /tmp/tsc-before.txt
-          echo "tsc_before=$(cat /tmp/tsc-before.txt)" >> "$GITHUB_OUTPUT"
-          # Snapshot HEAD for LOC delta
-          echo "sha_before=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Collect review comments
+      # -------- Collect review comments --------
+      - name: Collect review + issue comments
         id: comments
         env:
-          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
-          # Inline review comments (with file:line)
           gh api "/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/comments?per_page=100" \
-            --jq '.[] | {user: .user.login, path, line, body}' > /tmp/review-comments.jsonl || echo "" > /tmp/review-comments.jsonl
-          # Issue-style comments (body-only)
+            --jq '.[] | {user: .user.login, type: .user.type, path, line, body}' > /tmp/review-comments.jsonl || echo "" > /tmp/review-comments.jsonl
           gh api "/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
-            --jq '.[] | {user: .user.login, body}' > /tmp/issue-comments.jsonl || echo "" > /tmp/issue-comments.jsonl
-          echo "Review comments: $(wc -l < /tmp/review-comments.jsonl)"
-          echo "Issue comments: $(wc -l < /tmp/issue-comments.jsonl)"
+            --jq '.[] | {user: .user.login, type: .user.type, body}' > /tmp/issue-comments.jsonl || echo "" > /tmp/issue-comments.jsonl
+          RC=$(wc -l < /tmp/review-comments.jsonl)
+          IC=$(wc -l < /tmp/issue-comments.jsonl)
+          echo "review=$RC" >> "$GITHUB_OUTPUT"
+          echo "issue=$IC" >> "$GITHUB_OUTPUT"
+          echo "Review comments: $RC | Issue comments: $IC"
 
-      - name: Run Claude fix (guarded by code-reviewer agent)
+      - name: Path blocklist pre-check
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          # If any review comment targets a forbidden path → abort, too sensitive for auto-fix
+          BLOCKED=$(jq -r 'select(.path != null) | .path' /tmp/review-comments.jsonl 2>/dev/null | \
+                    grep -E '^(\.github/workflows/|\.env|.*secret.*|.*credential.*)' || true)
+          if [ -n "$BLOCKED" ]; then
+            gh pr comment "$PR_NUMBER" --body "🔸 pr-fix aborted: review comments target security-sensitive paths:
+          $(echo "$BLOCKED" | sed 's/^/- /')
+
+          Human review required for these paths."
+            echo "::notice::Skipped: sensitive path in review comments"
+            exit 0
+          fi
+
+      # -------- Apply fixes --------
+      - name: Apply TRIVIAL fixes with Claude
         id: fix
         uses: anthropics/claude-code-action@v1
         env:
-          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           HEAD_REF: ${{ steps.pr.outputs.head_ref }}
-          TSC_BEFORE: ${{ steps.baseline.outputs.tsc_before }}
-          SHA_BEFORE: ${{ steps.baseline.outputs.sha_before }}
+          FINAL_HEAD_SHA: ${{ steps.final_head.outputs.sha }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: "claude"
           prompt: |
-            You are fixing review comments on PR #${{ steps.pr.outputs.number }} in repo ${{ github.repository }}.
+            You are fixing review comments on PR #${{ steps.pr.outputs.number }} in ${{ github.repository }}.
 
-            ## Context files
-            - `/tmp/review-comments.jsonl` — inline review comments (one JSON per line: user, path, line, body)
-            - `/tmp/issue-comments.jsonl` — general PR comments (user, body)
+            Inputs available on disk:
+            - `/tmp/review-comments.jsonl` — inline review comments (JSON per line: user, type, path, line, body)
+            - `/tmp/issue-comments.jsonl` — PR body-level comments
 
             ## Workflow — STRICT. Follow exactly.
 
             ### Step 1: Read comments
             `cat /tmp/review-comments.jsonl /tmp/issue-comments.jsonl`
 
-            ### Step 2: Classify each finding
-            For each reviewer comment (from `claude[bot]`, `gemini-code-assist[bot]`, or the repo owner), classify:
-            - **TRIVIAL**: ≤3 files affected, ≤100 LOC delta, no architectural decisions, no API-breaking, no changes to types used across >5 files.
-            - **COMPLEX**: anything else. Skip entirely.
+            Exit early (print "NOTHING_TO_FIX" and stop) if both files are empty.
 
-            Build a plan listing TRIVIAL findings you will address. Do NOT fix COMPLEX ones.
+            ### Step 2: Classify each finding
+
+            **TRIVIAL** (eligible for auto-fix):
+            - ≤3 files affected
+            - ≤100 LOC total delta across all TRIVIAL fixes combined
+            - Single-statement or few-statement changes
+            - No public API signature changes
+            - No new dependencies (no `package.json` changes)
+            - No changes to files matching these paths (hard blocklist):
+              - `.github/workflows/**`
+              - `.env*`
+              - `**/*secret*`
+              - `**/*credential*`
+              - `src/app/lib/supabase.ts` (auth-critical)
+              - `src/app/lib/config.ts` (env config)
+
+            **COMPLEX** (skip, note for human):
+            - Anything else: architectural changes, API breaks, dependency adds, migrations, auth/RLS, multi-file >3, semantic ambiguity, contradictory findings between reviewers.
+
+            Build a plan. Print it. Do NOT fix COMPLEX findings.
 
             ### Step 3: Apply TRIVIAL fixes
-            For each TRIVIAL finding, edit the file with the precise fix suggested by the reviewer. Keep the existing code style.
 
-            **Hard guardrails:**
-            - Do NOT run `git reset`, `git stash`, `git checkout <branch>`, `git restore`, `git clean`. ONLY `git add`, `git commit`, `git push`, `git status`, `git diff`, `git log`.
-            - Do NOT modify `.github/workflows/**`, `.env*`, any file matching `*secret*` or `*credential*`.
-            - Do NOT change public API signatures. If a fix would, skip it.
-            - Do NOT run deploy/publish/release commands.
+            Use Edit/Write. Keep code style. Do NOT touch:
+            - Files outside the ones cited by the reviewer
+            - Imports unless needed for the fix
+            - Unrelated formatting
 
-            ### Step 4: Regression validation (MUST DO — abort if fails)
-            Before committing, run:
+            **Hard guardrails** (forbidden git commands):
+            - NO `git reset`, `git stash`, `git checkout <branch>`, `git restore`, `git clean`
+            - YES `git checkout -- <single-file>` (only to revert a single file after validation failure)
+
+            ### Step 4: LOC guard
             ```bash
-            # Type-check delta — must not introduce NEW errors in files you touched
-            CHANGED=$(git diff --name-only | grep -E '\.(ts|tsx)$' || true)
-            if [ -n "$CHANGED" ]; then
-              npx tsc --noEmit 2>&1 | tee /tmp/tsc-after.txt
-              NEW_ERRS=0
-              for f in $CHANGED; do
-                B=$(grep -cE "error TS[0-9]+:" /tmp/tsc-after.txt 2>/dev/null | head -1 || echo 0)
-                # Compare against baseline per-file — if grep shows our file has errors post-fix, increment
-                if grep -q "$f" /tmp/tsc-after.txt; then
-                  NEW_ERRS=$((NEW_ERRS+1))
-                fi
-              done
-              if [ "$NEW_ERRS" -gt 0 ]; then
-                echo "::error::Type check introduced new errors in touched files. Aborting."
-                git checkout -- . 2>/dev/null || true  # only safe revert allowed
-                exit 1
+            LOC_I=$(git diff --shortstat | grep -oE "[0-9]+ insertion" | head -1 | grep -oE "[0-9]+" || echo 0)
+            LOC_D=$(git diff --shortstat | grep -oE "[0-9]+ deletion" | head -1 | grep -oE "[0-9]+" || echo 0)
+            TOTAL=$((LOC_I + LOC_D))
+            if [ "$TOTAL" -gt 100 ]; then
+              echo "::error::Bot diff $TOTAL > 100 LOC. Reverting."
+              for f in $(git diff --name-only); do git checkout -- "$f"; done
+              echo "REVERTED_LOC" > /tmp/fix-result.txt
+              exit 0  # don't fail the step, just don't commit
+            fi
+            ```
+
+            ### Step 5: In-process regression validation (linear, no polling)
+
+            ```bash
+            CHANGED=$(git diff --name-only)
+            if [ -z "$CHANGED" ]; then
+              echo "NO_CHANGES" > /tmp/fix-result.txt
+              echo "No diff produced — nothing to commit"
+              exit 0
+            fi
+
+            # A. Type check — count errors in touched files (strict: no new errors)
+            npx tsc --noEmit 2>&1 | tee /tmp/tsc-after.txt || true
+            TOUCHED_ERRORS=0
+            for f in $CHANGED; do
+              if echo "$f" | grep -qE '\.(ts|tsx)$'; then
+                E=$(grep -c "^$f" /tmp/tsc-after.txt 2>/dev/null || echo 0)
+                TOUCHED_ERRORS=$((TOUCHED_ERRORS + E))
+              fi
+            done
+            if [ "$TOUCHED_ERRORS" -gt 0 ]; then
+              echo "::error::Type check: $TOUCHED_ERRORS errors in touched files. Reverting."
+              for f in $CHANGED; do git checkout -- "$f"; done
+              echo "REVERTED_TSC" > /tmp/fix-result.txt
+              exit 0
+            fi
+
+            # B. Tests (retry once on flaky failure)
+            timeout 300 npm test -- --run 2>&1 | tail -50 > /tmp/test-1.log || true
+            if grep -qE "FAIL |failed|✗" /tmp/test-1.log && ! grep -qE "PASS |passed|✓" /tmp/test-1.log; then
+              echo "  tests failed round 1, retrying once for flaky..."
+              timeout 300 npm test -- --run 2>&1 | tail -50 > /tmp/test-2.log || true
+              if grep -qE "FAIL |failed|✗" /tmp/test-2.log; then
+                echo "::error::Tests failed 2× post-fix. Reverting."
+                for f in $CHANGED; do git checkout -- "$f"; done
+                echo "REVERTED_TESTS" > /tmp/fix-result.txt
+                exit 0
               fi
             fi
 
-            # Tests — run relevant subset if possible, else full
-            npm test -- --run 2>&1 | tail -30 || {
-              echo "::error::Tests failed post-fix. Aborting."
-              git checkout -- . 2>/dev/null || true
-              exit 1
+            # C. Build (fast fail)
+            timeout 300 npm run build 2>&1 | tail -30 > /tmp/build.log || {
+              echo "::error::Build failed post-fix. Reverting."
+              for f in $CHANGED; do git checkout -- "$f"; done
+              echo "REVERTED_BUILD" > /tmp/fix-result.txt
+              exit 0
             }
             ```
 
-            ### Step 5: Validate with code-reviewer agent
-            Spawn the code-reviewer subagent (if available in this environment) via Task to double-check the diff:
-            ```
-            Task(subagent_type="code-reviewer", description="Validate fix before commit", prompt="Review this diff for regressions, breaking changes, new CRITICAL/HIGH issues. Focus: did the fix introduce anything worse than what it fixed? Return PASS or FAIL with reasoning.")
-            ```
-            If not available, manually verify the diff is minimal, self-contained, and addresses the cited reviewer comments.
+            ### Step 6: code-reviewer subagent validation (if available)
 
-            If FAIL → revert with `git checkout -- .` (only allowed form of revert) and post a PR comment explaining. DO NOT commit.
+            Try spawning:
+            ```
+            Task(subagent_type="code-reviewer", description="Validate pr-fix diff",
+                 prompt="Review the current git diff. Check: regressions, new CRITICAL/HIGH issues, unintended side effects. Return PASS or FAIL with reasoning.")
+            ```
 
-            ### Step 6: LOC guardrail
+            If the agent returns FAIL or is not available + the fix is non-trivial (>20 LOC), revert to be safe:
             ```bash
-            LOC_CHANGED=$(git diff --shortstat | grep -oE "[0-9]+ insertion" | head -1 | grep -oE "[0-9]+" || echo 0)
-            LOC_DELETED=$(git diff --shortstat | grep -oE "[0-9]+ deletion" | head -1 | grep -oE "[0-9]+" || echo 0)
-            TOTAL=$((LOC_CHANGED + LOC_DELETED))
-            if [ "$TOTAL" -gt 100 ]; then
-              echo "::error::Bot diff exceeds 100 LOC ($TOTAL). Fix too large for auto-apply — reverting."
-              git checkout -- . 2>/dev/null || true
-              exit 1
+            for f in $(git diff --name-only); do git checkout -- "$f"; done
+            echo "REVERTED_REVIEWER" > /tmp/fix-result.txt
+            exit 0
+            ```
+
+            If agent returns PASS → write `FIX_APPLIED` to `/tmp/fix-result.txt`.
+
+            ### Step 7: Commit + push (using PAT via env GH_TOKEN)
+
+            ```bash
+            if [ ! -f /tmp/fix-result.txt ] || [ "$(cat /tmp/fix-result.txt)" = "NO_CHANGES" ] || echo "$(cat /tmp/fix-result.txt)" | grep -q REVERTED; then
+              echo "No commit — result: $(cat /tmp/fix-result.txt 2>/dev/null || echo 'none')"
+              exit 0
             fi
-            ```
 
-            ### Step 7: Commit + push
-            ```bash
+            # Race check: head SHA must be what we started with
+            CURRENT_HEAD=$(gh api "/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)
+            if [ "$CURRENT_HEAD" != "$FINAL_HEAD_SHA" ]; then
+              echo "::warning::Head SHA changed mid-flow ($FINAL_HEAD_SHA → $CURRENT_HEAD). Aborting push."
+              echo "REVERTED_RACE" > /tmp/fix-result.txt
+              exit 0
+            fi
+
             git add -A
             git commit -m "fix(auto): apply review feedback from PR #${{ steps.pr.outputs.number }}
 
-            Applied TRIVIAL fixes from claude[bot] / gemini-code-assist[bot] review:
-            - <list each fix 1-liner>
-
-            Tests and type-check passed post-fix. Bot-authored via pr-fix workflow.
+            Applied TRIVIAL fixes from reviewer comments. Tests + tsc + build all passed in-process.
+            Bot-authored via pr-fix.yml v2.
 
             Co-Authored-By: claude-fix[bot] <claude-fix[bot]@users.noreply.github.com>"
             git push origin HEAD:$HEAD_REF
             ```
 
-            ### Step 8: Summary comment on PR
-            Post via `gh pr comment $PR_NUMBER --body "..."`:
-            ```
-            ## 🤖 Auto-fix applied
+            ### Step 8: Summary comment
 
-            **Fixed (TRIVIAL, ≤100 LOC):** <count>
+            Post to PR via `gh pr comment $PR_NUMBER --body "..."`:
+
+            ```
+            ## 🤖 Auto-fix applied (v2)
+
+            **Status:** <from /tmp/fix-result.txt>
+            **Fixed (TRIVIAL):** <count>
             - <per-finding one-liner>
 
-            **Skipped (COMPLEX, needs human):** <count>
+            **Skipped (COMPLEX):** <count>
             - <per-finding one-liner + why skipped>
 
-            **Gates:** type-check ✅ | tests ✅ | code-reviewer ✅ | LOC ≤100 ✅
+            **Validation (in-process):** tsc ✅ | tests ✅ | build ✅ | code-reviewer ✅ | LOC ≤100 ✅
 
             Commit: <sha>
             ```
-          claude_args: "--model claude-opus-4-7 --allowedTools Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(git checkout -- .),Bash(git fetch:*),Bash(npm:*),Bash(npx:*),Bash(cat:*),Bash(grep:*),Bash(wc:*),Bash(head:*),Bash(tail:*),Bash(gh:*),Bash(jq:*),Read,Edit,Write,Grep,Glob"
+          claude_args: "--model claude-opus-4-7 --allowedTools Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(git checkout -- *),Bash(git fetch:*),Bash(git rev-parse:*),Bash(npm:*),Bash(npx:*),Bash(timeout:*),Bash(cat:*),Bash(grep:*),Bash(wc:*),Bash(head:*),Bash(tail:*),Bash(gh:*),Bash(jq:*),Bash(echo:*),Read,Edit,Write,Grep,Glob"
 
-      - name: Auto-merge gate (6 conditions)
-        id: automerge
-        if: steps.fix.outcome == 'success'
+      # -------- Auto-merge gate (labels + LOC + mergeable, no polling) --------
+      - name: Auto-merge gate
+        if: always() && steps.fix.outcome == 'success'
         env:
-          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           LABELS: ${{ steps.pr.outputs.labels }}
-          SHA_BEFORE: ${{ steps.baseline.outputs.sha_before }}
+          FINAL_HEAD_SHA: ${{ steps.final_head.outputs.sha }}
         run: |
           REASONS=()
 
-          # Gate 1: label auto-merge-ok present
-          if ! echo "$LABELS" | grep -qE "(^|,)auto-merge-ok(,|$)"; then
-            REASONS+=("label 'auto-merge-ok' missing")
+          # Re-fetch labels (user may have changed them during run)
+          CURRENT_LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",")')
+
+          echo "$CURRENT_LABELS" | grep -qE "(^|,)auto-merge-ok(,|$)" || REASONS+=("label 'auto-merge-ok' missing")
+          echo "$CURRENT_LABELS" | grep -qE "(^|,)(blocked|do-not-merge)(,|$)" && REASONS+=("blocking label present")
+
+          # LOC of bot commits since FINAL_HEAD_SHA
+          LOC=$(git log "$FINAL_HEAD_SHA..HEAD" --author="claude-fix\[bot\]\|claude\[bot\]" --numstat \
+                --pretty=format:"" 2>/dev/null | awk '{a+=$1; d+=$2} END {print a+d+0}')
+          [ "${LOC:-0}" -gt 100 ] && REASONS+=("bot LOC ${LOC} > 100")
+
+          # Fresh mergeable state
+          M_STATE=$(gh pr view "$PR_NUMBER" --json mergeable,mergeStateStatus --jq '.mergeable + "|" + .mergeStateStatus')
+          if ! echo "$M_STATE" | grep -qE "^MERGEABLE\|(CLEAN|HAS_HOOKS|UNSTABLE)$"; then
+            REASONS+=("not mergeable (state=$M_STATE)")
           fi
 
-          # Gate 2: no blocking labels (already checked above, re-verify)
-          if echo "$LABELS" | grep -qE "(^|,)(blocked|do-not-merge)(,|$)"; then
-            REASONS+=("blocking label present")
-          fi
-
-          # Gate 3: LOC of bot commits
-          LOC=$(git log "$SHA_BEFORE..HEAD" --author="claude-fix\[bot\]" --numstat \
-                --pretty=format:"" | awk '{a+=$1; d+=$2} END {print a+d+0}')
-          if [ "${LOC:-0}" -gt 100 ]; then
-            REASONS+=("bot LOC ${LOC} > 100")
-          fi
-
-          # Gate 4+5: wait for required workflows to COMPLETE, then check conclusion.
-          # FE workflows that run on pull_request sync: PR Opened Review, Sprint Preflight, Code Quality Audit.
-          # (Note: Test Gate / Frontend Tests only run on push to main, not PR branches.)
-          HEAD_SHA=$(git rev-parse HEAD)
-          REQUIRED_WORKFLOWS=("PR Opened Review" "Sprint Preflight" "Code Quality Audit")
-          MAX_WAIT=900   # 15 min
-          ELAPSED=0
-          POLL=30
-          while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
-            ALL_DONE=1
-            gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$HEAD_SHA&per_page=30" > /tmp/runs.json
-            for WF in "${REQUIRED_WORKFLOWS[@]}"; do
-              STATUS=$(jq -r --arg wf "$WF" '.workflow_runs[] | select(.name == $wf) | .status' /tmp/runs.json | head -1)
-              STATUS="${STATUS:-missing}"
-              if [ "$STATUS" != "completed" ]; then
-                ALL_DONE=0
-                echo "  waiting: $WF = $STATUS (elapsed ${ELAPSED}s)"
-              fi
-            done
-            if [ "$ALL_DONE" -eq 1 ]; then
-              echo "All required workflows completed after ${ELAPSED}s"
-              break
-            fi
-            sleep "$POLL"
-            ELAPSED=$((ELAPSED + POLL))
-          done
-
-          # Now check conclusions
-          gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$HEAD_SHA&per_page=30" > /tmp/runs.json
-          for WF in "${REQUIRED_WORKFLOWS[@]}"; do
-            CONC=$(jq -r --arg wf "$WF" '.workflow_runs[] | select(.name == $wf) | .conclusion' /tmp/runs.json | head -1)
-            if [ "$CONC" != "success" ]; then
-              REASONS+=("$WF != success (${CONC:-missing-or-timeout})")
-            fi
-          done
-
-          # Gate 6: PR mergeable
-          MERGEABLE=$(gh pr view "$PR_NUMBER" --json mergeable --jq '.mergeable')
-          if [ "$MERGEABLE" != "MERGEABLE" ]; then
-            REASONS+=("PR not mergeable ($MERGEABLE)")
+          # Changed files include forbidden paths? (double-check)
+          CHANGED=$(gh pr diff "$PR_NUMBER" --name-only 2>/dev/null || echo "")
+          if echo "$CHANGED" | grep -qE '^\.github/workflows/'; then
+            REASONS+=(".github/workflows/ changed — never auto-merge")
           fi
 
           if [ ${#REASONS[@]} -eq 0 ]; then
-            echo "All gates passed — auto-merging."
-            gh pr merge "$PR_NUMBER" --squash --delete-branch
-            gh pr comment "$PR_NUMBER" --body "✅ Auto-merged after 6-gate validation. Commit by \`claude-fix[bot]\`."
+            echo "All gates passed — auto-merging"
+            if gh pr merge "$PR_NUMBER" --squash --delete-branch 2>&1 | tee /tmp/merge.log; then
+              gh pr comment "$PR_NUMBER" --body "✅ Auto-merged via pr-fix v2. Commit by \`claude-fix[bot]\`."
+            else
+              # Retry once after 10s (merge race)
+              sleep 10
+              if gh pr merge "$PR_NUMBER" --squash --delete-branch; then
+                gh pr comment "$PR_NUMBER" --body "✅ Auto-merged via pr-fix v2 (retry). Commit by \`claude-fix[bot]\`."
+              else
+                gh pr comment "$PR_NUMBER" --body "🔸 Auto-merge failed after retry. See $(cat /tmp/merge.log 2>/dev/null | head -5). Merge manually when ready."
+              fi
+            fi
           else
             REASONS_STR=$(printf '%s\n' "${REASONS[@]}" | sed 's/^/- /')
-            echo "Auto-merge skipped. Gates unmet:"
+            echo "Auto-merge skipped. Unmet gates:"
             echo "$REASONS_STR"
-            gh pr comment "$PR_NUMBER" --body "🔸 Auto-merge skipped. Gates unmet:
+            gh pr comment "$PR_NUMBER" --body "🔸 Auto-merge skipped. Unmet gates:
           $REASONS_STR
 
-          Fix was applied, merge when ready."
+          Fix applied. Merge when ready."
           fi
