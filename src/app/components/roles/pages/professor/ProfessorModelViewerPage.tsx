@@ -32,23 +32,27 @@ export function ProfessorModelViewerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPartsPanel, setShowPartsPanel] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
 
   // ── Fetch model record ──
-  const fetchModel = useCallback(async () => {
+  // Guarded with a `cancelled` flag so rapid modelId changes or unmount
+  // before the network completes do not fire setState on an unmounted
+  // component and do not let an older, slower request overwrite a newer one.
+  useEffect(() => {
     if (!modelId) return;
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    try {
-      const data = await getModel3DById(modelId);
-      setModel(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al cargar el modelo');
-    } finally {
-      setLoading(false);
-    }
-  }, [modelId]);
+    getModel3DById(modelId)
+      .then(data => { if (!cancelled) setModel(data); })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Error al cargar el modelo');
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [modelId, retryTick]);
 
-  useEffect(() => { fetchModel(); }, [fetchModel]);
+  const handleRetry = useCallback(() => setRetryTick(t => t + 1), []);
 
   // ── Loading state ──
   if (loading) {
@@ -81,7 +85,7 @@ export function ProfessorModelViewerPage() {
               Volver al curriculum
             </button>
             <button
-              onClick={fetchModel}
+              onClick={handleRetry}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#5cbdaa] bg-[#2a8c7a]/10 border border-[#2a8c7a]/20 rounded-lg hover:bg-[#2a8c7a]/20 transition-colors"
             >
               Reintentar

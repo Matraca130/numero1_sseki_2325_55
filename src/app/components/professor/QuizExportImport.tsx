@@ -102,10 +102,15 @@ export function QuizExportImport({
   }, [exportJson, quizTitle]);
 
   const handleCopy = useCallback(() => {
+    // navigator.clipboard.writeText rejects when the page is not in a secure
+    // context or the user denies clipboard permission — without .catch the
+    // rejection bubbles up as unhandled and the user sees no feedback.
     navigator.clipboard.writeText(exportJson).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success('Copiado al portapapeles');
+    }).catch(() => {
+      toast.error('No se pudo copiar al portapapeles');
     });
   }, [exportJson]);
 

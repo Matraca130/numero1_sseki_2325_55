@@ -79,24 +79,26 @@ export function FlashcardImageUpload({
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
 
+    // Declared outside try so finally can always clear it — on upload error
+    // the interval otherwise keeps firing forever and animates the progress bar
+    // in a loop until the component unmounts.
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
     try {
-      // Simulate progress since we can't track real upload progress with fetch
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 15, 85));
       }, 200);
 
       // Build FormData (NOT JSON)
-const formData = new FormData();
-formData.append('file', file);
-formData.append('folder', 'flashcards');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'flashcards');
 
-const result = await apiCall<{ path: string }>('/storage/upload', {
-  method: 'POST',
-  body: formData,
-  // ⚠️ NO pongas Content-Type — el browser lo pone solo con el boundary
-});
+      const result = await apiCall<{ path: string }>('/storage/upload', {
+        method: 'POST',
+        body: formData,
+        // ⚠️ NO pongas Content-Type — el browser lo pone solo con el boundary
+      });
 
-      clearInterval(progressInterval);
       setProgress(100);
 
       // Construct public URL
@@ -112,6 +114,7 @@ const result = await apiCall<{ path: string }>('/storage/upload', {
       URL.revokeObjectURL(localPreview);
       setPreviewUrl(null);
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
       setUploading(false);
       setProgress(0);
     }

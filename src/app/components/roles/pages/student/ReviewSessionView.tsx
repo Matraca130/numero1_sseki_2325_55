@@ -81,18 +81,6 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
   const stopTimer = useCallback(() => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } }, []);
   const formattedTime = useMemo(() => { const m = Math.floor(elapsedSeconds / 60); const s = elapsedSeconds % 60; return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`; }, [elapsedSeconds]);
 
-  useEffect(() => {
-    if (phase !== 'reviewing') return;
-    function handleKeyDown(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); if (!isFlipped) setIsFlipped(true); }
-      else if (isFlipped && e.key >= '1' && e.key <= '5') { e.preventDefault(); handleGrade(parseInt(e.key, 10)); }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, isFlipped, handleGrade]);
-
   // Load due cards
   useEffect(() => {
     let cancelled = false;
@@ -151,6 +139,21 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
       })();
     }
   }, [sessionId, currentItem, currentIdx, queue, queueReview, submitBatch, stopTimer, masteryMap, recordXP, endXP, institutionId, markSessionComplete]);
+
+  // Keyboard shortcuts — MUST be declared AFTER handleGrade, otherwise the
+  // deps array reads `handleGrade` from the Temporal Dead Zone and throws
+  // ReferenceError on every render (#452).
+  useEffect(() => {
+    if (phase !== 'reviewing') return;
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); if (!isFlipped) setIsFlipped(true); }
+      else if (isFlipped && e.key >= '1' && e.key <= '5') { e.preventDefault(); handleGrade(parseInt(e.key, 10)); }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, isFlipped, handleGrade]);
 
   const gradeDistribution = useMemo(() => { const dist = [0, 0, 0, 0, 0]; for (const g of gradesRef.current) { if (g >= 1 && g <= 5) dist[g - 1]++; } return dist; }, [grades]);
   const correctPercentage = useMemo(() => { if (grades.length === 0) return 0; return Math.round((grades.filter(g => g >= 3).length / grades.length) * 100); }, [grades]);
