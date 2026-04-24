@@ -108,9 +108,23 @@ jobs:
           echo "state=$STATE" >> "$GITHUB_OUTPUT"
           echo "Resolved mergeStateStatus=$STATE"
 
+          # Set should_fix flag — all subsequent steps gate on this
+          # (hotfix-3 fix: `exit 0` inside a step does NOT stop the job; subsequent
+          # steps kept running and wasted ~128s on PR #593 test. Now they skip via if:)
+          case "$STATE" in
+            CONFLICTING|DIRTY)
+              gh pr comment "$PR_NUMBER" --body "🔸 pr-fix aborted: mergeStateStatus=$STATE. Human conflict resolution needed."
+              echo "::notice::Skipped: mergeStateStatus=$STATE"
+              echo "should_fix=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "should_fix=true" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
       - name: Update branch if BEHIND (merge-commit via GitHub API, no force-push)
         id: update_branch
-        if: steps.merge_state.outputs.state == 'BEHIND'
+        if: steps.merge_state.outputs.should_fix == 'true' && steps.merge_state.outputs.state == 'BEHIND'
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
@@ -124,22 +138,29 @@ jobs:
             RC=$?
             echo "  ❌ update-branch failed (exit $RC) — likely conflicts or protected branch"
             gh pr comment "$PR_NUMBER" --body "🔸 pr-fix: branch is BEHIND main and update-branch failed. Human rebase needed before @claude-fix."
-            exit 0
+            # This failure path also needs to stop the job; override should_fix
+            echo "update_branch_failed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Exit if CONFLICTING/DIRTY
-        if: steps.merge_state.outputs.state == 'CONFLICTING' || steps.merge_state.outputs.state == 'DIRTY'
-        env:
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          STATE: ${{ steps.merge_state.outputs.state }}
+      # -------- Consolidated gate: should we continue to fix? --------
+      # (hotfix-3 fix: single source of truth for early-exit; all subsequent steps gate on this)
+      - name: Gate — continue to fix
+        id: gate
         run: |
-          gh pr comment "$PR_NUMBER" --body "🔸 pr-fix aborted: mergeStateStatus=$STATE. Human conflict resolution needed."
-          echo "::notice::Skipped: mergeStateStatus=$STATE"
-          exit 0
+          if [ "${{ steps.merge_state.outputs.should_fix }}" != "true" ]; then
+            echo "::notice::Stopping: merge_state.should_fix=false (CONFLICTING/DIRTY)"
+            echo "continue=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.update_branch.outputs.update_branch_failed }}" = "true" ]; then
+            echo "::notice::Stopping: update-branch failed"
+            echo "continue=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "continue=true" >> "$GITHUB_OUTPUT"
+          fi
 
       # -------- Checkout (after potential update-branch so we get the merge commit) --------
       - name: Resolve final head SHA (after update-branch)
         id: final_head
+        if: steps.gate.outputs.continue == 'true'
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
@@ -148,6 +169,7 @@ jobs:
           echo "Final head SHA: $SHA"
 
       - name: Checkout PR head
+        if: steps.gate.outputs.continue == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.final_head.outputs.sha }}
@@ -155,11 +177,13 @@ jobs:
           token: ${{ secrets.GH_PAT || github.token }}
 
       - name: Configure git identity
+        if: steps.gate.outputs.continue == 'true'
         run: |
           git config user.name "claude-fix[bot]"
           git config user.email "claude-fix[bot]@users.noreply.github.com"
 
       - name: Setup Node.js
+        if: steps.gate.outputs.continue == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -167,11 +191,13 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        if: steps.gate.outputs.continue == 'true'
         run: npm ci --no-audit --prefer-offline
 
       # -------- Collect review comments --------
       - name: Collect review + issue comments
         id: comments
+        if: steps.gate.outputs.continue == 'true'
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
@@ -186,6 +212,7 @@ jobs:
           echo "Review comments: $RC | Issue comments: $IC"
 
       - name: Path blocklist pre-check
+        if: steps.gate.outputs.continue == 'true'
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
@@ -204,6 +231,7 @@ jobs:
       # -------- Apply fixes --------
       - name: Apply TRIVIAL fixes with Claude
         id: fix
+        if: steps.gate.outputs.continue == 'true'
         uses: anthropics/claude-code-action@v1
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
@@ -384,7 +412,7 @@ jobs:
 
       # -------- Auto-merge gate (labels + LOC + mergeable, no polling) --------
       - name: Auto-merge gate
-        if: always() && steps.fix.outcome == 'success'
+        if: steps.gate.outputs.continue == 'true' && steps.fix.outcome == 'success'
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           LABELS: ${{ steps.pr.outputs.labels }}
@@ -409,10 +437,15 @@ jobs:
             REASONS+=("not mergeable (state=$M_STATE)")
           fi
 
-          # Changed files include forbidden paths? (double-check)
-          CHANGED=$(gh pr diff "$PR_NUMBER" --name-only 2>/dev/null || echo "")
+          # Forbidden paths check — use merge-base diff, NOT `gh pr diff`.
+          # (hotfix-3 fix Bug #2: `gh pr diff` returns diff vs base, which includes
+          # files where PR is merely BEHIND main. Using merge-base..HEAD counts only
+          # files actually modified by PR commits.)
+          git fetch origin main --depth=50 2>/dev/null || true
+          MERGE_BASE=$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse HEAD~10)
+          CHANGED=$(git diff --name-only "$MERGE_BASE"..HEAD 2>/dev/null || echo "")
           if echo "$CHANGED" | grep -qE '^\.github/workflows/'; then
-            REASONS+=(".github/workflows/ changed — never auto-merge")
+            REASONS+=(".github/workflows/ changed by PR — never auto-merge")
           fi
 
           if [ ${#REASONS[@]} -eq 0 ]; then
