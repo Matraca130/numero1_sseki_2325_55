@@ -118,7 +118,7 @@ export function TopicSummariesView() {
   const handleSummaryClick = useCallback((summary: Summary) => {
     if (topic) {
       selectTopic(topic.id);
-      setCurrentTopic({ id: topic.id, title: topic.name } as any);
+      setCurrentTopic({ id: topic.id, title: topic.name, summary: '', flashcards: [] });
     }
     // Navigate to the existing SummaryView reader for this topic
     // passing summaryId as query param for future auto-selection
