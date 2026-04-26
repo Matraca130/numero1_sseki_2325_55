@@ -4,7 +4,7 @@
 // Extracts all state management, data fetching, handlers, and
 // computed values from FlashcardsManager into a reusable hook.
 // ============================================================
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiCall } from '@/app/lib/api';
 import * as flashcardApi from '@/app/services/flashcardApi';
 import type { FlashcardItem } from '@/app/services/flashcardApi';
@@ -123,17 +123,23 @@ export function useFlashcardsManager(summaryId: string): FlashcardsManagerState 
   // ── Load keywords for this summary ──────────────────────
   useEffect(() => {
     if (!summaryId) return;
+    let cancelled = false;
     setKeywordsLoading(true);
     apiCall<any>(`/keywords?summary_id=${summaryId}`)
       .then(data => {
+        if (cancelled) return;
         const items = Array.isArray(data) ? data : data?.items || [];
         setKeywords(items);
       })
       .catch(err => {
+        if (cancelled) return;
         console.error('[FlashcardsManager] Keywords error:', err);
         setKeywords([]);
       })
-      .finally(() => setKeywordsLoading(false));
+      .finally(() => {
+        if (!cancelled) setKeywordsLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [summaryId]);
 
   // ── Load subtopics for a keyword (on demand, cached) ────
@@ -158,7 +164,11 @@ export function useFlashcardsManager(summaryId: string): FlashcardsManagerState 
   }, [subtopicsMap]);
 
   // ── Load flashcards ─────────────────────────────────────
+  // Stale-response guard: every call increments reqId, so older in-flight
+  // responses are dropped when summaryId/filterKeywordId change quickly.
+  const loadFlashcardsReqId = useRef(0);
   const loadFlashcards = useCallback(async () => {
+    const reqId = ++loadFlashcardsReqId.current;
     if (!summaryId) {
       setFlashcards([]);
       setFlashcardsTotal(0);
@@ -171,16 +181,20 @@ export function useFlashcardsManager(summaryId: string): FlashcardsManagerState 
         filterKeywordId || undefined,
         { limit: 200 }
       );
+      if (reqId !== loadFlashcardsReqId.current) return;
       const items = Array.isArray(result) ? result : result.items || [];
       const total = Array.isArray(result) ? items.length : result.total || items.length;
       setFlashcards(items);
       setFlashcardsTotal(total);
     } catch (err: any) {
+      if (reqId !== loadFlashcardsReqId.current) return;
       console.error('[FlashcardsManager] Load error:', err);
       setFlashcards([]);
       setFlashcardsTotal(0);
     } finally {
-      setFlashcardsLoading(false);
+      if (reqId === loadFlashcardsReqId.current) {
+        setFlashcardsLoading(false);
+      }
     }
   }, [summaryId, filterKeywordId]);
 
