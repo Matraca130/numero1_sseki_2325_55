@@ -18,7 +18,7 @@
 // DESIGN: Purple accent (professor theme), collapsible sections
 // ============================================================
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   getAiReportStats,
   getAiReports,
@@ -87,6 +87,13 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
   // Reset page when filters change
   useEffect(() => { setPage(0); }, [filterStatus, filterReason]);
 
+  // Stale-response guard: each fetchReports call bumps this ref;
+  // only the latest in-flight request is allowed to write to state.
+  // Protects against rapid filter/page/institution changes (and the manual
+  // refresh button) where a slow earlier request can resolve after a faster
+  // newer one and overwrite the displayed list with the wrong filter's data.
+  const reportsRequestIdRef = useRef(0);
+
   // ── Fetch stats ──────────────────────────────────────
   const fetchStats = useCallback(async () => {
     if (!institutionId) return;
@@ -107,6 +114,7 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
   // ── Fetch reports list ─────────────────────────────────
   const fetchReports = useCallback(async () => {
     if (!institutionId) return;
+    const requestId = ++reportsRequestIdRef.current;
     setReportsLoading(true);
     try {
       const data = await getAiReports({
@@ -117,13 +125,17 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       });
+      if (requestId !== reportsRequestIdRef.current) return; // stale — newer request superseded this one
       setReports(data.items || []);
       setReportsTotal(data.total || 0);
     } catch (err: unknown) {
+      if (requestId !== reportsRequestIdRef.current) return; // stale
       logger.error('[AiReports] Reports fetch failed:', err);
       setReports([]);
     } finally {
-      setReportsLoading(false);
+      if (requestId === reportsRequestIdRef.current) {
+        setReportsLoading(false);
+      }
     }
   }, [institutionId, filterStatus, filterReason, page]);
 
