@@ -19,7 +19,7 @@
 // filters/stats extracted to QuizFiltersBar/QuizStatsBar.
 // R4 refactor: inline filter state/stats replaced by useQuizFilters hook.
 // ============================================================
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import * as quizApi from '@/app/services/quizApi';
 import type {
@@ -81,11 +81,19 @@ export function ProfessorQuizzesPage() {
   }, [selectedSummaryId]);
 
   // ── Load quiz questions when summary/filters change ─────
+  // Stale-response guard: a request counter prevents an older in-flight
+  // response from overwriting state set by a newer one when summary/filters
+  // change rapidly.
+  const loadRequestIdRef = useRef(0);
+
   const loadQuestions = useCallback(async () => {
     if (!selectedSummaryId) {
+      loadRequestIdRef.current++;
       setQuestions([]);
+      setQuestionsLoading(false);
       return;
     }
+    const myId = ++loadRequestIdRef.current;
     setQuestionsLoading(true);
     try {
       const apiFilters: {
@@ -99,12 +107,14 @@ export function ProfessorQuizzesPage() {
       if (filters.filterKeywordId) apiFilters.keyword_id = filters.filterKeywordId;
       apiFilters.limit = 200;
       const res = await quizApi.getQuizQuestions(selectedSummaryId, apiFilters);
+      if (myId !== loadRequestIdRef.current) return;
       setQuestions(res.items || []);
     } catch (err: unknown) {
+      if (myId !== loadRequestIdRef.current) return;
       logger.error('[Quiz] Questions load error:', err);
       setQuestions([]);
     } finally {
-      setQuestionsLoading(false);
+      if (myId === loadRequestIdRef.current) setQuestionsLoading(false);
     }
   }, [selectedSummaryId, filters.filterType, filters.filterDifficulty, filters.filterKeywordId]);
 
