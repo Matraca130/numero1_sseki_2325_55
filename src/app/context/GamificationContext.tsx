@@ -114,8 +114,18 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     setLoading(true);
     try {
       const [profile, streakData] = await Promise.all([
-        getProfile(instId),
-        getStreakStatus(instId),
+        getProfile(instId).catch((err) => {
+          if (import.meta.env.DEV) {
+            console.error('[GamificationContext] getProfile error:', err);
+          }
+          return null;
+        }),
+        getStreakStatus(instId).catch((err) => {
+          if (import.meta.env.DEV) {
+            console.error('[GamificationContext] getStreakStatus error:', err);
+          }
+          return null;
+        }),
       ]);
 
       if (profile) {
