@@ -92,23 +92,20 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
   }, []);
 
   const toggleTopic = useCallback((id: string) => {
+    const wasExpanded = expandedTopics.has(id);
     setExpandedTopics(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-        if (!topicSummaries[id] && !loadingTopics.has(id)) {
-          setLoadingTopics(p => new Set(p).add(id));
-          loadSummariesForTopicFn(id).then(summaries => {
-            setTopicSummaries(p => ({ ...p, [id]: summaries }));
-            setLoadingTopics(p => { const n = new Set(p); n.delete(id); return n; });
-          });
-        }
-      }
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  }, [topicSummaries, loadingTopics]);
+    if (!wasExpanded && !topicSummaries[id] && !loadingTopics.has(id)) {
+      setLoadingTopics(p => new Set(p).add(id));
+      loadSummariesForTopicFn(id)
+        .then(summaries => setTopicSummaries(p => ({ ...p, [id]: summaries })))
+        .catch(() => { /* swallow — loading flag is cleared in finally */ })
+        .finally(() => setLoadingTopics(p => { const n = new Set(p); n.delete(id); return n; }));
+    }
+  }, [expandedTopics, topicSummaries, loadingTopics]);
 
   const handleSelectSummary = useCallback(async (summary: Summary) => {
     setSelectedSummary(summary);
