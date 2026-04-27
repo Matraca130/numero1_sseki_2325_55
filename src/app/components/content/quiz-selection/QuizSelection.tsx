@@ -81,9 +81,14 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
     if (unloaded.length === 0) return;
     unloaded.forEach(async (topicId: string) => {
       setLoadingTopics(prev => new Set(prev).add(topicId));
-      const summaries = await loadSummariesForTopicFn(topicId);
-      setTopicSummaries(prev => ({ ...prev, [topicId]: summaries }));
-      setLoadingTopics(prev => { const next = new Set(prev); next.delete(topicId); return next; });
+      try {
+        const summaries = await loadSummariesForTopicFn(topicId);
+        setTopicSummaries(prev => ({ ...prev, [topicId]: summaries }));
+      } catch (err) {
+        logger.error('[Quiz] Topic summaries load error:', err);
+      } finally {
+        setLoadingTopics(prev => { const next = new Set(prev); next.delete(topicId); return next; });
+      }
     });
   }, [selectedSummary, activeSemester]);
 
