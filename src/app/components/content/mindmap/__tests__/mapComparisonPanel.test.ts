@@ -413,3 +413,307 @@ describe('Coverage percentage calculation', () => {
     expect(computeCoverage(1, 0, 3)).toBe(33);
   });
 });
+
+// ── MasteryDonut math (replicated) ──────────────────────────
+
+describe('MasteryDonut segment math (replicated)', () => {
+  // Mirrors MasteryDonut: r=36, cx=cy=44, circumference=2πr.
+  // Segments are filtered to count>0 then projected to dashArray
+  // strings sliced cumulatively along the circle.
+  type Seg = { count: number; color: string };
+
+  function buildArcs(segments: Seg[], total: number) {
+    const r = 36;
+    const circumference = 2 * Math.PI * r;
+    const filtered = segments.filter(s => s.count > 0);
+    let offset = 0;
+    return filtered.map(s => {
+      const len = (s.count / total) * circumference;
+      const arc = { color: s.color, dashArray: `${len} ${circumference - len}`, dashOffset: -offset };
+      offset += len;
+      return arc;
+    });
+  }
+
+  const C = 2 * Math.PI * 36;
+
+  it('drops segments with count=0 (no degenerate arcs)', () => {
+    const arcs = buildArcs([
+      { count: 5, color: 'g' },
+      { count: 0, color: 'y' },
+      { count: 0, color: 'r' },
+      { count: 0, color: 'gr' },
+    ], 5);
+    expect(arcs).toHaveLength(1);
+    expect(arcs[0].color).toBe('g');
+  });
+
+  it('first segment has dashOffset=0 (starts at 12 o\'clock after rotate(-90))', () => {
+    const arcs = buildArcs([
+      { count: 5, color: 'g' },
+      { count: 5, color: 'r' },
+    ], 10);
+    // Accept -0 / 0 (JS negation of 0 yields -0; SVG renders identically).
+    expect(Math.abs(arcs[0].dashOffset)).toBe(0);
+  });
+
+  it('subsequent dashOffsets accumulate (each segment trails the prior)', () => {
+    const arcs = buildArcs([
+      { count: 5, color: 'g' },
+      { count: 5, color: 'r' },
+    ], 10);
+    expect(arcs[1].dashOffset).toBeCloseTo(-(0.5 * C), 5);
+  });
+
+  it('full-circle segment gets dashArray `C 0`', () => {
+    const arcs = buildArcs([{ count: 10, color: 'g' }], 10);
+    const [len, gap] = arcs[0].dashArray.split(' ').map(Number);
+    expect(len).toBeCloseTo(C, 5);
+    expect(gap).toBeCloseTo(0, 5);
+  });
+
+  it('half-and-half splits the circumference evenly', () => {
+    const arcs = buildArcs([
+      { count: 1, color: 'g' },
+      { count: 1, color: 'r' },
+    ], 2);
+    for (const arc of arcs) {
+      const [len, gap] = arc.dashArray.split(' ').map(Number);
+      expect(len).toBeCloseTo(C / 2, 5);
+      expect(gap).toBeCloseTo(C / 2, 5);
+    }
+  });
+
+  it('segments sum to exactly the full circumference (no rounding leak)', () => {
+    const arcs = buildArcs([
+      { count: 3, color: 'g' },
+      { count: 4, color: 'y' },
+      { count: 2, color: 'r' },
+      { count: 1, color: 'gr' },
+    ], 10);
+    const totalLen = arcs.reduce((s, a) => s + Number(a.dashArray.split(' ')[0]), 0);
+    expect(totalLen).toBeCloseTo(C, 5);
+  });
+
+  it('handles single-node total (all weight on one segment)', () => {
+    const arcs = buildArcs([{ count: 1, color: 'r' }], 1);
+    expect(arcs).toHaveLength(1);
+    const [len] = arcs[0].dashArray.split(' ').map(Number);
+    expect(len).toBeCloseTo(C, 5);
+  });
+});
+
+// ── Source-level invariants ─────────────────────────────────
+
+describe('MasteryDonut source contract', () => {
+  it('returns null when total === 0 (no donut for empty graph)', () => {
+    expect(source).toMatch(/if\s*\(total\s*===\s*0\)\s*return\s+null/);
+  });
+
+  it('declares the SVG geometry: r=36, cx=cy=44, viewBox="0 0 88 88"', () => {
+    expect(source).toMatch(/const\s+r\s*=\s*36/);
+    expect(source).toMatch(/const\s+cx\s*=\s*44/);
+    expect(source).toMatch(/const\s+cy\s*=\s*44/);
+    expect(source).toMatch(/viewBox="0 0 88 88"/);
+  });
+
+  it('uses 2πr for the circumference', () => {
+    expect(source).toMatch(/circumference\s*=\s*2\s*\*\s*Math\.PI\s*\*\s*r/);
+  });
+
+  it('rotates -90° so the donut starts at 12 o\'clock', () => {
+    expect(source).toMatch(/rotate\(-90\s+\$\{cx\}\s+\$\{cy\}\)/);
+  });
+
+  it('background ring is gray #f3f4f6 at strokeWidth 8', () => {
+    expect(source).toContain('stroke="#f3f4f6"');
+    expect(source).toMatch(/strokeWidth="8"/);
+  });
+
+  it('arcs use round line caps for soft segment edges', () => {
+    expect(source).toContain('strokeLinecap="round"');
+  });
+
+  it('uses useCountUp(800) for the percent counter animation', () => {
+    expect(source).toMatch(/useCountUp\(pct,\s*800\)/);
+  });
+
+  it('center text uses Georgia serif (design-system mandatory)', () => {
+    expect(source).toContain("fontFamily: 'Georgia, serif'");
+  });
+});
+
+// ── findGaps invariants ────────────────────────────────────
+
+describe('findGaps additional invariants (replicated)', () => {
+  type N = { id: string; isUserCreated?: boolean; masteryColor: string; mastery: number };
+  function findGaps(nodes: N[]) {
+    return nodes
+      .filter(n => !n.isUserCreated && (n.masteryColor === 'red' || n.masteryColor === 'gray'))
+      .sort((a, b) => a.mastery - b.mastery)
+      .map(node => ({ node, category: node.masteryColor === 'red' ? 'weak' : 'noData' }));
+  }
+
+  it('sorts by ascending mastery (worst first)', () => {
+    const out = findGaps([
+      { id: 'a', masteryColor: 'red', mastery: 0.3 },
+      { id: 'b', masteryColor: 'red', mastery: 0.1 },
+      { id: 'c', masteryColor: 'red', mastery: 0.2 },
+    ]);
+    expect(out.map(o => o.node.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('excludes user-created nodes from gaps (not the student\'s job to fix custom)', () => {
+    const out = findGaps([
+      { id: 'sys', masteryColor: 'red', mastery: 0.1 },
+      { id: 'usr', masteryColor: 'red', mastery: 0.0, isUserCreated: true },
+    ]);
+    expect(out.map(o => o.node.id)).toEqual(['sys']);
+  });
+
+  it("category mapping: red→'weak', gray→'noData'", () => {
+    const out = findGaps([
+      { id: 'r', masteryColor: 'red', mastery: 0.1 },
+      { id: 'g', masteryColor: 'gray', mastery: -1 },
+    ]);
+    const byId = new Map(out.map(o => [o.node.id, o.category]));
+    expect(byId.get('r')).toBe('weak');
+    expect(byId.get('g')).toBe('noData');
+  });
+
+  it('green / yellow nodes are filtered out (not gaps)', () => {
+    const out = findGaps([
+      { id: 'green', masteryColor: 'green', mastery: 0.9 },
+      { id: 'yellow', masteryColor: 'yellow', mastery: 0.5 },
+      { id: 'red', masteryColor: 'red', mastery: 0.1 },
+    ]);
+    expect(out.map(o => o.node.id)).toEqual(['red']);
+  });
+
+  it('returns [] for empty input', () => {
+    expect(findGaps([])).toEqual([]);
+  });
+});
+
+// ── computeStats edge cases ────────────────────────────────
+
+describe('computeStats edge cases (replicated)', () => {
+  type N = { masteryColor: string; mastery: number; isUserCreated?: boolean };
+  type E = { isUserCreated?: boolean };
+  function computeStats(data: { nodes: N[]; edges: E[] }) {
+    const baseNodes = data.nodes.filter(n => !n.isUserCreated);
+    const customNodes = data.nodes.filter(n => n.isUserCreated);
+    const baseEdges = data.edges.filter(e => !e.isUserCreated);
+    const customEdges = data.edges.filter(e => e.isUserCreated);
+    let mastered = 0, learning = 0, weak = 0, noData = 0;
+    let masterySum = 0, masteryCount = 0;
+    for (const n of baseNodes) {
+      switch (n.masteryColor) {
+        case 'green': mastered++; break;
+        case 'yellow': learning++; break;
+        case 'red': weak++; break;
+        default: noData++;
+      }
+      if (n.mastery >= 0) { masterySum += n.mastery; masteryCount++; }
+    }
+    const total = baseNodes.length;
+    return {
+      total, mastered, learning, weak, noData,
+      avgMastery: masteryCount > 0 ? masterySum / masteryCount : 0,
+      customNodes: customNodes.length,
+      customEdges: customEdges.length,
+      baseNodes: total,
+      baseEdges: baseEdges.length,
+    };
+  }
+
+  it('avgMastery only averages nodes with mastery >= 0 (skips -1 sentinel)', () => {
+    const stats = computeStats({
+      nodes: [
+        { masteryColor: 'gray', mastery: -1 },
+        { masteryColor: 'green', mastery: 0.9 },
+        { masteryColor: 'green', mastery: 0.7 },
+      ],
+      edges: [],
+    });
+    expect(stats.avgMastery).toBeCloseTo(0.8, 5);
+  });
+
+  it('avgMastery=0 when no nodes have valid mastery', () => {
+    const stats = computeStats({
+      nodes: [{ masteryColor: 'gray', mastery: -1 }],
+      edges: [],
+    });
+    expect(stats.avgMastery).toBe(0);
+  });
+
+  it('separates base vs custom nodes/edges in counts', () => {
+    const stats = computeStats({
+      nodes: [
+        { masteryColor: 'green', mastery: 0.9 },
+        { masteryColor: 'green', mastery: 0.8, isUserCreated: true },
+      ],
+      edges: [
+        {},
+        { isUserCreated: true },
+        { isUserCreated: true },
+      ],
+    });
+    expect(stats.baseNodes).toBe(1);
+    expect(stats.customNodes).toBe(1);
+    expect(stats.baseEdges).toBe(1);
+    expect(stats.customEdges).toBe(2);
+  });
+
+  it('default branch counts as noData (handles unknown masteryColor strings)', () => {
+    const stats = computeStats({
+      nodes: [{ masteryColor: 'unknown', mastery: 0.5 }],
+      edges: [],
+    });
+    expect(stats.noData).toBe(1);
+  });
+});
+
+// ── Sub-component declarations ─────────────────────────────
+
+describe('Sub-component pinning', () => {
+  it('declares EmptyComparison (zero-data state)', () => {
+    expect(source).toMatch(/^function\s+EmptyComparison\(\)/m);
+  });
+
+  it('declares StatBadge', () => {
+    expect(source).toMatch(/^function\s+StatBadge\(/m);
+  });
+
+  it('declares GapItem', () => {
+    expect(source).toMatch(/^function\s+GapItem\(/m);
+  });
+
+  it('declares CustomEdgeItem', () => {
+    expect(source).toMatch(/^function\s+CustomEdgeItem\(/m);
+  });
+
+  it('uses MasteryDonut inside the panel render', () => {
+    expect(source).toContain('<MasteryDonut');
+  });
+});
+
+// ── Module export shape ────────────────────────────────────
+
+describe('Module exports', () => {
+  it('exports MapComparisonPanel as memo-wrapped component', () => {
+    expect(source).toMatch(/export\s+const\s+MapComparisonPanel\s*=\s*memo\(function\s+MapComparisonPanel/);
+  });
+
+  it('imports MASTERY_HEX from canonical mindmap types', () => {
+    expect(source).toMatch(/import\s*\{[^}]*MASTERY_HEX[^}]*\}\s*from\s*['"]@\/app\/types\/mindmap['"]/);
+  });
+
+  it('uses useCountUp from hooks for animated stats', () => {
+    expect(source).toContain('useCountUp');
+  });
+
+  it('uses useFocusTrap for the panel\'s focus management', () => {
+    expect(source).toContain('useFocusTrap');
+  });
+});
