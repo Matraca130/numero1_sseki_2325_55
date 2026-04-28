@@ -1,6 +1,6 @@
 {
-  "cycle": 21,
-  "last_run": "2026-04-28T06:13:00Z",
+  "cycle": 22,
+  "last_run": "2026-04-28T06:46:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -23,7 +23,8 @@
     { "cycle": 18, "date": "2026-04-28", "notes": "AiTutorPanel coverage 20→48. Fixed 2 silent-crash i18n bugs. 74 files / 2537 tests." },
     { "cycle": 19, "date": "2026-04-28", "notes": "GraphTemplatePanel coverage 21→47. Fixed 3rd silent-crash i18n bug. 74 files / 2563 tests." },
     { "cycle": 20, "date": "2026-04-28", "notes": "GraphSidebar coverage 27→58. Defect-class regression EXPANDED — caught 4 more silent-crash sites. 74 files / 2588 tests." },
-    { "cycle": 21, "date": "2026-04-28", "notes": "useDragConnect coverage 35→67 (was lowest test:src ratio at 0.34): added 32 tests covering pointer-state-machine source guarantees (capture:true binding to outrace G6, left-click only, threshold activation, inner-60% skip, outer-ring activation, isDraggingRef coordination), snap validity invariants (self-loop, duplicate-edge via O(1) Set, clear when out of range), success path (animation trigger, callback signature, optimistic bidirectional Set update for rapid-dedup), cancellation paths (synthetic pointercancel from Escape with capture:true keydown binding, overlay clearRect, safeReleasePointerCapture), and the returned isDragging() callback. Replicated buildEdgeSet + edgeExistsInSet as pure functions to pin the algorithm: undirected-dedup invariant, parallel/reverse dedup, self-loop handling, 1000-edge scale check. Touch-aware sizing helpers tested for WCAG 2.2 minimum target (44px). Phase 2 sweep clean (no new defect classes — setInterval has matching clearInterval, addEventListener has matching removeEventListener, all setState in async paths use either mountedRef or fetchIdRef stale-guard pattern). Result: 74 files / 2620 tests, ALL PASSING."
+    { "cycle": 21, "date": "2026-04-28", "notes": "useDragConnect coverage 35→67. Pointer-state-machine pinned. 74 files / 2620 tests." },
+    { "cycle": 22, "date": "2026-04-28", "notes": "NodeAnnotationModal coverage 16→47 (was lowest test:src ratio at 0.35): added 31 tests covering pt/es i18n parity (compact comma-separated key format required a tweaked regex; locked in as a re-usable helper pattern), save flow contracts (PATCH-on-existing vs POST-on-new dispatch with response capture preventing duplicate POSTs, content.trim() before persist, 1000-char cap with 950-char red-warning threshold, encodeURIComponent on keyword_id, dual response-shape support, Error.message → toast extraction), delete flow (existing-note-only Delete button, savingRef double-action guard, local-state cleanup), keyboard shortcuts (Ctrl/Cmd+Enter save with handleSaveRef stability, Escape via safeCloseRef, both call preventDefault), body scroll lock that captures+restores prior overflow values (not hardcoded 'auto'), backdrop-click triggers safeClose (unsaved-changes guard), discard-confirm uses ConfirmDialog with z-[60]. Phase 2 false-positive sweep on aliased imports — `Circle as CircleIcon`/`Map as MapIcon`/`Minimize as MinimizeIcon` correctly used. Result: 74 files / 2651 tests, ALL PASSING."
     }
   ],
   "cumulative": {
@@ -31,12 +32,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 2620,
+    "total_tests": 2651,
     "new_test_files_added": 27,
-    "new_assertions_added": 1091,
+    "new_assertions_added": 1122,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 2620/2620 assertions pass; useDragConnect pointer-state-machine fully pinned; 33 days of cycles uncovered 10 real bugs and 1059 assertions added"
+    "milestone": "PERFECT — 74/74 files pass, 2651/2651 assertions pass; NodeAnnotationModal save/delete/i18n/scroll-lock/keyboard contracts pinned; 7 cycles of clean defect-class scans"
   }
 }
