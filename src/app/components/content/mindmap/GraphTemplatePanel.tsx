@@ -166,7 +166,7 @@ export const GraphTemplatePanel = memo(function GraphTemplatePanel({
   onLoadTemplate,
   locale = 'es',
 }: GraphTemplatePanelProps) {
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.es;
 
   // ── State ─────────────────────────────────────────────────
   const [templates, setTemplates] = useState<GraphTemplate[]>([]);

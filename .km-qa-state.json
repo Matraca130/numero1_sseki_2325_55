@@ -1,6 +1,6 @@
 {
-  "cycle": 18,
-  "last_run": "2026-04-28T04:39:00Z",
+  "cycle": 19,
+  "last_run": "2026-04-28T05:10:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -18,9 +18,10 @@
     { "cycle": 13, "date": "2026-04-19", "notes": "116 tests (MicroGraphPanel, GraphSkeleton). 100% file coverage." },
     { "cycle": 14, "date": "2026-04-19", "notes": "64 tests. Fixed nodeContextMenu backdrop. mindmapApi service tests. Zero assertion failures." },
     { "cycle": 15, "date": "2026-04-19", "notes": "Fixed useGraphInit.helpers.test.ts Vite transform error. Added mindmapAiApi.ts contract tests (11 tests). 69 files / 2270 tests." },
-    { "cycle": 16, "date": "2026-04-28", "notes": "140 new tests across 3 contract files (stickyNote 29, useGraphEvents 76, useDragConnect 35). Hardened performance-500-nodes flake (median→min, 8x→10x, sub-0.1ms short-circuit). 72 files / 2410 tests." },
-    { "cycle": 17, "date": "2026-04-28", "notes": "92 new tests (graphMasteryLegend 18, knowledgeGraph 74). devWarn helper extracted, 33 callsites refactored across 14 files. 74 files / 2507 tests." },
-    { "cycle": 18, "date": "2026-04-28", "notes": "AiTutorPanel deepened (was lowest test:src ratio at 0.19): added 28 tests covering pull-to-refresh formula (rubber-band 0.3 resistance, 60px threshold, prefers-reduced-motion clamp, passive listener flags, cleanup), pt/es i18n parity (zero key drift), sub-component declarations. Total AiTutorPanel coverage: 20→48 tests. Code quality: fixed silent-crash bug in useDragConnect:110 + useGraphControls:15 — both did `I18N_GRAPH[locale]` without the `?? I18N_GRAPH.es` fallback used elsewhere; an unsupported locale would throw on first property access. Added a regression test in graphI18n.test.ts that scans every mindmap source file for unguarded I18N_GRAPH[locale] lookups (2 new aggregate tests). Result: 74 files / 2537 tests, ALL PASSING. Phase 3/4 audits unchanged."
+    { "cycle": 16, "date": "2026-04-28", "notes": "140 new tests across 3 contract files. Hardened performance-500-nodes flake. 72 files / 2410 tests." },
+    { "cycle": 17, "date": "2026-04-28", "notes": "92 new tests + devWarn helper extracted, 33 callsites refactored across 14 files. 74 files / 2507 tests." },
+    { "cycle": 18, "date": "2026-04-28", "notes": "AiTutorPanel coverage 20→48 tests (pull-to-refresh formula, i18n parity, sub-components). Fixed 2 silent-crash i18n bugs (useDragConnect:110, useGraphControls:15). 74 files / 2537 tests." },
+    { "cycle": 19, "date": "2026-04-28", "notes": "GraphTemplatePanel deepened (was lowest test:src ratio at 0.21): added 26 tests covering BRAND palette pinning, pt/es i18n parity (zero key drift), pluralization rules (templateCount, nodesAndEdges), save validation (trim/empty/zero-nodes), error-message extraction (Error.message vs i18n fallback), stale-fetch guard via fetchIdRef, mountedRef discipline (8+ checks pinned), Escape suppression when child confirm dialogs are open, default locale='es'. Total GraphTemplatePanel coverage: 21→47 tests. Code quality: fixed THIRD silent-crash i18n bug in GraphTemplatePanel:169 — `translations[locale]` lacked the `?? translations.es` fallback (same defect class as cycle 18 fixes; could crash if a future caller passed a string-cast invalid locale). Added a same-file regression test pinning the fallback. Result: 74 files / 2563 tests, ALL PASSING. Phase 3/4 audits unchanged."
     }
   ],
   "cumulative": {
@@ -28,12 +29,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 2537,
+    "total_tests": 2563,
     "new_test_files_added": 27,
-    "new_assertions_added": 1008,
+    "new_assertions_added": 1034,
     "components_memoized": 5,
     "helpers_extracted": 2,
-    "bugs_fixed": 5,
-    "milestone": "PERFECT — 74/74 files pass, 2537/2537 assertions pass; AiTutorPanel coverage tripled; 2 silent-crash i18n bugs fixed + regression test pinning fallback pattern across 30+ source files"
+    "bugs_fixed": 6,
+    "milestone": "PERFECT — 74/74 files pass, 2563/2563 assertions pass; all 3 sites of the unguarded-locale-lookup defect class are now hardened and pinned by regression tests"
   }
 }
