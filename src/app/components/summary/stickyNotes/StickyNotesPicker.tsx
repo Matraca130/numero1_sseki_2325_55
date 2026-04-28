@@ -31,6 +31,7 @@ export function StickyNotesPicker({
       style={{ minHeight: 220 }}
       role="list"
       aria-label="Elegir nota"
+      data-testid="sticky-notes-picker"
     >
       {slots.map((slot, i) => {
         const preview = slotPreview(slot.content);
