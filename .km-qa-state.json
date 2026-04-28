@@ -37,7 +37,8 @@
     { "cycle": 32, "date": "2026-04-28", "notes": "StickyNote coverage 29→75. Drag/keyboard/undo invariants pinned. 74 files / 3065 tests." },
     { "cycle": 33, "date": "2026-04-28", "notes": "useNodePositions coverage 11→44. LRU + grid + combo persistence pinned. 74 files / 3098 tests." },
     { "cycle": 34, "date": "2026-04-28", "notes": "useGraphData coverage 16→51 (+27). Course-cache invalidation algorithm + listener bus runtime + courseKey sort invariance pinned. 74 files / 3125 tests." },
-    { "cycle": 35, "date": "2026-04-28", "notes": "useGraphExport coverage 11→35 (+24): added source-level guarantees (default locale='es', GraphExportControls export, returns {exportPNG, exportJPEG, setGraph}, ?? I18N_GRAPH.es fallback, useRef<Graph|null>, useCallback empty deps for setGraph stability, exportPNG/JPEG depend on doExport not locale). doExport behaviors (exportingRef concurrent-export guard, (graph as Graph & {destroyed?: boolean}).destroyed check, t.exportNotReady toast, t.exportFailed toast, DEV-only console.error fallback, mode='overall' hardcoded full-graph export, MIME mapping JPEG→image/jpeg PNG→image/png, JPEG encoderOptions=0.92 PNG=1, try/finally guarantees ref release on throw). downloadDataURL DOM-flow (createElement('a'), href=dataURL, download=filename attr, append→click→rAF→remove ordering, requestAnimationFrame cleanup avoids browser flash). buildFilename source contract (4-digit year, getMonth+1 with padStart 2, JPEG→.jpg 3-letter convention, t.exportFilenamePrefix locale prefix). Result: 74 files / 3149 tests, ALL PASSING."
+    { "cycle": 35, "date": "2026-04-28", "notes": "useGraphExport coverage 11→35 (+24): added source-level guarantees (default locale='es', GraphExportControls export, returns {exportPNG, exportJPEG, setGraph}, ?? I18N_GRAPH.es fallback, useRef<Graph|null>, useCallback empty deps for setGraph stability, exportPNG/JPEG depend on doExport not locale). doExport behaviors (exportingRef concurrent-export guard, (graph as Graph & {destroyed?: boolean}).destroyed check, t.exportNotReady toast, t.exportFailed toast, DEV-only console.error fallback, mode='overall' hardcoded full-graph export, MIME mapping JPEG→image/jpeg PNG→image/png, JPEG encoderOptions=0.92 PNG=1, try/finally guarantees ref release on throw). downloadDataURL DOM-flow (createElement('a'), href=dataURL, download=filename attr, append→click→rAF→remove ordering, requestAnimationFrame cleanup avoids browser flash). buildFilename source contract (4-digit year, getMonth+1 with padStart 2, JPEG→.jpg 3-letter convention, t.exportFilenamePrefix locale prefix). Result: 74 files / 3149 tests, ALL PASSING." },
+    { "cycle": 36, "date": "2026-04-28", "notes": "useSpacePan coverage 11→65 (+54): added source-level guarantees (return type void, graphRef/containerRef typing, useRef(false) for spaceHeldRef, useEffect dep array [graphRef, containerRef, ready], early-return when !container || !ready, devWarn import). Hijack-prevention zones pinned tag-by-tag (INPUT, TEXTAREA, SELECT, BUTTON, A, isContentEditable, role='button', closest [role=dialog]/[role=alertdialog], focus must be in container/body/documentElement, double-activate guard via spaceHeldRef.current early-check, preventDefault ordered AFTER guards). G6 drag-element coordination (4 updateBehavior call sites: keyDown enable=false, keyUp enable=true, blur enable=true, unmount enable=true; every site wrapped in try/catch since graph may be destroyed; blur/unmount catches use devWarn('useSpacePan','ignore',e); keyDown/keyUp catches silent). Cursor feedback (style.cursor='grab' on activation, ='' on deactivation x3 sites). Auto-reset paths (window blur listener, container focusout with relatedTarget skip, document visibilitychange when document.hidden, handleBlur is no-op-if-not-held). Listener bind/unbind symmetry (5 listener pairs: keydown/keyup on document, focusout on container, blur on window, visibilitychange on document; addEventListener count === removeEventListener count). Unmount cleanup (spaceHeldRef.current check ensures no orphaned cursor or stuck drag-element behavior). Replicated guard logic (13 table-driven test cases for shouldHijackSpace covering all 8 reject zones + 4 accept paths). Result: 74 files / 3203 tests, ALL PASSING."
     }
   ],
   "cumulative": {
@@ -45,12 +46,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 3149,
+    "total_tests": 3203,
     "new_test_files_added": 27,
-    "new_assertions_added": 1620,
+    "new_assertions_added": 1674,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 3149/3149 assertions pass; useGraphExport export-flow (concurrent-guard, mode='overall', JPEG=0.92 quality, .jpg extension, append→click→rAF→remove DOM order) pinned"
+    "milestone": "PERFECT — 74/74 files pass, 3203/3203 assertions pass; useSpacePan hijack-prevention (8 reject zones), G6 drag-element 4-site try/catch coordination, and 5-listener bind/unbind symmetry pinned"
   }
 }
