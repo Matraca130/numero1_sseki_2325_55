@@ -27,6 +27,10 @@ jobs:
           (
             github.event.sender.login == 'github-actions[bot]' &&
             contains(github.event.issue.labels.*.name, 'bug-hunter')
+          ) ||
+          (
+            github.event.sender.login == 'claude[bot]' &&
+            contains(github.event.issue.labels.*.name, 'bug-hunter')
           )
         )
       )
