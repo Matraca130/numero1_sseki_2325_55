@@ -427,3 +427,270 @@ describe('reconnect-edge pattern', () => {
     expect(rollbackBlocks!.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ── i18n fallback contract ─────────────────────────────────
+
+describe('i18n fallback contract', () => {
+  it("defaults to I18N_GRAPH.pt when no i18n arg is passed (student-default)", () => {
+    expect(source).toMatch(/i18n\s*\?\?\s*I18N_GRAPH\.pt/);
+  });
+
+  it('signature accepts optional GraphI18nStrings', () => {
+    expect(source).toMatch(/useUndoRedo\(onGraphChanged:\s*\(\)\s*=>\s*void,\s*i18n\?:\s*GraphI18nStrings\)/);
+  });
+});
+
+// ── Toast message paths ─────────────────────────────────────
+
+describe('Toast message paths', () => {
+  it('undo emits t.undoReconnect for reconnect-edge type', () => {
+    expect(source).toMatch(/updated\.type\s*===\s*['"]reconnect-edge['"][\s\S]{0,200}toast\.info\(t\.undoReconnect\)/);
+  });
+
+  it('redo emits t.redoReconnect for reconnect-edge type', () => {
+    expect(source).toMatch(/updated\.type\s*===\s*['"]reconnect-edge['"][\s\S]{0,200}toast\.info\(t\.redoReconnect\)/);
+  });
+
+  it('undo computes verb/label (creation+concept|connection / deletion+concept|connection) for non-reconnect', () => {
+    expect(source).toMatch(/const label\s*=\s*updated\.type\.includes\(['"]node['"]\)\s*\?\s*t\.labelConcept\s*:\s*t\.labelConnection/);
+    expect(source).toMatch(/const verb\s*=\s*updated\.type\.startsWith\(['"]create['"]\)\s*\?\s*t\.verbCreation\s*:\s*t\.verbDeletion/);
+  });
+
+  it('undo final toast uses t.undoAction(verb, label)', () => {
+    expect(source).toMatch(/toast\.info\(t\.undoAction\(verb,\s*label\)\)/);
+  });
+
+  it('redo final toast uses t.redoAction(verb, label)', () => {
+    expect(source).toMatch(/toast\.info\(t\.redoAction\(verb,\s*label\)\)/);
+  });
+
+  it('reverseAction error toast uses t.undoErrorWithMsg(msg)', () => {
+    expect(source).toMatch(/toast\.error\(t\.undoErrorWithMsg\(msg\)\)/);
+  });
+
+  it('replayAction error toast uses t.redoErrorWithMsg(msg)', () => {
+    expect(source).toMatch(/toast\.error\(t\.redoErrorWithMsg\(msg\)\)/);
+  });
+
+  it('failed undo (updated=null) shows t.undoFailed', () => {
+    expect(source).toMatch(/toast\.error\(t\.undoFailed\)/);
+  });
+
+  it('failed redo (updated=null) shows t.redoFailed', () => {
+    expect(source).toMatch(/toast\.error\(t\.redoFailed\)/);
+  });
+});
+
+// ── Server-assigned ID flow ────────────────────────────────
+
+describe('Server-assigned ID flow (reverseAction/replayAction)', () => {
+  it('reverseAction(create-node) → only deletes; returns the action unchanged', () => {
+    const block = source.match(/case 'create-node':[\s\S]{0,200}return action;/);
+    expect(block).not.toBeNull();
+    expect(block![0]).toContain('deleteCustomNode(action.nodeId)');
+  });
+
+  it('reverseAction(delete-node) → re-creates; returns action with NEW server-assigned nodeId', () => {
+    expect(source).toMatch(/case ['"]delete-node['"]:\s*\{[\s\S]{0,300}createCustomNode\(action\.payload\)[\s\S]{0,200}return\s*\{\s*\.\.\.action,\s*nodeId:\s*res\.id\s*\}/);
+  });
+
+  it('reverseAction(create-edge) → only deletes; returns the action unchanged', () => {
+    const block = source.match(/case 'create-edge':[\s\S]{0,200}return action;/);
+    expect(block).not.toBeNull();
+    expect(block![0]).toContain('deleteCustomEdge(action.edgeId)');
+  });
+
+  it('reverseAction(delete-edge) → re-creates; returns action with NEW server-assigned edgeId', () => {
+    expect(source).toMatch(/case ['"]delete-edge['"]:\s*\{[\s\S]{0,300}createCustomEdge\(action\.payload\)[\s\S]{0,200}return\s*\{\s*\.\.\.action,\s*edgeId:\s*res\.id\s*\}/);
+  });
+
+  it('reverseAction(reconnect-edge): deletes new edge, creates old payload, returns updated oldEdgeId', () => {
+    expect(source).toMatch(/case ['"]reconnect-edge['"]:\s*\{[\s\S]{0,500}deleteCustomEdge\(action\.newEdgeId\)[\s\S]{0,500}return\s*\{\s*\.\.\.action,\s*oldEdgeId:\s*res\.id\s*\}/);
+  });
+
+  it('replayAction(create-node) → re-creates; returns action with NEW server-assigned nodeId', () => {
+    expect(source).toMatch(/replayAction[\s\S]{0,500}case ['"]create-node['"]:[\s\S]{0,200}createCustomNode\(action\.payload\)[\s\S]{0,200}return\s*\{\s*\.\.\.action,\s*nodeId:\s*res\.id\s*\}/);
+  });
+
+  it('replayAction(delete-node) → only deletes; returns the action unchanged', () => {
+    const replayBlock = source.match(/replayAction\s*=\s*useCallback\([\s\S]{0,3500}/);
+    expect(replayBlock).not.toBeNull();
+    expect(replayBlock![0]).toMatch(/case ['"]delete-node['"]:[\s\S]{0,150}deleteCustomNode\(action\.nodeId\)[\s\S]{0,80}return action/);
+  });
+
+  it('replayAction(reconnect-edge): deletes old edge, creates new payload, returns updated newEdgeId', () => {
+    expect(source).toMatch(/replayAction[\s\S]{0,3500}case ['"]reconnect-edge['"]:\s*\{[\s\S]{0,500}deleteCustomEdge\(action\.oldEdgeId\)[\s\S]{0,500}return\s*\{\s*\.\.\.action,\s*newEdgeId:\s*res\.id\s*\}/);
+  });
+});
+
+// ── Compensating rollback (atomic-ish reconnect) ───────────
+
+describe('Compensating rollback for reconnect-edge', () => {
+  it('reverseAction rollback re-creates the deleted new edge if old-creation fails', () => {
+    expect(source).toMatch(/reverseAction[\s\S]{0,3000}deleteCustomEdge\(action\.newEdgeId\)[\s\S]{0,500}createCustomEdge\(action\.newPayload\)/);
+  });
+
+  it('replayAction rollback re-creates the deleted old edge if new-creation fails', () => {
+    expect(source).toMatch(/replayAction[\s\S]{0,3500}deleteCustomEdge\(action\.oldEdgeId\)[\s\S]{0,500}createCustomEdge\(action\.oldPayload\)/);
+  });
+
+  it('rollback failures are swallowed via devWarn (best-effort)', () => {
+    expect(source).toMatch(/devWarn\(['"]useUndoRedo['"],\s*['"]best-effort rollback['"],\s*e\)/);
+  });
+
+  it('rollback throws the ORIGINAL recreate error (not the rollback error)', () => {
+    expect(source).toMatch(/throw recreateErr/);
+  });
+});
+
+// ── Mounted-ref guard for async ────────────────────────────
+
+describe('mountedRef async-guard', () => {
+  it('mountedRef starts true on mount via useEffect', () => {
+    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\{\s*mountedRef\.current\s*=\s*true;\s*return\s*\(\)\s*=>\s*\{\s*mountedRef\.current\s*=\s*false/);
+  });
+
+  it('after async undo: !mountedRef.current → invalidateGraphCache and bail (no setState)', () => {
+    expect(source).toMatch(/undo[\s\S]{0,500}if\s*\(!mountedRef\.current\)\s*\{[\s\S]{0,200}invalidateGraphCache\(\);\s*return/);
+  });
+
+  it('after async redo: !mountedRef.current → invalidateGraphCache and bail', () => {
+    expect(source).toMatch(/redo[\s\S]{0,500}if\s*\(!mountedRef\.current\)\s*\{[\s\S]{0,200}invalidateGraphCache\(\)/);
+  });
+
+  it('finally block only setBusy(false) when still mounted (avoids React warning)', () => {
+    const matches = source.match(/finally\s*\{\s*if\s*\(mountedRef\.current\)\s*setBusy\(false\)/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('busyRef is always cleared in finally (even on unmount)', () => {
+    const matches = source.match(/busyRef\.current\s*=\s*false/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── Error message extraction ───────────────────────────────
+
+describe('Error message extraction', () => {
+  it('uses err instanceof Error to extract .message', () => {
+    expect(source).toMatch(/err\s+instanceof\s+Error\s*\?\s*err\.message\s*:\s*['"]Error['"]/);
+  });
+
+  it('fallback "Error" string when err is not an Error instance', () => {
+    expect(source).toMatch(/:\s*['"]Error['"]/);
+  });
+
+  it('typed catch as unknown (TS strict)', () => {
+    expect(source).toMatch(/catch\s*\(err:\s*unknown\)/);
+  });
+});
+
+// ── Keyboard handler deeper ────────────────────────────────
+
+describe('Keyboard handler deeper', () => {
+  it('accepts both Ctrl AND Meta (Mac) for shortcuts', () => {
+    expect(source).toMatch(/const isCtrl\s*=\s*e\.ctrlKey\s*\|\|\s*e\.metaKey/);
+  });
+
+  it('preventDefault is called inside both undo and redo branches', () => {
+    const blocks = source.match(/e\.preventDefault\(\)/g) ?? [];
+    expect(blocks.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('handles capital "Z" with Shift (Shift naturally capitalizes letters)', () => {
+    expect(source).toMatch(/e\.key\s*===\s*['"]Z['"]\s*&&\s*e\.shiftKey/);
+  });
+
+  it('skips when isCtrl is false (avoids hijacking plain "z")', () => {
+    expect(source).toMatch(/if\s*\(!isCtrl\)\s*return/);
+  });
+
+  it('listener is added on document and cleaned up on effect unwind', () => {
+    expect(source).toMatch(/document\.addEventListener\(['"]keydown['"],\s*handler\)/);
+    expect(source).toMatch(/document\.removeEventListener\(['"]keydown['"],\s*handler\)/);
+  });
+
+  it('keyboard effect dep array is [undo, redo]', () => {
+    expect(source).toMatch(/\},\s*\[undo,\s*redo\]\)/);
+  });
+});
+
+// ── pushAction invariants ──────────────────────────────────
+
+describe('pushAction invariants (source)', () => {
+  it('appends action to past via spread (immutable)', () => {
+    expect(source).toMatch(/setPast\(prev\s*=>\s*\{\s*const next\s*=\s*\[\.\.\.prev,\s*action\]/);
+  });
+
+  it('caps at MAX_HISTORY using slice(-MAX_HISTORY) (keeps most recent)', () => {
+    expect(source).toMatch(/next\.length\s*>\s*MAX_HISTORY\s*\?\s*next\.slice\(-MAX_HISTORY\)\s*:\s*next/);
+  });
+
+  it('clears future on every push (no branch history)', () => {
+    expect(source).toMatch(/pushAction[\s\S]{0,400}setFuture\(\[\]\)/);
+  });
+
+  it('useCallback empty deps (stable reference)', () => {
+    expect(source).toMatch(/pushAction\s*=\s*useCallback\([\s\S]{0,500}\},\s*\[\]\)/);
+  });
+});
+
+// ── Stack pop/push timing ──────────────────────────────────
+
+describe('Stack pop/push timing on success', () => {
+  it('undo pops past via slice(0, -1) AFTER reverseAction succeeds', () => {
+    expect(source).toMatch(/undo[\s\S]{0,1500}if\s*\(updated\)\s*\{\s*setPast\(prev\s*=>\s*prev\.slice\(0,\s*-1\)\)/);
+  });
+
+  it('undo pushes UPDATED action (with server IDs) onto future', () => {
+    expect(source).toMatch(/setFuture\(prev\s*=>\s*\[\.\.\.prev,\s*updated\]\)/);
+  });
+
+  it('redo pops future and pushes onto past on success', () => {
+    expect(source).toMatch(/redo[\s\S]{0,1500}setFuture\(prev\s*=>\s*prev\.slice\(0,\s*-1\)\);\s*setPast\(prev\s*=>\s*\[\.\.\.prev,\s*updated\]\)/);
+  });
+
+  it('onGraphChanged is invoked after successful undo and redo', () => {
+    const calls = source.match(/onGraphChanged\(\)/g) ?? [];
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── Replicated stack — server-ID round trip ────────────────
+
+class StackWithServerIds {
+  past: { id: string; reCreated?: boolean }[] = [];
+  future: { id: string; reCreated?: boolean }[] = [];
+
+  pushDeleteThenUndoCycle(originalId: string, newServerIdAfterRecreate: string) {
+    // 1. delete-node action recorded
+    this.past.push({ id: originalId });
+    // 2. undo → re-create yields new server id
+    const last = this.past.pop()!;
+    this.future.push({ id: newServerIdAfterRecreate, reCreated: true });
+    return last;
+  }
+
+  redoCycle(action: { id: string }, newServerIdAfterRecreate: string) {
+    // 3. redo → action fires forward; depending on type may yield another id
+    const last = this.future.pop()!;
+    this.past.push({ id: newServerIdAfterRecreate });
+    return last;
+  }
+}
+
+describe('Replicated server-ID round trip', () => {
+  it('after undo of delete, future stores the NEW id (not the original)', () => {
+    const s = new StackWithServerIds();
+    s.pushDeleteThenUndoCycle('orig-1', 'server-1');
+    expect(s.future[0].id).toBe('server-1');
+    expect(s.future[0].reCreated).toBe(true);
+  });
+
+  it('redo after undo can yield yet another new id (server may re-assign)', () => {
+    const s = new StackWithServerIds();
+    s.pushDeleteThenUndoCycle('orig-1', 'server-1');
+    s.redoCycle(s.future[0], 'server-2');
+    expect(s.past[s.past.length - 1].id).toBe('server-2');
+  });
+});
