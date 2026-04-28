@@ -1,6 +1,6 @@
 {
-  "cycle": 25,
-  "last_run": "2026-04-28T08:17:00Z",
+  "cycle": 26,
+  "last_run": "2026-04-28T08:47:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -27,7 +27,8 @@
     { "cycle": 22, "date": "2026-04-28", "notes": "NodeAnnotationModal coverage 16→47. Save/delete/scroll-lock pinned. 74 files / 2651 tests." },
     { "cycle": 23, "date": "2026-04-28", "notes": "useGraphInit coverage 32→88. 7 layout configs pinned tunable-by-tunable. 74 files / 2707 tests." },
     { "cycle": 24, "date": "2026-04-28", "notes": "useEdgeReconnect coverage 30→65. Sister hook to useDragConnect fully pinned. 74 files / 2742 tests." },
-    { "cycle": 25, "date": "2026-04-28", "notes": "MiniKnowledgeGraph coverage 18→62 (was lowest test:src ratio at 0.45 after AiTutorPanel deepened): added 44 tests. Replicated buildNodeStyle as a pure function with full property pinning (focal=40px / non-focal=28px sizing, focal lineWidth=3 wins over isCustom=2 wins over default=1.5, MASTERY_HEX/MASTERY_HEX_LIGHT mapping for non-custom, primary[50]/primary[500] palette for user-created, [6,3] dashed border for custom, focal shadowBlur=10 + matching shadowColor, label truncated at 14 chars with Inter 10pt bottom). Replicated dataKey hash with identity properties (deterministic for same data, sensitive to id changes, length-prefixed to detect prefix-collisions, "0:0|0:0" empty case, intentionally order-sensitive for cache invalidation, O(N) at 1000 nodes <1ms). Mobile padding switch (8 vs 16 at <400px). Radial layout tunables (unitRadius=60 / nodeSize=30 / preventOverlap, animation:false, behaviors=[zoom-canvas+drag-canvas only], circle/line minimal renderers, autoFit:'view'). ResizeObserver loop guard (prevSizeRef cached dimensions, w>0 && rh>0 gate, !== check, Math.round to ignore sub-pixel jitter). justInitializedRef invariant (skip first run after init, deps=[focalNodeId, ready, data.nodes]). Empty-data handling (returns null + destroys stale graph for memory-leak fix). Edge style 4-tier color precedence (customColor → primary[500] → CONNECTION_TYPE_MAP → text.disabled). Dynamic aria-label embedding node count. Result: 74 files / 2786 tests, ALL PASSING."
+    { "cycle": 25, "date": "2026-04-28", "notes": "MiniKnowledgeGraph coverage 18→62. buildNodeStyle + dataKey pinned. 74 files / 2786 tests." },
+    { "cycle": 26, "date": "2026-04-28", "notes": "PresentationMode coverage 22→64 (was lowest test:src ratio at 0.53 of unaudited components): added 42 tests. Replicated swipe-gesture detector (>50px horizontal, 1.5× horizontal-dominant, <500ms — pure function with all 4 boundary types tested), index clamping invariants (initial Math.max+Math.min, total-changes effect re-clamp, safeIndex one-frame-flicker mitigation, return-null when total=0, goNext/goPrev clamp at boundaries), direction state machine ('right' on next, 'left' on prev, passed as `custom` to AnimatePresence), onNodeFocus depending on currentId STRING (not object reference — avoids re-firing on render), progress percentage formula (((index+1)/total)*100), boundary disabled state (opacity-20 + cursor-default at index===0 / index===total-1), body+html scroll-lock symmetry (captures both prev values, restores both — not hardcoded 'auto'), card content rendering (definition fallback 'Sin definición disponible', annotation in italic quotes, conditional flashcard/quiz counts, type badge for non-keyword nodes, mastery clamped to >=0 with Math.round, aria-valuemin=0/max=100, Georgia serif mandatory), AnimatePresence config (mode='wait' for full-exit, key=current.id remount, 0.25s easeInOut), bilingual bottom hint (desktop arrows + Escape vs mobile tap arrows), brand-dark backdrop rgba(27,59,54,0.92). Result: 74 files / 2828 tests, ALL PASSING. Phase 2/3/4 audits unchanged."
     }
   ],
   "cumulative": {
@@ -35,12 +36,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 2786,
+    "total_tests": 2828,
     "new_test_files_added": 27,
-    "new_assertions_added": 1257,
+    "new_assertions_added": 1299,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 2786/2786 assertions pass; both micro/mini/full graph variants now fully contract-tested at the buildNodeStyle level"
+    "milestone": "PERFECT — 74/74 files pass, 2828/2828 assertions pass; PresentationMode swipe-gesture and index-clamp invariants pinned; coverage saturation continues — last 11 cycles found 0 new bugs"
   }
 }
