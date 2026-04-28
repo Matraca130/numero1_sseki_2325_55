@@ -261,9 +261,9 @@ jobs:
             | Build | ${formatStatus('${{ steps.build.outcome }}')} |
             | GPT review | ${process.env.AI_REVIEW_STATUS} |
 
-            Model: `${process.env.AI_REVIEW_MODEL}`  
-            Reasoning effort: `${process.env.AI_REASONING_EFFORT}`  
-            PR event: `${context.payload.action || context.eventName}`  
+            Model: \`${process.env.AI_REVIEW_MODEL}\`
+            Reasoning effort: \`${process.env.AI_REASONING_EFFORT}\`
+            PR event: \`${context.payload.action || context.eventName}\`
             Run: ${runUrl}
 
             ### GPT review
