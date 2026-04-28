@@ -8,11 +8,13 @@
 // <FlashcardsManager summaryId={...} /> for the selected summary.
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/app/context/AuthContext';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import { apiCall } from '@/app/lib/api';
 import type { Summary } from '@/app/types/platform';
 import type { TreeCourse } from '@/app/services/contentTreeApi';
+// Schema note: memberships has no course_id — professors are scoped at the
+// institution level. The role gate is upstream (RequireRole), so this view
+// shows every active course of the institution.
 import { FlashcardsManager } from '@/app/components/content/FlashcardsManager';
 import {
   CreditCard, BookOpen, Layers, GraduationCap,
@@ -47,7 +49,6 @@ function CascadeNavigator({
   selectedSummaryId,
   onSelectTopic,
   onSelectSummary,
-  institutionId,
   tree,
   treeLoading,
 }: {
@@ -55,14 +56,9 @@ function CascadeNavigator({
   selectedSummaryId: string | null;
   onSelectTopic: (topicId: string, topicName: string) => void;
   onSelectSummary: (summary: Summary) => void;
-  institutionId: string | null;
   tree: { courses: TreeCourse[] } | null;
   treeLoading: boolean;
 }) {
-  // Professor course filter (from memberships)
-  const [profCourseIds, setProfCourseIds] = useState<Set<string>>(new Set());
-  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
-
   // Cascade selections (levels 1-4 from tree)
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [selectedSemesterId, setSelectedSemesterId] = useState('');
@@ -72,34 +68,8 @@ function CascadeNavigator({
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [summariesLoading, setSummariesLoading] = useState(false);
 
-  // ── 1. Load memberships once to filter professor courses ──
-  useEffect(() => {
-    if (!institutionId) return;
-    let cancelled = false;
-    apiCall<any>(`/memberships?institution_id=${institutionId}`)
-      .then(data => {
-        if (cancelled) return;
-        const items = Array.isArray(data) ? data : data?.items || [];
-        const ids = new Set<string>(
-          items
-            .filter((m: any) => m.role?.toLowerCase() === 'professor' && m.course_id)
-            .map((m: any) => m.course_id)
-        );
-        setProfCourseIds(ids);
-      })
-      .catch(err => { if (!cancelled) console.error('[CascadeNav] Memberships error:', err); })
-      .finally(() => { if (!cancelled) setMembershipsLoaded(true); });
-    return () => { cancelled = true; };
-  }, [institutionId]);
-
-  // ── 2. Derive courses from tree, filtered by professor memberships ──
-  const courses = useMemo(() => {
-    if (!tree?.courses) return [];
-    const all = tree.courses;
-    if (profCourseIds.size === 0) return all; // fallback: show all
-    const filtered = all.filter(c => profCourseIds.has(c.id));
-    return filtered.length > 0 ? filtered : all;
-  }, [tree, profCourseIds]);
+  // ── Courses come straight from the institution tree ──
+  const courses = useMemo(() => tree?.courses || [], [tree]);
 
   // ── 3. Derive semesters from selected course (in-memory) ──
   const semesters = useMemo(() => {
@@ -158,7 +128,7 @@ function CascadeNavigator({
   const labelClass = "block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1";
 
   // ── Loading state ──
-  if (treeLoading || (!membershipsLoaded && !!institutionId)) {
+  if (treeLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 size={20} className="animate-spin text-purple-400" />
@@ -311,9 +281,7 @@ function CascadeNavigator({
 // ── Main Page Component ──────────────────────────────────
 
 export function ProfessorFlashcardsPage() {
-  const { activeMembership } = useAuth();
   const { tree, loading: treeLoading } = useContentTree();
-  const institutionId = activeMembership?.institution_id || null;
 
   // Navigation state
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
@@ -377,7 +345,6 @@ export function ProfessorFlashcardsPage() {
               selectedSummaryId={selectedSummary?.id || null}
               onSelectTopic={handleSelectTopic}
               onSelectSummary={handleSelectSummary}
-              institutionId={institutionId}
               tree={tree}
               treeLoading={treeLoading}
             />

@@ -182,7 +182,7 @@ export function ProfessorQuizzesPage() {
                 <ClipboardList size={28} className="text-teal-300" />
               </div>
               <p className="text-sm">Selecciona un resumen desde el panel izquierdo</p>
-              <p className="text-xs text-zinc-300">Curso \u2192 Semestre \u2192 Seccion \u2192 Topico \u2192 Resumen</p>
+              <p className="text-xs text-zinc-300">Curso → Semestre → Sección → Tópico → Resumen</p>
             </div>
           ) : (
             <>

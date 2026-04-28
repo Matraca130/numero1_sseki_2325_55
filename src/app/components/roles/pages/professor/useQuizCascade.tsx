@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiCall } from '@/app/lib/api';
+import { extractItems } from '@/app/lib/api-helpers';
 import type { CascadeLevelConfig } from '@/app/components/professor/CascadeSelector';
 import type { Summary, Keyword } from '@/app/types/platform';
 import {
@@ -21,10 +22,6 @@ const ICON_SEMESTER = <GraduationCap size={12} className="text-gray-400 shrink-0
 const ICON_SECTION = <Layers size={12} className="text-gray-400 shrink-0" />;
 const ICON_TOPIC = <FileText size={12} className="text-gray-400 shrink-0" />;
 const ICON_SUMMARY = <ClipboardList size={12} className="text-purple-500 shrink-0" />;
-
-function extractItems<T>(res: { items: T[] } | T[]): T[] {
-  return Array.isArray(res) ? res : res.items;
-}
 
 // ── Return type ──
 
