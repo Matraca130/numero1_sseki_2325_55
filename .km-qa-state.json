@@ -1,6 +1,6 @@
 {
-  "cycle": 20,
-  "last_run": "2026-04-28T05:43:00Z",
+  "cycle": 21,
+  "last_run": "2026-04-28T06:13:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -18,11 +18,12 @@
     { "cycle": 13, "date": "2026-04-19", "notes": "116 tests (MicroGraphPanel, GraphSkeleton). 100% file coverage." },
     { "cycle": 14, "date": "2026-04-19", "notes": "64 tests. Fixed nodeContextMenu backdrop. mindmapApi service tests. Zero assertion failures." },
     { "cycle": 15, "date": "2026-04-19", "notes": "Fixed useGraphInit.helpers.test.ts Vite transform error. Added mindmapAiApi.ts contract tests (11 tests). 69 files / 2270 tests." },
-    { "cycle": 16, "date": "2026-04-28", "notes": "140 new tests across 3 contract files. Hardened performance-500-nodes flake. 72 files / 2410 tests." },
-    { "cycle": 17, "date": "2026-04-28", "notes": "92 new tests + devWarn helper extracted, 33 callsites refactored across 14 files. 74 files / 2507 tests." },
-    { "cycle": 18, "date": "2026-04-28", "notes": "AiTutorPanel coverage 20→48 (pull-to-refresh formula, i18n parity). Fixed 2 silent-crash i18n bugs. 74 files / 2537 tests." },
-    { "cycle": 19, "date": "2026-04-28", "notes": "GraphTemplatePanel coverage 21→47 (BRAND, pluralization, save validation, error extraction, stale-fetch, mountedRef). Fixed 3rd silent-crash i18n bug. 74 files / 2563 tests." },
-    { "cycle": 20, "date": "2026-04-28", "notes": "GraphSidebar coverage 27→58 (BarBtn/Sep sub-components, LAYOUT_OPTIONS+icons, MASTERY_COLORS tier order, fontSize clamp() tokens, popup outside-click + Escape with searchQuery suppression, exportingRef double-action guard, mountedRef discipline). Defect-class regression EXPANDED to cover I18N_GRAPH + I18N_MAP_VIEW + translations across mindmap/ + KnowledgeMapView.tsx. The expanded sweep caught FOUR more silent-crash sites of the same defect class: GraphSidebar:192, ShareMapModal:36, KnowledgeMapView:98 (I18N_MAP_VIEW family), KnowledgeMapView:158 (the I18N_GRAPH lookup hidden in a useUndoRedo argument). All fixed. The class-level sweep approach (vs. ad-hoc per-file fixes) proved high-leverage — turning 1 review pattern into N regression-pinned fixes. Result: 74 files / 2588 tests, ALL PASSING. Phase 3/4 audits unchanged."
+    { "cycle": 16, "date": "2026-04-28", "notes": "140 new tests. Hardened performance flake. 72 files / 2410 tests." },
+    { "cycle": 17, "date": "2026-04-28", "notes": "92 new tests + devWarn helper, 33 callsites refactored. 74 files / 2507 tests." },
+    { "cycle": 18, "date": "2026-04-28", "notes": "AiTutorPanel coverage 20→48. Fixed 2 silent-crash i18n bugs. 74 files / 2537 tests." },
+    { "cycle": 19, "date": "2026-04-28", "notes": "GraphTemplatePanel coverage 21→47. Fixed 3rd silent-crash i18n bug. 74 files / 2563 tests." },
+    { "cycle": 20, "date": "2026-04-28", "notes": "GraphSidebar coverage 27→58. Defect-class regression EXPANDED — caught 4 more silent-crash sites. 74 files / 2588 tests." },
+    { "cycle": 21, "date": "2026-04-28", "notes": "useDragConnect coverage 35→67 (was lowest test:src ratio at 0.34): added 32 tests covering pointer-state-machine source guarantees (capture:true binding to outrace G6, left-click only, threshold activation, inner-60% skip, outer-ring activation, isDraggingRef coordination), snap validity invariants (self-loop, duplicate-edge via O(1) Set, clear when out of range), success path (animation trigger, callback signature, optimistic bidirectional Set update for rapid-dedup), cancellation paths (synthetic pointercancel from Escape with capture:true keydown binding, overlay clearRect, safeReleasePointerCapture), and the returned isDragging() callback. Replicated buildEdgeSet + edgeExistsInSet as pure functions to pin the algorithm: undirected-dedup invariant, parallel/reverse dedup, self-loop handling, 1000-edge scale check. Touch-aware sizing helpers tested for WCAG 2.2 minimum target (44px). Phase 2 sweep clean (no new defect classes — setInterval has matching clearInterval, addEventListener has matching removeEventListener, all setState in async paths use either mountedRef or fetchIdRef stale-guard pattern). Result: 74 files / 2620 tests, ALL PASSING."
     }
   ],
   "cumulative": {
@@ -30,12 +31,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 2588,
+    "total_tests": 2620,
     "new_test_files_added": 27,
-    "new_assertions_added": 1059,
+    "new_assertions_added": 1091,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 2588/2588 assertions pass; ALL 7 sites of the unguarded-locale-lookup defect class hardened across 3 i18n constants (I18N_GRAPH × 3, I18N_MAP_VIEW × 3, translations × 1); regression test pins all future callsites"
+    "milestone": "PERFECT — 74/74 files pass, 2620/2620 assertions pass; useDragConnect pointer-state-machine fully pinned; 33 days of cycles uncovered 10 real bugs and 1059 assertions added"
   }
 }
