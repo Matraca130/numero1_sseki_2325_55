@@ -265,3 +265,282 @@ describe('saveStickyNotes / loadStickyNotes', () => {
     expect(loadStickyNotes('t')).toEqual([]);
   });
 });
+
+// ── Drag handlers (replicated final-position logic) ────────
+
+describe('Drag final-position clamp (replicated)', () => {
+  // Mirrors handlePointerUp's clamp-to-parent-bounds logic.
+  function clampDrop(
+    noteX: number, noteY: number,
+    dx: number, dy: number,
+    parentW: number, parentH: number,
+  ) {
+    const maxX = Math.max(0, parentW - 160);
+    const maxY = Math.max(0, parentH - 100);
+    const finalX = Math.min(maxX, Math.max(0, noteX + dx));
+    const finalY = Math.min(maxY, Math.max(0, noteY + dy));
+    return { x: finalX, y: finalY };
+  }
+
+  it('clamps to (0, 0) when dropped above/left of origin', () => {
+    expect(clampDrop(50, 50, -100, -100, 800, 600)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('clamps to (parentW-160, parentH-100) max position', () => {
+    expect(clampDrop(700, 500, 200, 200, 800, 600)).toEqual({ x: 640, y: 500 });
+  });
+
+  it('preserves position when drop is in bounds', () => {
+    expect(clampDrop(100, 100, 50, 30, 800, 600)).toEqual({ x: 150, y: 130 });
+  });
+
+  it('handles tiny parent (parentW < 160) by clamping to 0', () => {
+    expect(clampDrop(10, 10, 50, 50, 100, 50)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('matches the source pattern: maxX = parent.clientWidth - 160', () => {
+    expect(source).toMatch(/parent\.clientWidth\s*-\s*160/);
+  });
+
+  it('matches the source pattern: maxY = parent.clientHeight - 100', () => {
+    expect(source).toMatch(/parent\.clientHeight\s*-\s*100/);
+  });
+});
+
+// ── Keyboard movement (replicated) ─────────────────────────
+
+describe('Keyboard arrow movement (replicated)', () => {
+  // Mirrors handleKeyboardMove's step + clamp logic.
+  const MOVE_STEP = 10;
+
+  function computeDelta(key: string, shiftKey: boolean): { dx: number; dy: number } | null {
+    const step = shiftKey ? 50 : MOVE_STEP;
+    if (key === 'ArrowLeft') return { dx: -step, dy: 0 };
+    if (key === 'ArrowRight') return { dx: step, dy: 0 };
+    if (key === 'ArrowUp') return { dx: 0, dy: -step };
+    if (key === 'ArrowDown') return { dx: 0, dy: step };
+    return null;
+  }
+
+  it('regular arrow uses MOVE_STEP=10', () => {
+    expect(computeDelta('ArrowRight', false)).toEqual({ dx: 10, dy: 0 });
+    expect(computeDelta('ArrowLeft', false)).toEqual({ dx: -10, dy: 0 });
+    expect(computeDelta('ArrowUp', false)).toEqual({ dx: 0, dy: -10 });
+    expect(computeDelta('ArrowDown', false)).toEqual({ dx: 0, dy: 10 });
+  });
+
+  it('Shift+arrow uses 50px step (5× larger jump)', () => {
+    expect(computeDelta('ArrowRight', true)).toEqual({ dx: 50, dy: 0 });
+    expect(computeDelta('ArrowLeft', true)).toEqual({ dx: -50, dy: 0 });
+    expect(computeDelta('ArrowUp', true)).toEqual({ dx: 0, dy: -50 });
+    expect(computeDelta('ArrowDown', true)).toEqual({ dx: 0, dy: 50 });
+  });
+
+  it('non-arrow keys return null (no movement)', () => {
+    expect(computeDelta('Enter', false)).toBeNull();
+    expect(computeDelta('a', false)).toBeNull();
+    expect(computeDelta('Escape', false)).toBeNull();
+  });
+
+  it('source declares MOVE_STEP = 10', () => {
+    expect(source).toMatch(/MOVE_STEP\s*=\s*10/);
+  });
+
+  it('source uses 50 as the Shift step (no constant — inline)', () => {
+    expect(source).toMatch(/e\.shiftKey\s*\?\s*50\s*:\s*MOVE_STEP/);
+  });
+
+  it('arrow handlers call preventDefault + stopPropagation', () => {
+    expect(source).toMatch(/handleKeyboardMove[\s\S]{0,400}e\.preventDefault\(\)/);
+    expect(source).toMatch(/handleKeyboardMove[\s\S]{0,500}e\.stopPropagation\(\)/);
+  });
+
+  it('rAF-batches accumulated deltas (kbPendingRef + kbMoveRafRef)', () => {
+    expect(source).toContain('kbPendingRef');
+    expect(source).toContain('kbMoveRafRef');
+    expect(source).toMatch(/kbPendingRef\.current\s*=\s*\{\s*dx:\s*\(prev\?\.dx\s*\?\?\s*0\)\s*\+\s*dx,\s*dy:\s*\(prev\?\.dy\s*\?\?\s*0\)\s*\+\s*dy\s*\}/);
+  });
+
+  it('rAF cleanup on unmount cancels pending frame', () => {
+    // useEffect(() => () => { ... }, []) — cleanup-only effect
+    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\(\)\s*=>\s*\{\s*if\s*\(kbMoveRafRef\.current\)\s*cancelAnimationFrame\(kbMoveRafRef\.current\)/);
+  });
+});
+
+// ── Color cycle on header dblclick (replicated) ────────────
+
+describe('Color cycle on header double-click (replicated)', () => {
+  const COLORS = ['#fef3c7', '#d1fae5', '#dbeafe', '#fce7f3'];
+
+  function nextColor(currentHex: string): string {
+    const currentIdx = COLORS.findIndex(c => c === currentHex);
+    const nextIdx = (currentIdx + 1) % COLORS.length;
+    return COLORS[nextIdx];
+  }
+
+  it('cycles forward through STICKY_COLORS', () => {
+    expect(nextColor('#fef3c7')).toBe('#d1fae5');
+    expect(nextColor('#d1fae5')).toBe('#dbeafe');
+    expect(nextColor('#dbeafe')).toBe('#fce7f3');
+  });
+
+  it('wraps from last back to first', () => {
+    expect(nextColor('#fce7f3')).toBe('#fef3c7');
+  });
+
+  it('treats unknown color as -1 → cycles to index 0 (first preset)', () => {
+    // (-1 + 1) % 4 = 0
+    expect(nextColor('#unknown')).toBe('#fef3c7');
+  });
+
+  it('source uses modulo cycling: (currentIdx + 1) % STICKY_COLORS.length', () => {
+    expect(source).toMatch(/\(currentIdx\s*\+\s*1\)\s*%\s*STICKY_COLORS\.length/);
+  });
+
+  it('handler is bound to onDoubleClick on the header', () => {
+    expect(source).toMatch(/onDoubleClick=\{handleHeaderDoubleClick\}/);
+  });
+});
+
+// ── Text change (replicated 200-char clamp) ────────────────
+
+describe('Text change clamp (replicated)', () => {
+  function clampText(input: string): string {
+    return input.slice(0, 200);
+  }
+
+  it('passes through text under 200 chars unchanged', () => {
+    expect(clampText('hello world')).toBe('hello world');
+  });
+
+  it('truncates at exactly 200 chars', () => {
+    const long = 'a'.repeat(250);
+    expect(clampText(long).length).toBe(200);
+  });
+
+  it('source clamps via .slice(0, 200) and not maxLength only', () => {
+    expect(source).toMatch(/e\.target\.value\.slice\(0,\s*200\)/);
+  });
+
+  it('the textarea also has maxLength=200 attribute (defensive double-guard)', () => {
+    expect(source).toMatch(/maxLength=\{200\}/);
+  });
+});
+
+// ── Auto-focus on creation ─────────────────────────────────
+
+describe('Auto-focus on creation (empty text)', () => {
+  it('focuses textarea via mount-only effect', () => {
+    expect(source).toMatch(/if\s*\(note\.text\s*===\s*''\s*&&\s*textareaRef\.current\)\s*\{\s*textareaRef\.current\.focus\(\)/);
+  });
+
+  it('eslint-disable on the deps array (intentional mount-only)', () => {
+    expect(source).toMatch(/eslint-disable-next-line\s+react-hooks\/exhaustive-deps[\s\S]{0,200}\}, \[\]\)/);
+  });
+});
+
+// ── Header drag-handle a11y ────────────────────────────────
+
+describe('Header drag-handle accessibility', () => {
+  it('uses tabIndex={0} so it can be focused', () => {
+    expect(source).toMatch(/tabIndex=\{0\}/);
+  });
+
+  it("declares aria-roledescription='elemento arrastrable'", () => {
+    expect(source).toContain('aria-roledescription="elemento arrastrable"');
+  });
+
+  it('aria-label hints arrow-key alternative', () => {
+    expect(source).toContain('Mover nota (usa las flechas del teclado)');
+  });
+
+  it('cursor flips between grab and grabbing based on drag state', () => {
+    expect(source).toMatch(/isDragging\s*\?\s*'grabbing'\s*:\s*'grab'/);
+  });
+});
+
+// ── StickyNotesLayer behaviors ─────────────────────────────
+
+describe('StickyNotesLayer behaviors', () => {
+  it('debounces saveStickyNotes by 150ms (M-1 perf fix)', () => {
+    expect(source).toMatch(/setTimeout\(\(\)\s*=>\s*saveStickyNotes\(tid,\s*data\),\s*150\)/);
+  });
+
+  it('clears prior debounce timer before scheduling new (no stacked saves)', () => {
+    expect(source).toMatch(/if\s*\(saveTimerRef\.current\)\s*clearTimeout\(saveTimerRef\.current\)/);
+  });
+
+  it('cleanup return cancels pending save on unmount', () => {
+    // Same useEffect-cleanup-only pattern as the rAF cleanup
+    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\(\)\s*=>\s*\{\s*if\s*\(saveTimerRef\.current\)\s*clearTimeout\(saveTimerRef\.current\)/);
+  });
+
+  it('delete fires undo toast with restore action', () => {
+    expect(source).toMatch(/toast\('Nota eliminada',\s*\{[\s\S]*?action:\s*\{[\s\S]*?label:\s*'Deshacer'/);
+  });
+
+  it('undo restores by appending the deleted note back', () => {
+    expect(source).toMatch(/const restored\s*=\s*\[\.\.\.notesRef\.current,\s*deleted\]/);
+  });
+
+  it('undo persists via saveStickyNotes (immediate, not debounced)', () => {
+    expect(source).toMatch(/onClick:\s*\(\)\s*=>\s*\{[\s\S]*?onNotesChangeRef\.current\(restored\)[\s\S]*?saveStickyNotes\(topicId,\s*restored\)/);
+  });
+
+  it('undo toast duration is 5000ms', () => {
+    expect(source).toMatch(/duration:\s*5000/);
+  });
+
+  it('renders null when notes array is empty (no DOM)', () => {
+    expect(source).toMatch(/if\s*\(notes\.length\s*===\s*0\)\s*return\s+null/);
+  });
+
+  it('uses ref-stabilized onNotesChangeRef to avoid stale closures in toast undo', () => {
+    expect(source).toContain('onNotesChangeRef');
+    expect(source).toMatch(/onNotesChangeRef\.current\s*=\s*onNotesChange/);
+  });
+});
+
+// ── BORDER_COLORS palette (internal) ───────────────────────
+
+describe('BORDER_COLORS palette (internal)', () => {
+  it('declares one border color per STICKY_COLORS entry', () => {
+    expect(source).toMatch(/'#fef3c7':\s*'#fbbf24'/);
+    expect(source).toMatch(/'#d1fae5':\s*'#34d399'/);
+    expect(source).toMatch(/'#dbeafe':\s*'#60a5fa'/);
+    expect(source).toMatch(/'#fce7f3':\s*'#f472b6'/);
+  });
+
+  it('falls back to neutral #d1d5db when sticky color is unknown', () => {
+    expect(source).toMatch(/BORDER_COLORS\[note\.color\]\s*\|\|\s*'#d1d5db'/);
+  });
+});
+
+// ── Pointer drag math ──────────────────────────────────────
+
+describe('Pointer drag tracking', () => {
+  it('captures start position into dragStartRef.current on pointerdown', () => {
+    expect(source).toMatch(/dragStartRef\.current\s*=\s*\{[\s\S]*?x:\s*e\.clientX[\s\S]*?y:\s*e\.clientY/);
+  });
+
+  it('skips drag if pointer started in TEXTAREA (allows native text selection)', () => {
+    expect(source).toMatch(/if\s*\(\(e\.target\s+as\s+HTMLElement\)\.tagName\s*===\s*'TEXTAREA'\)\s*return/);
+  });
+
+  it('uses setPointerCapture during drag, releases via safeReleasePointerCapture', () => {
+    expect(source).toContain('setPointerCapture(e.pointerId)');
+    expect(source).toContain("safeReleasePointerCapture(captureRef.current.el, captureRef.current.pid, 'StickyNote')");
+  });
+
+  it('drag offset is committed to parent on pointerup (not during drag — local-only)', () => {
+    expect(source).toMatch(/onUpdateRef\.current\(\{\s*\.\.\.noteDataRef\.current,\s*x:\s*finalX,\s*y:\s*finalY\s*\}\)/);
+  });
+
+  it('z-index lifts to 18 during drag, baseline 15', () => {
+    expect(source).toMatch(/zIndex:\s*isDragging\s*\?\s*18\s*:\s*15/);
+  });
+
+  it('scale + rotate effect applies during drag (scale 1.04, rotate -1deg)', () => {
+    expect(source).toMatch(/scale\(1\.04\)\s+rotate\(-1deg\)/);
+  });
+});
