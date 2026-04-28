@@ -2,7 +2,7 @@
 // Axon — Shared: useContentTree Hook (R16 Extraction)
 //
 // Loads the institution's content tree (courses → semesters →
-// sections → topics) and filters by professor memberships.
+// sections → topics).
 //
 // Extracted from useQuizCascade.tsx to be reusable across
 // quiz, flashcard, summary, and other cascade selectors.
@@ -41,12 +41,6 @@ export interface ContentTreeCourse {
   semesters: ContentTreeSemester[];
 }
 
-interface MembershipLite {
-  id: string;
-  course_id: string;
-  role: string;
-}
-
 // ── Return type ──────────────────────────────────────────
 
 export interface UseContentTreeReadonlyReturn {
@@ -73,20 +67,17 @@ export function useContentTreeReadonly(): UseContentTreeReadonlyReturn {
     setTreeLoading(true);
     (async () => {
       try {
-        const [tree, memberships] = await Promise.all([
-          apiCall<ContentTreeCourse[]>(`/content-tree?institution_id=${institutionId}`),
-          apiCall<MembershipLite[]>(`/memberships?institution_id=${institutionId}`),
-        ]);
+        // Schema note: memberships has no course_id — professors are scoped
+        // at the institution level, not per course. The caller's role lives
+        // in selectedInstitution.role (set from GET /institutions). So the
+        // tree below is whatever the institution has and the caller can read.
+        const tree = await apiCall<ContentTreeCourse[]>(
+          `/content-tree?institution_id=${institutionId}`,
+        );
         if (cancelled) return;
 
         const allCourses = Array.isArray(tree) ? tree : [];
-        const profCourseIds = (memberships || [])
-          .filter(m => m.role?.toLowerCase() === 'professor')
-          .map(m => m.course_id)
-          .filter(Boolean);
-
-        const professorCourses = allCourses.filter(c => profCourseIds.includes(c.id));
-        setContentTree(professorCourses.length > 0 ? professorCourses : allCourses);
+        setContentTree(allCourses);
       } catch (err) {
         logger.error('[ContentTree] Load error:', err);
         if (!cancelled) setContentTree([]);
