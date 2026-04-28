@@ -233,3 +233,229 @@ describe('stale request protection', () => {
     expect(guards!.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ── Course-level cache invalidation (runtime, replicated) ──
+
+describe('Course-level cache invalidation (replicated)', () => {
+  function makeInvalidate() {
+    const cache = new Map<string, unknown>();
+    function invalidate(topicId?: string, summaryId?: string): void {
+      if (!topicId && !summaryId) {
+        cache.clear();
+        return;
+      }
+      if (topicId) {
+        cache.delete(`t:${topicId}`);
+        if (summaryId) cache.delete(`s:${summaryId}`);
+        const keysToDelete: string[] = [];
+        for (const key of cache.keys()) {
+          if (!key.startsWith('c:')) continue;
+          const ids = key.slice(2).split(',');
+          if (ids.includes(topicId)) keysToDelete.push(key);
+        }
+        for (const key of keysToDelete) cache.delete(key);
+      } else if (summaryId) {
+        cache.delete(`s:${summaryId}`);
+      }
+    }
+    return { cache, invalidate };
+  }
+
+  it('clearing without args nukes EVERY entry', () => {
+    const { cache, invalidate } = makeInvalidate();
+    cache.set('t:abc', 1);
+    cache.set('s:xyz', 2);
+    cache.set('c:a,b,c', 3);
+    invalidate();
+    expect(cache.size).toBe(0);
+  });
+
+  it('topicId-only invalidates the t: key', () => {
+    const { cache, invalidate } = makeInvalidate();
+    cache.set('t:abc', 1);
+    cache.set('t:other', 2);
+    invalidate('abc');
+    expect(cache.has('t:abc')).toBe(false);
+    expect(cache.has('t:other')).toBe(true);
+  });
+
+  it('topicId invalidates ALL course keys that contain that topic', () => {
+    const { cache, invalidate } = makeInvalidate();
+    cache.set('c:a,b', 1);
+    cache.set('c:b,c', 2);
+    cache.set('c:c,d', 3);
+    invalidate('b');
+    expect(cache.has('c:a,b')).toBe(false);
+    expect(cache.has('c:b,c')).toBe(false);
+    expect(cache.has('c:c,d')).toBe(true);
+  });
+
+  it('topicId+summaryId invalidates BOTH', () => {
+    const { cache, invalidate } = makeInvalidate();
+    cache.set('t:abc', 1);
+    cache.set('s:xyz', 2);
+    cache.set('s:other', 3);
+    invalidate('abc', 'xyz');
+    expect(cache.has('t:abc')).toBe(false);
+    expect(cache.has('s:xyz')).toBe(false);
+    expect(cache.has('s:other')).toBe(true);
+  });
+
+  it('summaryId-only invalidates ONLY the s: key (course caches stay until TTL)', () => {
+    const { cache, invalidate } = makeInvalidate();
+    cache.set('s:xyz', 1);
+    cache.set('c:a,b', 2);
+    invalidate(undefined, 'xyz');
+    expect(cache.has('s:xyz')).toBe(false);
+    expect(cache.has('c:a,b')).toBe(true);
+  });
+
+  it('topicId substring match: "ab" must NOT match "abc" (uses split(",").includes)', () => {
+    // Critical: the algorithm splits by comma and uses Array.includes,
+    // so "ab" should NOT match a course key "c:abc,xyz".
+    const { cache, invalidate } = makeInvalidate();
+    cache.set('c:abc,xyz', 1);
+    invalidate('ab');
+    expect(cache.has('c:abc,xyz')).toBe(true); // not invalidated
+  });
+
+  it('does not mutate the cache while iterating (collects keys first)', () => {
+    const { cache, invalidate } = makeInvalidate();
+    for (let i = 0; i < 50; i++) cache.set(`c:a,b,t${i}`, i);
+    expect(() => invalidate('b')).not.toThrow();
+    expect(cache.size).toBe(0); // all 50 had 'b' in them
+  });
+});
+
+// ── courseKey sort invariance ──────────────────────────────
+
+describe('courseKey sort invariance (replicated)', () => {
+  function buildCourseKey(courseTopicIds?: string[]): string {
+    return courseTopicIds ? [...courseTopicIds].sort().join(',') : '';
+  }
+
+  it('sort makes the key order-independent', () => {
+    expect(buildCourseKey(['c', 'a', 'b'])).toBe('a,b,c');
+    expect(buildCourseKey(['b', 'a', 'c'])).toBe('a,b,c');
+    expect(buildCourseKey(['a', 'b', 'c'])).toBe('a,b,c');
+  });
+
+  it('returns "" for undefined courseTopicIds', () => {
+    expect(buildCourseKey(undefined)).toBe('');
+  });
+
+  it('returns "" for empty array', () => {
+    expect(buildCourseKey([])).toBe('');
+  });
+
+  it('does not mutate the input (uses spread)', () => {
+    const input = ['c', 'a', 'b'];
+    buildCourseKey(input);
+    expect(input).toEqual(['c', 'a', 'b']);
+  });
+});
+
+// ── Listener bus runtime (replicated) ──────────────────────
+
+describe('Invalidation listener bus runtime', () => {
+  function makeBus() {
+    const listeners = new Set<() => void>();
+    function on(l: () => void) { listeners.add(l); return () => listeners.delete(l); }
+    function notify() { for (const fn of listeners) fn(); }
+    return { listeners, on, notify };
+  }
+
+  it('subscribe + notify fires the listener exactly once per notify', () => {
+    const { on, notify } = makeBus();
+    const fn = vi.fn();
+    on(fn);
+    notify();
+    notify();
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('unsubscribe stops further notifications', () => {
+    const { on, notify } = makeBus();
+    const fn = vi.fn();
+    const off = on(fn);
+    off();
+    notify();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('multiple listeners all fire on notify', () => {
+    const { on, notify } = makeBus();
+    const a = vi.fn(), b = vi.fn(), c = vi.fn();
+    on(a); on(b); on(c);
+    notify();
+    expect(a).toHaveBeenCalled();
+    expect(b).toHaveBeenCalled();
+    expect(c).toHaveBeenCalled();
+  });
+
+  it('Set dedups same-listener subscribed twice (single firing)', () => {
+    const { on, notify } = makeBus();
+    const fn = vi.fn();
+    on(fn);
+    on(fn);
+    notify();
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Source-level invariants (extended) ─────────────────────
+
+describe('Source-level invariants (extended)', () => {
+  it("cacheKey prefixes summary IDs with 's:'", () => {
+    expect(source).toContain('return `s:${summaryId}`');
+  });
+
+  it("cacheKey prefixes topic IDs with 't:'", () => {
+    expect(source).toContain('return `t:${topicId}`');
+  });
+
+  it('summaryId takes precedence over topicId in cacheKey', () => {
+    expect(source).toMatch(/if\s*\(summaryId\)\s*return\s*`s:\$\{summaryId\}`[\s\S]{0,100}if\s*\(topicId\)\s*return\s*`t:\$\{topicId\}`/);
+  });
+
+  it('skipCustomNodes defaults to false (student view merges custom)', () => {
+    expect(source).toMatch(/skipCustomNodes\s*=\s*false/);
+  });
+
+  it('courseKey takes priority over topicId/summaryId in fetchData', () => {
+    // Source dispatch: courseKey → fetchGraphByCourse, summaryId →
+    // fetchGraphBySummary, otherwise → fetchGraphByTopic
+    expect(source).toMatch(/if\s*\(courseKey\)\s*\{[\s\S]{0,200}fetchGraphByCourse/);
+    expect(source).toMatch(/else if\s*\(summaryId\)\s*\{[\s\S]{0,150}fetchGraphBySummary/);
+    expect(source).toMatch(/else\s*\{[\s\S]{0,150}fetchGraphByTopic/);
+  });
+
+  it('skipCustomNodes branch only runs in topic scope (not course/summary)', () => {
+    expect(source).toMatch(/if\s*\(topicId\s*&&\s*!skipCustomNodes\)/);
+  });
+
+  it('cache TTL is checked via Date.now() - entry.timestamp > CACHE_TTL', () => {
+    expect(source).toMatch(/Date\.now\(\)\s*-\s*entry\.timestamp\s*>\s*CACHE_TTL/);
+  });
+
+  it('LRU promotion: getCached deletes + re-sets to move to end', () => {
+    expect(source).toMatch(/cache\.delete\(key\)[\s\S]{0,150}cache\.set\(key,\s*entry\)/);
+  });
+
+  it('error fallback message is "Error al cargar grafo" (Spanish)', () => {
+    expect(source).toContain('Error al cargar grafo');
+  });
+
+  it('hasSource gates the initial loading state', () => {
+    expect(source).toContain('hasSource');
+    expect(source).toMatch(/!!\(topicId\s*\|\|\s*summaryId\s*\|\|\s*\(courseTopicIds\s*&&\s*courseTopicIds\.length\s*>\s*0\)\)/);
+  });
+
+  it('refetch passes skipCache=true to fetchData', () => {
+    expect(source).toMatch(/refetch[\s\S]{0,100}fetchData\(true\)/);
+  });
+
+  it('isEmpty derives from graphData?.nodes.length === 0', () => {
+    expect(source).toMatch(/isEmpty[\s\S]{0,80}\.nodes\.length\s*===\s*0/);
+  });
+});

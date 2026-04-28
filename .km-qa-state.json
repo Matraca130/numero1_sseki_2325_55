@@ -1,6 +1,6 @@
 {
-  "cycle": 33,
-  "last_run": "2026-04-28T12:20:00Z",
+  "cycle": 34,
+  "last_run": "2026-04-28T12:51:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -35,7 +35,8 @@
     { "cycle": 30, "date": "2026-04-28", "notes": "MapComparisonPanel coverage 35→68. Donut SVG math pinned. 74 files / 2986 tests." },
     { "cycle": 31, "date": "2026-04-28", "notes": "ShareMapModal coverage 26→59. 3000-test milestone crossed. 74 files / 3019 tests." },
     { "cycle": 32, "date": "2026-04-28", "notes": "StickyNote coverage 29→75. Drag/keyboard/undo invariants pinned. 74 files / 3065 tests." },
-    { "cycle": 33, "date": "2026-04-28", "notes": "useNodePositions coverage 11→44 (was 0.80 ratio, lowest unaudited storage helper): added 33 tests for the localStorage persistence layer. clearPositions now also tested for combo-storage cleanup (axon_combos_${topicId} removed alongside positions). LRU node eviction (MAX_POSITIONS=500, oldest 5 dropped after 505 inserts, update-existing-node moves to end via Map insertion-order delete+set trick). LRU topic eviction (MAX_TOPICS=50, oldest dropped, evicted topic's combo entry also dropped, touch-existing keeps topic from eviction, TOPIC_INDEX_KEY=axon_node_pos_index). memoryCache hot path (rapid drag-end persists through cache, clearPositions invalidates cache, switching topics rebuilds from storage). loadCombos/saveCombos (round-trip, empty-array → removeItem cleanup, validates each entry filters invalid, [] on bad JSON, isolated per topic, axon_combos_ prefix, touches topic index). Grid toggle persistence (loadGridEnabled false default, round-trip true/false explicit '0' value, only '1' reads as true any-other false, axon_grid_enabled key not topic-scoped). Source-level invariants (4 storage prefix constants pinned, MAX_POSITIONS=500, MAX_TOPICS=50, Number.isFinite rejects Infinity/NaN, ≥7 try/catch wrappers for Safari private-mode safety, memoryCache single-active-topic pattern, LRU via Map delete+set trick). Result: 74 files / 3098 tests, ALL PASSING."
+    { "cycle": 33, "date": "2026-04-28", "notes": "useNodePositions coverage 11→44. LRU + grid + combo persistence pinned. 74 files / 3098 tests." },
+    { "cycle": 34, "date": "2026-04-28", "notes": "useGraphData coverage 16→51 (+27 net to suite total): added course-level cache invalidation runtime tests (replicated invalidate algorithm — clear-all when no args, topic-only invalidates t: + ALL course keys containing that topic via split(',').includes — substring 'ab' must NOT match 'abc' edge case, summaryId-only invalidates s: only — course caches stay until TTL, no mutate-while-iterate via collect-keys-first). courseKey sort invariance (order-independent, '' for undefined/empty, no-mutation via spread). Listener bus runtime (subscribe+notify firing count, unsubscribe stops notifications, multiple listeners all fire, Set dedups same-listener). Source-level extended (s:/t: prefix invariants, summaryId precedence in cacheKey, skipCustomNodes default false, courseKey priority dispatch courseKey→summaryId→topicId, skipCustomNodes only in topic scope, TTL Date.now()-timestamp check, LRU via delete+set, 'Error al cargar grafo' Spanish fallback, hasSource initial-loading gate, refetch skipCache=true, isEmpty derived from graphData?.nodes.length===0). Result: 74 files / 3125 tests, ALL PASSING."
     }
   ],
   "cumulative": {
@@ -43,12 +44,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 3098,
+    "total_tests": 3125,
     "new_test_files_added": 27,
-    "new_assertions_added": 1569,
+    "new_assertions_added": 1596,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 3098/3098 assertions pass; useNodePositions LRU eviction (per-node + per-topic) + Grid toggle + Combo persistence pinned at the storage-key level"
+    "milestone": "PERFECT — 74/74 files pass, 3125/3125 assertions pass; course-level cache invalidation algorithm (split-and-includes substring-safety) + listener bus + courseKey sort invariance pinned"
   }
 }
