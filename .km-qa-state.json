@@ -1,6 +1,6 @@
 {
-  "cycle": 34,
-  "last_run": "2026-04-28T12:51:00Z",
+  "cycle": 35,
+  "last_run": "2026-04-28T13:52:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -36,7 +36,8 @@
     { "cycle": 31, "date": "2026-04-28", "notes": "ShareMapModal coverage 26→59. 3000-test milestone crossed. 74 files / 3019 tests." },
     { "cycle": 32, "date": "2026-04-28", "notes": "StickyNote coverage 29→75. Drag/keyboard/undo invariants pinned. 74 files / 3065 tests." },
     { "cycle": 33, "date": "2026-04-28", "notes": "useNodePositions coverage 11→44. LRU + grid + combo persistence pinned. 74 files / 3098 tests." },
-    { "cycle": 34, "date": "2026-04-28", "notes": "useGraphData coverage 16→51 (+27 net to suite total): added course-level cache invalidation runtime tests (replicated invalidate algorithm — clear-all when no args, topic-only invalidates t: + ALL course keys containing that topic via split(',').includes — substring 'ab' must NOT match 'abc' edge case, summaryId-only invalidates s: only — course caches stay until TTL, no mutate-while-iterate via collect-keys-first). courseKey sort invariance (order-independent, '' for undefined/empty, no-mutation via spread). Listener bus runtime (subscribe+notify firing count, unsubscribe stops notifications, multiple listeners all fire, Set dedups same-listener). Source-level extended (s:/t: prefix invariants, summaryId precedence in cacheKey, skipCustomNodes default false, courseKey priority dispatch courseKey→summaryId→topicId, skipCustomNodes only in topic scope, TTL Date.now()-timestamp check, LRU via delete+set, 'Error al cargar grafo' Spanish fallback, hasSource initial-loading gate, refetch skipCache=true, isEmpty derived from graphData?.nodes.length===0). Result: 74 files / 3125 tests, ALL PASSING."
+    { "cycle": 34, "date": "2026-04-28", "notes": "useGraphData coverage 16→51 (+27). Course-cache invalidation algorithm + listener bus runtime + courseKey sort invariance pinned. 74 files / 3125 tests." },
+    { "cycle": 35, "date": "2026-04-28", "notes": "useGraphExport coverage 11→35 (+24): added source-level guarantees (default locale='es', GraphExportControls export, returns {exportPNG, exportJPEG, setGraph}, ?? I18N_GRAPH.es fallback, useRef<Graph|null>, useCallback empty deps for setGraph stability, exportPNG/JPEG depend on doExport not locale). doExport behaviors (exportingRef concurrent-export guard, (graph as Graph & {destroyed?: boolean}).destroyed check, t.exportNotReady toast, t.exportFailed toast, DEV-only console.error fallback, mode='overall' hardcoded full-graph export, MIME mapping JPEG→image/jpeg PNG→image/png, JPEG encoderOptions=0.92 PNG=1, try/finally guarantees ref release on throw). downloadDataURL DOM-flow (createElement('a'), href=dataURL, download=filename attr, append→click→rAF→remove ordering, requestAnimationFrame cleanup avoids browser flash). buildFilename source contract (4-digit year, getMonth+1 with padStart 2, JPEG→.jpg 3-letter convention, t.exportFilenamePrefix locale prefix). Result: 74 files / 3149 tests, ALL PASSING."
     }
   ],
   "cumulative": {
@@ -44,12 +45,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 3125,
+    "total_tests": 3149,
     "new_test_files_added": 27,
-    "new_assertions_added": 1596,
+    "new_assertions_added": 1620,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 3125/3125 assertions pass; course-level cache invalidation algorithm (split-and-includes substring-safety) + listener bus + courseKey sort invariance pinned"
+    "milestone": "PERFECT — 74/74 files pass, 3149/3149 assertions pass; useGraphExport export-flow (concurrent-guard, mode='overall', JPEG=0.92 quality, .jpg extension, append→click→rAF→remove DOM order) pinned"
   }
 }
