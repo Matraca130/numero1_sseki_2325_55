@@ -237,3 +237,204 @@ describe('Effect re-bind triggers', () => {
     expect(source).toMatch(/\}, \[ready, graphVersion\]\)/);
   });
 });
+
+// ── Click branches ──────────────────────────────────────────
+
+describe('handleNodeClick branches', () => {
+  it('reads shiftKey from originalEvent (G6 wraps the native event)', () => {
+    expect(source).toMatch(/evt\.originalEvent\?\.shiftKey\s*\?\?\s*false/);
+  });
+
+  it('shift-click TOGGLES the node in multiSelectedIds (delete if present, add if not)', () => {
+    expect(source).toMatch(/if\s*\(next\.has\(nodeId\)\)\s*\{\s*next\.delete\(nodeId\)/);
+    expect(source).toMatch(/\}\s*else\s*\{\s*next\.add\(nodeId\)/);
+  });
+
+  it('regular click clears existing multi-selection', () => {
+    expect(source).toMatch(/if\s*\(multiSelectedIdsRef\.current\.size\s*>\s*0\)[\s\S]{0,100}updateMultiSelection\(new Set\(\)\)/);
+  });
+
+  it('passes raw node + click position to onNodeClick callback', () => {
+    expect(source).toMatch(/onNodeClickRef\.current\([\s\S]{0,80}_raw as MapNode/);
+    expect(source).toMatch(/x:\s*evt\.client\?\.x\s*\?\?\s*evt\.clientX\s*\?\?\s*0/);
+    expect(source).toMatch(/y:\s*evt\.client\?\.y\s*\?\?\s*evt\.clientY\s*\?\?\s*0/);
+  });
+
+  it('applies spotlight on the clicked node via requestAnimationFrame', () => {
+    expect(source).toMatch(/requestAnimationFrame\(\(\)\s*=>\s*\{[\s\S]{0,200}applySpotlight\(g,\s*nodeId\)/);
+  });
+
+  it('skips the click when longPressTriggered is true (resets the flag)', () => {
+    expect(source).toMatch(/if\s*\(longPressTriggered\)\s*\{\s*longPressTriggered\s*=\s*false;\s*return;?\s*\}/);
+  });
+});
+
+// ── Double-click expand/collapse ────────────────────────────
+
+describe('handleNodeDblClick (collapse/expand)', () => {
+  it('only collapses when the node has children (childrenMapRef lookup)', () => {
+    expect(source).toMatch(/childrenMapRef\.current\.get\(nodeId\)\?\.length\s*\?\?\s*0/);
+    expect(source).toMatch(/if\s*\(!hasChildren\)\s*return/);
+  });
+
+  it('collapse adds breadcrumb; expand removes it', () => {
+    expect(source).toMatch(/setBreadcrumbs\(bc\s*=>\s*bc\.filter\(b\s*=>\s*b\.id\s*!==\s*nodeId\)\)/);
+    expect(source).toMatch(/\[\.\.\.bc,\s*\{\s*id:\s*nodeId,\s*label:\s*nodeLabel\s*\}\]/);
+  });
+
+  it('breadcrumb collapse path skips duplicates (some(b.id === nodeId))', () => {
+    expect(source).toMatch(/bc\.some\(b\s*=>\s*b\.id\s*===\s*nodeId\)/);
+  });
+
+  it('uses fullLabel ?? label ?? nodeId for breadcrumb text', () => {
+    expect(source).toMatch(/nodeData\?\.data\?\.fullLabel\s*\|\|\s*nodeData\?\.data\?\.label\s*\|\|\s*nodeId/);
+  });
+
+  it('notifies via onCollapseChange with both count and id Set', () => {
+    expect(source).toMatch(/onCollapseChangeRef\.current\?\.\(next\.size,\s*next\)/);
+  });
+});
+
+// ── Canvas click (deselect everything) ──────────────────────
+
+describe('handleCanvasClick', () => {
+  it('calls onNodeClick(null) so the parent deselects', () => {
+    expect(source).toContain('onNodeClickRef.current?.(null)');
+  });
+
+  it('also closes the keyboard-shortcuts overlay', () => {
+    expect(source).toContain('setShowShortcuts(false)');
+  });
+
+  it('clears multi-selection if any', () => {
+    expect(source).toMatch(/multiSelectedIdsRef\.current\.size\s*>\s*0[\s\S]{0,80}updateMultiSelection\(new Set\(\)\)/);
+  });
+
+  it('clears spotlight on canvas click', () => {
+    expect(source).toMatch(/handleCanvasClick[\s\S]{0,200}clearSpotlight\(graph\)/);
+  });
+});
+
+// ── Brush-select (rubber-band selection) ────────────────────
+
+describe('handleBrushSelect', () => {
+  it("subscribes to G6's afterbrushselect event", () => {
+    expect(source).toContain("graph.on('afterbrushselect'");
+  });
+
+  it('UNIONs the brushed nodes with the existing selection (additive)', () => {
+    expect(source).toMatch(/new Set\(\[\.\.\.multiSelectedIdsRef\.current,\s*\.\.\.selectedIds\]\)/);
+  });
+
+  it('skips the union when the brush returns no nodes', () => {
+    expect(source).toMatch(/selectedIds\.length\s*>\s*0/);
+  });
+});
+
+// ── Edge hover (highlights connected nodes) ─────────────────
+
+describe('Edge hover highlights connected nodes', () => {
+  it('subscribes to edge:pointerenter / edge:pointerleave', () => {
+    expect(source).toContain("graph.on('edge:pointerenter'");
+    expect(source).toContain("graph.on('edge:pointerleave'");
+  });
+
+  it('caches the two endpoints in a closure variable for the leave handler', () => {
+    expect(source).toContain('edgeHoverNodes');
+    expect(source).toMatch(/edgeHoverNodes\s*=\s*\[src,\s*tgt\]\.filter\(Boolean\)/);
+  });
+
+  it('adds "hover" state to both endpoints on enter', () => {
+    expect(source).toMatch(/setElementState\(nId,\s*\[\.\.\.base,\s*'hover'\]\)/);
+  });
+
+  it('removes "hover" from the same nodes on leave (preserves other states)', () => {
+    expect(source).toMatch(/cur\.filter\(s\s*=>\s*s\s*!==\s*'hover'\)/);
+  });
+
+  it('clears edgeHoverNodes after leave (no stale references)', () => {
+    expect(source).toMatch(/edgeHoverNodes\s*=\s*\[\]/);
+  });
+});
+
+// ── Long-press: active state + trigger flag ─────────────────
+
+describe('Long-press: active state + flag', () => {
+  it('adds "active" state on pointerdown (preserves prior states)', () => {
+    expect(source).toMatch(/\[\.\.\.existing\.filter\(\(s:\s*string\)\s*=>\s*s\s*!==\s*'active'\),\s*'active'\]/);
+  });
+
+  it('removes "active" state on pointerup / pointerleave (clearActiveState)', () => {
+    expect(source).toContain('clearActiveState');
+    expect(source).toMatch(/current\.filter\(s\s*=>\s*s\s*!==\s*'active'\)/);
+  });
+
+  it('long-press flips `longPressTriggered` so the subsequent click is suppressed', () => {
+    expect(source).toContain('longPressTriggered = true');
+    expect(source).toContain('longPressTriggered = false');
+  });
+
+  it('long-press handler invokes the context-menu callback (handleNodeContextMenu)', () => {
+    expect(source).toMatch(/handleNodeContextMenu\(evt\)/);
+  });
+});
+
+// ── handleNodeContextMenu ───────────────────────────────────
+
+describe('handleNodeContextMenu', () => {
+  it('calls preventDefault to suppress the native browser menu', () => {
+    expect(source).toMatch(/handleNodeContextMenu[\s\S]{0,100}evt\.preventDefault\?\.\(\)/);
+  });
+
+  it('passes the raw MapNode + screen position to the callback', () => {
+    expect(source).toMatch(/onNodeRightClickRef\.current\([\s\S]{0,100}_raw as MapNode/);
+  });
+});
+
+// ── Viewport change handler ─────────────────────────────────
+
+describe('Viewport change handler', () => {
+  it("subscribes to G6's afterviewportchange event", () => {
+    expect(source).toContain("graph.on('afterviewportchange'");
+  });
+
+  it('emits the current zoom via onZoomChangeRef', () => {
+    expect(source).toMatch(/onZoomChangeRef\.current\?\.\(zoom\)/);
+  });
+
+  it('initializes prevZoomForLimit to NaN so the first viewport change does not fake a flash', () => {
+    expect(source).toMatch(/let\s+prevZoomForLimit\s*=\s*NaN/);
+    expect(source).toMatch(/!isNaN\(prevZoomForLimit\)/);
+  });
+
+  it('uses 0.001 epsilon for MIN and 0.01 for MAX (asymmetric tolerance)', () => {
+    expect(source).toMatch(/MIN_ZOOM\s*\+\s*0\.001/);
+    expect(source).toMatch(/MAX_ZOOM\s*-\s*0\.01/);
+  });
+
+  it('runs handleViewportChange once on mount (gets initial zoom into ref)', () => {
+    expect(source).toMatch(/graph\.on\('afterviewportchange',\s*handleViewportChange\)\s*;\s*\n\s*handleViewportChange\(\)/);
+  });
+});
+
+// ── Drag-end persistence ────────────────────────────────────
+
+describe('handleNodeDragEnd persistence', () => {
+  it('only persists when topicIdRef has a value', () => {
+    expect(source).toMatch(/if\s*\(!nodeId\s*\|\|\s*!topicIdRef\.current\)\s*return/);
+  });
+
+  it('reads x/y from nodeData.style (not from event positions)', () => {
+    expect(source).toMatch(/let\s+\{\s*x,\s*y\s*\}\s*=\s*nodeData\.style as/);
+  });
+
+  it('rounds to GRID_SIZE multiples when grid is enabled', () => {
+    expect(source).toMatch(/Math\.round\(x\s*\/\s*GRID_SIZE\)\s*\*\s*GRID_SIZE/);
+    expect(source).toMatch(/Math\.round\(y\s*\/\s*GRID_SIZE\)\s*\*\s*GRID_SIZE/);
+  });
+
+  it('writes the snapped position back to G6 + persists via saveNodePosition', () => {
+    expect(source).toMatch(/graph\.updateNodeData\(\[\{\s*id:\s*nodeId,\s*style:\s*\{\s*x,\s*y\s*\}\s*\}\]\)/);
+    expect(source).toContain('saveNodePosition(topicIdRef.current, nodeId, { x, y })');
+  });
+});
