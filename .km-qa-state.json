@@ -1,6 +1,6 @@
 {
-  "cycle": 22,
-  "last_run": "2026-04-28T06:46:00Z",
+  "cycle": 23,
+  "last_run": "2026-04-28T07:16:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -24,7 +24,8 @@
     { "cycle": 19, "date": "2026-04-28", "notes": "GraphTemplatePanel coverage 21→47. Fixed 3rd silent-crash i18n bug. 74 files / 2563 tests." },
     { "cycle": 20, "date": "2026-04-28", "notes": "GraphSidebar coverage 27→58. Defect-class regression EXPANDED — caught 4 more silent-crash sites. 74 files / 2588 tests." },
     { "cycle": 21, "date": "2026-04-28", "notes": "useDragConnect coverage 35→67. Pointer-state-machine pinned. 74 files / 2620 tests." },
-    { "cycle": 22, "date": "2026-04-28", "notes": "NodeAnnotationModal coverage 16→47 (was lowest test:src ratio at 0.35): added 31 tests covering pt/es i18n parity (compact comma-separated key format required a tweaked regex; locked in as a re-usable helper pattern), save flow contracts (PATCH-on-existing vs POST-on-new dispatch with response capture preventing duplicate POSTs, content.trim() before persist, 1000-char cap with 950-char red-warning threshold, encodeURIComponent on keyword_id, dual response-shape support, Error.message → toast extraction), delete flow (existing-note-only Delete button, savingRef double-action guard, local-state cleanup), keyboard shortcuts (Ctrl/Cmd+Enter save with handleSaveRef stability, Escape via safeCloseRef, both call preventDefault), body scroll lock that captures+restores prior overflow values (not hardcoded 'auto'), backdrop-click triggers safeClose (unsaved-changes guard), discard-confirm uses ConfirmDialog with z-[60]. Phase 2 false-positive sweep on aliased imports — `Circle as CircleIcon`/`Map as MapIcon`/`Minimize as MinimizeIcon` correctly used. Result: 74 files / 2651 tests, ALL PASSING."
+    { "cycle": 22, "date": "2026-04-28", "notes": "NodeAnnotationModal coverage 16→47. Save/delete/scroll-lock pinned. 74 files / 2651 tests." },
+    { "cycle": 23, "date": "2026-04-28", "notes": "useGraphInit coverage 32→88 (was lowest test:src ratio at 0.37): added 56 tests pinning every layout-preset tunable (LAYOUT_FORCE 5 props, LAYOUT_RADIAL 4, LAYOUT_DAGRE 3, LAYOUT_MINDMAP direction+4 getters, LAYOUT_CONCENTRIC 3, LAYOUT_CIRCULAR 3, LAYOUT_FRUCHTERMAN 5 — 7 layouts × multiple tunables). LayoutType union exhaustiveness check (all 7 names present). Zoom invariants (MIN_ZOOM 0.2 < 1.0 < MAX_ZOOM 5; 25:1 range). Replicated downloadGraphImage's timestamp formatter (yyyymmddHHMM, zero-padded month/day/hour/minute) and pinned the DOM-flow contract (appendChild → click → 100ms-delayed removeChild). UseGraphInitReturn surface — all 35 returned fields. i18n locale fallback presence. The layout configs are load-bearing for graph aesthetics; pinning them prevents silent visual drift. Result: 74 files / 2707 tests, ALL PASSING. Phase 2/3/4 audits clean."
     }
   ],
   "cumulative": {
@@ -32,12 +33,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 2651,
+    "total_tests": 2707,
     "new_test_files_added": 27,
-    "new_assertions_added": 1122,
+    "new_assertions_added": 1178,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 2651/2651 assertions pass; NodeAnnotationModal save/delete/i18n/scroll-lock/keyboard contracts pinned; 7 cycles of clean defect-class scans"
+    "milestone": "PERFECT — 74/74 files pass, 2707/2707 assertions pass; useGraphInit's 7 layout configs and timestamp formatter pinned at the tunable level"
   }
 }
