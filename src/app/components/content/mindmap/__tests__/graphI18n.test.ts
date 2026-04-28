@@ -137,26 +137,44 @@ describe('graphI18n: mastery labels', () => {
 // useDragConnect + useGraphControls; this test pins it for the
 // rest of the codebase.
 
-describe('I18N_GRAPH[locale] fallback regression', () => {
+describe('i18n[locale] fallback regression (defect class)', () => {
   const MINDMAP_DIR = resolve(__dirname, '..');
-  const sourceFiles = readdirSync(MINDMAP_DIR).filter(
-    (f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && !f.endsWith('.test.ts'),
-  );
+  // Also audit the parent directory (KnowledgeMapView.tsx lives there).
+  const KMV_DIR = resolve(MINDMAP_DIR, '..');
+  const mindmapFiles = readdirSync(MINDMAP_DIR)
+    .filter((f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && !f.endsWith('.test.ts'))
+    .map((f) => ({ dir: MINDMAP_DIR, file: f }));
+  const kmvFiles = ['KnowledgeMapView.tsx'].map((f) => ({ dir: KMV_DIR, file: f }));
+  const sourceFiles = [...mindmapFiles, ...kmvFiles];
 
-  it('aggregates: no callsite uses I18N_GRAPH[locale] without the ?? I18N_GRAPH.es fallback', () => {
-    const violations: { file: string; matches: string[] }[] = [];
-    for (const file of sourceFiles) {
-      const path = resolve(MINDMAP_DIR, file);
-      const content = readFileSync(path, 'utf-8');
-      const re = /I18N_GRAPH\[[^\]]+\](?!\s*\?\?\s*I18N_GRAPH\.es)/g;
-      const matches = content.match(re) ?? [];
-      if (matches.length > 0) violations.push({ file, matches });
-    }
-    expect(violations).toEqual([]);
-  });
+  // Each entry: a constant name (and matching `.es` fallback target).
+  // Adding a new locale-keyed map? Add it here and the regression auto-pins it.
+  const I18N_CONSTANTS = [
+    { name: 'I18N_GRAPH', fallback: 'I18N_GRAPH.es' },
+    { name: 'I18N_MAP_VIEW', fallback: 'I18N_MAP_VIEW.es' },
+    { name: 'translations', fallback: 'translations.es' },
+  ];
 
-  it('audits all mindmap source files (smoke check the audit found files)', () => {
+  for (const { name, fallback } of I18N_CONSTANTS) {
+    it(`aggregates: no callsite uses ${name}[locale] without the ?? ${fallback} fallback`, () => {
+      const violations: { file: string; matches: string[] }[] = [];
+      for (const { dir, file } of sourceFiles) {
+        const path = resolve(dir, file);
+        const content = readFileSync(path, 'utf-8');
+        // Escape `.` in fallback for regex
+        const fbEsc = fallback.replace(/\./g, '\\.');
+        const re = new RegExp(`${name}\\[[^\\]]+\\](?!\\s*\\?\\?\\s*${fbEsc})`, 'g');
+        const matches = content.match(re) ?? [];
+        if (matches.length > 0) violations.push({ file, matches });
+      }
+      expect(violations).toEqual([]);
+    });
+  }
+
+  it('audits all mindmap source files plus KnowledgeMapView.tsx', () => {
     expect(sourceFiles.length).toBeGreaterThan(20);
+    // Smoke check: KnowledgeMapView.tsx is in the audit
+    expect(sourceFiles.some(f => f.file === 'KnowledgeMapView.tsx')).toBe(true);
   });
 });
 

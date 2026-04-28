@@ -163,3 +163,139 @@ describe('accessibility', () => {
     expect(source).toContain("from 'sonner'");
   });
 });
+
+// ── Internal sub-components ─────────────────────────────────
+
+describe('GraphSidebar internal sub-components', () => {
+  it('declares BarBtn (the unified pill-button)', () => {
+    expect(source).toContain('function BarBtn');
+  });
+
+  it('BarBtn supports active state via teal token #2a8c7a', () => {
+    expect(source).toContain("'bg-[#e8f5f1] text-[#2a8c7a]'");
+  });
+
+  it('BarBtn supports disabled state with no-op cursor', () => {
+    expect(source).toContain('cursor-not-allowed');
+  });
+
+  it('BarBtn renders an Icon prop with w-4 h-4', () => {
+    expect(source).toMatch(/<Icon className="w-4 h-4" \/>/);
+  });
+
+  it('declares Sep (vertical separator) with aria-hidden', () => {
+    expect(source).toContain('function Sep');
+    expect(source).toContain('aria-hidden="true"');
+  });
+});
+
+// ── LAYOUT_OPTIONS contract ─────────────────────────────────
+
+describe('LAYOUT_OPTIONS contract', () => {
+  it('declares exactly 3 layout options matching LayoutType', () => {
+    expect(source).toMatch(/LAYOUT_OPTIONS:[\s\S]*?\[[\s\S]*?value:\s*'force'/);
+    expect(source).toMatch(/value:\s*'force'/);
+    expect(source).toMatch(/value:\s*'radial'/);
+    expect(source).toMatch(/value:\s*'dagre'/);
+  });
+
+  it('binds each layout to a lucide icon (GitBranch / Circle / LayoutGrid)', () => {
+    // Grouping: force=GitBranch, radial=CircleIcon, dagre=LayoutGrid
+    expect(source).toMatch(/icon:\s*GitBranch/);
+    expect(source).toMatch(/icon:\s*CircleIcon/);
+    expect(source).toMatch(/icon:\s*LayoutGrid/);
+  });
+
+  it('uses Spanish labels (Fuerza / Radial / Árbol)', () => {
+    expect(source).toContain("label: 'Fuerza'");
+    expect(source).toContain("label: 'Radial'");
+    expect(source).toContain("label: 'Árbol'");
+  });
+});
+
+// ── MASTERY_COLORS contract ─────────────────────────────────
+
+describe('MASTERY_COLORS contract', () => {
+  it('declares the 4-tier order: green / yellow / red / gray', () => {
+    expect(source).toMatch(/MASTERY_COLORS:\s*MasteryColor\[\]\s*=\s*\['green',\s*'yellow',\s*'red',\s*'gray'\]/);
+  });
+});
+
+// ── fontSize tokens ─────────────────────────────────────────
+
+describe('fontSize tokens', () => {
+  it('uses clamp() for fluid typography (xs token)', () => {
+    expect(source).toMatch(/xs:\s*'clamp\(/);
+  });
+
+  it('uses clamp() for the overline token', () => {
+    expect(source).toMatch(/overline:\s*'clamp\(/);
+  });
+
+  it('declares the fontSize map as a frozen literal', () => {
+    expect(source).toMatch(/const\s+fontSize\s*=\s*\{[\s\S]*?\}\s*as\s+const/);
+  });
+});
+
+// ── i18n locale fallback ────────────────────────────────────
+
+describe('i18n locale lookup', () => {
+  it('uses the safe ?? I18N_MAP_VIEW.es fallback (cycle 20 hardening)', () => {
+    expect(source).toContain('I18N_MAP_VIEW[locale] ?? I18N_MAP_VIEW.es');
+  });
+
+  it('locale prop defaults to "pt"', () => {
+    expect(source).toMatch(/locale\s*=\s*'pt'/);
+  });
+});
+
+// ── Outside-click + Escape close behavior ───────────────────
+
+describe('popup close behavior', () => {
+  it('binds mousedown listener to document for outside-click detection', () => {
+    expect(source).toContain("addEventListener('mousedown'");
+  });
+
+  it('binds keydown listener for Escape support', () => {
+    expect(source).toContain("addEventListener('keydown'");
+  });
+
+  it('Escape closes layout / export / legend menus immediately', () => {
+    expect(source).toMatch(/if\s*\(e\.key\s*===\s*'Escape'\)\s*\{[\s\S]*?setShowLayoutMenu\(false\)[\s\S]*?setShowExportMenu\(false\)[\s\S]*?setShowLegend\(false\)/);
+  });
+
+  it('Escape does NOT close search if there is a pending query', () => {
+    expect(source).toMatch(/if\s*\(\s*!searchQuery\s*\)\s*setShowSearch\(false\)/);
+  });
+
+  it('removes BOTH listeners on cleanup (no leaks)', () => {
+    expect(source).toContain("removeEventListener('mousedown'");
+    expect(source).toContain("removeEventListener('keydown'");
+  });
+});
+
+// ── Export double-action guard ──────────────────────────────
+
+describe('export action', () => {
+  it('uses exportingRef to short-circuit double-click during export', () => {
+    expect(source).toContain('exportingRef');
+    expect(source).toMatch(/if\s*\(\s*!exportFn\s*\|\|\s*exportingRef\.current\s*\)\s*return/);
+  });
+
+  it('toasts a localized error via tSidebar.exportMapError on failure', () => {
+    expect(source).toContain('tSidebar.exportMapError');
+  });
+
+  it('clears the menu before starting the async export (UX feedback)', () => {
+    expect(source).toMatch(/setShowExportMenu\(false\)\s*;\s*\n\s*try\s*\{\s*await\s+exportFn/);
+  });
+});
+
+// ── Mount-tracking discipline ───────────────────────────────
+
+describe('mountedRef discipline', () => {
+  it('tracks mount state for async setState skip', () => {
+    expect(source).toContain('mountedRef.current = true');
+    expect(source).toMatch(/return\s*\(\)\s*=>\s*\{\s*mountedRef\.current\s*=\s*false/);
+  });
+});

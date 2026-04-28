@@ -95,7 +95,7 @@ export function KnowledgeMapView() {
 
   // ── I18N ─────────────────────────────────────────────────
   const locale: GraphLocale = 'pt';
-  const t = I18N_MAP_VIEW[locale];
+  const t = I18N_MAP_VIEW[locale] ?? I18N_MAP_VIEW.es;
 
   // ── Flatten all topics from content tree for the selector ──
   const allTopics = useMemo(() => {
@@ -155,7 +155,7 @@ export function KnowledgeMapView() {
   graphDataEdgesRef.current = graphData?.edges;
 
   // Undo/redo history for custom node/edge actions
-  const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch, I18N_GRAPH[locale]);
+  const { pushAction, clearHistory, undo, redo, canUndo, canRedo, busy: undoBusy } = useUndoRedo(refetch, I18N_GRAPH[locale] ?? I18N_GRAPH.es);
 
   // Search (shared hook: debounce + filter + highlight)
   // Must be declared before handlers that call setSearchQuery

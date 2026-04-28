@@ -33,7 +33,7 @@ interface ShareMapModalProps {
 // ── Component ───────────────────────────────────────────────
 
 export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicId, topicName, locale = 'pt' }: ShareMapModalProps) {
-  const tModal = I18N_MAP_VIEW[locale];
+  const tModal = I18N_MAP_VIEW[locale] ?? I18N_MAP_VIEW.es;
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusTrapRef = useFocusTrap(open);

@@ -189,7 +189,7 @@ export const GraphSidebar = memo(function GraphSidebar(props: GraphSidebarProps)
     locale = 'pt',
   } = props;
 
-  const tSidebar = I18N_MAP_VIEW[locale];
+  const tSidebar = I18N_MAP_VIEW[locale] ?? I18N_MAP_VIEW.es;
 
   const [showSearch, setShowSearch] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
