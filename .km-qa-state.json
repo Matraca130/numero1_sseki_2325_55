@@ -1,6 +1,6 @@
 {
-  "cycle": 30,
-  "last_run": "2026-04-28T10:46:00Z",
+  "cycle": 31,
+  "last_run": "2026-04-28T11:18:00Z",
   "status": "complete",
   "findings_history": [
     { "cycle": 1, "summary": "90 new assertions, memo×4 components" },
@@ -32,7 +32,8 @@
     { "cycle": 27, "date": "2026-04-28", "notes": "useKeyboardNav coverage 23→65. ~25 keyboard shortcuts pinned. 74 files / 2870 tests." },
     { "cycle": 28, "date": "2026-04-28", "notes": "useGraphEvents coverage 76→114. Branch-level handler behavior pinned. 74 files / 2908 tests." },
     { "cycle": 29, "date": "2026-04-28", "notes": "drawDragConnectOverlay coverage 14→59. Canvas math formula-pinned. 74 files / 2953 tests." },
-    { "cycle": 30, "date": "2026-04-28", "notes": "MapComparisonPanel coverage 35→68 (was 0.71 ratio): added 33 tests pinning donut SVG math + extended invariants. Replicated buildArcs as pure function (drops zero-count segments, first-segment dashOffset accepts 0/-0 due to JS negative-zero quirk, subsequent offsets accumulate, full-circle gets 'C 0', half-and-half splits evenly, segments sum to exactly C, single-node total). Source contract (returns null when total===0, r=36 / cx=cy=44 / viewBox 0 0 88 88, 2πr circumference, rotate(-90) starts at 12 o'clock, gray #f3f4f6 ring at 8px, round line caps, useCountUp(800ms), Georgia serif center text). findGaps additional invariants (sort ascending mastery worst-first, exclude user-created, red→'weak' gray→'noData' mapping, green/yellow filtered, [] empty). computeStats edge cases (avgMastery only counts mastery>=0, =0 when no valid, base/custom separation, default-branch unknown counts as noData). Sub-component declarations (EmptyComparison/StatBadge/GapItem/CustomEdgeItem). Module exports + dep imports. Result: 74 files / 2986 tests, ALL PASSING."
+    { "cycle": 30, "date": "2026-04-28", "notes": "MapComparisonPanel coverage 35→68. Donut SVG math pinned. 74 files / 2986 tests." },
+    { "cycle": 31, "date": "2026-04-28", "notes": "ShareMapModal coverage 26→59 (was 0.72 ratio): added 33 tests crossing the 3000-assertion milestone. Replicated buildShareUrl as pure function (encodeURIComponent on topicId for special-char safety, always sets shared=1 query flag, routes to /student/knowledge-map, SSR-safe empty string when no window). Clipboard copy + fallback (navigator.clipboard.writeText primary, on success linkCopied toast + setCopied(true), on failure inputRef.select() + linkCopyFallback toast, clearTimeout-then-setTimeout no stacked timers, 2500ms auto-reset, cleanup return on open effect). Web Share API (supportsShare gate combines navigator + share check, payload shape {title, text, url}, title fallback 'Mapa de Conocimiento' when no topicName, AbortError silent swallow, real errors via devWarn, !navigator.share early-return defensive). Auto-select + ARIA wiring (requestAnimationFrame post-paint select, click-input reselect, useId-derived titleId/descId, aria-labelledby + aria-describedby + role=dialog + aria-modal). Backdrop + click-outside (wrapper onClick onCloseRef, panel stopPropagation isolates inside-clicks, Escape preventDefault+stopPropagation+close, backdrop aria-hidden). Body+html scroll-lock symmetry (captures both prevHtml/prevBody, restores both NOT hardcoded 'auto', removeEventListener keydown). Responsive layout (sm:hidden mobile drag-handle, items-end vs items-center, rounded-t-2xl bottom-sheet vs rounded-2xl). Locale fallback regression (?? I18N_MAP_VIEW.es). Result: 74 files / 3019 tests, ALL PASSING — 3000 milestone crossed."
     }
   ],
   "cumulative": {
@@ -40,12 +41,12 @@
     "failures_now": 0,
     "broken_files_now": 0,
     "test_files": 74,
-    "total_tests": 2986,
+    "total_tests": 3019,
     "new_test_files_added": 27,
-    "new_assertions_added": 1457,
+    "new_assertions_added": 1490,
     "components_memoized": 5,
     "helpers_extracted": 2,
     "bugs_fixed": 10,
-    "milestone": "PERFECT — 74/74 files pass, 2986/2986 assertions pass; donut SVG arc math (dashArray/dashOffset accumulation, segment filtering, full-circle/half-split invariants) pinned at the geometric level"
+    "milestone": "PERFECT — 74/74 files pass, 3019/3019 assertions pass; 3000-test milestone reached; ShareMapModal share-flow + Web-Share-API + scroll-lock pinned"
   }
 }

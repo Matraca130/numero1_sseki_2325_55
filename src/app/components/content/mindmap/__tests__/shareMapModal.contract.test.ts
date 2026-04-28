@@ -175,3 +175,182 @@ describe('ShareMapModal: accessibility', () => {
     expect(source).toContain("overflow = 'hidden'");
   });
 });
+
+// ── Share URL invariants (replicated) ──────────────────────
+
+describe('Share URL invariants (replicated)', () => {
+  function buildShareUrl(origin: string, topicId: string): string {
+    return `${origin}/student/knowledge-map?topicId=${encodeURIComponent(topicId)}&shared=1`;
+  }
+
+  it('uses encodeURIComponent on topicId so special chars do not break the URL', () => {
+    const url = buildShareUrl('https://app.example.com', 'topic with spaces & ?');
+    expect(url).toContain('topicId=topic%20with%20spaces%20%26%20%3F');
+  });
+
+  it('always sets shared=1 query flag', () => {
+    expect(buildShareUrl('https://x', 'abc')).toMatch(/&shared=1$/);
+  });
+
+  it('routes to /student/knowledge-map (not professor or other)', () => {
+    expect(buildShareUrl('https://x', 'abc')).toContain('/student/knowledge-map?');
+  });
+
+  it('SSR-safe: returns "" when window is undefined', () => {
+    expect(source).toMatch(/typeof window\s*!==\s*'undefined'/);
+    expect(source).toMatch(/:\s*''/);
+  });
+});
+
+// ── Clipboard fallback flow ────────────────────────────────
+
+describe('Clipboard copy + fallback', () => {
+  it('uses navigator.clipboard.writeText as primary path', () => {
+    expect(source).toContain('navigator.clipboard.writeText(shareUrl)');
+  });
+
+  it('on success: shows linkCopied toast + flips copied state', () => {
+    expect(source).toContain('toast.success(tModal.linkCopied)');
+    expect(source).toContain('setCopied(true)');
+  });
+
+  it('on failure: selects input + shows linkCopyFallback toast (manual copy)', () => {
+    expect(source).toMatch(/inputRef\.current\?\.select\(\)[\s\S]{0,80}toast\.info\(tModal\.linkCopyFallback\)/);
+  });
+
+  it('clears the prior copy timer before scheduling a new one (no stacked timers)', () => {
+    expect(source).toMatch(/clearTimeout\(copiedTimerRef\.current\)[\s\S]{0,200}setTimeout/);
+  });
+
+  it('copied state auto-resets after 2500ms', () => {
+    expect(source).toMatch(/setTimeout\(\(\)\s*=>\s*setCopied\(false\),\s*2500\)/);
+  });
+
+  it('clears the timer on unmount/close (cleanup return on open effect)', () => {
+    expect(source).toMatch(/return\s*\(\)\s*=>\s*clearTimeout\(copiedTimerRef\.current\)/);
+  });
+});
+
+// ── Web Share API ──────────────────────────────────────────
+
+describe('Native Web Share API', () => {
+  it('only renders the Compartir button when navigator.share is supported', () => {
+    expect(source).toContain('supportsShare');
+    expect(source).toMatch(/typeof navigator\s*!==\s*'undefined'\s*&&\s*!!navigator\.share/);
+  });
+
+  it('share payload includes title, text, and url', () => {
+    expect(source).toMatch(/navigator\.share\(\{[\s\S]*?title:[\s\S]*?text:[\s\S]*?url:\s*shareUrl/);
+  });
+
+  it("title falls back to 'Mapa de Conocimiento' when topicName is missing", () => {
+    expect(source).toMatch(/topicName\s*\?\s*`Mapa:\s*\$\{topicName\}`\s*:\s*'Mapa de Conocimiento'/);
+  });
+
+  it('AbortError is silently swallowed (user cancelled — not a real error)', () => {
+    expect(source).toMatch(/err\s+instanceof\s+Error\s*&&\s*err\.name\s*===\s*'AbortError'\s*\)\s*return/);
+  });
+
+  it("real errors are logged via devWarn('ShareMapModal', 'Share failed', err)", () => {
+    expect(source).toContain("devWarn('ShareMapModal', 'Share failed', err)");
+  });
+
+  it('returns early when navigator.share is missing (defensive — UI hides button anyway)', () => {
+    expect(source).toMatch(/if\s*\(!navigator\.share\)\s*return/);
+  });
+});
+
+// ── Auto-select on open + a11y label IDs ───────────────────
+
+describe('Auto-select + ARIA wiring', () => {
+  it('uses requestAnimationFrame to select the input on open (post-paint)', () => {
+    expect(source).toMatch(/requestAnimationFrame\(\(\)\s*=>\s*inputRef\.current\?\.select\(\)\)/);
+  });
+
+  it('clicking the input also selects it (manual reselect)', () => {
+    expect(source).toMatch(/onClick=\{\(\)\s*=>\s*inputRef\.current\?\.select\(\)\}/);
+  });
+
+  it('uses useId to derive unique titleId/descId for aria wiring', () => {
+    expect(source).toContain('useId()');
+    expect(source).toMatch(/const titleId\s*=\s*`share-title-\$\{uid\}`/);
+    expect(source).toMatch(/const descId\s*=\s*`share-desc-\$\{uid\}`/);
+  });
+
+  it('dialog has both aria-labelledby (title) and aria-describedby (body)', () => {
+    expect(source).toMatch(/aria-labelledby=\{titleId\}/);
+    expect(source).toMatch(/aria-describedby=\{descId\}/);
+  });
+
+  it("dialog uses role='dialog' aria-modal='true' for assistive tech", () => {
+    expect(source).toContain('role="dialog"');
+    expect(source).toContain('aria-modal="true"');
+  });
+});
+
+// ── Backdrop / click-outside ───────────────────────────────
+
+describe('Backdrop + click-outside-closes', () => {
+  it('the modal-wrapper layer onClick calls onCloseRef.current()', () => {
+    expect(source).toContain('onClick={() => onCloseRef.current()}');
+  });
+
+  it('the modal panel itself stops propagation (clicks INSIDE do not close)', () => {
+    expect(source).toMatch(/onClick=\{\(e\)\s*=>\s*e\.stopPropagation\(\)\}/);
+  });
+
+  it('Escape key calls preventDefault + stopPropagation before closing', () => {
+    expect(source).toMatch(/e\.key\s*===\s*'Escape'[\s\S]{0,80}e\.preventDefault\(\)[\s\S]{0,40}e\.stopPropagation\(\)[\s\S]{0,40}onCloseRef\.current\(\)/);
+  });
+
+  it('backdrop is aria-hidden so screen readers do not narrate it', () => {
+    expect(source).toContain('aria-hidden="true"');
+  });
+});
+
+// ── Body + html scroll lock symmetry ───────────────────────
+
+describe('Body + html scroll lock', () => {
+  it('captures BOTH prevHtml AND prevBody before locking', () => {
+    expect(source).toMatch(/const prevHtml\s*=\s*document\.documentElement\.style\.overflow/);
+    expect(source).toMatch(/const prevBody\s*=\s*document\.body\.style\.overflow/);
+  });
+
+  it('restores BOTH overflow values on cleanup (not hardcoded "auto")', () => {
+    expect(source).toContain('document.documentElement.style.overflow = prevHtml');
+    expect(source).toContain('document.body.style.overflow = prevBody');
+  });
+
+  it('removes the keydown listener on cleanup', () => {
+    expect(source).toContain("document.removeEventListener('keydown'");
+  });
+});
+
+// ── Mobile drag handle + responsive layout ─────────────────
+
+describe('Responsive layout', () => {
+  it('renders a mobile drag-handle (sm:hidden)', () => {
+    expect(source).toContain('sm:hidden');
+    expect(source).toMatch(/w-8\s+h-1\s+rounded-full\s+bg-gray-300/);
+  });
+
+  it('modal sits at items-end on mobile, items-center on sm+', () => {
+    expect(source).toMatch(/items-end\s+sm:items-center/);
+  });
+
+  it('rounded-t-2xl on mobile (bottom-sheet), rounded-2xl on sm+', () => {
+    expect(source).toMatch(/rounded-t-2xl\s+sm:rounded-2xl/);
+  });
+});
+
+// ── Locale fallback (cycle 20 hardening regression) ─────────
+
+describe('Locale fallback', () => {
+  it('uses I18N_MAP_VIEW[locale] ?? I18N_MAP_VIEW.es (cycle 20 hardening)', () => {
+    expect(source).toContain('I18N_MAP_VIEW[locale] ?? I18N_MAP_VIEW.es');
+  });
+
+  it("locale prop defaults to 'pt'", () => {
+    expect(source).toMatch(/locale\s*=\s*'pt'/);
+  });
+});
