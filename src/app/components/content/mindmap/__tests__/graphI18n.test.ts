@@ -6,6 +6,8 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync } from 'fs';
+import { resolve } from 'path';
 import { I18N_GRAPH, type GraphLocale, type GraphI18nStrings } from '../graphI18n';
 
 const LOCALES = Object.keys(I18N_GRAPH) as GraphLocale[];
@@ -126,3 +128,35 @@ describe('graphI18n: mastery labels', () => {
     }
   });
 });
+
+// ── Caller-side fallback regression ─────────────────────────
+//
+// Every site that does `I18N_GRAPH[locale]` must guard with
+// `?? I18N_GRAPH.es`, otherwise an unsupported locale crashes
+// at runtime on the first property access. Cycle 18 hardened
+// useDragConnect + useGraphControls; this test pins it for the
+// rest of the codebase.
+
+describe('I18N_GRAPH[locale] fallback regression', () => {
+  const MINDMAP_DIR = resolve(__dirname, '..');
+  const sourceFiles = readdirSync(MINDMAP_DIR).filter(
+    (f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && !f.endsWith('.test.ts'),
+  );
+
+  it('aggregates: no callsite uses I18N_GRAPH[locale] without the ?? I18N_GRAPH.es fallback', () => {
+    const violations: { file: string; matches: string[] }[] = [];
+    for (const file of sourceFiles) {
+      const path = resolve(MINDMAP_DIR, file);
+      const content = readFileSync(path, 'utf-8');
+      const re = /I18N_GRAPH\[[^\]]+\](?!\s*\?\?\s*I18N_GRAPH\.es)/g;
+      const matches = content.match(re) ?? [];
+      if (matches.length > 0) violations.push({ file, matches });
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('audits all mindmap source files (smoke check the audit found files)', () => {
+    expect(sourceFiles.length).toBeGreaterThan(20);
+  });
+});
+

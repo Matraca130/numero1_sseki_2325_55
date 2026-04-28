@@ -107,7 +107,7 @@ export function useDragConnect({
   locale = 'pt',
   isDraggingRef,
 }: UseDragConnectOptions) {
-  const gi = I18N_GRAPH[locale];
+  const gi = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
   const t = { connectTo: gi.dragConnectTo, sameNode: gi.dragSameNode, alreadyConnected: gi.dragAlreadyConnected, quickConnectTitle: gi.dragQuickConnectTitle };
   const dragStateRef = useRef<DragState | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);

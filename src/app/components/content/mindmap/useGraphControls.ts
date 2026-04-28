@@ -12,7 +12,7 @@ import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
 
 export function useGraphControls(ref: RefObject<GraphControls | null>, locale: GraphLocale = 'pt') {
-  const t = I18N_GRAPH[locale];
+  const t = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
   const handleZoomIn = useCallback(() => { ref.current?.zoomIn(); }, [ref]);
   const handleZoomOut = useCallback(() => { ref.current?.zoomOut(); }, [ref]);
   const handleFitView = useCallback(() => { ref.current?.fitView(); }, [ref]);
