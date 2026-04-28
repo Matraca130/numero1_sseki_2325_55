@@ -120,7 +120,9 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
     setLoadError(result.error);
     setQuizzesLoading(false);
     // Load blocks for per-block quiz
-    loadBlocksForSummary(summary.id).then(setSummaryBlocks);
+    loadBlocksForSummary(summary.id)
+      .then(setSummaryBlocks)
+      .catch(err => { logger.error('[Quiz] Blocks load error:', err); setSummaryBlocks([]); });
   }, []);
 
   const handleStartQuizEntity = useCallback(async (quiz: QuizEntity) => {
