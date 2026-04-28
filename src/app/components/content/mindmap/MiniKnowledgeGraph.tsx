@@ -18,6 +18,7 @@ import { Graph } from '@antv/g6';
 import type { GraphData, MapNode, G6NodeEvent } from '@/app/types/mindmap';
 import { MASTERY_HEX, MASTERY_HEX_LIGHT, CONNECTION_TYPE_MAP, truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
+import { devWarn } from './graphHelpers';
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -179,7 +180,7 @@ export const MiniKnowledgeGraph = React.memo(function MiniKnowledgeGraph({
       })
       .catch((err) => {
         if (!mountedRef.current || graphRef.current !== graph) return;
-        if (import.meta.env.DEV) console.warn('[MiniKnowledgeGraph] render failed:', err);
+        devWarn('MiniKnowledgeGraph', 'render failed', err);
         setReady(true);
       });
 
@@ -255,7 +256,7 @@ export const MiniKnowledgeGraph = React.memo(function MiniKnowledgeGraph({
     };
 
     graph.on('node:click', handler);
-    return () => { try { graph.off('node:click', handler); } catch (e) { if (import.meta.env.DEV) console.warn("[MiniKnowledgeGraph] graph may be destroyed", e); } };
+    return () => { try { graph.off('node:click', handler); } catch (e) { devWarn('MiniKnowledgeGraph', 'graph may be destroyed', e); } };
   }, [ready]);
 
   if (data.nodes.length === 0) return null;

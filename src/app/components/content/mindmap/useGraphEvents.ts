@@ -9,6 +9,7 @@ import type { GraphData, MapNode, G6NodeEvent } from '@/app/types/mindmap';
 import { saveNodePosition } from './useNodePositions';
 import type { PositionMap } from './useNodePositions';
 import { warnIfNotDestroyed, MIN_ZOOM, MAX_ZOOM } from './useGraphInit';
+import { devWarn } from './graphHelpers';
 
 /** Extended G6 node event with canvas coordinates (used by long-press) */
 interface G6NodeEventExtended extends G6NodeEvent {
@@ -123,7 +124,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
           const cur = graph.getElementState(id);
           const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
           graph.setElementState(id, cleaned);
-        } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] element may have been removed", e); }
+        } catch (e) { devWarn('KnowledgeGraph', 'element may have been removed', e); }
       }
       spotlightedIdsRef.current.clear();
       batchDraw();
@@ -187,7 +188,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
             const cur = graph.getElementState(oldId);
             const cleaned = Array.isArray(cur) ? cur.filter(s => !(SPOTLIGHT_STATES as readonly string[]).includes(s)) : [];
             graph.setElementState(oldId, cleaned);
-          } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] element may have been removed", e); }
+          } catch (e) { devWarn('KnowledgeGraph', 'element may have been removed', e); }
         }
       }
       spotlightedIdsRef.current = nextSpotlightIds;
@@ -428,7 +429,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
           }
           prevZoomForLimit = zoom;
         }
-      } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may be destroyed", e); }
+      } catch (e) { devWarn('KnowledgeGraph', 'graph may be destroyed', e); }
     };
     graph.on('afterviewportchange', handleViewportChange);
     handleViewportChange();
@@ -448,7 +449,7 @@ export function useGraphEvents(opts: UseGraphEventsOptions): UseGraphEventsRetur
         graph.off('edge:pointerenter', handleEdgePointerEnter);
         graph.off('edge:pointerleave', handleEdgePointerLeave);
         graph.off('afterviewportchange', handleViewportChange);
-      } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may already be destroyed", e); }
+      } catch (e) { devWarn('KnowledgeGraph', 'graph may already be destroyed', e); }
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- event handlers accessed via refs; only re-binds on ready/graphVersion

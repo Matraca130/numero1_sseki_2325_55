@@ -9,6 +9,8 @@
 // Max 500 positions per topic to avoid localStorage bloat.
 // ============================================================
 
+import { devWarn } from './graphHelpers';
+
 const STORAGE_PREFIX = 'axon_node_pos_';
 const COMBO_STORAGE_PREFIX = 'axon_combos_';
 const TOPIC_INDEX_KEY = 'axon_node_pos_index';
@@ -28,7 +30,7 @@ function touchTopicIndex(topicId: string): void {
       localStorage.removeItem(COMBO_STORAGE_PREFIX + evicted);
     }
     localStorage.setItem(TOPIC_INDEX_KEY, JSON.stringify(filtered));
-  } catch (e) { if (import.meta.env.DEV) console.warn("[useNodePositions] ignore", e); }
+  } catch (e) { devWarn('useNodePositions', 'ignore', e); }
 }
 
 export interface NodePosition {

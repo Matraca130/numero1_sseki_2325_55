@@ -164,9 +164,9 @@ export function getNodeScreenPositions(
           }
           positions.push(entry);
         }
-      } catch (e) { if (import.meta.env.DEV) console.warn("[graphHelpers] Node may not be rendered yet", e); }
+      } catch (e) { devWarn('graphHelpers', 'Node may not be rendered yet', e); }
     }
-  } catch (e) { if (import.meta.env.DEV) console.warn("[graphHelpers] Graph may be destroyed", e); }
+  } catch (e) { devWarn('graphHelpers', 'Graph may be destroyed', e); }
   return positions;
 }
 
@@ -209,6 +209,20 @@ export function safeReleasePointerCapture(
   try {
     el.releasePointerCapture(pointerId);
   } catch (e) {
-    if (import.meta.env.DEV) console.warn(`[${tag}] releasePointerCapture failed`, e);
+    devWarn(tag, 'releasePointerCapture failed', e);
+  }
+}
+
+/**
+ * DEV-only console.warn with a [tag] prefix. No-op in production.
+ *
+ * Replaces the duplicated `if (import.meta.env.DEV) console.warn("[Tag] msg", e)`
+ * pattern that was scattered across 14 mindmap modules. Empty msg is allowed
+ * for catch-all "log this error" sites — the tag still lands.
+ */
+export function devWarn(tag: string, msg: string, e: unknown): void {
+  if (import.meta.env.DEV) {
+    if (msg) console.warn(`[${tag}] ${msg}`, e);
+    else console.warn(`[${tag}]`, e);
   }
 }

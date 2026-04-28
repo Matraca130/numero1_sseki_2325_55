@@ -8,7 +8,7 @@ import type { Graph } from '@antv/g6';
 import type { GraphData, MapNode } from '@/app/types/mindmap';
 import { truncateLabel } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
-import { getNodeStroke } from './graphHelpers';
+import { getNodeStroke, devWarn } from './graphHelpers';
 import { warnIfNotDestroyed } from './useGraphInit';
 
 export interface UseGraphHighlightingOptions {
@@ -110,7 +110,7 @@ export function useGraphHighlighting(opts: UseGraphHighlightingOptions): UseGrap
     try {
       const gNodes = graph.getNodeData();
       visibleNodeIds = new Set(gNodes.map((n: { id: string }) => n.id));
-    } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] fallback: update all", e); }
+    } catch (e) { devWarn('KnowledgeGraph', 'fallback: update all', e); }
 
     for (const node of dataNodesRef.current) {
       if (visibleNodeIds && !visibleNodeIds.has(node.id)) continue;

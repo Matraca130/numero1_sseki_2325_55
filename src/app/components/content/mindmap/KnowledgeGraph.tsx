@@ -22,7 +22,7 @@ import { useEffect, useRef, useCallback, useState, useMemo, memo } from 'react';
 import type { Graph } from '@antv/g6';
 import { Maximize2, Plus } from 'lucide-react';
 import type { GraphData, MapNode, GraphControls } from '@/app/types/mindmap';
-import { GRAPH_COLORS } from './graphHelpers';
+import { GRAPH_COLORS, devWarn } from './graphHelpers';
 import { saveGridEnabled, saveCombos } from './useNodePositions';
 import type { PersistedCombo } from './useNodePositions';
 import { useKeyboardNav } from './useKeyboardNav';
@@ -301,7 +301,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     if (!ready || !showMobileHint) return;
     const hintTimer = setTimeout(() => {
       setShowMobileHint(false);
-      try { sessionStorage.setItem('axon_map_mobile_hint_seen', '1'); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] swallowed error", e); }
+      try { sessionStorage.setItem('axon_map_mobile_hint_seen', '1'); } catch (e) { devWarn('KnowledgeGraph', 'swallowed error', e); }
     }, 4000);
     return () => clearTimeout(hintTimer);
   }, [ready, showMobileHint]);
@@ -455,7 +455,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       graph.setLayout(layoutConfig);
       graph.layout().then(() => {
         if (!mountedRef.current || graphRef.current !== graph) return;
-        try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] ", e); }
+        try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch (e) { devWarn('KnowledgeGraph', '', e); }
       }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
         layoutInProgressRef.current = false;
       });
@@ -486,7 +486,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       setCollapsedNodes(new Set());
       setBreadcrumbs([]);
       onCollapseChangeRef.current?.(0, new Set());
-      try { graph.fitView(undefined, { duration: 400, easing: 'ease-out' }); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] ", e); }
+      try { graph.fitView(undefined, { duration: 400, easing: 'ease-out' }); } catch (e) { devWarn('KnowledgeGraph', '', e); }
     } else {
       setBreadcrumbs(prev => {
         const idx = prev.findIndex(b => b.id === crumbId);
@@ -504,7 +504,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
       });
       try {
         graph.focusElements([crumbId], { animation: { duration: 400, easing: 'ease-in-out' } });
-      } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] graph may be destroyed", e); }
+      } catch (e) { devWarn('KnowledgeGraph', 'graph may be destroyed', e); }
     }
   }, [graphRef, setCollapsedNodes, setBreadcrumbs, onCollapseChangeRef]);
 

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, useCallback, useMemo, type MutableRefObjec
 import { Graph } from '@antv/g6';
 import type { GraphData, MapNode, GraphControls } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
-import { escHtml, buildChildrenMap, computeHiddenNodes, GRAPH_COLORS } from './graphHelpers';
+import { escHtml, buildChildrenMap, computeHiddenNodes, GRAPH_COLORS, devWarn } from './graphHelpers';
 import { loadPositions, loadGridEnabled, loadCombos } from './useNodePositions';
 import type { PositionMap, PersistedCombo } from './useNodePositions';
 import { truncateLabel } from '@/app/types/mindmap';
@@ -812,7 +812,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     return () => {
       layoutInProgressRef.current = false;
       if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
-      try { graph.destroy(); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] G6 may throw if mid-render", e); }
+      try { graph.destroy(); } catch (e) { devWarn('KnowledgeGraph', 'G6 may throw if mid-render', e); }
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- G6 graph init; callbacks/config accessed via refs
@@ -846,7 +846,7 @@ export function useGraphInit(opts: UseGraphInitOptions): UseGraphInitReturn {
     graph.setLayout(layoutConfig);
     graph.layout().then(() => {
       if (!mountedRef.current || graphRef.current !== graph) return;
-      try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch (e) { if (import.meta.env.DEV) console.warn("[KnowledgeGraph] ", e); }
+      try { graph.fitView(undefined, { duration: 300, easing: 'ease-out' }); } catch (e) { devWarn('KnowledgeGraph', '', e); }
     }).catch(() => { /* layout may fail if destroyed */ }).finally(() => {
       layoutInProgressRef.current = false;
     });

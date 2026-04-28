@@ -22,7 +22,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
-import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture } from './graphHelpers';
+import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture, devWarn } from './graphHelpers';
 import type { NodeScreenPos } from './graphHelpers';
 
 /** Snap distance in pixels (screen coords) to detect proximity to an endpoint */
@@ -420,7 +420,7 @@ export function useEdgeReconnect({
         try {
           graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 0.15, lineDash: [4, 4] } }]);
           doDraw();
-        } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] edge may not exist in G6", e); }
+        } catch (e) { devWarn('useEdgeReconnect', 'edge may not exist in G6', e); }
       }
 
       // Dragging: update position
@@ -475,7 +475,7 @@ export function useEdgeReconnect({
         graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
         graph.setElementState(ds.edge.id, []);
         graph.draw();
-      } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] edge may not exist", e); }
+      } catch (e) { devWarn('useEdgeReconnect', 'edge may not exist', e); }
 
       // If snapped to a valid node, fire reconnect
       if (ds.snapNodeId && ds.snapNodeId !== ds.edge.source && ds.snapNodeId !== ds.edge.target) {
@@ -515,7 +515,7 @@ export function useEdgeReconnect({
           graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
           graph.setElementState(ds.edge.id, []);
           doDraw();
-        } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] ", e); }
+        } catch (e) { devWarn('useEdgeReconnect', '', e); }
 
         cancelAnimationFrame(rafRef.current);
         const overlay = overlayCanvasRef.current;
@@ -562,7 +562,7 @@ export function useEdgeReconnect({
           try {
             graph.updateEdgeData([{ id: ds.edge.id, style: { opacity: 1, lineDash: undefined } }]);
             doDraw();
-          } catch (e) { if (import.meta.env.DEV) console.warn("[useEdgeReconnect] graph may be destroyed", e); }
+          } catch (e) { devWarn('useEdgeReconnect', 'graph may be destroyed', e); }
         }
         dragStateRef.current = null;
         if (isDraggingRef) isDraggingRef.current = false;

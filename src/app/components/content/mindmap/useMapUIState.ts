@@ -6,6 +6,7 @@
 // ============================================================
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { devWarn } from './graphHelpers';
 
 export interface MapUIState {
   // Panel visibility
@@ -70,7 +71,7 @@ export function useMapUIState(): MapUIState {
 
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false);
-    try { localStorage.setItem('axon_map_onboarded', '1'); } catch (e) { if (import.meta.env.DEV) console.warn("[useMapUIState] swallowed error", e); }
+    try { localStorage.setItem('axon_map_onboarded', '1'); } catch (e) { devWarn('useMapUIState', 'swallowed error', e); }
   }, []);
 
   // Dismiss onboarding with Escape key

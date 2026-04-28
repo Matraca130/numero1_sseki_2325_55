@@ -13,6 +13,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { Graph } from '@antv/g6';
+import { devWarn } from './graphHelpers';
 
 interface UseSpacePanOptions {
   graphRef: React.RefObject<Graph | null>;
@@ -79,7 +80,7 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
         if (graph) {
           try {
             graph.updateBehavior({ type: 'drag-element', enable: true });
-          } catch (e) { if (import.meta.env.DEV) console.warn("[useSpacePan] ignore", e); }
+          } catch (e) { devWarn('useSpacePan', 'ignore', e); }
         }
       }
     };
@@ -111,7 +112,7 @@ export function useSpacePan({ graphRef, containerRef, ready }: UseSpacePanOption
         container.style.cursor = '';
         const graph = graphRef.current;
         if (graph) {
-          try { graph.updateBehavior({ type: 'drag-element', enable: true }); } catch (e) { if (import.meta.env.DEV) console.warn("[useSpacePan] ignore", e); }
+          try { graph.updateBehavior({ type: 'drag-element', enable: true }); } catch (e) { devWarn('useSpacePan', 'ignore', e); }
         }
       }
     };

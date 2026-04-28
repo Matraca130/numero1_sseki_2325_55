@@ -20,7 +20,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
-import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture } from './graphHelpers';
+import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture, devWarn } from './graphHelpers';
 import type { NodeScreenPos } from './graphHelpers';
 import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
@@ -192,7 +192,7 @@ export function useDragConnect({
     if (!graph) return;
     const invalidate = () => { hoverPositionsValidRef.current = false; };
     graph.on('afterviewportchange', invalidate);
-    return () => { try { graph.off('afterviewportchange', invalidate); } catch (e) { if (import.meta.env.DEV) console.warn("[useDragConnect] graph may be destroyed", e); } };
+    return () => { try { graph.off('afterviewportchange', invalidate); } catch (e) { devWarn('useDragConnect', 'graph may be destroyed', e); } };
   }, [enabled, ready, graphRef, graphVersion]);
 
   // Keep edge Set in sync with edges prop

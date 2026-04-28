@@ -18,6 +18,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { Graph } from '@antv/g6';
 import type { MapNode } from '@/app/types/mindmap';
+import { devWarn } from './graphHelpers';
 
 interface UseKeyboardNavOptions {
   graphRef: React.RefObject<Graph | null>;
@@ -224,7 +225,7 @@ export function useKeyboardNav({
           : [];
         graph.setElementState(currentFocused, filtered);
         batchDraw();
-      } catch (e) { if (import.meta.env.DEV) console.warn("[useKeyboardNav] graph may be destroyed", e); }
+      } catch (e) { devWarn('useKeyboardNav', 'graph may be destroyed', e); }
     }
     setFocusedNodeId(null);
   }, [graphRef, batchDraw]);

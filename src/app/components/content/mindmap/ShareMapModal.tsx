@@ -15,6 +15,7 @@ import { X, Copy, Check, Share2, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { colors, headingStyle } from '@/app/design-system';
+import { devWarn } from './graphHelpers';
 import { useFocusTrap } from './useFocusTrap';
 import { I18N_MAP_VIEW } from './mapViewI18n';
 import type { GraphLocale } from './graphI18n';
@@ -100,7 +101,7 @@ export const ShareMapModal = memo(function ShareMapModal({ open, onClose, topicI
     } catch (err: unknown) {
       // User cancelled the share — not an error
       if (err instanceof Error && err.name === 'AbortError') return;
-      if (import.meta.env.DEV) console.warn('Share failed:', err);
+      devWarn('ShareMapModal', 'Share failed', err);
     }
   }, [shareUrl, topicName]);
 

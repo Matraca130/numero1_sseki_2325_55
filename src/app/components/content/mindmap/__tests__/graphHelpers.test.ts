@@ -5,7 +5,7 @@
 // buildChildrenMap, and computeHiddenNodes.
 // ============================================================
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getNodeFill,
   getNodeStroke,
@@ -13,6 +13,7 @@ import {
   escHtml,
   buildChildrenMap,
   computeHiddenNodes,
+  devWarn,
 } from '../graphHelpers';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import type { MapEdge } from '@/app/types/mindmap';
@@ -170,3 +171,48 @@ describe('computeHiddenNodes', () => {
     expect(hidden.has('b')).toBe(true);
   });
 });
+
+// ── devWarn ─────────────────────────────────────────────────
+
+describe('devWarn', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('emits a tagged warn in DEV (vitest sets DEV=true by default)', () => {
+    const err = new Error('boom');
+    devWarn('SomeModule', 'something failed', err);
+    expect(warnSpy).toHaveBeenCalledWith('[SomeModule] something failed', err);
+  });
+
+  it('omits the trailing space when msg is empty (drops to "[Tag]")', () => {
+    const err = new Error('boom');
+    devWarn('SomeModule', '', err);
+    expect(warnSpy).toHaveBeenCalledWith('[SomeModule]', err);
+  });
+
+  it('passes the error/value through unchanged', () => {
+    const obj = { weird: 'object', nested: { x: 1 } };
+    devWarn('Tag', 'see this', obj);
+    expect(warnSpy).toHaveBeenCalledWith('[Tag] see this', obj);
+  });
+
+  it('accepts non-Error values (strings, undefined)', () => {
+    devWarn('A', 'msg', 'string error');
+    devWarn('B', 'msg', undefined);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('always uses the [tag] convention so logs are filterable in DevTools', () => {
+    devWarn('Mindmap', 'x', 'y');
+    const firstArg = warnSpy.mock.calls[0][0];
+    expect(typeof firstArg).toBe('string');
+    expect(String(firstArg).startsWith('[Mindmap]')).toBe(true);
+  });
+});
+

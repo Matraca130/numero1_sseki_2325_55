@@ -24,6 +24,7 @@ import {
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
 import type { GraphI18nStrings } from './graphI18n';
 import { I18N_GRAPH } from './graphI18n';
+import { devWarn } from './graphHelpers';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ export function useUndoRedo(onGraphChanged: () => void, i18n?: GraphI18nStrings)
             return { ...action, oldEdgeId: res.id };
           } catch (recreateErr) {
             // Step 2 failed — rollback step 1 by re-creating the deleted edge
-            try { await createCustomEdge(action.newPayload); } catch (e) { if (import.meta.env.DEV) console.warn("[useUndoRedo] best-effort rollback", e); }
+            try { await createCustomEdge(action.newPayload); } catch (e) { devWarn('useUndoRedo', 'best-effort rollback', e); }
             throw recreateErr;
           }
         }
@@ -175,7 +176,7 @@ export function useUndoRedo(onGraphChanged: () => void, i18n?: GraphI18nStrings)
             return { ...action, newEdgeId: res.id };
           } catch (recreateErr) {
             // Step 2 failed — rollback step 1 by re-creating the deleted edge
-            try { await createCustomEdge(action.oldPayload); } catch (e) { if (import.meta.env.DEV) console.warn("[useUndoRedo] best-effort rollback", e); }
+            try { await createCustomEdge(action.oldPayload); } catch (e) { devWarn('useUndoRedo', 'best-effort rollback', e); }
             throw recreateErr;
           }
         }
