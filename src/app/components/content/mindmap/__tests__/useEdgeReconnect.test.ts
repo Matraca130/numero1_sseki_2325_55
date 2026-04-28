@@ -255,3 +255,207 @@ describe('reconnect validation', () => {
     expect(source).toContain('opacity: 0.15');
   });
 });
+
+// ── Pointer-state-machine source guarantees ─────────────────
+//
+// Sister hook to useDragConnect (cycle 21). Same defensive
+// pattern: capture:true binding so G6's listeners can't
+// intercept; symmetric add/remove; per-event-type unbind.
+
+describe('Pointer state machine — source guarantees', () => {
+  it('pointerdown bound with capture:true to outrace G6 listeners', () => {
+    expect(source).toMatch(/addEventListener\('pointerdown',\s*\w+,\s*\{\s*capture:\s*true\s*\}/);
+  });
+
+  it('keydown (for Escape) bound with capture:true', () => {
+    expect(source).toMatch(/addEventListener\('keydown',\s*\w+,\s*\{\s*capture:\s*true\s*\}/);
+  });
+
+  it('all 4 pointer events + keydown unbound on cleanup', () => {
+    for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) {
+      expect(source).toContain(`removeEventListener('${ev}'`);
+    }
+    expect(source).toContain("removeEventListener('keydown'");
+  });
+
+  it('coordinates with shared isDraggingRef for activation + cleanup', () => {
+    // Cycle 21's useDragConnect uses the same shared ref to avoid
+    // simultaneous drags; pin the same wiring here.
+    expect(source).toContain('isDraggingRef');
+    expect(source).toContain('isDraggingRef.current = true');
+    expect(source).toContain('isDraggingRef.current = false');
+  });
+
+  it('uses TOUCH_DRAG_THRESHOLD on touch input, DRAG_THRESHOLD on mouse', () => {
+    expect(source).toMatch(/pointerType\s*===\s*'touch'\s*\?\s*TOUCH_DRAG_THRESHOLD\s*:\s*DRAG_THRESHOLD/);
+  });
+
+  it('threshold gate uses Math.sqrt(dx²+dy²)', () => {
+    expect(source).toMatch(/Math\.sqrt\(dx \* dx \+ dy \* dy\)\s*<\s*threshold/);
+  });
+});
+
+// ── Hover throttling ────────────────────────────────────────
+
+describe('Hover-near-endpoint cursor hint', () => {
+  it('throttles hover checks via HOVER_CHECK_THROTTLE_MS=50', () => {
+    expect(source).toMatch(/HOVER_CHECK_THROTTLE_MS\s*=\s*50/);
+    expect(source).toMatch(/now\s*-\s*lastHoverCheckTime\s*<\s*HOVER_CHECK_THROTTLE_MS/);
+  });
+
+  it('only checks user-created edges (cached in userEdgesRef)', () => {
+    expect(source).toContain('userEdgesRef');
+    expect(source).toMatch(/edges\.filter\(e\s*=>\s*e\.isUserCreated\)/);
+  });
+
+  it('shows grab cursor when within ENDPOINT_HIT_RADIUS of either endpoint', () => {
+    expect(source).toMatch(/dS\s*<=\s*ENDPOINT_HIT_RADIUS\s*\|\|\s*dT\s*<=\s*ENDPOINT_HIT_RADIUS/);
+    expect(source).toMatch(/cursor\s*=\s*nearEndpoint\s*\?\s*'grab'\s*:\s*''/);
+  });
+
+  it('skips hover detection entirely when there are no user edges', () => {
+    expect(source).toMatch(/if\s*\(userEdges\.length\s*===\s*0\)\s*return/);
+  });
+});
+
+// ── Reconnect callback contract ─────────────────────────────
+
+describe('onReconnect callback', () => {
+  it('fires with { oldEdge, movedEndpoint, newNodeId } shape', () => {
+    expect(source).toMatch(/onReconnectRef\.current\?\.\(\s*\{[\s\S]*?oldEdge:\s*ds\.edge[\s\S]*?movedEndpoint:\s*ds\.endpoint[\s\S]*?newNodeId:\s*ds\.snapNodeId/);
+  });
+
+  it("EdgeReconnectResult.movedEndpoint is the literal union 'source' | 'target'", () => {
+    expect(source).toContain("movedEndpoint: 'source' | 'target'");
+  });
+
+  it('does NOT fire when snap is the original source or target (no-op drop)', () => {
+    expect(source).toMatch(/ds\.snapNodeId\s*&&\s*ds\.snapNodeId\s*!==\s*ds\.edge\.source\s*&&\s*ds\.snapNodeId\s*!==\s*ds\.edge\.target/);
+  });
+});
+
+// ── findNearestNode "exclude fixed endpoint" invariant ──────
+
+describe('findNearestNode excludes the fixed endpoint', () => {
+  it('source endpoint dragged → exclude target node from snap candidates', () => {
+    expect(source).toMatch(/const fixedNodeId\s*=\s*ds\.endpoint\s*===\s*'source'\s*\?\s*ds\.edge\.target\s*:\s*ds\.edge\.source/);
+  });
+
+  it('passes fixedNodeId as the excludeId argument to findNearestNode', () => {
+    expect(source).toMatch(/findNearestNode\([\s\S]*?fixedNodeId/);
+  });
+});
+
+// ── Visual feedback (dim during drag, restore on end) ───────
+
+describe('Edge visual feedback', () => {
+  it('dims dragged edge to opacity 0.15 + dashed lineDash [4,4]', () => {
+    expect(source).toMatch(/opacity:\s*0\.15,\s*lineDash:\s*\[4,\s*4\]/);
+  });
+
+  it('restores opacity 1 + clears lineDash (undefined) on pointerup', () => {
+    expect(source).toMatch(/opacity:\s*1,\s*lineDash:\s*undefined/);
+  });
+
+  it('restores opacity in pointerup, pointercancel, AND cleanup-on-unmount (3+ callsites)', () => {
+    const restores = (source.match(/opacity:\s*1,\s*lineDash:\s*undefined/g) ?? []).length;
+    expect(restores).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// ── Cleanup discipline (mid-drag unmount) ───────────────────
+
+describe('Mid-drag unmount cleanup', () => {
+  it('releases pointer capture if captured (capturedPointerId >= 0)', () => {
+    expect(source).toMatch(/if\s*\(\s*ds\.capturedPointerId\s*>=\s*0\s*\)/);
+    expect(source).toContain("safeReleasePointerCapture(container, ds.capturedPointerId, 'useEdgeReconnect')");
+  });
+
+  it('restores the dimmed edge opacity if drag was activated', () => {
+    expect(source).toMatch(/if\s*\(ds\.activated\s*&&\s*graph\)/);
+  });
+
+  it('clears the canvas-element cursor (cancelable grab state)', () => {
+    expect(source).toMatch(/canvasEl\.style\.cursor\s*=\s*''/);
+  });
+
+  it('cancels pending rAF (no leaked draw scheduled after unmount)', () => {
+    expect(source).toContain('cancelAnimationFrame(rafRef.current)');
+  });
+
+  it('clears dragStateRef and isDraggingRef in cleanup', () => {
+    expect(source).toMatch(/dragStateRef\.current\s*=\s*null/);
+    expect(source).toMatch(/isDraggingRef\.current\s*=\s*false/);
+  });
+});
+
+// ── Cancellation paths ──────────────────────────────────────
+
+describe('Cancellation', () => {
+  it('Escape constructs a synthetic PointerEvent("pointercancel")', () => {
+    expect(source).toContain("new PointerEvent('pointercancel'");
+    expect(source).toMatch(/if\s*\(\s*e\.key\s*===\s*'Escape'\s*&&\s*dragStateRef\.current\s*\)/);
+  });
+
+  it('Escape calls preventDefault + stopPropagation (panel-level guards)', () => {
+    expect(source).toMatch(/Escape[\s\S]*?e\.preventDefault\(\)[\s\S]*?e\.stopPropagation\(\)/);
+  });
+
+  it('clears overlay canvas via clearRect (no leftover lines)', () => {
+    expect(source).toMatch(/ctx\?\.clearRect\(0,\s*0,\s*overlay\.width,\s*overlay\.height\)/);
+  });
+});
+
+// ── Returned API ────────────────────────────────────────────
+
+describe('Returned API', () => {
+  it('returns isDragging() reading dragStateRef.current !== null', () => {
+    expect(source).toMatch(/const isDragging\s*=\s*useCallback\(\(\)\s*=>\s*dragStateRef\.current\s*!==\s*null/);
+    expect(source).toContain('return { isDragging }');
+  });
+});
+
+// ── Optional batchDraw passthrough ─────────────────────────
+
+describe('batchDraw passthrough', () => {
+  it('uses provided batchDraw when present, otherwise falls back to graph.draw()', () => {
+    expect(source).toMatch(/if\s*\(batchDrawRef\.current\)\s*\{\s*batchDrawRef\.current\(\);\s*return;\s*\}/);
+    expect(source).toMatch(/if\s*\(g\s*&&\s*!g\.destroyed\)\s*g\.draw\(\)/);
+  });
+
+  it('keeps batchDraw stable across renders via batchDrawRef', () => {
+    expect(source).toContain('batchDrawRef.current = batchDrawProp');
+  });
+});
+
+// ── User-edge filtering optimization ───────────────────────
+
+describe('User-edge filter (perf)', () => {
+  it('caches user edges in a ref so the filter runs once per edges change', () => {
+    expect(source).toMatch(/userEdgesRef\.current\s*=\s*edges\.filter\(e\s*=>\s*e\.isUserCreated\)/);
+  });
+
+  it('uses [edges] as the only dep for the filter effect', () => {
+    expect(source).toMatch(/userEdgesRef\.current\s*=\s*edges\.filter[\s\S]*?\}\s*,\s*\[edges\]/);
+  });
+});
+
+// ── Threshold constants vs sister hook (useDragConnect) ────
+
+describe('Threshold constants', () => {
+  it('ENDPOINT_HIT_RADIUS=14 (drag handle hit area)', () => {
+    expect(source).toMatch(/ENDPOINT_HIT_RADIUS\s*=\s*14/);
+  });
+
+  it('NODE_SNAP_RADIUS=24 — smaller than useDragConnect=55 (endpoint dragging is more precise)', () => {
+    expect(source).toMatch(/NODE_SNAP_RADIUS\s*=\s*24/);
+  });
+
+  it('DRAG_THRESHOLD=6 — slightly higher than useDragConnect=4 (avoids accidental endpoint drags)', () => {
+    expect(source).toMatch(/DRAG_THRESHOLD\s*=\s*6/);
+  });
+
+  it('TOUCH_DRAG_THRESHOLD=14 — >2× the desktop threshold', () => {
+    expect(source).toMatch(/TOUCH_DRAG_THRESHOLD\s*=\s*14/);
+  });
+});
