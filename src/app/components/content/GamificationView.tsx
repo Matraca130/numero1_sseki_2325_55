@@ -361,15 +361,17 @@ export default function GamificationView() {
   const [checkedIn, setCheckedIn] = useState(false);
   useEffect(() => {
     if (!checkedIn && !checkIn.isPending && !streakLoading && institutionId) {
+      // Set optimistically before mutate so a re-run of this effect
+      // (e.g. streakLoading toggling on refetch) cannot fire a duplicate
+      // check-in via a stale closure before onSuccess flushes the flag.
+      setCheckedIn(true);
       checkIn.mutate(undefined, {
         onSuccess: (result) => {
-          setCheckedIn(true);
           const evt = result.events?.[0];
           if (evt && evt.type !== 'already_checked_in') {
             toast.success(evt.message, { duration: 3500 });
           }
         },
-        onError: () => setCheckedIn(true),
       });
     }
   }, [streakLoading, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
