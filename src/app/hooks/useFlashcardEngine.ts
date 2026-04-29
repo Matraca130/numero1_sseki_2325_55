@@ -18,7 +18,7 @@
 // scheduling across all review flows.
 // ============================================================
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Flashcard } from '@/app/types/content';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import * as sessionApi from '@/app/services/studySessionApi';
@@ -95,6 +95,18 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
 
   // ── Batch review hook (queue + compute + submit) ──
   const { queueReview, submitBatch, reset: batchReset } = useReviewBatch();
+
+  // ── Advance-to-next-card timer handle (for cleanup on unmount) ──
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cancel any pending advance timer if the component unmounts mid-delay,
+  // preventing setCurrentIndex from firing after unmount.
+  useEffect(() => () => {
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  }, []);
 
   // ── Reset all per-session refs ──
 
@@ -271,7 +283,9 @@ export function useFlashcardEngine({ studentId, courseId, topicId, masteryMap, o
         onFinish();
       })();
     } else {
-      setTimeout(() => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = setTimeout(() => {
+        advanceTimerRef.current = null;
         setCurrentIndex(prev => prev + 1);
         cardStartTime.current = Date.now();
       }, 200);
