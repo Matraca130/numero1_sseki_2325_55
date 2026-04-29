@@ -1,0 +1,32 @@
+-- Migration: Document 'sketch' block type for summary_blocks
+-- Purpose: No schema change needed — summary_blocks.type is TEXT (open-ended).
+--          This migration serves as documentation of the new 'sketch' block type
+--          introduced for the Algorithmic Art feature.
+--
+-- Feature: Algorithmic Art (feat/algorithmic-art)
+--
+-- The 'sketch' block type uses the following content structure in summary_blocks.content:
+-- {
+--   "engine": "nervioso" | "renal" | "digestivo" | "semiologia_general" |
+--             "semiologia_regional" | "hematologia" | "microbiologia" | ...,
+--   "mode": "Normal" | "Fiebre" | "Shock" | ...,   -- engine-specific presets
+--   "seed": 42,                                      -- deterministic seed
+--   "height": 700,                                   -- canvas height in px (optional)
+--   "caption": "Texto descriptivo para el estudiante" -- optional caption
+-- }
+--
+-- Supported engines as of 2026-04-04:
+--   - nervioso         : Neural network simulation
+--   - renal            : Nephron filtration + endocrine cascade
+--   - digestivo        : GI tube with peristaltic waves
+--   - semiologia_general  : Topographic body terrain (Perlin noise)
+--   - semiologia_regional : Spatial anatomic graph (lymphatic/vascular/neural)
+--   - hematologia      : Fractal vascular tree with blood cells
+--   - microbiologia    : Bacterial colony ecosystem simulation
+--   - endocrino        : (planned)
+--   - cardiaco         : (planned)
+--   - respiratorio     : (planned)
+--
+-- No DDL required — type column already accepts TEXT values.
+
+SELECT 'sketch block type documented — no schema change required' AS migration_note;
