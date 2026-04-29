@@ -79,9 +79,10 @@ export function FlashcardImageUpload({
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
 
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
     try {
       // Simulate progress since we can't track real upload progress with fetch
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 15, 85));
       }, 200);
 
@@ -96,7 +97,6 @@ const result = await apiCall<{ path: string }>('/storage/upload', {
   // ⚠️ NO pongas Content-Type — el browser lo pone solo con el boundary
 });
 
-      clearInterval(progressInterval);
       setProgress(100);
 
       // Construct public URL
@@ -112,6 +112,7 @@ const result = await apiCall<{ path: string }>('/storage/upload', {
       URL.revokeObjectURL(localPreview);
       setPreviewUrl(null);
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
       setUploading(false);
       setProgress(0);
     }
