@@ -137,16 +137,38 @@ export function useQuizSession(
     cleanExpiredBackups();
 
     (async () => {
+      // FIX #807: track created session id so we can close it on cancel/error.
+      // Promise.all rejection or cancellation could orphan a backend session
+      // if loadAndNormalizeQuestions fails AFTER createStudySession resolves.
+      let createdSessionId: string | null = null;
+      const closeOrphanedSession = (id: string) => {
+        quizApi
+          .closeStudySession(id, {
+            completed_at: new Date().toISOString(),
+            total_reviews: 0,
+            correct_reviews: 0,
+          })
+          .catch((closeErr) =>
+            logger.error('[QuizTaker] Orphan session close error:', closeErr),
+          );
+      };
+
       try {
         // E16 FIX: Run session creation and question loading in PARALLEL
         // These are independent — questions don't need sessionId to load
-        const [session, result] = await Promise.all([
-          quizApi.createStudySession({ session_type: 'quiz' }),
-          loadAndNormalizeQuestions(
-            quizId, summaryId, preloadedQuestions, preloadedUsedRef.current,
-          ),
-        ]);
-        if (cancelled) return;
+        const sessionPromise = quizApi.createStudySession({ session_type: 'quiz' });
+        const questionsPromise = loadAndNormalizeQuestions(
+          quizId, summaryId, preloadedQuestions, preloadedUsedRef.current,
+        );
+        // Capture session id as soon as it resolves so a later questions
+        // failure doesn't orphan the backend session.
+        sessionPromise.then((s) => { createdSessionId = s.id; }).catch(() => {});
+        const [session, result] = await Promise.all([sessionPromise, questionsPromise]);
+        if (cancelled) {
+          // FIX #807: close abandoned session (effect cleanup ran before resolve)
+          closeOrphanedSession(session.id);
+          return;
+        }
         setSessionId(session.id);
         sessionClosedRef.current = false;
         preloadedUsedRef.current = result.usedPreloaded;
@@ -184,6 +206,11 @@ export function useQuizSession(
           if (!cancelled) setKeywordMap(kwMap);
         }
       } catch (err: unknown) {
+        // FIX #807: if session was already created, close it so we don't
+        // leak a dangling open session on the backend.
+        if (createdSessionId) {
+          closeOrphanedSession(createdSessionId);
+        }
         if (!cancelled) {
           setErrorMsg(getErrorMsg(err));
           setPhase('error');
