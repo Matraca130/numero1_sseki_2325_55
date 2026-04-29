@@ -76,14 +76,39 @@ export function useRagAnalytics(institutionId: string) {
     setError(null);
 
     try {
-      const [analyticsResult, coverageResult] = await Promise.all([
+      const [analyticsRes, coverageRes] = await Promise.allSettled([
         getRagAnalytics(institutionId, range ?? dateRange),
         getEmbeddingCoverage(institutionId),
       ]);
 
-      setAnalytics(analyticsResult);
-      setCoverage(coverageResult);
-      setPhase('ready');
+      if (analyticsRes.status === 'fulfilled') {
+        setAnalytics(analyticsRes.value);
+      }
+      if (coverageRes.status === 'fulfilled') {
+        setCoverage(coverageRes.value);
+      }
+
+      const bothFailed =
+        analyticsRes.status === 'rejected' && coverageRes.status === 'rejected';
+
+      if (bothFailed) {
+        const reason: any =
+          (analyticsRes as PromiseRejectedResult).reason ??
+          (coverageRes as PromiseRejectedResult).reason;
+        setError(reason?.message || 'Error al cargar analytics RAG');
+        setPhase('error');
+      } else {
+        setPhase('ready');
+        if (
+          analyticsRes.status === 'rejected' ||
+          coverageRes.status === 'rejected'
+        ) {
+          console.warn(
+            '[useRagAnalytics] Partial load:',
+            { analytics: analyticsRes, coverage: coverageRes },
+          );
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Error al cargar analytics RAG');
       setPhase('error');

@@ -264,9 +264,40 @@ describe('fetchAll', () => {
     expect(mockGetRagAnalytics).toHaveBeenCalledWith('inst-1', { from: '2026-02-01' });
   });
 
-  it('transitions to phase=error with message when analytics fails', async () => {
+  it('partial success: analytics fails, coverage succeeds → phase=ready with coverage only', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockGetRagAnalytics.mockRejectedValueOnce(new Error('db error'));
     mockGetEmbeddingCoverage.mockResolvedValueOnce(COVERAGE);
+    const { result } = renderHook(() => useRagAnalytics('inst-1'));
+    await act(async () => {
+      await result.current.fetchAll();
+    });
+    // Partial success — render available data and DO NOT enter error state.
+    expect(result.current.phase).toBe('ready');
+    expect(result.current.analytics).toBeNull();
+    expect(result.current.coverage).toEqual(COVERAGE);
+    expect(result.current.error).toBeNull();
+    warnSpy.mockRestore();
+  });
+
+  it('partial success: coverage fails, analytics succeeds → phase=ready with analytics only', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockGetRagAnalytics.mockResolvedValueOnce(ANALYTICS);
+    mockGetEmbeddingCoverage.mockRejectedValueOnce(new Error('coverage err'));
+    const { result } = renderHook(() => useRagAnalytics('inst-1'));
+    await act(async () => {
+      await result.current.fetchAll();
+    });
+    expect(result.current.phase).toBe('ready');
+    expect(result.current.analytics).toEqual(ANALYTICS);
+    expect(result.current.coverage).toBeNull();
+    expect(result.current.error).toBeNull();
+    warnSpy.mockRestore();
+  });
+
+  it('transitions to phase=error only when BOTH requests fail', async () => {
+    mockGetRagAnalytics.mockRejectedValueOnce(new Error('db error'));
+    mockGetEmbeddingCoverage.mockRejectedValueOnce(new Error('coverage err'));
     const { result } = renderHook(() => useRagAnalytics('inst-1'));
     await act(async () => {
       await result.current.fetchAll();
@@ -275,24 +306,14 @@ describe('fetchAll', () => {
     expect(result.current.error).toBe('db error');
   });
 
-  it('transitions to phase=error when coverage fails', async () => {
-    mockGetRagAnalytics.mockResolvedValueOnce(ANALYTICS);
-    mockGetEmbeddingCoverage.mockRejectedValueOnce(new Error('coverage err'));
+  it('falls back to generic error message if err.message is absent (both failed)', async () => {
+    mockGetRagAnalytics.mockRejectedValueOnce({});
+    mockGetEmbeddingCoverage.mockRejectedValueOnce({});
     const { result } = renderHook(() => useRagAnalytics('inst-1'));
     await act(async () => {
       await result.current.fetchAll();
     });
     expect(result.current.phase).toBe('error');
-    expect(result.current.error).toBe('coverage err');
-  });
-
-  it('falls back to generic error message if err.message is absent', async () => {
-    mockGetRagAnalytics.mockRejectedValueOnce({});
-    mockGetEmbeddingCoverage.mockResolvedValueOnce(COVERAGE);
-    const { result } = renderHook(() => useRagAnalytics('inst-1'));
-    await act(async () => {
-      await result.current.fetchAll();
-    });
     expect(result.current.error).toBe('Error al cargar analytics RAG');
   });
 
