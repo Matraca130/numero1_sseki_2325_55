@@ -49,7 +49,10 @@ interface StudentStatsRow {
 }
 
 async function incrementStudentStats(input: SessionAnalyticsInput): Promise<void> {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // Use local calendar date (not UTC) to avoid false streak resets for users
+  // in UTC-negative timezones who study late at night and cross midnight UTC.
+  // 'sv' locale yields 'YYYY-MM-DD' format in the user's local timezone.
+  const today = new Date().toLocaleDateString('sv'); // YYYY-MM-DD (local)
 
   // 1. READ current accumulated stats
   let existing: StudentStatsRow | null = null;
@@ -79,7 +82,7 @@ async function incrementStudentStats(input: SessionAnalyticsInput): Promise<void
   } else {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = yesterday.toLocaleDateString('sv'); // local YYYY-MM-DD
 
     if (prevLastDate === yesterdayStr) {
       currentStreak += 1;
@@ -118,7 +121,9 @@ interface DailyActivityRow {
 }
 
 async function incrementDailyActivities(input: SessionAnalyticsInput): Promise<void> {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // Use local calendar date (not UTC) so heatmap entries are recorded against
+  // the user's local day, not the UTC day.
+  const today = new Date().toLocaleDateString('sv'); // YYYY-MM-DD (local)
 
   // 1. READ today's existing activity (may be null if first session today)
   let existing: DailyActivityRow | null = null;
