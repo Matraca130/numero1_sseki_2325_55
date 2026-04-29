@@ -77,29 +77,42 @@ export function useQuizGamificationFeedback(): QuizGamificationFeedback {
     if (firedRef.current) return;
     firedRef.current = true;
 
+    let mounted = true;
+    let finalizeTimer: ReturnType<typeof setTimeout> | null = null;
+
     (async () => {
       try {
         // Wait for backend afterWrite hooks to complete
         // (quiz_attempt → award XP → update profile)
         await new Promise((r) => setTimeout(r, 800));
 
+        if (!mounted) return;
+
         // Step 1: Refresh profile — this triggers xpDelta and
         // levelUpEvent detection inside useGamificationProfile
         await gamification.refresh();
+
+        if (!mounted) return;
 
         // Step 2: Check for new badges earned from this quiz
         await gamification.triggerBadgeCheck();
       } catch (err) {
         logger.error('[QuizGamificationFeedback] Post-quiz feedback error (non-blocking):', err);
       } finally {
+        if (!mounted) return;
         // Mark as done — sync effects below will pick up the data
         // Small delay to ensure React has batched the state updates
-        setTimeout(() => {
+        finalizeTimer = setTimeout(() => {
           setIsLoading(false);
           setIsConfirmed(true);
         }, 100);
       }
     })();
+
+    return () => {
+      mounted = false;
+      if (finalizeTimer) clearTimeout(finalizeTimer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty — fire once on mount
 
