@@ -59,20 +59,24 @@ export function StudyQueueWidget({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reqIdRef = useRef(0);
 
   // ── Fetch queue ─────────────────────────────────────────
   const fetchQueue = useCallback(async (showLoading = true) => {
+    const myId = ++reqIdRef.current;
     if (showLoading) setLoading(true);
     setError(null);
     try {
       const result = await getStudyQueue({ course_id: courseId, limit: 20 });
+      if (reqIdRef.current !== myId) return; // stale response, discard
       setQueue(result.queue || []);
       setMeta(result.meta || null);
     } catch (err: any) {
+      if (reqIdRef.current !== myId) return;
       console.error('[StudyQueueWidget] Error:', err);
       setError(err.message || 'Error al cargar cola');
     } finally {
-      setLoading(false);
+      if (reqIdRef.current === myId) setLoading(false);
     }
   }, [courseId]);
 
