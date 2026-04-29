@@ -97,7 +97,7 @@ export function QuizExportImport({
     a.href = url;
     a.download = `quiz-${quizTitle.replace(/\s+/g, '-').toLowerCase()}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
     toast.success('Archivo descargado');
   }, [exportJson, quizTitle]);
 
