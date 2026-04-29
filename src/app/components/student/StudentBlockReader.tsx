@@ -109,6 +109,17 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending focus timer on unmount to avoid dereferencing stale refs
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) {
+        clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Data
   const { data: blocks = [] } = useSummaryBlocksQuery(summary.id);
@@ -147,10 +158,18 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        setSearchOpen((prev) => {
-          if (!prev) setTimeout(() => searchInputRef.current?.focus(), 50);
-          return !prev;
-        });
+        // Side-effects (setTimeout) MUST live OUTSIDE the updater fn:
+        // React 18 may invoke updater fns more than once (StrictMode,
+        // concurrent features), which would double-schedule the timer.
+        const next = !searchOpen;
+        setSearchOpen(next);
+        if (next) {
+          if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+          focusTimerRef.current = setTimeout(
+            () => searchInputRef.current?.focus(),
+            50,
+          );
+        }
       }
       if (e.key === 'Escape') {
         setSearchOpen(false);
@@ -160,7 +179,7 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [searchOpen]);
 
   // ── Block click from sidebar ───────────────────────────────
   const scrollToBlock = useCallback((blockId: string) => {
@@ -236,8 +255,19 @@ export function StudentBlockReader({ summary, topicName, onBack }: StudentBlockR
             icon={Search}
             active={searchOpen}
             onClick={() => {
-              setSearchOpen((p) => !p);
-              if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
+              // Compute `next` once and use it for both the state update
+              // and the side-effect — `searchOpen` in a closure is the
+              // *pre-toggle* value, so a naive `if (!searchOpen)` would
+              // fire focus when closing instead of opening.
+              const next = !searchOpen;
+              setSearchOpen(next);
+              if (next) {
+                if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+                focusTimerRef.current = setTimeout(
+                  () => searchInputRef.current?.focus(),
+                  50,
+                );
+              }
             }}
             title="Buscar (Ctrl+F)"
           />
