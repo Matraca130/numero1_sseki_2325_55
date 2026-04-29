@@ -50,8 +50,14 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
     timestamp: 0,
   });
 
+  // Stale-response guard: each fetch increments this; only the latest fetch may set state.
+  const requestIdRef = useRef(0);
+
   const fetchRecommendations = useCallback(async (forceRefresh = false) => {
     if (!studentProfile) return;
+
+    const requestId = ++requestIdRef.current;
+    const isStale = () => requestIdRef.current !== requestId;
 
     // Serve from cache if fresh and not a manual refresh
     const now = Date.now();
@@ -61,6 +67,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
       now - cacheRef.current.timestamp < CACHE_TTL_MS
     ) {
       const cached = cacheRef.current.data;
+      if (isStale()) return;
       if (cached.todayRecommendations?.length) {
         setRecommendations(cached.todayRecommendations);
         setAiPowered(cached._meta?.aiPowered ?? false);
@@ -73,6 +80,7 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
     setError(false);
     try {
       const result = await aiRecommendToday(studentProfile);
+      if (isStale()) return;
       cacheRef.current = { data: result, timestamp: Date.now() };
       if (result?.todayRecommendations?.length) {
         setRecommendations(result.todayRecommendations);
@@ -82,10 +90,13 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
         setAiPowered(false);
       }
     } catch {
+      if (isStale()) return;
       setError(true);
     } finally {
-      setLoading(false);
-      setHasFetched(true);
+      if (!isStale()) {
+        setLoading(false);
+        setHasFetched(true);
+      }
     }
   }, [studentProfile]);
 
@@ -93,6 +104,10 @@ export function DailyRecommendationCard({ studentProfile }: Props) {
     if (studentProfile) {
       fetchRecommendations();
     }
+    return () => {
+      // Invalidate any in-flight fetch when studentProfile changes or on unmount
+      requestIdRef.current++;
+    };
   }, [studentProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Empty state (no profile) ──
