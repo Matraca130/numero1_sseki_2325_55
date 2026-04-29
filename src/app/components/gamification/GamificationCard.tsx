@@ -39,17 +39,20 @@ export function GamificationCard() {
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
-    Promise.all([
+
+    // Side-effects — fire and ignore rejection (e.g., 409 already checked in today)
+    gamificationApi.dailyCheckIn(institutionId).catch(() => {});
+    gamificationApi.onboarding(institutionId).catch(() => {});
+
+    // Data reads — use allSettled so one failure doesn't kill the other
+    Promise.allSettled([
       gamificationApi.getProfile(institutionId),
       gamificationApi.getLeaderboard(institutionId, { limit: 3, period: 'weekly' }),
-      gamificationApi.dailyCheckIn(institutionId),
-      gamificationApi.onboarding(institutionId),
     ])
-      .then(([profileData, lbData]) => {
-        setProfile(profileData);
-        setLeaderboard(lbData);
+      .then(([profileRes, lbRes]) => {
+        if (profileRes.status === 'fulfilled') setProfile(profileRes.value);
+        if (lbRes.status === 'fulfilled') setLeaderboard(lbRes.value);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [institutionId]);
 
