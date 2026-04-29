@@ -10,7 +10,7 @@
 // ("Carga: baja | media | alta | maxima"), never color alone.
 // ============================================================
 
-import { useState, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
 
 import { useMediaQuery } from '@/app/hooks/useMediaQuery';
 import { HEATMAP_LABELS, type HeatmapLevel } from '@/app/lib/calendar-constants';
@@ -80,8 +80,13 @@ function MobileTooltip({
 }: Omit<HeatmapTooltipProps, 'date'>) {
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTouchStart = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
     timerRef.current = setTimeout(() => {
       setIsVisible(true);
     }, 300);
@@ -92,8 +97,14 @@ function MobileTooltip({
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+    }
     // Hide after a short delay so user can read
-    setTimeout(() => setIsVisible(false), 1500);
+    hideTimerRef.current = setTimeout(() => {
+      setIsVisible(false);
+      hideTimerRef.current = null;
+    }, 1500);
   }, []);
 
   const handleTouchCancel = useCallback(() => {
@@ -101,8 +112,27 @@ function MobileTooltip({
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
     setIsVisible(false);
   }, []);
+
+  // Cleanup any pending timers on unmount to avoid setState on unmounted component.
+  useEffect(
+    () => () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   return (
     <div
