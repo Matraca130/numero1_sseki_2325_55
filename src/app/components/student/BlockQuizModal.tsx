@@ -131,21 +131,24 @@ interface BlockReviewResult {
   time_taken_ms: number;
 }
 
-/** Submit block quiz results to update per-block BKT mastery */
+/** Submit block quiz results to update per-block BKT mastery.
+ *  Returns true on success, false on failure (so caller can keep results for retry). */
 async function submitBlockReview(
   blockId: string,
   summaryId: string,
   results: BlockReviewResult[],
-) {
-  if (results.length === 0) return;
+): Promise<boolean> {
+  if (results.length === 0) return true;
   try {
     const res = await apiCall('/block-review', {
       method: 'POST',
       body: JSON.stringify({ block_id: blockId, summary_id: summaryId, results }),
     });
     if (import.meta.env.DEV) console.log('[BlockQuizModal] Block review submitted:', res);
+    return true;
   } catch (err: any) {
     console.error('[BlockQuizModal] Failed to submit block review:', err?.message || err);
+    return false;
   }
 }
 
@@ -166,6 +169,7 @@ export function BlockQuizModal({
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [reviewResults, setReviewResults] = useState<BlockReviewResult[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch quiz: DB first (pre-generated), then AI fallback
   useEffect(() => {
@@ -263,10 +267,16 @@ export function BlockQuizModal({
     }
   }, [selected, question, questionStartTime]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (isLastQuestion) {
-      // Submit all results for block mastery BKT update before closing
-      submitBlockReview(blockId, summaryId, reviewResults);
+      // Await BKT mastery update before unmounting; keep results on failure for retry.
+      setSubmitting(true);
+      const ok = await submitBlockReview(blockId, summaryId, reviewResults);
+      setSubmitting(false);
+      if (!ok) {
+        // Keep reviewResults intact so user can retry by clicking "Cerrar" again.
+        return;
+      }
       setReviewResults([]);
       onClose();
       return;
@@ -277,10 +287,16 @@ export function BlockQuizModal({
   }, [isLastQuestion, onClose, blockId, summaryId, reviewResults]);
 
   // Reset state when modal reopens
-  const handleClose = useCallback(() => {
-    // Submit any accumulated results before closing (e.g., user closes mid-quiz)
+  const handleClose = useCallback(async () => {
+    // Await BKT mastery update before unmounting; keep results on failure for retry.
     if (reviewResults.length > 0) {
-      submitBlockReview(blockId, summaryId, reviewResults);
+      setSubmitting(true);
+      const ok = await submitBlockReview(blockId, summaryId, reviewResults);
+      setSubmitting(false);
+      if (!ok) {
+        // Keep reviewResults intact so user can retry.
+        return;
+      }
     }
     setCurrentIndex(0);
     setSelected(null);
@@ -293,9 +309,10 @@ export function BlockQuizModal({
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
+      if (submitting) return;
       if (e.target === e.currentTarget) handleClose();
     },
-    [handleClose],
+    [handleClose, submitting],
   );
 
   if (!isOpen) return null;
@@ -344,8 +361,8 @@ export function BlockQuizModal({
                 )}
               </div>
             </div>
-            <button onClick={handleClose} className={BTN_CLOSE}>
-              <X size={16} />
+            <button onClick={handleClose} className={BTN_CLOSE} disabled={submitting}>
+              {submitting ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
             </button>
           </div>
 
@@ -478,10 +495,16 @@ export function BlockQuizModal({
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={handleNext}
-                    className="w-full py-3 rounded-full text-white bg-teal-600 hover:bg-teal-700 transition-colors inline-flex items-center justify-center gap-2"
+                    disabled={submitting}
+                    className="w-full py-3 rounded-full text-white bg-teal-600 hover:bg-teal-700 transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ fontSize: 14, fontWeight: 700 }}
                   >
-                    {isLastQuestion ? 'Cerrar' : (
+                    {submitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Guardando...
+                      </>
+                    ) : isLastQuestion ? 'Cerrar' : (
                       <>
                         Siguiente
                         <ChevronRight size={16} />
