@@ -401,3 +401,360 @@ describe('AiTutorPanel: internal sub-components', () => {
     expect(source).toMatch(/from\s+'sonner'/);
   });
 });
+
+// ── PULL_THRESHOLD module constant ─────────────────────────
+
+describe('PULL_THRESHOLD constant', () => {
+  it('declares PULL_THRESHOLD = 60 at module scope', () => {
+    expect(source).toMatch(/const\s+PULL_THRESHOLD\s*=\s*60/);
+  });
+});
+
+// ── usePullToRefresh: rubber-band physics ──────────────────
+
+describe('usePullToRefresh: rubber-band physics', () => {
+  it("applies diminishing-return resistance past PULL_THRESHOLD: capped = threshold + (delta-threshold) * 0.3", () => {
+    expect(source).toMatch(/delta\s*<\s*PULL_THRESHOLD\s*\?\s*delta\s*:\s*PULL_THRESHOLD\s*\+\s*\(delta\s*-\s*PULL_THRESHOLD\)\s*\*\s*0\.3/);
+  });
+
+  it('checks prefers-reduced-motion via window.matchMedia', () => {
+    expect(source).toMatch(/window\.matchMedia\?\.\('\(prefers-reduced-motion:\s*reduce\)'\)\.matches/);
+  });
+
+  it('caps pull at PULL_THRESHOLD when reduced-motion is true', () => {
+    expect(source).toMatch(/reducedMotion\s*\?\s*Math\.min\(capped,\s*PULL_THRESHOLD\)\s*:\s*capped/);
+  });
+
+  it('uses Math.max(0, ...) to clamp negative pulls (upward swipes)', () => {
+    expect(source).toMatch(/Math\.max\(0,\s*e\.touches\[0\]\.clientY\s*-\s*touchStartY\.current\)/);
+  });
+
+  it('600ms release timeout for visual feedback after refresh fires', () => {
+    expect(source).toMatch(/setTimeout\(\(\)\s*=>\s*\{[\s\S]{0,200}setReleasing\(false\);\s*\},\s*600\)/);
+  });
+
+  it('clears prior release timer to avoid stacking on rapid pulls', () => {
+    expect(source).toMatch(/clearTimeout\(releaseTimerRef\.current\)[\s\S]{0,200}releaseTimerRef\.current\s*=\s*setTimeout/);
+  });
+
+  it('progress = pull / threshold capped at 1', () => {
+    expect(source).toMatch(/Math\.min\(pullDistance\s*\/\s*PULL_THRESHOLD,\s*1\)/);
+  });
+
+  it('pastThreshold = pullDistance >= PULL_THRESHOLD', () => {
+    expect(source).toMatch(/pastThreshold\s*=\s*pullDistance\s*>=\s*PULL_THRESHOLD/);
+  });
+});
+
+// ── Touch listener wiring ──────────────────────────────────
+
+describe('usePullToRefresh: touch listener wiring', () => {
+  it("touchstart with passive: true (allows browser to optimize scroll)", () => {
+    expect(source).toMatch(/addEventListener\('touchstart',\s*handleTouchStart,\s*\{\s*passive:\s*true\s*\}\)/);
+  });
+
+  it("touchmove with passive: false (so we can preventDefault native pull-refresh)", () => {
+    expect(source).toMatch(/addEventListener\('touchmove',\s*handleTouchMove,\s*\{\s*passive:\s*false\s*\}\)/);
+  });
+
+  it('touchend with passive: true', () => {
+    expect(source).toMatch(/addEventListener\('touchend',\s*handleTouchEnd,\s*\{\s*passive:\s*true\s*\}\)/);
+  });
+
+  it('all 3 listeners are removed in cleanup', () => {
+    expect(source).toMatch(/removeEventListener\('touchstart',\s*handleTouchStart\)/);
+    expect(source).toMatch(/removeEventListener\('touchmove',\s*handleTouchMove\)/);
+    expect(source).toMatch(/removeEventListener\('touchend',\s*handleTouchEnd\)/);
+  });
+
+  it('release timer is cleared on cleanup', () => {
+    expect(source).toMatch(/return\s*\(\)\s*=>\s*\{[\s\S]{0,400}clearTimeout\(releaseTimerRef\.current\)/);
+  });
+
+  it('only activates when scrollTop <= 0 (top of scroll)', () => {
+    expect(source).toMatch(/if\s*\(el\.scrollTop\s*<=\s*0\)/);
+  });
+
+  it('aborts pull mid-gesture if user scrolls back down', () => {
+    expect(source).toMatch(/if\s*\(el\.scrollTop\s*>\s*0\)\s*\{\s*isPulling\.current\s*=\s*false/);
+  });
+
+  it('preventDefault only when delta > 0 (avoids breaking horizontal scrolls)', () => {
+    expect(source).toMatch(/if\s*\(delta\s*>\s*0\)\s*e\.preventDefault\(\)/);
+  });
+
+  it('pull-to-refresh only enabled when analysis exists AND not analyzing', () => {
+    expect(source).toMatch(/usePullToRefresh\(\s*handleAnalyze,\s*!!analysis\s*&&\s*!analyzing/);
+  });
+});
+
+// ── Concurrent-call guards ─────────────────────────────────
+
+describe('Concurrent-call guards', () => {
+  it('handleAnalyze early-returns when analyzingRef.current is true', () => {
+    expect(source).toMatch(/if\s*\(analyzingRef\.current\)\s*return/);
+  });
+
+  it('handleSuggestConnections early-returns when suggestingRef.current OR no existingNodeIds', () => {
+    expect(source).toMatch(/if\s*\(suggestingRef\.current\s*\|\|\s*!existingNodeIds\?\.length\)\s*return/);
+  });
+
+  it('handleAcceptSuggestion guards both already-accepted and currently-accepting', () => {
+    expect(source).toMatch(/if\s*\(acceptedRef\.current\.has\(key\)\s*\|\|\s*acceptingKeyRef\.current\s*===\s*key\)\s*return/);
+  });
+
+  it('analyzingRef set to true at start, false in finally', () => {
+    expect(source).toMatch(/analyzingRef\.current\s*=\s*true/);
+    expect(source).toMatch(/finally\s*\{\s*analyzingRef\.current\s*=\s*false/);
+  });
+
+  it('suggestingRef set to true at start, false in finally', () => {
+    expect(source).toMatch(/suggestingRef\.current\s*=\s*true/);
+    expect(source).toMatch(/finally\s*\{\s*suggestingRef\.current\s*=\s*false/);
+  });
+});
+
+// ── Stale-topic discard (race-condition protection) ────────
+
+describe('Stale-topic discard (handles topic switch mid-fetch)', () => {
+  it('handleAnalyze captures topicId in analyzeTopicRef.current at call-start', () => {
+    expect(source).toMatch(/handleAnalyze[\s\S]{0,500}analyzeTopicRef\.current\s*=\s*topicId/);
+  });
+
+  it('handleAnalyze discards results when analyzeTopicRef.current !== topicId after await', () => {
+    expect(source).toMatch(/if\s*\(!mountedRef\.current\s*\|\|\s*analyzeTopicRef\.current\s*!==\s*topicId\)\s*return/);
+  });
+
+  it('handleSuggestConnections discards results when suggestTopicRef.current !== topicId', () => {
+    expect(source).toMatch(/if\s*\(!mountedRef\.current\s*\|\|\s*suggestTopicRef\.current\s*!==\s*topicId\)\s*return/);
+  });
+
+  it('handleAcceptSuggestion captures topicId in capturedTopicId then re-checks', () => {
+    expect(source).toMatch(/const\s+capturedTopicId\s*=\s*topicIdRef\.current/);
+    expect(source).toMatch(/if\s*\(!mountedRef\.current\s*\|\|\s*topicIdRef\.current\s*!==\s*capturedTopicId\)\s*return/);
+  });
+});
+
+// ── Topic-change state reset ───────────────────────────────
+
+describe('Topic-change useEffect resets all derived state', () => {
+  it('clears analysis, weakPoints, suggestions, acceptedSuggestions, acceptingKey, improvedNodes', () => {
+    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\{\s*setAnalysis\(null\);\s*setWeakPoints\(\[\]\);\s*setSuggestions\(\[\]\);\s*setAcceptedSuggestions\(new Set\(\)\);\s*setAcceptingKey\(null\);\s*setImprovedNodes\(\[\]\);\s*prevWeakMapRef\.current\s*=\s*new Map\(\)/);
+  });
+
+  it('topic-reset effect dep is [topicId]', () => {
+    expect(source).toMatch(/setImprovedNodes\(\[\]\);\s*prevWeakMapRef\.current\s*=\s*new Map\(\)[\s\S]{0,80}\},\s*\[topicId\]\)/);
+  });
+});
+
+// ── Improved-node detection ────────────────────────────────
+
+describe('Improved-node detection (across analyses)', () => {
+  it('compares newWeakIds with prevWeakMapRef to find improved entries', () => {
+    expect(source).toMatch(/for\s*\(const\s*\[id,\s*name\]\s*of\s*prevWeakMapRef\.current\)/);
+  });
+
+  it('improved = was-weak ∩ (now-not-weak OR now-strong)', () => {
+    expect(source).toMatch(/!newWeakIds\.has\(id\)\s*\|\|\s*strongIds\.has\(id\)/);
+  });
+
+  it('only sets improvedNodes when there ARE improved entries (avoids noise)', () => {
+    expect(source).toMatch(/if\s*\(improved\.length\s*>\s*0\)\s*\{\s*setImprovedNodes\(improved\)/);
+  });
+
+  it('clears prior improved-timer before scheduling a new one', () => {
+    expect(source).toMatch(/if\s*\(improvedTimerRef\.current\)\s*clearTimeout\(improvedTimerRef\.current\)/);
+  });
+
+  it('improved badge auto-dismisses after 2500ms', () => {
+    expect(source).toMatch(/setTimeout\(\(\)\s*=>\s*\{\s*if\s*\(mountedRef\.current\)\s*setImprovedNodes\(\[\]\)/);
+    expect(source).toMatch(/\},\s*2500\)/);
+  });
+
+  it('mountedRef.current guard inside improved-timer setTimeout (avoids unmount setState)', () => {
+    expect(source).toMatch(/setTimeout\(\(\)\s*=>\s*\{\s*if\s*\(mountedRef\.current\)\s*setImprovedNodes/);
+  });
+
+  it('improved-timer is cleared in mountedRef cleanup (no orphan setTimeout)', () => {
+    expect(source).toMatch(/return\s*\(\)\s*=>\s*\{\s*mountedRef\.current\s*=\s*false;\s*if\s*\(improvedTimerRef\.current\)\s*clearTimeout\(improvedTimerRef\.current\)/);
+  });
+
+  it('rebuilds prevWeakMap as Map<keyword_id, keyword_name> for next comparison', () => {
+    expect(source).toMatch(/const\s+nextWeakMap\s*=\s*new\s+Map<string,\s*string>\(\)/);
+    expect(source).toMatch(/nextWeakMap\.set\(wa\.keyword_id,\s*wa\.keyword_name\)/);
+    expect(source).toMatch(/prevWeakMapRef\.current\s*=\s*nextWeakMap/);
+  });
+});
+
+// ── Resilience: Array.isArray fallbacks ────────────────────
+
+describe('Array.isArray normalization (defensive against null)', () => {
+  it('weak_areas falls back to [] when not an array', () => {
+    expect(source).toMatch(/Array\.isArray\(result\.weak_areas\)\s*\?\s*result\.weak_areas\s*:\s*\[\]/);
+  });
+
+  it('strong_areas falls back to [] when not an array', () => {
+    expect(source).toMatch(/Array\.isArray\(result\.strong_areas\)\s*\?\s*result\.strong_areas\s*:\s*\[\]/);
+  });
+
+  it('study_path falls back to [] when not an array', () => {
+    expect(source).toMatch(/Array\.isArray\(result\.study_path\)\s*\?\s*result\.study_path\s*:\s*\[\]/);
+  });
+});
+
+// ── Promise.all parallel API calls ─────────────────────────
+
+describe('Parallel API fetch via Promise.all', () => {
+  it('analyzeKnowledgeGraph and getStudentWeakPoints fire in parallel', () => {
+    expect(source).toMatch(/Promise\.all\(\[[\s\S]{0,200}analyzeKnowledgeGraph\(topicId\)[\s\S]{0,200}getStudentWeakPoints\(topicId\)[\s\S]{0,80}\]\)/);
+  });
+});
+
+// ── Highlight after successful analyze ─────────────────────
+
+describe('Highlight wiring after analyze', () => {
+  it('only highlights when there are weakAreas (avoids empty-set highlight)', () => {
+    expect(source).toMatch(/if\s*\(weakAreas\.length\s*>\s*0\)\s*\{[\s\S]{0,300}onHighlightRef\.current\?\.\(weakIds\);\s*onReviewRef\.current\?\.\(weakIds\)/);
+  });
+
+  it('highlight + review use the SAME weakIds Set (single source of truth)', () => {
+    expect(source).toMatch(/const\s+weakIds\s*=\s*new\s+Set\(weakAreas\.map\(w\s*=>\s*w\.keyword_id\)\)/);
+  });
+});
+
+// ── handleAcceptSuggestion: accept-key format ──────────────
+
+describe('handleAcceptSuggestion: accept-key format', () => {
+  it("uses '<source>-<target>' as the dedup key", () => {
+    expect(source).toMatch(/const\s+key\s*=\s*`\$\{suggestion\.source\}-\$\{suggestion\.target\}`/);
+  });
+
+  it('createCustomEdge payload includes source_node_id, target_node_id, label, connection_type, topic_id', () => {
+    const payloadMatch = source.match(/createCustomEdge\(\{[\s\S]{0,500}\}\)/);
+    expect(payloadMatch).not.toBeNull();
+    expect(payloadMatch![0]).toContain('source_node_id: suggestion.source');
+    expect(payloadMatch![0]).toContain('target_node_id: suggestion.target');
+    expect(payloadMatch![0]).toContain('label: suggestion.reason');
+    expect(payloadMatch![0]).toContain('connection_type: suggestion.type');
+    expect(payloadMatch![0]).toContain('topic_id: capturedTopicId');
+  });
+
+  it('on success: adds key to acceptedSuggestions + calls onEdgeCreated + toasts', () => {
+    expect(source).toMatch(/setAcceptedSuggestions\(prev\s*=>\s*new\s+Set\(prev\)\.add\(key\)\)/);
+    expect(source).toMatch(/onEdgeCreatedRef\.current\?\.\(\)/);
+    expect(source).toMatch(/toast\.success\(tT\.connectionAdded\)/);
+  });
+
+  it('error toast prefers err.message over generic errorCreatingConnection', () => {
+    expect(source).toMatch(/err\s+instanceof\s+Error\s*\?\s*err\.message\s*:\s*tT\.errorCreatingConnection/);
+  });
+
+  it('finally clears acceptingKey only when still mounted', () => {
+    expect(source).toMatch(/finally\s*\{\s*if\s*\(mountedRef\.current\)\s*setAcceptingKey\(null\)/);
+  });
+});
+
+// ── handleDismissSuggestion (immutable filter) ─────────────
+
+describe('handleDismissSuggestion', () => {
+  it('uses immutable filter (no mutation of prev array)', () => {
+    expect(source).toMatch(/setSuggestions\(prev\s*=>\s*prev\.filter\(s\s*=>\s*!\(s\.source\s*===\s*suggestion\.source\s*&&\s*s\.target\s*===\s*suggestion\.target\)\)\)/);
+  });
+});
+
+// ── scoreColor 3-tier ──────────────────────────────────────
+
+describe('scoreColor 3-tier mapping', () => {
+  it('>= 0.7 → success, >= 0.4 → warning, else → error', () => {
+    expect(source).toMatch(/analysis\.overall_score\s*>=\s*0\.7\s*\?\s*colors\.semantic\.success\s*:\s*analysis\.overall_score\s*>=\s*0\.4\s*\?\s*colors\.semantic\.warning\s*:\s*colors\.semantic\.error/);
+  });
+
+  it('falls back to colors.text.tertiary when no analysis (gray neutral)', () => {
+    expect(source).toMatch(/scoreColor\s*=\s*analysis[\s\S]{0,200}:\s*colors\.text\.tertiary/);
+  });
+});
+
+// ── ACTION_ICONS / ACTION_LABELS records ───────────────────
+
+describe('ACTION mapping records', () => {
+  it('ACTION_ICONS maps flashcard/quiz/summary/review to icon components', () => {
+    expect(source).toMatch(/ACTION_ICONS:\s*Record<string,\s*typeof Layers>\s*=\s*\{\s*flashcard:\s*Layers,\s*quiz:\s*HelpCircle,\s*summary:\s*FileText,\s*review:\s*Route/);
+  });
+
+  it('ACTION_LABELS uses i18n strings for summary/review (localized)', () => {
+    expect(source).toMatch(/summary:\s*tT\.actionSummary,\s*review:\s*tT\.actionReview/);
+  });
+
+  it('ACTION_LABELS hardcodes "Flashcards"/"Quiz" (cross-locale brand names)', () => {
+    expect(source).toMatch(/flashcard:\s*['"]Flashcards['"]/);
+    expect(source).toMatch(/quiz:\s*['"]Quiz['"]/);
+  });
+});
+
+// ── Escape-key handler ─────────────────────────────────────
+
+describe('Escape-key handler', () => {
+  it('only attached when open=true (early-return when closed)', () => {
+    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\{\s*if\s*\(!open\)\s*return;[\s\S]{0,500}document\.addEventListener\('keydown',\s*handler\)/);
+  });
+
+  it('preventDefault + stopPropagation before closing (no global handler interference)', () => {
+    expect(source).toMatch(/e\.key\s*===\s*['"]Escape['"][\s\S]{0,150}e\.preventDefault\(\);\s*e\.stopPropagation\(\);\s*onCloseRef\.current\(\)/);
+  });
+
+  it('listener removed in cleanup', () => {
+    expect(source).toMatch(/document\.removeEventListener\('keydown',\s*handler\)/);
+  });
+});
+
+// ── Stable callback refs ───────────────────────────────────
+
+describe('Stable callback refs (5 refs to prevent re-renders)', () => {
+  it('mirrors onClose into onCloseRef', () => {
+    expect(source).toMatch(/const\s+onCloseRef\s*=\s*useRef\(onClose\);[\s\S]{0,80}onCloseRef\.current\s*=\s*onClose/);
+  });
+
+  it('mirrors onHighlightNodes into onHighlightRef', () => {
+    expect(source).toMatch(/const\s+onHighlightRef\s*=\s*useRef\(onHighlightNodes\);[\s\S]{0,80}onHighlightRef\.current\s*=\s*onHighlightNodes/);
+  });
+
+  it('mirrors onReviewNodes into onReviewRef', () => {
+    expect(source).toMatch(/const\s+onReviewRef\s*=\s*useRef\(onReviewNodes\);[\s\S]{0,80}onReviewRef\.current\s*=\s*onReviewNodes/);
+  });
+
+  it('mirrors onNavigateToAction into onNavigateRef', () => {
+    expect(source).toMatch(/const\s+onNavigateRef\s*=\s*useRef\(onNavigateToAction\);[\s\S]{0,80}onNavigateRef\.current\s*=\s*onNavigateToAction/);
+  });
+
+  it('mirrors onEdgeCreated into onEdgeCreatedRef', () => {
+    expect(source).toMatch(/const\s+onEdgeCreatedRef\s*=\s*useRef\(onEdgeCreated\);[\s\S]{0,80}onEdgeCreatedRef\.current\s*=\s*onEdgeCreated/);
+  });
+});
+
+// ── memo() wrapping ────────────────────────────────────────
+
+describe('memo() wrapping', () => {
+  it('exports AiTutorPanel wrapped in memo()', () => {
+    expect(source).toMatch(/export\s+const\s+AiTutorPanel\s*=\s*memo\(function\s+AiTutorPanel/);
+  });
+
+  it('imports memo from react', () => {
+    expect(source).toMatch(/import\s*\{[^}]*memo[^}]*\}\s*from\s*['"]react['"]/);
+  });
+});
+
+// ── useFocusTrap integration ───────────────────────────────
+
+describe('useFocusTrap integration', () => {
+  it('passes the open state to useFocusTrap (only traps when visible)', () => {
+    expect(source).toMatch(/const\s+focusTrapRef\s*=\s*useFocusTrap\(open\)/);
+  });
+});
+
+// ── DEV-only error logging ─────────────────────────────────
+
+describe('DEV-only error logging in handleAnalyze', () => {
+  it('console.error gated by import.meta.env.DEV', () => {
+    expect(source).toMatch(/import\.meta\.env\.DEV[\s\S]{0,100}console\.error\(['"]AI analysis failed:['"],\s*err\)/);
+  });
+});
