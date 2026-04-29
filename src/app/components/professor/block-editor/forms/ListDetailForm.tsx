@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { type BlockFormProps, inputClass } from './shared';
 
 interface ListItem {
@@ -6,6 +7,11 @@ interface ListItem {
   detail: string;
   severity?: string;
 }
+
+const newItemId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `item-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const validIcons = [
   'Activity', 'Heart', 'Pill', 'Stethoscope', 'Shield', 'FlaskConical',
@@ -26,6 +32,16 @@ export default function ListDetailForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
   const items = (c.items as ListItem[]) || [];
 
+  // Stable client-side keys keyed by position. Updated alongside the items
+  // array in addItem/removeItem so deletion does not shift keys onto surviving
+  // rows — without this, the row that shifts into the deleted row's index
+  // inherits its DOM state (focus, partially-typed text). See issue #838.
+  const idsRef = useRef<string[]>([]);
+  while (idsRef.current.length < items.length) idsRef.current.push(newItemId());
+  if (idsRef.current.length > items.length) {
+    idsRef.current = idsRef.current.slice(0, items.length);
+  }
+
   const updateItem = (idx: number, field: string, value: unknown) => {
     const updated = items.map((item, i) =>
       i === idx ? { ...item, [field]: value } : item,
@@ -33,14 +49,18 @@ export default function ListDetailForm({ block, onChange }: BlockFormProps) {
     onChange('items', updated);
   };
 
-  const addItem = () =>
+  const addItem = () => {
+    idsRef.current = [...idsRef.current, newItemId()];
     onChange('items', [...items, { icon: 'Info', label: '', detail: '' }]);
+  };
 
-  const removeItem = (idx: number) =>
+  const removeItem = (idx: number) => {
+    idsRef.current = idsRef.current.filter((_, i) => i !== idx);
     onChange(
       'items',
       items.filter((_, i) => i !== idx),
     );
+  };
 
   return (
     <div className="space-y-3">
@@ -69,7 +89,7 @@ export default function ListDetailForm({ block, onChange }: BlockFormProps) {
       <div className="space-y-3">
         {items.map((item, idx) => (
           <div
-            key={idx}
+            key={idsRef.current[idx]}
             className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50"
           >
             <div className="flex items-center justify-between">
