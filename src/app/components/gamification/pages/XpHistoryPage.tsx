@@ -61,8 +61,14 @@ export function XpHistoryPage() {
   }, [iid]);
 
   useEffect(() => {
+    let cancelled = false;
     fetchPage(0, false);
-    if (iid) getProfile(iid).then(p => setProfile(p));
+    if (iid) {
+      getProfile(iid)
+        .then(p => { if (!cancelled) setProfile(p); })
+        .catch(() => { /* profile stays null; stat cards render zeros */ });
+    }
+    return () => { cancelled = true; };
   }, [fetchPage, iid]);
 
   const xpToday = profile?.xp.today ?? 0;
