@@ -109,6 +109,12 @@ export function useSummaryReaderMutations({
 
   // ── XP Toast state (mutation side effect) ───────────────
   const [showXpToast, setShowXpToast] = useState(false);
+  const xpToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear pending XP toast timer on unmount to avoid setState on unmounted component
+  useEffect(() => () => {
+    if (xpToastTimerRef.current) clearTimeout(xpToastTimerRef.current);
+  }, []);
 
   // ── 1. Mark as completed ────────────────────────────
   const markCompletedMutation = useMutation({
@@ -126,7 +132,8 @@ export function useSummaryReaderMutations({
     onSuccess: (rs) => {
       onReadingStateChanged(rs);
       setShowXpToast(true);
-      setTimeout(() => setShowXpToast(false), 3000);
+      if (xpToastTimerRef.current) clearTimeout(xpToastTimerRef.current);
+      xpToastTimerRef.current = setTimeout(() => setShowXpToast(false), 3000);
       toast.success('Resumen marcado como leído');
       rqClient.invalidateQueries({ queryKey: queryKeys.topicProgress(topicId) });
       markSessionComplete('reading');
