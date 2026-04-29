@@ -29,6 +29,18 @@ interface AxonAIAssistantProps {
   summaryId?: string;
 }
 
+// Tagged variant: wholesale-replaced lists must be keyed by a stable identity,
+// not array index — otherwise per-card UI state (flip/selection) bleeds across
+// regenerations. See issue #821.
+type FlashcardWithUid = GeneratedFlashcard & { _uid: string };
+
+const newCardUid = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `card-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistantProps) {
   const { currentCourse, currentTopic } = useNavigation();
 
@@ -41,8 +53,8 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
   const [messageLogIds, setMessageLogIds] = useState<Map<string, string>>(new Map());
   const [feedbackGiven, setFeedbackGiven] = useState<Map<string, 'positive' | 'negative'>>(new Map());
   const [isStreaming, setIsStreaming] = useState(false);
-  const [generatedCards, setGeneratedCards] = useState<GeneratedFlashcard[]>([]);
-  const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
+  const [generatedCards, setGeneratedCards] = useState<FlashcardWithUid[]>([]);
+  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuestion[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Map<number, number>>(new Map());
   const [showExplanations, setShowExplanations] = useState<Set<number>>(new Set());
@@ -107,7 +119,10 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
   const generateFlashcardsFn = async () => {
     if (!summaryId) return;
     setIsLoading(true); setGeneratedCards([]); setFlippedCards(new Set());
-    try { setGeneratedCards(await generateFlashcardsForTopic(summaryId)); }
+    try {
+      const cards = await generateFlashcardsForTopic(summaryId);
+      setGeneratedCards(cards.map(c => ({ ...c, _uid: newCardUid() })));
+    }
     catch (err: unknown) { addMessage('system', `Erro ao gerar flashcards: ${(err as Error).message}`, true); setMode('chat'); }
     finally { setIsLoading(false); }
   };
@@ -260,8 +275,8 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between"><button onClick={() => setGeneratedCards([])} className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600"><ArrowLeft size={14} /> Voltar</button><span className="text-xs text-gray-400">{generatedCards.length} flashcards gerados</span></div>
-            {generatedCards.map((card, i) => { const isFlipped = flippedCards.has(i); return (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} onClick={() => { const next = new Set(flippedCards); isFlipped ? next.delete(i) : next.add(i); setFlippedCards(next); }} className="cursor-pointer">
+            {generatedCards.map((card, i) => { const uid = card._uid; const isFlipped = flippedCards.has(uid); return (
+              <motion.div key={uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} onClick={() => { const next = new Set(flippedCards); isFlipped ? next.delete(uid) : next.add(uid); setFlippedCards(next); }} className="cursor-pointer">
                 <div className={clsx("rounded-xl p-4 border transition-all min-h-[100px] flex flex-col justify-center", isFlipped ? "bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200" : "bg-white border-gray-200/60 hover:border-teal-300 hover:shadow-sm")}>
                   <div className="flex items-start justify-between gap-2 mb-2"><span className={clsx("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full", isFlipped ? "bg-emerald-100 text-emerald-600" : "bg-teal-100 text-teal-600")}>{isFlipped ? 'Resposta' : `Pergunta ${i + 1}`}</span><RotateCcw size={12} className="text-gray-300" /></div>
                   <p className="text-sm text-gray-700 leading-relaxed">{isFlipped ? card.back : card.front}</p>
