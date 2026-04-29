@@ -189,14 +189,17 @@ function FlashcardReviewerInner({ summaryId, onClose, masteryMap }: FlashcardRev
       setPhase('finished'); recordXP(grade); setXpEventKey(prev => prev + 1);
       const sid = sessionId; const startTime = sessionStartRef.current;
       (async () => {
-        await submitBatch(sid);
-        const now = new Date(); const correctReviews = newGrades.filter(g => g >= 3).length;
-        try { await sessionApi.closeStudySession(sid, { completed_at: now.toISOString(), total_reviews: totalCards, correct_reviews: correctReviews }); } catch (err) { console.error('[FlashcardReviewer] Session close error:', err); }
-        const durationSeconds = startTime ? Math.round((now.getTime() - startTime.getTime()) / 1000) : 0;
-        await postSessionAnalytics({ totalReviews: totalCards, correctReviews, durationSeconds });
-        try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
-        gamificationApi.checkBadges(institutionId).catch(() => {});
-        markSessionComplete('flashcard');
+        try {
+          try { await submitBatch(sid); } catch (err) { console.error('[FlashcardReviewer] Submit batch error:', err); }
+          const now = new Date(); const correctReviews = newGrades.filter(g => g >= 3).length;
+          try { await sessionApi.closeStudySession(sid, { completed_at: now.toISOString(), total_reviews: totalCards, correct_reviews: correctReviews }); } catch (err) { console.error('[FlashcardReviewer] Session close error:', err); }
+          const durationSeconds = startTime ? Math.round((now.getTime() - startTime.getTime()) / 1000) : 0;
+          try { await postSessionAnalytics({ totalReviews: totalCards, correctReviews, durationSeconds }); } catch (err) { console.error('[FlashcardReviewer] Post session analytics error:', err); }
+          try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
+          gamificationApi.checkBadges(institutionId).catch(() => {});
+        } finally {
+          markSessionComplete('flashcard');
+        }
       })();
     }
   }, [sessionId, currentCard, currentIndex, totalCards, queueReview, submitBatch, masteryMap, recordXP, endXP, institutionId, markSessionComplete]);
