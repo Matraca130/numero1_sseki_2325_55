@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Tag } from 'lucide-react';
 import type { SummaryKeyword } from '@/app/services/summariesApi';
 import KeywordCrossSummaryPanel from '@/app/components/student/KeywordCrossSummaryPanel';
@@ -58,6 +58,13 @@ export default function KeywordChip({ keyword, onClick, onNavigateSummary }: Key
 
   const handleBlur = useCallback(() => {
     setShowPopover(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (enterTimer.current) clearTimeout(enterTimer.current);
+      if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    };
   }, []);
 
   return (
