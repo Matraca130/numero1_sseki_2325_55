@@ -20,7 +20,7 @@
 //   - shadcn Dialog, Select, Button, Textarea
 // ============================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Flag, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -87,6 +87,11 @@ export function ReportContentButton({
   const [description, setDescription] = useState('');
   const [phase, setPhase] = useState<SubmitPhase>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   const resetForm = useCallback(() => {
     setReason('');
@@ -99,7 +104,8 @@ export function ReportContentButton({
     setOpen(next);
     if (!next) {
       // Delay reset so closing animation finishes
-      setTimeout(resetForm, 200);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(resetForm, 200);
     }
   }, [resetForm]);
 
@@ -118,7 +124,8 @@ export function ReportContentButton({
       });
       setPhase('success');
       // Auto-close after success
-      setTimeout(() => handleOpenChange(false), 1500);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => handleOpenChange(false), 1500);
     } catch (err: any) {
       setPhase('error');
       setErrorMsg(err.message || 'Error al enviar reporte');
