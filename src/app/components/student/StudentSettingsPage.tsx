@@ -5,7 +5,7 @@
 // Telegram bot linking for notifications.
 // ============================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
 import { headingStyle, components, animation } from '@/app/design-system';
@@ -208,7 +208,13 @@ function TelegramLinkFlow() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+
+  // Clear pending copy timer on unmount to avoid setCopied after unmount
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
@@ -254,7 +260,8 @@ function TelegramLinkFlow() {
       await navigator.clipboard.writeText(linkData.code);
       setCopied(true);
       toast.success('Codigo copiado al portapapeles');
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('No se pudo copiar el codigo');
     }
