@@ -52,7 +52,7 @@
 //   - StudyQueueItem type (lib/studyQueueApi.ts)
 // ============================================================
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { Flashcard } from '@/app/types/content';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import * as sessionApi from '@/app/services/studySessionApi';
@@ -141,6 +141,7 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
   const bktUpdatesRef = useRef<Map<string, number>>(new Map());
   const summaryIdsRef = useRef<string[]>([]);
   const generationAbortRef = useRef<AbortController | null>(null);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [initialMastery, setInitialMastery] = useState<KeywordMasteryMap>(new Map());
   const [currentMastery, setCurrentMastery] = useState<KeywordMasteryMap>(new Map());
@@ -294,12 +295,22 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       finishCurrentRound();
     } else {
       setIsRevealed(false);
-      setTimeout(() => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = setTimeout(() => {
+        advanceTimerRef.current = null;
         setCurrentIndex(prev => prev + 1);
         cardStartTimeRef.current = Date.now();
       }, CARD_ADVANCE_DELAY_MS);
     }
   }, [phase, roundCards, currentIndex, masteryMap, queueReview, finishCurrentRound]);
+
+  // ══ Cleanup: clear pending advance timer on unmount ══
+  useEffect(() => () => {
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  }, []);
 
   // ══ PUBLIC: generateMore ══
 
