@@ -37,6 +37,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Lightbulb, Loader2, AlertTriangle, RotateCw } from 'lucide-react';
 import { BANNER_WARNING } from '@/app/services/quizDesignTokens';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
+import { logger } from '@/app/lib/logger';
 
 // ── Sub-components (Phase 3 extractions) ─────────────────
 import { QuestionRenderer } from '@/app/components/student/QuestionRenderer';
@@ -275,7 +276,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
   // ── Q-UX2: Countdown timeout handler ────────────────────
   // When the countdown reaches zero, auto-submit empty answer and advance
-  const handleCountdownTimeout = useCallback(() => {
+  const handleCountdownTimeout = useCallback(async () => {
     const currentQ = questions[currentIdx];
     if (!currentQ) return;
     const saved = savedAnswers[currentIdx];
@@ -283,8 +284,12 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
 
     // Auto-submit with empty answer (marks as incorrect)
     const timeTaken = Date.now() - questionStartTime;
-    submitAnswer(currentQ, '', null, timeTaken, currentIdx).then(() => {
-      // Auto-advance to next question
+    try {
+      await submitAnswer(currentQ, '', null, timeTaken, currentIdx);
+    } catch (err) {
+      logger.error('QuizTaker', 'auto-submit failed on countdown timeout:', err);
+    } finally {
+      // Auto-advance to next question — must run even if submit failed
       if (currentIdx < questions.length - 1) {
         setNavDirection('forward');
         setCurrentIdx(currentIdx + 1);
@@ -292,7 +297,7 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
       } else {
         finishQuiz();
       }
-    });
+    }
   }, [questions, currentIdx, savedAnswers, questionStartTime, submitAnswer, finishQuiz, resetLiveInputs]);
 
   // ── PHASE: loading ─────────────────────────────────────
