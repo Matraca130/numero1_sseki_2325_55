@@ -30,7 +30,10 @@ export function useAtlasRuns({ userId, page, pageSize }: UseAtlasRunsOptions) {
     queryFn: async () => {
       if (!userId) return { rows: [], hasMore: false };
       const from = page * pageSize;
-      const to = from + pageSize; // request one extra row to detect "hasMore"
+      // Supabase .range(from, to) is INCLUSIVE on both ends. Requesting
+      // range(0, pageSize) returns pageSize+1 rows; we render the first
+      // pageSize and use the +1 to detect hasMore without a count(*) query.
+      const to = from + pageSize;
       const { data, error } = await supabase
         .from('atlas_runs_v1')
         .select('*')

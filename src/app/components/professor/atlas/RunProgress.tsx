@@ -114,6 +114,13 @@ export function RunProgress({ runId }: Props) {
         // UPDATE lands in the window between the initial useAtlasRun query and
         // the channel becoming live. Without this, a fast-finishing run would
         // stay visually "running" until a no-op event arrived.
+        //
+        // NOTE: Supabase fires `SUBSCRIBED` again on reconnect after a network
+        // blip, so this refetch can run multiple times per channel lifetime.
+        // It is idempotent (just resets `run` to the latest view row), so this
+        // is not a bug — but it is NOT exactly-once. Don't add side-effects
+        // (toasts, analytics) to this branch without a "fired this lifecycle
+        // already" guard.
         if (status === 'SUBSCRIBED') {
           const next = await refetchRow();
           if (next) setRun(next);
