@@ -29,6 +29,17 @@ export const professorChildren: RouteObject[] = [
     lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorQuizzesPage')).then(m => ({ Component: m.ProfessorQuizzesPage })),
   },
   {
+    // M3 — Atlas generation form (POST /atlas/generate)
+    path: 'generar-resumen',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorGenerateResumenPage')).then(m => ({ Component: m.ProfessorGenerateResumenPage })),
+  },
+  {
+    // M4 — runs progress + history. The page file is a placeholder
+    // in this PR; M4's PR overwrites it with the real implementation.
+    path: 'mis-generaciones',
+    lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorMisGeneracionesPage')).then(m => ({ Component: m.ProfessorMisGeneracionesPage })),
+  },
+  {
     path: 'students',
     lazy: () => lazyRetry(() => import('@/app/components/roles/pages/professor/ProfessorStudentsPage')).then(m => ({ Component: m.ProfessorStudentsPage })),
   },
