@@ -14,6 +14,13 @@ import type { AtlasRun } from '@/app/types/atlasRuns';
 
 export interface UseAtlasRunsOptions {
   userId: string | undefined;
+  /**
+   * R9 (multi-tenant): a professor can be a member of more than one
+   * institution. We scope the history to the currently selected one
+   * so they don't see runs from a different org bleeding into the list.
+   * If undefined (no org selected yet), the query stays disabled.
+   */
+  institutionId: string | undefined;
   page: number;        // 0-indexed
   pageSize: number;    // typically 10
 }
@@ -23,12 +30,14 @@ export interface UseAtlasRunsResult {
   hasMore: boolean;
 }
 
-export function useAtlasRuns({ userId, page, pageSize }: UseAtlasRunsOptions) {
+export function useAtlasRuns({ userId, institutionId, page, pageSize }: UseAtlasRunsOptions) {
   return useQuery<UseAtlasRunsResult, Error>({
-    queryKey: ['atlas-runs', userId, page, pageSize],
-    enabled: Boolean(userId),
+    // institutionId in the key → cache invalidates when the professor
+    // switches active org (Sidebar institution picker).
+    queryKey: ['atlas-runs', userId, institutionId, page, pageSize],
+    enabled: Boolean(userId && institutionId),
     queryFn: async () => {
-      if (!userId) return { rows: [], hasMore: false };
+      if (!userId || !institutionId) return { rows: [], hasMore: false };
       const from = page * pageSize;
       // Supabase .range(from, to) is INCLUSIVE on both ends. Requesting
       // range(0, pageSize) returns pageSize+1 rows; we render the first
@@ -38,6 +47,7 @@ export function useAtlasRuns({ userId, page, pageSize }: UseAtlasRunsOptions) {
         .from('atlas_runs_v1')
         .select('*')
         .eq('user_id', userId)
+        .eq('institution_id', institutionId)
         .order('started_at', { ascending: false })
         .range(from, to);
       if (error) throw error;

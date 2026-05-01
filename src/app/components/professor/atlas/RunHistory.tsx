@@ -36,10 +36,13 @@ function formatElapsed(run: AtlasRun): string {
 }
 
 export function RunHistory() {
-  const { user } = useAuth();
+  const { user, selectedInstitution } = useAuth();
   const [page, setPage] = useState(0);
   const { data, isLoading, error, refetch, isFetching } = useAtlasRuns({
     userId: user?.id,
+    // R9: scope to the active org so a professor in multiple institutions
+    // doesn't see other-org runs bleeding into the list.
+    institutionId: selectedInstitution?.id,
     page,
     pageSize: PAGE_SIZE,
   });
@@ -47,11 +50,11 @@ export function RunHistory() {
   const rows = data?.rows ?? [];
   const hasMore = data?.hasMore ?? false;
 
-  // Auth still resolving — the query is `enabled: false`, so `data` is
-  // undefined and `isLoading` is false. Without this branch we'd fall
-  // straight into the empty state ("Aun no hay generaciones..."), which
-  // is wrong: we don't yet KNOW whether the professor has any.
-  if (!user?.id) {
+  // Auth / org-selection still resolving — the query is `enabled: false`,
+  // so `data` is undefined and `isLoading` is false. Without this branch
+  // we'd fall straight into the empty state ("Aun no hay generaciones..."),
+  // which is wrong: we don't yet KNOW whether the professor has any.
+  if (!user?.id || !selectedInstitution?.id) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
