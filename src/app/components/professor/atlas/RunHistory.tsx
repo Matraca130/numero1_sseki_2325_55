@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Skeleton } from '@/app/components/ui/skeleton';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useAtlasRuns } from '@/app/hooks/useAtlasRuns';
@@ -45,6 +46,25 @@ export function RunHistory() {
 
   const rows = data?.rows ?? [];
   const hasMore = data?.hasMore ?? false;
+
+  // Auth still resolving — the query is `enabled: false`, so `data` is
+  // undefined and `isLoading` is false. Without this branch we'd fall
+  // straight into the empty state ("Aun no hay generaciones..."), which
+  // is wrong: we don't yet KNOW whether the professor has any.
+  if (!user?.id) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Historial de generaciones</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
