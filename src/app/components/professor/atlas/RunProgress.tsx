@@ -22,6 +22,7 @@ import { Button } from '@/app/components/ui/button';
 import { Loader2, Clock, FileText, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/app/lib/supabase';
+import { logger } from '@/app/lib/logger';
 import { useAtlasRun } from '@/app/hooks/useAtlasRun';
 import { isTerminalStatus, type AtlasRun } from '@/app/types/atlasRuns';
 import { RunStatusBadge } from './RunStatusBadge';
@@ -74,8 +75,7 @@ export function RunProgress({ runId }: Props) {
       if (cancelled) return null;
       if (fetchErr) {
         // Surface but don't blow up: subscription stays alive.
-        // eslint-disable-next-line no-console
-        console.error('[RunProgress] view refetch failed', fetchErr);
+        logger.error('RunProgress', 'view refetch failed', fetchErr);
         return null;
       }
       return data as AtlasRun | null;
