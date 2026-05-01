@@ -61,6 +61,26 @@ export function RunProgress({ runId }: Props) {
   useEffect(() => {
     if (!runId) return;
 
+    let cancelled = false;
+
+    const refetchRow = async () => {
+      // Refetch via the view: keeps the FE on a stable contract
+      // (`public.atlas_runs_v1`) regardless of `atlas.runs` column drift.
+      const { data, error: fetchErr } = await supabase
+        .from('atlas_runs_v1')
+        .select('*')
+        .eq('run_id', runId)
+        .maybeSingle();
+      if (cancelled) return null;
+      if (fetchErr) {
+        // Surface but don't blow up: subscription stays alive.
+        // eslint-disable-next-line no-console
+        console.error('[RunProgress] view refetch failed', fetchErr);
+        return null;
+      }
+      return data as AtlasRun | null;
+    };
+
     const channel = supabase
       .channel(`run-${runId}`)
       .on(
@@ -72,20 +92,7 @@ export function RunProgress({ runId }: Props) {
           filter: `run_id=eq.${runId}`,
         },
         async () => {
-          // Refetch via the view: keeps the FE on a stable contract
-          // (`public.atlas_runs_v1`) regardless of `atlas.runs` column drift.
-          const { data, error: fetchErr } = await supabase
-            .from('atlas_runs_v1')
-            .select('*')
-            .eq('run_id', runId)
-            .maybeSingle();
-          if (fetchErr) {
-            // Surface but don't blow up: subscription stays alive.
-            // eslint-disable-next-line no-console
-            console.error('[RunProgress] view refetch failed', fetchErr);
-            return;
-          }
-          const next = data as AtlasRun | null;
+          const next = await refetchRow();
           if (next) {
             setRun(next);
             if (next.status === 'ok') {
@@ -102,10 +109,20 @@ export function RunProgress({ runId }: Props) {
           }
         },
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        // Once we are SUBSCRIBED, refetch once more — closes the race where an
+        // UPDATE lands in the window between the initial useAtlasRun query and
+        // the channel becoming live. Without this, a fast-finishing run would
+        // stay visually "running" until a no-op event arrived.
+        if (status === 'SUBSCRIBED') {
+          const next = await refetchRow();
+          if (next) setRun(next);
+        }
+      });
 
     return () => {
       // Idempotent: safe whether or not the terminal-handler already removed it.
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [runId]);

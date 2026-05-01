@@ -30,12 +30,19 @@ vi.mock('sonner', () => ({
 type RealtimeCb = (payload: { new: Record<string, unknown> }) => void | Promise<void>;
 const realtimeCallbacks: RealtimeCb[] = [];
 const removeChannel = vi.fn();
-const fakeChannel = {
-  on: vi.fn(function (this: unknown, _event: string, _filter: unknown, cb: RealtimeCb) {
+const fakeChannel: {
+  on: ReturnType<typeof vi.fn>;
+  subscribe: ReturnType<typeof vi.fn>;
+} = {
+  on: vi.fn(function (_event: string, _filter: unknown, cb: RealtimeCb) {
     realtimeCallbacks.push(cb);
     return fakeChannel;
   }),
-  subscribe: vi.fn(() => fakeChannel),
+  subscribe: vi.fn((cb?: (status: string) => void | Promise<void>) => {
+    // Mimic real client: invoke the status callback asynchronously.
+    if (cb) Promise.resolve().then(() => cb('SUBSCRIBED'));
+    return fakeChannel;
+  }),
 };
 
 // supabase.from(...).select(...).eq(...).maybeSingle() chain
