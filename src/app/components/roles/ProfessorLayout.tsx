@@ -8,6 +8,7 @@ import { ContentTreeProvider } from '@/app/context/ContentTreeContext';
 import {
   LayoutDashboard, BookOpen, ListTree, CreditCard,
   Users, ClipboardList, Settings, GraduationCap, Brain,
+  Sparkles, History,
 } from 'lucide-react';
 
 const NAV_ITEMS: NavItemConfig[] = [
@@ -16,6 +17,9 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Curriculum', path: '/professor/curriculum', icon: <ListTree size={16} /> },
   { label: 'Flashcards', path: '/professor/flashcards', icon: <CreditCard size={16} /> },
   { label: 'Quizzes', path: '/professor/quizzes', icon: <ClipboardList size={16} /> },
+  // M3 + M4 (Atlas generation pipeline) — placed between Quizzes and Estudiantes per spec.
+  { label: 'Generar resumen', path: '/professor/generar-resumen', icon: <Sparkles size={16} /> },
+  { label: 'Mis generaciones', path: '/professor/mis-generaciones', icon: <History size={16} /> },
   { label: 'Estudiantes', path: '/professor/students', icon: <Users size={16} /> },
   { label: 'IA Pedagógica', path: '/professor/ai', icon: <Brain size={16} /> },
   { label: 'Configuración', path: '/professor/settings', icon: <Settings size={16} /> },
