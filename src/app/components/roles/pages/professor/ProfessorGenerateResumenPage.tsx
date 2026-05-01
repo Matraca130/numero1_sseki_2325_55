@@ -22,7 +22,7 @@
 // ============================================================
 
 import React, { useCallback, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router';
@@ -72,7 +72,10 @@ const generateRunSchema = z.object({
     .refine((f) => f.size > 0, 'El archivo esta vacio')
     .refine((f) => f.size <= MAX_PDF_BYTES, 'El PDF debe pesar 25MB o menos')
     .refine(
-      (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'),
+      // Browsers reliably set `File.type` for PDFs from native pickers; do
+      // not fall back to extension sniffing (a non-PDF renamed `*.pdf`
+      // would otherwise pass validation).
+      (f) => f.type === 'application/pdf',
       'Solo se aceptan archivos PDF',
     ),
 });
@@ -99,7 +102,10 @@ export function ProfessorGenerateResumenPage() {
 
   const form = useForm<GenerateRunFormValues>({
     // Cast: zod v4 + RHF resolver typing edge case (see RHF#11910).
-    resolver: zodResolver(generateRunSchema) as any,
+    // Scope the cast via `unknown` instead of `any` so we keep type
+    // checking on the rest of the form while bypassing the broken
+    // generic-inference between `@hookform/resolvers/zod` and zod v4.
+    resolver: zodResolver(generateRunSchema) as unknown as Resolver<GenerateRunFormValues>,
     defaultValues,
   });
 
