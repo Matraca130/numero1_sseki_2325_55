@@ -1,16 +1,31 @@
 // ============================================================
-// Axon — Atlas Runs shared types
+// Axon — Atlas Runs shared types (M3/M4)
 //
-// Mirrors `public.atlas_runs_v1` view (security_invoker over `atlas.runs`).
-// Created by M2b: SPEC_UI_AXON_M2_M5_PLAN.md §2 M2b File 2 (lines 410-419).
+// `AtlasRun` mirrors the columns of `public.atlas_runs_v1`, the
+// stable view published over `atlas.runs` (see SPEC §2 M4 — schema
+// exposure decision). The frontend ALWAYS reads through the view,
+// never directly from the `atlas` schema.
 //
-// NOTE: this file is also defined by the parallel M3 PR. If M3 merges first,
-// resolve any merge conflict by accepting M3's version.
+// `GenerateRunInput` / `GenerateRunResponse` describe the M3
+// `POST /atlas/generate` contract (see SPEC §2 M3).
 // ============================================================
 
-export type AtlasRunStatus = 'pending' | 'running' | 'ok' | 'error' | 'cancelled';
+/** Run lifecycle states (atlas.runs.status) */
+export type AtlasRunStatus =
+  | 'pending'
+  | 'running'
+  | 'ok'
+  | 'error'
+  | 'cancelled';
+
+/** Mode of a generation run (matches DB CHECK constraint) */
 export type AtlasRunMode = 'contenido' | 'estudio';
 
+/**
+ * Stable shape exposed by `public.atlas_runs_v1`.
+ * If the underlying `atlas.runs` table changes, the view (and this
+ * type) should be the only thing that needs to be updated.
+ */
 export interface AtlasRun {
   run_id: string;
   user_id: string;
@@ -27,8 +42,28 @@ export interface AtlasRun {
   heartbeat_at: string | null;
 }
 
-export const ATLAS_RUN_TERMINAL_STATUSES: AtlasRunStatus[] = ['ok', 'error', 'cancelled'];
+/** Payload submitted by the M3 form (multipart/form-data). */
+export interface GenerateRunInput {
+  /** Mode of the generation run. */
+  mode: AtlasRunMode;
+  /** Free-text topic (becomes `atlas.runs.topic`). */
+  topic: string;
+  /** Course name (display + submitted value). Worker resolves `course_name → topic_id`. */
+  subject: string;
+  /** Whether the worker should also run image generation. */
+  generate_images: boolean;
+  /** PDF (≤ 25 MB, application/pdf). */
+  file: File;
+  /**
+   * Institution ID — sent as `X-Institution-Id` header, NOT as a
+   * form field. Kept here so the hook can pull it off the input
+   * struct and place it in the right transport slot.
+   */
+  institutionId: string;
+}
 
-export function isTerminalStatus(status: AtlasRunStatus): boolean {
-  return ATLAS_RUN_TERMINAL_STATUSES.includes(status);
+/** Server response to `POST /atlas/generate` (after `{data: ...}` unwrap). */
+export interface GenerateRunResponse {
+  run_id: string;
+  status: AtlasRunStatus;
 }
