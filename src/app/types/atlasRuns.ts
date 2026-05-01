@@ -67,3 +67,15 @@ export interface GenerateRunResponse {
   run_id: string;
   status: AtlasRunStatus;
 }
+
+/**
+ * Terminal lifecycle states. After reaching one of these, an `atlas.runs`
+ * row no longer changes — the M4 Realtime channel can be torn down and
+ * UI loops can exit. `pending` and `running` are non-terminal.
+ */
+const TERMINAL_STATUSES = new Set<AtlasRunStatus>(['ok', 'error', 'cancelled']);
+
+/** Returns true when the run has reached a terminal state. */
+export function isTerminalStatus(status: AtlasRunStatus): boolean {
+  return TERMINAL_STATUSES.has(status);
+}
