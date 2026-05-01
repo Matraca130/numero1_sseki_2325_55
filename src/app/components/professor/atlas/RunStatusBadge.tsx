@@ -21,6 +21,10 @@ const STATUS_LABEL: Record<AtlasRunStatus, string> = {
   cancelled: 'Cancelado',
 };
 
+// TODO(design): the design system currently exposes `bg-destructive`
+// and `bg-muted` semantic tokens but not `bg-info-*` / `bg-success-*`.
+// When those tokens land (theme.css `@theme` block / palette.ts), swap
+// the literal `bg-blue-500/15` and `bg-green-500/15` here for the tokens.
 const STATUS_CLASS: Record<AtlasRunStatus, string> = {
   pending: 'bg-muted text-muted-foreground',
   running: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30',
