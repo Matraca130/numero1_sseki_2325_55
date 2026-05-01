@@ -102,8 +102,8 @@ export function RunHistory() {
                     <td className="px-2 py-2">
                       <RunStatusBadge status={run.status} />
                     </td>
-                    <td className="px-2 py-2 max-w-[200px] truncate" title={run.topic ?? ''}>
-                      {run.topic || <span className="text-muted-foreground">—</span>}
+                    <td className="px-2 py-2 max-w-[200px] truncate" title={run.topic}>
+                      {run.topic}
                     </td>
                     <td className="px-2 py-2 max-w-[160px] truncate" title={run.subject ?? ''}>
                       {run.subject || <span className="text-muted-foreground">—</span>}

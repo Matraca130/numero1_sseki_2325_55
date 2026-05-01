@@ -164,7 +164,7 @@ export function RunProgress({ runId }: Props) {
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-1">
           <CardTitle className="text-base">
-            {run.topic || 'Generacion sin titulo'}
+            {run.topic}
           </CardTitle>
           {run.subject && (
             <p className="text-xs text-muted-foreground">{run.subject}</p>

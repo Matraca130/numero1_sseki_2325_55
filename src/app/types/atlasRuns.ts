@@ -15,7 +15,7 @@ export interface AtlasRun {
   run_id: string;
   user_id: string;
   institution_id: string;
-  topic: string | null;
+  topic: string;
   subject: string | null;
   mode: AtlasRunMode;
   status: AtlasRunStatus;
