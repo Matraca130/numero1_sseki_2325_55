@@ -80,19 +80,25 @@ export function OwnerSubscriptionsPage() {
   const [platformPlans, setPlatformPlans] = useState<PlatformPlan[]>([]);
 
   // Fetch subscriptions
-  const fetchSubs = useCallback(async () => {
+  // The optional `isCancelled` callback lets the effect below abort stale
+  // responses when `institutionId` changes mid-flight. Manual callers (retry
+  // button, refresh, post-mutation reload) can omit it and rely on their own
+  // freshness guarantees.
+  const fetchSubs = useCallback(async (isCancelled?: () => boolean) => {
     if (!institutionId) return;
     setLoadingSubs(true);
     setSubsError(null);
     try {
       const data = await api.getInstitutionSubscriptions(institutionId);
+      if (isCancelled?.()) return;
       setSubscriptions(Array.isArray(data) ? data : []);
     } catch (err: any) {
+      if (isCancelled?.()) return;
       console.error('[Subscriptions] fetch error:', err);
       setSubsError(err.message || 'Error al cargar suscripciones');
       setSubscriptions([]);
     } finally {
-      setLoadingSubs(false);
+      if (!isCancelled?.()) setLoadingSubs(false);
     }
   }, [institutionId]);
 
@@ -103,7 +109,11 @@ export function OwnerSubscriptionsPage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchSubs(); }, [fetchSubs]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSubs(() => cancelled);
+    return () => { cancelled = true; };
+  }, [fetchSubs]);
 
   // Cancel handler
   const handleCancel = useCallback(async () => {
@@ -246,7 +256,7 @@ export function OwnerSubscriptionsPage() {
         <FadeIn delay={0.18}>
           <div className="flex justify-end">
             <button
-              onClick={fetchSubs}
+              onClick={() => { fetchSubs(); }}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1"
             >
               <RefreshCw size={10} />
