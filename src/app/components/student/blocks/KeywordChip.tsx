@@ -27,6 +27,10 @@ export default function KeywordChip({ keyword, onClick, onNavigateSummary }: Key
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleClose = useCallback(() => {
+    if (leaveTimer.current) {
+      clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
     leaveTimer.current = setTimeout(() => {
       setShowPopover(false);
     }, 100);
@@ -41,6 +45,10 @@ export default function KeywordChip({ keyword, onClick, onNavigateSummary }: Key
 
   const handleMouseEnter = useCallback(() => {
     cancelClose();
+    if (enterTimer.current) {
+      clearTimeout(enterTimer.current);
+      enterTimer.current = null;
+    }
     enterTimer.current = setTimeout(openPopover, 150);
   }, [openPopover, cancelClose]);
 
