@@ -62,6 +62,10 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
   const animFrameRef = useRef<number>(0);
   const modelMeshesRef = useRef<THREE.Object3D[]>([]);
   const partLoaderRef = useRef<ModelPartLoader | null>(null);
+  // 3DP-2 fix (#749): track auto-thumbnail timer so we can cancel it on unmount.
+  // The two captureThumbnail timers below are mutually exclusive (multi-part vs
+  // single-GLB branches), so a single ref is sufficient.
+  const thumbTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Frame callback registry (replaces DOM hacking) ──
   const frameCallbacksRef = useRef<Set<() => void>>(new Set());
@@ -192,7 +196,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
       loader.init(storedParts);
       loader.loadAllVisible();
       partLoaderRef.current = loader;
-      setTimeout(captureThumbnail, 1500);
+      thumbTimerRef.current = setTimeout(captureThumbnail, 1500);
     } else if (fileUrl) {
       setHasMultiPart(false);
       setGlbLoading(true);
@@ -236,7 +240,7 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
 
           setGlbLoading(false);
           logger.info('ModelViewer3D', `GLB loaded: ${fileUrl}`);
-          setTimeout(captureThumbnail, 500);
+          thumbTimerRef.current = setTimeout(captureThumbnail, 500);
         },
         undefined,
         (err) => {
@@ -333,6 +337,11 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
 
     return () => {
       setSceneReady(false);
+      // 3DP-2 fix (#749): cancel any pending auto-thumbnail capture BEFORE we
+      // dispose the renderer. Otherwise the timer fires on a disposed renderer
+      // and uploads a blank PNG, permanently corrupting the library thumbnail.
+      if (thumbTimerRef.current) clearTimeout(thumbTimerRef.current);
+      thumbTimerRef.current = null;
       cancelAnimationFrame(animFrameRef.current);
       resizeObserver.disconnect();
       canvas.removeEventListener('webglcontextlost', handleContextLost);
@@ -358,6 +367,13 @@ export function ModelViewer3D({ modelId, modelName, fileUrl, mode = 'view', topi
           });
         }
       });
+      // 3DP-2 fix (#749): null the refs so any stale closure that does fire
+      // (defensive) short-circuits at captureThumbnail's `!renderer || !scene
+      // || !camera` early return rather than rendering a disposed renderer.
+      rendererRef.current = null;
+      sceneRef.current = null;
+      cameraRef.current = null;
+      controlsRef.current = null;
     };
   }, [modelId, fileUrl, config, sceneKey]);
 
