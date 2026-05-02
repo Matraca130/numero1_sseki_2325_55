@@ -37,10 +37,10 @@ export function useWelcomeData(timeFilter: TimeFilter) {
     courseProgress,
     isConnected,
     loading: studentLoading,
+    bktStates,
   } = useStudentDataContext();
-  const { bktStates } = useStudentDataContext() as any;
   const { tree } = useContentTree();
-  const courseMastery = useCourseMastery(tree, bktStates ?? []);
+  const courseMastery = useCourseMastery(tree, bktStates);
   const { data: recentSessions } = useRecentSessions(10);
   const { selectedInstitution, user } = useAuth();
   const institutionId = selectedInstitution?.id;
