@@ -33,6 +33,13 @@ vi.mock('@/app/services/stickyNotesApi', () => ({
   deleteStickyNote: (...args: any[]) => mockDeleteStickyNote(...args),
 }));
 
+// ── Mock useAuth so the panel can read userId without an AuthProvider ──
+// The hook only consumes `user.id` to scope the per-user position storage
+// key (issue #723); the rest of the auth surface is irrelevant here.
+vi.mock('@/app/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'test-user-id' } }),
+}));
+
 import {
   StickyNotesPanel,
   STICKY_NOTES_DEBOUNCE_MS as DEBOUNCE_MS,
