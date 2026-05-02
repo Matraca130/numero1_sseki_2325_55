@@ -183,19 +183,22 @@ export function StudentNotes3D({ modelId, scene, camera, containerRef, modelMesh
   const handleAddNote = useCallback(async () => {
     if (!newNote.trim()) return;
     setSaving(true);
-    const geometry = placementPoint
-      ? {
-          x: parseFloat(placementPoint.x.toFixed(4)),
-          y: parseFloat(placementPoint.y.toFixed(4)),
-          z: parseFloat(placementPoint.z.toFixed(4)),
-        }
-      : undefined;
-    const result = await addNote({ note: newNote.trim(), geometry });
-    if (result) {
-      setNewNote('');
-      setPlacementPoint(null);
+    try {
+      const geometry = placementPoint
+        ? {
+            x: parseFloat(placementPoint.x.toFixed(4)),
+            y: parseFloat(placementPoint.y.toFixed(4)),
+            z: parseFloat(placementPoint.z.toFixed(4)),
+          }
+        : undefined;
+      const result = await addNote({ note: newNote.trim(), geometry });
+      if (result) {
+        setNewNote('');
+        setPlacementPoint(null);
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }, [newNote, placementPoint, addNote]);
 
   // ── Delete note ──
