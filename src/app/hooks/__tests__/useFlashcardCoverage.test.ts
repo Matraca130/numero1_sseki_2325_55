@@ -29,6 +29,17 @@ vi.mock('@/app/services/flashcardMappingApi', () => ({
   getAllFlashcardMappings: (...args: unknown[]) => mockGetAllFlashcardMappings(...args),
 }));
 
+// Mock AuthContext so the hook can read selectedInstitution.
+// The cache is keyed by institutionId (#746); per-test mutation of this
+// object lets us simulate institution switches.
+let mockAuthValues: { selectedInstitution: { id: string } | null } = {
+  selectedInstitution: { id: 'inst-test' },
+};
+
+vi.mock('@/app/context/AuthContext', () => ({
+  useAuth: () => mockAuthValues,
+}));
+
 // ── Helpers ───────────────────────────────────────────────
 
 function makeQueueItem(overrides: Partial<StudyQueueItem> = {}): StudyQueueItem {
@@ -76,6 +87,7 @@ async function loadHook() {
 beforeEach(() => {
   vi.resetModules();
   mockGetAllFlashcardMappings.mockReset();
+  mockAuthValues = { selectedInstitution: { id: 'inst-test' } };
 });
 
 afterEach(() => {
@@ -279,5 +291,42 @@ describe('useFlashcardCoverage', () => {
     expect(stats.avgPKnow).toBeCloseTo(0.6, 5);
     // scheduled=2, total=3, coverage ~0.6667
     expect(stats.coverage).toBeCloseTo(2 / 3, 5);
+  });
+
+  // ── Regression: #746 — cache must be scoped by institutionId ────
+  it('refetches when institutionId changes (does not serve stale per-institution mapping)', async () => {
+    const mappingA = makeMapping([['fc-A1', 'kw-A', 'sub-A']]);
+    const mappingB = makeMapping([
+      ['fc-B1', 'kw-B', 'sub-B'],
+      ['fc-B2', 'kw-B', 'sub-B'],
+    ]);
+    mockGetAllFlashcardMappings
+      .mockResolvedValueOnce(mappingA)
+      .mockResolvedValueOnce(mappingB);
+
+    mockAuthValues = { selectedInstitution: { id: 'inst-A' } };
+    const useFlashcardCoverage = await loadHook();
+    const { result, rerender } = renderHook(() => useFlashcardCoverage([], false));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.mappingLookup.size).toBe(1);
+    expect(result.current.mappingLookup.has('fc-A1')).toBe(true);
+
+    // Simulate institution switch — same hook instance, new institutionId.
+    mockAuthValues = { selectedInstitution: { id: 'inst-B' } };
+    rerender();
+
+    await waitFor(() => expect(mockGetAllFlashcardMappings).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.mappingLookup.size).toBe(2));
+    expect(result.current.mappingLookup.has('fc-A1')).toBe(false);
+    expect(result.current.mappingLookup.has('fc-B1')).toBe(true);
+  });
+
+  it('does not call the API when no institution is selected', async () => {
+    mockAuthValues = { selectedInstitution: null };
+    const useFlashcardCoverage = await loadHook();
+    const { result } = renderHook(() => useFlashcardCoverage([], false));
+    // Hook returned without invoking the API
+    await waitFor(() => expect(result.current.mappingLookup.size).toBe(0));
+    expect(mockGetAllFlashcardMappings).not.toHaveBeenCalled();
   });
 });
