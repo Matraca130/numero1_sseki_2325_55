@@ -194,8 +194,14 @@ export function StudyTimer({ onClose }: StudyTimerProps) {
     setRunning(false);
 
     if (mode === 'study') {
-      // Complete the study session via API (fire-and-forget)
-      if (sessionIdRef.current) {
+      // Complete the study session via API (fire-and-forget).
+      // Skip when the create-session POST is still in flight (sentinel
+      // value 'pending'); otherwise we'd issue PUT /study-sessions/pending
+      // (literal string in the URL) and get a 404. See issue #753.
+      // Trade-off: in the rare case the POST takes longer than the timer
+      // (>= 60s, only possible under network failure), the backend session
+      // is left without a completed_at and relies on server-side cleanup.
+      if (sessionIdRef.current && sessionIdRef.current !== 'pending') {
         const sid = sessionIdRef.current;
         sessionIdRef.current = null;
         apiCall(`/study-sessions/${sid}`, {
