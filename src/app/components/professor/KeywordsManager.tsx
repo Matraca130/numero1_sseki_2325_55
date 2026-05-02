@@ -80,10 +80,11 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
     setShowModal(true);
   };
 
-  const openEdit = (kw: SummaryKeyword) => {
+  // useCallback so KeywordListItem (React.memo'd) sees a stable identity.
+  const openEdit = useCallback((kw: SummaryKeyword) => {
     setEditingKeyword(kw);
     setShowModal(true);
-  };
+  }, []);
 
   // ── Save handler (delegates to create or update mutation) ──
   const handleSave = useCallback((data: KeywordFormData) => {
@@ -179,9 +180,9 @@ export function KeywordsManager({ summaryId }: KeywordsManagerProps) {
                 subtopicCount={subtopicCounts[kw.id] ?? 0}
                 noteCount={noteCounts[kw.id] ?? 0}
                 expandedPanel={expandedPanels[kw.id] ?? null}
-                onTogglePanel={panel => togglePanel(kw.id, panel)}
-                onEdit={() => openEdit(kw)}
-                onDelete={() => setDeletingId(kw.id)}
+                onTogglePanel={togglePanel}
+                onEdit={openEdit}
+                onDelete={setDeletingId}
               />
             ))}
           </div>

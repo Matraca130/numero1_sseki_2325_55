@@ -30,13 +30,23 @@ interface KeywordListItemProps {
   subtopicCount: number;
   noteCount: number;
   expandedPanel: ExpandablePanel | null;
-  onTogglePanel: (panel: ExpandablePanel) => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  /** Receive (kwId, panel) so parents can pass a stable, parent-level
+   *  handler that React.memo can preserve. Inline `panel => f(kw.id, panel)`
+   *  lambdas at the call site defeated the memoization for every row on
+   *  every parent render (search keystrokes, filter changes, etc.). */
+  onTogglePanel: (kwId: string, panel: ExpandablePanel) => void;
+  onEdit: (kw: SummaryKeyword) => void;
+  onDelete: (id: string) => void;
 }
 
 // ── Component ─────────────────────────────────────────────
-export function KeywordListItem({
+//
+// React.memo: KeywordsManager re-renders the keyword list on every
+// search keystroke / filter change. With this memoization plus stable
+// parent handlers, only rows whose data prop actually changes will
+// re-render. For ~50-200 keywords typical, this collapses an O(N) DOM
+// diff to O(1) per keystroke.
+export const KeywordListItem = React.memo(function KeywordListItem({
   keyword: kw,
   summaryId,
   allKeywords,
@@ -82,7 +92,7 @@ export function KeywordListItem({
 
         {/* Subtopic count */}
         <button
-          onClick={() => onTogglePanel('subtopics')}
+          onClick={() => onTogglePanel(kw.id, 'subtopics')}
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isSubExpanded
@@ -98,7 +108,7 @@ export function KeywordListItem({
 
         {/* Connections toggle */}
         <button
-          onClick={() => onTogglePanel('connections')}
+          onClick={() => onTogglePanel(kw.id, 'connections')}
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isConnExpanded
@@ -112,7 +122,7 @@ export function KeywordListItem({
 
         {/* Notes toggle */}
         <button
-          onClick={() => onTogglePanel('notes')}
+          onClick={() => onTogglePanel(kw.id, 'notes')}
           className={clsx(
             "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors shrink-0",
             isNotesExpanded
@@ -128,7 +138,7 @@ export function KeywordListItem({
 
         {/* Edit */}
         <button
-          onClick={onEdit}
+          onClick={() => onEdit(kw)}
           className="opacity-0 group-hover:opacity-100 transition-opacity"
           title="Editar"
         >
@@ -137,7 +147,7 @@ export function KeywordListItem({
 
         {/* Delete */}
         <button
-          onClick={onDelete}
+          onClick={() => onDelete(kw.id)}
           className="opacity-0 group-hover:opacity-100 transition-opacity"
           title="Eliminar"
         >
@@ -193,4 +203,4 @@ export function KeywordListItem({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
