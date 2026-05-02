@@ -154,14 +154,19 @@ export function GamificationCard() {
           {streak.current >= 2 && (
             <button disabled={actionPending} onClick={async () => {
               setActionPending(true); setActionMessage(null);
-              const result = await gamificationApi.buyStreakFreeze(institutionId);
-              if (result) {
-                setActionMessage(`Freeze comprado! (-${result.xp_spent} XP)`);
-                const p = await gamificationApi.getProfile(institutionId);
-                if (p) setProfile(p);
-              } else { setActionMessage('No se pudo comprar (XP insuficiente?)'); }
-              setActionPending(false);
-              actionTimeoutRef.current = setTimeout(() => setActionMessage(null), 4000);
+              try {
+                const result = await gamificationApi.buyStreakFreeze(institutionId);
+                if (result) {
+                  setActionMessage(`Freeze comprado! (-${result.xp_spent} XP)`);
+                  const p = await gamificationApi.getProfile(institutionId);
+                  if (p) setProfile(p);
+                } else { setActionMessage('No se pudo comprar (XP insuficiente?)'); }
+              } catch {
+                setActionMessage('Error al procesar. Intentá de nuevo.');
+              } finally {
+                setActionPending(false);
+                actionTimeoutRef.current = setTimeout(() => setActionMessage(null), 4000);
+              }
             }} className="flex items-center gap-1 text-[10px] text-blue-400/70 hover:text-blue-400 transition-colors disabled:opacity-40">
               <Snowflake size={10} /><span>Comprar freeze</span>
             </button>
@@ -169,14 +174,19 @@ export function GamificationCard() {
           {streak.current === 0 && streak.longest > 0 && (
             <button disabled={actionPending} onClick={async () => {
               setActionPending(true); setActionMessage(null);
-              const result = await gamificationApi.repairStreak(institutionId);
-              if (result && result.repaired) {
-                setActionMessage(`Racha restaurada a ${result.restored_streak}! (-${result.xp_spent} XP)`);
-                const p = await gamificationApi.getProfile(institutionId);
-                if (p) setProfile(p);
-              } else { setActionMessage('No elegible o XP insuficiente'); }
-              setActionPending(false);
-              actionTimeoutRef.current = setTimeout(() => setActionMessage(null), 4000);
+              try {
+                const result = await gamificationApi.repairStreak(institutionId);
+                if (result && result.repaired) {
+                  setActionMessage(`Racha restaurada a ${result.restored_streak}! (-${result.xp_spent} XP)`);
+                  const p = await gamificationApi.getProfile(institutionId);
+                  if (p) setProfile(p);
+                } else { setActionMessage('No elegible o XP insuficiente'); }
+              } catch {
+                setActionMessage('Error al procesar. Intentá de nuevo.');
+              } finally {
+                setActionPending(false);
+                actionTimeoutRef.current = setTimeout(() => setActionMessage(null), 4000);
+              }
             }} className="flex items-center gap-1 text-[10px] text-orange-400/70 hover:text-orange-400 transition-colors disabled:opacity-40">
               <Wrench size={10} /><span>Reparar racha</span>
             </button>
