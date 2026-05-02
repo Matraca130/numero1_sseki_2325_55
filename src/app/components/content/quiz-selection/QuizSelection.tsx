@@ -3,7 +3,7 @@
  * State management and composition of QuizSidebar + QuizRightPanel.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useContentTree } from '@/app/context/ContentTreeContext';
 import * as quizApi from '@/app/services/quizApi';
 import type { QuizQuestion, QuestionType, Difficulty, StudySession, QuizEntity } from '@/app/services/quizApi';
@@ -45,9 +45,17 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
   const [activeCourseIdx, setActiveCourseIdx] = useState(0);
   const [activeSemesterIdx, setActiveSemesterIdx] = useState(0);
 
-  const activeCourse = tree?.courses[activeCourseIdx] || null;
-  const semesters = activeCourse?.semesters || [];
-  const activeSemester = semesters[activeSemesterIdx] || null;
+  // Memoized so the values keep stable references across renders that don't
+  // change tree/activeCourseIdx/activeSemesterIdx — important for the
+  // preload-summaries useEffect below, which uses activeSemester as a dep.
+  const activeCourse = useMemo(
+    () => tree?.courses[activeCourseIdx] ?? null,
+    [tree, activeCourseIdx],
+  );
+  const activeSemester = useMemo(
+    () => activeCourse?.semesters?.[activeSemesterIdx] ?? null,
+    [activeCourse, activeSemesterIdx],
+  );
 
   // Load quiz history on mount
   useEffect(() => {
