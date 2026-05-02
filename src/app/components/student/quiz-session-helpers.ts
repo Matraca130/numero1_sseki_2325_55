@@ -17,6 +17,25 @@ import type { QuizBackupData } from '@/app/components/student/useQuizBackup';
 import { logger } from '@/app/lib/logger';
 import { getErrorMsg } from '@/app/lib/error-utils';
 
+// ── Shuffle (Fisher-Yates, uniform distribution) ───────
+
+/**
+ * Returns a new array shuffled via Fisher-Yates (uniform distribution).
+ *
+ * Do NOT use `arr.sort(() => Math.random() - 0.5)`: V8 TimSort requires a
+ * transitive comparator, and a random comparator violates that invariant,
+ * producing systematically biased orderings (the first and last positions
+ * over-represent specific items).
+ */
+export function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // ── Load & Normalize Questions ─────────────────────────
 
 export interface LoadQuestionsResult {
@@ -76,10 +95,7 @@ export async function loadAndNormalizeQuestions(
         : (DIFFICULTY_TO_INT[normalizeDifficulty(q.difficulty)] ?? 2),
     }));
   // Shuffle using Fisher-Yates (uniform distribution)
-  for (let i = items.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]];
-  }
+  items = shuffleArray(items);
 
   return { items, warning, usedPreloaded };
 }
