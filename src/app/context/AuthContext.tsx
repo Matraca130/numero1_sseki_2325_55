@@ -23,6 +23,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { ReactNode } from 'react';
 import { supabase } from '@/app/lib/supabase';
 import { apiCall, setAccessToken as setApiToken, getAccessToken, API_BASE, ANON_KEY } from '@/app/lib/api';
+import { queryClient } from '@/app/lib/queryClient';
 
 // ── Types ─────────────────────────────────────────────
 
@@ -256,7 +257,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (cancelled) return;
         if (error || !session?.access_token) {
-          // Clean up any stale auth data that might cause redirect loops
+          // Clean up any stale auth data that might cause redirect loops.
+          // SECURITY (#769): Also clear React Query cache — defense in depth
+          // for the case where this branch runs after an in-tab logout that
+          // somehow skipped the cache wipe (e.g. legacy code paths).
+          queryClient.clear();
           setUser(null);
           setAccessTokenState(null);
           setApiToken(null);
@@ -287,6 +292,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setApiToken(session.access_token);
         if (import.meta.env.DEV) console.log('[Auth] Token refreshed');
       } else if (event === 'SIGNED_OUT') {
+        // SECURITY (#769): Clear React Query cache on Supabase-driven sign-out
+        // (session expiration, refresh token failure, sign-out from another
+        // device). Same rationale as logout() — queries with non-scoped keys
+        // would otherwise leak across users.
+        queryClient.clear();
         setUser(null);
         setAccessTokenState(null);
         setApiToken(null);
@@ -305,6 +315,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'axon_access_token' && e.newValue === null) {
+        // SECURITY (#769): Cross-tab logout — clear cache so a subsequent
+        // login in this tab does not show data from the previous user.
+        queryClient.clear();
         setUser(null);
         setAccessTokenState(null);
         setSelectedInstitution(null);
@@ -392,6 +405,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await supabase.auth.signOut();
     } catch {} finally {
+      // SECURITY (#769): Clear React Query cache BEFORE updating user state.
+      // Several queries (schedule-momentum, student-stats, daily-activities,
+      // study-sessions, all-reading-states, all-bkt-states) use keys that are
+      // NOT scoped by userId. Without clearing, the next user who logs in on
+      // the same SPA session would briefly see the previous user's data
+      // (staleTime: 5min, gcTime: 10min). queryClient is a module-level
+      // singleton, so .clear() wipes all cached data for every consumer.
+      queryClient.clear();
       setUser(null);
       setAccessTokenState(null);
       setApiToken(null);
