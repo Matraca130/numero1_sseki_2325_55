@@ -239,9 +239,9 @@ export function QuizQuestionsEditor({
                   question={q}
                   index={idx + 1}
                   keywordName={getKeywordName(q.keyword_id)}
-                  onEdit={() => crud.handleEdit(q)}
-                  onDelete={() => crud.handleDelete(q.id)}
-                  onRestore={() => crud.handleRestore(q.id)}
+                  onEdit={crud.handleEdit}
+                  onDelete={crud.handleDelete}
+                  onRestore={crud.handleRestore}
                 />
               </div>
             ))}

@@ -37,9 +37,13 @@ interface QuestionCardProps {
   question: QuizQuestion;
   index: number;
   keywordName: string;
-  onEdit: () => void;
-  onDelete: () => void;
-  onRestore: () => void;
+  /** Receive the question / id so callers can pass stable, parent-level
+   *  handlers that React.memo can preserve. Inline `() => f(q.id)` lambdas
+   *  at the call site defeat the row memoization for every card on every
+   *  parent render (search keystrokes, filter changes, pagination). */
+  onEdit: (question: QuizQuestion) => void;
+  onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
 }
 
 // ── Component ─────────────────────────────────────────
@@ -118,7 +122,7 @@ export const QuestionCard = React.memo(function QuestionCard({
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
           <button
-            onClick={onEdit}
+            onClick={() => onEdit(q)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title="Editar"
           >
@@ -126,7 +130,7 @@ export const QuestionCard = React.memo(function QuestionCard({
           </button>
           {q.is_active ? (
             <button
-              onClick={onDelete}
+              onClick={() => onDelete(q.id)}
               className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
               title="Eliminar"
             >
@@ -134,7 +138,7 @@ export const QuestionCard = React.memo(function QuestionCard({
             </button>
           ) : (
             <button
-              onClick={onRestore}
+              onClick={() => onRestore(q.id)}
               className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               title="Restaurar"
             >
