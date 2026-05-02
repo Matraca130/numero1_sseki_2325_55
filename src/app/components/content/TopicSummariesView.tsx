@@ -118,7 +118,15 @@ export function TopicSummariesView() {
   const handleSummaryClick = useCallback((summary: Summary) => {
     if (topic) {
       selectTopic(topic.id);
-      setCurrentTopic({ id: topic.id, title: topic.name } as any);
+      // Construct the legacy UI Topic shape ({ id, title, summary, flashcards })
+      // expected by NavigationContext. `topic` here is a TreeTopic ({ id, name, order_index }),
+      // so we map name -> title. Matches the pattern in TopicSidebarRoot.tsx.
+      setCurrentTopic({
+        id: topic.id,
+        title: topic.name,
+        summary: '',
+        flashcards: [],
+      });
     }
     // Navigate to the existing SummaryView reader for this topic
     // passing summaryId as query param for future auto-selection
