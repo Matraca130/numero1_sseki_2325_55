@@ -30,6 +30,7 @@ import BlockEditorToolbar from './BlockEditorToolbar';
 import AddBlockButton from './AddBlockButton';
 import BlockCard from './BlockCard';
 import BlockFormRouter from './BlockFormRouter';
+import { BlockRow } from './BlockRow';
 import BlockTypeSelector from './BlockTypeSelector';
 
 // ── Props ─────────────────────────────────────────────────
@@ -474,53 +475,26 @@ const BlockEditor = React.memo(function BlockEditor({
           )}
 
           {sortedBlocks.map((block, index) => (
-            <React.Fragment key={block.id}>
-              <div
-                draggable={!isPreview}
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                className={dragIndex === index ? 'opacity-50' : ''}
-              >
-                {isPreview ? (
-                  // Preview mode — use student renderer
-                  <div className="py-2">
-                    <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
-                      <ViewerBlock block={block} isMobile={false} />
-                    </ErrorBoundary>
-                  </div>
-                ) : (
-                  // Edit mode — use BlockCard with form/preview toggle
-                  <BlockCard
-                    block={block}
-                    isEditing={editingBlockId === block.id}
-                    onToggleEdit={() => setEditingBlockId(prev => prev === block.id ? null : block.id)}
-                    onDelete={() => setDeletingBlockId(block.id)}
-                    onDuplicate={() => handleDuplicate(block)}
-                    onMoveUp={() => handleMoveUp(index)}
-                    onMoveDown={() => handleMoveDown(index)}
-                    isFirst={index === 0}
-                    isLast={index === sortedBlocks.length - 1}
-                  >
-                    {editingBlockId === block.id ? (
-                      <BlockFormRouter
-                        block={block}
-                        onChange={(field, value) => handleFieldChange(block.id, field, value)}
-                      />
-                    ) : (
-                      <ErrorBoundary fallback={<div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-500">Error al renderizar bloque</div>}>
-                        <ViewerBlock block={block} isMobile={false} />
-                      </ErrorBoundary>
-                    )}
-                  </BlockCard>
-                )}
-              </div>
-
-              {/* Add block between */}
-              {!isPreview && (
-                <AddBlockButton afterIndex={index} onInsert={handleInsert} />
-              )}
-            </React.Fragment>
+            <BlockRow
+              key={block.id}
+              block={block}
+              index={index}
+              isEditing={editingBlockId === block.id}
+              isFirst={index === 0}
+              isLast={index === sortedBlocks.length - 1}
+              isPreview={isPreview}
+              isDragging={dragIndex === index}
+              onToggleEdit={handleToggleEdit}
+              onRequestDelete={setDeletingBlockId}
+              onDuplicate={handleDuplicate}
+              onMoveUp={handleMoveUp}
+              onMoveDown={handleMoveDown}
+              onFieldChange={handleFieldChange}
+              onInsert={handleInsert}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            />
           ))}
         </div>
       </div>
