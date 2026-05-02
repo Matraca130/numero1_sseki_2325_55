@@ -11,7 +11,7 @@
 //
 // Business rule: max 6 subtopics per keyword.
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus, Trash2, Save, X, Loader2, ToggleLeft, ToggleRight,
@@ -33,6 +33,132 @@ interface SubtopicsPanelProps {
   keywordId: string;
   summaryId: string;
 }
+
+// ── SubtopicRow — memoized per-subtopic row ──────────────
+//
+// Extracted from the inline .map() body so a parent re-render of
+// SubtopicsPanel (caused by editName typing, newName typing, deletingId
+// flip, or any mutation pending state) does NOT cascade through every
+// row. sub comes from React Query — stable until refetch. atLimit /
+// isUpdating are booleans that flip rarely. editingValue is only
+// non-null for the row currently being edited; non-editing rows
+// receive null and skip re-render across edit-mode keystrokes.
+const SubtopicRow = React.memo(function SubtopicRow({
+  sub,
+  isEditing,
+  editingValue,
+  isUpdating,
+  atLimit,
+  onStartEdit,
+  onChangeEditName,
+  onSaveEdit,
+  onCancelEdit,
+  onToggleActive,
+  onRequestDelete,
+}: {
+  sub: { id: string; name: string; order_index: number; is_active: boolean };
+  isEditing: boolean;
+  /** Only passed (non-null) for the row currently being edited.
+   *  All other rows receive `null` so editName-typing keystrokes don't
+   *  invalidate their memo. */
+  editingValue: string | null;
+  isUpdating: boolean;
+  atLimit: boolean;
+  onStartEdit: (sub: { id: string; name: string }) => void;
+  onChangeEditName: (value: string) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onToggleActive: (sub: { id: string; is_active: boolean }) => void;
+  onRequestDelete: (id: string) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="flex items-center gap-2 py-1.5 group"
+    >
+      <span className="text-[10px] text-gray-300 w-4 text-right shrink-0">
+        {sub.order_index}
+      </span>
+
+      {isEditing ? (
+        <>
+          <Input
+            value={editingValue ?? ''}
+            onChange={e => onChangeEditName(e.target.value)}
+            className="h-7 text-xs flex-1"
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter') onSaveEdit();
+              if (e.key === 'Escape') onCancelEdit();
+            }}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0"
+            onClick={onSaveEdit}
+            disabled={isUpdating}
+          >
+            {isUpdating
+              ? <Loader2 size={12} className="animate-spin" />
+              : <Save size={12} className="text-emerald-600" />}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0"
+            onClick={onCancelEdit}
+          >
+            <X size={12} className="text-gray-400" />
+          </Button>
+        </>
+      ) : (
+        <>
+          <span
+            className={clsx(
+              "text-xs flex-1 cursor-pointer hover:text-violet-600 transition-colors truncate",
+              sub.is_active ? "text-gray-700" : "text-gray-400 line-through"
+            )}
+            onClick={() => onStartEdit(sub)}
+            title="Click para editar"
+          >
+            {sub.name}
+          </span>
+
+          <button
+            onClick={() => onToggleActive(sub)}
+            className={clsx(
+              "opacity-0 group-hover:opacity-100 transition-opacity",
+              !sub.is_active && atLimit && "cursor-not-allowed opacity-30"
+            )}
+            title={
+              !sub.is_active && atLimit
+                ? `Limite de ${MAX_SUBTOPICS_PER_KEYWORD} subtemas activos`
+                : sub.is_active ? 'Desactivar' : 'Activar'
+            }
+            disabled={!sub.is_active && atLimit}
+          >
+            {sub.is_active ? (
+              <ToggleRight size={14} className="text-emerald-500" />
+            ) : (
+              <ToggleLeft size={14} className="text-gray-400" />
+            )}
+          </button>
+
+          <button
+            onClick={() => onRequestDelete(sub.id)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Eliminar"
+          >
+            <Trash2 size={12} className="text-red-400 hover:text-red-600" />
+          </button>
+        </>
+      )}
+    </motion.div>
+  );
+});
 
 export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
   // ── Data (React Query) ────────────────────────────────────
@@ -71,7 +197,7 @@ export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
     );
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     if (!editingId || !editName.trim()) return;
     updateMutation.mutate(
       {
@@ -81,9 +207,9 @@ export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
       },
       { onSuccess: () => setEditingId(null) },
     );
-  };
+  }, [editingId, editName, keywordId, updateMutation]);
 
-  const handleToggleActive = (sub: { id: string; is_active: boolean }) => {
+  const handleToggleActive = useCallback((sub: { id: string; is_active: boolean }) => {
     // Prevent activating beyond limit
     if (!sub.is_active && atLimit) return;
     updateMutation.mutate({
@@ -91,7 +217,14 @@ export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
       keywordId,
       data: { is_active: !sub.is_active },
     });
-  };
+  }, [atLimit, keywordId, updateMutation]);
+
+  // Stable per-row handlers so SubtopicRow's React.memo holds.
+  const handleStartEdit = useCallback((sub: { id: string; name: string }) => {
+    setEditingId(sub.id);
+    setEditName(sub.name);
+  }, []);
+  const handleCancelEdit = useCallback(() => setEditingId(null), []);
 
   const handleDelete = () => {
     if (!deletingId) return;
@@ -127,94 +260,27 @@ export function SubtopicsPanel({ keywordId, summaryId }: SubtopicsPanelProps) {
 
       {/* Subtopics list */}
       <AnimatePresence mode="popLayout">
-        {subtopics.map(sub => (
-          <motion.div
-            key={sub.id}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="flex items-center gap-2 py-1.5 group"
-          >
-            <span className="text-[10px] text-gray-300 w-4 text-right shrink-0">
-              {sub.order_index}
-            </span>
-
-            {editingId === sub.id ? (
-              <>
-                <Input
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  className="h-7 text-xs flex-1"
-                  autoFocus
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleSaveEdit();
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0"
-                  onClick={handleSaveEdit}
-                  disabled={updateMutation.isPending}
-                >
-                  {updateMutation.isPending
-                    ? <Loader2 size={12} className="animate-spin" />
-                    : <Save size={12} className="text-emerald-600" />}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setEditingId(null)}
-                >
-                  <X size={12} className="text-gray-400" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <span
-                  className={clsx(
-                    "text-xs flex-1 cursor-pointer hover:text-violet-600 transition-colors truncate",
-                    sub.is_active ? "text-gray-700" : "text-gray-400 line-through"
-                  )}
-                  onClick={() => { setEditingId(sub.id); setEditName(sub.name); }}
-                  title="Click para editar"
-                >
-                  {sub.name}
-                </span>
-
-                <button
-                  onClick={() => handleToggleActive(sub)}
-                  className={clsx(
-                    "opacity-0 group-hover:opacity-100 transition-opacity",
-                    !sub.is_active && atLimit && "cursor-not-allowed opacity-30"
-                  )}
-                  title={
-                    !sub.is_active && atLimit
-                      ? `Limite de ${MAX_SUBTOPICS_PER_KEYWORD} subtemas activos`
-                      : sub.is_active ? 'Desactivar' : 'Activar'
-                  }
-                  disabled={!sub.is_active && atLimit}
-                >
-                  {sub.is_active ? (
-                    <ToggleRight size={14} className="text-emerald-500" />
-                  ) : (
-                    <ToggleLeft size={14} className="text-gray-400" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setDeletingId(sub.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Eliminar"
-                >
-                  <Trash2 size={12} className="text-red-400 hover:text-red-600" />
-                </button>
-              </>
-            )}
-          </motion.div>
-        ))}
+        {subtopics.map(sub => {
+          const isEditingThis = editingId === sub.id;
+          return (
+            <SubtopicRow
+              key={sub.id}
+              sub={sub}
+              isEditing={isEditingThis}
+              // Only pass editName to the row currently being edited, so
+              // typing in the input doesn't invalidate other rows' memo.
+              editingValue={isEditingThis ? editName : null}
+              isUpdating={updateMutation.isPending}
+              atLimit={atLimit}
+              onStartEdit={handleStartEdit}
+              onChangeEditName={setEditName}
+              onSaveEdit={handleSaveEdit}
+              onCancelEdit={handleCancelEdit}
+              onToggleActive={handleToggleActive}
+              onRequestDelete={setDeletingId}
+            />
+          );
+        })}
       </AnimatePresence>
 
       {/* Inline add */}
