@@ -70,8 +70,8 @@ export function useReadingStateQuery(
       const rs = await studentApi.getReadingState(summaryId!);
       if (!rs) return null;
       // Normalize response shape (API returns array | { items } | object)
-      if (Array.isArray(rs)) return (rs as any)[0] || null;
-      if ((rs as any)?.items) return (rs as any).items[0] || null;
+      if (Array.isArray(rs)) return (rs as any)[0] ?? null;
+      if (Array.isArray((rs as any)?.items)) return (rs as any).items[0] ?? null;
       return rs;
     },
     staleTime: STUDENT_DATA_STALE,
