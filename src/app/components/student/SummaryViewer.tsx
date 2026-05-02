@@ -21,7 +21,16 @@ import type { SummaryBlock, SummaryKeyword } from '@/app/services/summariesApi';
 import { ViewerBlock } from './ViewerBlock';
 import { ImageLightbox, type LightboxImage } from './ImageLightbox';
 import { useAuth } from '@/app/context/AuthContext';
-import { MuxVideoPlayer } from '@/app/components/video/MuxVideoPlayer';
+// Lazy-load MuxVideoPlayer: the entire vendor-mux chunk
+// (@mux/mux-player-react + @mux/mux-player + @mux/mux-video + hls.js +
+// media-chrome + mux-embed) is ~130-180 KB gzipped and only ever renders
+// inside the activeVideoId modal below — students opening text-only
+// summaries (the majority case) never need it on the initial bundle.
+const MuxVideoPlayer = React.lazy(() =>
+  import('@/app/components/video/MuxVideoPlayer').then((m) => ({
+    default: m.MuxVideoPlayer,
+  })),
+);
 import { useSummaryBlocksQuery } from '@/app/hooks/queries/useSummaryBlocksQuery';
 import type { ReadingSettings } from './ReadingSettingsPanel';
 import { useBlockBookmarks } from '@/app/hooks/queries/useBlockBookmarks';
@@ -312,10 +321,18 @@ export function SummaryViewer({
               </button>
             </div>
             <div className="aspect-video">
-              <MuxVideoPlayer
-                videoId={activeVideoId}
-                institutionId={institutionId}
-              />
+              <React.Suspense
+                fallback={
+                  <div className="w-full h-full flex items-center justify-center bg-black text-white/60 text-sm">
+                    Cargando reproductor…
+                  </div>
+                }
+              >
+                <MuxVideoPlayer
+                  videoId={activeVideoId}
+                  institutionId={institutionId}
+                />
+              </React.Suspense>
             </div>
           </div>
         </div>
