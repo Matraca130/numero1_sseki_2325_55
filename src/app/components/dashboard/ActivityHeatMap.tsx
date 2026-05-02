@@ -283,6 +283,40 @@ export function ActivityHeatMap() {
   );
 }
 
+// ── HeatCell — memoized leaf cell ────────────────────────
+//
+// Extracted from HeatGrid so that hover state changes only re-render
+// the 2 cells whose isHovered flips (the one entered, the one left)
+// instead of all ~182 cells in the grid. onEnter/onLeave are received
+// as stable refs from the parent (useCallback in HeatMap), and the
+// inline `() => onEnter(cell.date)` wrapper is created once per cell
+// render — it's INSIDE the React.memo boundary so the cell's identity
+// is preserved.
+const HeatCell = React.memo(function HeatCell({
+  cell,
+  cellSize,
+  isHovered,
+  onEnter,
+  onLeave,
+}: {
+  cell: DayCell;
+  cellSize: string;
+  isHovered: boolean;
+  onEnter: (date: string) => void;
+  onLeave: () => void;
+}) {
+  return (
+    <div className="relative">
+      <div
+        className={`${cellSize} rounded-sm ${getColor(cell.reviews_count)} cursor-pointer transition-all duration-100 hover:ring-1 hover:ring-gray-300`}
+        onMouseEnter={() => onEnter(cell.date)}
+        onMouseLeave={onLeave}
+      />
+      {isHovered && <CellTooltip cell={cell} />}
+    </div>
+  );
+});
+
 // ── HeatGrid sub-component ───────────────────────────────
 
 function HeatGrid({
@@ -341,15 +375,15 @@ function HeatGrid({
         {/* Week columns */}
         {weeks.map((week, wIdx) => (
           <div key={wIdx} className="flex flex-col gap-[2px]">
-            {week.map((cell, dIdx) => (
-              <div key={cell.date} className="relative">
-                <div
-                  className={`${cellSize} rounded-sm ${getColor(cell.reviews_count)} cursor-pointer transition-all duration-100 hover:ring-1 hover:ring-gray-300`}
-                  onMouseEnter={() => onEnter(cell.date)}
-                  onMouseLeave={onLeave}
-                />
-                {hoveredCell === cell.date && <CellTooltip cell={cell} />}
-              </div>
+            {week.map((cell) => (
+              <HeatCell
+                key={cell.date}
+                cell={cell}
+                cellSize={cellSize}
+                isHovered={hoveredCell === cell.date}
+                onEnter={onEnter}
+                onLeave={onLeave}
+              />
             ))}
           </div>
         ))}
