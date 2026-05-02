@@ -208,7 +208,7 @@ function FlashcardReviewerInner({ summaryId, onClose, masteryMap }: FlashcardRev
       if (e.key === ' ') { e.preventDefault(); if (!isFlipped) setIsFlipped(true); }
       if (e.key === 'Enter' && !isClozeCard) { e.preventDefault(); if (!isFlipped) setIsFlipped(true); }
       if (e.key === 'Tab' && isClozeCard && !isFlipped) { e.preventDefault(); setClozeReady(true); setIsFlipped(true); }
-      if (isFlipped) { const num = parseInt(e.key); if (num >= 1 && num <= 5) { e.preventDefault(); handleGrade(num); } }
+      if (isFlipped) { const num = parseInt(e.key, 10); if (num >= 1 && num <= 5) { e.preventDefault(); handleGrade(num); } }
       if ((e.key === 'z' || e.key === 'Z') && currentCard) {
         const imgRegex = /!\[img\]\(([^)]+)\)/;
         const side = isFlipped ? currentCard.back : currentCard.front;
