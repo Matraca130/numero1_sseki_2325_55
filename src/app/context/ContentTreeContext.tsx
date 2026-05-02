@@ -68,6 +68,10 @@ export function ContentTreeProvider({ children }: { children: ReactNode }) {
   const canEdit = role === 'professor' || role === 'owner' || role === 'admin';
 
   // ── Fetch tree ──────────────────────────────────────────
+  // Guard against stale responses when institution switches mid-flight (#737):
+  // every state setter inside fetchTree checks lastInstId.current === instId
+  // so a slow response for the previous institution cannot overwrite the
+  // active institution's tree.
   const fetchTree = useCallback(async (instId: string) => {
     setLoading(true);
     setError(null);
@@ -108,14 +112,20 @@ export function ContentTreeProvider({ children }: { children: ReactNode }) {
       if (import.meta.env.DEV) {
         console.log(`[ContentTree] Loaded: ${data.courses.length} courses`);
       }
+      // Stale-response guard: bail out if the institution changed during the fetch.
+      if (lastInstId.current !== instId) return;
       setTree(data);
     } catch (err: any) {
       if (import.meta.env.DEV) console.error('[ContentTree] Fetch error:', err);
+      // Stale-response guard: do not clobber the active institution's state
+      // with an error from a superseded request.
+      if (lastInstId.current !== instId) return;
       setError(err.message || 'Error al cargar el arbol de contenido');
       // Set empty tree so UI can show empty state
       setTree({ courses: [] });
     } finally {
-      setLoading(false);
+      // Only flip loading off if this response is still the active one.
+      if (lastInstId.current === instId) setLoading(false);
     }
   }, []);
 
