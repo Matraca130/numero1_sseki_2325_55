@@ -75,7 +75,7 @@ export interface FlashcardsManagerState {
   typeStats: { text: number; image: number; cloze: number; total: number };
 
   // Handlers
-  loadFlashcards: () => Promise<void>;
+  loadFlashcards: (isCancelled?: () => boolean) => Promise<void>;
   loadSubtopicsForKeyword: (keywordId: string) => Promise<void>;
   handleDelete: (id: string) => void;
   handleRestore: (id: string) => Promise<void>;
@@ -123,17 +123,25 @@ export function useFlashcardsManager(summaryId: string): FlashcardsManagerState 
   // ── Load keywords for this summary ──────────────────────
   useEffect(() => {
     if (!summaryId) return;
+    let cancelled = false;
     setKeywordsLoading(true);
     apiCall<any>(`/keywords?summary_id=${summaryId}`)
       .then(data => {
+        if (cancelled) return;
         const items = Array.isArray(data) ? data : data?.items || [];
         setKeywords(items);
       })
       .catch(err => {
+        if (cancelled) return;
         console.error('[FlashcardsManager] Keywords error:', err);
         setKeywords([]);
       })
-      .finally(() => setKeywordsLoading(false));
+      .finally(() => {
+        if (!cancelled) setKeywordsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [summaryId]);
 
   // ── Load subtopics for a keyword (on demand, cached) ────
@@ -158,8 +166,12 @@ export function useFlashcardsManager(summaryId: string): FlashcardsManagerState 
   }, [subtopicsMap]);
 
   // ── Load flashcards ─────────────────────────────────────
-  const loadFlashcards = useCallback(async () => {
+  // `isCancelled` is an optional guard for callers that need to drop a
+  // stale response (e.g. the watching effect below, when summaryId changes
+  // mid-flight). Manual callers (refresh button, post-mutation) can omit it.
+  const loadFlashcards = useCallback(async (isCancelled?: () => boolean) => {
     if (!summaryId) {
+      if (isCancelled?.()) return;
       setFlashcards([]);
       setFlashcardsTotal(0);
       return;
@@ -171,21 +183,27 @@ export function useFlashcardsManager(summaryId: string): FlashcardsManagerState 
         filterKeywordId || undefined,
         { limit: 200 }
       );
+      if (isCancelled?.()) return;
       const items = Array.isArray(result) ? result : result.items || [];
       const total = Array.isArray(result) ? items.length : result.total || items.length;
       setFlashcards(items);
       setFlashcardsTotal(total);
     } catch (err: any) {
+      if (isCancelled?.()) return;
       console.error('[FlashcardsManager] Load error:', err);
       setFlashcards([]);
       setFlashcardsTotal(0);
     } finally {
-      setFlashcardsLoading(false);
+      if (!isCancelled?.()) setFlashcardsLoading(false);
     }
   }, [summaryId, filterKeywordId]);
 
   useEffect(() => {
-    loadFlashcards();
+    let cancelled = false;
+    loadFlashcards(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [loadFlashcards]);
 
   // ── Reset filters when summaryId changes ────────────────
