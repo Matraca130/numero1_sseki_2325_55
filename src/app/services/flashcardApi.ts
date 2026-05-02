@@ -54,7 +54,7 @@ export async function getFlashcards(
   params.set('summary_id', summaryId);
   if (keywordId) params.set('keyword_id', keywordId);
   if (opts?.limit) params.set('limit', String(opts.limit));
-  if (opts?.offset) params.set('offset', String(opts.offset));
+  if (opts?.offset != null) params.set('offset', String(opts.offset));
   return apiCall<FlashcardListResponse>(`/flashcards?${params}`);
 }
 
@@ -69,7 +69,7 @@ export async function getFlashcardsByTopic(
   const params = new URLSearchParams();
   params.set('topic_id', topicId);
   if (opts?.limit) params.set('limit', String(opts.limit));
-  if (opts?.offset) params.set('offset', String(opts.offset));
+  if (opts?.offset != null) params.set('offset', String(opts.offset));
   return apiCall<FlashcardListResponse>(`/flashcards-by-topic?${params}`);
 }
 

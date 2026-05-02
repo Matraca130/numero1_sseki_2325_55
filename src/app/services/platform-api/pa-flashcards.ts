@@ -45,7 +45,7 @@ export async function getFlashcards(options?: {
   if (options?.subtopic_id) params.set('subtopic_id', options.subtopic_id);
   if (options?.status) params.set('status', options.status);
   if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.offset) params.set('offset', String(options.offset));
+  if (options?.offset != null) params.set('offset', String(options.offset));
   const qs = params.toString() ? `?${params}` : '';
   const result = await request(`/flashcards${qs}`);
   return extractItems<FlashcardCard>(result);
