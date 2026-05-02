@@ -14,7 +14,19 @@ import { useContentTree } from '@/app/context/ContentTreeContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Box, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { AxonPageHeader } from '@/app/components/shared/AxonPageHeader';
-import { ModelViewer3D } from '@/app/components/content/ModelViewer3D';
+// Lazy-load ModelViewer3D: it transitively imports the entire viewer3d
+// module (PinSystem, LayerPanel, AnimationControls, ClippingPlaneControls,
+// ModelPartMesh, three-utils, model-builders, …) and the `three` package.
+// Three.js is the largest single chunk in the app. ThreeDView itself is
+// already a route-level lazy import, but Levels 1-2 (atlas overview +
+// section model list) don't need the 3D viewer — only Level 3 (after a
+// student picks a specific model) does. This deferral skips Three.js for
+// students who open /3d-atlas to browse but never drill into a model.
+const ModelViewer3D = React.lazy(() =>
+  import('@/app/components/content/ModelViewer3D').then((m) => ({
+    default: m.ModelViewer3D,
+  })),
+);
 import { AtlasScreen } from '@/app/components/content/AtlasScreen';
 import { ErrorBoundary } from '@/app/components/shared/ErrorBoundary';
 import { getModels3DBatch } from '@/app/lib/model3d-api';
@@ -414,7 +426,16 @@ function ViewerScreen({
         <ErrorBoundary
           fallback={<ModelViewerErrorFallback modelName={model.title} onBack={onBack} />}
         >
-          <ModelViewer3D modelId={model.id} modelName={model.title} fileUrl={model.file_url} />
+          <React.Suspense
+            fallback={
+              <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-400">
+                <Loader2 size={28} className="animate-spin text-gray-300" />
+                <span className="text-xs">Cargando visor 3D…</span>
+              </div>
+            }
+          >
+            <ModelViewer3D modelId={model.id} modelName={model.title} fileUrl={model.file_url} />
+          </React.Suspense>
         </ErrorBoundary>
       </div>
     </div>
