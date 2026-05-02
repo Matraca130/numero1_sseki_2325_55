@@ -25,19 +25,20 @@ export const QuizCountdownTimer = React.memo(function QuizCountdownTimer({
   useEffect(() => { setRemaining(timeLimitSec); hasFiredRef.current = false; }, [resetKey, timeLimitSec]);
 
   useEffect(() => {
-    if (paused || remaining <= 0) return;
+    if (paused) return;
     const interval = setInterval(() => {
       setRemaining(prev => {
+        if (prev <= 0) return 0;
         const next = Math.max(0, prev - 1);
         if (next === 0 && !hasFiredRef.current) {
           hasFiredRef.current = true;
-          setTimeout(() => onTimeoutRef.current(), 0);
+          queueMicrotask(() => onTimeoutRef.current());
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [paused, remaining]);
+  }, [paused]);
 
   const pct = timeLimitSec > 0 ? remaining / timeLimitSec : 0;
   const mins = Math.floor(remaining / 60);
