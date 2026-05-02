@@ -82,27 +82,41 @@ export function MuxVideoPlayer({
   }, []);
 
   // ── Fetch playback token ────────────────────────────────
-  const fetchToken = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await muxApi.getPlaybackToken(videoId);
-      setPlaybackId(result.playback_id);
-      setTokens({
-        playback: result.token,
-        thumbnail: result.thumbnail_token,
-        storyboard: result.storyboard_token,
-      });
-    } catch (err: any) {
-      console.error('[MuxVideoPlayer] token error:', err);
-      setError(err.message || 'Error al obtener token de reproduccion');
-    } finally {
-      setLoading(false);
-    }
-  }, [videoId]);
+  // Accepts an optional `isCancelled` predicate so callers (e.g. the
+  // useEffect below) can guard against stale responses when `videoId`
+  // changes mid-flight. Without this guard, a slow response for video A
+  // could overwrite the token/playbackId for video B → 403 (JWT audience
+  // mismatch) or silently playing the wrong video.
+  const fetchToken = useCallback(
+    async (isCancelled?: () => boolean) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await muxApi.getPlaybackToken(videoId);
+        if (isCancelled?.()) return;
+        setPlaybackId(result.playback_id);
+        setTokens({
+          playback: result.token,
+          thumbnail: result.thumbnail_token,
+          storyboard: result.storyboard_token,
+        });
+      } catch (err: any) {
+        if (isCancelled?.()) return;
+        console.error('[MuxVideoPlayer] token error:', err);
+        setError(err.message || 'Error al obtener token de reproduccion');
+      } finally {
+        if (!isCancelled?.()) setLoading(false);
+      }
+    },
+    [videoId]
+  );
 
   useEffect(() => {
-    fetchToken();
+    let cancelled = false;
+    fetchToken(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [fetchToken]);
 
   // ── Track view helper ───────────────────────────────────
@@ -215,7 +229,7 @@ export function MuxVideoPlayer({
           {error || 'No se pudo cargar el video'}
         </p>
         <button
-          onClick={fetchToken}
+          onClick={() => fetchToken()}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg transition-colors"
         >
           <RefreshCw size={12} /> Reintentar
