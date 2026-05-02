@@ -61,6 +61,7 @@ export function TipTapEditor({
   } | null>(null);
 
   const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dirtyRef = useRef(false);
   const initialLoadRef = useRef(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -188,7 +189,10 @@ export function TipTapEditor({
       setHasUnsaved(false);
       setSaveStatus('saved');
       onContentUpdated?.();
-      setTimeout(() => { setSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev)); }, 3000);
+      clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = setTimeout(() => {
+        setSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev));
+      }, 3000);
     } catch (err: any) {
       console.error('[TipTapEditor] Save error:', err);
       setSaveStatus('error');
@@ -203,6 +207,9 @@ export function TipTapEditor({
     }, 30000);
     return () => { if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current); };
   }, [handleSave, editor]);
+
+  // Cleanup saveStatus timer on unmount to prevent setState on dead component
+  useEffect(() => () => clearTimeout(saveStatusTimerRef.current), []);
 
   // Ctrl+S
   useEffect(() => {
