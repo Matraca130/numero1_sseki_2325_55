@@ -169,6 +169,14 @@ export function KeywordHighlighterInline({
   const isPopupOpenRef = useRef(false);
   isPopupOpenRef.current = !!activeKeywordId;
 
+  // Mirror of keywordDeltaColorMap so the slow-path build effect can
+  // read the latest colors WITHOUT taking keywordDeltaColorMap as a dep.
+  // Color-only changes are handled by the fast-path effect below; keeping
+  // the map out of the build effect's deps avoids the strip + TreeWalker
+  // rewrite when only BKT color levels updated.
+  const colorMapRef = useRef(keywordDeltaColorMap);
+  colorMapRef.current = keywordDeltaColorMap;
+
   // ── Container ref for HTML mode ─────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -261,7 +269,7 @@ export function KeywordHighlighterInline({
         );
 
         if (kw) {
-          const deltaLevel = keywordDeltaColorMap.get(kw.id) ?? 'gray';
+          const deltaLevel = colorMapRef.current.get(kw.id) ?? 'gray';
           const classes = getHighlightClasses(deltaLevel);
           const span = document.createElement('span');
           span.textContent = matchedText;
@@ -312,7 +320,35 @@ export function KeywordHighlighterInline({
         stripHighlights(containerRef.current);
       }
     };
-  }, [keywords, keywordDeltaColorMap, plainText, handleKeywordClick, dataReady, activeKeywordId]);
+    // Note: keywordDeltaColorMap is intentionally NOT in deps. Color-only
+    // changes are picked up by the fast-path effect below; we read the
+    // current color map via colorMapRef when building, so freshness is
+    // preserved without triggering a full strip+walk rewrite.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keywords, plainText, handleKeywordClick, dataReady, activeKeywordId]);
+
+  // ── HTML mode: fast color-only update path ─────────────
+  // When BKT updates change keywordDeltaColorMap but the keyword set is
+  // unchanged (the typical case after a quiz/flashcard rating), we don't
+  // need to strip + TreeWalker-rebuild every span. Just patch className
+  // on the already-rendered .axon-kw-highlight elements. This effect runs
+  // AFTER the build effect on initial mount (where it's a no-op since
+  // classes are already correct), and runs ALONE on subsequent BKT
+  // refreshes — eliminating the visible jank during long study sessions.
+  useEffect(() => {
+    if (plainText || !containerRef.current) return;
+    if (activeKeywordId || !dataReady) return;
+    const container = containerRef.current;
+    const spans = container.querySelectorAll<HTMLElement>('.axon-kw-highlight');
+    if (spans.length === 0) return;
+    spans.forEach((el) => {
+      const id = el.dataset.keywordId;
+      if (!id) return;
+      const lvl = keywordDeltaColorMap.get(id) ?? 'gray';
+      const c = getHighlightClasses(lvl);
+      el.className = `axon-kw-highlight cursor-pointer rounded-sm px-0.5 -mx-0.5 transition-all ${c.bg} ${c.hoverBg} ${c.border} ${c.text}`;
+    });
+  }, [keywordDeltaColorMap, plainText, dataReady, activeKeywordId]);
 
   // ── Plain text mode: React-rendered segments ────────────
   const segments = useMemo(() => {
