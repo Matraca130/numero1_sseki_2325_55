@@ -126,4 +126,46 @@ describe('StudyTimer', () => {
     fireEvent.click(screen.getByLabelText('Reiniciar'));
     expect(screen.getByText('25:00')).toBeTruthy();
   });
+
+  it('does not PUT /study-sessions/pending when timer expires before POST resolves (regression #753)', async () => {
+    // Arrange: POST never resolves during the test window (simulates a slow
+    // network where the auto-switch fires while the create POST is in flight).
+    let resolvePost: (value: { id: string }) => void = () => {};
+    mockApiCall.mockImplementationOnce(
+      () => new Promise((resolve) => { resolvePost = resolve; }),
+    );
+
+    render(<StudyTimer onClose={onClose} />);
+
+    // Set the study minutes to the minimum (1 min = 60s) so we can fast-forward
+    // past auto-switch quickly. Click "-" 24 times to go from 25 to 1.
+    for (let i = 0; i < 24; i++) {
+      fireEvent.click(screen.getByLabelText(/Reducir/));
+    }
+    expect(screen.getByText('01:00')).toBeTruthy();
+
+    // Start the timer — POST is fired but stays pending.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Iniciar'));
+    });
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+    expect(mockApiCall.mock.calls[0][0]).toBe('/study-sessions');
+
+    // Advance 60 seconds → timer reaches 0 → auto-switch effect runs.
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+
+    // Assert: NO PUT to /study-sessions/pending was issued.
+    const putCalls = mockApiCall.mock.calls.filter(
+      ([, opts]) => (opts as RequestInit | undefined)?.method === 'PUT',
+    );
+    expect(putCalls).toHaveLength(0);
+
+    // Cleanup: resolve the dangling promise so React/test-env doesn't warn.
+    await act(async () => {
+      resolvePost({ id: 'session-late' });
+      await Promise.resolve();
+    });
+  });
 });
