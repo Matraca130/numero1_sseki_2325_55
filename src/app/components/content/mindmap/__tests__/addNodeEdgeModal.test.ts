@@ -1416,10 +1416,28 @@ describe('AddNodeEdgeModal: self-loop useEffect semantics', () => {
   });
 });
 
-// ── Quick color swatches list ───────────────────────────────
+// ── Quick color swatches list — delegated to ColorPicker.Swatches (cycle 63) ──
 
-describe('AddNodeEdgeModal: quick color swatches', () => {
-  it('declares 6 swatches including primary, error, orange, violet, cyan, slate', () => {
+describe('AddNodeEdgeModal: quick color swatches — delegated to ColorPicker.Swatches', () => {
+  // Cycle 63: the swatches row was extracted into ColorPicker.Swatches.
+  // The host owns the design-system import and forwards the 6-color
+  // palette via the `palette` prop. The active-swatch comparison,
+  // CSS classes, and aria-label wiring all live inside the component
+  // (asserted in colorPicker.test.ts).
+
+  it('imports ColorPicker from the canonical module path', () => {
+    expect(source).toContain("from './ColorPicker'");
+    expect(source).toContain("import { ColorPicker }");
+  });
+
+  it('renders <ColorPicker.Swatches> with the 6-color palette prop', () => {
+    expect(source).toContain('<ColorPicker.Swatches');
+    expect(source).toMatch(/palette=\{\[/);
+  });
+
+  it('host still declares the 6 hex colors (palette literal owned by host)', () => {
+    // The host keeps the design-system import and forwards palette as a prop,
+    // so the 6 colors remain in this file (just not as inline JSX rendering).
     expect(source).toContain('#f97316'); // orange
     expect(source).toContain('#8b5cf6'); // violet
     expect(source).toContain('#06b6d4'); // cyan
@@ -1428,32 +1446,89 @@ describe('AddNodeEdgeModal: quick color swatches', () => {
     expect(source).toContain('colors.semantic.error');
   });
 
-  it('renders aria-label using i18n colorAriaLabel(c)', () => {
-    expect(source).toContain('aria-label={t.colorAriaLabel(c)}');
+  it('forwards i18n quickLabel + ariaLabel callback to ColorPicker.Swatches', () => {
+    expect(source).toMatch(/quickLabel=\{t\.quickLabel\}/);
+    expect(source).toMatch(/ariaLabel=\{t\.colorAriaLabel\}/);
   });
 
-  it('selected swatch gains a darker border and scale-110', () => {
-    expect(source).toContain("edgeColor === c ? 'border-gray-800 scale-110' : 'border-transparent'");
+  it('forwards edgeColor + setEdgeColor as value/onChange to swatches', () => {
+    // Replicates the original setEdgeColor(c) closure via onChange prop.
+    const swatchesIdx = source.indexOf('<ColorPicker.Swatches');
+    const closeIdx = source.indexOf('/>', swatchesIdx);
+    const block = source.slice(swatchesIdx, closeIdx);
+    expect(block).toContain('value={edgeColor}');
+    expect(block).toContain('onChange={setEdgeColor}');
+  });
+
+  it('host no longer contains the inline aria-label closure', () => {
+    expect(source).not.toContain('aria-label={t.colorAriaLabel(c)}');
+  });
+
+  it('host no longer contains the active-swatch ternary (extracted to ColorPicker)', () => {
+    expect(source).not.toContain("edgeColor === c ? 'border-gray-800 scale-110' : 'border-transparent'");
+  });
+
+  it('host no longer contains the inline single-line palette bracket-literal', () => {
+    // Negative guard: the original `[colors.primary[500], colors.semantic.error, ...]`
+    // single-line array literal must not appear inline anymore. After cycle 63
+    // the palette is passed via a multi-line prop, so this exact substring
+    // no longer matches.
+    expect(source).not.toContain('[colors.primary[500], colors.semantic.error,');
   });
 });
 
-// ── Color picker (custom hex) ───────────────────────────────
+// ── Color picker (custom hex) — delegated to ColorPicker.Input (cycle 63) ──
 
-describe('AddNodeEdgeModal: custom color hex picker', () => {
-  it('uses native <input type="color">', () => {
-    expect(source).toMatch(/type="color"/);
+describe('AddNodeEdgeModal: custom color hex picker — delegated to ColorPicker.Input', () => {
+  // Cycle 63: the native <input type="color"> + label moved into
+  // ColorPicker.Input. The host invokes the sub-component inside the
+  // `flex gap-3` row alongside <LineStylePicker>.
+
+  it('renders <ColorPicker.Input> inside the line-style + color row', () => {
+    expect(source).toContain('<ColorPicker.Input');
+    // The Input lives in the w-20 cell of the row (sister of LineStylePicker).
+    const rowIdx = source.indexOf('Line style + color row');
+    const inputIdx = source.indexOf('<ColorPicker.Input', rowIdx);
+    expect(inputIdx).toBeGreaterThan(rowIdx);
   });
 
-  it('value bound to edgeColor', () => {
-    expect(source).toContain('value={edgeColor}');
+  it('forwards edgeColor + setEdgeColor as value/onChange to the input', () => {
+    const inputIdx = source.indexOf('<ColorPicker.Input');
+    const closeIdx = source.indexOf('/>', inputIdx);
+    const block = source.slice(inputIdx, closeIdx);
+    expect(block).toContain('value={edgeColor}');
+    expect(block).toContain('onChange={setEdgeColor}');
   });
 
-  it('onChange updates edgeColor from event target value', () => {
-    expect(source).toContain('onChange={(e) => setEdgeColor(e.target.value)}');
+  it('forwards i18n fieldLabel + inputTitle props', () => {
+    expect(source).toMatch(/fieldLabel=\{t\.colorField\}/);
+    expect(source).toMatch(/inputTitle=\{t\.colorTitle\}/);
   });
 
-  it('color input has a title for hover tooltip via i18n', () => {
-    expect(source).toContain('title={t.colorTitle}');
+  it('preserves the parent flex gap-3 row layout (LineStylePicker + ColorPicker.Input row-mates)', () => {
+    // Critical: the row is still `<div className="flex gap-3">` containing
+    // both the LineStylePicker and the ColorPicker.Input. This must NOT
+    // collapse into a single fragment — the row layout is preserved.
+    expect(source).toContain('<div className="flex gap-3">');
+    const rowOpenIdx = source.indexOf('<div className="flex gap-3">');
+    const rowCloseSearchEnd = source.indexOf('Quick color swatches', rowOpenIdx);
+    const rowSlice = source.slice(rowOpenIdx, rowCloseSearchEnd);
+    expect(rowSlice).toContain('<LineStylePicker');
+    expect(rowSlice).toContain('<ColorPicker.Input');
+  });
+
+  it('host no longer contains a native <input type="color"> (extracted to ColorPicker)', () => {
+    expect(source).not.toContain('type="color"');
+  });
+
+  it('host no longer contains the inline color-input onChange closure', () => {
+    expect(source).not.toContain('onChange={(e) => setEdgeColor(e.target.value)}');
+  });
+
+  it('host no longer contains the title={t.colorTitle} attribute (moved into ColorPicker.Input)', () => {
+    // The host now passes inputTitle={t.colorTitle} as a prop; the literal
+    // `title={t.colorTitle}` JSX attribute belongs to the extracted component.
+    expect(source).not.toContain('title={t.colorTitle}');
   });
 });
 

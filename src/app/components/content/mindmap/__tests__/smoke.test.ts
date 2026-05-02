@@ -256,6 +256,27 @@ describe('mindmap module: LineStylePicker (cycle 62 extraction)', () => {
   });
 });
 
+describe('mindmap module: ColorPicker (cycle 63 extraction)', () => {
+  it('exports the compound ColorPicker constant', () => {
+    const names = getExportedNames('ColorPicker.tsx');
+    expect(names).toContain('ColorPicker');
+  });
+
+  it('exports ColorPickerInputProps and ColorPickerSwatchesProps types', () => {
+    const filepath = join(MINDMAP_DIR, 'ColorPicker.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toMatch(/export\s+interface\s+ColorPickerInputProps/);
+    expect(src).toMatch(/export\s+interface\s+ColorPickerSwatchesProps/);
+  });
+
+  it('compound shape exposes Input + Swatches sub-components', () => {
+    const filepath = join(MINDMAP_DIR, 'ColorPicker.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toContain('Input: ColorPickerInput');
+    expect(src).toContain('Swatches: ColorPickerSwatches');
+  });
+});
+
 describe('mindmap module: ConfirmDialog', () => {
   it('exports ConfirmDialog component', () => {
     const names = getExportedNames('ConfirmDialog.tsx');
@@ -532,6 +553,9 @@ describe('mindmap directory completeness', () => {
       // Cycle 62 — mobile-hint sessionStorage timer extracted from KnowledgeGraph.
       // Has a dedicated test file (useMobileHint.test.ts).
       'useMobileHint.ts',
+      // Cycle 63 — compound ColorPicker (Input + Swatches) extracted from
+      // AddNodeEdgeModal. Has a dedicated test file (colorPicker.test.ts).
+      'ColorPicker.tsx',
     ]);
 
     const untested = files.filter(f => !tested.has(f));

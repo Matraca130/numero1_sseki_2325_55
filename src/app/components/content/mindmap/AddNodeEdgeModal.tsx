@@ -21,6 +21,7 @@ import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 import { ArrowTypePicker } from './ArrowTypePicker';
 import { LineStylePicker } from './LineStylePicker';
+import { ColorPicker } from './ColorPicker';
 
 // ── I18N ────────────────────────────────────────────────────
 
@@ -579,38 +580,30 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                         />
                       </div>
                       <div className="w-20">
-                        <label htmlFor="custom-edge-color" className="block text-xs font-medium text-gray-600 mb-1">
-                          {t.colorField}
-                        </label>
-                        <div className="relative">
-                          <input
-                            id="custom-edge-color"
-                            type="color"
-                            value={edgeColor}
-                            onChange={(e) => setEdgeColor(e.target.value)}
-                            className="w-full h-[38px] rounded-lg border border-gray-200 cursor-pointer p-0.5"
-                            title={t.colorTitle}
-                          />
-                        </div>
+                        <ColorPicker.Input
+                          value={edgeColor}
+                          onChange={setEdgeColor}
+                          fieldLabel={t.colorField}
+                          inputTitle={t.colorTitle}
+                        />
                       </div>
                     </div>
 
                     {/* Quick color swatches */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-500 mr-1">{t.quickLabel}</span>
-                      {[colors.primary[500], colors.semantic.error, '#f97316', '#8b5cf6', '#06b6d4', '#64748b'].map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setEdgeColor(c)}
-                          className={`w-8 h-8 sm:w-5 sm:h-5 rounded-full border-2 transition-transform hover:scale-110 ${
-                            edgeColor === c ? 'border-gray-800 scale-110' : 'border-transparent'
-                          }`}
-                          style={{ backgroundColor: c }}
-                          aria-label={t.colorAriaLabel(c)}
-                        />
-                      ))}
-                    </div>
+                    <ColorPicker.Swatches
+                      value={edgeColor}
+                      onChange={setEdgeColor}
+                      quickLabel={t.quickLabel}
+                      ariaLabel={t.colorAriaLabel}
+                      palette={[
+                        colors.primary[500],
+                        colors.semantic.error,
+                        '#f97316',
+                        '#8b5cf6',
+                        '#06b6d4',
+                        '#64748b',
+                      ]}
+                    />
 
                     <div>
                       <label htmlFor="custom-edge-label" className="block text-xs font-medium text-gray-600 mb-1">
