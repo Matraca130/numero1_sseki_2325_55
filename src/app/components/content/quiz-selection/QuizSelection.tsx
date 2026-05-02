@@ -103,6 +103,10 @@ export function QuizSelection({ onStart, onBack }: QuizSelectionProps) {
           loadSummariesForTopicFn(id).then(summaries => {
             setTopicSummaries(p => ({ ...p, [id]: summaries }));
             setLoadingTopics(p => { const n = new Set(p); n.delete(id); return n; });
+          }).catch(err => {
+            // Clear loading state so the spinner does not get stuck forever; topic shows as empty
+            console.error('[QuizSelection] Failed to load summaries for topic', id, err);
+            setLoadingTopics(p => { const n = new Set(p); n.delete(id); return n; });
           });
         }
       }
