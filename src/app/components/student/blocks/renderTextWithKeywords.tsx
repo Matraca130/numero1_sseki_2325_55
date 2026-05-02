@@ -71,8 +71,43 @@ function parseImageRef(text: string, keyPrefix: string): React.ReactNode[] {
   }).filter(Boolean) as React.ReactNode[];
 }
 
-// UUID v4 pattern for bare keyword IDs that lost their {{}} wrapper
-const BARE_UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+// UUID v4 pattern for bare keyword IDs that lost their {{}} wrapper.
+// Lifted to module scope (was rebuilt per call inside wrapBareKeywordUuids).
+const BARE_UUID_WRAP_RE =
+  /(?<!\{\{)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?!\}\})/gi;
+
+interface KeywordLookup {
+  /** Lowercased ids of ALL keywords (including inactive) — for bare-UUID wrapping */
+  idSetAll: Set<string>;
+  /** Active-only keyword by id */
+  byId: Map<string, SummaryKeyword>;
+  /** Active-only keyword by lowercased name */
+  byNameLower: Map<string, SummaryKeyword>;
+}
+
+// Module-level cache keyed on the keywords array reference. The same array
+// is reused across all block renderers for a given summary (per the React
+// Query cache), so callers within one render typically share the cache hit.
+// WeakMap lets the cache GC naturally when the keyword array is replaced.
+const lookupCache = new WeakMap<SummaryKeyword[], KeywordLookup>();
+
+function getKeywordLookup(keywords: SummaryKeyword[]): KeywordLookup {
+  const cached = lookupCache.get(keywords);
+  if (cached) return cached;
+  const idSetAll = new Set<string>();
+  const byId = new Map<string, SummaryKeyword>();
+  const byNameLower = new Map<string, SummaryKeyword>();
+  for (const k of keywords) {
+    idSetAll.add(k.id.toLowerCase());
+    if (k.is_active !== false) {
+      byId.set(k.id, k);
+      byNameLower.set(k.name.toLowerCase(), k);
+    }
+  }
+  const lookup: KeywordLookup = { idSetAll, byId, byNameLower };
+  lookupCache.set(keywords, lookup);
+  return lookup;
+}
 
 /**
  * Wrap bare keyword UUIDs (without {{}}) so the main parser can resolve them.
@@ -80,10 +115,11 @@ const BARE_UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
  */
 function wrapBareKeywordUuids(text: string, keywords: SummaryKeyword[]): string {
   if (!keywords.length) return text;
-  const kwIds = new Set(keywords.map(k => k.id.toLowerCase()));
-  return text.replace(
-    new RegExp(`(?<!\\{\\{)(${BARE_UUID_RE.source})(?!\\}\\})`, 'gi'),
-    (uuid) => kwIds.has(uuid.toLowerCase()) ? `{{${uuid}}}` : uuid,
+  const { idSetAll } = getKeywordLookup(keywords);
+  // BARE_UUID_WRAP_RE has the global flag but we never reuse its state
+  // across overlapping calls; String#replace creates its own iterator.
+  return text.replace(BARE_UUID_WRAP_RE, (_uuid, captured) =>
+    idSetAll.has((captured as string).toLowerCase()) ? `{{${captured}}}` : captured,
   );
 }
 
@@ -124,10 +160,10 @@ export function replaceKeywordPlaceholders(
 ): string {
   const { escapeHtml: shouldEscape = false } = options;
   const normalized = wrapBareKeywordUuids(text, keywords);
+  const { byId, byNameLower } = getKeywordLookup(keywords);
   return normalized.replace(/\{\{([^}]+)\}\}/g, (_match, ref: string) => {
-    const kw = keywords.find(
-      k => (k.id === ref || k.name.toLowerCase() === ref.toLowerCase()) && k.is_active !== false,
-    );
+    // Active-only lookup — matches the prior `is_active !== false` filter.
+    const kw = byId.get(ref) ?? byNameLower.get(ref.toLowerCase());
     if (!kw) return _match;
     return shouldEscape ? escapeHtml(kw.name) : kw.name;
   });
@@ -146,14 +182,13 @@ export default function renderTextWithKeywords(
   if (!text) return null;
 
   const normalized = wrapBareKeywordUuids(text, keywords);
+  const { byId, byNameLower } = getKeywordLookup(keywords);
 
   return normalized.split(/(\{\{[^}]+\}\})/g).map((part, i) => {
     const match = part.match(/^\{\{(.+)\}\}$/);
     if (match) {
       const kwRef = match[1];
-      const kw = keywords.find(
-        k => (k.id === kwRef || k.name.toLowerCase() === kwRef.toLowerCase()) && k.is_active !== false,
-      );
+      const kw = byId.get(kwRef) ?? byNameLower.get(kwRef.toLowerCase());
       if (kw) return <KeywordChip key={i} keyword={kw} />;
       return <span key={i} className="text-xs text-slate-400 italic">{kwRef}</span>;
     }
