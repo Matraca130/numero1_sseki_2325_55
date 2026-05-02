@@ -95,7 +95,7 @@ export const ChunkRenderer = React.memo(function ChunkRenderer({ chunks, keyword
             />
           ) : (
             <div className="text-gray-600 leading-relaxed">
-              {chunk.plainLines!.map((line, lineIdx) =>
+              {(chunk.plainLines ?? []).map((line, lineIdx) =>
                 renderPlainLine(line, lineIdx, 'light')
               )}
             </div>
