@@ -71,6 +71,7 @@ import {
 import { useStickyNotesPosition } from './stickyNotes/useStickyNotesPosition';
 import { StickyNoteEditor } from './stickyNotes/StickyNoteEditor';
 import { StickyNotesPicker } from './stickyNotes/StickyNotesPicker';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface StickyNotesPanelProps {
   /** Identifier used to scope notes per summary. */
@@ -146,13 +147,16 @@ export function StickyNotesPanel({
   // execCommand against it when the underline button is pressed.
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Draggable position state / handlers live in a dedicated hook.
+  // Draggable position state / handlers live in a dedicated hook. The
+  // userId scopes the persisted position per user so on shared devices
+  // user A's panel position doesn't leak to user B (issue #723).
+  const { user } = useAuth();
   const {
     containerRef,
     wrapperPositionStyle,
     isDragging,
     dragHandlers,
-  } = useStickyNotesPosition(expanded);
+  } = useStickyNotesPosition(expanded, user?.id ?? null);
 
   // Load notes when summary changes — local first (instant), then backend (truth).
   useEffect(() => {

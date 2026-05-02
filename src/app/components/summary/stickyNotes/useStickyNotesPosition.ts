@@ -9,11 +9,25 @@
 // `position` is null until the user drags; until then the wrapper uses the
 // original top:7.5rem / right:1rem CSS anchor so first-time users see the
 // panel exactly where it used to be.
+//
+// The localStorage key is scoped per `userId` so on shared devices the
+// panel position from one user does NOT leak to another. When `userId`
+// is unavailable (logged out, hook used outside an auth context) the
+// hook degrades gracefully: it still tracks position in memory but does
+// not read from or write to localStorage.
 // ============================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 
-export const POSITION_STORAGE_KEY = 'axon:sticky-notes:position';
+/**
+ * Build the per-user localStorage key for the sticky-notes panel position.
+ *
+ * Scoping by userId prevents cross-user leakage on shared devices: the
+ * old global key (`axon:sticky-notes:position`) is intentionally abandoned
+ * — on first use after this change each user gets a fresh default position.
+ */
+export const positionStorageKey = (userId: string): string =>
+  `axon:sticky-notes:position:${userId}`;
 
 // Approximate widget size used for bounds-clamping before layout is measured
 const ESTIMATED_WIDGET_WIDTH = 280;
@@ -25,10 +39,11 @@ export interface Position {
   y: number;
 }
 
-function loadSavedPosition(): Position | null {
+function loadSavedPosition(userId: string | null | undefined): Position | null {
   if (typeof window === 'undefined') return null;
+  if (!userId) return null;
   try {
-    const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
+    const raw = window.localStorage.getItem(positionStorageKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Position>;
     if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
@@ -72,13 +87,32 @@ export interface StickyNotesPositionApi {
  * The `expanded` flag is passed in so the hook can re-clamp the saved
  * position when the panel width changes (280 → 420 when expanded), which
  * would otherwise push the right edge off-screen.
+ *
+ * `userId` scopes the persisted position per user. Pass `null` (or
+ * `undefined`) when no user is authenticated — the hook will still let
+ * the user drag the panel for the current session but won't persist.
  */
-export function useStickyNotesPosition(expanded: boolean): StickyNotesPositionApi {
-  const [position, setPosition] = useState<Position | null>(() => loadSavedPosition());
+export function useStickyNotesPosition(
+  expanded: boolean,
+  userId: string | null | undefined,
+): StickyNotesPositionApi {
+  const [position, setPosition] = useState<Position | null>(() =>
+    loadSavedPosition(userId),
+  );
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dragOffsetRef = useRef<Position>({ x: 0, y: 0 });
   const didDragRef = useRef(false);
+
+  // If the userId becomes available after mount (or changes — e.g. user
+  // signs in / switches account on a shared device) re-hydrate from the
+  // per-user key. We deliberately do NOT migrate the old global key:
+  // resetting to default once is acceptable per the issue scope and
+  // avoids leaking the previous user's position into the new user.
+  useEffect(() => {
+    setPosition(loadSavedPosition(userId));
+    // Only re-hydrate when the userId identity changes.
+  }, [userId]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     // Ignore drags that start on interactive children (buttons, inputs, etc.)
@@ -130,15 +164,18 @@ export function useStickyNotesPosition(expanded: boolean): StickyNotesPositionAp
       } catch {
         // ignore if pointer was not captured
       }
-      if (didDragRef.current && position) {
+      if (didDragRef.current && position && userId) {
         try {
-          window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
+          window.localStorage.setItem(
+            positionStorageKey(userId),
+            JSON.stringify(position),
+          );
         } catch {
           // localStorage unavailable — silently ignore
         }
       }
     },
-    [isDragging, position],
+    [isDragging, position, userId],
   );
 
   // Re-clamp on window resize and on expand toggle (panel width changes
