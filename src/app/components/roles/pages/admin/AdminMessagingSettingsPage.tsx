@@ -403,7 +403,11 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSettings = useCallback(async () => {
+  // Pure fetcher — applies an optional cancellation guard so callers (effect
+  // cleanup, retry button) can opt into stale-response protection. Without the
+  // guard, a slow response for institution A could overwrite the newer data
+  // for institution B after a rapid switch.
+  const fetchSettings = useCallback(async (isCancelled?: () => boolean) => {
     if (!institutionId) return;
     setLoading(true);
     setError(null);
@@ -412,17 +416,27 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
         getMessagingSettings('telegram'),
         getMessagingSettings('whatsapp'),
       ]);
+      if (isCancelled?.()) return;
       setTelegramData(tg);
       setWhatsappData(wa);
     } catch (err: unknown) {
+      if (isCancelled?.()) return;
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       setError(msg);
     } finally {
-      setLoading(false);
+      if (!isCancelled?.()) setLoading(false);
     }
   }, [institutionId]);
 
   useEffect(() => {
+    let cancelled = false;
+    fetchSettings(() => cancelled);
+    return () => { cancelled = true; };
+  }, [fetchSettings]);
+
+  // Retry handler — fires a fresh fetch without any prior guard, since the
+  // user explicitly requested it after an error.
+  const handleRetry = useCallback(() => {
     fetchSettings();
   }, [fetchSettings]);
 
@@ -461,7 +475,7 @@ export function AdminMessagingSettingsPage({ onBack }: AdminMessagingSettingsPag
   }, []);
 
   if (loading) return <MessagingSkeleton />;
-  if (error) return <MessagingError message={error} onRetry={fetchSettings} />;
+  if (error) return <MessagingError message={error} onRetry={handleRetry} />;
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
