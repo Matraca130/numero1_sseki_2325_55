@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { GraphData } from '@/app/types/mindmap';
+import { extractSubgraph } from './graphHelpers';
 
 interface UseGraphSearchResult {
   searchQuery: string;
@@ -75,12 +76,7 @@ export function useGraphSearch(graphData: GraphData | null): UseGraphSearchResul
 
     const visibleIds = new Set([...debouncedMatchIds, ...neighborIds]);
 
-    return {
-      nodes: graphData.nodes.filter((n) => visibleIds.has(n.id)),
-      edges: graphData.edges.filter(
-        (e) => visibleIds.has(e.source) && visibleIds.has(e.target)
-      ),
-    };
+    return extractSubgraph(graphData, visibleIds);
   }, [graphData, debouncedSearch]);
 
   const matchCount = matchingNodeIds.size;

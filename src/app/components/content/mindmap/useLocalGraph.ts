@@ -8,6 +8,7 @@
 
 import { useMemo } from 'react';
 import type { GraphData } from '@/app/types/mindmap';
+import { extractSubgraph } from './graphHelpers';
 
 /**
  * Filter a full graph to only include nodes within `depth` hops
@@ -54,12 +55,6 @@ export function useLocalGraph(
       }
     }
 
-    // Filter nodes and edges
-    const nodes = fullGraph.nodes.filter(n => nodeIds.has(n.id));
-    const edges = fullGraph.edges.filter(
-      e => nodeIds.has(e.source) && nodeIds.has(e.target)
-    );
-
-    return { nodes, edges };
+    return extractSubgraph(fullGraph, nodeIds);
   }, [fullGraph, focalNodeId, depth]);
 }

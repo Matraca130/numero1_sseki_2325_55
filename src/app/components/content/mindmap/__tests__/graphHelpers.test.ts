@@ -14,6 +14,7 @@ import {
   buildChildrenMap,
   computeHiddenNodes,
   devWarn,
+  extractSubgraph,
 } from '../graphHelpers';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
 import type { MapEdge } from '@/app/types/mindmap';
@@ -582,5 +583,85 @@ describe('getNodeScreenPositions source contract', () => {
 
   it('label only attached when includeLabels === true', () => {
     expect(helpersSrc).toMatch(/if\s*\(includeLabels\)/);
+  });
+});
+// ── extractSubgraph ─────────────────────────────────────────
+
+describe('extractSubgraph', () => {
+  const node = (id: string, label = id) => ({ id, label, name: label, masteryColor: 'gray' as MasteryColor, isUserCreated: false });
+  const edge = (source: string, target: string, id = `${source}-${target}`): MapEdge => ({ id, source, target, label: '' });
+
+  it('returns nodes whose ids are in visibleIds', () => {
+    const graph = { nodes: [node('a'), node('b'), node('c')], edges: [] };
+    const result = extractSubgraph(graph, new Set(['a', 'c']));
+    expect(result.nodes.map(n => n.id)).toEqual(['a', 'c']);
+  });
+
+  it('returns edges where BOTH endpoints are in visibleIds', () => {
+    const graph = {
+      nodes: [node('a'), node('b'), node('c')],
+      edges: [edge('a', 'b'), edge('b', 'c'), edge('a', 'c')],
+    };
+    const result = extractSubgraph(graph, new Set(['a', 'c']));
+    expect(result.edges.map(e => e.id).sort()).toEqual(['a-c']);
+  });
+
+  it('drops edges whose source is in but target is out', () => {
+    const graph = { nodes: [node('a'), node('b')], edges: [edge('a', 'b')] };
+    const result = extractSubgraph(graph, new Set(['a']));
+    expect(result.edges).toEqual([]);
+  });
+
+  it('drops edges whose target is in but source is out', () => {
+    const graph = { nodes: [node('a'), node('b')], edges: [edge('a', 'b')] };
+    const result = extractSubgraph(graph, new Set(['b']));
+    expect(result.edges).toEqual([]);
+  });
+
+  it('empty visibleIds returns empty subgraph', () => {
+    const graph = { nodes: [node('a'), node('b')], edges: [edge('a', 'b')] };
+    const result = extractSubgraph(graph, new Set());
+    expect(result.nodes).toEqual([]);
+    expect(result.edges).toEqual([]);
+  });
+
+  it('all-ids visibleIds returns shape-equivalent graph (filter creates new arrays)', () => {
+    const graph = { nodes: [node('a'), node('b')], edges: [edge('a', 'b')] };
+    const result = extractSubgraph(graph, new Set(['a', 'b']));
+    expect(result.nodes).toHaveLength(2);
+    expect(result.edges).toHaveLength(1);
+    // .filter always returns a NEW array — identity is not preserved
+    expect(result.nodes).not.toBe(graph.nodes);
+    expect(result.edges).not.toBe(graph.edges);
+  });
+
+  it('preserves node order from original graph', () => {
+    const graph = { nodes: [node('z'), node('a'), node('m')], edges: [] };
+    const result = extractSubgraph(graph, new Set(['z', 'a', 'm']));
+    expect(result.nodes.map(n => n.id)).toEqual(['z', 'a', 'm']);
+  });
+
+  it('handles self-loop edge when endpoint is included', () => {
+    const graph = { nodes: [node('a')], edges: [edge('a', 'a', 'self')] };
+    const result = extractSubgraph(graph, new Set(['a']));
+    expect(result.edges).toHaveLength(1);
+  });
+
+  it('handles self-loop edge when endpoint is excluded', () => {
+    const graph = { nodes: [node('a'), node('b')], edges: [edge('a', 'a', 'self')] };
+    const result = extractSubgraph(graph, new Set(['b']));
+    expect(result.edges).toEqual([]);
+  });
+
+  it('orphan edge (source/target not in nodes) is filtered if id not in visibleIds', () => {
+    const graph = { nodes: [node('a')], edges: [edge('ghost', 'a')] };
+    const result = extractSubgraph(graph, new Set(['a']));
+    expect(result.edges).toEqual([]);
+  });
+
+  it('returns empty arrays (not null) for empty input graph', () => {
+    const result = extractSubgraph({ nodes: [], edges: [] }, new Set(['a']));
+    expect(result.nodes).toEqual([]);
+    expect(result.edges).toEqual([]);
   });
 });

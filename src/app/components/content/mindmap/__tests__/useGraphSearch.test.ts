@@ -7,9 +7,16 @@
 // project pattern of testing pure logic without jsdom.
 // ============================================================
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import type { MapNode, MapEdge, GraphData } from '@/app/types/mindmap';
 import type { MasteryColor } from '@/app/lib/mastery-helpers';
+import { useGraphSearch } from '../useGraphSearch';
+
+const SOURCE_PATH = resolve(__dirname, '..', 'useGraphSearch.ts');
+const source = readFileSync(SOURCE_PATH, 'utf-8');
 
 // ── Helpers: replicate the pure logic from useGraphSearch ────
 
@@ -391,5 +398,552 @@ describe('dense graph scenarios', () => {
     const filtered = computeFilteredGraphData(graph, 'Recursion')!;
     expect(filtered.nodes.length).toBe(1);
     expect(filtered.edges.length).toBe(1);
+  });
+});
+
+// ── Source contract (guards against refactor regressions) ───
+
+describe('useGraphSearch source contract', () => {
+  it('exports useGraphSearch as a named function', () => {
+    expect(typeof useGraphSearch).toBe('function');
+    expect(source).toContain('export function useGraphSearch');
+  });
+
+  it('uses a 300ms debounce delay (literal pinned)', () => {
+    expect(source).toContain('300');
+    // setTimeout(..., 300) — the callback can include parens, so just look for ", 300)"
+    expect(source).toMatch(/,\s*300\s*\)/);
+  });
+
+  it('uses setTimeout + clearTimeout for the debounce', () => {
+    expect(source).toContain('setTimeout');
+    expect(source).toContain('clearTimeout');
+  });
+
+  it('lowercases for case-insensitive matching', () => {
+    // Both query and labels must be lowercased
+    const occurrences = (source.match(/toLowerCase\(\)/g) ?? []).length;
+    expect(occurrences).toBeGreaterThanOrEqual(2);
+  });
+
+  it('uses substring matching via String.includes', () => {
+    expect(source).toContain('.includes(');
+  });
+
+  it('trims the search query before processing', () => {
+    expect(source).toContain('.trim()');
+  });
+
+  it('defends against undefined labels with ?? \'\' fallback', () => {
+    // Both matching memos should defensively coalesce label to ''.
+    const occurrences = (source.match(/n\.label\s*\?\?\s*''/g) ?? []).length;
+    expect(occurrences).toBeGreaterThanOrEqual(2);
+  });
+
+  it('declares the documented return shape keys', () => {
+    expect(source).toContain('searchQuery');
+    expect(source).toContain('setSearchQuery');
+    expect(source).toContain('matchingNodeIds');
+    expect(source).toContain('filteredGraphData');
+    expect(source).toContain('matchCount');
+    expect(source).toContain('nodeCount');
+    expect(source).toContain('edgeCount');
+  });
+
+  it('uses useState/useEffect/useMemo from react', () => {
+    expect(source).toMatch(
+      /from 'react'/
+    );
+    expect(source).toContain('useState');
+    expect(source).toContain('useEffect');
+    expect(source).toContain('useMemo');
+  });
+
+  it('matchingNodeIds memo depends on searchQuery (NOT debouncedSearch)', () => {
+    // The instant highlight memo must depend on the raw query, otherwise
+    // highlighting would lag behind typing.
+    const memoBody = source.split('matchingNodeIds = useMemo')[1] ?? '';
+    // Look at the deps array following the memo
+    expect(memoBody).toMatch(/\[graphData,\s*searchQuery\]/);
+  });
+
+  it('filteredGraphData memo depends on debouncedSearch (NOT raw searchQuery)', () => {
+    const memoBody = source.split('filteredGraphData = useMemo')[1] ?? '';
+    expect(memoBody).toMatch(/\[graphData,\s*debouncedSearch\]/);
+  });
+
+  it('debounce effect depends only on searchQuery', () => {
+    // The effect should NOT re-run when graphData changes
+    expect(source).toMatch(/\[searchQuery\]/);
+  });
+});
+
+// ── Hook integration: initial render & return shape ─────────
+
+describe('useGraphSearch (hook): initial state', () => {
+  it('returns the documented shape on first render', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current).toHaveProperty('searchQuery');
+    expect(result.current).toHaveProperty('setSearchQuery');
+    expect(result.current).toHaveProperty('matchingNodeIds');
+    expect(result.current).toHaveProperty('filteredGraphData');
+    expect(result.current).toHaveProperty('matchCount');
+    expect(result.current).toHaveProperty('nodeCount');
+    expect(result.current).toHaveProperty('edgeCount');
+  });
+
+  it('searchQuery starts as empty string', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current.searchQuery).toBe('');
+  });
+
+  it('matchingNodeIds is an empty Set on first render', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current.matchingNodeIds).toBeInstanceOf(Set);
+    expect(result.current.matchingNodeIds.size).toBe(0);
+  });
+
+  it('filteredGraphData is the input graph by reference when query is empty', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+  });
+
+  it('matchCount is 0 when no query', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current.matchCount).toBe(0);
+  });
+
+  it('nodeCount equals all nodes when no query (full graph passes through)', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current.nodeCount).toBe(sampleGraph.nodes.length);
+  });
+
+  it('edgeCount equals all edges when no query', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(result.current.edgeCount).toBe(sampleGraph.edges.length);
+  });
+
+  it('returns null filteredGraphData when graphData is null', () => {
+    const { result } = renderHook(() => useGraphSearch(null));
+    expect(result.current.filteredGraphData).toBeNull();
+    expect(result.current.nodeCount).toBe(0);
+    expect(result.current.edgeCount).toBe(0);
+    expect(result.current.matchCount).toBe(0);
+  });
+
+  it('setSearchQuery is a function reference', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    expect(typeof result.current.setSearchQuery).toBe('function');
+  });
+});
+
+// ── Hook integration: instant highlight (no debounce) ───────
+
+describe('useGraphSearch (hook): instant matchingNodeIds', () => {
+  it('updates matchingNodeIds immediately on setSearchQuery (no debounce wait)', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mito');
+    });
+    expect(result.current.matchingNodeIds.has('n1')).toBe(true);
+    expect(result.current.matchingNodeIds.size).toBe(1);
+    expect(result.current.matchCount).toBe(1);
+  });
+
+  it('matchingNodeIds reflects the raw query, even before debounce settles', () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useGraphSearch(sampleGraph));
+      act(() => {
+        result.current.setSearchQuery('Cell');
+      });
+      // No timer advance yet: matchingNodeIds is already populated
+      expect(result.current.matchingNodeIds.has('n3')).toBe(true);
+      expect(result.current.matchCount).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('searchQuery state holds the raw value', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('  spaced  ');
+    });
+    expect(result.current.searchQuery).toBe('  spaced  ');
+  });
+
+  it('clearing the query empties matchingNodeIds immediately', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    expect(result.current.matchingNodeIds.size).toBe(1);
+    act(() => {
+      result.current.setSearchQuery('');
+    });
+    expect(result.current.matchingNodeIds.size).toBe(0);
+  });
+
+  it('matchingNodeIds Set ref is stable across rerender when graphData and query unchanged', () => {
+    const { result, rerender } = renderHook(
+      ({ g }: { g: GraphData }) => useGraphSearch(g),
+      { initialProps: { g: sampleGraph } }
+    );
+    const refBefore = result.current.matchingNodeIds;
+    rerender({ g: sampleGraph });
+    expect(result.current.matchingNodeIds).toBe(refBefore);
+  });
+
+  it('matchingNodeIds Set ref changes when query changes', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    const refEmpty = result.current.matchingNodeIds;
+    act(() => {
+      result.current.setSearchQuery('Mito');
+    });
+    expect(result.current.matchingNodeIds).not.toBe(refEmpty);
+  });
+
+  it('matchingNodeIds Set ref changes when graphData reference changes', () => {
+    const { result, rerender } = renderHook(
+      ({ g }: { g: GraphData }) => useGraphSearch(g),
+      { initialProps: { g: sampleGraph } }
+    );
+    act(() => {
+      result.current.setSearchQuery('Mito');
+    });
+    const refBefore = result.current.matchingNodeIds;
+    const newGraph: GraphData = { nodes: [...sampleGraph.nodes], edges: [...sampleGraph.edges] };
+    rerender({ g: newGraph });
+    expect(result.current.matchingNodeIds).not.toBe(refBefore);
+  });
+});
+
+// ── Hook integration: debounce timing (300ms literal) ───────
+
+describe('useGraphSearch (hook): 300ms debounce', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('filteredGraphData does NOT update before 300ms elapse', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    // Initial: filteredGraphData is still the full graph (debouncedSearch empty)
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    // Just shy of 300ms: still the full graph
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+  });
+
+  it('filteredGraphData updates exactly at 300ms', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    // Now the debounced filter has run
+    expect(result.current.filteredGraphData).not.toBe(sampleGraph);
+    const ids = new Set(result.current.filteredGraphData!.nodes.map((n) => n.id));
+    expect(ids.has('n1')).toBe(true);
+    expect(ids.has('n3')).toBe(true);
+  });
+
+  it('rapid setSearchQuery calls reset the timer (only last value lands)', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mit');
+    });
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    act(() => {
+      result.current.setSearchQuery('Meio');
+    });
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    // 150 + 150 = 300ms total but only 150ms since the last change → no fire yet
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    // Now 300ms since "Meio" was set
+    const ids = new Set(result.current.filteredGraphData!.nodes.map((n) => n.id));
+    expect(ids.has('n2')).toBe(true); // Meiosis matched
+    expect(ids.has('n1')).toBe(false); // "Mit" was cancelled
+  });
+
+  it('clearing query mid-debounce skips the timer (immediate empty)', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    // Mid-debounce: clear query
+    act(() => {
+      result.current.setSearchQuery('');
+    });
+    // Empty-string fast path: debouncedSearch is set synchronously to ''
+    // → filteredGraphData is the original graph immediately, no 300ms wait
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+  });
+
+  it('whitespace-only query also takes the empty fast-path', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    // Switch to whitespace
+    act(() => {
+      result.current.setSearchQuery('   ');
+    });
+    // Fast path: debouncedSearch becomes '', filteredGraphData reverts immediately
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+  });
+
+  it('does NOT throw or warn when unmounted mid-debounce (cleanup runs)', () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { result, unmount } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    // Unmount before debounce fires
+    unmount();
+    // Advance past 300ms — the cleared timer should not fire any setState
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(errSpy).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+  });
+
+  it('setting same query twice does not double-schedule (cleanup before new effect)', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    // No advance: setting the SAME value will not trigger a new setState
+    // (useState bails out for identical values), so the same effect persists
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    const ids = new Set(result.current.filteredGraphData!.nodes.map((n) => n.id));
+    expect(ids.has('n1')).toBe(true);
+  });
+
+  it('changing query after debounce settles re-debounces correctly', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    const firstFiltered = result.current.filteredGraphData;
+    expect(firstFiltered).not.toBe(sampleGraph);
+
+    act(() => {
+      result.current.setSearchQuery('Cell');
+    });
+    // Pre-debounce: filtered still reflects old "Mitosis" result
+    expect(result.current.filteredGraphData).toBe(firstFiltered);
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    const ids = new Set(result.current.filteredGraphData!.nodes.map((n) => n.id));
+    expect(ids.has('n3')).toBe(true); // Cell Cycle is now in scope
+  });
+});
+
+// ── Hook integration: filteredGraphData identity & deps ─────
+
+describe('useGraphSearch (hook): filteredGraphData memo behavior', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('filteredGraphData ref is stable across rerender when nothing relevant changed', () => {
+    const { result, rerender } = renderHook(
+      ({ g }: { g: GraphData }) => useGraphSearch(g),
+      { initialProps: { g: sampleGraph } }
+    );
+    const before = result.current.filteredGraphData;
+    rerender({ g: sampleGraph });
+    expect(result.current.filteredGraphData).toBe(before);
+  });
+
+  it('filteredGraphData ref does NOT change when raw query types but debounce hasn\'t fired', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    const before = result.current.filteredGraphData;
+    act(() => {
+      result.current.setSearchQuery('Mit');
+    });
+    // Raw query changed but debounced hasn't — memo should keep ref stable
+    expect(result.current.filteredGraphData).toBe(before);
+  });
+
+  it('filteredGraphData ref changes when debouncedSearch updates', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    const before = result.current.filteredGraphData;
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(result.current.filteredGraphData).not.toBe(before);
+  });
+
+  it('filteredGraphData reverts to original graph reference after clearing', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    // Now filteredGraphData is a new object
+    expect(result.current.filteredGraphData).not.toBe(sampleGraph);
+    act(() => {
+      result.current.setSearchQuery('');
+    });
+    // Empty fast-path: should be the original by reference
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+  });
+
+  it('counts (nodeCount, edgeCount, matchCount) update consistently with the memos', () => {
+    const { result } = renderHook(() => useGraphSearch(sampleGraph));
+    act(() => {
+      result.current.setSearchQuery('Mitosis');
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    // matchCount = matchingNodeIds.size, nodeCount = filtered.nodes.length, etc.
+    expect(result.current.matchCount).toBe(result.current.matchingNodeIds.size);
+    expect(result.current.nodeCount).toBe(
+      result.current.filteredGraphData!.nodes.length
+    );
+    expect(result.current.edgeCount).toBe(
+      result.current.filteredGraphData!.edges.length
+    );
+  });
+});
+
+// ── Hook integration: defensive label handling ──────────────
+
+describe('useGraphSearch (hook): defensive label handling', () => {
+  it('handles a node with undefined label without throwing', () => {
+    // The source uses `n.label ?? ''` for defense
+    const graphWithUndefined: GraphData = {
+      nodes: [
+        // Cast to bypass strict typing — we're testing runtime defense
+        { ...mkNode('a', 'Alpha'), label: undefined as unknown as string },
+        mkNode('b', 'Beta'),
+      ],
+      edges: [],
+    };
+    expect(() => {
+      const { result } = renderHook(() => useGraphSearch(graphWithUndefined));
+      act(() => {
+        result.current.setSearchQuery('beta');
+      });
+      // The undefined-label node won't match, but the call must not throw
+      expect(result.current.matchingNodeIds.has('b')).toBe(true);
+      expect(result.current.matchingNodeIds.has('a')).toBe(false);
+    }).not.toThrow();
+  });
+
+  it('handles a node with null label without throwing', () => {
+    const graphWithNull: GraphData = {
+      nodes: [
+        { ...mkNode('a', 'Alpha'), label: null as unknown as string },
+        mkNode('b', 'Beta'),
+      ],
+      edges: [],
+    };
+    expect(() => {
+      const { result } = renderHook(() => useGraphSearch(graphWithNull));
+      act(() => {
+        result.current.setSearchQuery('alpha');
+      });
+      // null label gets coalesced to '' — no match for "alpha"
+      expect(result.current.matchingNodeIds.size).toBe(0);
+    }).not.toThrow();
+  });
+});
+
+// ── Hook integration: graphData transitions ─────────────────
+
+describe('useGraphSearch (hook): graphData transitions', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('handles transition from null → graph', () => {
+    const { result, rerender } = renderHook(
+      ({ g }: { g: GraphData | null }) => useGraphSearch(g),
+      { initialProps: { g: null as GraphData | null } }
+    );
+    expect(result.current.filteredGraphData).toBeNull();
+    rerender({ g: sampleGraph });
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+  });
+
+  it('handles transition from graph → null', () => {
+    const { result, rerender } = renderHook(
+      ({ g }: { g: GraphData | null }) => useGraphSearch(g),
+      { initialProps: { g: sampleGraph as GraphData | null } }
+    );
+    expect(result.current.filteredGraphData).toBe(sampleGraph);
+    rerender({ g: null });
+    expect(result.current.filteredGraphData).toBeNull();
+    expect(result.current.matchingNodeIds.size).toBe(0);
+  });
+
+  it('matching survives a graphData swap (re-evaluates against new nodes)', () => {
+    const graphA: GraphData = {
+      nodes: [mkNode('a1', 'AlphaTopic')],
+      edges: [],
+    };
+    const graphB: GraphData = {
+      nodes: [mkNode('b1', 'AlphaConcept')],
+      edges: [],
+    };
+    const { result, rerender } = renderHook(
+      ({ g }: { g: GraphData }) => useGraphSearch(g),
+      { initialProps: { g: graphA } }
+    );
+    act(() => {
+      result.current.setSearchQuery('Alpha');
+    });
+    expect(result.current.matchingNodeIds.has('a1')).toBe(true);
+    rerender({ g: graphB });
+    expect(result.current.matchingNodeIds.has('b1')).toBe(true);
+    expect(result.current.matchingNodeIds.has('a1')).toBe(false);
   });
 });

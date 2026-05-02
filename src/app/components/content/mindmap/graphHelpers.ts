@@ -41,6 +41,28 @@ export function escHtml(s: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// ── Subgraph extraction ─────────────────────────────────────
+
+/**
+ * Filter a graph down to only the nodes whose IDs are in `visibleIds`,
+ * AND only the edges whose BOTH endpoints are in `visibleIds`.
+ *
+ * Pure helper — extracted in cycle #51 from useGraphSearch (depth-1 search
+ * filter) and useLocalGraph (depth-N BFS focal-node filter), both of which
+ * end with this exact `nodes.filter + edges.filter` pattern.
+ */
+export function extractSubgraph(
+  graph: GraphData,
+  visibleIds: Set<string>,
+): GraphData {
+  return {
+    nodes: graph.nodes.filter((n) => visibleIds.has(n.id)),
+    edges: graph.edges.filter(
+      (e) => visibleIds.has(e.source) && visibleIds.has(e.target),
+    ),
+  };
+}
+
 // ── Collapse helpers ─────────────────────────────────────────
 
 /**
