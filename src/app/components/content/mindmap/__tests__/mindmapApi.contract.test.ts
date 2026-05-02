@@ -95,6 +95,29 @@ beforeEach(() => {
 // ============================================================
 
 describe('mindmapApi: source contract', () => {
+  it('imports logger from @/app/lib/logger (cycle 54: replaced raw if-DEV console)', () => {
+    expect(source).toMatch(/import\s*\{\s*logger\s*\}\s*from\s*['"]@\/app\/lib\/logger['"]/);
+  });
+
+  it('uses logger.warn/info instead of raw console.warn/info', () => {
+    // Cycle 54: 3 sites at L94-96, L254-265, L363 swapped to logger calls.
+    expect(source).not.toMatch(/console\.warn\s*\(/);
+    expect(source).not.toMatch(/console\.info\s*\(/);
+    expect(source).toMatch(/logger\.warn\s*\(\s*['"]MindmapApi['"]/);
+    // logger.info appears at least twice (mock-fallback + custom-graph-empty).
+    expect((source.match(/logger\.info\s*\(\s*['"]MindmapApi['"]/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('preserves DEV guard around fetchClassMastery mock-data return (prod must throw)', () => {
+    // Cycle 54: the `return graphNodes.map(...)` early-return inside
+    // isNotFoundError handling must stay inside `if (import.meta.env.DEV)`.
+    // Vite tree-shakes this branch in production so prod throws the user-
+    // facing error below. Verify both elements coexist in the file.
+    expect(source).toContain('if (isNotFoundError(e))');
+    expect(source).toMatch(/if\s*\(import\.meta\.env\.DEV\)\s*\{\s*\n\s*logger\.info\([^)]+\);\s*\n\s*return graphNodes\.map/);
+    expect(source).toContain("throw new Error('El mapa de calor no está disponible en este momento.')");
+  });
+
   it('exports fetchGraphByTopic as async function', () => {
     expect(source).toContain('export async function fetchGraphByTopic(');
   });
@@ -698,5 +721,885 @@ describe('mindmapApi: connection batch error handling', () => {
     const result = await fetchGraphByTopic('t1');
     // Should still have the edge from the successful batch
     expect(result.edges.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ============================================================
+// unwrapItems defensive matrix (tested via fetchGraphTemplates)
+// ============================================================
+
+describe('mindmapApi: unwrapItems defensive matrix', () => {
+  it('returns [] when apiCall resolves null', async () => {
+    mockApiCall.mockResolvedValue(null);
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when apiCall resolves undefined', async () => {
+    mockApiCall.mockResolvedValue(undefined);
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when apiCall resolves a plain object without items key', async () => {
+    mockApiCall.mockResolvedValue({ foo: 1, bar: 'baz' });
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when items is null', async () => {
+    mockApiCall.mockResolvedValue({ items: null });
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when items is a string (not array)', async () => {
+    mockApiCall.mockResolvedValue({ items: 'not-an-array' });
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when items is undefined', async () => {
+    mockApiCall.mockResolvedValue({ items: undefined });
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] for empty {items: []}', async () => {
+    mockApiCall.mockResolvedValue({ items: [] });
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] for bare empty array', async () => {
+    mockApiCall.mockResolvedValue([]);
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when apiCall resolves a number (defensive)', async () => {
+    mockApiCall.mockResolvedValue(42);
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] when apiCall resolves a string (defensive)', async () => {
+    mockApiCall.mockResolvedValue('not-an-object');
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toEqual([]);
+  });
+
+  it('preserves array elements as-is when apiCall returns bare array', async () => {
+    const items = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    mockApiCall.mockResolvedValue(items);
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toBe(items); // same reference: source returns array directly
+  });
+
+  it('returns the inner items array when wrapped', async () => {
+    const inner = [{ id: 'x' }];
+    mockApiCall.mockResolvedValue({ items: inner });
+    const result = await fetchGraphTemplates('inst-1');
+    expect(result).toBe(inner); // same reference
+  });
+});
+
+// ============================================================
+// isNotFoundError predicate matrix (tested via fetchCustomGraph)
+// fetchCustomGraph returns empty on match, re-throws otherwise.
+// ============================================================
+
+describe('mindmapApi: isNotFoundError matrix', () => {
+  it('matches "API Error 404" (apiCall format)', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const result = await fetchCustomGraph('t1');
+    expect(result).toEqual({ nodes: [], edges: [] });
+  });
+
+  it('matches "Invalid response from server (404)" (alt apiCall format)', async () => {
+    mockApiCall.mockRejectedValue(new Error('Invalid response from server (404)'));
+    const result = await fetchCustomGraph('t1');
+    expect(result).toEqual({ nodes: [], edges: [] });
+  });
+
+  it('matches plain "not found" (lowercase)', async () => {
+    mockApiCall.mockRejectedValue(new Error('not found'));
+    const result = await fetchCustomGraph('t1');
+    expect(result).toEqual({ nodes: [], edges: [] });
+  });
+
+  it('matches plain "Not Found" (mixed case)', async () => {
+    mockApiCall.mockRejectedValue(new Error('Not Found'));
+    const result = await fetchCustomGraph('t1');
+    expect(result).toEqual({ nodes: [], edges: [] });
+  });
+
+  it('does NOT match generic 500 errors', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 500'));
+    await expect(fetchCustomGraph('t1')).rejects.toThrow('API Error 500');
+  });
+
+  it('does NOT match 401 unauthorized', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 401'));
+    await expect(fetchCustomGraph('t1')).rejects.toThrow('API Error 401');
+  });
+
+  it('does NOT match strings containing "404" without word boundary (e.g., "5404")', async () => {
+    mockApiCall.mockRejectedValue(new Error('Error code 5404 occurred'));
+    await expect(fetchCustomGraph('t1')).rejects.toThrow('Error code 5404');
+  });
+
+  it('does NOT match "Database table not found" (substring not exact match)', async () => {
+    // Per source comment: "Database table not found" is a 500 error w/ those words.
+    // The check is exact equality msg.toLowerCase() === 'not found', NOT substring.
+    mockApiCall.mockRejectedValue(new Error('Database table not found'));
+    await expect(fetchCustomGraph('t1')).rejects.toThrow('Database table not found');
+  });
+
+  it('handles non-Error thrown string defensively', async () => {
+    mockApiCall.mockRejectedValue('not found');
+    const result = await fetchCustomGraph('t1');
+    // String "not found" → String(e) = 'not found' → matches
+    expect(result).toEqual({ nodes: [], edges: [] });
+  });
+
+  it('handles non-Error thrown undefined defensively (no crash)', async () => {
+    mockApiCall.mockRejectedValue(undefined);
+    // String(undefined) = 'undefined' → doesn't match → re-throws
+    await expect(fetchCustomGraph('t1')).rejects.toBeUndefined();
+  });
+
+  it('handles non-Error thrown null defensively', async () => {
+    mockApiCall.mockRejectedValue(null);
+    // String(null) = 'null' → doesn't match → re-throws
+    await expect(fetchCustomGraph('t1')).rejects.toBeNull();
+  });
+
+  it('matches when 404 appears with surrounding text', async () => {
+    mockApiCall.mockRejectedValue(new Error('Server returned 404 status'));
+    const result = await fetchCustomGraph('t1');
+    expect(result).toEqual({ nodes: [], edges: [] });
+  });
+});
+
+// ============================================================
+// Edge label fallback chain (relationship → connection_type → undefined)
+// ============================================================
+
+describe('mindmapApi: edge label fallback', () => {
+  function setupTwoNodes() {
+    return makeMasteryMap([
+      { id: 'a', name: 'A', mastery: 0.5 },
+      { id: 'b', name: 'B', mastery: 0.5 },
+    ]);
+  }
+
+  it('uses relationship when present', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', relationship: 'depends_on', connection_type: 'asociacion' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].label).toBe('depends_on');
+  });
+
+  it('falls back to connection_type when relationship missing', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', connection_type: 'causa-efecto' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].label).toBe('causa-efecto');
+  });
+
+  it('label is undefined when both relationship and connection_type missing', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].label).toBeUndefined();
+  });
+
+  it('falls back when relationship is empty string', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', relationship: '', connection_type: 'jerarquia' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].label).toBe('jerarquia');
+  });
+
+  it('connectionType is set independently of label', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', relationship: 'rel', connection_type: 'ct' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].label).toBe('rel');
+    expect(result.edges[0].connectionType).toBe('ct');
+  });
+
+  it('connectionType is undefined when source has empty connection_type', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', relationship: 'r', connection_type: '' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].connectionType).toBeUndefined();
+  });
+
+  it('sourceKeywordId is preserved when set on connection', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', source_keyword_id: 'a' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].sourceKeywordId).toBe('a');
+  });
+
+  it('sourceKeywordId is undefined when source connection has empty source_keyword_id', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwoNodes());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', source_keyword_id: '' },
+    ]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.edges[0].sourceKeywordId).toBeUndefined();
+  });
+});
+
+// ============================================================
+// URL encoding for IDs across endpoints
+// ============================================================
+
+describe('mindmapApi: URL encoding', () => {
+  it('fetchClassMastery encodes topicId with special chars', async () => {
+    mockApiCall.mockResolvedValue([]);
+    await fetchClassMastery('topic with spaces & special?', []);
+    expect(mockApiCall).toHaveBeenCalledWith(
+      `/ai/class-mastery?topic_id=${encodeURIComponent('topic with spaces & special?')}`,
+    );
+  });
+
+  it('fetchCustomGraph encodes topicId in BOTH endpoints', async () => {
+    mockApiCall.mockResolvedValue([]);
+    await fetchCustomGraph('t/with/slashes');
+
+    const calls = mockApiCall.mock.calls;
+    expect(calls[0][0]).toBe(`/student-custom-nodes?topic_id=${encodeURIComponent('t/with/slashes')}`);
+    expect(calls[1][0]).toBe(`/student-custom-edges?topic_id=${encodeURIComponent('t/with/slashes')}`);
+  });
+
+  it('fetchGraphTemplates encodes institutionId', async () => {
+    mockApiCall.mockResolvedValue([]);
+    await fetchGraphTemplates('inst with #hash');
+    expect(mockApiCall).toHaveBeenCalledWith(
+      `/professor/graph-templates?institution_id=${encodeURIComponent('inst with #hash')}`,
+    );
+  });
+
+  it('deleteCustomEdge encodes edge ID', async () => {
+    mockApiCall.mockResolvedValue(undefined);
+    await deleteCustomEdge('edge id with spaces');
+    expect(mockApiCall).toHaveBeenCalledWith(
+      `/student-custom-edges/${encodeURIComponent('edge id with spaces')}`,
+      { method: 'DELETE' },
+    );
+  });
+
+  it('deleteGraphTemplate encodes template ID', async () => {
+    mockApiCall.mockResolvedValue(undefined);
+    await deleteGraphTemplate('gt id/with/slashes');
+    expect(mockApiCall).toHaveBeenCalledWith(
+      `/professor/graph-templates/${encodeURIComponent('gt id/with/slashes')}`,
+      { method: 'DELETE' },
+    );
+  });
+
+  it('fetchConnectionsBatch encodes each keyword ID', async () => {
+    const masteryMap = makeMasteryMap([
+      { id: 'kw with space', name: 'A', mastery: 0.5 },
+      { id: 'kw#hash', name: 'B', mastery: 0.5 },
+    ]);
+    mockFetchMasteryByTopic.mockResolvedValue(masteryMap);
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByTopic('t1');
+    const callUrl = mockApiCall.mock.calls[0][0] as string;
+    expect(callUrl).toContain(encodeURIComponent('kw with space'));
+    expect(callUrl).toContain(encodeURIComponent('kw#hash'));
+  });
+});
+
+// ============================================================
+// CRUD with minimal payloads (optional fields absent)
+// ============================================================
+
+describe('mindmapApi: CRUD with minimal payloads', () => {
+  it('createCustomNode works without optional definition', async () => {
+    const payload: CreateCustomNodePayload = { label: 'Just a label', topic_id: 't1' };
+    const response = { id: 'cn-min', label: 'Just a label', topic_id: 't1' };
+    mockApiCall.mockResolvedValue(response);
+
+    const result = await createCustomNode(payload);
+    expect(result).toEqual(response);
+    expect(mockApiCall).toHaveBeenCalledWith('/student-custom-nodes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  });
+
+  it('createCustomEdge works without optional fields', async () => {
+    const payload: CreateCustomEdgePayload = {
+      source_node_id: 'a',
+      target_node_id: 'b',
+      topic_id: 't1',
+    };
+    const response = { id: 'ce-min', ...payload };
+    mockApiCall.mockResolvedValue(response);
+
+    const result = await createCustomEdge(payload);
+    expect(result).toEqual(response);
+    const body = (mockApiCall.mock.calls[0][1] as { body: string }).body;
+    const parsed = JSON.parse(body);
+    expect(parsed.line_style).toBeUndefined();
+    expect(parsed.custom_color).toBeUndefined();
+    expect(parsed.directed).toBeUndefined();
+    expect(parsed.arrow_type).toBeUndefined();
+  });
+
+  it('createCustomNode propagates non-404 errors to caller', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 500'));
+    await expect(
+      createCustomNode({ label: 'x', topic_id: 't1' }),
+    ).rejects.toThrow('API Error 500');
+  });
+
+  it('createCustomEdge propagates non-404 errors to caller', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 500'));
+    await expect(
+      createCustomEdge({ source_node_id: 'a', target_node_id: 'b', topic_id: 't1' }),
+    ).rejects.toThrow('API Error 500');
+  });
+
+  it('deleteCustomNode propagates errors', async () => {
+    mockApiCall.mockRejectedValue(new Error('Forbidden'));
+    await expect(deleteCustomNode('cn-1')).rejects.toThrow('Forbidden');
+  });
+
+  it('createCustomNode does NOT swallow 404 errors (write semantics)', async () => {
+    // Reads use 404 fallbacks, but writes should propagate 404s (no fallback for create)
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    await expect(
+      createCustomNode({ label: 'x', topic_id: 't1' }),
+    ).rejects.toThrow('API Error 404');
+  });
+
+  it('createCustomEdge serializes all 4 styling fields when set', async () => {
+    const payload: CreateCustomEdgePayload = {
+      source_node_id: 's',
+      target_node_id: 't',
+      topic_id: 'tt',
+      line_style: 'dashed',
+      custom_color: '#abcdef',
+      directed: false,
+      arrow_type: 'circle',
+    };
+    mockApiCall.mockResolvedValue({ id: 'x', ...payload });
+    await createCustomEdge(payload);
+    const parsed = JSON.parse((mockApiCall.mock.calls[0][1] as { body: string }).body);
+    expect(parsed.line_style).toBe('dashed');
+    expect(parsed.custom_color).toBe('#abcdef');
+    expect(parsed.directed).toBe(false);
+    expect(parsed.arrow_type).toBe('circle');
+  });
+
+  it('createGraphTemplate works without optional description', async () => {
+    const payload: CreateGraphTemplatePayload = {
+      name: 'Plain',
+      institution_id: 'inst-1',
+      topic_id: 't1',
+      nodes: [],
+      edges: [],
+    };
+    mockApiCall.mockResolvedValue({ id: 'gt-1', ...payload });
+    await createGraphTemplate(payload);
+    const parsed = JSON.parse((mockApiCall.mock.calls[0][1] as { body: string }).body);
+    expect(parsed.description).toBeUndefined();
+    expect(parsed.name).toBe('Plain');
+  });
+
+  it('createGraphTemplate propagates errors', async () => {
+    mockApiCall.mockRejectedValue(new Error('Forbidden'));
+    await expect(
+      createGraphTemplate({
+        name: 'x',
+        institution_id: 'i',
+        topic_id: 't',
+        nodes: [],
+        edges: [],
+      }),
+    ).rejects.toThrow('Forbidden');
+  });
+});
+
+// ============================================================
+// fetchClassMastery mock-data shape constraints
+// ============================================================
+
+describe('mindmapApi: fetchClassMastery mock data shape (DEV 404 fallback)', () => {
+  it('returns empty array on 404 with empty graphNodes', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const result = await fetchClassMastery('t1', []);
+    expect(result).toEqual([]);
+  });
+
+  it('avg_mastery is in [0.10, 0.95] range', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const nodes = Array.from({ length: 50 }, (_, i) => ({
+      id: `kw-${i}`,
+      label: `K${i}`,
+      type: 'keyword' as const,
+      mastery: 0.5,
+      masteryColor: 'yellow' as const,
+    }));
+    const result = await fetchClassMastery('t1', nodes);
+    for (const r of result) {
+      expect(r.avg_mastery).toBeGreaterThanOrEqual(0.10);
+      expect(r.avg_mastery).toBeLessThanOrEqual(0.95);
+    }
+  });
+
+  it('student_count is at least 5', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const nodes = Array.from({ length: 30 }, (_, i) => ({
+      id: `kw-${i}`,
+      label: `K${i}`,
+      type: 'keyword' as const,
+      mastery: 0.5,
+      masteryColor: 'yellow' as const,
+    }));
+    const result = await fetchClassMastery('t1', nodes);
+    for (const r of result) {
+      expect(r.student_count).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it('weak_student_count is bounded by min(student_count, 10)', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const nodes = Array.from({ length: 30 }, (_, i) => ({
+      id: `kw-${i}`,
+      label: `K${i}`,
+      type: 'keyword' as const,
+      mastery: 0.5,
+      masteryColor: 'yellow' as const,
+    }));
+    const result = await fetchClassMastery('t1', nodes);
+    for (const r of result) {
+      expect(r.weak_student_count).toBeGreaterThanOrEqual(0);
+      expect(r.weak_student_count).toBeLessThanOrEqual(Math.min(r.student_count, 10));
+    }
+  });
+
+  it('preserves keyword_id and keyword_name from input nodes', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const nodes = [
+      { id: 'kw-alpha', label: 'Alpha', type: 'keyword' as const, mastery: 0.5, masteryColor: 'yellow' as const },
+      { id: 'kw-beta', label: 'Beta', type: 'keyword' as const, mastery: 0.8, masteryColor: 'green' as const },
+    ];
+    const result = await fetchClassMastery('t1', nodes);
+    expect(result[0].keyword_id).toBe('kw-alpha');
+    expect(result[0].keyword_name).toBe('Alpha');
+    expect(result[1].keyword_id).toBe('kw-beta');
+    expect(result[1].keyword_name).toBe('Beta');
+  });
+
+  it('output array length matches input graphNodes length', async () => {
+    mockApiCall.mockRejectedValue(new Error('API Error 404'));
+    const nodes = Array.from({ length: 7 }, (_, i) => ({
+      id: `kw-${i}`,
+      label: `K${i}`,
+      type: 'keyword' as const,
+      mastery: 0.5,
+      masteryColor: 'yellow' as const,
+    }));
+    const result = await fetchClassMastery('t1', nodes);
+    expect(result).toHaveLength(7);
+  });
+});
+
+// ============================================================
+// fetchGraphByCourse edge cases
+// ============================================================
+
+describe('mindmapApi: fetchGraphByCourse edge cases', () => {
+  it('keyword belonging to multiple topics — last topic wins in topicMap', async () => {
+    const map1 = makeMasteryMap([{ id: 'kw-shared', name: 'Shared', mastery: 0.5 }]);
+    const map2 = makeMasteryMap([{ id: 'kw-shared', name: 'Shared', mastery: 0.6 }]);
+
+    mockFetchMasteryByTopic
+      .mockResolvedValueOnce(map1)
+      .mockResolvedValueOnce(map2);
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByCourse(['t1', 't2']);
+    expect(result.nodes).toHaveLength(1);
+    // last-write-wins: t2 overwrote t1 in topicMap
+    expect(result.nodes[0].topicId).toBe('t2');
+  });
+
+  it('preserves successful topic when failure is at index 0', async () => {
+    const map2 = makeMasteryMap([{ id: 'kw-2', name: 'K2', mastery: 0.5 }]);
+    mockFetchMasteryByTopic
+      .mockRejectedValueOnce(new Error('first failed'))
+      .mockResolvedValueOnce(map2);
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByCourse(['t1', 't2']);
+    expect(result.nodes).toHaveLength(1);
+    expect(result.nodes[0].id).toBe('kw-2');
+    expect(result.nodes[0].topicId).toBe('t2');
+  });
+
+  it('preserves successful topic when failure is at last index', async () => {
+    const map1 = makeMasteryMap([{ id: 'kw-1', name: 'K1', mastery: 0.5 }]);
+    mockFetchMasteryByTopic
+      .mockResolvedValueOnce(map1)
+      .mockRejectedValueOnce(new Error('last failed'));
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByCourse(['t1', 't2']);
+    expect(result.nodes).toHaveLength(1);
+    expect(result.nodes[0].id).toBe('kw-1');
+    expect(result.nodes[0].topicId).toBe('t1');
+  });
+
+  it('builds connections call only once (single batch) for merged keywords', async () => {
+    const map1 = makeMasteryMap([{ id: 'kw-1', name: 'K1', mastery: 0.5 }]);
+    const map2 = makeMasteryMap([{ id: 'kw-2', name: 'K2', mastery: 0.5 }]);
+    mockFetchMasteryByTopic
+      .mockResolvedValueOnce(map1)
+      .mockResolvedValueOnce(map2);
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByCourse(['t1', 't2']);
+    // 2 mastery calls + 1 connections call (both keywords fit in MAX_BATCH=50)
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ============================================================
+// MAX_BATCH=50 boundary verification
+// ============================================================
+
+describe('mindmapApi: MAX_BATCH boundary', () => {
+  it('exactly 50 keywords → 1 connections call', async () => {
+    const entries = Array.from({ length: 50 }, (_, i) => ({
+      id: `kw-${i}`, name: `K${i}`, mastery: 0.5,
+    }));
+    mockFetchMasteryByTopic.mockResolvedValue(makeMasteryMap(entries));
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByTopic('t1');
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('51 keywords → 2 connections calls', async () => {
+    const entries = Array.from({ length: 51 }, (_, i) => ({
+      id: `kw-${i}`, name: `K${i}`, mastery: 0.5,
+    }));
+    mockFetchMasteryByTopic.mockResolvedValue(makeMasteryMap(entries));
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByTopic('t1');
+    expect(mockApiCall).toHaveBeenCalledTimes(2);
+  });
+
+  it('100 keywords → 2 connections calls (50 + 50)', async () => {
+    const entries = Array.from({ length: 100 }, (_, i) => ({
+      id: `kw-${i}`, name: `K${i}`, mastery: 0.5,
+    }));
+    mockFetchMasteryByTopic.mockResolvedValue(makeMasteryMap(entries));
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByTopic('t1');
+    expect(mockApiCall).toHaveBeenCalledTimes(2);
+  });
+
+  it('101 keywords → 3 connections calls (50 + 50 + 1)', async () => {
+    const entries = Array.from({ length: 101 }, (_, i) => ({
+      id: `kw-${i}`, name: `K${i}`, mastery: 0.5,
+    }));
+    mockFetchMasteryByTopic.mockResolvedValue(makeMasteryMap(entries));
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByTopic('t1');
+    expect(mockApiCall).toHaveBeenCalledTimes(3);
+  });
+
+  it('1 keyword → 1 connections call', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(
+      makeMasteryMap([{ id: 'only', name: 'Only', mastery: 0.5 }]),
+    );
+    mockApiCall.mockResolvedValue([]);
+
+    await fetchGraphByTopic('t1');
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('zero keywords → zero connections calls (empty mastery short-circuits)', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(new Map());
+    await fetchGraphByTopic('t1');
+    expect(mockApiCall).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================
+// buildGraphData direction & node attribute matrix
+// ============================================================
+
+describe('mindmapApi: buildGraphData node attributes', () => {
+  it('node definition is undefined when info.definition is empty string', async () => {
+    const map = makeMasteryMap([
+      { id: 'kw', name: 'K', mastery: 0.5, definition: '' },
+    ]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByTopic('t1');
+    expect(result.nodes[0].definition).toBeUndefined();
+  });
+
+  it('node definition is preserved when present', async () => {
+    const map = makeMasteryMap([
+      { id: 'kw', name: 'K', mastery: 0.5, definition: 'A keyword definition' },
+    ]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByTopic('t1');
+    expect(result.nodes[0].definition).toBe('A keyword definition');
+  });
+
+  it('node has type === "keyword" always', async () => {
+    const map = makeMasteryMap([
+      { id: 'a', name: 'A', mastery: 0.0 },
+      { id: 'b', name: 'B', mastery: 1.0 },
+    ]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByTopic('t1');
+    for (const n of result.nodes) {
+      expect(n.type).toBe('keyword');
+    }
+  });
+
+  it('flashcardCount and quizCount are NOT set on auto nodes (undefined)', async () => {
+    // Per source comment: "Leaving undefined avoids misleading the UI into showing 0".
+    const map = makeMasteryMap([{ id: 'kw', name: 'K', mastery: 0.5 }]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+
+    const result = await fetchGraphByTopic('t1');
+    expect(result.nodes[0].flashcardCount).toBeUndefined();
+    expect(result.nodes[0].quizCount).toBeUndefined();
+  });
+
+  it('mastery 0 → red (boundary)', async () => {
+    const map = makeMasteryMap([{ id: 'kw', name: 'K', mastery: 0 }]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.nodes[0].masteryColor).toBe('red');
+  });
+
+  it('mastery 1.0 → green (boundary)', async () => {
+    const map = makeMasteryMap([{ id: 'kw', name: 'K', mastery: 1.0 }]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.nodes[0].masteryColor).toBe('green');
+  });
+
+  it('node summaryId reflects info.summary_id', async () => {
+    const map = makeMasteryMap([
+      { id: 'kw', name: 'K', mastery: 0.5, summary_id: 'sum-special-1' },
+    ]);
+    mockFetchMasteryByTopic.mockResolvedValue(map);
+    mockApiCall.mockResolvedValue([]);
+    const result = await fetchGraphByTopic('t1');
+    expect(result.nodes[0].summaryId).toBe('sum-special-1');
+  });
+});
+
+// ============================================================
+// buildGraphData direction matrix (extended)
+// ============================================================
+
+describe('mindmapApi: edge direction matrix', () => {
+  function setupTwo() {
+    return makeMasteryMap([
+      { id: 'a', name: 'A', mastery: 0.5 },
+      { id: 'b', name: 'B', mastery: 0.5 },
+    ]);
+  }
+
+  it('source_keyword_id === keyword_a_id → source=a target=b', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwo());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', source_keyword_id: 'a' },
+    ]);
+    const r = await fetchGraphByTopic('t1');
+    expect(r.edges[0].source).toBe('a');
+    expect(r.edges[0].target).toBe('b');
+  });
+
+  it('source_keyword_id === keyword_b_id → source=b target=a', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwo());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', source_keyword_id: 'b' },
+    ]);
+    const r = await fetchGraphByTopic('t1');
+    expect(r.edges[0].source).toBe('b');
+    expect(r.edges[0].target).toBe('a');
+  });
+
+  it('source_keyword_id is null → defaults to keyword_a -> keyword_b', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwo());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', source_keyword_id: null },
+    ]);
+    const r = await fetchGraphByTopic('t1');
+    expect(r.edges[0].source).toBe('a');
+    expect(r.edges[0].target).toBe('b');
+  });
+
+  it('source_keyword_id is undefined → defaults to keyword_a -> keyword_b', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwo());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b' },
+    ]);
+    const r = await fetchGraphByTopic('t1');
+    expect(r.edges[0].source).toBe('a');
+    expect(r.edges[0].target).toBe('b');
+  });
+
+  it('source_keyword_id is empty string → defaults to keyword_a -> keyword_b', async () => {
+    mockFetchMasteryByTopic.mockResolvedValue(setupTwo());
+    mockApiCall.mockResolvedValue([
+      { id: 'c', keyword_a_id: 'a', keyword_b_id: 'b', source_keyword_id: '' },
+    ]);
+    const r = await fetchGraphByTopic('t1');
+    expect(r.edges[0].source).toBe('a');
+    expect(r.edges[0].target).toBe('b');
+  });
+});
+
+// ============================================================
+// fetchCustomGraph edge attribute completeness
+// ============================================================
+
+describe('mindmapApi: fetchCustomGraph attribute completeness', () => {
+  it('omits arrowType when source returns no arrow_type', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        id: 'ce', source_node_id: 's', target_node_id: 't',
+      }]);
+    const r = await fetchCustomGraph('t1');
+    expect(r.edges[0].arrowType).toBeUndefined();
+    expect(r.edges[0].directed).toBeUndefined();
+    expect(r.edges[0].lineStyle).toBeUndefined();
+    expect(r.edges[0].customColor).toBeUndefined();
+  });
+
+  it('preserves all 4 styling attributes from server response', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        id: 'ce', source_node_id: 's', target_node_id: 't',
+        line_style: 'dotted', custom_color: '#123456', directed: false, arrow_type: 'triangle',
+      }]);
+    const r = await fetchCustomGraph('t1');
+    expect(r.edges[0].lineStyle).toBe('dotted');
+    expect(r.edges[0].customColor).toBe('#123456');
+    expect(r.edges[0].directed).toBe(false);
+    expect(r.edges[0].arrowType).toBe('triangle');
+  });
+
+  it('custom node missing definition → definition is undefined', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([{ id: 'cn', label: 'L', topic_id: 't1' }])
+      .mockResolvedValueOnce([]);
+    const r = await fetchCustomGraph('t1');
+    expect(r.nodes[0].definition).toBeUndefined();
+  });
+
+  it('all custom nodes get masteryColor=gray uniformly', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([
+        { id: 'a', label: 'A', topic_id: 't1' },
+        { id: 'b', label: 'B', topic_id: 't1' },
+        { id: 'c', label: 'C', topic_id: 't1' },
+      ])
+      .mockResolvedValueOnce([]);
+    const r = await fetchCustomGraph('t1');
+    for (const n of r.nodes) {
+      expect(n.masteryColor).toBe('gray');
+      expect(n.mastery).toBe(-1);
+      expect(n.isUserCreated).toBe(true);
+    }
+  });
+
+  it('all custom edges get isUserCreated=true', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'a', source_node_id: 'x', target_node_id: 'y' },
+        { id: 'b', source_node_id: 'y', target_node_id: 'z' },
+      ]);
+    const r = await fetchCustomGraph('t1');
+    for (const e of r.edges) {
+      expect(e.isUserCreated).toBe(true);
+    }
+  });
+
+  it('handles mixed-shape responses (array for nodes, items wrapper for edges)', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([{ id: 'cn', label: 'N', topic_id: 't1' }])
+      .mockResolvedValueOnce({ items: [{ id: 'ce', source_node_id: 'cn', target_node_id: 'kw' }] });
+    const r = await fetchCustomGraph('t1');
+    expect(r.nodes).toHaveLength(1);
+    expect(r.edges).toHaveLength(1);
+  });
+
+  it('returns empty graph when both responses are empty', async () => {
+    mockApiCall
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    const r = await fetchCustomGraph('t1');
+    expect(r).toEqual({ nodes: [], edges: [] });
+  });
+});
+
+// ============================================================
+// fetchClassMastery URL construction (passing case)
+// ============================================================
+
+describe('mindmapApi: fetchClassMastery URL construction', () => {
+  it('uses GET (no method override → default)', async () => {
+    mockApiCall.mockResolvedValue([]);
+    await fetchClassMastery('t1', []);
+    // apiCall called with only URL (no options) — default is GET
+    expect(mockApiCall).toHaveBeenCalledWith(expect.any(String));
+    const call = mockApiCall.mock.calls[0];
+    expect(call.length).toBe(1); // only URL, no options object
+  });
+
+  it('encodes empty topicId as empty string segment', async () => {
+    mockApiCall.mockResolvedValue([]);
+    await fetchClassMastery('', []);
+    expect(mockApiCall).toHaveBeenCalledWith('/ai/class-mastery?topic_id=');
   });
 });

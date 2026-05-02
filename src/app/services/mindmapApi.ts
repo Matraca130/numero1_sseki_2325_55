@@ -16,6 +16,7 @@
 // ============================================================
 
 import { apiCall } from '@/app/lib/api';
+import { logger } from '@/app/lib/logger';
 import {
   fetchKeywordMasteryByTopic,
   fetchKeywordMasteryBySummary,
@@ -91,9 +92,7 @@ async function fetchConnectionsBatch(
       }
     } else {
       failedBatches++;
-      if (import.meta.env.DEV) {
-        console.warn('[MindmapApi] connections-batch failed:', result.reason);
-      }
+      logger.warn('MindmapApi', 'connections-batch failed:', result.reason);
     }
   }
 
@@ -251,8 +250,11 @@ export async function fetchClassMastery(
   } catch (e: unknown) {
     // Endpoint not deployed yet — return mock data based on graph nodes
     if (isNotFoundError(e)) {
+      // Cycle 54: keep the DEV guard — the `return` inside is intentionally
+      // DEV-only; in production we throw the user-facing error below so the
+      // UI can show feedback. Vite tree-shakes the DEV branch in prod builds.
       if (import.meta.env.DEV) {
-        console.info('[MindmapApi] /ai/class-mastery not deployed, using mock data');
+        logger.info('MindmapApi', '/ai/class-mastery not deployed, using mock data');
         return graphNodes.map((node) => {
           const studentCount = Math.floor(Math.random() * 30) + 5;
           return {
@@ -360,7 +362,7 @@ export async function fetchCustomGraph(topicId: string): Promise<GraphData> {
   } catch (e: unknown) {
     // Swallow 404s (endpoint not deployed yet). Re-throw all other errors.
     if (isNotFoundError(e)) {
-      if (import.meta.env.DEV) console.info('[MindmapApi] custom graph endpoint not deployed, returning empty');
+      logger.info('MindmapApi', 'custom graph endpoint not deployed, returning empty');
       return { nodes: [], edges: [] };
     }
     throw e;
