@@ -69,7 +69,7 @@ export function SessionScreen({ cards, currentIndex, isRevealed, setIsRevealed, 
       }
     } else {
       // 1-5 to rate
-      const num = parseInt(e.key);
+      const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 5) {
         e.preventDefault();
         handleRate(num);
