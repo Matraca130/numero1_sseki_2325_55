@@ -93,7 +93,7 @@ export async function getReports(
   if (opts?.reason) params.set('reason', opts.reason);
   if (opts?.contentType) params.set('content_type', opts.contentType);
   if (opts?.limit) params.set('limit', String(opts.limit));
-  if (opts?.offset) params.set('offset', String(opts.offset));
+  if (opts?.offset != null) params.set('offset', String(opts.offset));
 
   return apiCall<ReportListResponse>(`/ai/reports?${params.toString()}`);
 }

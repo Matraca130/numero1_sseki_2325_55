@@ -178,7 +178,7 @@ export async function getFsrsStates(options?: {
   if (options?.state) params.set('state', options.state);
   if (options?.due_before) params.set('due_before', options.due_before);
   if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.offset) params.set('offset', String(options.offset));
+  if (options?.offset != null) params.set('offset', String(options.offset));
   const qs = params.toString() ? `?${params}` : '';
   const result = await request<{ items: FsrsStateRecord[] } | FsrsStateRecord[]>(
     `/fsrs-states${qs}`

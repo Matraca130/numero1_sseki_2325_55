@@ -49,7 +49,7 @@ export async function getFlashcardMappings(
   const params = new URLSearchParams();
   if (opts?.status) params.set('status', opts.status);
   if (opts?.limit) params.set('limit', String(opts.limit));
-  if (opts?.offset) params.set('offset', String(opts.offset));
+  if (opts?.offset != null) params.set('offset', String(opts.offset));
 
   const qs = params.toString();
   return apiCall<FlashcardMappingResponse>(
