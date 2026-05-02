@@ -105,7 +105,11 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
   }, [institutionId]);
 
   // ── Fetch reports list ─────────────────────────────────
-  const fetchReports = useCallback(async () => {
+  // Accepts an optional isCancelled() guard so callers (useEffect cleanup) can
+  // discard stale responses when filters/page change rapidly. Without this guard,
+  // an earlier in-flight request could resolve AFTER a newer one and overwrite
+  // `reports`/`reportsTotal` with data for the wrong filter combination.
+  const fetchReports = useCallback(async (isCancelled?: () => boolean) => {
     if (!institutionId) return;
     setReportsLoading(true);
     try {
@@ -117,19 +121,26 @@ export function AiReportsDashboard({ institutionId }: AiReportsDashboardProps) {
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       });
+      if (isCancelled?.()) return;
       setReports(data.items || []);
       setReportsTotal(data.total || 0);
     } catch (err: unknown) {
+      if (isCancelled?.()) return;
       logger.error('[AiReports] Reports fetch failed:', err);
       setReports([]);
     } finally {
+      if (isCancelled?.()) return;
       setReportsLoading(false);
     }
   }, [institutionId, filterStatus, filterReason, page]);
 
   // Initial load
   useEffect(() => { fetchStats(); }, [fetchStats]);
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchReports(() => cancelled);
+    return () => { cancelled = true; };
+  }, [fetchReports]);
 
   // ── Resolve/dismiss handler ────────────────────────────
   const handleResolve = useCallback(async (
