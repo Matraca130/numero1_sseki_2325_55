@@ -281,10 +281,10 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
     const saved = savedAnswers[currentIdx];
     if (saved?.answered) return; // Already answered — skip auto-submit
 
-    // Auto-submit with empty answer (marks as incorrect)
-    const timeTaken = Date.now() - questionStartTime;
-    submitAnswer(currentQ, '', null, timeTaken, currentIdx).then(() => {
-      // Auto-advance to next question
+    // Auto-advance helper — must run regardless of submit outcome.
+    // The student's time has already expired; a network/API failure on the
+    // empty auto-submit must NOT trap them on a 0-second question (issue #757).
+    const advance = () => {
       if (currentIdx < questions.length - 1) {
         setNavDirection('forward');
         setCurrentIdx(currentIdx + 1);
@@ -292,7 +292,18 @@ export function QuizTaker({ quizId, preloadedQuestions, quizTitle, summaryId, on
       } else {
         finishQuiz();
       }
-    });
+    };
+
+    // Auto-submit with empty answer (marks as incorrect)
+    const timeTaken = Date.now() - questionStartTime;
+    submitAnswer(currentQ, '', null, timeTaken, currentIdx)
+      .then(advance)
+      .catch((err) => {
+        // Time already expired; advance anyway to keep the quiz session alive.
+        // Losing the empty-answer record is preferable to blocking the student.
+        console.error('[QuizTaker] auto-submit on timeout failed; advancing anyway', err);
+        advance();
+      });
   }, [questions, currentIdx, savedAnswers, questionStartTime, submitAnswer, finishQuiz, resetLiveInputs]);
 
   // ── PHASE: loading ─────────────────────────────────────
