@@ -24,7 +24,7 @@ import type { StudyQueueResponse } from '@/app/types/gamification';
 const keys = {
   profile: (instId?: string) => ['gamification', 'profile', instId] as const,
   streak: (instId?: string) => ['gamification', 'streak', instId] as const,
-  badges: () => ['gamification', 'badges'] as const,
+  badges: (instId?: string) => ['gamification', 'badges', instId] as const,
   leaderboard: (instId?: string, period?: string) =>
     ['gamification', 'leaderboard', instId, period] as const,
   xpHistory: (instId?: string) => ['gamification', 'xp-history', instId] as const,
@@ -55,7 +55,7 @@ export function useStreakStatus(institutionId?: string) {
 
 export function useBadges(institutionId?: string) {
   return useQuery<BadgesResponse>({
-    queryKey: keys.badges(),
+    queryKey: keys.badges(institutionId),
     queryFn: () => gamificationApi.getBadges(institutionId),
     staleTime: 120_000,
   });
