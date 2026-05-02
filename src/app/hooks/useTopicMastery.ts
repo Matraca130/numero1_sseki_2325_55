@@ -24,7 +24,7 @@ import {
   type FsrsStateRecord,
   type FlashcardCard,
 } from '@/app/services/platformApi';
-import { getFlashcardsByTopic } from '@/app/services/flashcardApi';
+import { getFlashcardsByTopic, type FlashcardItem } from '@/app/services/flashcardApi';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -90,6 +90,43 @@ function buildFlashcardToTopicMap(flashcards: FlashcardCard[]): Map<string, stri
     }
   }
   return map;
+}
+
+/**
+ * Convert the platform-API flashcard shape (`FlashcardItem`) into the
+ * `FlashcardCard` type expected by the rest of the app. Replaces the previous
+ * `as unknown as FlashcardCard` double-cast (issue #740) with an explicit
+ * mapping so missing/renamed fields are surfaced by the type system instead
+ * of silently leaking `undefined` to downstream consumers.
+ *
+ * Field notes:
+ *   - `subtopic_id`: API uses `string | null`; target uses `UUID | undefined`.
+ *     Map `null -> undefined` so existing truthy checks behave the same.
+ *   - `image_url`: not provided by `/flashcards-by-topic`. Prefer the front
+ *     image URL when present, otherwise `null`.
+ *   - `status`: derived from `deleted_at` / `is_active` since the API does not
+ *     return a `status` enum. Conservative mapping: deleted > active > suspended.
+ *   - `institution_id`: not returned by the API; left unset (optional field).
+ */
+function toFlashcardCard(item: FlashcardItem): FlashcardCard {
+  const status: FlashcardCard['status'] = item.deleted_at
+    ? 'deleted'
+    : item.is_active
+      ? 'active'
+      : 'suspended';
+  return {
+    id: item.id,
+    summary_id: item.summary_id,
+    keyword_id: item.keyword_id,
+    subtopic_id: item.subtopic_id ?? undefined,
+    front: item.front,
+    back: item.back,
+    image_url: item.front_image_url ?? null,
+    status,
+    source: item.source,
+    created_by: item.created_by,
+    created_at: item.created_at,
+  };
 }
 
 interface TopicFsrsAggregate {
@@ -175,7 +212,7 @@ export function useTopicMastery(
         for (const res of perTopicResults) {
           if (res.status === 'fulfilled' && res.value?.items) {
             for (const item of res.value.items) {
-              allCards.push(item as unknown as FlashcardCard);
+              allCards.push(toFlashcardCard(item));
             }
           }
         }
