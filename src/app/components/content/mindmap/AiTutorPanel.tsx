@@ -143,7 +143,7 @@ function AnimatedPercent({ value, className }: { value: number; className?: stri
 }
 
 // ── Success checkmark shown when a weak node improves after study ──
-function ImprovedCheckmark({ name, label }: { name: string; label: string }) {
+function ImprovedCheckmark({ name, label }: { name: string; label?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
@@ -162,7 +162,7 @@ function ImprovedCheckmark({ name, label }: { name: string; label: string }) {
         <Check className="w-3 h-3 text-white" strokeWidth={3} />
       </motion.div>
       <span className="font-medium text-emerald-700 truncate">{name}</span>
-      <span className="text-emerald-500 flex-shrink-0 ml-auto">{label}</span>
+      {label && <span className="text-emerald-500 flex-shrink-0 ml-auto">{label}</span>}
     </motion.div>
   );
 }

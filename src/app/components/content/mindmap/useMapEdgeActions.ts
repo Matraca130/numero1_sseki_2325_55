@@ -4,7 +4,6 @@
 // Edge-related callbacks extracted from KnowledgeMapView.tsx:
 //   - handleEdgeReconnect (reconnect edge via drag)
 //   - handleDragConnect (drag-to-connect between nodes)
-//   - handleConnectNodes (connect tool flow via modal)
 //   - handleQuickAdd (quick-connect "+" button)
 //   - handleEdgeCreated (record undo action + history entry)
 // ============================================================

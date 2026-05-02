@@ -18,6 +18,22 @@ import type {
   WeakPointsResponse,
 } from '@/app/types/mindmap-ai';
 
+// ── Internal helper ─────────────────────────────────────────
+
+/**
+ * Wraps an AI API call with consistent error wrapping. Preserves the original
+ * error via Error.cause so callers can introspect, while presenting a
+ * user-facing prefix. Extracted in cycle #45 to dedupe a 3× boilerplate.
+ */
+async function wrapAiCall<T>(failurePrefix: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido';
+    throw new Error(`${failurePrefix}: ${message}`, { cause: err });
+  }
+}
+
 // ── API Functions ───────────────────────────────────────────
 
 /**
@@ -28,22 +44,12 @@ export async function analyzeKnowledgeGraph(
   topicId: string,
 ): Promise<AnalyzeKnowledgeGraphResponse> {
   if (!topicId) throw new Error('topicId es requerido para analizar el grafo');
-  try {
-    return await apiCall<AnalyzeKnowledgeGraphResponse>(
-      '/ai/analyze-knowledge-graph',
-      {
-        method: 'POST',
-        body: JSON.stringify({ topic_id: topicId }),
-      },
-    );
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : 'Error desconocido';
-    throw new Error(
-      `No se pudo analizar el grafo de conocimiento: ${message}`,
-      { cause: err },
-    );
-  }
+  return wrapAiCall('No se pudo analizar el grafo de conocimiento', () =>
+    apiCall<AnalyzeKnowledgeGraphResponse>('/ai/analyze-knowledge-graph', {
+      method: 'POST',
+      body: JSON.stringify({ topic_id: topicId }),
+    }),
+  );
 }
 
 /**
@@ -58,26 +64,16 @@ export async function suggestStudentConnections(
   // Short-circuit: AI cannot suggest connections without existing nodes
   if (nodeIds.length === 0) return [] as SuggestConnectionsResponse;
 
-  try {
-    return await apiCall<SuggestConnectionsResponse>(
-      '/ai/suggest-student-connections',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          topic_id: topicId,
-          existing_node_ids: nodeIds,
-          existing_edge_ids: edgeIds,
-        }),
-      },
-    );
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : 'Error desconocido';
-    throw new Error(
-      `No se pudieron obtener sugerencias de conexiones: ${message}`,
-      { cause: err },
-    );
-  }
+  return wrapAiCall('No se pudieron obtener sugerencias de conexiones', () =>
+    apiCall<SuggestConnectionsResponse>('/ai/suggest-student-connections', {
+      method: 'POST',
+      body: JSON.stringify({
+        topic_id: topicId,
+        existing_node_ids: nodeIds,
+        existing_edge_ids: edgeIds,
+      }),
+    }),
+  );
 }
 
 /**
@@ -87,16 +83,9 @@ export async function getStudentWeakPoints(
   topicId: string,
 ): Promise<WeakPointsResponse> {
   if (!topicId) throw new Error('topicId es requerido para obtener puntos débiles');
-  try {
-    return await apiCall<WeakPointsResponse>(
+  return wrapAiCall('No se pudieron obtener los puntos débiles del estudiante', () =>
+    apiCall<WeakPointsResponse>(
       `/ai/student-weak-points?topic_id=${encodeURIComponent(topicId)}`,
-    );
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : 'Error desconocido';
-    throw new Error(
-      `No se pudieron obtener los puntos débiles del estudiante: ${message}`,
-      { cause: err },
-    );
-  }
+    ),
+  );
 }
