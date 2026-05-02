@@ -102,12 +102,13 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     setShowModal(true);
   };
 
-  const handleEdit = (quiz: Quiz) => {
+  // useCallback'd so QuizEntityCard (React.memo'd) sees stable refs.
+  const handleEdit = useCallback((quiz: Quiz) => {
     setEditingQuiz(quiz);
     setShowModal(true);
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await quizApi.deleteQuiz(id);
       toast.success('Quiz eliminado');
@@ -116,9 +117,9 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     } catch (err: unknown) {
       toast.error(getErrorMsg(err) || 'Error al eliminar quiz');
     }
-  };
+  }, [loadQuizzes]);
 
-  const handleToggleActive = async (quiz: Quiz) => {
+  const handleToggleActive = useCallback(async (quiz: Quiz) => {
     try {
       await quizApi.updateQuiz(quiz.id, { is_active: !quiz.is_active });
       toast.success(quiz.is_active ? 'Quiz desactivado' : 'Quiz activado');
@@ -126,7 +127,10 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
     } catch (err: unknown) {
       toast.error(getErrorMsg(err) || 'Error al cambiar estado');
     }
-  };
+  }, [loadQuizzes]);
+
+  // Stable cancel-delete handler so the inline lambda doesn't bypass memo.
+  const handleCancelDelete = useCallback(() => setDeletingId(null), []);
 
   const handleSaved = () => {
     setShowModal(false);
@@ -220,13 +224,13 @@ export function QuizzesManager({ summaryId, summaryTitle, keywords }: QuizzesMan
                   key={quiz.id}
                   quiz={quiz}
                   isDeleting={deletingId === quiz.id}
-                  onOpenQuestions={() => setSelectedQuiz(quiz)}
-                  onAnalytics={() => setAnalyticsQuiz(quiz)}
-                  onToggleActive={() => handleToggleActive(quiz)}
-                  onEdit={() => handleEdit(quiz)}
-                  onRequestDelete={() => setDeletingId(quiz.id)}
-                  onConfirmDelete={() => handleDelete(quiz.id)}
-                  onCancelDelete={() => setDeletingId(null)}
+                  onOpenQuestions={setSelectedQuiz}
+                  onAnalytics={setAnalyticsQuiz}
+                  onToggleActive={handleToggleActive}
+                  onEdit={handleEdit}
+                  onRequestDelete={setDeletingId}
+                  onConfirmDelete={handleDelete}
+                  onCancelDelete={handleCancelDelete}
                 />
               ))}
             </div>

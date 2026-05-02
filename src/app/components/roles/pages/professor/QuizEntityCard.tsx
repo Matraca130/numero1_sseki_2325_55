@@ -23,12 +23,16 @@ import {
 export interface QuizEntityCardProps {
   quiz: Quiz;
   isDeleting: boolean;
-  onOpenQuestions: () => void;
-  onAnalytics: () => void;
-  onToggleActive: () => void;
-  onEdit: () => void;
-  onRequestDelete: () => void;
-  onConfirmDelete: () => void;
+  /** Receive the quiz / id so callers can pass stable, parent-level
+   *  handlers that React.memo can preserve. Inline `() => f(quiz)` lambdas
+   *  at the call site defeated the memoization for every card on every
+   *  parent render (search keystrokes, deletingId state changes, etc.). */
+  onOpenQuestions: (quiz: Quiz) => void;
+  onAnalytics: (quiz: Quiz) => void;
+  onToggleActive: (quiz: Quiz) => void;
+  onEdit: (quiz: Quiz) => void;
+  onRequestDelete: (id: string) => void;
+  onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
 }
 
@@ -94,7 +98,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={onOpenQuestions}
+            onClick={() => onOpenQuestions(quiz)}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] text-[#2a8c7a] hover:bg-teal-50 transition-colors"
             style={{ fontWeight: 600 }}
             title="Editar preguntas"
@@ -105,7 +109,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
           </button>
 
           <button
-            onClick={onAnalytics}
+            onClick={() => onAnalytics(quiz)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title="Analytics"
           >
@@ -113,7 +117,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
           </button>
 
           <button
-            onClick={onToggleActive}
+            onClick={() => onToggleActive(quiz)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
             title={quiz.is_active ? 'Desactivar' : 'Activar'}
           >
@@ -121,7 +125,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
           </button>
 
           <button
-            onClick={onEdit}
+            onClick={() => onEdit(quiz)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
             title="Editar"
           >
@@ -129,7 +133,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
           </button>
 
           <button
-            onClick={onRequestDelete}
+            onClick={() => onRequestDelete(quiz.id)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
             title="Eliminar"
           >
@@ -160,7 +164,7 @@ export const QuizEntityCard = React.memo(function QuizEntityCard({
                   Cancelar
                 </button>
                 <button
-                  onClick={onConfirmDelete}
+                  onClick={() => onConfirmDelete(quiz.id)}
                   className="px-2.5 py-1 rounded-full text-[11px] text-white bg-red-500 hover:bg-red-600 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
