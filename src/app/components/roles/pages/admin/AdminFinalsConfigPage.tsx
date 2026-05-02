@@ -40,7 +40,8 @@ interface FinalsPeriodForm {
 
 // ── API ───────────────────────────────────────────────────────
 
-const FINALS_KEY = ['admin-finals-periods'] as const;
+const FINALS_KEY = (institutionId: string | null) =>
+  ['admin-finals-periods', institutionId] as const;
 
 async function fetchFinalsPeriods(): Promise<FinalsPeriod[]> {
   return await apiCall<FinalsPeriod[]>('/admin/finals-periods');
@@ -75,21 +76,22 @@ const EMPTY_FORM: FinalsPeriodForm = {
 
 export function AdminFinalsConfigPage() {
   const queryClient = useQueryClient();
-  const { courses } = usePlatformData();
+  const { courses, institutionId } = usePlatformData();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<FinalsPeriodForm>(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: periods = [], isLoading, error } = useQuery({
-    queryKey: FINALS_KEY,
+    queryKey: FINALS_KEY(institutionId),
     queryFn: fetchFinalsPeriods,
+    enabled: !!institutionId,
     staleTime: 2 * 60 * 1000,
   });
 
   const createMutation = useMutation({
     mutationFn: createFinalsPeriod,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: FINALS_KEY });
+      queryClient.invalidateQueries({ queryKey: FINALS_KEY(institutionId) });
       setShowForm(false);
       setFormData(EMPTY_FORM);
     },
@@ -99,14 +101,14 @@ export function AdminFinalsConfigPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       updateFinalsPeriod(id, { is_active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: FINALS_KEY }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: FINALS_KEY(institutionId) }),
     onError: () => toast.error('Error al actualizar el estado del periodo.'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteFinalsPeriod,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: FINALS_KEY });
+      queryClient.invalidateQueries({ queryKey: FINALS_KEY(institutionId) });
       setDeleteConfirm(null);
     },
     onError: () => toast.error('Error al eliminar el periodo de finales.'),
