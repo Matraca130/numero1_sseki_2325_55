@@ -102,11 +102,15 @@ export function QuizExportImport({
   }, [exportJson, quizTitle]);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(exportJson).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast.success('Copiado al portapapeles');
-    });
+    navigator.clipboard.writeText(exportJson)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast.success('Copiado al portapapeles');
+      })
+      .catch(() => {
+        toast.error('No se pudo copiar al portapapeles');
+      });
   }, [exportJson]);
 
   // ── Import ─────────────────────────────────────────────
