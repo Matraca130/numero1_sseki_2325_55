@@ -9,21 +9,27 @@ import { useState, useCallback } from 'react';
 interface Note {
   id: string;
   modelId: string;
-  position: { x: number; y: number; z: number };
-  text: string;
+  /** Optional 3D placement; absent when the note is text-only. */
+  geometry?: { x: number; y: number; z: number };
+  note: string;
   createdAt: Date;
+}
+
+interface AddNoteInput {
+  note: string;
+  geometry?: { x: number; y: number; z: number };
 }
 
 export function useNoteData(modelId: string) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading] = useState(false);
 
-  const addNote = useCallback((position: { x: number; y: number; z: number }, text: string) => {
+  const addNote = useCallback((input: AddNoteInput) => {
     const note: Note = {
       id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       modelId,
-      position,
-      text,
+      geometry: input.geometry,
+      note: input.note,
       createdAt: new Date(),
     };
     setNotes(prev => [...prev, note]);
@@ -31,7 +37,8 @@ export function useNoteData(modelId: string) {
   }, [modelId]);
 
   const editNote = useCallback((noteId: string, text: string) => {
-    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, text } : n));
+    setNotes(prev => prev.map(n => (n.id === noteId ? { ...n, note: text } : n)));
+    return true;
   }, []);
 
   const deleteNote = useCallback((noteId: string) => {
