@@ -357,14 +357,22 @@ export default function GamificationView() {
   const checkIn = useDailyCheckIn(institutionId);
   const repair = useStreakRepair(institutionId);
 
-  // ── Auto check-in on mount ────────────────────────────────
+  // ── Auto check-in on mount / institution switch ───────────
   const [checkedIn, setCheckedIn] = useState(false);
+  const { mutate: doCheckIn, isPending: checkInPending } = checkIn;
+
+  // Reset check-in flag when the active institution changes so the
+  // effect below re-runs the daily check-in for the newly selected one.
   useEffect(() => {
-    if (!checkedIn && !checkIn.isPending && !streakLoading && institutionId) {
-      checkIn.mutate(undefined, {
+    setCheckedIn(false);
+  }, [institutionId]);
+
+  useEffect(() => {
+    if (!checkedIn && !checkInPending && !streakLoading && institutionId) {
+      doCheckIn(undefined, {
         onSuccess: (result) => {
           setCheckedIn(true);
-          const evt = result.events?.[0];
+          const evt = result?.events?.[0];
           if (evt && evt.type !== 'already_checked_in') {
             toast.success(evt.message, { duration: 3500 });
           }
@@ -372,7 +380,7 @@ export default function GamificationView() {
         onError: () => setCheckedIn(true),
       });
     }
-  }, [streakLoading, institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [checkedIn, checkInPending, streakLoading, institutionId, doCheckIn]);
 
   // ── Consolidated loading state ──────────────────────────
   const isInitialLoading = streakLoading || badgesLoading || lbLoading || historyLoading || queueLoading;
