@@ -11,11 +11,19 @@
 //   useStudyQueueData.queue
 //     → StudyQueueItem[] (FSRS data)
 //   COMBINE → per-keyword aggregation with full FSRS stats
+//
+// CACHE SCOPING (#746):
+//   getAllFlashcardMappings() returns data scoped to the user's current
+//   institution (via JWT). The module-level cache is therefore keyed by
+//   institutionId so that switching institutions does NOT serve stale
+//   mappings. The `useEffect` also re-runs on institutionId change to
+//   refresh local hook state when the user switches.
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAllFlashcardMappings } from '@/app/services/flashcardMappingApi';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
+import { useAuth } from '@/app/context/AuthContext';
 
 export interface KeywordFsrsStats {
   keyword_id: string;
@@ -40,22 +48,34 @@ export interface FlashcardCoverageData {
 
 type MappingCache = Map<string, { subtopic_id: string | null; keyword_id: string }>;
 
-let _mappingCache: MappingCache | null = null;
-let _mappingFetchedAt = 0;
-let _mappingInflight: Promise<MappingCache> | null = null;
+// Module-level caches keyed by institutionId so a multi-institution user
+// who switches institutions does NOT see the previous institution's
+// flashcard→keyword mappings (issue #746).
+const _mappingCache = new Map<string, { data: MappingCache; fetchedAt: number }>();
+const _mappingInflight = new Map<string, Promise<MappingCache>>();
 const MAPPING_CACHE_TTL_MS = 300_000;
 
-function isMappingCacheValid(): boolean {
-  return _mappingCache !== null && Date.now() - _mappingFetchedAt < MAPPING_CACHE_TTL_MS;
+function isMappingCacheValid(institutionId: string): boolean {
+  const entry = _mappingCache.get(institutionId);
+  return !!entry && Date.now() - entry.fetchedAt < MAPPING_CACHE_TTL_MS;
 }
 
-async function fetchMappingCached(): Promise<MappingCache> {
-  if (isMappingCacheValid()) return _mappingCache!;
-  if (_mappingInflight) return _mappingInflight;
-  _mappingInflight = getAllFlashcardMappings()
-    .then((result) => { _mappingCache = result; _mappingFetchedAt = Date.now(); _mappingInflight = null; return result; })
-    .catch((err) => { _mappingInflight = null; throw err; });
-  return _mappingInflight;
+async function fetchMappingCached(institutionId: string): Promise<MappingCache> {
+  if (isMappingCacheValid(institutionId)) return _mappingCache.get(institutionId)!.data;
+  const inflight = _mappingInflight.get(institutionId);
+  if (inflight) return inflight;
+  const promise = getAllFlashcardMappings()
+    .then((result) => {
+      _mappingCache.set(institutionId, { data: result, fetchedAt: Date.now() });
+      _mappingInflight.delete(institutionId);
+      return result;
+    })
+    .catch((err) => {
+      _mappingInflight.delete(institutionId);
+      throw err;
+    });
+  _mappingInflight.set(institutionId, promise);
+  return promise;
 }
 
 function buildKeywordStats(mapping: MappingCache, queue: StudyQueueItem[]): Map<string, KeywordFsrsStats> {
@@ -99,6 +119,9 @@ function buildKeywordStats(mapping: MappingCache, queue: StudyQueueItem[]): Map<
 }
 
 export function useFlashcardCoverage(queue: StudyQueueItem[], sqLoading: boolean): FlashcardCoverageData {
+  const { selectedInstitution } = useAuth();
+  const institutionId = selectedInstitution?.id ?? null;
+
   const [mappingLookup, setMappingLookup] = useState<MappingCache>(new Map());
   const [loading, setLoading] = useState(true);
   const [fallback, setFallback] = useState(false);
@@ -108,9 +131,15 @@ export function useFlashcardCoverage(queue: StudyQueueItem[], sqLoading: boolean
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   const fetchMapping = useCallback(async () => {
+    // Auth not yet resolved — keep loading state and skip the fetch.
+    // The effect below re-runs once institutionId becomes available.
+    if (!institutionId) {
+      setMappingLookup(new Map());
+      return;
+    }
     setLoading(true); setError(null);
     try {
-      const result = await fetchMappingCached();
+      const result = await fetchMappingCached(institutionId);
       if (mountedRef.current) { setMappingLookup(result); setFallback(false); }
     } catch (err: unknown) {
       if (mountedRef.current) {
@@ -122,13 +151,22 @@ export function useFlashcardCoverage(queue: StudyQueueItem[], sqLoading: boolean
         if (import.meta.env.DEV) console.warn('[useFlashcardCoverage] Mapping fetch failed, using study-queue fallback:', msg);
       }
     } finally { if (mountedRef.current) setLoading(false); }
-  }, [queue]);
+  }, [queue, institutionId]);
 
-  useEffect(() => { fetchMapping(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Re-fetch when institutionId changes (covers institution switch on a
+  // single mounted FlashcardView). Without institutionId in the deps the
+  // hook would keep returning the previous institution's mappingLookup.
+  useEffect(() => { fetchMapping(); }, [institutionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const keywordStats = useMemo(() => buildKeywordStats(mappingLookup, queue), [mappingLookup, queue]);
 
-  const refresh = useCallback(async () => { _mappingCache = null; _mappingFetchedAt = 0; await fetchMapping(); }, [fetchMapping]);
+  const refresh = useCallback(async () => {
+    if (institutionId) {
+      _mappingCache.delete(institutionId);
+      _mappingInflight.delete(institutionId);
+    }
+    await fetchMapping();
+  }, [fetchMapping, institutionId]);
 
   return { mappingLookup, keywordStats, loading: loading || sqLoading, fallback, error, refresh };
 }
