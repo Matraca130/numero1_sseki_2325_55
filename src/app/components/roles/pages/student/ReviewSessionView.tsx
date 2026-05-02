@@ -140,14 +140,17 @@ export function ReviewSessionView({ onClose, masteryMap }: ReviewSessionViewProp
       stopTimer(); setPhase('finished'); recordXP(grade); setXpEventKey(prev => prev + 1);
       const sid = sessionId; const startTime = sessionStartRef.current;
       (async () => {
-        await submitBatch(sid);
-        const now = new Date(); const durationSeconds = startTime ? Math.round((now.getTime() - startTime.getTime()) / 1000) : 0;
-        const correctReviews = newGrades.filter(g => g >= 3).length;
-        try { await sessionApi.closeStudySession(sid, { completed_at: now.toISOString(), total_reviews: newGrades.length, correct_reviews: correctReviews }); } catch (err) { console.error('[ReviewSession] Session close error:', err); }
-        await postSessionAnalytics({ totalReviews: newGrades.length, correctReviews, durationSeconds });
-        try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
-        gamificationApi.checkBadges(institutionId).catch(() => {});
-        markSessionComplete('flashcard');
+        try {
+          try { await submitBatch(sid); } catch (err) { console.error('[ReviewSession] submitBatch error:', err); }
+          const now = new Date(); const durationSeconds = startTime ? Math.round((now.getTime() - startTime.getTime()) / 1000) : 0;
+          const correctReviews = newGrades.filter(g => g >= 3).length;
+          try { await sessionApi.closeStudySession(sid, { completed_at: now.toISOString(), total_reviews: newGrades.length, correct_reviews: correctReviews }); } catch (err) { console.error('[ReviewSession] Session close error:', err); }
+          try { await postSessionAnalytics({ totalReviews: newGrades.length, correctReviews, durationSeconds }); } catch (err) { console.error('[ReviewSession] analytics error:', err); }
+          try { const xpResult = await endXP(institutionId); setSessionXPResult(xpResult); } catch { /* XP reconciliation failed */ }
+          gamificationApi.checkBadges(institutionId).catch(() => {});
+        } finally {
+          markSessionComplete('flashcard');
+        }
       })();
     }
   }, [sessionId, currentItem, currentIdx, queue, queueReview, submitBatch, stopTimer, masteryMap, recordXP, endXP, institutionId, markSessionComplete]);
