@@ -70,48 +70,76 @@ export function useQuizQuestionsLoader({
   const summaryIdRef = useRef(summaryId);
   summaryIdRef.current = summaryId;
 
-  const doLoad = useCallback(async () => {
-    const sid = summaryIdRef.current;
-    if (!sid) {
-      setQuestions([]);
-      setLoading(false);
+  const doLoad = useCallback(
+    async (isCancelled?: () => boolean) => {
+      // Guard against being accidentally invoked as an event handler
+      // (e.g. onClick={doLoad} would pass a SyntheticEvent here).
+      const cancelled =
+        typeof isCancelled === 'function' ? isCancelled : () => false;
+
+      const sid = summaryIdRef.current;
+      if (!sid) {
+        if (cancelled()) return;
+        setQuestions([]);
+        setLoading(false);
+        setBackendWarning(null);
+        return;
+      }
+
+      setLoading(true);
       setBackendWarning(null);
-      return;
-    }
 
-    setLoading(true);
-    setBackendWarning(null);
-
-    try {
-      const res = await quizApi.getQuizQuestions(sid, filtersRef.current as any);
-      setQuestions(res.items || []);
-    } catch (err: unknown) {
-      if (fallbackOnError) {
-        logger.warn(`[${label}] Primary load failed:`, getErrorMsg(err));
-        setBackendWarning(
-          'Error al cargar preguntas del quiz. Se muestran todas las del resumen como fallback.',
-        );
-        // Fallback: load all questions for the summary without filters
-        try {
-          const fallback = await quizApi.getQuizQuestions(sid, { limit: 200 });
-          setQuestions(fallback.items || []);
-        } catch (fallbackErr: unknown) {
-          logger.error(`[${label}] Fallback also failed:`, getErrorMsg(fallbackErr));
+      try {
+        const res = await quizApi.getQuizQuestions(sid, filtersRef.current as any);
+        if (cancelled()) return;
+        setQuestions(res.items || []);
+      } catch (err: unknown) {
+        if (cancelled()) return;
+        if (fallbackOnError) {
+          logger.warn(`[${label}] Primary load failed:`, getErrorMsg(err));
+          setBackendWarning(
+            'Error al cargar preguntas del quiz. Se muestran todas las del resumen como fallback.',
+          );
+          // Fallback: load all questions for the summary without filters
+          try {
+            const fallback = await quizApi.getQuizQuestions(sid, { limit: 200 });
+            if (cancelled()) return;
+            setQuestions(fallback.items || []);
+          } catch (fallbackErr: unknown) {
+            if (cancelled()) return;
+            logger.error(`[${label}] Fallback also failed:`, getErrorMsg(fallbackErr));
+            setQuestions([]);
+          }
+        } else {
+          logger.error(`[${label}] Questions load error:`, err);
           setQuestions([]);
         }
-      } else {
-        logger.error(`[${label}] Questions load error:`, err);
-        setQuestions([]);
+      } finally {
+        if (!cancelled()) setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [fallbackOnError, label]);
+    },
+    [fallbackOnError, label],
+  );
 
-  // Auto-load when summaryId or filters change
+  // Auto-load when summaryId or filters change.
+  // The cancelled flag prevents a stale response from a previous summaryId/filter
+  // combination from overwriting the data fetched for the current one.
+  // NOTE: the cleanup MUST live here (in the effect), not inside the async
+  // useCallback — returning a function from an async function resolves the
+  // Promise with that function instead of registering a React cleanup.
   useEffect(() => {
-    doLoad();
+    let cancelled = false;
+    doLoad(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [summaryId, filters, doLoad]);
 
-  return { questions, loading, backendWarning, reload: doLoad };
+  // Public reload() ignores any args (e.g. event handlers passing a SyntheticEvent)
+  // and never receives an isCancelled — manual reloads always commit their result.
+  const reload = useCallback(async () => {
+    await doLoad();
+  }, [doLoad]);
+
+  return { questions, loading, backendWarning, reload };
 }
