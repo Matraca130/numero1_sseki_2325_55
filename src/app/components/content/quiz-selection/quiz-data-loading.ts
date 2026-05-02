@@ -9,6 +9,7 @@ import type { QuizQuestion, QuestionType, Difficulty, QuizEntity, QuizEntityList
 import type { Summary } from '@/app/types/platform';
 import { apiCall } from '@/app/lib/api';
 import { logger } from '@/app/lib/logger';
+import { shuffleArray } from '@/app/components/student/quiz-session-helpers';
 
 export async function loadSummariesForTopicFn(
   topicId: string,
@@ -84,7 +85,7 @@ export async function loadQuizQuestions(
     return { items: [], error: 'Este quiz no tiene preguntas activas.' };
   }
 
-  items = items.sort(() => Math.random() - 0.5);
+  items = shuffleArray(items);
   if (maxQuestions > 0 && maxQuestions < items.length) {
     items = items.slice(0, maxQuestions);
   }
@@ -108,7 +109,7 @@ export async function loadPracticeQuestions(
     return { items: [], error: 'Este resumen no tiene preguntas de quiz activas.' };
   }
 
-  items = items.sort(() => Math.random() - 0.5);
+  items = shuffleArray(items);
   if (maxQuestions > 0 && maxQuestions < items.length) {
     items = items.slice(0, maxQuestions);
   }
@@ -133,7 +134,7 @@ export async function loadBlockPracticeQuestions(
     return { items: [], error: 'Este bloque no tiene preguntas de quiz activas.' };
   }
 
-  items = items.sort(() => Math.random() - 0.5);
+  items = shuffleArray(items);
   if (maxQuestions > 0 && maxQuestions < items.length) {
     items = items.slice(0, maxQuestions);
   }
