@@ -22,9 +22,14 @@
 //     iff still attached to a parent
 //   - enabled === false → no-op (no canvas created)
 //   - containerRef.current === null at mount → no-op
+//
+// Cycle #50: trimmed unused exports (ctxRef, resize) — both
+// consumers call `overlay.getContext('2d')` themselves and rely
+// on the internal ResizeObserver, never the manual resize. Pure
+// surface tightening, zero behavior change.
 // ============================================================
 
-import { useEffect, useRef, useCallback, type RefObject, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject, type MutableRefObject } from 'react';
 
 export interface UseOverlayCanvasOptions {
   containerRef: RefObject<HTMLElement | null>;
@@ -34,9 +39,6 @@ export interface UseOverlayCanvasOptions {
 
 export interface UseOverlayCanvasResult {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
-  ctxRef: MutableRefObject<CanvasRenderingContext2D | null>;
-  /** Manually trigger a resize (no-op if canvas not mounted). */
-  resize: () => void;
 }
 
 export function useOverlayCanvas({
@@ -45,18 +47,6 @@ export function useOverlayCanvas({
   enabled,
 }: UseOverlayCanvasOptions): UseOverlayCanvasResult {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-
-  const resize = useCallback(() => {
-    const overlay = canvasRef.current;
-    const container = containerRef.current;
-    if (!overlay || !container) return;
-    const rect = container.getBoundingClientRect();
-    overlay.width = Math.round(rect.width * (window.devicePixelRatio || 1));
-    overlay.height = Math.round(rect.height * (window.devicePixelRatio || 1));
-    overlay.style.width = `${rect.width}px`;
-    overlay.style.height = `${rect.height}px`;
-  }, [containerRef]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -68,7 +58,6 @@ export function useOverlayCanvas({
     container.style.position = 'relative';
     container.appendChild(overlay);
     canvasRef.current = overlay;
-    ctxRef.current = overlay.getContext('2d');
 
     // Initial sizing
     const rect = container.getBoundingClientRect();
@@ -90,9 +79,8 @@ export function useOverlayCanvas({
       ro.disconnect();
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
       canvasRef.current = null;
-      ctxRef.current = null;
     };
   }, [enabled, zIndex, containerRef]);
 
-  return { canvasRef, ctxRef, resize };
+  return { canvasRef };
 }

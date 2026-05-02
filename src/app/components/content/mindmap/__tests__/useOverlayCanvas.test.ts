@@ -43,10 +43,12 @@ describe('useOverlayCanvas exports', () => {
     expect(source).toMatch(/enabled:\s*boolean/);
   });
 
-  it('result interface declares canvasRef, ctxRef, resize', () => {
+  it('result interface declares canvasRef only (cycle 50: trimmed unused ctxRef/resize)', () => {
     expect(source).toMatch(/canvasRef:\s*MutableRefObject/);
-    expect(source).toMatch(/ctxRef:\s*MutableRefObject/);
-    expect(source).toMatch(/resize:\s*\(\)\s*=>\s*void/);
+    // Cycle 50: dropped ctxRef and resize — both consumers call
+    // overlay.getContext('2d') themselves and rely on the internal ResizeObserver.
+    expect(source).not.toMatch(/ctxRef:\s*MutableRefObject/);
+    expect(source).not.toMatch(/resize:\s*\(\)\s*=>\s*void/);
   });
 });
 
@@ -81,8 +83,11 @@ describe('Canvas overlay creation', () => {
     expect(source).toMatch(/container\.appendChild\(overlay\)/);
   });
 
-  it('captures the 2D context once at mount', () => {
-    expect(source).toMatch(/ctxRef\.current\s*=\s*overlay\.getContext\('2d'\)/);
+  it('does NOT cache a 2D context internally (cycle 50: consumers call getContext themselves)', () => {
+    // Cycle 50: previously this hook captured `ctxRef.current = overlay.getContext('2d')`,
+    // but neither consumer used it — both call `.getContext('2d')` in their own draw loops.
+    // Removed to tighten surface; verifies the cleanup didn't leave the assignment behind.
+    expect(source).not.toMatch(/ctxRef\.current\s*=\s*overlay\.getContext/);
   });
 });
 
@@ -124,8 +129,8 @@ describe('Cleanup-on-unmount', () => {
     expect(source).toMatch(/canvasRef\.current\s*=\s*null/);
   });
 
-  it('nulls ctxRef on cleanup', () => {
-    expect(source).toMatch(/ctxRef\.current\s*=\s*null/);
+  it('does NOT null any ctxRef in cleanup (cycle 50: ctxRef removed)', () => {
+    expect(source).not.toMatch(/ctxRef\.current\s*=\s*null/);
   });
 
   it('cleanup is symmetric with creation (no orphaned listeners)', () => {
@@ -151,21 +156,22 @@ describe('Mount-time guards', () => {
   });
 });
 
-// ── Resize callback exposed for manual triggering ──────────
+// ── Manual resize callback (cycle 50: removed) ─────────────
 
-describe('Manual resize callback', () => {
-  it('exposes a useCallback-stable resize function', () => {
-    expect(source).toMatch(/const resize\s*=\s*useCallback/);
+describe('Manual resize callback (cycle 50: dropped)', () => {
+  it('does NOT export a separate resize function', () => {
+    // Cycle 50: the manual resize useCallback was unused — both consumers
+    // rely on the internal ResizeObserver. Removed to tighten the surface.
+    expect(source).not.toMatch(/const resize\s*=\s*useCallback/);
+    expect(source).not.toMatch(/resize:\s*\(\)\s*=>\s*void/);
   });
 
-  it('resize is a no-op when canvas is not mounted', () => {
-    // Pin: `if (!overlay || !container) return;` inside the resize callback.
-    expect(source).toMatch(/if\s*\(!overlay\s*\|\|\s*!container\)\s*return/);
-  });
-
-  it('resize uses the same pixel-buffer math as the initial sizing', () => {
-    // Both copies should round(rect × DPR).
-    const matches = source.match(/Math\.round\(.*?rect\.width.*?devicePixelRatio/g) ?? [];
+  it('still has the pixel-buffer math at the two ResizeObserver-driven sites', () => {
+    // After removing the manual resize() callback, two `Math.round(... rect.* * DPR)`
+    // call sites remain: the initial sizing (line ~57) and inside the ResizeObserver
+    // callback (line ~67). The replicated-DPR-math behavioral tests still cover the
+    // formula itself.
+    const matches = source.match(/Math\.round\(.*?rect.*?devicePixelRatio|Math\.round\(.*?r\..*?devicePixelRatio/g) ?? [];
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 });
