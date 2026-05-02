@@ -35,8 +35,12 @@ interface UsePinDataReturn {
   loading: boolean;
   /** Direct state setter for optimistic updates after CRUD */
   setPins: Dispatch<SetStateAction<Model3DPin[]>>;
-  /** Re-fetches pins from the API */
-  refetch: () => Promise<void>;
+  /**
+   * Re-fetches pins from the API. Accepts an optional `isCancelled` predicate
+   * so callers (typically a `useEffect` cleanup) can prevent stale responses
+   * from clobbering state when `modelId` changes mid-flight.
+   */
+  refetch: (isCancelled?: () => boolean) => Promise<void>;
 }
 
 export function usePinData(
@@ -48,21 +52,30 @@ export function usePinData(
   const [pins, setPins] = useState<Model3DPin[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (isCancelled?: () => boolean) => {
     setLoading(true);
     try {
       const res = await getModel3DPins(modelId);
+      if (isCancelled?.()) return;
       setPins(res?.items || []);
     } catch (err: unknown) {
+      if (isCancelled?.()) return;
       logger.error(tag, 'fetch error:', err);
     } finally {
-      setLoading(false);
+      if (!isCancelled?.()) setLoading(false);
     }
   }, [modelId, tag]);
 
-  // Fetch on mount + when refreshKey changes
+  // Fetch on mount + when refreshKey changes.
+  // The `cancelled` flag lives in the effect (NOT inside the async callback)
+  // because returning a cleanup from an async function returns the resolved
+  // Promise — not a cleanup — so React would never invoke it.
   useEffect(() => {
-    refetch();
+    let cancelled = false;
+    refetch(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [refetch, refreshKey]);
 
   return { pins, loading, setPins, refetch };
