@@ -12,7 +12,7 @@
 // Design: purple accent, tabbed modal.
 // ============================================================
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as quizApi from '@/app/services/quizApi';
 import type { QuizQuestion, CreateQuizQuestionPayload } from '@/app/services/quizApi';
 import { QUESTION_TYPE_LABELS, normalizeDifficulty, normalizeQuestionType } from '@/app/services/quizConstants';
@@ -71,6 +71,9 @@ export function QuizExportImport({
   const [previewQuestions, setPreviewQuestions] = useState<ExportedQuestion[] | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
 
   // ── Export ─────────────────────────────────────────────
   const exportData: ExportSchema = {
@@ -102,11 +105,14 @@ export function QuizExportImport({
   }, [exportJson, quizTitle]);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(exportJson).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast.success('Copiado al portapapeles');
-    });
+    navigator.clipboard.writeText(exportJson)
+      .then(() => {
+        setCopied(true);
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+        toast.success('Copiado al portapapeles');
+      })
+      .catch(() => toast.error('No se pudo copiar'));
   }, [exportJson]);
 
   // ── Import ─────────────────────────────────────────────
