@@ -214,13 +214,13 @@ export function useTopicProgress(
     }
   }, [courseId, topicIds, bySummaryId, sqLoading]);
 
-  // Auto-rebuild when study-queue data or topic list changes
+  // Auto-rebuild when study-queue data, topic list, or course changes
   useEffect(() => {
     if (topicIds.length > 0 && !sqLoading) {
       refresh();
     }
     return () => { abortRef.current?.abort(); };
-  }, [topicIds, bySummaryId, sqLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [topicIds, bySummaryId, sqLoading, courseId, refresh]);
 
   // ── Derived helpers ─────────────────────────────────────
 
