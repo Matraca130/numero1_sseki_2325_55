@@ -226,8 +226,19 @@ export function RunProgress({ runId }: Props) {
                 size="sm"
                 className="h-6 text-[11px]"
                 onClick={() => {
-                  navigator.clipboard?.writeText(run.summary_id ?? '');
-                  toast.success('summary_id copiado');
+                  const id = run.summary_id;
+                  if (!id) return;
+                  if (!navigator.clipboard?.writeText) {
+                    // Clipboard API unavailable (insecure context, sandboxed
+                    // iframe, or older browser). Surface so the user knows to
+                    // select-and-copy the visible code block manually.
+                    toast.error('Clipboard no disponible — copialo manualmente');
+                    return;
+                  }
+                  navigator.clipboard
+                    .writeText(id)
+                    .then(() => toast.success('summary_id copiado'))
+                    .catch(() => toast.error('No se pudo copiar al portapapeles'));
                 }}
               >
                 Copiar
