@@ -126,6 +126,16 @@ export function SummaryViewer({
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  // ── Sort blocks by order_index ─────────────────────────
+  // Memoized so unrelated state changes (lightbox open, bookmark toggle,
+  // mastery refetch, video play, etc.) don't trigger a fresh spread + sort
+  // on every render. blocks comes from React Query — its identity is
+  // stable until a refetch.
+  const sorted = useMemo(
+    () => [...blocks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
+    [blocks],
+  );
+
   // ── Collect all images for lightbox navigation ──────────
   const allImages: LightboxImage[] = useMemo(() => {
     return blocks
@@ -202,9 +212,6 @@ export function SummaryViewer({
       </div>
     );
   }
-
-  // ── Sorted blocks for mobile ────────────────────────────
-  const sorted = [...blocks].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
   return (
     <>
