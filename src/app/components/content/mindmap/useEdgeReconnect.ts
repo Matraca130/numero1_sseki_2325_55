@@ -24,6 +24,8 @@ import type { Graph } from '@antv/g6';
 import type { MapEdge } from '@/app/types/mindmap';
 import { getNodeScreenPositions, findNearestNode, GRAPH_COLORS, safeReleasePointerCapture, devWarn } from './graphHelpers';
 import type { NodeScreenPos } from './graphHelpers';
+import { useOverlayCanvas } from './useOverlayCanvas';
+import { useEscapeCancel } from './useEscapeCancel';
 
 /** Snap distance in pixels (screen coords) to detect proximity to an endpoint */
 const ENDPOINT_HIT_RADIUS = 14;
@@ -126,7 +128,12 @@ export function useEdgeReconnect({
   batchDraw: batchDrawProp,
 }: UseEdgeReconnectOptions) {
   const dragStateRef = useRef<DragState | null>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Canvas overlay (z-index 6) — extracted to useOverlayCanvas in cycle 48
+  const { canvasRef: overlayCanvasRef } = useOverlayCanvas({
+    containerRef,
+    zIndex: 6,
+    enabled: enabled && ready,
+  });
   const rafRef = useRef<number>(0);
   const onReconnectRef = useRef(onReconnect);
   onReconnectRef.current = onReconnect;
@@ -139,6 +146,23 @@ export function useEdgeReconnect({
   }, [graphRef]);
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
+  /** Bridge: main interaction effect populates this; useEscapeCancel calls it */
+  const pointerCancelRef = useRef<((e: PointerEvent) => void) | null>(null);
+
+  // Escape key cancels the in-flight reconnect (extracted to useEscapeCancel in cycle 48)
+  const escapeIsActive = useCallback(() => dragStateRef.current !== null, []);
+  const escapeOnCancel = useCallback(() => {
+    const ds = dragStateRef.current;
+    if (!ds) return;
+    pointerCancelRef.current?.(
+      new PointerEvent('pointercancel', { pointerId: ds.capturedPointerId }),
+    );
+  }, []);
+  useEscapeCancel({
+    enabled: enabled && ready,
+    isActive: escapeIsActive,
+    onCancel: escapeOnCancel,
+  });
 
   // Cached user-created edges — only recalculated when edges prop changes
   const userEdgesRef = useRef<MapEdge[]>([]);
@@ -146,35 +170,13 @@ export function useEdgeReconnect({
     userEdgesRef.current = edges.filter(e => e.isUserCreated);
   }, [edges]);
 
-  // Create/destroy overlay canvas
+  // Auxiliary cleanup-on-disable effect: cancel rAF and reset drag state
+  // when the hook is disabled or unmounted. The canvas itself is managed
+  // by useOverlayCanvas (extracted in cycle 48).
   useEffect(() => {
     if (!enabled || !ready) return;
-    const container = containerRef.current;
-    if (!container) return;
-
-    const overlay = document.createElement('canvas');
-    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;';
-    container.style.position = 'relative';
-    container.appendChild(overlay);
-    overlayCanvasRef.current = overlay;
-
-    // Size the overlay to match the container
-    const resize = () => {
-      const rect = container.getBoundingClientRect();
-      overlay.width = Math.round(rect.width * (window.devicePixelRatio || 1));
-      overlay.height = Math.round(rect.height * (window.devicePixelRatio || 1));
-      overlay.style.width = `${rect.width}px`;
-      overlay.style.height = `${rect.height}px`;
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
-
     return () => {
-      ro.disconnect();
       cancelAnimationFrame(rafRef.current);
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-      overlayCanvasRef.current = null;
       dragStateRef.current = null;
     };
   }, [enabled, ready, containerRef]);
@@ -529,28 +531,20 @@ export function useEdgeReconnect({
       if (isDraggingRef) isDraggingRef.current = false;
     };
 
-    // Keydown: Escape cancels drag — use capture phase so it fires
-    // before panel-level bubble handlers that may stopPropagation
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dragStateRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePointerCancel(new PointerEvent('pointercancel', { pointerId: dragStateRef.current.capturedPointerId }));
-      }
-    };
+    // Bridge for useEscapeCancel — populated while this effect is active
+    pointerCancelRef.current = handlePointerCancel;
 
     container.addEventListener('pointerdown', handlePointerDown, { capture: true });
     container.addEventListener('pointermove', handlePointerMove);
     container.addEventListener('pointerup', handlePointerUp);
     container.addEventListener('pointercancel', handlePointerCancel);
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDown, { capture: true });
       container.removeEventListener('pointermove', handlePointerMove);
       container.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('pointercancel', handlePointerCancel);
-      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+      pointerCancelRef.current = null;
       cancelAnimationFrame(rafRef.current);
       // Restore edge state + cursor if unmount/re-run happens during active drag
       const ds = dragStateRef.current;

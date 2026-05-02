@@ -464,6 +464,10 @@ describe('mindmap directory completeness', () => {
       'useMapUIState.ts',
       // Cycle 44 — extracted helper, tested transitively via hooks that consume it
       'hapticHelper.ts',
+      // Cycle 48 — extracted helpers (canvas overlay + Escape-cancel)
+      // Both have dedicated test files (useOverlayCanvas.test.ts / useEscapeCancel.test.ts).
+      'useOverlayCanvas.ts',
+      'useEscapeCancel.ts',
     ]);
 
     const untested = files.filter(f => !tested.has(f));

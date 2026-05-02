@@ -76,8 +76,10 @@ describe('useEdgeReconnect module contract', () => {
     expect(source).toContain('DRAG_THRESHOLD = 6');
   });
 
-  it('handles Escape key to cancel drag', () => {
-    expect(source).toContain("e.key === 'Escape'");
+  it('handles Escape key to cancel drag (delegated to useEscapeCancel in cycle 48)', () => {
+    // The Escape→pointercancel idiom moved to the useEscapeCancel helper;
+    // host wires it with the isActive/onCancel callbacks.
+    expect(source).toContain('useEscapeCancel');
   });
 
   it('handles pointercancel event', () => {
@@ -267,15 +269,17 @@ describe('Pointer state machine — source guarantees', () => {
     expect(source).toMatch(/addEventListener\('pointerdown',\s*\w+,\s*\{\s*capture:\s*true\s*\}/);
   });
 
-  it('keydown (for Escape) bound with capture:true', () => {
-    expect(source).toMatch(/addEventListener\('keydown',\s*\w+,\s*\{\s*capture:\s*true\s*\}/);
+  it('keydown (for Escape) is delegated to useEscapeCancel (cycle 48 helper)', () => {
+    // The capture:true binding contract is pinned in useEscapeCancel.test.ts.
+    expect(source).toContain('useEscapeCancel');
   });
 
-  it('all 4 pointer events + keydown unbound on cleanup', () => {
+  it('all 4 pointer events unbound on cleanup (keydown is via useEscapeCancel)', () => {
     for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) {
       expect(source).toContain(`removeEventListener('${ev}'`);
     }
-    expect(source).toContain("removeEventListener('keydown'");
+    // Keydown listener registration/cleanup is delegated to useEscapeCancel.
+    expect(source).toContain('useEscapeCancel');
   });
 
   it('coordinates with shared isDraggingRef for activation + cleanup', () => {
@@ -392,13 +396,16 @@ describe('Mid-drag unmount cleanup', () => {
 // ── Cancellation paths ──────────────────────────────────────
 
 describe('Cancellation', () => {
-  it('Escape constructs a synthetic PointerEvent("pointercancel")', () => {
+  it('Escape constructs a synthetic PointerEvent("pointercancel") via useEscapeCancel onCancel', () => {
+    // Cycle 48: the synthetic PointerEvent build moved into the host's
+    // escapeOnCancel callback (which then forwards via pointerCancelRef).
     expect(source).toContain("new PointerEvent('pointercancel'");
-    expect(source).toMatch(/if\s*\(\s*e\.key\s*===\s*'Escape'\s*&&\s*dragStateRef\.current\s*\)/);
+    expect(source).toMatch(/escapeIsActive\s*=\s*useCallback\(\(\)\s*=>\s*dragStateRef\.current\s*!==\s*null/);
   });
 
-  it('Escape calls preventDefault + stopPropagation (panel-level guards)', () => {
-    expect(source).toMatch(/Escape[\s\S]*?e\.preventDefault\(\)[\s\S]*?e\.stopPropagation\(\)/);
+  it('Escape preventDefault + stopPropagation are handled inside useEscapeCancel (cycle 48)', () => {
+    // Pinned in useEscapeCancel.test.ts. Host pinning is the delegation.
+    expect(source).toContain('useEscapeCancel');
   });
 
   it('clears overlay canvas via clearRect (no leftover lines)', () => {

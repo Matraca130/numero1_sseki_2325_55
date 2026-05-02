@@ -26,6 +26,8 @@ import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
 import { drawDragConnectFrame, SUCCESS_ANIM_DURATION } from './drawDragConnectOverlay';
 import type { DragDrawState, SuccessAnimState } from './drawDragConnectOverlay';
+import { useOverlayCanvas } from './useOverlayCanvas';
+import { useEscapeCancel } from './useEscapeCancel';
 
 // ── Constants ───────────────────────────────────────────────
 
@@ -110,7 +112,12 @@ export function useDragConnect({
   const gi = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
   const t = { connectTo: gi.dragConnectTo, sameNode: gi.dragSameNode, alreadyConnected: gi.dragAlreadyConnected, quickConnectTitle: gi.dragQuickConnectTitle };
   const dragStateRef = useRef<DragState | null>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Canvas overlay (z-index 5) — extracted to useOverlayCanvas in cycle 48
+  const { canvasRef: overlayCanvasRef } = useOverlayCanvas({
+    containerRef,
+    zIndex: 5,
+    enabled: enabled && ready,
+  });
   const rafRef = useRef<number>(0);
   const onDragConnectRef = useRef(onDragConnect);
   onDragConnectRef.current = onDragConnect;
@@ -131,19 +138,30 @@ export function useDragConnect({
   const quickConnectBtnRef = useRef<HTMLDivElement | null>(null);
   /** Last detected pointer type — updated on every hover/drag event */
   const lastPointerTypeRef = useRef<string>('mouse');
+  /** Bridge: main interaction effect populates this; useEscapeCancel calls it */
+  const pointerCancelRef = useRef<((e: PointerEvent) => void) | null>(null);
 
-  // Create/destroy overlay canvas and quick-connect button
+  // Escape key cancels the in-flight drag (extracted to useEscapeCancel in cycle 48)
+  const escapeIsActive = useCallback(() => dragStateRef.current !== null, []);
+  const escapeOnCancel = useCallback(() => {
+    const ds = dragStateRef.current;
+    if (!ds) return;
+    pointerCancelRef.current?.(
+      new PointerEvent('pointercancel', { pointerId: ds.capturedPointerId }),
+    );
+  }, []);
+  useEscapeCancel({
+    enabled: enabled && ready,
+    isActive: escapeIsActive,
+    onCancel: escapeOnCancel,
+  });
+
+  // Create/destroy quick-connect "+" button (canvas overlay is handled by
+  // useOverlayCanvas; the button stays here because it's drag-connect-specific)
   useEffect(() => {
     if (!enabled || !ready) return;
     const container = containerRef.current;
     if (!container) return;
-
-    // Canvas overlay
-    const overlay = document.createElement('canvas');
-    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;';
-    container.style.position = 'relative';
-    container.appendChild(overlay);
-    overlayCanvasRef.current = overlay;
 
     // Quick-connect "+" button — initial size uses mouse default; updated dynamically on hover
     const initSize = getQuickConnectSize(false);
@@ -160,24 +178,9 @@ export function useDragConnect({
     container.appendChild(btn);
     quickConnectBtnRef.current = btn;
 
-    // Size the overlay to match the container
-    const resize = () => {
-      const rect = container.getBoundingClientRect();
-      overlay.width = Math.round(rect.width * (window.devicePixelRatio || 1));
-      overlay.height = Math.round(rect.height * (window.devicePixelRatio || 1));
-      overlay.style.width = `${rect.width}px`;
-      overlay.style.height = `${rect.height}px`;
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
-
     return () => {
-      ro.disconnect();
       cancelAnimationFrame(rafRef.current);
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
       if (btn.parentNode) btn.parentNode.removeChild(btn);
-      overlayCanvasRef.current = null;
       quickConnectBtnRef.current = null;
       dragStateRef.current = null;
       successAnimRef.current = null;
@@ -521,31 +524,20 @@ export function useDragConnect({
       if (isDraggingRef) isDraggingRef.current = false;
     };
 
-    // Escape cancels drag
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dragStateRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePointerCancel(
-          new PointerEvent('pointercancel', {
-            pointerId: dragStateRef.current.capturedPointerId,
-          }),
-        );
-      }
-    };
+    // Bridge for useEscapeCancel — populated while this effect is active
+    pointerCancelRef.current = handlePointerCancel;
 
     container.addEventListener('pointerdown', handlePointerDown, { capture: true });
     container.addEventListener('pointermove', handlePointerMove);
     container.addEventListener('pointerup', handlePointerUp);
     container.addEventListener('pointercancel', handlePointerCancel);
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDown, { capture: true });
       container.removeEventListener('pointermove', handlePointerMove);
       container.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('pointercancel', handlePointerCancel);
-      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+      pointerCancelRef.current = null;
       if (btn) {
         btn.removeEventListener('mousedown', handleQuickConnectClick);
       }

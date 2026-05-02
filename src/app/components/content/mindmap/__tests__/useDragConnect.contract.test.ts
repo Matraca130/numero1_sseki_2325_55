@@ -127,9 +127,11 @@ describe('Edge existence helpers', () => {
 // ── Canvas overlay lifecycle ─────────────────────────────────
 
 describe('Canvas overlay + quick-connect button', () => {
-  it('creates a canvas overlay with pointer-events: none', () => {
-    expect(source).toContain("document.createElement('canvas')");
-    expect(source).toContain('pointer-events:none');
+  it('delegates canvas overlay creation to useOverlayCanvas (cycle 48)', () => {
+    // Canvas creation/DPR/ResizeObserver moved to useOverlayCanvas.ts.
+    // The host wires it with z-index 5.
+    expect(source).toContain('useOverlayCanvas');
+    expect(source).toMatch(/zIndex:\s*5/);
   });
 
   it('creates a quick-connect "+" button', () => {
@@ -137,14 +139,14 @@ describe('Canvas overlay + quick-connect button', () => {
     expect(source).toContain("btn.textContent = '+'");
   });
 
-  it('observes container resize via ResizeObserver', () => {
-    expect(source).toContain('ResizeObserver');
+  it('passes enabled && ready to useOverlayCanvas (auto-mounts/unmounts)', () => {
+    expect(source).toMatch(/useOverlayCanvas\(\{[\s\S]*?enabled:\s*enabled\s*&&\s*ready/);
   });
 
-  it('cleans up overlay, button, observer, and rAF on unmount', () => {
-    expect(source).toContain('ro.disconnect()');
+  it('cleans up button, rAF, and per-effect refs on unmount', () => {
+    // Canvas + ResizeObserver cleanup is now inside useOverlayCanvas;
+    // the host effect still owns the button + rAF + state refs.
     expect(source).toContain('cancelAnimationFrame(rafRef.current)');
-    expect(source).toMatch(/overlay\.parentNode\.removeChild\(overlay\)/);
     expect(source).toMatch(/btn\.parentNode\.removeChild\(btn\)/);
   });
 
@@ -211,11 +213,14 @@ describe('Pointer state machine — source guarantees', () => {
     expect(source).toMatch(/addEventListener\('pointerdown',\s*\w+,\s*\{\s*capture:\s*true\s*\}/);
   });
 
-  it('all 4 pointer events + keydown are unbound on cleanup', () => {
+  it('all 4 pointer events are unbound on cleanup (keydown is via useEscapeCancel)', () => {
     for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) {
       expect(source).toContain(`removeEventListener('${ev}'`);
     }
-    expect(source).toContain("removeEventListener('keydown'");
+    // Keydown listener registration/cleanup is delegated to useEscapeCancel
+    // (extracted in cycle 48). The host imports the helper and supplies
+    // an onCancel callback that synthesises a PointerEvent.
+    expect(source).toContain('useEscapeCancel');
   });
 
   it('skips drag-connect when pointer is inside the inner 60% of any node', () => {
@@ -280,13 +285,18 @@ describe('Successful drop', () => {
 // ── Cancellation paths ──────────────────────────────────────
 
 describe('Cancellation', () => {
-  it('Escape key triggers a synthetic pointercancel', () => {
-    expect(source).toMatch(/if\s*\(\s*e\.key\s*===\s*'Escape'\s*&&\s*dragStateRef\.current\s*\)/);
+  it('Escape key triggers a synthetic pointercancel (via useEscapeCancel onCancel)', () => {
+    // Cycle 48 — Escape handling moved to useEscapeCancel; the host's
+    // onCancel callback constructs the synthetic PointerEvent and
+    // forwards it to handlePointerCancel via the pointerCancelRef bridge.
+    expect(source).toContain('useEscapeCancel');
     expect(source).toMatch(/new PointerEvent\('pointercancel'/);
   });
 
-  it('keydown listener is bound with capture:true so other handlers do not consume it', () => {
-    expect(source).toMatch(/addEventListener\('keydown',\s*\w+,\s*\{\s*capture:\s*true\s*\}/);
+  it('keydown listener is delegated to useEscapeCancel (capture:true is in helper)', () => {
+    // The bind-with-capture-true contract is pinned in useEscapeCancel.test.ts.
+    // Here we just pin the delegation.
+    expect(source).toContain('useEscapeCancel');
   });
 
   it('cancellation clears the overlay canvas (zero pixels left over)', () => {
@@ -520,8 +530,10 @@ describe('Quick-connect "+" button positioning', () => {
 
   it('button is created with z-index 6 (above the canvas overlay z-index 5)', () => {
     // Layering matters: the button must be clickable above the overlay.
+    // Cycle 48: canvas z-index is now passed to useOverlayCanvas as a numeric
+    // option (`zIndex: 5`); the button's z-index 6 stays inline in the host.
     expect(source).toMatch(/z-index:6/);
-    expect(source).toMatch(/z-index:5/);
+    expect(source).toMatch(/zIndex:\s*5/);
   });
 
   it('button has pointer-events:auto (overlay has none — click delegation)', () => {
@@ -678,47 +690,63 @@ describe('Pointer-cancel branches', () => {
 
 describe('Escape → synthetic pointercancel', () => {
   it('forwards the captured pointerId into the synthetic PointerEvent', () => {
-    expect(source).toMatch(/new PointerEvent\('pointercancel',\s*\{\s*pointerId:\s*dragStateRef\.current\.capturedPointerId/);
+    // The host's onCancel reads ds.capturedPointerId and builds the synthetic
+    // PointerEvent before forwarding to handlePointerCancel via pointerCancelRef.
+    expect(source).toMatch(/new PointerEvent\('pointercancel',\s*\{\s*pointerId:\s*ds\.capturedPointerId/);
   });
 
-  it('Escape preventDefault + stopPropagation BEFORE the synthetic dispatch', () => {
-    expect(source).toMatch(/e\.key\s*===\s*'Escape'[\s\S]*?e\.preventDefault\(\)[\s\S]*?e\.stopPropagation\(\)[\s\S]*?handlePointerCancel/);
+  it('synthetic PointerEvent is dispatched through the pointerCancelRef bridge', () => {
+    // Cycle 48: handlePointerCancel lives inside the main interaction effect
+    // closure, so a ref bridge keeps it reachable from useEscapeCancel.
+    expect(source).toMatch(/pointerCancelRef\.current\?\.\(/);
+    expect(source).toMatch(/pointerCancelRef\.current\s*=\s*handlePointerCancel/);
   });
 
-  it('Escape is a no-op when there is no active drag (gated on dragStateRef.current)', () => {
-    expect(source).toMatch(/if\s*\(\s*e\.key\s*===\s*'Escape'\s*&&\s*dragStateRef\.current\s*\)/);
+  it('Escape is a no-op when there is no active drag (gated by isActive callback)', () => {
+    // The `isActive` callback returns dragStateRef.current !== null; the
+    // useEscapeCancel helper short-circuits when it returns false.
+    expect(source).toMatch(/escapeIsActive\s*=\s*useCallback\(\(\)\s*=>\s*dragStateRef\.current\s*!==\s*null/);
   });
 
-  it('Escape listener is on document (not container) — global capture for app-wide cancel', () => {
-    expect(source).toMatch(/document\.addEventListener\('keydown',\s*handleKeyDown,\s*\{\s*capture:\s*true\s*\}/);
-    expect(source).toMatch(/document\.removeEventListener\('keydown',\s*handleKeyDown,\s*\{\s*capture:\s*true\s*\}/);
+  it('Escape handling is delegated to useEscapeCancel (cycle-48 helper)', () => {
+    // The bind-on-document + capture:true contract is pinned in
+    // useEscapeCancel.test.ts. Here we just pin the delegation.
+    expect(source).toContain('useEscapeCancel');
+    expect(source).toMatch(/useEscapeCancel\(\{[\s\S]*?enabled:\s*enabled\s*&&\s*ready[\s\S]*?isActive:\s*escapeIsActive[\s\S]*?onCancel:\s*escapeOnCancel/);
   });
 });
 
 // ── Canvas DPR resize math ──────────────────────────────────
 
 describe('Canvas DPR resize math', () => {
-  it('canvas pixel buffer = rect × devicePixelRatio (rounded to int)', () => {
-    expect(source).toMatch(/overlay\.width\s*=\s*Math\.round\(rect\.width\s*\*\s*\(window\.devicePixelRatio\s*\|\|\s*1\)\)/);
-    expect(source).toMatch(/overlay\.height\s*=\s*Math\.round\(rect\.height\s*\*\s*\(window\.devicePixelRatio\s*\|\|\s*1\)\)/);
+  // Cycle 48 — canvas creation/DPR/ResizeObserver moved to useOverlayCanvas.
+  // The detailed resize-math contract is pinned in useOverlayCanvas.test.ts.
+
+  it('uses the cycle-48 useOverlayCanvas helper (DPR + ResizeObserver delegated)', () => {
+    expect(source).toContain('useOverlayCanvas');
   });
 
-  it('canvas CSS size = raw rect (NOT multiplied by DPR — that would scale 2x on retina)', () => {
-    expect(source).toMatch(/overlay\.style\.width\s*=\s*`\$\{rect\.width\}px`/);
-    expect(source).toMatch(/overlay\.style\.height\s*=\s*`\$\{rect\.height\}px`/);
+  it('reads the DPR-correct canvas via the helper-returned canvasRef', () => {
+    // The host still reads overlay.width / overlay.height in the draw loop,
+    // and those are sized DPR-correctly by useOverlayCanvas.
+    expect(source).toMatch(/canvasRef:\s*overlayCanvasRef/);
+    expect(source).toMatch(/overlay\.width/);
+    expect(source).toMatch(/overlay\.height/);
   });
 
-  it('falls back to DPR=1 when window.devicePixelRatio is 0/undefined', () => {
+  it('falls back to DPR=1 when window.devicePixelRatio is 0/undefined (in draw loop)', () => {
+    // The draw loop also reads `window.devicePixelRatio || 1` — that path stays.
     expect(source).toMatch(/window\.devicePixelRatio\s*\|\|\s*1/);
   });
 
-  it('resize is wired through ResizeObserver (auto-fires on container size change)', () => {
-    expect(source).toMatch(/const ro\s*=\s*new ResizeObserver\(resize\)/);
-    expect(source).toMatch(/ro\.observe\(container\)/);
+  it('z-index 5 is passed to useOverlayCanvas (above G6 canvas, below the +button)', () => {
+    expect(source).toMatch(/zIndex:\s*5/);
   });
 
-  it('observer is disconnected on cleanup (no leak)', () => {
-    expect(source).toMatch(/ro\.disconnect\(\)/);
+  it('overlay lifecycle (creation/disconnect) is owned by the helper, not the host', () => {
+    // The host file no longer contains ResizeObserver / ro.observe / ro.disconnect.
+    expect(source).not.toContain('new ResizeObserver');
+    expect(source).not.toContain('ro.disconnect');
   });
 });
 
@@ -831,21 +859,23 @@ describe('Mount-time guards', () => {
     expect(source).toMatch(/if\s*\(!graph\s*\|\|\s*!container\)\s*return/);
   });
 
-  it('container is set to position:relative so the absolute-positioned overlay anchors correctly', () => {
-    expect(source).toMatch(/container\.style\.position\s*=\s*'relative'/);
+  it('container is set to position:relative (cycle 48: handled by useOverlayCanvas)', () => {
+    // Pinned in useOverlayCanvas.test.ts. Host pinning is the delegation.
+    expect(source).toContain('useOverlayCanvas');
   });
 
-  it('overlay is appended to the container (not body) — scoped to the map', () => {
-    expect(source).toMatch(/container\.appendChild\(overlay\)/);
+  it('button is appended to the container (overlay append delegated to helper)', () => {
+    // Cycle 48: overlay.appendChild is in useOverlayCanvas; button stays here.
     expect(source).toMatch(/container\.appendChild\(btn\)/);
   });
 });
 
 // ── Cleanup-on-unmount discipline ───────────────────────────
 
-describe('Cleanup-on-unmount (overlay-create effect)', () => {
-  it('nulls overlayCanvasRef on cleanup', () => {
-    expect(source).toMatch(/overlayCanvasRef\.current\s*=\s*null/);
+describe('Cleanup-on-unmount (button + state effects)', () => {
+  it('overlayCanvasRef is the helper-returned ref (helper handles its own null)', () => {
+    // Cycle 48: useOverlayCanvas nulls canvasRef.current internally.
+    expect(source).toMatch(/canvasRef:\s*overlayCanvasRef/);
   });
 
   it('nulls quickConnectBtnRef on cleanup', () => {
@@ -853,7 +883,7 @@ describe('Cleanup-on-unmount (overlay-create effect)', () => {
   });
 
   it('nulls dragStateRef on cleanup (mid-drag unmount)', () => {
-    // Two callsites: pointerup/cancel AND unmount cleanup.
+    // Multiple callsites: pointerup/cancel AND unmount cleanup paths.
     const matches = source.match(/dragStateRef\.current\s*=\s*null/g) ?? [];
     expect(matches.length).toBeGreaterThanOrEqual(3);
   });
@@ -868,8 +898,9 @@ describe('Cleanup-on-unmount (overlay-create effect)', () => {
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('only removes overlay from DOM if it is still attached (parentNode guard)', () => {
-    expect(source).toMatch(/if\s*\(overlay\.parentNode\)\s*overlay\.parentNode\.removeChild\(overlay\)/);
+  it('overlay parentNode-guard removal is delegated to useOverlayCanvas (cycle 48)', () => {
+    // Pinned in useOverlayCanvas.test.ts. Host no longer has the guard.
+    expect(source).toContain('useOverlayCanvas');
   });
 
   it('only removes button from DOM if it is still attached (parentNode guard)', () => {
