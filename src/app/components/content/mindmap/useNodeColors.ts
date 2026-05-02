@@ -11,6 +11,14 @@
 const STORAGE_PREFIX = 'axon_node_colors_';
 const MAX_COLORS = 200;
 
+/**
+ * Hex color allowlist (3-8 hex chars after `#`).
+ * Cycle 56: extracted from inline duplicates at the read- and write-paths.
+ * NOTE: still permits non-CSS lengths 5 and 7; tightening to {3,4,6,8} would
+ * be a behavior change — deferred until a cycle that audits all callers.
+ */
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
+
 export type NodeColorMap = Map<string, string>;
 
 /** Load saved custom node colors for a topic */
@@ -21,7 +29,7 @@ export function loadNodeColors(topicId: string): NodeColorMap {
     const obj = JSON.parse(raw) as Record<string, unknown>;
     const map = new Map<string, string>();
     for (const [id, val] of Object.entries(obj)) {
-      if (typeof val === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(val)) {
+      if (typeof val === 'string' && HEX_COLOR_RE.test(val)) {
         map.set(id, val);
       }
     }
@@ -33,7 +41,7 @@ export function loadNodeColors(topicId: string): NodeColorMap {
 
 /** Save a custom color for a node (merges with existing) */
 export function saveNodeColor(topicId: string, nodeId: string, color: string): void {
-  if (!/^#[0-9a-fA-F]{3,8}$/.test(color)) return; // reject non-hex colors
+  if (!HEX_COLOR_RE.test(color)) return; // reject non-hex colors
   try {
     const existing = loadNodeColors(topicId);
     // Delete + re-set to move to end of insertion order (LRU)
