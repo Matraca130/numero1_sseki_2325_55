@@ -96,10 +96,9 @@ export function MultiPointPlacer({
       group.remove(child);
     }
 
-    const sphereGeo = new THREE.SphereGeometry(0.05, 8, 8);
-
     if (mode === 'line-b' && linePointA) {
       // Show point A marker
+      const sphereGeo = new THREE.SphereGeometry(0.05, 8, 8);
       const mat = new THREE.MeshBasicMaterial({ color: 0xa78bfa });
       const sphere = new THREE.Mesh(sphereGeo, mat);
       sphere.position.copy(linePointA);
@@ -108,10 +107,13 @@ export function MultiPointPlacer({
     }
 
     if (mode === 'area-placing' && areaVertices.length > 0) {
-      // Show all placed vertices + connecting edges
-      const mat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+      // Show all placed vertices + connecting edges.
+      // Each sphere gets its own geometry/material so the preview-clear loop
+      // above can dispose them individually without leaking GPU buffers.
       areaVertices.forEach((v) => {
-        const sphere = new THREE.Mesh(sphereGeo.clone(), mat.clone());
+        const sphereGeo = new THREE.SphereGeometry(0.05, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+        const sphere = new THREE.Mesh(sphereGeo, mat);
         sphere.position.copy(v);
         sphere.userData = { isPreview: true };
         group.add(sphere);
