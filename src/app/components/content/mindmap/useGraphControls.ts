@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import type { GraphControls } from '@/app/types/mindmap';
 import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
+import { devWarn } from './graphHelpers';
 
 export function useGraphControls(ref: RefObject<GraphControls | null>, locale: GraphLocale = 'pt') {
   const t = I18N_GRAPH[locale] ?? I18N_GRAPH.es;
@@ -20,10 +21,10 @@ export function useGraphControls(ref: RefObject<GraphControls | null>, locale: G
   const handleCollapseAll = useCallback(() => { ref.current?.collapseAll(); }, [ref]);
   const handleExpandAll = useCallback(() => { ref.current?.expandAll(); }, [ref]);
   const handleExportPNG = useCallback(async () => {
-    try { await ref.current?.exportPNG(); } catch (err) { if (import.meta.env.DEV) console.error('PNG export failed:', err); toast.error(t.exportPngError); }
+    try { await ref.current?.exportPNG(); } catch (err) { devWarn('useGraphControls', 'PNG export failed', err); toast.error(t.exportPngError); }
   }, [ref, t]);
   const handleExportJPEG = useCallback(async () => {
-    try { await ref.current?.exportJPEG(); } catch (err) { if (import.meta.env.DEV) console.error('JPEG export failed:', err); toast.error(t.exportJpegError); }
+    try { await ref.current?.exportJPEG(); } catch (err) { devWarn('useGraphControls', 'JPEG export failed', err); toast.error(t.exportJpegError); }
   }, [ref, t]);
   const handleUndo = useCallback(() => { ref.current?.undo?.(); }, [ref]);
   const handleRedo = useCallback(() => { ref.current?.redo?.(); }, [ref]);
