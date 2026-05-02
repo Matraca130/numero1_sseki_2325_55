@@ -55,8 +55,10 @@ export function SelectionKeywordBubble({
   }, [editor, existingKeywordNames]);
 
   useEffect(() => {
+    let blurTimer: ReturnType<typeof setTimeout> | null = null;
+
     const handleBlur = () => {
-      setTimeout(() => {
+      blurTimer = setTimeout(() => {
         if (!editor.isFocused) {
           setBubblePos(null);
           setSelectedText('');
@@ -69,6 +71,7 @@ export function SelectionKeywordBubble({
     return () => {
       editor.off('selectionUpdate', updateBubble);
       editor.off('blur', handleBlur);
+      if (blurTimer) clearTimeout(blurTimer);
     };
   }, [editor, updateBubble]);
 
