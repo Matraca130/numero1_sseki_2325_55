@@ -146,15 +146,20 @@ export async function generateStudyPlan(params: GeneratePlanParams): Promise<Gen
 
   // Try AI distribution with timeout
   let aiDistribution: { topicId: string; method: string; scheduledDate: string; estimatedMinutes: number; reason: string }[] | null = null;
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
   try {
     const aiPromise = aiDistributeTasks(profile, planContext);
-    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), AI_TIMEOUT_MS));
+    const timeoutPromise = new Promise<null>((resolve) => {
+      timeoutHandle = setTimeout(() => resolve(null), AI_TIMEOUT_MS);
+    });
     const result = await Promise.race([aiPromise, timeoutPromise]);
     if (result?._meta?.aiPowered && result.distribution?.length) {
       aiDistribution = result.distribution;
       aiPowered = true;
     }
-  } catch { /* graceful degradation */ }
+  } catch { /* graceful degradation */ } finally {
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
 
   // Build tasks
   let tasks: StudyPlanTask[];
