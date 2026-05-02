@@ -37,6 +37,43 @@ function relTime(d: string): string {
 
 const PAGE = 20;
 
+// ── TxRow — memoized leaf for the XP timeline ───────────
+//
+// Extracted from the inline .map() so a parent re-render (e.g.
+// "Cargar mas" appending more rows, or profile lazy-load completing)
+// doesn't re-render every previously-rendered row. tx is stable
+// per id (server data never mutates an existing transaction), so
+// React.memo's default shallow equality holds. The motion.div delay
+// is computed from the row's index — passed as a prop too.
+const TxRow = React.memo(function TxRow({ tx, delay }: { tx: XPTransaction; delay: number }) {
+  const c = getCfg(tx.action);
+  const Icon = c.icon;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors"
+    >
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${c.color}`}>
+        <Icon size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[12px] text-gray-800" style={{ fontWeight: 600 }}>{c.label}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-400">{relTime(tx.created_at)}</span>
+          {tx.bonus_type && <span className="text-[9px] text-amber-600 px-1.5 py-0.5 bg-amber-50 rounded-full" style={{ fontWeight: 600 }}>{tx.bonus_type}</span>}
+          {tx.multiplier > 1 && <span className="text-[9px] text-purple-600 px-1.5 py-0.5 bg-purple-50 rounded-full" style={{ fontWeight: 600 }}>x{tx.multiplier}</span>}
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <span className="text-[13px] text-green-600 tabular-nums" style={{ fontWeight: 700 }}>+{tx.xp_final}</span>
+        {tx.xp_base !== tx.xp_final && <p className="text-[9px] text-gray-400 tabular-nums">base: {tx.xp_base}</p>}
+      </div>
+    </motion.div>
+  );
+});
+
 export function XpHistoryPage() {
   const { selectedInstitution } = useAuth();
   const iid = selectedInstitution?.id;
@@ -83,16 +120,9 @@ export function XpHistoryPage() {
         {loading ? <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-green-500" /></div>
         : error ? <div className="flex items-center gap-2 p-4 bg-red-50 rounded-xl border border-red-200 text-[12px] text-red-700"><AlertTriangle size={14} />{error}</div>
         : txs.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-gray-400"><History size={32} className="opacity-30 mb-3" /><p className="text-sm">Sin actividad registrada</p></div>
-        : <><div className="space-y-1.5">{txs.map((tx, i) => { const c = getCfg(tx.action); const I = c.icon; return (
-          <motion.div key={tx.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.2) }} className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${c.color}`}><I size={16} /></div>
-            <div className="flex-1 min-w-0"><p className="text-[12px] text-gray-800" style={{ fontWeight: 600 }}>{c.label}</p>
-              <div className="flex items-center gap-2"><span className="text-[10px] text-gray-400">{relTime(tx.created_at)}</span>
-                {tx.bonus_type && <span className="text-[9px] text-amber-600 px-1.5 py-0.5 bg-amber-50 rounded-full" style={{ fontWeight: 600 }}>{tx.bonus_type}</span>}
-                {tx.multiplier > 1 && <span className="text-[9px] text-purple-600 px-1.5 py-0.5 bg-purple-50 rounded-full" style={{ fontWeight: 600 }}>x{tx.multiplier}</span>}</div></div>
-            <div className="text-right shrink-0"><span className="text-[13px] text-green-600 tabular-nums" style={{ fontWeight: 700 }}>+{tx.xp_final}</span>
-              {tx.xp_base !== tx.xp_final && <p className="text-[9px] text-gray-400 tabular-nums">base: {tx.xp_base}</p>}</div>
-          </motion.div>); })}</div>
+        : <><div className="space-y-1.5">{txs.map((tx, i) => (
+          <TxRow key={tx.id} tx={tx} delay={Math.min(i * 0.02, 0.2)} />
+        ))}</div>
           {hasMore && <div className="flex justify-center mt-6"><button onClick={() => fetchPage(txs.length, true)} disabled={loadingMore} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-[12px] text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50" style={{ fontWeight: 600 }}>{loadingMore ? <Loader2 size={14} className="animate-spin" /> : <ChevronDown size={14} />}{loadingMore ? 'Cargando...' : 'Cargar mas'}</button></div>}
         </>}
       </div>
