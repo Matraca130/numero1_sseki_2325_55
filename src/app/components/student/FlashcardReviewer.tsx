@@ -132,20 +132,28 @@ function FlashcardReviewerInner({ summaryId, onClose, masteryMap }: FlashcardRev
   // Load flashcards + keywords
   useEffect(() => {
     if (!summaryId) return;
+    let cancelled = false;
     setLoading(true);
     Promise.all([
       flashcardApi.getFlashcards(summaryId, undefined, { limit: 200 }),
       apiCall<any>(`/keywords?summary_id=${summaryId}`),
     ])
       .then(([fcResult, kwResult]) => {
+        if (cancelled) return;
         const fcItems = Array.isArray(fcResult) ? fcResult : fcResult.items || [];
         const active = fcItems.filter((c: FlashcardItem) => c.is_active && !c.deleted_at);
         setFlashcards(active);
         const kwItems = Array.isArray(kwResult) ? kwResult : kwResult?.items || [];
         setKeywords(kwItems);
       })
-      .catch(err => { console.error('[FlashcardReviewer] Load error:', err); setFlashcards([]); setKeywords([]); })
-      .finally(() => setLoading(false));
+      .catch(err => {
+        if (cancelled) return;
+        console.error('[FlashcardReviewer] Load error:', err);
+        setFlashcards([]);
+        setKeywords([]);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [summaryId]);
 
   const keywordMap = useMemo(() => {
