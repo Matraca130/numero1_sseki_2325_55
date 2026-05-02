@@ -19,6 +19,18 @@
 // PointerEvent('pointercancel') and forwards it to its real
 // pointer-cancel handler, so the synthetic-dispatch idiom remains
 // at the host (and remains testable there).
+//
+// On the host's `pointerCancelRef` bridge — INTENTIONAL, not debt:
+// useDragConnect and useEdgeReconnect each carry a ~7-LOC bridge
+// (pointerCancelRef + escapeIsActive/escapeOnCancel useCallbacks +
+// main-effect set/clear) so this hook can reach handlePointerCancel.
+// Cycle #49 evaluated folding the bridge into this hook's API and
+// found it would save ~4 LOC across both hosts while adding ~10-12 LOC
+// of new helper plumbing — a net +6 LOC for the project, plus a
+// 50+ LOC closure-lift to extract handlePointerCancel out of its
+// main interaction effect (which closes over graph/container/refs/
+// safeReleasePointerCapture and host-specific G6 calls). The bridge
+// stays where it is.
 // ============================================================
 
 import { useEffect } from 'react';
