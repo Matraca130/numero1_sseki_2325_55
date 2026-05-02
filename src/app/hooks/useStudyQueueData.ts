@@ -30,6 +30,15 @@
 //   [PN-10] applyOptimisticBatch uses queueRef (no [queue] dep).
 //   [PN-13] Removed dead pagination loop (backend returns all in one request).
 //
+// SECURITY (#748):
+//   The module-level cache used to be keyed only by `courseId`. The JS
+//   module survives logout, so if user A logged out and user B logged in
+//   within the 60s TTL, user B was served user A's personalized queue —
+//   FSRS states, p_know, due_at — leaking private learning data between
+//   users. The cache is now keyed by `${userId}:${courseId}` and the
+//   hook reads `userId` from useAuth(); if no user is authenticated, the
+//   hook short-circuits (no fetch, no cache, local state cleared).
+//
 // SCALABILITY:
 //   100K users x 2000 cards = fetched in a single request currently.
 //   When backend supports offset pagination, implement chunked fetch here.
@@ -38,10 +47,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStudyQueue } from '@/app/lib/studyQueueApi';
 import type { StudyQueueItem, StudyQueueMeta } from '@/app/lib/studyQueueApi';
+import { useAuth } from '@/app/context/AuthContext';
 
 // ── Module-level cache (shared across hook instances) ─────
 
 interface CacheEntry {
+  userId: string;
   courseId: string;
   queue: StudyQueueItem[];
   meta: StudyQueueMeta | null;
@@ -57,32 +68,43 @@ export const STUDY_QUEUE_ALL_COURSES = '__all__';
 /** Page size for future paginated fetching */
 const PAGE_SIZE = 200;
 
-let _cache: CacheEntry | null = null;
-let _inflight: Promise<CacheEntry> | null = null;
-let _inflightCourseId: string | null = null;
+/**
+ * Cache key shape: `${userId}:${courseId}`.
+ * Keying by userId is REQUIRED for the security fix in #748 — without
+ * userId in the key, a logout→login within the TTL would serve the
+ * previous user's personalized FSRS/BKT data to the new user.
+ */
+function makeCacheKey(userId: string, courseId: string): string {
+  return `${userId}:${courseId}`;
+}
 
-function isCacheValid(courseId: string): boolean {
-  if (!_cache) return false;
-  if (_cache.courseId !== courseId) return false;
-  return Date.now() - _cache.fetchedAt < CACHE_TTL_MS;
+const _cache = new Map<string, CacheEntry>();
+const _inflight = new Map<string, Promise<CacheEntry>>();
+
+function isCacheValid(userId: string, courseId: string): boolean {
+  const entry = _cache.get(makeCacheKey(userId, courseId));
+  if (!entry) return false;
+  return Date.now() - entry.fetchedAt < CACHE_TTL_MS;
 }
 
 /**
- * Fetch all study-queue items for a course.
- * Deduplicates in-flight requests for the same courseId.
+ * Fetch all study-queue items for a (user, course) pair.
+ * Deduplicates in-flight requests for the same key.
  *
  * PN-13: Removed dead pagination loop. Backend currently returns all items
  * in a single response. When offset pagination is supported, re-implement
  * chunked fetching here.
  */
 async function fetchStudyQueue(
+  userId: string,
   courseId: string,
   signal?: AbortSignal,
 ): Promise<CacheEntry> {
-  // Deduplicate: if same courseId is already in-flight, reuse
-  if (_inflightCourseId === courseId && _inflight) {
-    return _inflight;
-  }
+  const key = makeCacheKey(userId, courseId);
+
+  // Deduplicate: if same (user, course) is already in-flight, reuse
+  const existing = _inflight.get(key);
+  if (existing) return existing;
 
   const doFetch = async (): Promise<CacheEntry> => {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -100,29 +122,38 @@ async function fetchStudyQueue(
     // fetching here (loop while items.length === PAGE_SIZE).
 
     const entry: CacheEntry = {
+      userId,
       courseId,
       queue: allItems,
       meta,
       fetchedAt: Date.now(),
     };
 
-    _cache = entry;
+    _cache.set(key, entry);
     return entry;
   };
 
-  _inflightCourseId = courseId;
-  _inflight = doFetch().finally(() => {
-    _inflight = null;
-    _inflightCourseId = null;
+  const promise = doFetch().finally(() => {
+    _inflight.delete(key);
   });
+  _inflight.set(key, promise);
 
-  return _inflight;
+  return promise;
 }
 
 // ── Public: invalidate cache (after review session) ───────
 
+/**
+ * Clears the entire study-queue cache. Used by callers like
+ * `refreshMastery` in useFlashcardNavigation that want to force a full
+ * refetch after a review session. Nuking-all is correct here because the
+ * intent is "invalidate all stale data we may have"; per-user scoping is
+ * not required for this code path (the active session reloads its own
+ * key immediately).
+ */
 export function invalidateStudyQueueCache(): void {
-  _cache = null;
+  _cache.clear();
+  _inflight.clear();
 }
 
 // ── Hook return type ──────────────────────────────────
@@ -141,12 +172,17 @@ export interface StudyQueueData {
 // ── Hook ──────────────────────────────────────────────
 
 export function useStudyQueueData(courseId: string | null): StudyQueueData {
+  // SECURITY (#748): cache is scoped by userId so a logout→login within
+  // the TTL cannot serve the previous user's personalized queue.
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
   const [queue, setQueue] = useState<StudyQueueItem[]>([]);
   const [meta, setMeta] = useState<StudyQueueMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
-  const loadedCourseRef = useRef<string | null>(null);
+  const loadedKeyRef = useRef<string | null>(null);
   // [L5] Ref to track if queue has been populated, avoids queue.length in load deps
   const queuePopulatedRef = useRef(false);
   // [PN-10] Ref mirror of queue for use in stable callbacks
@@ -155,36 +191,43 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
 
   // PN-10: catch(err:any) -> catch(err:unknown)
   const load = useCallback(async (forceRefresh = false) => {
-    if (!courseId) {
+    // SECURITY (#748): if there is no authenticated user OR no course,
+    // clear local state and skip the fetch. Without this, a logout would
+    // leave the previous user's queue in local state until next render.
+    if (!userId || !courseId) {
       setQueue([]);
       setMeta(null);
+      loadedKeyRef.current = null;
       queuePopulatedRef.current = false;
       return;
     }
 
+    const cacheKey = makeCacheKey(userId, courseId);
+
     // Use cache if valid and not forced
-    if (!forceRefresh && isCacheValid(courseId) && _cache) {
-      if (loadedCourseRef.current !== courseId || !queuePopulatedRef.current) {
-        setQueue(_cache.queue);
-        setMeta(_cache.meta);
-        loadedCourseRef.current = courseId;
-        queuePopulatedRef.current = _cache.queue.length > 0;
+    if (!forceRefresh && isCacheValid(userId, courseId)) {
+      const cached = _cache.get(cacheKey);
+      if (cached && (loadedKeyRef.current !== cacheKey || !queuePopulatedRef.current)) {
+        setQueue(cached.queue);
+        setMeta(cached.meta);
+        loadedKeyRef.current = cacheKey;
+        queuePopulatedRef.current = cached.queue.length > 0;
       }
       return;
     }
 
-    // Abort previous in-flight request if course changed
+    // Abort previous in-flight request if course/user changed
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
     setLoading(true);
     try {
-      const entry = await fetchStudyQueue(courseId, controller.signal);
+      const entry = await fetchStudyQueue(userId, courseId, controller.signal);
       if (mountedRef.current && !controller.signal.aborted) {
         setQueue(entry.queue);
         setMeta(entry.meta);
-        loadedCourseRef.current = courseId;
+        loadedKeyRef.current = cacheKey;
         queuePopulatedRef.current = entry.queue.length > 0;
       }
     } catch (err: unknown) {
@@ -198,14 +241,18 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
         setLoading(false);
       }
     }
-  }, [courseId]);
+  }, [userId, courseId]);
 
   const refresh = useCallback(async () => {
     invalidateStudyQueueCache();
     await load(true);
   }, [load]);
 
-  // Auto-fetch on courseId change
+  // Auto-fetch on (userId, courseId) change.
+  // SECURITY (#748): userId MUST be in the deps so a user switch on a
+  // mounted hook (e.g. logout→login) re-runs the load and clears stale
+  // local state. Without this, React would keep showing the previous
+  // user's queue.
   useEffect(() => {
     mountedRef.current = true;
     load();
@@ -213,7 +260,7 @@ export function useStudyQueueData(courseId: string | null): StudyQueueData {
       mountedRef.current = false;
       abortRef.current?.abort();
     };
-  }, [courseId]); // [L5] queue.length REMOVED from deps
+  }, [userId, courseId]); // [L5] queue.length REMOVED from deps
 
   // ── Derived indexes (O(n) once, O(1) lookups) ──────────
 
