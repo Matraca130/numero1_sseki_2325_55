@@ -48,6 +48,7 @@ const COMPOSED_HOOKS = [
   'useKeyboardNav',
   'useSpacePan',
   'useFullscreen',
+  'useMobileHint',
 ];
 
 describe('Hook composition (delegation)', () => {
@@ -135,31 +136,29 @@ describe('Callback stability via refs', () => {
   }
 });
 
-// ── Storage keys ────────────────────────────────────────────
+// ── Storage keys (cycle 62: delegated to useMobileHint) ─────
 
-describe('Storage keys (sessionStorage, cycle 59: via storageHelpers)', () => {
-  it('persists the mobile-hint dismissal under axon_map_mobile_hint_seen (MOBILE_HINT_KEY)', () => {
-    expect(source).toContain('axon_map_mobile_hint_seen');
-    expect(source).toMatch(/const\s+MOBILE_HINT_KEY\s*=\s*'axon_map_mobile_hint_seen'/);
+describe('Storage keys (cycle 62: mobile-hint flag delegated to useMobileHint)', () => {
+  it('does NOT inline-declare MOBILE_HINT_KEY in the parent any more', () => {
+    expect(source).not.toMatch(/const\s+MOBILE_HINT_KEY\s*=\s*'axon_map_mobile_hint_seen'/);
   });
 
-  it('reads the storage key via safeGetItem (Safari private mode handled by helper)', () => {
-    expect(source).toMatch(/safeGetItem\(MOBILE_HINT_KEY,\s*sessionStorage\)/);
+  it('does NOT inline-read sessionStorage for the mobile-hint flag (delegated to hook)', () => {
+    expect(source).not.toMatch(/useState\(\(\)\s*=>\s*!safeGetItem\(MOBILE_HINT_KEY/);
+    expect(source).not.toMatch(/safeGetItem\(MOBILE_HINT_KEY,\s*sessionStorage\)/);
   });
 
-  it('writes the storage key via safeSetItem', () => {
-    expect(source).toMatch(/safeSetItem\(MOBILE_HINT_KEY,\s*'1',\s*sessionStorage\)/);
+  it('does NOT inline-write sessionStorage for the mobile-hint flag (delegated to hook)', () => {
+    expect(source).not.toMatch(/safeSetItem\(MOBILE_HINT_KEY,\s*'1',\s*sessionStorage\)/);
   });
 
-  it("imports the scalar pair from './storageHelpers'", () => {
-    expect(source).toMatch(/import\s*\{[^}]*safeGetItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
-    expect(source).toMatch(/import\s*\{[^}]*safeSetItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
+  it('does NOT import the scalar storage pair (delegated to hook)', () => {
+    expect(source).not.toMatch(/import\s*\{[^}]*safeGetItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
+    expect(source).not.toMatch(/import\s*\{[^}]*safeSetItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
   });
 
-  it('mobile-hint storage no longer issues raw sessionStorage.{get,set}Item calls (cycle 59 negative guard)', () => {
-    // Note: KnowledgeGraph.tsx may still reference sessionStorage for other
-    // unrelated reasons in the future; this guard checks the mobile-hint key
-    // specifically isn't hit through raw sessionStorage calls.
+  it('mobile-hint storage no longer issues raw sessionStorage.{get,set}Item calls in the parent', () => {
+    // Negative guard preserved from cycle 59. The hook owns this storage now.
     expect(source).not.toMatch(/sessionStorage\.getItem\('axon_map_mobile_hint_seen'/);
     expect(source).not.toMatch(/sessionStorage\.setItem\('axon_map_mobile_hint_seen'/);
   });
@@ -504,39 +503,40 @@ describe('handleAutoLayout (deeper)', () => {
   });
 });
 
-// ── Mobile hint auto-dismiss ───────────────────────────────
+// ── Mobile hint (cycle 62: delegated to useMobileHint) ─────
 
-describe('Mobile hint auto-dismiss', () => {
-  it('auto-dismisses after 4000ms when ready and visible', () => {
-    expect(source).toMatch(/setTimeout\([\s\S]{0,200}setShowMobileHint\(false\)[\s\S]{0,200},\s*4000\)/);
+describe('Mobile hint delegation (cycle 62)', () => {
+  it('imports useMobileHint from its extracted module', () => {
+    expect(source).toMatch(/import\s*\{\s*useMobileHint\s*\}\s*from\s*['"]\.\/useMobileHint['"]/);
   });
 
-  it('writes the seen flag to sessionStorage when auto-dismissing (via safeSetItem)', () => {
-    // Cycle 59: scalar storage I/O migrated to storageHelpers.
-    expect(source).toMatch(/safeSetItem\(MOBILE_HINT_KEY,\s*'1',\s*sessionStorage\)/);
+  it('invokes useMobileHint with { ready, nodeCount } shape', () => {
+    expect(source).toMatch(/useMobileHint\(\s*\{\s*ready[\s\S]{0,80}nodeCount:\s*data\.nodes\.length/);
   });
 
-  it('the auto-dismiss effect cleans up its timer on unmount', () => {
-    expect(source).toMatch(/setTimeout[\s\S]{0,300}return\s*\(\)\s*=>\s*clearTimeout\(hintTimer\)/);
+  it('destructures showHint (alias allowed) from the hook return', () => {
+    // Allow either { showHint } or { showHint: someAlias } destructure form.
+    expect(source).toMatch(/\{\s*showHint(?:\s*:\s*\w+)?\s*\}\s*=\s*useMobileHint\(/);
   });
 
-  it('the auto-dismiss effect depends on [ready, showMobileHint]', () => {
-    expect(source).toMatch(/setTimeout[\s\S]{0,400}\},\s*\[ready,\s*showMobileHint\]\)/);
-  });
-
-  it('hint only shows when nodes.length > 5 (avoids noise on small graphs)', () => {
+  it('hint pill JSX still gates on the noise threshold (data.nodes.length > 5)', () => {
     expect(source).toMatch(/showMobileHint\s*&&\s*data\.nodes\.length\s*>\s*5/);
   });
 
-  it('storage error path is silent (cycle 59: storageHelpers swallows; devWarn loss accepted)', () => {
-    // Cycle 59 documented behavior change: safeSetItem swallows quota /
-    // disabled-storage errors silently and returns false. The caller here
-    // doesn't react to the boolean — the mobile-hint dismissal is best-effort.
-    // The previous devWarn('KnowledgeGraph', 'swallowed error', e) for the
-    // mobile-hint write is intentionally gone. devWarn is still imported and
-    // used for graph.fitView / graph-destroyed paths elsewhere in the file.
+  it('does NOT inline the auto-dismiss setTimeout in the parent', () => {
+    expect(source).not.toMatch(/setShowMobileHint\(false\)/);
+    expect(source).not.toMatch(/setTimeout\([\s\S]{0,200}setShowMobileHint\(false\)/);
+  });
+
+  it('does NOT inline a useState initializer reading the mobile-hint flag', () => {
+    expect(source).not.toMatch(/useState\(\(\)\s*=>\s*!safeGetItem\(MOBILE_HINT_KEY/);
+  });
+
+  it('storage error path remains silent (storageHelpers swallows; devWarn import still used elsewhere)', () => {
+    // devWarn is still imported for graph.fitView / graph-destroyed paths.
     expect(source).toMatch(/import\s*\{[^}]*devWarn[^}]*\}\s*from\s*['"]\.\/graphHelpers['"]/);
-    // No devWarn near the mobile-hint write (the only storage devWarn site).
+    // No devWarn around the mobile-hint write (delegated, never existed in
+    // the cycle-59 wiring either, but kept as a regression guard).
     expect(source).not.toMatch(/devWarn\('KnowledgeGraph',\s*'swallowed error',\s*e\)/);
   });
 });

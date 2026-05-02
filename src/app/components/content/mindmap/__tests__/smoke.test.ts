@@ -127,6 +127,21 @@ describe('mindmap module: useFullscreen', () => {
   });
 });
 
+describe('mindmap module: useMobileHint (cycle 62 extraction)', () => {
+  it('exports useMobileHint hook and MOBILE_HINT_KEY const', () => {
+    const names = getExportedNames('useMobileHint.ts');
+    expect(names).toContain('useMobileHint');
+    expect(names).toContain('MOBILE_HINT_KEY');
+  });
+
+  it('exports UseMobileHintOptions and UseMobileHintResult types', () => {
+    const filepath = join(MINDMAP_DIR, 'useMobileHint.ts');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toMatch(/export\s+interface\s+UseMobileHintOptions/);
+    expect(src).toMatch(/export\s+interface\s+UseMobileHintResult/);
+  });
+});
+
 describe('mindmap module: useGraphData', () => {
   it('exports useGraphData hook and invalidateGraphCache', () => {
     const names = getExportedNames('useGraphData.ts');
@@ -225,6 +240,19 @@ describe('mindmap module: ArrowTypePicker (cycle 61 extraction)', () => {
     const filepath = join(MINDMAP_DIR, 'ArrowTypePicker.tsx');
     const src = readFileSync(filepath, 'utf-8');
     expect(src).toMatch(/export\s+interface\s+ArrowTypePickerProps/);
+  });
+});
+
+describe('mindmap module: LineStylePicker (cycle 62 extraction)', () => {
+  it('exports LineStylePicker component', () => {
+    const names = getExportedNames('LineStylePicker.tsx');
+    expect(names).toContain('LineStylePicker');
+  });
+
+  it('exports LineStylePickerProps type', () => {
+    const filepath = join(MINDMAP_DIR, 'LineStylePicker.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toMatch(/export\s+interface\s+LineStylePickerProps/);
   });
 });
 
@@ -498,6 +526,12 @@ describe('mindmap directory completeness', () => {
       // Cycle 61 — arrow-type radiogroup extracted from AddNodeEdgeModal.
       // Has a dedicated test file (arrowTypePicker.test.ts).
       'ArrowTypePicker.tsx',
+      // Cycle 62 — line-style radiogroup extracted from AddNodeEdgeModal.
+      // Has a dedicated test file (lineStylePicker.test.ts).
+      'LineStylePicker.tsx',
+      // Cycle 62 — mobile-hint sessionStorage timer extracted from KnowledgeGraph.
+      // Has a dedicated test file (useMobileHint.test.ts).
+      'useMobileHint.ts',
     ]);
 
     const untested = files.filter(f => !tested.has(f));

@@ -23,7 +23,6 @@ import type { Graph } from '@antv/g6';
 import { Maximize2, Plus } from 'lucide-react';
 import type { GraphData, MapNode, GraphControls } from '@/app/types/mindmap';
 import { GRAPH_COLORS, devWarn } from './graphHelpers';
-import { safeGetItem, safeSetItem } from './storageHelpers';
 import { saveGridEnabled, saveCombos } from './useNodePositions';
 import type { PersistedCombo } from './useNodePositions';
 import { useKeyboardNav } from './useKeyboardNav';
@@ -35,6 +34,7 @@ import { I18N_GRAPH } from './graphI18n';
 import type { GraphLocale } from './graphI18n';
 import { GraphToolbar } from './GraphToolbar';
 import { useFullscreen } from './useFullscreen';
+import { useMobileHint } from './useMobileHint';
 
 // Extracted hooks
 import { useGraphInit, warnIfNotDestroyed, LAYOUT_FORCE, LAYOUT_RADIAL, LAYOUT_DAGRE, LAYOUT_MINDMAP, LAYOUT_CONCENTRIC } from './useGraphInit';
@@ -48,7 +48,6 @@ import { GraphMasteryLegend } from './GraphMasteryLegend';
 import { GraphMultiSelectBar } from './GraphMultiSelectBar';
 
 // ── Module-level constants ──
-const MOBILE_HINT_KEY = 'axon_map_mobile_hint_seen';
 const ZOOM_LIMIT_FLASH_KEYFRAMES = `@keyframes kg-zoom-limit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }`;
 
 interface KnowledgeGraphProps {
@@ -148,7 +147,6 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showMobileHint, setShowMobileHint] = useState(() => !safeGetItem(MOBILE_HINT_KEY, sessionStorage));
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
   const multiSelectedIdsRef = useRef(multiSelectedIds);
   multiSelectedIdsRef.current = multiSelectedIds;
@@ -296,15 +294,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     batchDraw,
   });
 
-  // Auto-dismiss mobile hint after 4 seconds
-  useEffect(() => {
-    if (!ready || !showMobileHint) return;
-    const hintTimer = setTimeout(() => {
-      setShowMobileHint(false);
-      safeSetItem(MOBILE_HINT_KEY, '1', sessionStorage);
-    }, 4000);
-    return () => clearTimeout(hintTimer);
-  }, [ready, showMobileHint]);
+  // Mobile hint auto-dismiss (sessionStorage-backed, 4s timer)
+  const { showHint: showMobileHint } = useMobileHint({ ready, nodeCount: data.nodes.length });
 
   // Space+drag panning
   useSpacePan({

@@ -16,10 +16,11 @@ import { toast } from 'sonner';
 import { createCustomNode, createCustomEdge } from '@/app/services/mindmapApi';
 import type { CreateCustomNodePayload, CreateCustomEdgePayload } from '@/app/services/mindmapApi';
 import { CONNECTION_TYPES, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
-import type { MapNode, EdgeArrowType } from '@/app/types/mindmap';
+import type { MapNode, EdgeArrowType, EdgeLineStyle } from '@/app/types/mindmap';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
 import { ArrowTypePicker } from './ArrowTypePicker';
+import { LineStylePicker } from './LineStylePicker';
 
 // ── I18N ────────────────────────────────────────────────────
 
@@ -175,7 +176,7 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
   const [edgeLabel, setEdgeLabel] = useState('');
   const [edgeType, setEdgeType] = useState('asociacion');
   const [edgeDirected, setEdgeDirected] = useState(!!initialEdgeSource);
-  const [edgeLineStyle, setEdgeLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
+  const [edgeLineStyle, setEdgeLineStyle] = useState<EdgeLineStyle>('solid');
   const [edgeColor, setEdgeColor] = useState<string>(colors.primary[500]);
   const [edgeArrowType, setEdgeArrowType] = useState<EdgeArrowType>('triangle');
 
@@ -565,53 +566,17 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                     {/* Line style + color row */}
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label htmlFor="custom-edge-line" className="block text-xs font-medium text-gray-600 mb-1">
-                          {t.lineStyleField}
-                        </label>
-                        <div
-                          className="flex gap-1.5"
-                          role="radiogroup"
-                          aria-label={t.lineStyleGroupLabel}
-                          onKeyDown={(e) => {
-                            const styles = ['solid', 'dashed', 'dotted'] as const;
-                            const idx = styles.indexOf(edgeLineStyle);
-                            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                              e.preventDefault();
-                              setEdgeLineStyle(styles[(idx + 1) % styles.length]);
-                              (e.currentTarget.children[(idx + 1) % styles.length] as HTMLElement)?.focus();
-                            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                              e.preventDefault();
-                              setEdgeLineStyle(styles[(idx - 1 + styles.length) % styles.length]);
-                              (e.currentTarget.children[(idx - 1 + styles.length) % styles.length] as HTMLElement)?.focus();
-                            }
+                        <LineStylePicker
+                          value={edgeLineStyle}
+                          onChange={setEdgeLineStyle}
+                          groupLabel={t.lineStyleGroupLabel}
+                          fieldLabel={t.lineStyleField}
+                          optionLabels={{
+                            solid: t.lineSolid,
+                            dashed: t.lineDashed,
+                            dotted: t.lineDotted,
                           }}
-                        >
-                          {(['solid', 'dashed', 'dotted'] as const).map((style) => (
-                            <button
-                              key={style}
-                              type="button"
-                              onClick={() => setEdgeLineStyle(style)}
-                              tabIndex={edgeLineStyle === style ? 0 : -1}
-                              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border text-xs transition-colors ${
-                                edgeLineStyle === style
-                                  ? 'border-ax-primary-500 bg-ax-primary-50 text-ax-primary-500 font-medium'
-                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                              }`}
-                              role="radio"
-                              aria-checked={edgeLineStyle === style}
-                              aria-label={style === 'solid' ? t.lineSolid : style === 'dashed' ? t.lineDashed : t.lineDotted}
-                            >
-                              <svg width="24" height="2" className="flex-shrink-0">
-                                <line
-                                  x1="0" y1="1" x2="24" y2="1"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeDasharray={style === 'dashed' ? '4,3' : style === 'dotted' ? '1,3' : undefined}
-                                />
-                              </svg>
-                            </button>
-                          ))}
-                        </div>
+                        />
                       </div>
                       <div className="w-20">
                         <label htmlFor="custom-edge-color" className="block text-xs font-medium text-gray-600 mb-1">

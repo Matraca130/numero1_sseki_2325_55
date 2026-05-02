@@ -852,15 +852,20 @@ describe('AddNodeEdgeModal: accessibility', () => {
     // inline radiogroup body.
     expect(source).toContain("from './ArrowTypePicker'");
     expect(source).toContain('<ArrowTypePicker');
-    // The remaining radiogroup is line-style only (arrow-type extracted).
+    // After cycle 62 BOTH pickers are extracted — zero inline radiogroups.
     const radiogroups = source.match(/role="radiogroup"/g);
-    expect(radiogroups).not.toBeNull();
-    expect(radiogroups!.length).toBe(1);
+    expect(radiogroups).toBeNull();
   });
 
-  it('line style selector uses role="radio" with aria-checked', () => {
-    expect(source).toContain('role="radio"');
-    expect(source).toContain('aria-checked={edgeLineStyle === style}');
+  it('line style selector is delegated to LineStylePicker (cycle 62 extraction)', () => {
+    // After cycle 62, the line-style radiogroup lives in LineStylePicker.tsx.
+    // The parent must import and render it, but no longer contain the
+    // inline radiogroup body, role="radio" attributes, or aria-checked
+    // bound to edgeLineStyle.
+    expect(source).toContain("from './LineStylePicker'");
+    expect(source).toContain('<LineStylePicker');
+    expect(source).not.toContain('aria-checked={edgeLineStyle === style}');
+    expect(source).not.toContain('role="radio"');
   });
 });
 
@@ -904,7 +909,9 @@ describe('AddNodeEdgeModal: edge form defaults', () => {
   });
 
   it('defaults line style to solid', () => {
-    expect(source).toContain("useState<'solid' | 'dashed' | 'dotted'>('solid')");
+    // Cycle 62: state type uses canonical EdgeLineStyle alias from
+    // @/app/types/mindmap (imported alongside EdgeArrowType).
+    expect(source).toContain("useState<EdgeLineStyle>('solid')");
   });
 
   it('defaults arrow type to triangle', () => {
@@ -922,20 +929,20 @@ describe('AddNodeEdgeModal: radiogroup arrow key navigation', () => {
     expect(source).toContain("e.key === 'ArrowLeft'");
   });
 
-  it('line style radiogroup has onKeyDown handler for ArrowRight/ArrowLeft', () => {
-    // i18n: aria-label={t.lineStyleGroupLabel}
+  it('line style radiogroup is delegated to LineStylePicker (groupLabel passed via prop)', () => {
+    // Cycle 62: keyboard handling moved into LineStylePicker.tsx
+    // (asserted in lineStylePicker.test.ts). The parent only forwards
+    // the i18n string via the groupLabel prop.
     expect(source).toContain('t.lineStyleGroupLabel');
-    // Arrow keys present in source (shared for both radiogroups)
-    const arrowMatches = source.match(/e\.key === 'ArrowRight'/g);
-    expect(arrowMatches).not.toBeNull();
-    expect(arrowMatches!.length).toBeGreaterThanOrEqual(2);
+    expect(source).toMatch(/groupLabel=\{t\.lineStyleGroupLabel\}/);
   });
 
-  it('selected radio has tabIndex=0, others have tabIndex=-1', () => {
-    // Line-style radiogroup still lives inline in this file.
-    // Arrow-type radiogroup moved to ArrowTypePicker.tsx (cycle 61);
-    // its tabIndex pattern is asserted in arrowTypePicker.test.ts.
-    expect(source).toMatch(/tabIndex=\{edgeLineStyle === style \? 0 : -1\}/);
+  it('roving tabindex pattern is delegated (no inline tabIndex bound to edgeLineStyle)', () => {
+    // Cycle 61 moved the arrow-type tabIndex pattern to ArrowTypePicker.
+    // Cycle 62 moves the line-style tabIndex pattern to LineStylePicker.
+    // The parent must not contain either inline pattern.
+    expect(source).not.toMatch(/tabIndex=\{edgeLineStyle === style \? 0 : -1\}/);
+    expect(source).not.toMatch(/tabIndex=\{value === type \? 0 : -1\}/);
   });
 
   it('arrow key handler calls e.preventDefault() to avoid page scroll', () => {
@@ -1088,13 +1095,20 @@ describe('AddNodeEdgeModal: arrow-type cycling (roving radio)', () => {
     expect(source).not.toContain("['triangle', 'diamond', 'circle', 'vee']");
   });
 
-  it('also responds to ArrowDown / ArrowUp (vertical traversal)', () => {
-    expect(source).toContain("e.key === 'ArrowRight' || e.key === 'ArrowDown'");
-    expect(source).toContain("e.key === 'ArrowLeft' || e.key === 'ArrowUp'");
+  it('parent no longer carries inline ArrowDown / ArrowUp handler (extracted)', () => {
+    // Cycle 62: with both ArrowTypePicker and LineStylePicker extracted,
+    // the only arrow-key handler left in the parent is the tab-strip
+    // (ArrowRight / ArrowLeft only — no Down/Up). The compound
+    // "ArrowRight || ArrowDown" pattern lives inside the picker
+    // components and is asserted in their dedicated tests.
+    expect(source).not.toContain("e.key === 'ArrowRight' || e.key === 'ArrowDown'");
+    expect(source).not.toContain("e.key === 'ArrowLeft' || e.key === 'ArrowUp'");
   });
 });
 
-describe('AddNodeEdgeModal: line-style cycling (roving radio)', () => {
+describe('AddNodeEdgeModal: line-style cycling — delegated to LineStylePicker', () => {
+  // Pure-logic replication retained as a regression baseline;
+  // the actual cycling is now exercised in lineStylePicker.test.ts.
   const STYLES = ['solid', 'dashed', 'dotted'] as const;
   type LineStyle = typeof STYLES[number];
 
@@ -1119,8 +1133,11 @@ describe('AddNodeEdgeModal: line-style cycling (roving radio)', () => {
     expect(prev('dashed')).toBe('solid');
   });
 
-  it('source declares the three line styles in cycling order', () => {
-    expect(source).toContain("['solid', 'dashed', 'dotted']");
+  it('source no longer declares the three-line-styles literal (extracted to LineStylePicker)', () => {
+    // Cycle 62: the cycling tuple moved into LineStylePicker.tsx
+    // (asserted there via lineStylePicker.test.ts). Parent must not
+    // duplicate it.
+    expect(source).not.toContain("['solid', 'dashed', 'dotted']");
   });
 });
 
