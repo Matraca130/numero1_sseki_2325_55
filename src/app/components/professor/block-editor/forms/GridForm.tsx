@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { type BlockFormProps, inputClass } from './shared';
 
 interface GridItem {
@@ -21,10 +22,36 @@ const ICON_LABELS: Record<string, string> = {
   CircleDot: 'Punto',
 };
 
+const newId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export default function GridForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
   const columns = (c.columns as number) || 2;
   const items = (c.items as GridItem[]) || [];
+
+  // Parallel local id array for stable React keys (data shape unchanged).
+  const [itemIds, setItemIds] = useState<string[]>(() =>
+    items.map(() => newId()),
+  );
+  const lastSeenLength = useRef(items.length);
+  useEffect(() => {
+    if (items.length !== lastSeenLength.current) {
+      setItemIds((prev) => {
+        if (prev.length === items.length) return prev;
+        if (prev.length < items.length) {
+          return [
+            ...prev,
+            ...Array.from({ length: items.length - prev.length }, () => newId()),
+          ];
+        }
+        return prev.slice(0, items.length);
+      });
+      lastSeenLength.current = items.length;
+    }
+  }, [items.length]);
 
   const updateItem = (idx: number, field: string, value: unknown) => {
     const updated = items.map((item, i) =>
@@ -33,14 +60,20 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
     onChange('items', updated);
   };
 
-  const addItem = () =>
+  const addItem = () => {
+    setItemIds((prev) => [...prev, newId()]);
+    lastSeenLength.current = items.length + 1;
     onChange('items', [...items, { icon: 'Info', label: '', detail: '' }]);
+  };
 
-  const removeItem = (idx: number) =>
+  const removeItem = (idx: number) => {
+    setItemIds((prev) => prev.filter((_, i) => i !== idx));
+    lastSeenLength.current = items.length - 1;
     onChange(
       'items',
       items.filter((_, i) => i !== idx),
     );
+  };
 
   return (
     <div className="space-y-3">
@@ -78,7 +111,7 @@ export default function GridForm({ block, onChange }: BlockFormProps) {
       <div className="space-y-3">
         {items.map((item, idx) => (
           <div
-            key={idx}
+            key={itemIds[idx] ?? `fallback-${idx}-${items.length}`}
             className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50"
           >
             <div className="flex items-center justify-between">

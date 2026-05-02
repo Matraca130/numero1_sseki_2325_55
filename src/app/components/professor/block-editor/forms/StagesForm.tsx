@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { type BlockFormProps, inputClass } from './shared';
 
 interface StageItem {
@@ -7,9 +8,38 @@ interface StageItem {
   severity?: string;
 }
 
+const newId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export default function StagesForm({ block, onChange }: BlockFormProps) {
   const c = block.content || {};
   const items = (c.items as StageItem[]) || [];
+
+  // Parallel local id array for stable React keys. The `stage` field is a
+  // position number reassigned on every removal — it's NOT an identity, so it
+  // can't be used as a key. We keep ids in component state instead of
+  // embedding them in the persisted item shape (preserves backend contract).
+  const [itemIds, setItemIds] = useState<string[]>(() =>
+    items.map(() => newId()),
+  );
+  const lastSeenLength = useRef(items.length);
+  useEffect(() => {
+    if (items.length !== lastSeenLength.current) {
+      setItemIds((prev) => {
+        if (prev.length === items.length) return prev;
+        if (prev.length < items.length) {
+          return [
+            ...prev,
+            ...Array.from({ length: items.length - prev.length }, () => newId()),
+          ];
+        }
+        return prev.slice(0, items.length);
+      });
+      lastSeenLength.current = items.length;
+    }
+  }, [items.length]);
 
   const updateItem = (idx: number, field: string, value: unknown) => {
     const updated = items.map((item, i) =>
@@ -18,14 +48,20 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
     onChange('items', updated);
   };
 
-  const addItem = () =>
+  const addItem = () => {
+    setItemIds((prev) => [...prev, newId()]);
+    lastSeenLength.current = items.length + 1;
     onChange('items', [...items, { stage: items.length + 1, title: '', content: '' }]);
+  };
 
-  const removeItem = (idx: number) =>
+  const removeItem = (idx: number) => {
+    setItemIds((prev) => prev.filter((_, i) => i !== idx));
+    lastSeenLength.current = items.length - 1;
     onChange(
       'items',
       items.filter((_, i) => i !== idx).map((item, i) => ({ ...item, stage: i + 1 })),
     );
+  };
 
   return (
     <div className="space-y-3">
@@ -43,7 +79,7 @@ export default function StagesForm({ block, onChange }: BlockFormProps) {
       <div className="space-y-3">
         {items.map((item, idx) => (
           <div
-            key={idx}
+            key={itemIds[idx] ?? `fallback-${idx}-${items.length}`}
             className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50"
           >
             <div className="flex items-center justify-between">
