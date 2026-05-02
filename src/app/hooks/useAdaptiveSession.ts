@@ -52,7 +52,7 @@
 //   - StudyQueueItem type (lib/studyQueueApi.ts)
 // ============================================================
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { Flashcard } from '@/app/types/content';
 import type { StudyQueueItem } from '@/app/lib/studyQueueApi';
 import * as sessionApi from '@/app/services/studySessionApi';
@@ -439,6 +439,10 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       }
     }
 
+    // FIX #728: clear sessionIdRef so the unmount cleanup doesn't re-close
+    // a session we just finished normally.
+    sessionIdRef.current = null;
+
     // 3. Grace period for Supabase eventual consistency
     await new Promise(r => setTimeout(r, POST_PERSIST_GRACE_MS));
 
@@ -451,6 +455,35 @@ export function useAdaptiveSession(opts: UseAdaptiveSessionOpts) {
       durationSeconds,
     });
   }, [phase, submitBatch, recomputeMastery]);
+
+  // ══ UNMOUNT CLEANUP (issue #728) ══
+  // Without this, navigating away mid-session leaks two things:
+  //   1. The in-flight AI generation request keeps running until it
+  //      times out — wastes the student's quota and burns server cycles.
+  //   2. The backend study_sessions row is never closed — analytics
+  //      counts an open session forever, and re-entering the same topic
+  //      creates a duplicate row.
+  // The existing `beforeunload` listener in AdaptiveFlashcardView only
+  // covers full page reload/close; React Router navigation never fires
+  // it. This effect plugs that gap. Empty deps → runs only on unmount.
+  useEffect(() => {
+    return () => {
+      generationAbortRef.current?.abort();
+      const sessionId = sessionIdRef.current;
+      if (sessionId && !sessionId.startsWith('local-')) {
+        const allStats = allStatsRef.current;
+        sessionApi.closeStudySession(sessionId, {
+          completed_at: new Date().toISOString(),
+          total_reviews: allStats.length,
+          correct_reviews: countCorrect(allStats),
+        }).catch(() => {
+          // Swallow: user already navigated away, nothing to surface.
+        });
+        sessionIdRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ══ RETURN ══
 
