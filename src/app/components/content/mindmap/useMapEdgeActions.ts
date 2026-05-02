@@ -17,9 +17,7 @@ import type { MapNode, MapEdge } from '@/app/types/mindmap';
 import type { MapViewI18nStrings } from './mapViewI18n';
 import { createEdgeEntry } from './changeHistoryHelpers';
 import type { HistoryEntry } from './changeHistoryHelpers';
-
-/** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
-const haptic = (ms = 50) => navigator?.vibrate?.(ms);
+import { haptic } from './hapticHelper';
 
 interface UseMapEdgeActionsOptions {
   effectiveTopicId: string;

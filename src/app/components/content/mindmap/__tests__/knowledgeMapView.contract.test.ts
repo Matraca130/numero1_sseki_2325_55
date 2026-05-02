@@ -398,8 +398,12 @@ describe('Module-level constants (avoid new refs per render)', () => {
     expect(source).toMatch(/const\s+EMPTY_NODES:\s*MapNode\[\]\s*=\s*\[\]/);
   });
 
-  it('declares haptic helper at module scope', () => {
-    expect(source).toMatch(/const\s+haptic\s*=\s*\(ms\s*=\s*50\)\s*=>\s*navigator\?\.vibrate\?\.\(ms\)/);
+  it('imports haptic helper from shared mindmap/hapticHelper module', () => {
+    // Cycle #44: haptic was triplicated across KnowledgeMapView, useMapEdgeActions,
+    // and useMapNodeActions. Extracted to mindmap/hapticHelper.ts as single source of truth.
+    expect(source).toMatch(/import\s+\{\s*haptic\s*\}\s+from\s+['"]\.\/mindmap\/hapticHelper['"]/);
+    // Confirm the local declaration is gone — no duplicate at module scope.
+    expect(source).not.toMatch(/const\s+haptic\s*=\s*\(ms\s*=\s*50\)/);
   });
 });
 

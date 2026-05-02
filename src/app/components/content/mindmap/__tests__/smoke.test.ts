@@ -462,6 +462,8 @@ describe('mindmap directory completeness', () => {
       'useMapStickyNotes.ts',
       'useMapToolState.ts',
       'useMapUIState.ts',
+      // Cycle 44 — extracted helper, tested transitively via hooks that consume it
+      'hapticHelper.ts',
     ]);
 
     const untested = files.filter(f => !tested.has(f));

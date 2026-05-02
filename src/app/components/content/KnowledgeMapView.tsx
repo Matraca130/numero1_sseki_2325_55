@@ -77,9 +77,8 @@ import { getSafeMasteryColor } from '@/app/lib/mastery-helpers';
 import { I18N_MAP_VIEW } from './mindmap/mapViewI18n';
 import { I18N_GRAPH } from './mindmap/graphI18n';
 import type { GraphLocale } from './mindmap/graphI18n';
+import { haptic } from './mindmap/hapticHelper';
 
-/** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
-const haptic = (ms = 50) => navigator?.vibrate?.(ms);
 /** Stable empty array to avoid creating new reference on every render. */
 const EMPTY_NODES: MapNode[] = [];
 

@@ -14,9 +14,7 @@ import type { MapNode } from '@/app/types/mindmap';
 import type { MapViewI18nStrings } from './mapViewI18n';
 import { createNodeEntry, createDeleteNodeEntry } from './changeHistoryHelpers';
 import type { HistoryEntry } from './changeHistoryHelpers';
-
-/** Haptic feedback for mobile — no-op when Vibration API is unavailable. */
-const haptic = (ms = 50) => navigator?.vibrate?.(ms);
+import { haptic } from './hapticHelper';
 
 interface UseMapNodeActionsOptions {
   effectiveTopicId: string;
@@ -25,8 +23,8 @@ interface UseMapNodeActionsOptions {
   setConfirmDeleteNode: (node: MapNode | null) => void;
   setSelectedNode: React.Dispatch<React.SetStateAction<MapNode | null>>;
   setContextMenu: React.Dispatch<React.SetStateAction<{ node: MapNode; position: { x: number; y: number } } | null>>;
-  setConnectSource: (node: MapNode | null) => void;
-  setAnnotationNode: (node: MapNode | null) => void;
+  setConnectSource: React.Dispatch<React.SetStateAction<MapNode | null>>;
+  setAnnotationNode: React.Dispatch<React.SetStateAction<MapNode | null>>;
   pushAction: (action: {
     type: string;
     [key: string]: unknown;
