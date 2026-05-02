@@ -846,11 +846,16 @@ describe('AddNodeEdgeModal: accessibility', () => {
     expect(source).toContain('aria-checked={edgeDirected}');
   });
 
-  it('arrow type selector uses role="radiogroup"', () => {
+  it('arrow type selector is delegated to ArrowTypePicker (cycle 61 extraction)', () => {
+    // After cycle 61, the arrow-type radiogroup lives in ArrowTypePicker.tsx.
+    // The parent must import and render it, but no longer contain the
+    // inline radiogroup body.
+    expect(source).toContain("from './ArrowTypePicker'");
+    expect(source).toContain('<ArrowTypePicker');
+    // The remaining radiogroup is line-style only (arrow-type extracted).
     const radiogroups = source.match(/role="radiogroup"/g);
     expect(radiogroups).not.toBeNull();
-    // At least two: arrow type + line style
-    expect(radiogroups!.length).toBeGreaterThanOrEqual(2);
+    expect(radiogroups!.length).toBe(1);
   });
 
   it('line style selector uses role="radio" with aria-checked', () => {
@@ -927,8 +932,9 @@ describe('AddNodeEdgeModal: radiogroup arrow key navigation', () => {
   });
 
   it('selected radio has tabIndex=0, others have tabIndex=-1', () => {
-    // Both radiogroups should use roving tabindex pattern
-    expect(source).toMatch(/tabIndex=\{edgeArrowType === type \? 0 : -1\}/);
+    // Line-style radiogroup still lives inline in this file.
+    // Arrow-type radiogroup moved to ArrowTypePicker.tsx (cycle 61);
+    // its tabIndex pattern is asserted in arrowTypePicker.test.ts.
     expect(source).toMatch(/tabIndex=\{edgeLineStyle === style \? 0 : -1\}/);
   });
 
@@ -1075,8 +1081,11 @@ describe('AddNodeEdgeModal: arrow-type cycling (roving radio)', () => {
   it('prev from circle is diamond', () => { expect(prev('circle')).toBe('diamond'); });
   it('prev from vee is circle', () => { expect(prev('vee')).toBe('circle'); });
 
-  it('source declares the four arrow types in cycling order', () => {
-    expect(source).toContain("['triangle', 'diamond', 'circle', 'vee']");
+  it('source no longer declares the four-arrow-types literal (extracted to ArrowTypePicker)', () => {
+    // Cycle 61: the cycling tuple moved into ArrowTypePicker.tsx
+    // (asserted there via arrowTypePicker.test.ts). Parent must
+    // not duplicate it.
+    expect(source).not.toContain("['triangle', 'diamond', 'circle', 'vee']");
   });
 
   it('also responds to ArrowDown / ArrowUp (vertical traversal)', () => {
@@ -1448,7 +1457,9 @@ describe('AddNodeEdgeModal: directed toggle', () => {
   });
 
   it('arrow type selector only renders when directed', () => {
-    expect(source).toMatch(/\{edgeDirected && \(\s*<div>/);
+    // Cycle 61: inline <div> body extracted into <ArrowTypePicker /> —
+    // the conditional wrapper is preserved in the parent.
+    expect(source).toMatch(/\{edgeDirected && \(\s*<ArrowTypePicker/);
   });
 });
 

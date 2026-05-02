@@ -19,6 +19,7 @@ import { CONNECTION_TYPES, CONNECTION_TYPE_MAP } from '@/app/types/mindmap';
 import type { MapNode, EdgeArrowType } from '@/app/types/mindmap';
 import { colors, headingStyle } from '@/app/design-system';
 import { useFocusTrap } from './useFocusTrap';
+import { ArrowTypePicker } from './ArrowTypePicker';
 
 // ── I18N ────────────────────────────────────────────────────
 
@@ -547,68 +548,18 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                     </div>
                     {/* Arrow type selector — only when directed */}
                     {edgeDirected && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t.arrowTypeField}
-                        </label>
-                        <div
-                          className="flex gap-1.5"
-                          role="radiogroup"
-                          aria-label={t.arrowTypeGroupLabel}
-                          onKeyDown={(e) => {
-                            const types = ['triangle', 'diamond', 'circle', 'vee'] as const;
-                            const idx = types.indexOf(edgeArrowType);
-                            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                              e.preventDefault();
-                              setEdgeArrowType(types[(idx + 1) % types.length]);
-                              (e.currentTarget.children[(idx + 1) % types.length] as HTMLElement)?.focus();
-                            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                              e.preventDefault();
-                              setEdgeArrowType(types[(idx - 1 + types.length) % types.length]);
-                              (e.currentTarget.children[(idx - 1 + types.length) % types.length] as HTMLElement)?.focus();
-                            }
-                          }}
-                        >
-                          {([
-                            { type: 'triangle' as const, label: t.arrowTriangle },
-                            { type: 'diamond' as const, label: t.arrowDiamond },
-                            { type: 'circle' as const, label: t.arrowCircle },
-                            { type: 'vee' as const, label: t.arrowOpen },
-                          ]).map(({ type, label }) => (
-                            <button
-                              key={type}
-                              type="button"
-                              onClick={() => setEdgeArrowType(type)}
-                              tabIndex={edgeArrowType === type ? 0 : -1}
-                              className={`flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-[10px] transition-colors ${
-                                edgeArrowType === type
-                                  ? 'border-ax-primary-500 bg-ax-primary-50 text-ax-primary-500 font-medium'
-                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                              }`}
-                              role="radio"
-                              aria-checked={edgeArrowType === type}
-                              aria-label={label}
-                            >
-                              <svg width="28" height="14" viewBox="0 0 28 14" className="flex-shrink-0">
-                                <line x1="0" y1="7" x2="18" y2="7" stroke="currentColor" strokeWidth="1.5" />
-                                {type === 'triangle' && (
-                                  <polygon points="18,3 28,7 18,11" fill="currentColor" />
-                                )}
-                                {type === 'diamond' && (
-                                  <polygon points="18,7 23,3 28,7 23,11" fill="currentColor" />
-                                )}
-                                {type === 'circle' && (
-                                  <circle cx="23" cy="7" r="4" fill="currentColor" />
-                                )}
-                                {type === 'vee' && (
-                                  <polyline points="18,3 28,7 18,11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                                )}
-                              </svg>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <ArrowTypePicker
+                        value={edgeArrowType}
+                        onChange={setEdgeArrowType}
+                        groupLabel={t.arrowTypeGroupLabel}
+                        fieldLabel={t.arrowTypeField}
+                        optionLabels={{
+                          triangle: t.arrowTriangle,
+                          diamond: t.arrowDiamond,
+                          circle: t.arrowCircle,
+                          vee: t.arrowOpen,
+                        }}
+                      />
                     )}
 
                     {/* Line style + color row */}

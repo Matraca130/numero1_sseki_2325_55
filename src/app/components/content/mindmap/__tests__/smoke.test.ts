@@ -215,6 +215,19 @@ describe('mindmap module: AddNodeEdgeModal', () => {
   });
 });
 
+describe('mindmap module: ArrowTypePicker (cycle 61 extraction)', () => {
+  it('exports ArrowTypePicker component', () => {
+    const names = getExportedNames('ArrowTypePicker.tsx');
+    expect(names).toContain('ArrowTypePicker');
+  });
+
+  it('exports ArrowTypePickerProps type', () => {
+    const filepath = join(MINDMAP_DIR, 'ArrowTypePicker.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toMatch(/export\s+interface\s+ArrowTypePickerProps/);
+  });
+});
+
 describe('mindmap module: ConfirmDialog', () => {
   it('exports ConfirmDialog component', () => {
     const names = getExportedNames('ConfirmDialog.tsx');
@@ -482,6 +495,9 @@ describe('mindmap directory completeness', () => {
       // Cycle 57 — extracted storage I/O wrappers (safeGetJSON / safeSetJSON / safeRemoveItem).
       // Has a dedicated test file (storageHelpers.test.ts).
       'storageHelpers.ts',
+      // Cycle 61 — arrow-type radiogroup extracted from AddNodeEdgeModal.
+      // Has a dedicated test file (arrowTypePicker.test.ts).
+      'ArrowTypePicker.tsx',
     ]);
 
     const untested = files.filter(f => !tested.has(f));

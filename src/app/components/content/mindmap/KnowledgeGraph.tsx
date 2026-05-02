@@ -26,8 +26,6 @@ import { GRAPH_COLORS, devWarn } from './graphHelpers';
 import { safeGetItem, safeSetItem } from './storageHelpers';
 import { saveGridEnabled, saveCombos } from './useNodePositions';
 import type { PersistedCombo } from './useNodePositions';
-
-const MOBILE_HINT_KEY = 'axon_map_mobile_hint_seen';
 import { useKeyboardNav } from './useKeyboardNav';
 import { useSpacePan } from './useSpacePan';
 import { useEdgeReconnect } from './useEdgeReconnect';
@@ -49,7 +47,8 @@ import { GraphShortcutsDialog } from './GraphShortcutsDialog';
 import { GraphMasteryLegend } from './GraphMasteryLegend';
 import { GraphMultiSelectBar } from './GraphMultiSelectBar';
 
-// ── Keyframes CSS (module-level constant to avoid re-evaluation on render) ──
+// ── Module-level constants ──
+const MOBILE_HINT_KEY = 'axon_map_mobile_hint_seen';
 const ZOOM_LIMIT_FLASH_KEYFRAMES = `@keyframes kg-zoom-limit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }`;
 
 interface KnowledgeGraphProps {
