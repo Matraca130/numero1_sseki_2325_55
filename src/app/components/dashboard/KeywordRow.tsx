@@ -16,7 +16,11 @@ import {
 interface KeywordRowProps {
   item: KeywordMastery;
   expanded: boolean;
-  onToggle: () => void;
+  /** Receives the keyword id so callers can pass a stable, parent-level
+   *  handler that React.memo can preserve. Inline `() => f(id)` lambdas at
+   *  the call site defeat the row memoization for every row on every parent
+   *  render (search keystrokes, filter changes, expand/collapse). */
+  onToggle: (id: string) => void;
   subtopics?: SubtopicMastery[];
 }
 
@@ -29,7 +33,7 @@ export const KeywordRow = React.memo(function KeywordRow({ item, expanded, onTog
     <div className="rounded-lg overflow-hidden">
       {/* Main row */}
       <div
-        onClick={item.subtopicCount > 0 ? onToggle : undefined}
+        onClick={item.subtopicCount > 0 ? () => onToggle(item.keyword.id) : undefined}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
           item.subtopicCount > 0 ? 'cursor-pointer hover:bg-gray-50' : ''
         } ${expanded ? 'bg-[#F0F2F5]' : ''}`}
