@@ -15,7 +15,7 @@
 // Schema: id, keyword_id, professor_id, note(text), created_at, updated_at
 // NO "is_visible", NO "note_text". Field = "note". All notes visible.
 // ============================================================
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -37,6 +37,127 @@ interface ProfessorNotesPanelProps {
   /** Optional: when provided, mutations also invalidate keywordCounts(summaryId) for badge refresh */
   summaryId?: string;
 }
+
+// ── NoteRow — memoized per-note row ──────────────────────
+//
+// Extracted from the inline notes.map() body. A parent re-render of
+// ProfessorNotesPanel (caused by editText typing, noteText typing in
+// the create form, showForm flip, or any mutation pending state) does
+// NOT cascade through every row.
+//
+// note comes from React Query — stable until refetch. isMine is a
+// boolean derived from a stable userId. editingValue is only non-null
+// for the row currently being edited; non-editing rows receive null
+// and skip re-render across edit-mode keystrokes.
+type NoteRecord = {
+  id: string;
+  professor_id: string;
+  note: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+const NoteRow = React.memo(function NoteRow({
+  note,
+  isMine,
+  isEditing,
+  editingValue,
+  isPending,
+  onChangeEditText,
+  onStartEdit,
+  onCancelEdit,
+  onUpdate,
+  onDelete,
+}: {
+  note: NoteRecord;
+  isMine: boolean;
+  isEditing: boolean;
+  /** Only passed (non-null) for the row currently being edited.
+   *  All other rows receive `null` so editText-typing keystrokes
+   *  don't invalidate their memo. */
+  editingValue: string | null;
+  isPending: boolean;
+  onChangeEditText: (value: string) => void;
+  onStartEdit: (note: NoteRecord) => void;
+  onCancelEdit: () => void;
+  onUpdate: () => void;
+  onDelete: (noteId: string) => void;
+}) {
+  return (
+    <div
+      className={clsx(
+        "rounded-lg px-3 py-2 group",
+        isMine
+          ? "bg-pink-50 border border-pink-200"
+          : "bg-gray-50 border border-gray-200"
+      )}
+    >
+      {isEditing ? (
+        <div className="space-y-1.5">
+          <textarea
+            value={editingValue ?? ''}
+            onChange={e => onChangeEditText(e.target.value)}
+            maxLength={1000}
+            className="w-full text-xs text-gray-800 bg-white border border-gray-300 rounded px-2 py-1.5 resize-none min-h-[60px] focus:outline-none focus:border-pink-400"
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onUpdate(); }
+              if (e.key === 'Escape') { onCancelEdit(); }
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] text-gray-400">{(editingValue ?? '').length}/1000</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onCancelEdit}
+                className="text-[10px] text-gray-500 hover:text-gray-700 px-1.5 py-0.5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={onUpdate}
+                disabled={isPending || !(editingValue ?? '').trim()}
+                className="text-[10px] text-pink-600 hover:text-pink-700 px-1.5 py-0.5 disabled:opacity-50"
+              >
+                {isPending ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{note.note}</p>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[9px] text-gray-400">
+              {isMine ? 'Tu nota' : 'Otro profesor'} &middot;{' '}
+              {new Date(note.updated_at || note.created_at).toLocaleDateString('es-MX', {
+                day: '2-digit', month: 'short',
+              })}
+            </span>
+            {isMine && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => onStartEdit(note)}
+                  className="text-gray-400 hover:text-pink-600 transition-colors p-0.5"
+                  title="Editar"
+                >
+                  <Edit3 size={10} />
+                </button>
+                <button
+                  onClick={() => onDelete(note.id)}
+                  className="text-gray-400 hover:text-red-600 transition-colors p-0.5"
+                  title="Eliminar"
+                >
+                  <Trash2 size={10} />
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+});
 
 export function ProfessorNotesPanel({ keywordId, keywordName, summaryId }: ProfessorNotesPanelProps) {
   const { user } = useAuth();
@@ -77,7 +198,9 @@ export function ProfessorNotesPanel({ keywordId, keywordName, summaryId }: Profe
 
   // ── Update note via POST UPSERT ──────────────────────────
   // Backend has no PUT route — POST upserts on (professor_id, keyword_id)
-  const handleUpdate = async () => {
+  // Wrapped in useCallback so NoteRow's React.memo holds across parent
+  // re-renders driven by unrelated state (noteText, showForm).
+  const handleUpdate = useCallback(async () => {
     if (!editingId || !editText.trim() || editText.length > 1000) return;
     try {
       await upsertNote.mutateAsync(editText.trim());
@@ -87,16 +210,23 @@ export function ProfessorNotesPanel({ keywordId, keywordName, summaryId }: Profe
     } catch {
       // error toast handled by mutation hook
     }
-  };
+  }, [editingId, editText, upsertNote]);
 
   // ── Delete note ─────────────────────────────────────────
-  const handleDelete = async (noteId: string) => {
+  const handleDelete = useCallback(async (noteId: string) => {
     try {
       await deleteNoteMutation.mutateAsync(noteId);
     } catch {
       // error toast handled by mutation hook
     }
-  };
+  }, [deleteNoteMutation]);
+
+  // Stable per-row entry/cancel handlers so NoteRow's memo holds.
+  const handleStartEdit = useCallback((note: NoteRecord) => {
+    setEditingId(note.id);
+    setEditText(note.note);
+  }, []);
+  const handleCancelEdit = useCallback(() => setEditingId(null), []);
 
   return (
     <div className="px-4 py-3">
@@ -130,81 +260,23 @@ export function ProfessorNotesPanel({ keywordId, keywordName, summaryId }: Profe
           {notes.length > 0 && (
             <div className="space-y-2 mb-2">
               {notes.map(n => {
-                const isMine = n.professor_id === userId;
+                const isEditingThis = editingId === n.id;
                 return (
-                  <div
+                  <NoteRow
                     key={n.id}
-                    className={clsx(
-                      "rounded-lg px-3 py-2 group",
-                      isMine
-                        ? "bg-pink-50 border border-pink-200"
-                        : "bg-gray-50 border border-gray-200"
-                    )}
-                  >
-                    {editingId === n.id ? (
-                      <div className="space-y-1.5">
-                        <textarea
-                          value={editText}
-                          onChange={e => setEditText(e.target.value)}
-                          maxLength={1000}
-                          className="w-full text-xs text-gray-800 bg-white border border-gray-300 rounded px-2 py-1.5 resize-none min-h-[60px] focus:outline-none focus:border-pink-400"
-                          autoFocus
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleUpdate(); }
-                            if (e.key === 'Escape') { setEditingId(null); }
-                          }}
-                        />
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] text-gray-400">{editText.length}/1000</span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="text-[10px] text-gray-500 hover:text-gray-700 px-1.5 py-0.5"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={handleUpdate}
-                              disabled={upsertNote.isPending || !editText.trim()}
-                              className="text-[10px] text-pink-600 hover:text-pink-700 px-1.5 py-0.5 disabled:opacity-50"
-                            >
-                              {upsertNote.isPending ? <Loader2 size={10} className="animate-spin" /> : 'Guardar'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{n.note}</p>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[9px] text-gray-400">
-                            {isMine ? 'Tu nota' : 'Otro profesor'} &middot;{' '}
-                            {new Date(n.updated_at || n.created_at).toLocaleDateString('es-MX', {
-                              day: '2-digit', month: 'short',
-                            })}
-                          </span>
-                          {isMine && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => { setEditingId(n.id); setEditText(n.note); }}
-                                className="text-gray-400 hover:text-pink-600 transition-colors p-0.5"
-                                title="Editar"
-                              >
-                                <Edit3 size={10} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(n.id)}
-                                className="text-gray-400 hover:text-red-600 transition-colors p-0.5"
-                                title="Eliminar"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                    note={n}
+                    isMine={n.professor_id === userId}
+                    isEditing={isEditingThis}
+                    // Only the editing row receives editText, so typing in
+                    // the textarea doesn't invalidate other rows' memo.
+                    editingValue={isEditingThis ? editText : null}
+                    isPending={upsertNote.isPending}
+                    onChangeEditText={setEditText}
+                    onStartEdit={handleStartEdit}
+                    onCancelEdit={handleCancelEdit}
+                    onUpdate={handleUpdate}
+                    onDelete={handleDelete}
+                  />
                 );
               })}
             </div>
