@@ -110,13 +110,22 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
 
   // ── Fetch profile + streak ────────────────────────────
 
-  const fetchData = useCallback(async (instId: string, isInitial: boolean) => {
+  const fetchData = useCallback(async (
+    instId: string,
+    isInitial: boolean,
+    isCancelled?: () => boolean,
+  ) => {
     setLoading(true);
     try {
       const [profile, streakData] = await Promise.all([
         getProfile(instId),
         getStreakStatus(instId),
       ]);
+
+      // Stale-response guard: institution may have changed while awaiting.
+      // Skip all state and ref updates so we don't overwrite the new
+      // institution's data or trigger false-positive level-up toasts.
+      if (isCancelled?.()) return;
 
       if (profile) {
         const newTotalXp = profile.xp.total;
@@ -155,7 +164,9 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         console.error('[GamificationContext] fetchData error:', err);
       }
     } finally {
-      setLoading(false);
+      if (!isCancelled?.()) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -165,14 +176,21 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     if (!institutionId) return;
 
     // Reset state for new institution
+    let cancelled = false;
     initialFetchDone.current = false;
     setXpDelta(0);
     setLevelUpEvent(null);
     setNewBadges([]);
 
-    fetchData(institutionId, true).then(() => {
-      initialFetchDone.current = true;
+    fetchData(institutionId, true, () => cancelled).then(() => {
+      if (!cancelled) {
+        initialFetchDone.current = true;
+      }
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [institutionId, fetchData]);
 
   // ── Actions ───────────────────────────────────────────
