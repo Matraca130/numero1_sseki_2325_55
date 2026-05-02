@@ -53,6 +53,7 @@ vi.mock('@/app/design-system', () => ({
 vi.mock('../graphHelpers', () => ({
   getNodeStroke: (masteryColor: string) =>
     masteryColor === 'green' ? '#22c55e' : '#94a3b8',
+  devWarn: vi.fn(),
 }));
 
 vi.mock('../useGraphInit', () => ({
@@ -395,5 +396,898 @@ describe('useGraphHighlighting: error handling', () => {
   it('handles getElementState failure gracefully in multi-select', () => {
     // The inner catch sets fallback state
     expect(source).toContain("graph.setElementState(id, ['multiSelected'])");
+  });
+});
+
+// ── Behavioral: highlight/review effect — gating ─────────────
+
+describe('useGraphHighlighting: highlight effect gating (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('does not call updateNodeData when ready=false', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      ready: false,
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does not call updateNodeData when layoutInProgressRef is true', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      layoutInProgressRef: { current: true },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when graphRef.current is null', () => {
+    const opts = createDefaultOpts({
+      graphRef: { current: null },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    // Should not throw
+    expect(() => renderHook(() => useGraphHighlighting(opts))).not.toThrow();
+  });
+
+  it('runs once on mount when highlightNodeIds is set', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips re-apply when same Set ref + same epoch (rerender)', () => {
+    const stubGraph = createStubGraph();
+    const highlightNodeIds = new Set(['n1']);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds,
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: opts } },
+    );
+    const callsAfterMount = stubGraph.updateNodeData.mock.calls.length;
+    // Rerender with same opts — same Set ref, same epoch
+    rerender({ o: opts });
+    expect(stubGraph.updateNodeData.mock.calls.length).toBe(callsAfterMount);
+  });
+
+  it('re-applies when epoch increments even with same Set ref', () => {
+    const stubGraph = createStubGraph();
+    const highlightNodeIds = new Set(['n1']);
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds,
+      highlightEpoch: 0,
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    const before = stubGraph.updateNodeData.mock.calls.length;
+    rerender({ o: { ...initial, highlightEpoch: 1 } });
+    expect(stubGraph.updateNodeData.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it('re-applies when highlightNodeIds reference changes', () => {
+    const stubGraph = createStubGraph();
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    const before = stubGraph.updateNodeData.mock.calls.length;
+    rerender({ o: { ...initial, highlightNodeIds: new Set(['n1']) } });
+    expect(stubGraph.updateNodeData.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it('does nothing when both highlight and review are undefined and epoch unchanged', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: undefined,
+      reviewNodeIds: undefined,
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when both highlight and review are empty sets and epoch unchanged', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(),
+      reviewNodeIds: new Set(),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does run when transitioning from highlight set to empty set (clear)', () => {
+    const stubGraph = createStubGraph();
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    const before = stubGraph.updateNodeData.mock.calls.length;
+    rerender({ o: { ...initial, highlightNodeIds: new Set() } });
+    expect(stubGraph.updateNodeData.mock.calls.length).toBeGreaterThan(before);
+  });
+});
+
+// ── Behavioral: highlight/review style content ───────────────
+
+function getNodeUpdate(stub: ReturnType<typeof createStubGraph>, id: string): any {
+  const allUpdates: any[] = [];
+  for (const call of stub.updateNodeData.mock.calls) {
+    if (Array.isArray(call[0])) allUpdates.push(...call[0]);
+  }
+  return allUpdates.find(u => u.id === id);
+}
+
+describe('useGraphHighlighting: highlighted node styles (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function setup() {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }, { id: 'n2' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'Highlighted', masteryColor: 'green' },
+          { id: 'n2', label: 'Dimmed', masteryColor: 'green' },
+        ] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    return { stubGraph };
+  }
+
+  it('highlighted node gets shadowBlur=10', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.shadowBlur).toBe(10);
+  });
+
+  it('highlighted node gets lineWidth=3', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.lineWidth).toBe(3);
+  });
+
+  it('highlighted node gets opacity=1', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.opacity).toBe(1);
+  });
+
+  it('highlighted node uses mastery stroke color for shadow', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.shadowColor).toBe('#22c55e');
+  });
+
+  it('highlighted node label uses primary text color', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.labelFill).toBe('#e2e8f0');
+  });
+
+  it('highlighted-only node has falsy needsReview in data', () => {
+    // Source: needsReview = hasReview && reviewNodeIds!.has(node.id)
+    // When hasReview is falsy (undefined reviewNodeIds), this is undefined.
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.data.needsReview).toBeFalsy();
+  });
+
+  it('dimmed node (not in highlight set) gets opacity=0.35', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n2');
+    expect(u.style.opacity).toBe(0.35);
+  });
+
+  it('dimmed node label uses tertiary text color', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n2');
+    expect(u.style.labelFill).toBe('#64748b');
+  });
+
+  it('dimmed node has shadowBlur=0 (no glow)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n2');
+    expect(u.style.shadowBlur).toBe(0);
+  });
+
+  it('dimmed node has shadowColor=transparent', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n2');
+    expect(u.style.shadowColor).toBe('transparent');
+  });
+
+  it('dimmed node does not set lineWidth', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n2');
+    expect(u.style.lineWidth).toBeUndefined();
+  });
+});
+
+describe('useGraphHighlighting: review-only node styles (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function setup() {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      reviewNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [{ id: 'n1', label: 'Review me', masteryColor: 'green' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    return { stubGraph };
+  }
+
+  it('review node gets shadowBlur=8', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.shadowBlur).toBe(8);
+  });
+
+  it('review node gets lineWidth=2.5', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.lineWidth).toBe(2.5);
+  });
+
+  it('review node gets orange shadowColor', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.shadowColor).toBe('#f97316');
+  });
+
+  it('review node label gets warning prefix', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.labelText).toMatch(/^⚠ /);
+  });
+
+  it('review node label fill is dark orange (#c2410c)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.labelFill).toBe('#c2410c');
+  });
+
+  it('review node has needsReview=true in data', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.data.needsReview).toBe(true);
+  });
+
+  it('review node has opacity=1 (not dimmed when no highlight active)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.opacity).toBe(1);
+  });
+});
+
+// ── Behavioral: overlap semantics ────────────────────────────
+
+describe('useGraphHighlighting: highlight + review overlap (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function setup() {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      reviewNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [{ id: 'n1', label: 'Both', masteryColor: 'green' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    return { stubGraph };
+  }
+
+  it('highlight wins for lineWidth (3 not 2.5)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.lineWidth).toBe(3);
+  });
+
+  it('highlight wins for shadowBlur (10 not 8)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.shadowBlur).toBe(10);
+  });
+
+  it('review wins for shadowColor (orange overrides mastery)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.shadowColor).toBe('#f97316');
+  });
+
+  it('review wins for labelFill (dark orange)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.labelFill).toBe('#c2410c');
+  });
+
+  it('label gets warning prefix (review wins)', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.labelText).toMatch(/^⚠ /);
+  });
+
+  it('node still has needsReview=true in data', () => {
+    const { stubGraph } = setup();
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.data.needsReview).toBe(true);
+  });
+});
+
+// ── Behavioral: edge dimming ─────────────────────────────────
+
+describe('useGraphHighlighting: edge dimming (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function getEdgeUpdate(stub: ReturnType<typeof createStubGraph>, id: string): any {
+    const allUpdates: any[] = [];
+    for (const call of stub.updateEdgeData.mock.calls) {
+      if (Array.isArray(call[0])) allUpdates.push(...call[0]);
+    }
+    return allUpdates.find(u => u.id === id);
+  }
+
+  it('edge with both endpoints highlighted gets opacity=1', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }, { id: 'n2' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1', 'n2']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+          { id: 'n2', label: 'B', masteryColor: 'green' },
+        ] as any,
+      },
+      dataEdgesRef: {
+        current: [{ id: 'e1', source: 'n1', target: 'n2' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getEdgeUpdate(stubGraph, 'e1');
+    expect(u.style.opacity).toBe(1);
+  });
+
+  it('edge with only one endpoint highlighted gets opacity=0.2', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }, { id: 'n2' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+          { id: 'n2', label: 'B', masteryColor: 'green' },
+        ] as any,
+      },
+      dataEdgesRef: {
+        current: [{ id: 'e1', source: 'n1', target: 'n2' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getEdgeUpdate(stubGraph, 'e1');
+    expect(u.style.opacity).toBe(0.2);
+  });
+
+  it('edge with neither endpoint highlighted gets opacity=0.2', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }, { id: 'n2' }, { id: 'n3' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n3']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+          { id: 'n2', label: 'B', masteryColor: 'green' },
+          { id: 'n3', label: 'C', masteryColor: 'green' },
+        ] as any,
+      },
+      dataEdgesRef: {
+        current: [{ id: 'e1', source: 'n1', target: 'n2' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getEdgeUpdate(stubGraph, 'e1');
+    expect(u.style.opacity).toBe(0.2);
+  });
+
+  it('edges are not updated when no highlight set is active (review only)', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }, { id: 'n2' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      reviewNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+          { id: 'n2', label: 'B', masteryColor: 'green' },
+        ] as any,
+      },
+      dataEdgesRef: {
+        current: [{ id: 'e1', source: 'n1', target: 'n2' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getEdgeUpdate(stubGraph, 'e1');
+    // Edge gets opacity=1 because edgeDimmed=false when hasHighlight is false
+    expect(u.style.opacity).toBe(1);
+  });
+
+  it('edges are skipped when source or target is not visible', () => {
+    const stubGraph = createStubGraph();
+    // n2 is invisible
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+        ] as any,
+      },
+      dataEdgesRef: {
+        current: [{ id: 'e1', source: 'n1', target: 'n2' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateEdgeData).not.toHaveBeenCalled();
+  });
+});
+
+// ── Behavioral: visible-nodes filter ─────────────────────────
+
+describe('useGraphHighlighting: visibility filtering (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('skips nodes not present in graph.getNodeData()', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }]); // n2 invisible
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+          { id: 'n2', label: 'B', masteryColor: 'green' },
+        ] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(getNodeUpdate(stubGraph, 'n1')).toBeDefined();
+    expect(getNodeUpdate(stubGraph, 'n2')).toBeUndefined();
+  });
+
+  it('updates all dataRef nodes when getNodeData throws (fallback)', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockImplementation(() => { throw new Error('boom'); });
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [
+          { id: 'n1', label: 'A', masteryColor: 'green' },
+          { id: 'n2', label: 'B', masteryColor: 'green' },
+        ] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    // Both nodes should be updated since visibility filter is null
+    expect(getNodeUpdate(stubGraph, 'n1')).toBeDefined();
+    expect(getNodeUpdate(stubGraph, 'n2')).toBeDefined();
+  });
+});
+
+// ── Behavioral: batchDraw interaction ────────────────────────
+
+describe('useGraphHighlighting: batchDraw interaction (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('calls batchDraw once after applying highlight updates', () => {
+    const stubGraph = createStubGraph();
+    const batchDraw = vi.fn();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      batchDraw,
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(batchDraw).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call batchDraw when effect early-returns (ready=false)', () => {
+    const stubGraph = createStubGraph();
+    const batchDraw = vi.fn();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      ready: false,
+      batchDraw,
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: { current: [{ id: 'n1', label: 'A', masteryColor: 'green' } as any] },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(batchDraw).not.toHaveBeenCalled();
+  });
+});
+
+// ── Behavioral: selected node effect ─────────────────────────
+
+describe('useGraphHighlighting: selected node effect (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('does not update when selectedNodeId is null on mount', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: null,
+      nodeById: new Map([['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any]]),
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('applies shadow glow to selected node on mount', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'n1',
+      nodeById: new Map([['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any]]),
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u).toBeDefined();
+    expect(u.style.shadowBlur).toBe(12);
+    expect(u.style.shadowColor).toBe('#22c55e');
+  });
+
+  it('clears shadow on previous selection when switching', () => {
+    const stubGraph = createStubGraph();
+    const nodeById = new Map([
+      ['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any],
+      ['n2', { id: 'n2', label: 'B', masteryColor: 'green' } as any],
+    ]);
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'n1',
+      nodeById,
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    stubGraph.updateNodeData.mockClear();
+    rerender({ o: { ...initial, selectedNodeId: 'n2' } });
+    const lastCall = stubGraph.updateNodeData.mock.calls[0]?.[0] as any[];
+    const prevUpdate = lastCall.find(u => u.id === 'n1');
+    expect(prevUpdate).toBeDefined();
+    expect(prevUpdate.style.shadowColor).toBe('transparent');
+    expect(prevUpdate.style.shadowBlur).toBe(0);
+  });
+
+  it('applies new shadow when switching selection', () => {
+    const stubGraph = createStubGraph();
+    const nodeById = new Map([
+      ['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any],
+      ['n2', { id: 'n2', label: 'B', masteryColor: 'green' } as any],
+    ]);
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'n1',
+      nodeById,
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    stubGraph.updateNodeData.mockClear();
+    rerender({ o: { ...initial, selectedNodeId: 'n2' } });
+    const lastCall = stubGraph.updateNodeData.mock.calls[0]?.[0] as any[];
+    const newUpdate = lastCall.find(u => u.id === 'n2');
+    expect(newUpdate).toBeDefined();
+    expect(newUpdate.style.shadowBlur).toBe(12);
+  });
+
+  it('issues two updates (clear prev + apply new) in single call when switching', () => {
+    const stubGraph = createStubGraph();
+    const nodeById = new Map([
+      ['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any],
+      ['n2', { id: 'n2', label: 'B', masteryColor: 'green' } as any],
+    ]);
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'n1',
+      nodeById,
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    stubGraph.updateNodeData.mockClear();
+    rerender({ o: { ...initial, selectedNodeId: 'n2' } });
+    expect(stubGraph.updateNodeData).toHaveBeenCalledTimes(1);
+    const updates = stubGraph.updateNodeData.mock.calls[0]?.[0] as any[];
+    expect(updates).toHaveLength(2);
+  });
+
+  it('clears shadow on previous when deselecting (selectedNodeId=null)', () => {
+    const stubGraph = createStubGraph();
+    const nodeById = new Map([
+      ['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any],
+    ]);
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'n1',
+      nodeById,
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    stubGraph.updateNodeData.mockClear();
+    rerender({ o: { ...initial, selectedNodeId: null } });
+    const lastCall = stubGraph.updateNodeData.mock.calls[0]?.[0] as any[];
+    expect(lastCall).toHaveLength(1);
+    expect(lastCall[0].id).toBe('n1');
+    expect(lastCall[0].style.shadowColor).toBe('transparent');
+    expect(lastCall[0].style.shadowBlur).toBe(0);
+  });
+
+  it('does nothing on rerender with same selectedNodeId (prev===curr)', () => {
+    const stubGraph = createStubGraph();
+    const nodeById = new Map([
+      ['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any],
+    ]);
+    const initial = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'n1',
+      nodeById,
+    });
+    const { rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    stubGraph.updateNodeData.mockClear();
+    rerender({ o: { ...initial } });
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('skips update for selected node not in nodeById', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: 'unknown',
+      nodeById: new Map(), // selected is not in map
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('treats undefined selectedNodeId as null (no update)', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      selectedNodeId: undefined,
+      nodeById: new Map(),
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+
+  it('does not crash when graphRef.current is null and selectedNodeId is set', () => {
+    const opts = createDefaultOpts({
+      graphRef: { current: null },
+      selectedNodeId: 'n1',
+      nodeById: new Map([['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any]]),
+    });
+    expect(() => renderHook(() => useGraphHighlighting(opts))).not.toThrow();
+  });
+
+  it('does not run when ready=false even with selectedNodeId set', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      ready: false,
+      selectedNodeId: 'n1',
+      nodeById: new Map([['n1', { id: 'n1', label: 'A', masteryColor: 'green' } as any]]),
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    expect(stubGraph.updateNodeData).not.toHaveBeenCalled();
+  });
+});
+
+// ── Behavioral: applyMultiSelectionState corner cases ────────
+
+describe('useGraphHighlighting: applyMultiSelectionState corner cases (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('survives setElementState throwing (caught by outer try/catch)', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.setElementState.mockImplementation(() => { throw new Error('boom'); });
+    const opts = createDefaultOpts({ graphRef: { current: stubGraph as any } });
+    const { result } = renderHook(() => useGraphHighlighting(opts));
+
+    expect(() => {
+      act(() => {
+        result.current.applyMultiSelectionState(stubGraph as any, new Set(['n1']));
+      });
+    }).not.toThrow();
+  });
+
+  it('falls back to just multiSelected when getElementState throws', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getElementState.mockImplementation(() => { throw new Error('fail'); });
+    const opts = createDefaultOpts({ graphRef: { current: stubGraph as any } });
+    const { result } = renderHook(() => useGraphHighlighting(opts));
+
+    act(() => {
+      result.current.applyMultiSelectionState(stubGraph as any, new Set(['n1']));
+    });
+
+    // Should still call setElementState with the fallback
+    expect(stubGraph.setElementState).toHaveBeenCalledWith('n1', ['multiSelected']);
+  });
+
+  it('replaces existing multiSelected (does not double-add)', () => {
+    const stubGraph = createStubGraph();
+    stubGraph._elementStates.set('n1', ['multiSelected', 'hovered']);
+    stubGraph.getElementState.mockImplementation(
+      (id: string) => stubGraph._elementStates.get(id) ?? [],
+    );
+    const opts = createDefaultOpts({ graphRef: { current: stubGraph as any } });
+    const { result } = renderHook(() => useGraphHighlighting(opts));
+
+    // First clear to set prevMultiRef
+    act(() => {
+      result.current.applyMultiSelectionState(stubGraph as any, new Set());
+    });
+    stubGraph.setElementState.mockClear();
+
+    // Re-add
+    act(() => {
+      result.current.applyMultiSelectionState(stubGraph as any, new Set(['n1']));
+    });
+
+    const lastCall = stubGraph.setElementState.mock.calls.find(
+      (c: [string, string[]]) => c[0] === 'n1',
+    );
+    const states = lastCall?.[1] || [];
+    const multiCount = states.filter((s: string) => s === 'multiSelected').length;
+    expect(multiCount).toBe(1);
+  });
+
+  it('does not call setElementState for unchanged ids (in both prev and curr)', () => {
+    const stubGraph = createStubGraph();
+    const opts = createDefaultOpts({ graphRef: { current: stubGraph as any } });
+    const { result } = renderHook(() => useGraphHighlighting(opts));
+
+    act(() => {
+      result.current.applyMultiSelectionState(stubGraph as any, new Set(['n1', 'n2']));
+    });
+    stubGraph.setElementState.mockClear();
+
+    // Same set — n1 and n2 are in both prev and curr; nothing should be called
+    act(() => {
+      result.current.applyMultiSelectionState(stubGraph as any, new Set(['n1', 'n2']));
+    });
+    expect(stubGraph.setElementState).not.toHaveBeenCalled();
+  });
+
+  it('returns stable applyMultiSelectionState identity across rerenders (batchDraw stable)', () => {
+    const batchDraw = vi.fn();
+    const opts = createDefaultOpts({ batchDraw });
+    const { result, rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: opts } },
+    );
+    const fn1 = result.current.applyMultiSelectionState;
+    rerender({ o: opts });
+    expect(result.current.applyMultiSelectionState).toBe(fn1);
+  });
+
+  it('returns new applyMultiSelectionState identity when batchDraw reference changes', () => {
+    const batchDraw1 = vi.fn();
+    const initial = createDefaultOpts({ batchDraw: batchDraw1 });
+    const { result, rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: initial } },
+    );
+    const fn1 = result.current.applyMultiSelectionState;
+    const batchDraw2 = vi.fn();
+    rerender({ o: { ...initial, batchDraw: batchDraw2 } });
+    expect(result.current.applyMultiSelectionState).not.toBe(fn1);
+  });
+
+  it('prevMultiRef is the same ref instance across rerenders', () => {
+    const opts = createDefaultOpts();
+    const { result, rerender } = renderHook(
+      ({ o }) => useGraphHighlighting(o),
+      { initialProps: { o: opts } },
+    );
+    const ref1 = result.current.prevMultiRef;
+    rerender({ o: opts });
+    expect(result.current.prevMultiRef).toBe(ref1);
+  });
+});
+
+// ── Behavioral: long-label truncation in review prefix ───────
+
+describe('useGraphHighlighting: label truncation in review (behavioral)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('truncates long labels and prefixes with warning sign', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }]);
+    const longLabel = 'a'.repeat(50);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      reviewNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [{ id: 'n1', label: longLabel, masteryColor: 'green' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getNodeUpdate(stubGraph, 'n1');
+    // Mocked truncateLabel cuts at 20 chars + '...'
+    expect(u.style.labelText).toBe('⚠ ' + 'a'.repeat(20) + '...');
+  });
+
+  it('does not prefix non-review nodes with warning sign', () => {
+    const stubGraph = createStubGraph();
+    stubGraph.getNodeData.mockReturnValue([{ id: 'n1' }]);
+    const opts = createDefaultOpts({
+      graphRef: { current: stubGraph as any },
+      highlightNodeIds: new Set(['n1']),
+      dataNodesRef: {
+        current: [{ id: 'n1', label: 'short', masteryColor: 'green' }] as any,
+      },
+    });
+    renderHook(() => useGraphHighlighting(opts));
+    const u = getNodeUpdate(stubGraph, 'n1');
+    expect(u.style.labelText).toBe('short');
+    expect(u.style.labelText).not.toMatch(/^⚠/);
   });
 });
