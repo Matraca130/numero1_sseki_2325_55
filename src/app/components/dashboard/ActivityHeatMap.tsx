@@ -43,7 +43,7 @@ const MONTH_NAMES = [
   'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
 ];
 
-const DAY_LABELS: Record<number, string> = { 1: 'Lun', 3: 'Mie', 5: 'Vie' };
+const DAY_LABELS: Record<number, string> = { 0: 'Lun', 2: 'Mie', 4: 'Vie' };
 
 function formatMinutes(seconds: number): string {
   const m = Math.round(seconds / 60);
