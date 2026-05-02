@@ -49,6 +49,7 @@ export interface UseQuestionFormReturn {
   explanation: string;
   correctAnswer: string;
   options: string[];
+  optionIds: string[];
 
   // Simple field setters
   setQuestionType: (v: QuestionType) => void;
@@ -107,6 +108,11 @@ export function useQuestionForm({
   const [options, setOptions] = useState<string[]>(
     question?.options || ['', '', '', ''],
   );
+  // Stable IDs aligned by index with `options`. Used as React keys so
+  // removing an option does not shift adjacent <input> state to the wrong row.
+  const [optionIds, setOptionIds] = useState<string[]>(() =>
+    (question?.options || ['', '', '', '']).map(() => crypto.randomUUID()),
+  );
 
   // ── Subtopic state (only used when showSubtopicSelector) ─
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
@@ -146,12 +152,15 @@ export function useQuestionForm({
     if (!isEdit) {
       if (questionType === 'mcq') {
         setOptions(['', '', '', '']);
+        setOptionIds(Array.from({ length: 4 }, () => crypto.randomUUID()));
         setCorrectAnswer('');
       } else if (questionType === 'true_false') {
         setOptions([]);
+        setOptionIds([]);
         setCorrectAnswer('true');
       } else {
         setOptions([]);
+        setOptionIds([]);
         setCorrectAnswer('');
       }
     }
@@ -165,14 +174,19 @@ export function useQuestionForm({
   };
 
   const addOption = () => {
-    if (options.length < 6) setOptions([...options, '']);
+    if (options.length < 6) {
+      setOptions([...options, '']);
+      setOptionIds([...optionIds, crypto.randomUUID()]);
+    }
   };
 
   const removeOption = (index: number) => {
     if (options.length > 2) {
       const next = options.filter((_, i) => i !== index);
+      const nextIds = optionIds.filter((_, i) => i !== index);
       if (options[index] === correctAnswer) setCorrectAnswer('');
       setOptions(next);
+      setOptionIds(nextIds);
     }
   };
 
@@ -273,7 +287,7 @@ export function useQuestionForm({
   };
 
   return {
-    questionType, questionText, keywordId, difficulty, explanation, correctAnswer, options,
+    questionType, questionText, keywordId, difficulty, explanation, correctAnswer, options, optionIds,
     setQuestionType, setQuestionText, setKeywordId, setDifficulty, setExplanation, setCorrectAnswer,
     handleOptionChange, addOption, removeOption,
     subtopics, subtopicId, setSubtopicId, loadingSubtopics,

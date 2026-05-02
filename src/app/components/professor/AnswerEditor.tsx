@@ -21,6 +21,10 @@ export interface AnswerEditorProps {
   questionType: QuestionType;
   correctAnswer: string;
   options: string[];
+  /** Stable per-row IDs aligned by index with `options`. Used as React keys
+   *  so removing an MCQ option does not shift sibling <input> state into
+   *  the wrong row. Optional for back-compat; falls back to index. */
+  optionIds?: string[];
   onCorrectAnswerChange: (v: string) => void;
   onOptionChange: (index: number, value: string) => void;
   onAddOption: () => void;
@@ -33,6 +37,7 @@ export const AnswerEditor = React.memo(function AnswerEditor({
   questionType,
   correctAnswer,
   options,
+  optionIds,
   onCorrectAnswerChange,
   onOptionChange,
   onAddOption,
@@ -59,7 +64,7 @@ export const AnswerEditor = React.memo(function AnswerEditor({
         </div>
         <div className="space-y-2">
           {options.map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={optionIds?.[i] ?? `option-${i}`} className="flex items-center gap-2">
               <button
                 onClick={() => onCorrectAnswerChange(opt)}
                 className={clsx(

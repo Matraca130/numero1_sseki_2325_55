@@ -261,6 +261,7 @@ export function QuestionFormModal({
             questionType={form.questionType}
             correctAnswer={form.correctAnswer}
             options={form.options}
+            optionIds={form.optionIds}
             onCorrectAnswerChange={form.setCorrectAnswer}
             onOptionChange={form.handleOptionChange}
             onAddOption={form.addOption}
