@@ -109,6 +109,11 @@ export function useReadingTimeTracker(
           ...(scrollPos != null && { scroll_position: scrollPos }),
         }),
         keepalive: true, // browser completes request even after page unloads
+      }).catch(() => {
+        // Intentionally suppress async rejection — fetch() rejects on network
+        // failure (NEVER throws sync), so the surrounding try/catch alone leaks
+        // unhandled promise rejections during beforeunload. Page is unloading;
+        // there is nothing else we can do.
       });
       // Don't await — fire and forget
     } catch {
