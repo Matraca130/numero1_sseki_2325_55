@@ -5,7 +5,6 @@
 // ============================================================
 
 import type { MapNode, MapEdge } from '@/app/types/mindmap';
-import type { MasteryColor } from '@/app/lib/mastery-helpers';
 
 /** Responsive font sizes for presentation cards */
 export const presentationFontSize = {
@@ -14,17 +13,6 @@ export const presentationFontSize = {
   index: 'clamp(0.75rem, 1.2vw, 0.875rem)',
   mastery: 'clamp(0.6875rem, 1vw, 0.8125rem)',
 } as const;
-
-/** Spanish mastery label for presentation card */
-export function masteryLabel(color: MasteryColor): string {
-  switch (color) {
-    case 'green': return 'Dominado';
-    case 'yellow': return 'Aprendiendo';
-    case 'red': return 'Débil';
-    case 'gray': return 'Sin datos';
-    default: return color satisfies never;
-  }
-}
 
 /** Format mastery as percentage string */
 export function masteryPercent(mastery: number): string {

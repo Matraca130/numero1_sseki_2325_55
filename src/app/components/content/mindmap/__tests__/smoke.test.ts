@@ -265,10 +265,12 @@ describe('mindmap module: PresentationMode', () => {
 describe('mindmap module: presentationHelpers', () => {
   it('exports expected presentation helper functions', () => {
     const names = getExportedNames('presentationHelpers.ts');
-    expect(names).toContain('masteryLabel');
+    // Cycle 53: masteryLabel removed (deduplicated to mastery-helpers.getMasteryLabel)
+    expect(names).not.toContain('masteryLabel');
     expect(names).toContain('masteryPercent');
     expect(names).toContain('topologicalSort');
     expect(names).toContain('presentationFontSize');
+    expect(names).toContain('slideVariants');
   });
 });
 

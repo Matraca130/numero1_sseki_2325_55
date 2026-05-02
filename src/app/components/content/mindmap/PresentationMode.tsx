@@ -18,12 +18,12 @@ import { MASTERY_HEX, MASTERY_HEX_LIGHT } from '@/app/types/mindmap';
 import { colors } from '@/app/design-system';
 import {
   presentationFontSize as fs,
-  masteryLabel,
   masteryPercent,
   topologicalSort,
   slideVariants,
 } from './presentationHelpers';
 import type { SlideDir } from './presentationHelpers';
+import { getMasteryLabel } from '@/app/lib/mastery-helpers';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -178,7 +178,7 @@ export const PresentationMode = memo(function PresentationMode({
 
       {/* SR-only live region — announces slide content on change */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {current.label} — {masteryLabel(mc)} {masteryPercent(current.mastery)}.
+        {current.label} — {getMasteryLabel(mc, 'es')} {masteryPercent(current.mastery)}.
         {current.definition ? ` ${current.definition}` : ' Sin definición disponible.'}
       </div>
 
@@ -200,7 +200,7 @@ export const PresentationMode = memo(function PresentationMode({
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: MASTERY_HEX[mc] }} aria-hidden="true" />
               <span className="font-sans font-medium" style={{ fontSize: fs.mastery, color: MASTERY_HEX[mc] }}>
-                {masteryLabel(mc)}
+                {getMasteryLabel(mc, 'es')}
               </span>
               <span className="font-sans text-gray-500 ml-auto" style={{ fontSize: fs.mastery }}>
                 {masteryPercent(current.mastery)}
