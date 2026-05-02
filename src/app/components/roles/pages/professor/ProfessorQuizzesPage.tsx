@@ -81,7 +81,12 @@ export function ProfessorQuizzesPage() {
   }, [selectedSummaryId]);
 
   // ── Load quiz questions when summary/filters change ─────
-  const loadQuestions = useCallback(async () => {
+  // Pure fetcher — accepts an optional cancellation guard so callers (effect
+  // cleanup on rapid filter changes, post-mutation refresh) can opt into
+  // stale-response protection. Without the guard, a slow response for an
+  // earlier filter set could overwrite the fresher results for the current
+  // filter set after the user switches quickly between filters.
+  const loadQuestions = useCallback(async (isCancelled?: () => boolean) => {
     if (!selectedSummaryId) {
       setQuestions([]);
       return;
@@ -99,17 +104,21 @@ export function ProfessorQuizzesPage() {
       if (filters.filterKeywordId) apiFilters.keyword_id = filters.filterKeywordId;
       apiFilters.limit = 200;
       const res = await quizApi.getQuizQuestions(selectedSummaryId, apiFilters);
+      if (isCancelled?.()) return;
       setQuestions(res.items || []);
     } catch (err: unknown) {
       logger.error('[Quiz] Questions load error:', err);
+      if (isCancelled?.()) return;
       setQuestions([]);
     } finally {
-      setQuestionsLoading(false);
+      if (!isCancelled?.()) setQuestionsLoading(false);
     }
   }, [selectedSummaryId, filters.filterType, filters.filterDifficulty, filters.filterKeywordId]);
 
   useEffect(() => {
-    loadQuestions();
+    let cancelled = false;
+    loadQuestions(() => cancelled);
+    return () => { cancelled = true; };
   }, [loadQuestions]);
 
   // ── CRUD handlers (R4: extracted to hook) ─────────────
