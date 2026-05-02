@@ -28,6 +28,8 @@ export interface HistoryEntry {
 
 // ── SessionStorage persistence ───────────────────────────────
 
+import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storageHelpers';
+
 const STORAGE_PREFIX = 'axon_map_history_';
 
 function storageKey(topicId: string): string {
@@ -43,38 +45,24 @@ function isValidEntry(v: unknown): v is HistoryEntry {
 
 /** Load history entries from sessionStorage */
 export function loadHistory(topicId: string): HistoryEntry[] {
-  try {
-    const raw = sessionStorage.getItem(storageKey(topicId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isValidEntry);
-  } catch {
-    return [];
-  }
+  const parsed = safeGetJSON(storageKey(topicId), sessionStorage);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isValidEntry);
 }
 
 const MAX_HISTORY_ENTRIES = 100;
 
 /** Save history entries to sessionStorage (capped at 100 entries) */
 export function saveHistory(topicId: string, entries: HistoryEntry[]): void {
-  try {
-    const capped = entries.length > MAX_HISTORY_ENTRIES
-      ? entries.slice(-MAX_HISTORY_ENTRIES)
-      : entries;
-    sessionStorage.setItem(storageKey(topicId), JSON.stringify(capped));
-  } catch {
-    // sessionStorage full or blocked — silently ignore
-  }
+  const capped = entries.length > MAX_HISTORY_ENTRIES
+    ? entries.slice(-MAX_HISTORY_ENTRIES)
+    : entries;
+  safeSetJSON(storageKey(topicId), capped, sessionStorage);
 }
 
 /** Clear history from sessionStorage */
 export function clearHistoryStorage(topicId: string): void {
-  try {
-    sessionStorage.removeItem(storageKey(topicId));
-  } catch {
-    // silently ignore
-  }
+  safeRemoveItem(storageKey(topicId), sessionStorage);
 }
 
 // ── Entry factory functions ──────────────────────────────────

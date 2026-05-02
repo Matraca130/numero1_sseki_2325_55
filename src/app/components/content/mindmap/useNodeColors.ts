@@ -8,6 +8,8 @@
 // Storage format: { [nodeId]: hexColor }
 // ============================================================
 
+import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storageHelpers';
+
 const STORAGE_PREFIX = 'axon_node_colors_';
 const MAX_COLORS = 200;
 
@@ -23,57 +25,41 @@ export type NodeColorMap = Map<string, string>;
 
 /** Load saved custom node colors for a topic */
 export function loadNodeColors(topicId: string): NodeColorMap {
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + topicId);
-    if (!raw) return new Map();
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-    const map = new Map<string, string>();
-    for (const [id, val] of Object.entries(obj)) {
-      if (typeof val === 'string' && HEX_COLOR_RE.test(val)) {
-        map.set(id, val);
-      }
+  const obj = safeGetJSON(STORAGE_PREFIX + topicId);
+  const map = new Map<string, string>();
+  if (!obj || typeof obj !== 'object') return map;
+  for (const [id, val] of Object.entries(obj as Record<string, unknown>)) {
+    if (typeof val === 'string' && HEX_COLOR_RE.test(val)) {
+      map.set(id, val);
     }
-    return map;
-  } catch {
-    return new Map();
   }
+  return map;
 }
 
 /** Save a custom color for a node (merges with existing) */
 export function saveNodeColor(topicId: string, nodeId: string, color: string): void {
   if (!HEX_COLOR_RE.test(color)) return; // reject non-hex colors
-  try {
-    const existing = loadNodeColors(topicId);
-    // Delete + re-set to move to end of insertion order (LRU)
-    existing.delete(nodeId);
-    existing.set(nodeId, color);
-    // Evict oldest entries if over limit
-    if (existing.size > MAX_COLORS) {
-      const entries = Array.from(existing.entries()).slice(-MAX_COLORS);
-      localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(Object.fromEntries(entries)));
-    } else {
-      localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(Object.fromEntries(existing)));
-    }
-  } catch {
-    // localStorage full or unavailable — silently ignore
+  const existing = loadNodeColors(topicId);
+  // Delete + re-set to move to end of insertion order (LRU)
+  existing.delete(nodeId);
+  existing.set(nodeId, color);
+  // Evict oldest entries if over limit
+  if (existing.size > MAX_COLORS) {
+    const entries = Array.from(existing.entries()).slice(-MAX_COLORS);
+    safeSetJSON(STORAGE_PREFIX + topicId, Object.fromEntries(entries));
+  } else {
+    safeSetJSON(STORAGE_PREFIX + topicId, Object.fromEntries(existing));
   }
 }
 
 /** Remove a custom color for a node */
 export function removeNodeColor(topicId: string, nodeId: string): void {
-  try {
-    const existing = loadNodeColors(topicId);
-    existing.delete(nodeId);
-    if (existing.size === 0) {
-      localStorage.removeItem(STORAGE_PREFIX + topicId);
-    } else {
-      localStorage.setItem(
-        STORAGE_PREFIX + topicId,
-        JSON.stringify(Object.fromEntries(existing)),
-      );
-    }
-  } catch {
-    // Silently ignore
+  const existing = loadNodeColors(topicId);
+  existing.delete(nodeId);
+  if (existing.size === 0) {
+    safeRemoveItem(STORAGE_PREFIX + topicId);
+  } else {
+    safeSetJSON(STORAGE_PREFIX + topicId, Object.fromEntries(existing));
   }
 }
 

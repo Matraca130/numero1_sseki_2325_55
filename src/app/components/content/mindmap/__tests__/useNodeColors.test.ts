@@ -668,3 +668,44 @@ describe('useNodeColors source contract (cycle 56)', () => {
     expect((source.match(/HEX_COLOR_RE\.test\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ── Cycle 57: storage I/O delegation to ./storageHelpers ────
+
+describe('useNodeColors source contract (cycle 57 — storage extraction)', () => {
+  const source = readFileSync(
+    resolve(__dirname, '../useNodeColors.ts'),
+    'utf-8'
+  );
+
+  it("imports the storage helpers from './storageHelpers'", () => {
+    expect(source).toContain("from './storageHelpers'");
+  });
+
+  it('uses safeGetJSON for the read path', () => {
+    expect(source).toMatch(/safeGetJSON\(/);
+  });
+
+  it('uses safeSetJSON for the write path', () => {
+    expect(source).toMatch(/safeSetJSON\(/);
+  });
+
+  it('uses safeRemoveItem for the cleanup path', () => {
+    expect(source).toMatch(/safeRemoveItem\(/);
+  });
+
+  it('no longer issues raw JSON.parse calls (negative guard)', () => {
+    // Stronger evidence: the migration moved every JSON.parse into the helper.
+    expect(source).not.toMatch(/JSON\.parse\(/);
+  });
+
+  it('no longer issues raw JSON.stringify calls (negative guard)', () => {
+    expect(source).not.toMatch(/JSON\.stringify\(/);
+  });
+
+  it('no longer issues raw localStorage.setItem / .removeItem calls', () => {
+    // useNodeColors only reads/writes JSON; after migration no raw storage call survives.
+    expect(source).not.toMatch(/localStorage\.setItem\(/);
+    expect(source).not.toMatch(/localStorage\.removeItem\(/);
+    expect(source).not.toMatch(/localStorage\.getItem\(/);
+  });
+});

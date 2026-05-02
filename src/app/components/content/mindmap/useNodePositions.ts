@@ -9,7 +9,7 @@
 // Max 500 positions per topic to avoid localStorage bloat.
 // ============================================================
 
-import { devWarn } from './graphHelpers';
+import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storageHelpers';
 
 const STORAGE_PREFIX = 'axon_node_pos_';
 const COMBO_STORAGE_PREFIX = 'axon_combos_';
@@ -19,18 +19,16 @@ const MAX_TOPICS = 50;
 
 /** Track topic access order and evict oldest keys when over MAX_TOPICS */
 function touchTopicIndex(topicId: string): void {
-  try {
-    const raw = localStorage.getItem(TOPIC_INDEX_KEY);
-    const ids: string[] = raw ? JSON.parse(raw) : [];
-    const filtered = ids.filter(id => id !== topicId);
-    filtered.push(topicId);
-    while (filtered.length > MAX_TOPICS) {
-      const evicted = filtered.shift()!;
-      localStorage.removeItem(STORAGE_PREFIX + evicted);
-      localStorage.removeItem(COMBO_STORAGE_PREFIX + evicted);
-    }
-    localStorage.setItem(TOPIC_INDEX_KEY, JSON.stringify(filtered));
-  } catch (e) { devWarn('useNodePositions', 'ignore', e); }
+  const parsed = safeGetJSON(TOPIC_INDEX_KEY);
+  const ids: string[] = Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  const filtered = ids.filter(id => id !== topicId);
+  filtered.push(topicId);
+  while (filtered.length > MAX_TOPICS) {
+    const evicted = filtered.shift()!;
+    safeRemoveItem(STORAGE_PREFIX + evicted);
+    safeRemoveItem(COMBO_STORAGE_PREFIX + evicted);
+  }
+  safeSetJSON(TOPIC_INDEX_KEY, filtered);
 }
 
 export interface NodePosition {
@@ -42,25 +40,20 @@ export type PositionMap = Map<string, NodePosition>;
 
 /** Load saved node positions for a topic (validates each entry) */
 export function loadPositions(topicId: string): PositionMap {
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + topicId);
-    if (!raw) return new Map();
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-    const map = new Map<string, NodePosition>();
-    for (const [id, val] of Object.entries(obj)) {
-      if (
-        val && typeof val === 'object' &&
-        'x' in val && 'y' in val &&
-        typeof (val as NodePosition).x === 'number' && Number.isFinite((val as NodePosition).x) &&
-        typeof (val as NodePosition).y === 'number' && Number.isFinite((val as NodePosition).y)
-      ) {
-        map.set(id, { x: (val as NodePosition).x, y: (val as NodePosition).y });
-      }
+  const obj = safeGetJSON(STORAGE_PREFIX + topicId);
+  const map = new Map<string, NodePosition>();
+  if (!obj || typeof obj !== 'object') return map;
+  for (const [id, val] of Object.entries(obj as Record<string, unknown>)) {
+    if (
+      val && typeof val === 'object' &&
+      'x' in val && 'y' in val &&
+      typeof (val as NodePosition).x === 'number' && Number.isFinite((val as NodePosition).x) &&
+      typeof (val as NodePosition).y === 'number' && Number.isFinite((val as NodePosition).y)
+    ) {
+      map.set(id, { x: (val as NodePosition).x, y: (val as NodePosition).y });
     }
-    return map;
-  } catch {
-    return new Map();
   }
+  return map;
 }
 
 // In-memory cache to avoid repeated JSON.parse on rapid drag-end events
@@ -87,23 +80,22 @@ export function saveNodePosition(topicId: string, nodeId: string, pos: NodePosit
       const trimmed = entries.slice(-MAX_POSITIONS);
       const map = new Map(trimmed);
       memoryCache = { topicId, map };
-      localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(Object.fromEntries(trimmed)));
+      safeSetJSON(STORAGE_PREFIX + topicId, Object.fromEntries(trimmed));
     } else {
-      localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(Object.fromEntries(existing)));
+      safeSetJSON(STORAGE_PREFIX + topicId, Object.fromEntries(existing));
     }
   } catch {
-    // localStorage full or unavailable — silently ignore
+    // Belt-and-suspenders: safeSetJSON already swallows storage errors,
+    // but Array.from / new Map / Object.fromEntries could in principle
+    // throw on pathological inputs. Preserve the original silent-failure
+    // contract.
   }
 }
 
 /** Clear saved positions and combos for a topic */
 export function clearPositions(topicId: string): void {
-  try {
-    localStorage.removeItem(STORAGE_PREFIX + topicId);
-    localStorage.removeItem(COMBO_STORAGE_PREFIX + topicId);
-  } catch {
-    // Silently ignore
-  }
+  safeRemoveItem(STORAGE_PREFIX + topicId);
+  safeRemoveItem(COMBO_STORAGE_PREFIX + topicId);
   if (memoryCache?.topicId === topicId) memoryCache = null;
 }
 
@@ -118,36 +110,34 @@ export interface PersistedCombo {
 
 /** Load saved combos for a topic */
 export function loadCombos(topicId: string): PersistedCombo[] {
-  try {
-    const raw = localStorage.getItem(COMBO_STORAGE_PREFIX + topicId);
-    if (!raw) return [];
-    const arr = JSON.parse(raw) as unknown[];
-    return arr.filter((item): item is PersistedCombo =>
-      !!item && typeof item === 'object' &&
-      'id' in item && typeof (item as PersistedCombo).id === 'string' &&
-      'label' in item && typeof (item as PersistedCombo).label === 'string' &&
-      'nodeIds' in item && Array.isArray((item as PersistedCombo).nodeIds)
-    );
-  } catch {
-    return [];
-  }
+  const arr = safeGetJSON(COMBO_STORAGE_PREFIX + topicId);
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((item): item is PersistedCombo =>
+    !!item && typeof item === 'object' &&
+    'id' in item && typeof (item as PersistedCombo).id === 'string' &&
+    'label' in item && typeof (item as PersistedCombo).label === 'string' &&
+    'nodeIds' in item && Array.isArray((item as PersistedCombo).nodeIds)
+  );
 }
 
 /** Save combos for a topic */
 export function saveCombos(topicId: string, combos: PersistedCombo[]): void {
-  try {
-    touchTopicIndex(topicId);
-    if (combos.length === 0) {
-      localStorage.removeItem(COMBO_STORAGE_PREFIX + topicId);
-    } else {
-      localStorage.setItem(COMBO_STORAGE_PREFIX + topicId, JSON.stringify(combos));
-    }
-  } catch {
-    // localStorage full or unavailable
+  touchTopicIndex(topicId);
+  if (combos.length === 0) {
+    safeRemoveItem(COMBO_STORAGE_PREFIX + topicId);
+  } else {
+    safeSetJSON(COMBO_STORAGE_PREFIX + topicId, combos);
   }
 }
 
 // ── Grid Toggle Persistence ─────────────────────────────────
+//
+// NOTE: This pair stores a single '1'/'0' character — not JSON.
+// We deliberately keep these inline (not migrated to the
+// safeGetJSON/safeSetJSON helpers from ./storageHelpers) because
+// adding a separate non-JSON helper API for two single-line sites
+// isn't worth the surface-area cost. The try/catch shape mirrors
+// the helpers exactly.
 
 const GRID_STORAGE_KEY = 'axon_grid_enabled';
 

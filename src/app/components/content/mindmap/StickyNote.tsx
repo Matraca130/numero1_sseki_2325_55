@@ -10,6 +10,7 @@ import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeReleasePointerCapture } from './graphHelpers';
+import { safeGetJSON, safeSetJSON } from './storageHelpers';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -44,30 +45,20 @@ const BORDER_COLORS: Record<string, string> = {
 // ── Storage helpers ─────────────────────────────────────────
 
 export function loadStickyNotes(topicId: string): StickyNoteData[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + topicId);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr.filter(
-      (n: unknown): n is StickyNoteData =>
-        typeof n === 'object' && n !== null &&
-        'id' in n && 'text' in n && 'color' in n &&
-        'x' in n && 'y' in n &&
-        typeof (n as StickyNoteData).x === 'number' &&
-        typeof (n as StickyNoteData).y === 'number',
-    );
-  } catch {
-    return [];
-  }
+  const arr = safeGetJSON(STORAGE_PREFIX + topicId);
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(
+    (n: unknown): n is StickyNoteData =>
+      typeof n === 'object' && n !== null &&
+      'id' in n && 'text' in n && 'color' in n &&
+      'x' in n && 'y' in n &&
+      typeof (n as StickyNoteData).x === 'number' &&
+      typeof (n as StickyNoteData).y === 'number',
+  );
 }
 
 export function saveStickyNotes(topicId: string, notes: StickyNoteData[]): void {
-  try {
-    localStorage.setItem(STORAGE_PREFIX + topicId, JSON.stringify(notes));
-  } catch {
-    // localStorage full — silently ignore
-  }
+  safeSetJSON(STORAGE_PREFIX + topicId, notes);
 }
 
 export function createStickyNote(color?: string): StickyNoteData {

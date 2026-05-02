@@ -213,6 +213,22 @@ describe('Topic-level LRU (MAX_TOPICS=50)', () => {
     const ids = JSON.parse(store['axon_node_pos_index']);
     expect(ids).toEqual(['t1']);
   });
+
+  // Cycle 57 regression guard: pre-refactor, a corrupted TOPIC_INDEX_KEY
+  // payload would JSON.parse-throw → outer catch → abort the entire
+  // saveNodePosition. After the storageHelpers extraction, safeGetJSON
+  // returns null on corrupt JSON → self-heal by writing [topicId] and
+  // continuing. Without this guard, a future "fix" that re-adds an outer
+  // catch around saveNodePosition could silently re-introduce the abort.
+  it('self-heals when TOPIC_INDEX_KEY payload is corrupted (cycle 57)', () => {
+    store['axon_node_pos_index'] = '{not json';
+    saveNodePosition('t1', 'n', { x: 5, y: 5 });
+    // Self-healed: index now contains the new topic.
+    const ids = JSON.parse(store['axon_node_pos_index']);
+    expect(ids).toEqual(['t1']);
+    // And the position itself was written, not silently dropped.
+    expect(store['axon_node_pos_t1']).toBeDefined();
+  });
 });
 
 // ── memoryCache hot path ───────────────────────────────────
@@ -386,10 +402,34 @@ describe('Source-level invariants', () => {
     expect(source).toMatch(/Number\.isFinite\(\(val as NodePosition\)\.y\)/);
   });
 
-  it('all writes to localStorage are wrapped in try/catch (Safari private mode)', () => {
-    // saveNodePosition + saveCombos + saveGridEnabled + clearPositions + touchTopicIndex
-    const tries = source.match(/try\s*\{/g) ?? [];
-    expect(tries.length).toBeGreaterThanOrEqual(7);
+  it('delegates storage I/O to ./storageHelpers (Cycle 57 extraction)', () => {
+    // After Cycle 57: localStorage I/O moved to safeGetJSON / safeSetJSON
+    // / safeRemoveItem in storageHelpers.ts. The grid pair is intentionally
+    // kept inline (single '1'/'0' char, not JSON) — see the source comment.
+    expect(source).toContain("from './storageHelpers'");
+    expect(source).toMatch(/safeGetJSON\(/);
+    expect(source).toMatch(/safeSetJSON\(/);
+    expect(source).toMatch(/safeRemoveItem\(/);
+  });
+
+  it('no longer issues raw JSON.parse calls (Cycle 57 negative guard)', () => {
+    // Stronger evidence that the migration actually happened: every
+    // JSON.parse must now live inside storageHelpers (or in tests).
+    expect(source).not.toMatch(/JSON\.parse\(/);
+  });
+
+  it('no longer issues raw JSON.stringify calls outside the grid scalar pair', () => {
+    // saveGridEnabled writes a single '1'/'0' char — not JSON — so it
+    // does NOT use JSON.stringify. After the migration, JSON.stringify
+    // should be entirely absent from this file.
+    expect(source).not.toMatch(/JSON\.stringify\(/);
+  });
+
+  it('keeps the grid pair inline (single char, not JSON)', () => {
+    // loadGridEnabled / saveGridEnabled deliberately stay inline.
+    // They store '1'/'0' scalars, so don't fit the JSON helper API.
+    expect(source).toMatch(/localStorage\.getItem\(GRID_STORAGE_KEY\)\s*===\s*'1'/);
+    expect(source).toMatch(/localStorage\.setItem\(GRID_STORAGE_KEY/);
   });
 
   it('uses a single memoryCache for the active topic (avoids JSON.parse on rapid drag-end)', () => {

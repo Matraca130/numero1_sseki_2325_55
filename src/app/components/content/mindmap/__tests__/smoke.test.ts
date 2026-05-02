@@ -241,6 +241,15 @@ describe('mindmap module: changeHistoryHelpers', () => {
   });
 });
 
+describe('mindmap module: storageHelpers (cycle 57)', () => {
+  it('exports the three storage helper wrappers', () => {
+    const names = getExportedNames('storageHelpers.ts');
+    expect(names).toContain('safeGetJSON');
+    expect(names).toContain('safeSetJSON');
+    expect(names).toContain('safeRemoveItem');
+  });
+});
+
 describe('mindmap module: ShareMapModal', () => {
   it('exports ShareMapModal component', () => {
     const names = getExportedNames('ShareMapModal.tsx');
@@ -470,6 +479,9 @@ describe('mindmap directory completeness', () => {
       // Both have dedicated test files (useOverlayCanvas.test.ts / useEscapeCancel.test.ts).
       'useOverlayCanvas.ts',
       'useEscapeCancel.ts',
+      // Cycle 57 — extracted storage I/O wrappers (safeGetJSON / safeSetJSON / safeRemoveItem).
+      // Has a dedicated test file (storageHelpers.test.ts).
+      'storageHelpers.ts',
     ]);
 
     const untested = files.filter(f => !tested.has(f));
