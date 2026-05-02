@@ -105,12 +105,16 @@ export function getStoredLayers(modelId: string): ModelLayerConfig[] {
 
 /** Write-through to localStorage (keeps cache fresh) */
 export function setStoredParts(modelId: string, parts: ModelPartConfig[]): void {
-  localStorage.setItem(PARTS_KEY(modelId), JSON.stringify(parts));
+  try {
+    localStorage.setItem(PARTS_KEY(modelId), JSON.stringify(parts));
+  } catch { /* cache miss is non-fatal (Safari private mode, quota exceeded, etc.) */ }
 }
 
 /** Write-through to localStorage (keeps cache fresh) */
 export function setStoredLayers(modelId: string, layers: ModelLayerConfig[]): void {
-  localStorage.setItem(LAYERS_KEY(modelId), JSON.stringify(layers));
+  try {
+    localStorage.setItem(LAYERS_KEY(modelId), JSON.stringify(layers));
+  } catch { /* cache miss is non-fatal (Safari private mode, quota exceeded, etc.) */ }
 }
 
 /**
