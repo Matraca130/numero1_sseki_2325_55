@@ -27,11 +27,57 @@ const RARITY_GLOW: Record<string, string> = {
   legendary: 'shadow-amber-500/20',
 };
 
+// ── BadgeCard — memoized leaf for the showcase grid ─────
+//
+// Extracted so that toggling `selectedBadge` (which causes the parent
+// to re-render) does NOT cascade through every other badge tile.
+// The badge prop is stable across selectedBadge changes (server data
+// doesn't mutate); isSelected is a primitive boolean that flips only
+// for the 2 affected tiles. Same pattern as the chain (#931→#953).
+const BadgeCard = React.memo(function BadgeCard({
+  badge,
+  index,
+  isSelected,
+  onSelect,
+}: {
+  badge: BadgeWithStatus;
+  index: number;
+  isSelected: boolean;
+  onSelect: (badge: BadgeWithStatus) => void;
+}) {
+  const rarity = badge.rarity || 'common';
+  const isEarned = badge.earned;
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.03, duration: 0.3 }}
+      onClick={() => onSelect(badge)}
+      className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all ${isEarned ? `bg-gradient-to-br ${RARITY_COLORS[rarity]} shadow-lg ${RARITY_GLOW[rarity]} hover:scale-105` : 'bg-zinc-800/20 border-zinc-800/40 opacity-40 hover:opacity-60'} ${isSelected ? 'ring-2 ring-amber-400/40' : ''}`}
+    >
+      <div className="text-lg mb-0.5">
+        {isEarned
+          ? (badge.icon_url
+              ? <img src={badge.icon_url} alt="" className="w-6 h-6" />
+              : <Award size={20} className={rarity === 'legendary' ? 'text-amber-400' : rarity === 'epic' ? 'text-violet-400' : rarity === 'rare' ? 'text-blue-400' : 'text-zinc-400'} />)
+          : <Lock size={14} className="text-zinc-600" />
+        }
+      </div>
+      <p className="text-[9px] text-zinc-400 text-center leading-tight truncate w-full">{badge.name}</p>
+    </motion.button>
+  );
+});
+
 export function BadgeShowcase({ institutionId, maxDisplay = 12 }: BadgeShowcaseProps) {
   const [badges, setBadges] = useState<BadgeWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [earnedCount, setEarnedCount] = useState(0);
   const [selectedBadge, setSelectedBadge] = useState<BadgeWithStatus | null>(null);
+
+  // Stable handler so BadgeCard's React.memo holds across selectedBadge flips.
+  const handleSelect = React.useCallback((badge: BadgeWithStatus) => {
+    setSelectedBadge((prev) => (prev?.id === badge.id ? null : badge));
+  }, []);
 
   useEffect(() => {
     if (!institutionId) { setLoading(false); return; }
@@ -59,18 +105,15 @@ export function BadgeShowcase({ institutionId, maxDisplay = 12 }: BadgeShowcaseP
         <span className="text-[10px] text-zinc-500 tabular-nums">{earnedCount}/{badges.length}</span>
       </div>
       <div className="grid grid-cols-4 gap-2.5">
-        {badges.map((badge, idx) => {
-          const rarity = badge.rarity || 'common';
-          const isEarned = badge.earned;
-          return (
-            <motion.button key={badge.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.03, duration: 0.3 }} onClick={() => setSelectedBadge(selectedBadge?.id === badge.id ? null : badge)} className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all ${isEarned ? `bg-gradient-to-br ${RARITY_COLORS[rarity]} shadow-lg ${RARITY_GLOW[rarity]} hover:scale-105` : 'bg-zinc-800/20 border-zinc-800/40 opacity-40 hover:opacity-60'}`}>
-              <div className="text-lg mb-0.5">
-                {isEarned ? (badge.icon_url ? <img src={badge.icon_url} alt="" className="w-6 h-6" /> : <Award size={20} className={rarity === 'legendary' ? 'text-amber-400' : rarity === 'epic' ? 'text-violet-400' : rarity === 'rare' ? 'text-blue-400' : 'text-zinc-400'} />) : <Lock size={14} className="text-zinc-600" />}
-              </div>
-              <p className="text-[9px] text-zinc-400 text-center leading-tight truncate w-full">{badge.name}</p>
-            </motion.button>
-          );
-        })}
+        {badges.map((badge, idx) => (
+          <BadgeCard
+            key={badge.id}
+            badge={badge}
+            index={idx}
+            isSelected={selectedBadge?.id === badge.id}
+            onSelect={handleSelect}
+          />
+        ))}
       </div>
       {selectedBadge && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3 p-3 bg-zinc-800/30 border border-zinc-700/30 rounded-xl">
