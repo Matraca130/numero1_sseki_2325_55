@@ -35,11 +35,13 @@ let _accessToken: string | null = null;
 export function setAccessToken(t: string | null) {
   _accessToken = t;
   // Sync to localStorage for backward compat (apiConfig.ts getRealToken)
-  if (t) {
-    localStorage.setItem('axon_access_token', t);
-  } else {
-    localStorage.removeItem('axon_access_token');
-  }
+  try {
+    if (t) {
+      localStorage.setItem('axon_access_token', t);
+    } else {
+      localStorage.removeItem('axon_access_token');
+    }
+  } catch { /* private mode or quota — non-fatal, session state already in React */ }
 }
 
 export function getAccessToken(): string | null {

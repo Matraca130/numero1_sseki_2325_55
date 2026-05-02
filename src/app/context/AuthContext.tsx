@@ -228,9 +228,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Auto-select if exactly 1 institution
     if (insts.length === 1) {
       setSelectedInstitution(insts[0]);
-      localStorage.setItem('axon_active_membership', JSON.stringify(
-        toMembership(insts[0], profile.id)
-      ));
+      try {
+        localStorage.setItem('axon_active_membership', JSON.stringify(
+          toMembership(insts[0], profile.id)
+        ));
+      } catch { /* private mode or quota — non-fatal, session state already in React */ }
     } else {
       // Try to restore from localStorage
       try {
@@ -409,9 +411,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const selectInstitution = useCallback((inst: UserInstitution) => {
     setSelectedInstitution(inst);
     if (user) {
-      localStorage.setItem('axon_active_membership', JSON.stringify(
-        toMembership(inst, user.id)
-      ));
+      try {
+        localStorage.setItem('axon_active_membership', JSON.stringify(
+          toMembership(inst, user.id)
+        ));
+      } catch { /* private mode or quota — non-fatal, session state already in React */ }
     }
   }, [user]);
 
@@ -433,7 +437,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         plan_id: m.plan_id,
         created_at: m.created_at,
       });
-      localStorage.setItem('axon_active_membership', JSON.stringify(m));
+      try {
+        localStorage.setItem('axon_active_membership', JSON.stringify(m));
+      } catch { /* private mode or quota — non-fatal, session state already in React */ }
     }
   }, [institutions, selectInstitution]);
 
