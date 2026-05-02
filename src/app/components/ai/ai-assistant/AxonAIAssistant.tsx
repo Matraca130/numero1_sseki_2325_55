@@ -51,12 +51,23 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const virtualItems = messages.length + (isLoading && !isStreaming ? 1 : 0);
   const virtualizer = useVirtualizer({ count: virtualItems, getScrollElement: () => chatScrollRef.current, estimateSize: () => 80, overscan: 5 });
 
   useEffect(() => { if (virtualItems > 0) virtualizer.scrollToIndex(virtualItems - 1, { align: 'end', behavior: 'smooth' }); }, [virtualItems, virtualizer]);
-  useEffect(() => { if (isOpen && mode === 'chat') setTimeout(() => inputRef.current?.focus(), 300); }, [isOpen, mode]);
+  useEffect(() => {
+    if (isOpen && mode === 'chat') {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [isOpen, mode]);
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+  }, []);
 
   const addMessage = (role: DisplayMessage['role'], content: string, isError = false) => {
     setMessages(prev => [...prev, { id: `msg-${Date.now()}-${Math.random()}`, role, content, timestamp: new Date(), isError }]);
@@ -133,7 +144,8 @@ function AxonAIAssistantComponent({ isOpen, onClose, summaryId }: AxonAIAssistan
     navigator.clipboard.writeText(text)
       .then(() => {
         setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
       })
       .catch(() => {
         toast.error('No se pudo copiar al portapapeles');
