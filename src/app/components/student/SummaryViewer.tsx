@@ -247,11 +247,11 @@ export function SummaryViewer({
                   masteryLevel={masteryLevels[block.id]}
                   onImageClick={handleImageClick}
                   onKeywordClick={onKeywordClick}
-                  onVideoPlay={(videoId) => setActiveVideoId(videoId)}
-                  onBookmarkToggle={() => toggleBookmark(block.id)}
+                  onVideoPlay={setActiveVideoId}
+                  onBookmarkToggle={toggleBookmark}
                   isBookmarked={isBookmarked(block.id)}
-                  onNotesToggle={() => toggleAnnotations(block.id)}
-                  onQuizTrigger={() => setQuizBlockId(block.id)}
+                  onNotesToggle={toggleAnnotations}
+                  onQuizTrigger={setQuizBlockId}
                 />
                 {annotationsOpen[block.id] && (
                   <div className="mt-2">

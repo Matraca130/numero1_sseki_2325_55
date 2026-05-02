@@ -42,13 +42,14 @@ interface ViewerBlockProps {
   onImageClick?: (src: string, alt?: string, caption?: string) => void;
   onKeywordClick?: (keywordId: string) => void;
   onVideoPlay?: (videoId: string) => void;
-  /** Bookmark integration */
-  onBookmarkToggle?: () => void;
+  /** Bookmark integration. Receives the current block id so callers can pass
+   *  a stable, parent-level handler that React.memo can preserve. */
+  onBookmarkToggle?: (blockId: string) => void;
   isBookmarked?: boolean;
-  /** Toggle annotations panel for this block */
-  onNotesToggle?: () => void;
-  /** Trigger quiz modal for this block */
-  onQuizTrigger?: () => void;
+  /** Toggle annotations panel for this block. Receives the block id. */
+  onNotesToggle?: (blockId: string) => void;
+  /** Trigger quiz modal for this block. Receives the block id. */
+  onQuizTrigger?: (blockId: string) => void;
   // NOTE: summaryId, annotations, and the three annotation mutations
   // are no longer props — they come from <AnnotationProvider> via
   // the `useAnnotations()` hook. See src/app/context/AnnotationContext.tsx.
@@ -930,12 +931,12 @@ export const ViewerBlock = React.memo(function ViewerBlock({
             <BookmarkButton
               blockId={block.id}
               isBookmarked={!!isBookmarked}
-              onToggle={onBookmarkToggle}
+              onToggle={() => onBookmarkToggle(block.id)}
             />
           )}
           {onNotesToggle && (
             <button
-              onClick={onNotesToggle}
+              onClick={() => onNotesToggle(block.id)}
               title="Notas del bloque"
               aria-label="Alternar notas del bloque"
               className={clsx(
@@ -958,7 +959,7 @@ export const ViewerBlock = React.memo(function ViewerBlock({
           )}
           {onQuizTrigger && (
             <button
-              onClick={onQuizTrigger}
+              onClick={() => onQuizTrigger(block.id)}
               title="Quiz del bloque"
               aria-label="Abrir quiz del bloque"
               className="flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-teal-500 transition-colors"
