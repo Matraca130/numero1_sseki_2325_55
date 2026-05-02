@@ -49,7 +49,22 @@ export function useMasteryOverviewData() {
 
   // ── Fetch all data ─────────────────────────────────────
 
-  const loadData = useCallback(async () => {
+  // NOTE: `isCancelled` lets callers (the watching useEffect below, or any
+  // future manual refresh) abort a stale run when the institution changes
+  // mid-flight. We check it after EVERY await — this fan-out makes 1 + N + N
+  // + N requests, any of which can take seconds, so a stale switch could
+  // otherwise land the previous institution's mastery data on top of the new
+  // one's UI (mixed keywords/subtopics). The guard MUST live on the caller
+  // side: a `return () => { ... }` inside this async function would only
+  // resolve the Promise, not act as React cleanup.
+  // Defensive: `loadData` is also exposed in the return value and wired as a
+  // click handler (`onClick={loadData}`), where React passes a SyntheticEvent
+  // as the first arg. Optional chaining doesn't protect against a non-function
+  // value being called, so we normalise here.
+  const loadData = useCallback(async (cancelArg?: unknown) => {
+    const isCancelled = typeof cancelArg === 'function'
+      ? (cancelArg as () => boolean)
+      : undefined;
     const instId = selectedInstitution?.id;
     if (!instId) return;
 
@@ -62,6 +77,7 @@ export function useMasteryOverviewData() {
         getContentTree(instId),
         getAllBktStates(undefined, 500),
       ]);
+      if (isCancelled?.()) return;
 
       // Build BKT lookup: subtopic_id → p_know
       const bktMap = new Map<string, number>();
@@ -100,6 +116,7 @@ export function useMasteryOverviewData() {
           }
         })
       );
+      if (isCancelled?.()) return;
 
       const allSummaries: SummaryRef[] = summaryResults.flat();
       // Map summary_id → topic
@@ -121,6 +138,7 @@ export function useMasteryOverviewData() {
           }
         })
       );
+      if (isCancelled?.()) return;
 
       const allKeywords: KeywordRaw[] = keywordResults.flat();
 
@@ -135,6 +153,7 @@ export function useMasteryOverviewData() {
           }
         })
       );
+      if (isCancelled?.()) return;
 
       // Build subtopic count and BKT aggregation per keyword
       const subtopicsByKeyword = new Map<string, SubtopicRaw[]>();
@@ -185,19 +204,26 @@ export function useMasteryOverviewData() {
             .sort((a, b) => (a.pKnow ?? -1) - (b.pKnow ?? -1))
         );
       }
-      setSubtopicsCache(cache);
 
+      // Final guard before committing any state for this run.
+      if (isCancelled?.()) return;
+      setSubtopicsCache(cache);
       setKeywords(masteryItems);
     } catch (err: unknown) {
+      if (isCancelled?.()) return;
       console.error('[MasteryOverview] Failed to load:', err);
       setError('No pudimos cargar tus datos. Intenta de nuevo.');
     } finally {
-      setLoading(false);
+      if (!isCancelled?.()) setLoading(false);
     }
   }, [selectedInstitution?.id]);
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    loadData(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [loadData]);
 
   // ── Filter & sort ──────────────────────────────────────
