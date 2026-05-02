@@ -43,11 +43,13 @@ export function AdminScopesDialog({ member, open, onOpenChange }: AdminScopesDia
 
   useEffect(() => {
     if (!member || !open) return;
+    let cancelled = false;
     setLoadingScopes(true); setScopeError(null);
     api.getAdminScopes(member.id)
-      .then((data) => setScopes(Array.isArray(data) ? data : []))
-      .catch((err) => { setScopeError(err.message || 'Error al cargar scopes'); setScopes([]); })
-      .finally(() => setLoadingScopes(false));
+      .then((data) => { if (!cancelled) setScopes(Array.isArray(data) ? data : []); })
+      .catch((err) => { if (!cancelled) { setScopeError(err.message || 'Error al cargar scopes'); setScopes([]); } })
+      .finally(() => { if (!cancelled) setLoadingScopes(false); });
+    return () => { cancelled = true; };
   }, [member, open]);
 
   useEffect(() => { if (!open) { setNewScopeType('full'); setNewScopeId(''); } }, [open]);
