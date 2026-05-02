@@ -30,9 +30,21 @@ export function ReadingProgress({ containerRef }: ReadingProgressProps) {
 
   useEffect(() => {
     const target = containerRef?.current ?? window;
-    target.addEventListener("scroll", handleScroll, { passive: true });
+    // rAF-throttle: scroll events fire much faster than the browser repaints
+    // (especially on trackpads). Coalescing to one update per frame avoids
+    // setProgress + render storms while keeping the bar visually smooth.
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        handleScroll();
+        ticking = false;
+      });
+    };
+    target.addEventListener("scroll", onScroll, { passive: true });
     handleScroll();
-    return () => target.removeEventListener("scroll", handleScroll);
+    return () => target.removeEventListener("scroll", onScroll);
   }, [containerRef, handleScroll]);
 
   return (
