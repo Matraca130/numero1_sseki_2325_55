@@ -83,16 +83,20 @@ export function OwnerAccessRulesPage() {
   // Fetch rules when plan changes
   useEffect(() => {
     if (!selectedPlanId) { setRules([]); return; }
+    let cancelled = false;
     setLoadingRules(true);
     setRulesError(null);
     api.getPlanAccessRules(selectedPlanId)
-      .then(data => setRules(Array.isArray(data) ? data : []))
+      .then(data => { if (!cancelled) setRules(Array.isArray(data) ? data : []); })
       .catch(err => {
-        console.error('[AccessRules] fetch error:', err);
-        setRulesError(err.message || 'Error al cargar reglas');
-        setRules([]);
+        if (!cancelled) {
+          console.error('[AccessRules] fetch error:', err);
+          setRulesError(err.message || 'Error al cargar reglas');
+          setRules([]);
+        }
       })
-      .finally(() => setLoadingRules(false));
+      .finally(() => { if (!cancelled) setLoadingRules(false); });
+    return () => { cancelled = true; };
   }, [selectedPlanId]);
 
   // Build scope options from content tree
