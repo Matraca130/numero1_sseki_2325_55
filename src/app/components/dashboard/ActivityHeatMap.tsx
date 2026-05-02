@@ -158,6 +158,7 @@ export function ActivityHeatMap() {
   const [data, setData] = useState<DailyActivityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Date range: 26 weeks back
   const { from, to } = useMemo(() => {
@@ -165,6 +166,14 @@ export function ActivityHeatMap() {
     const start = new Date(today);
     start.setDate(start.getDate() - 26 * 7);
     return { from: start, to: today };
+  }, []);
+
+  // Periodic refresh: tick every 60s so today's freshly-logged activity appears
+  // without requiring a navigation/page reload. The date range itself stays
+  // stable (no from/to churn) so the grid layout doesn't reflow.
+  useEffect(() => {
+    const id = setInterval(() => setRefreshKey((k) => k + 1), 60_000);
+    return () => clearInterval(id);
   }, []);
 
   // Fetch data
@@ -184,7 +193,7 @@ export function ActivityHeatMap() {
       }
     })();
     return () => { cancelled = true; };
-  }, [from, to]);
+  }, [from, to, refreshKey]);
 
   // Build lookup map and weeks grid
   const dataMap = useMemo(() => {
