@@ -10,8 +10,14 @@ export function downloadCsvTemplate() {
   const a = document.createElement('a');
   a.href = url;
   a.download = 'flashcards_template.csv';
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  // Cleanup: defer removal + revoke so Firefox/Safari have time to start the download.
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
 export function downloadJsonTemplate() {
@@ -25,6 +31,12 @@ export function downloadJsonTemplate() {
   const a = document.createElement('a');
   a.href = url;
   a.download = 'flashcards_template.json';
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  // Cleanup: defer removal + revoke so Firefox/Safari have time to start the download.
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
