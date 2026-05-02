@@ -26,7 +26,17 @@ import {
 import * as api from '@/app/services/summariesApi';
 import type { Summary, SummaryKeyword, SummaryBlock, Subtopic } from '@/app/services/summariesApi';
 import { VideosManager } from '@/app/components/professor/VideosManager';
-import { TipTapEditor } from '@/app/components/tiptap/TipTapEditor';
+// Lazy-load TipTapEditor: the legacy markdown-editor mode is only used for
+// summaries WITHOUT blocks (resolvedMode === 'tiptap'). Modern summaries
+// default to BlockEditor (resolvedMode === 'blocks'), and BlockEditor does
+// not depend on TipTap. Deferring this import keeps the TipTap kit (StarterKit
+// + ProseMirror schema + extensions) out of the eager graph for the common
+// blocks-mode path on this professor route.
+const TipTapEditor = React.lazy(() =>
+  import('@/app/components/tiptap/TipTapEditor').then((m) => ({
+    default: m.TipTapEditor,
+  })),
+);
 import {
   useQuickKeywordCreator,
   QuickKeywordFormPortal,
@@ -168,15 +178,23 @@ export function SummaryDetailView({
           />
         </ErrorBoundary>
       ) : (
-        <TipTapEditor
-          summaryId={summary.id} contentMarkdown={summary.content_markdown}
-          summaryTitle={summary.title || 'Sin título'} summaryStatus={summary.status}
-          onBack={onBack} onStatusChange={handleStatusChange}
-          onKeywordsClick={() => setShowKeywords(true)} onVideosClick={() => setShowVideos(true)}
-          keywordsCount={activeKeywords.length} videosCount={videosCount}
-          onCreateKeywordFromSelection={quickKw.triggerFromEditor}
-          keywordNames={activeKeywordNames} onKeywordClick={handleKeywordClick}
-        />
+        <React.Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-sm text-gray-500 font-medium">Cargando editor…</p>
+            </div>
+          }
+        >
+          <TipTapEditor
+            summaryId={summary.id} contentMarkdown={summary.content_markdown}
+            summaryTitle={summary.title || 'Sin título'} summaryStatus={summary.status}
+            onBack={onBack} onStatusChange={handleStatusChange}
+            onKeywordsClick={() => setShowKeywords(true)} onVideosClick={() => setShowVideos(true)}
+            keywordsCount={activeKeywords.length} videosCount={videosCount}
+            onCreateKeywordFromSelection={quickKw.triggerFromEditor}
+            keywordNames={activeKeywordNames} onKeywordClick={handleKeywordClick}
+          />
+        </React.Suspense>
       )}
 
       <QuickKeywordFormPortal state={quickKw.state} summaryId={summary.id} onClose={quickKw.close} existingKeywordNames={activeKeywordNames} />
