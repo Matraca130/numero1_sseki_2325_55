@@ -348,7 +348,7 @@ export default function GamificationView() {
   // ── Queries ─────────────────────────────────────────────
   const { data: profileData } = useGamificationProfile(institutionId);
   const { data: streak, isLoading: streakLoading } = useStreakStatus(institutionId);
-  const { data: badgesResp, isLoading: badgesLoading } = useBadges();
+  const { data: badgesResp, isLoading: badgesLoading } = useBadges(institutionId);
   const { data: leaderboard, isLoading: lbLoading } = useLeaderboard(institutionId, 'weekly');
   const { data: xpHistoryResp, isLoading: historyLoading } = useXPHistory(institutionId);
   const { data: queue, isLoading: queueLoading } = useStudyQueue();
