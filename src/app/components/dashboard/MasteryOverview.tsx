@@ -265,7 +265,7 @@ export function MasteryOverview() {
                     key={item.keyword.id}
                     item={item}
                     expanded={expandedKeywords.has(item.keyword.id)}
-                    onToggle={() => toggleExpand(item.keyword.id)}
+                    onToggle={toggleExpand}
                     subtopics={subtopicsCache.get(item.keyword.id)}
                   />
                 ))}
