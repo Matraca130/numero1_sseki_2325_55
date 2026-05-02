@@ -66,17 +66,23 @@ describe('useFullscreen contract', () => {
     expect(source).toContain("removeEventListener('fullscreenchange'");
   });
 
-  // ── sessionStorage for reload persistence ───────────────
-  it('uses sessionStorage to persist fullscreen state', () => {
-    expect(source).toContain("sessionStorage.setItem('axon_map_fullscreen'");
+  // ── sessionStorage for reload persistence (cycle 59: via storageHelpers) ──
+  it('uses sessionStorage to persist fullscreen state (via safeSetItem)', () => {
+    // Cycle 59: scalar storage I/O migrated to storageHelpers. The literal
+    // sessionStorage.setItem call is replaced with safeSetItem(K, '1', sessionStorage).
+    expect(source).toMatch(/safeSetItem\(FULLSCREEN_KEY,\s*'1',\s*sessionStorage\)/);
   });
 
-  it('reads sessionStorage on mount for reload detection', () => {
-    expect(source).toContain("sessionStorage.getItem('axon_map_fullscreen')");
+  it('reads sessionStorage on mount for reload detection (via safeGetItem)', () => {
+    expect(source).toMatch(/safeGetItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
   });
 
-  it('removes sessionStorage item on exit', () => {
-    expect(source).toContain("sessionStorage.removeItem('axon_map_fullscreen')");
+  it('removes sessionStorage item on exit (via safeRemoveItem)', () => {
+    expect(source).toMatch(/safeRemoveItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
+  });
+
+  it('no longer issues raw sessionStorage.{get,set,remove}Item calls (cycle 59 negative guard)', () => {
+    expect(source).not.toMatch(/sessionStorage\.(get|set|remove)Item\(/);
   });
 
   // ── clearAncestorTransforms ─────────────────────────────

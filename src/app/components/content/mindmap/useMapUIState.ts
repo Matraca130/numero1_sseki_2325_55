@@ -6,7 +6,9 @@
 // ============================================================
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { devWarn } from './graphHelpers';
+import { safeGetItem, safeSetItem } from './storageHelpers';
+
+const ONBOARDED_KEY = 'axon_map_onboarded';
 
 export interface MapUIState {
   // Panel visibility
@@ -63,15 +65,13 @@ export function useMapUIState(): MapUIState {
   const [aiReviewNodes, setAiReviewNodes] = useState<Set<string> | undefined>();
 
   // First-visit onboarding tip
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try { return !localStorage.getItem('axon_map_onboarded'); } catch { return true; }
-  });
+  const [showOnboarding, setShowOnboarding] = useState(() => !safeGetItem(ONBOARDED_KEY));
   const showOnboardingRef = useRef(showOnboarding);
   showOnboardingRef.current = showOnboarding;
 
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false);
-    try { localStorage.setItem('axon_map_onboarded', '1'); } catch (e) { devWarn('useMapUIState', 'swallowed error', e); }
+    safeSetItem(ONBOARDED_KEY, '1');
   }, []);
 
   // Dismiss onboarding with Escape key

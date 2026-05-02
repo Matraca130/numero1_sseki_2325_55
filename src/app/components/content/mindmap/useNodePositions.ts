@@ -9,7 +9,7 @@
 // Max 500 positions per topic to avoid localStorage bloat.
 // ============================================================
 
-import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storageHelpers';
+import { safeGetJSON, safeSetJSON, safeGetItem, safeSetItem, safeRemoveItem } from './storageHelpers';
 
 const STORAGE_PREFIX = 'axon_node_pos_';
 const COMBO_STORAGE_PREFIX = 'axon_combos_';
@@ -132,29 +132,19 @@ export function saveCombos(topicId: string, combos: PersistedCombo[]): void {
 
 // ── Grid Toggle Persistence ─────────────────────────────────
 //
-// NOTE: This pair stores a single '1'/'0' character — not JSON.
-// We deliberately keep these inline (not migrated to the
-// safeGetJSON/safeSetJSON helpers from ./storageHelpers) because
-// adding a separate non-JSON helper API for two single-line sites
-// isn't worth the surface-area cost. The try/catch shape mirrors
-// the helpers exactly.
+// Stores a single '1'/'0' scalar (not JSON). Now uses the
+// safeGetItem / safeSetItem helpers from ./storageHelpers
+// (added in cycle 59 once 10 scalar callsites materialized
+// across the mindmap tree).
 
 const GRID_STORAGE_KEY = 'axon_grid_enabled';
 
 /** Load grid enabled state */
 export function loadGridEnabled(): boolean {
-  try {
-    return localStorage.getItem(GRID_STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
+  return safeGetItem(GRID_STORAGE_KEY) === '1';
 }
 
 /** Save grid enabled state */
 export function saveGridEnabled(enabled: boolean): void {
-  try {
-    localStorage.setItem(GRID_STORAGE_KEY, enabled ? '1' : '0');
-  } catch {
-    // Silently ignore
-  }
+  safeSetItem(GRID_STORAGE_KEY, enabled ? '1' : '0');
 }

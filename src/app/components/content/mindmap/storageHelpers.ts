@@ -5,7 +5,10 @@
 // default; pass sessionStorage for session-scoped callers) to
 // remove the boilerplate scattered across:
 //   - useNodeColors.ts
-//   - useNodePositions.ts (positions, combos, topic index)
+//   - useNodePositions.ts (positions, combos, topic index, grid)
+//   - useMapUIState.ts (onboarding flag)
+//   - useFullscreen.ts (fullscreen flag, sessionStorage)
+//   - KnowledgeGraph.tsx (mobile hint flag, sessionStorage)
 //   - StickyNote.tsx
 //   - changeHistoryHelpers.ts (sessionStorage)
 //
@@ -16,17 +19,15 @@
 //   - safeSetJSON returns true on success, false on any failure
 //     (QuotaExceededError, disabled storage, JSON.stringify on
 //     a circular value, etc.).
+//   - safeGetItem / safeSetItem are the non-JSON scalar pair —
+//     plain strings (e.g. '1'/'0' flags). Same try/catch shape
+//     as the JSON pair. Added in cycle 59 once 10 scalar callsites
+//     materialized across useNodePositions / useMapUIState /
+//     useFullscreen / KnowledgeGraph (cycle-57 reopen rule:
+//     3+ callsites triggers extraction).
 //   - safeRemoveItem swallows errors silently (mirrors the
 //     existing `try { localStorage.removeItem(k); } catch {}`
 //     pattern that ships in every consumer today).
-//
-// We intentionally do NOT add safeGetItem/safeSetItem (non-JSON
-// pair). The only mindmap callers that read/write a non-JSON
-// scalar are loadGridEnabled / saveGridEnabled in
-// useNodePositions.ts — two single-line sites that store '1'/'0'.
-// Doubling the helper API for those two sites isn't worth it;
-// they remain inline (preserved as part of this cycle's "no
-// behavior change" mandate).
 // ============================================================
 
 /**
@@ -64,6 +65,44 @@ export function safeGetJSON(key: string, storage: Storage = localStorage): unkno
 export function safeSetJSON(key: string, value: unknown, storage: Storage = localStorage): boolean {
   try {
     storage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read a raw string value from Web Storage.
+ *
+ * Returns the raw string value (no JSON parsing) or `null` if the
+ * key is absent or the storage is unavailable / throws. For JSON
+ * payloads use `safeGetJSON` instead.
+ *
+ * @param key      Storage key.
+ * @param storage  Storage instance (defaults to `localStorage`).
+ */
+export function safeGetItem(key: string, storage: Storage = localStorage): string | null {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Write a raw string value to Web Storage.
+ *
+ * Silently swallows QuotaExceededError and disabled-storage errors
+ * (Safari private mode, SecurityError). Returns `true` on success,
+ * `false` on any failure. For JSON payloads use `safeSetJSON`.
+ *
+ * @param key      Storage key.
+ * @param value    Raw string value (must already be a string).
+ * @param storage  Storage instance (defaults to `localStorage`).
+ */
+export function safeSetItem(key: string, value: string, storage: Storage = localStorage): boolean {
+  try {
+    storage.setItem(key, value);
     return true;
   } catch {
     return false;

@@ -23,8 +23,11 @@ import type { Graph } from '@antv/g6';
 import { Maximize2, Plus } from 'lucide-react';
 import type { GraphData, MapNode, GraphControls } from '@/app/types/mindmap';
 import { GRAPH_COLORS, devWarn } from './graphHelpers';
+import { safeGetItem, safeSetItem } from './storageHelpers';
 import { saveGridEnabled, saveCombos } from './useNodePositions';
 import type { PersistedCombo } from './useNodePositions';
+
+const MOBILE_HINT_KEY = 'axon_map_mobile_hint_seen';
 import { useKeyboardNav } from './useKeyboardNav';
 import { useSpacePan } from './useSpacePan';
 import { useEdgeReconnect } from './useEdgeReconnect';
@@ -146,9 +149,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
   const { isFullscreen, toggleFullscreen, fullscreenRef } = useFullscreen();
 
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showMobileHint, setShowMobileHint] = useState(() => {
-    try { return !sessionStorage.getItem('axon_map_mobile_hint_seen'); } catch { return true; }
-  });
+  const [showMobileHint, setShowMobileHint] = useState(() => !safeGetItem(MOBILE_HINT_KEY, sessionStorage));
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
   const multiSelectedIdsRef = useRef(multiSelectedIds);
   multiSelectedIdsRef.current = multiSelectedIds;
@@ -301,7 +302,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph({
     if (!ready || !showMobileHint) return;
     const hintTimer = setTimeout(() => {
       setShowMobileHint(false);
-      try { sessionStorage.setItem('axon_map_mobile_hint_seen', '1'); } catch (e) { devWarn('KnowledgeGraph', 'swallowed error', e); }
+      safeSetItem(MOBILE_HINT_KEY, '1', sessionStorage);
     }, 4000);
     return () => clearTimeout(hintTimer);
   }, [ready, showMobileHint]);

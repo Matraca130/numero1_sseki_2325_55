@@ -52,7 +52,7 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', memSession);
 });
 
-import { safeGetJSON, safeSetJSON, safeRemoveItem } from '../storageHelpers';
+import { safeGetJSON, safeSetJSON, safeGetItem, safeSetItem, safeRemoveItem } from '../storageHelpers';
 
 // ── safeGetJSON ─────────────────────────────────────────────
 
@@ -182,6 +182,127 @@ describe('safeSetJSON', () => {
   });
 });
 
+// ── safeGetItem (cycle 59 scalar pair) ──────────────────────
+
+describe('safeGetItem', () => {
+  it('returns the raw string value when the key is present', () => {
+    memLocal.setItem('k', '1');
+    expect(safeGetItem('k')).toBe('1');
+  });
+
+  it('returns the raw string value verbatim (no JSON parsing)', () => {
+    // Even if the value happens to look like JSON, safeGetItem must NOT parse.
+    memLocal.setItem('k', '{"not":"parsed"}');
+    expect(safeGetItem('k')).toBe('{"not":"parsed"}');
+  });
+
+  it('returns null when the key is absent', () => {
+    expect(safeGetItem('missing')).toBeNull();
+  });
+
+  it('returns null when storage.getItem itself throws', () => {
+    const broken = {
+      getItem: () => { throw new Error('SecurityError'); },
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    } as unknown as Storage;
+    expect(safeGetItem('k', broken)).toBeNull();
+  });
+
+  it('reads from sessionStorage when storage arg is sessionStorage', () => {
+    memSession.setItem('only-in-session', 'session-value');
+    // Default localStorage doesn't have it
+    expect(safeGetItem('only-in-session')).toBeNull();
+    // Explicit sessionStorage finds it
+    expect(safeGetItem('only-in-session', sessionStorage)).toBe('session-value');
+  });
+
+  it('defaults to localStorage when no storage arg is provided', () => {
+    memLocal.setItem('default-test', 'hit');
+    expect(safeGetItem('default-test')).toBe('hit');
+    expect(memSession.getItem('default-test')).toBeNull();
+  });
+});
+
+// ── safeSetItem (cycle 59 scalar pair) ──────────────────────
+
+describe('safeSetItem', () => {
+  it('writes the raw string value to storage', () => {
+    expect(safeSetItem('k', '1')).toBe(true);
+    expect(memLocal.getItem('k')).toBe('1');
+  });
+
+  it('writes the value verbatim (no JSON.stringify)', () => {
+    // safeSetJSON would wrap "hello" in quotes; safeSetItem must not.
+    safeSetItem('k', 'hello');
+    expect(memLocal.getItem('k')).toBe('hello');
+  });
+
+  it('returns true on success', () => {
+    expect(safeSetItem('k', 'value')).toBe(true);
+  });
+
+  it('returns false on QuotaExceededError', () => {
+    const broken = {
+      getItem: () => null,
+      setItem: () => {
+        const e = new Error('QuotaExceededError');
+        e.name = 'QuotaExceededError';
+        throw e;
+      },
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    } as unknown as Storage;
+    expect(safeSetItem('k', 'v', broken)).toBe(false);
+  });
+
+  it('returns false when storage is disabled / setItem throws', () => {
+    const broken = {
+      getItem: () => null,
+      setItem: () => { throw new Error('SecurityError'); },
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    } as unknown as Storage;
+    expect(safeSetItem('k', 'v', broken)).toBe(false);
+  });
+
+  it('writes to sessionStorage when storage arg is sessionStorage', () => {
+    expect(safeSetItem('only-session', '1', sessionStorage)).toBe(true);
+    expect(memSession.getItem('only-session')).toBe('1');
+    // localStorage untouched
+    expect(memLocal.getItem('only-session')).toBeNull();
+  });
+
+  it('defaults to localStorage when no storage arg is provided', () => {
+    expect(safeSetItem('def-key', 'hit')).toBe(true);
+    expect(memLocal.getItem('def-key')).toBe('hit');
+    expect(memSession.getItem('def-key')).toBeNull();
+  });
+});
+
+// ── safeGetItem / safeSetItem round-trip ────────────────────
+
+describe('scalar pair round-trip', () => {
+  it('safeSetItem → safeGetItem returns the same string', () => {
+    safeSetItem('flag', '1');
+    expect(safeGetItem('flag')).toBe('1');
+  });
+
+  it('safeSetItem → safeGetItem round-trip on sessionStorage', () => {
+    safeSetItem('s-flag', '1', sessionStorage);
+    expect(safeGetItem('s-flag', sessionStorage)).toBe('1');
+    // Default-arg call doesn't see it (different storage instance)
+    expect(safeGetItem('s-flag')).toBeNull();
+  });
+});
+
 // ── safeRemoveItem ──────────────────────────────────────────
 
 describe('safeRemoveItem', () => {
@@ -253,25 +374,38 @@ describe('storageHelpers source invariants', () => {
     'utf-8'
   );
 
-  it('exports exactly the three documented helpers', () => {
+  it('exports the five documented helpers (cycle 57 + cycle 59)', () => {
     expect(source).toMatch(/export\s+function\s+safeGetJSON\b/);
     expect(source).toMatch(/export\s+function\s+safeSetJSON\b/);
+    expect(source).toMatch(/export\s+function\s+safeGetItem\b/);
+    expect(source).toMatch(/export\s+function\s+safeSetItem\b/);
     expect(source).toMatch(/export\s+function\s+safeRemoveItem\b/);
   });
 
   it('defaults storage to localStorage on every helper signature', () => {
     // The default-parameter contract is what lets consumers omit the arg.
+    // 5 helpers each carry the default.
     expect(
       (source.match(/storage:\s*Storage\s*=\s*localStorage/g) ?? []).length
-    ).toBeGreaterThanOrEqual(3);
+    ).toBeGreaterThanOrEqual(5);
   });
 
   it('every helper body is wrapped in try/catch (silent failure mode)', () => {
-    expect((source.match(/try\s*\{/g) ?? []).length).toBeGreaterThanOrEqual(3);
-    expect((source.match(/}\s*catch\s*(?:\(.*?\))?\s*\{/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((source.match(/try\s*\{/g) ?? []).length).toBeGreaterThanOrEqual(5);
+    expect((source.match(/}\s*catch\s*(?:\(.*?\))?\s*\{/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });
 
   it('safeGetJSON returns null on missing key (early return)', () => {
     expect(source).toMatch(/raw\s*===\s*null/);
+  });
+
+  it('safeSetItem / safeGetItem signatures use plain string (not unknown)', () => {
+    // Distinct from safeGetJSON / safeSetJSON which use `unknown`.
+    expect(source).toMatch(/function\s+safeGetItem\(key:\s*string,\s*storage:\s*Storage\s*=\s*localStorage\):\s*string\s*\|\s*null/);
+    expect(source).toMatch(/function\s+safeSetItem\(key:\s*string,\s*value:\s*string,\s*storage:\s*Storage\s*=\s*localStorage\):\s*boolean/);
+  });
+
+  it('header comment documents the cycle-59 scalar-pair extraction', () => {
+    expect(source).toMatch(/safeGetItem\s*\/\s*safeSetItem/);
   });
 });

@@ -476,3 +476,25 @@ describe('useMapUIState: return shape', () => {
     expect(typeof result.current.dismissOnboarding).toBe('function');
   });
 });
+
+// ── Cycle 59: source-invariant negative-assertion guard ─────
+
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+describe('useMapUIState source contract (cycle 59)', () => {
+  const source = readFileSync(
+    resolve(__dirname, '../useMapUIState.ts'),
+    'utf-8'
+  );
+
+  it('uses safeGetItem/safeSetItem instead of raw localStorage (cycle 59 migration)', () => {
+    expect(source).toMatch(/import\s*\{\s*safeGetItem\s*,\s*safeSetItem\s*\}\s*from\s*['"]\.\/storageHelpers['"]/);
+    expect(source).not.toMatch(/localStorage\.getItem\(/);
+    expect(source).not.toMatch(/localStorage\.setItem\(/);
+  });
+
+  it('lifts the storage key to a module-level ONBOARDED_KEY const', () => {
+    expect(source).toMatch(/const\s+ONBOARDED_KEY\s*=\s*'axon_map_onboarded'/);
+  });
+});

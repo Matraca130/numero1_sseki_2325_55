@@ -15,7 +15,9 @@
 // ============================================================
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { devWarn } from './graphHelpers';
+import { safeGetItem, safeSetItem, safeRemoveItem } from './storageHelpers';
+
+const FULLSCREEN_KEY = 'axon_map_fullscreen';
 
 export interface UseFullscreenReturn {
   isFullscreen: boolean;
@@ -96,7 +98,7 @@ export function useFullscreen(): UseFullscreenReturn {
         restoreRef.current = clearAncestorTransforms(fullscreenRef.current);
       }
     });
-    try { sessionStorage.setItem('axon_map_fullscreen', '1'); } catch (e) { devWarn('useFullscreen', 'swallowed error', e); }
+    safeSetItem(FULLSCREEN_KEY, '1', sessionStorage);
   }, [supportsFullscreen, doRestore]);
 
   const exitFullscreen = useCallback(async () => {
@@ -111,7 +113,7 @@ export function useFullscreen(): UseFullscreenReturn {
     }
     isFullscreenRef.current = false;
     setIsFullscreen(false);
-    try { sessionStorage.removeItem('axon_map_fullscreen'); } catch (e) { devWarn('useFullscreen', 'swallowed error', e); }
+    safeRemoveItem(FULLSCREEN_KEY, sessionStorage);
   }, [supportsFullscreen, doRestore]);
 
   const toggleFullscreen = useCallback(() => {
@@ -133,7 +135,7 @@ export function useFullscreen(): UseFullscreenReturn {
         doRestore();
         isFullscreenRef.current = false;
         setIsFullscreen(false);
-        try { sessionStorage.removeItem('axon_map_fullscreen'); } catch (e) { devWarn('useFullscreen', 'swallowed error', e); }
+        safeRemoveItem(FULLSCREEN_KEY, sessionStorage);
       }
     };
 
@@ -143,11 +145,9 @@ export function useFullscreen(): UseFullscreenReturn {
 
   // On mount: exit fullscreen if page was reloaded while in fullscreen
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem('axon_map_fullscreen')) {
-        sessionStorage.removeItem('axon_map_fullscreen');
-      }
-    } catch (e) { devWarn('useFullscreen', 'swallowed error', e); }
+    if (safeGetItem(FULLSCREEN_KEY, sessionStorage)) {
+      safeRemoveItem(FULLSCREEN_KEY, sessionStorage);
+    }
   }, []);
 
   // Cleanup on unmount: restore ancestor transforms if still overridden

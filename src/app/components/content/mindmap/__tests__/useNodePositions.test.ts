@@ -402,13 +402,14 @@ describe('Source-level invariants', () => {
     expect(source).toMatch(/Number\.isFinite\(\(val as NodePosition\)\.y\)/);
   });
 
-  it('delegates storage I/O to ./storageHelpers (Cycle 57 extraction)', () => {
-    // After Cycle 57: localStorage I/O moved to safeGetJSON / safeSetJSON
-    // / safeRemoveItem in storageHelpers.ts. The grid pair is intentionally
-    // kept inline (single '1'/'0' char, not JSON) — see the source comment.
+  it('delegates storage I/O to ./storageHelpers (Cycle 57 / 59 extractions)', () => {
+    // Cycle 57: JSON I/O moved to safeGetJSON / safeSetJSON / safeRemoveItem.
+    // Cycle 59: scalar grid pair migrated to safeGetItem / safeSetItem.
     expect(source).toContain("from './storageHelpers'");
     expect(source).toMatch(/safeGetJSON\(/);
     expect(source).toMatch(/safeSetJSON\(/);
+    expect(source).toMatch(/safeGetItem\(/);
+    expect(source).toMatch(/safeSetItem\(/);
     expect(source).toMatch(/safeRemoveItem\(/);
   });
 
@@ -418,18 +419,25 @@ describe('Source-level invariants', () => {
     expect(source).not.toMatch(/JSON\.parse\(/);
   });
 
-  it('no longer issues raw JSON.stringify calls outside the grid scalar pair', () => {
-    // saveGridEnabled writes a single '1'/'0' char — not JSON — so it
-    // does NOT use JSON.stringify. After the migration, JSON.stringify
-    // should be entirely absent from this file.
+  it('no longer issues raw JSON.stringify calls (Cycle 57 negative guard)', () => {
+    // After Cycle 57: every write goes through safeSetJSON (or safeSetItem
+    // for scalars in cycle 59). Raw JSON.stringify should be entirely
+    // absent from this file.
     expect(source).not.toMatch(/JSON\.stringify\(/);
   });
 
-  it('keeps the grid pair inline (single char, not JSON)', () => {
-    // loadGridEnabled / saveGridEnabled deliberately stay inline.
-    // They store '1'/'0' scalars, so don't fit the JSON helper API.
-    expect(source).toMatch(/localStorage\.getItem\(GRID_STORAGE_KEY\)\s*===\s*'1'/);
-    expect(source).toMatch(/localStorage\.setItem\(GRID_STORAGE_KEY/);
+  it('grid pair delegates to safeGetItem / safeSetItem (Cycle 59 migration)', () => {
+    // After Cycle 59: loadGridEnabled / saveGridEnabled no longer call
+    // localStorage.getItem / localStorage.setItem directly. They go
+    // through the storageHelpers scalar pair.
+    expect(source).toMatch(/safeGetItem\(GRID_STORAGE_KEY\)\s*===\s*'1'/);
+    expect(source).toMatch(/safeSetItem\(GRID_STORAGE_KEY/);
+  });
+
+  it('no longer issues raw localStorage.getItem / setItem calls (Cycle 59 negative guard)', () => {
+    // Every storage access — JSON or scalar — now goes through helpers.
+    expect(source).not.toMatch(/localStorage\.getItem\(/);
+    expect(source).not.toMatch(/localStorage\.setItem\(/);
   });
 
   it('uses a single memoryCache for the active topic (avoids JSON.parse on rapid drag-end)', () => {

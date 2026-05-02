@@ -75,23 +75,33 @@ describe('ancestor transform clearing', () => {
 
 // ── SessionStorage persistence ──────────────────────────────
 
-describe('sessionStorage persistence', () => {
-  it('stores fullscreen state in sessionStorage', () => {
+describe('sessionStorage persistence (cycle 59: via storageHelpers)', () => {
+  it('stores fullscreen state in sessionStorage (FULLSCREEN_KEY constant)', () => {
+    // The literal 'axon_map_fullscreen' still lives at module scope as
+    // FULLSCREEN_KEY — the value is unchanged.
     expect(source).toContain('axon_map_fullscreen');
+    expect(source).toMatch(/const\s+FULLSCREEN_KEY\s*=\s*'axon_map_fullscreen'/);
   });
 
-  it('uses try/catch around sessionStorage access', () => {
-    const tryCatches = source.match(/try\s*\{[^}]*sessionStorage/g);
-    expect(tryCatches).not.toBeNull();
-    expect(tryCatches!.length).toBeGreaterThanOrEqual(2);
+  it('delegates storage I/O to safeGetItem / safeSetItem / safeRemoveItem', () => {
+    // Cycle 59: every sessionStorage access goes through the storageHelpers
+    // scalar pair, which has its own try/catch. No more inline try/catch
+    // in this file for storage access.
+    expect(source).toMatch(/safeGetItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
+    expect(source).toMatch(/safeSetItem\(FULLSCREEN_KEY,\s*'1',\s*sessionStorage\)/);
+    expect(source).toMatch(/safeRemoveItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
   });
 
-  it('removes sessionStorage key on exit', () => {
-    expect(source).toContain("sessionStorage.removeItem('axon_map_fullscreen')");
+  it('removes sessionStorage key on exit (via safeRemoveItem)', () => {
+    expect(source).toMatch(/safeRemoveItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
   });
 
-  it('restores fullscreen on mount if sessionStorage flag is set', () => {
-    expect(source).toContain("sessionStorage.getItem('axon_map_fullscreen')");
+  it('restores fullscreen on mount if sessionStorage flag is set (via safeGetItem)', () => {
+    expect(source).toMatch(/safeGetItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
+  });
+
+  it('no longer issues raw sessionStorage.{get,set,remove}Item calls (cycle 59 negative guard)', () => {
+    expect(source).not.toMatch(/sessionStorage\.(get|set|remove)Item\(/);
   });
 });
 
@@ -250,16 +260,26 @@ describe('Fullscreen API support detection', () => {
   });
 });
 
-// ── devWarn integration ────────────────────────────────────
+// ── storageHelpers integration (cycle 59) ──────────────────
 
-describe('devWarn integration', () => {
-  it("imports devWarn from './graphHelpers'", () => {
-    expect(source).toMatch(/import\s*\{\s*devWarn\s*\}\s*from\s*['"]\.\/graphHelpers['"]/);
+describe('storageHelpers integration (cycle 59: scalar pair extraction)', () => {
+  it("imports the scalar trio from './storageHelpers'", () => {
+    expect(source).toMatch(/import\s*\{[^}]*safeGetItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
+    expect(source).toMatch(/import\s*\{[^}]*safeSetItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
+    expect(source).toMatch(/import\s*\{[^}]*safeRemoveItem[^}]*\}\s*from\s*['"]\.\/storageHelpers['"]/);
   });
 
-  it('every sessionStorage try/catch uses devWarn (no silent swallows)', () => {
-    const swallows = source.match(/devWarn\('useFullscreen',\s*'swallowed error',\s*e\)/g) ?? [];
-    expect(swallows.length).toBeGreaterThanOrEqual(4);
+  it("no longer imports devWarn (try/catch + dev-only logging migrated to storageHelpers' silent-failure contract)", () => {
+    // Cycle 59 documented behavior change: storageHelpers swallows storage
+    // errors silently. The devWarn calls are gone — acceptable per the
+    // cycle-57 pattern (the helper returns false on failure if any caller
+    // ever wants to react; useFullscreen doesn't).
+    expect(source).not.toMatch(/devWarn\(/);
+  });
+
+  it('every storage access (4 sites) goes through a storageHelpers scalar call', () => {
+    const helperCalls = source.match(/safe(Get|Set|Remove)Item\(FULLSCREEN_KEY/g) ?? [];
+    expect(helperCalls.length).toBeGreaterThanOrEqual(4);
   });
 });
 
@@ -267,11 +287,12 @@ describe('devWarn integration', () => {
 
 describe('Reload-cleanup useEffect (clears flag if user reloaded mid-fullscreen)', () => {
   it('runs once on mount (empty dep array)', () => {
-    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\{\s*try\s*\{[\s\S]{0,200}sessionStorage\.removeItem\('axon_map_fullscreen'\)[\s\S]{0,200}\},\s*\[\]\)/);
+    // Cycle 59: try/catch is gone — safeGetItem / safeRemoveItem swallow.
+    expect(source).toMatch(/useEffect\(\(\)\s*=>\s*\{\s*if\s*\(safeGetItem\(FULLSCREEN_KEY,\s*sessionStorage\)\)[\s\S]{0,200}safeRemoveItem\(FULLSCREEN_KEY,\s*sessionStorage\)[\s\S]{0,200}\},\s*\[\]\)/);
   });
 
   it('only removes if flag was set (avoids unnecessary writes)', () => {
-    expect(source).toMatch(/if\s*\(sessionStorage\.getItem\('axon_map_fullscreen'\)\)\s*\{\s*sessionStorage\.removeItem/);
+    expect(source).toMatch(/if\s*\(safeGetItem\(FULLSCREEN_KEY,\s*sessionStorage\)\)\s*\{\s*safeRemoveItem\(FULLSCREEN_KEY,\s*sessionStorage\)/);
   });
 });
 
