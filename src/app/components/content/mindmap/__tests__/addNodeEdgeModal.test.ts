@@ -806,8 +806,12 @@ describe('AddNodeEdgeModal: node sorting for selects', () => {
     expect(source).toContain('const sortedNodes = useMemo(');
   });
 
-  it('filters out source node from target dropdown', () => {
-    expect(source).toContain('.filter((n) => n.id !== edgeSource)');
+  it('target dropdown filter is delegated to EdgeNodeSelect.Target (cycle 64 extraction)', () => {
+    // Cycle 64: the inline `.filter((n) => n.id !== edgeSource)` moved into
+    // EdgeNodeSelect.Target (asserted in edgeNodeSelect.test.ts). Parent must
+    // pass the source id via the `excludeId` prop instead.
+    expect(source).not.toContain('.filter((n) => n.id !== edgeSource)');
+    expect(source).toContain('excludeId={edgeSource}');
   });
 });
 
@@ -833,12 +837,18 @@ describe('AddNodeEdgeModal: accessibility', () => {
   });
 
   it('has labeled inputs with htmlFor/id pairs', () => {
+    // Node-label input still lives inline.
     expect(source).toContain('htmlFor="custom-node-label"');
     expect(source).toContain('id="custom-node-label"');
-    expect(source).toContain('htmlFor="custom-edge-source"');
-    expect(source).toContain('id="custom-edge-source"');
-    expect(source).toContain('htmlFor="custom-edge-target"');
-    expect(source).toContain('id="custom-edge-target"');
+    // Cycle 64: source/target select id+htmlFor pairs moved into EdgeNodeSelect
+    // (asserted in edgeNodeSelect.test.ts via the `inputId` prop). Parent must
+    // forward the ids via prop, not declare them inline.
+    expect(source).not.toContain('id="custom-edge-source"');
+    expect(source).not.toContain('htmlFor="custom-edge-source"');
+    expect(source).not.toContain('id="custom-edge-target"');
+    expect(source).not.toContain('htmlFor="custom-edge-target"');
+    expect(source).toContain('inputId="custom-edge-source"');
+    expect(source).toContain('inputId="custom-edge-target"');
   });
 
   it('edge directed toggle uses role="switch"', () => {
@@ -1187,8 +1197,113 @@ describe('AddNodeEdgeModal: select option label with isUserCreated suffix', () =
     expect(optionLabel({ label: 'Aorta' }, '(seu)')).toBe('Aorta');
   });
 
-  it('source builds the option label with this exact pattern', () => {
-    expect(source).toContain("{n.label}{n.isUserCreated ? ` ${t.yours}` : ''}");
+  it('source no longer builds the option label inline (cycle 64 extraction)', () => {
+    // Cycle 64: the per-option template literal moved into EdgeNodeSelect
+    // (asserted in edgeNodeSelect.test.ts). Parent must forward the suffix
+    // token via the `yoursSuffix` prop instead.
+    expect(source).not.toContain("{n.label}{n.isUserCreated ? ` ${t.yours}` : ''}");
+    expect(source).toContain('yoursSuffix={t.yours}');
+  });
+});
+
+// ── EdgeNodeSelect delegation (cycle 64 extraction) ─────────
+
+describe('AddNodeEdgeModal: EdgeNodeSelect delegation (cycle 64 extraction)', () => {
+  it('imports EdgeNodeSelect from sibling module', () => {
+    expect(source).toContain("from './EdgeNodeSelect'");
+    expect(source).toContain('import { EdgeNodeSelect }');
+  });
+
+  it('renders <EdgeNodeSelect.Source> (compound dot-notation, not flat)', () => {
+    expect(source).toContain('<EdgeNodeSelect.Source');
+  });
+
+  it('renders <EdgeNodeSelect.Target> (compound dot-notation, not flat)', () => {
+    expect(source).toContain('<EdgeNodeSelect.Target');
+  });
+
+  it('forwards edgeSourceRef to <EdgeNodeSelect.Source> (focus discipline preserved)', () => {
+    expect(source).toContain('ref={edgeSourceRef}');
+    // The ref is wired on the Source variant — assert the ref usage occurs
+    // in proximity to the Source render.
+    const sourceIdx = source.indexOf('<EdgeNodeSelect.Source');
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    expect(sourceIdx).toBeGreaterThan(-1);
+    expect(targetIdx).toBeGreaterThan(sourceIdx);
+    const sourceBlock = source.slice(sourceIdx, targetIdx);
+    expect(sourceBlock).toContain('ref={edgeSourceRef}');
+  });
+
+  it('Target variant does NOT receive a ref (asymmetry preserved)', () => {
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    // Slice from Target opening to the end of its JSX block. The next sibling
+    // is <ColorPicker.Input ... or another component — find the next "<" after
+    // the closing /> of EdgeNodeSelect.Target.
+    const closeIdx = source.indexOf('/>', targetIdx);
+    expect(closeIdx).toBeGreaterThan(targetIdx);
+    const targetBlock = source.slice(targetIdx, closeIdx);
+    expect(targetBlock).not.toContain('ref=');
+  });
+
+  it('forwards setEdgeSource as Source.onChange (controlled binding)', () => {
+    const sourceIdx = source.indexOf('<EdgeNodeSelect.Source');
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    const sourceBlock = source.slice(sourceIdx, targetIdx);
+    expect(sourceBlock).toContain('onChange={setEdgeSource}');
+  });
+
+  it('forwards setEdgeTarget as Target.onChange (controlled binding)', () => {
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    const closeIdx = source.indexOf('/>', targetIdx);
+    const targetBlock = source.slice(targetIdx, closeIdx);
+    expect(targetBlock).toContain('onChange={setEdgeTarget}');
+  });
+
+  it('passes excludeId={edgeSource} to Target only (filter delegation)', () => {
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    const closeIdx = source.indexOf('/>', targetIdx);
+    const targetBlock = source.slice(targetIdx, closeIdx);
+    expect(targetBlock).toContain('excludeId={edgeSource}');
+    // Source must NOT receive excludeId.
+    const sourceIdx = source.indexOf('<EdgeNodeSelect.Source');
+    const sourceBlock = source.slice(sourceIdx, targetIdx);
+    expect(sourceBlock).not.toContain('excludeId=');
+  });
+
+  it('forwards sortedNodes as `options` to BOTH variants', () => {
+    const sourceIdx = source.indexOf('<EdgeNodeSelect.Source');
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    const closeIdx = source.indexOf('/>', targetIdx);
+    expect(source.slice(sourceIdx, targetIdx)).toContain('options={sortedNodes}');
+    expect(source.slice(targetIdx, closeIdx)).toContain('options={sortedNodes}');
+  });
+
+  it('forwards distinct fieldLabel tokens (edgeSourceField vs edgeTargetField)', () => {
+    const sourceIdx = source.indexOf('<EdgeNodeSelect.Source');
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    const closeIdx = source.indexOf('/>', targetIdx);
+    expect(source.slice(sourceIdx, targetIdx)).toContain('fieldLabel={t.edgeSourceField}');
+    expect(source.slice(targetIdx, closeIdx)).toContain('fieldLabel={t.edgeTargetField}');
+  });
+
+  it('forwards selectPlaceholder + yoursSuffix tokens to BOTH variants', () => {
+    const sourceIdx = source.indexOf('<EdgeNodeSelect.Source');
+    const targetIdx = source.indexOf('<EdgeNodeSelect.Target');
+    const closeIdx = source.indexOf('/>', targetIdx);
+    const sourceBlock = source.slice(sourceIdx, targetIdx);
+    const targetBlock = source.slice(targetIdx, closeIdx);
+    expect(sourceBlock).toContain('placeholder={t.selectPlaceholder}');
+    expect(targetBlock).toContain('placeholder={t.selectPlaceholder}');
+    expect(sourceBlock).toContain('yoursSuffix={t.yours}');
+    expect(targetBlock).toContain('yoursSuffix={t.yours}');
+  });
+
+  it('does NOT pass setEdgeSource via inline arrow (delegation owns the closure)', () => {
+    // Pre-extraction the <select> body had `onChange={(e) => setEdgeSource(e.target.value)}`.
+    // After extraction, the parent forwards the setter directly and the
+    // closure lives inside EdgeNodeSelect. Guard against accidental drift.
+    expect(source).not.toContain('onChange={(e) => setEdgeSource(e.target.value)}');
+    expect(source).not.toContain('onChange={(e) => setEdgeTarget(e.target.value)}');
   });
 });
 

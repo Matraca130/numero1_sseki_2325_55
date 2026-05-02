@@ -22,6 +22,7 @@ import { useFocusTrap } from './useFocusTrap';
 import { ArrowTypePicker } from './ArrowTypePicker';
 import { LineStylePicker } from './LineStylePicker';
 import { ColorPicker } from './ColorPicker';
+import { EdgeNodeSelect } from './EdgeNodeSelect';
 
 // ── I18N ────────────────────────────────────────────────────
 
@@ -457,45 +458,26 @@ export const AddNodeEdgeModal = memo(function AddNodeEdgeModal({
                     className="space-y-3"
                     onSubmit={(e) => { e.preventDefault(); if (edgeSource && edgeTarget && edgeSource !== edgeTarget && !saving) handleCreateEdge(); }}
                   >
-                    <div>
-                      <label htmlFor="custom-edge-source" className="block text-xs font-medium text-gray-600 mb-1">
-                        {t.edgeSourceField}
-                      </label>
-                      <select
-                        ref={edgeSourceRef}
-                        id="custom-edge-source"
-                        value={edgeSource}
-                        onChange={(e) => setEdgeSource(e.target.value)}
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
-                      >
-                        <option value="">{t.selectPlaceholder}</option>
-                        {sortedNodes.map((n) => (
-                          <option key={n.id} value={n.id}>
-                            {n.label}{n.isUserCreated ? ` ${t.yours}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="custom-edge-target" className="block text-xs font-medium text-gray-600 mb-1">
-                        {t.edgeTargetField}
-                      </label>
-                      <select
-                        id="custom-edge-target"
-                        value={edgeTarget}
-                        onChange={(e) => setEdgeTarget(e.target.value)}
-                        className="w-full px-3 py-2 text-base sm:text-sm border border-gray-200 rounded-xl outline-none bg-white font-sans focus:ring-2 focus:ring-ax-primary-500/20 focus:border-ax-primary-500"
-                      >
-                        <option value="">{t.selectPlaceholder}</option>
-                        {sortedNodes
-                          .filter((n) => n.id !== edgeSource)
-                          .map((n) => (
-                            <option key={n.id} value={n.id}>
-                              {n.label}{n.isUserCreated ? ` ${t.yours}` : ''}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
+                    <EdgeNodeSelect.Source
+                      ref={edgeSourceRef}
+                      inputId="custom-edge-source"
+                      value={edgeSource}
+                      onChange={setEdgeSource}
+                      options={sortedNodes}
+                      fieldLabel={t.edgeSourceField}
+                      placeholder={t.selectPlaceholder}
+                      yoursSuffix={t.yours}
+                    />
+                    <EdgeNodeSelect.Target
+                      inputId="custom-edge-target"
+                      value={edgeTarget}
+                      onChange={setEdgeTarget}
+                      options={sortedNodes}
+                      excludeId={edgeSource}
+                      fieldLabel={t.edgeTargetField}
+                      placeholder={t.selectPlaceholder}
+                      yoursSuffix={t.yours}
+                    />
                     <div>
                       <label htmlFor="custom-edge-type" className="block text-xs font-medium text-gray-600 mb-1">
                         {t.edgeTypeField}

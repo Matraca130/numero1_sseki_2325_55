@@ -277,6 +277,33 @@ describe('mindmap module: ColorPicker (cycle 63 extraction)', () => {
   });
 });
 
+describe('mindmap module: EdgeNodeSelect (cycle 64 extraction)', () => {
+  it('exports the compound EdgeNodeSelect constant', () => {
+    const names = getExportedNames('EdgeNodeSelect.tsx');
+    expect(names).toContain('EdgeNodeSelect');
+  });
+
+  it('exports EdgeNodeSelectInputProps and EdgeNodeSelectTargetProps types', () => {
+    const filepath = join(MINDMAP_DIR, 'EdgeNodeSelect.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toMatch(/export\s+interface\s+EdgeNodeSelectInputProps/);
+    expect(src).toMatch(/export\s+interface\s+EdgeNodeSelectTargetProps/);
+  });
+
+  it('exports EdgeNodeSelectOption interface (option shape contract)', () => {
+    const filepath = join(MINDMAP_DIR, 'EdgeNodeSelect.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toMatch(/export\s+interface\s+EdgeNodeSelectOption/);
+  });
+
+  it('compound shape exposes Source + Target sub-components', () => {
+    const filepath = join(MINDMAP_DIR, 'EdgeNodeSelect.tsx');
+    const src = readFileSync(filepath, 'utf-8');
+    expect(src).toContain('Source: EdgeNodeSelectSource');
+    expect(src).toContain('Target: EdgeNodeSelectTarget');
+  });
+});
+
 describe('mindmap module: ConfirmDialog', () => {
   it('exports ConfirmDialog component', () => {
     const names = getExportedNames('ConfirmDialog.tsx');
@@ -556,6 +583,9 @@ describe('mindmap directory completeness', () => {
       // Cycle 63 — compound ColorPicker (Input + Swatches) extracted from
       // AddNodeEdgeModal. Has a dedicated test file (colorPicker.test.ts).
       'ColorPicker.tsx',
+      // Cycle 64 — compound EdgeNodeSelect (Source + Target) extracted from
+      // AddNodeEdgeModal. Has a dedicated test file (edgeNodeSelect.test.ts).
+      'EdgeNodeSelect.tsx',
     ]);
 
     const untested = files.filter(f => !tested.has(f));
