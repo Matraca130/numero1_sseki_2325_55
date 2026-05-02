@@ -51,6 +51,82 @@ function kwName(
   return kwMap.get(id)?.name ?? id.slice(0, 8);
 }
 
+// ── ConnectionRow — memoized per-connection row ─────────
+//
+// Extracted from the inline .map() body so a parent re-render of
+// ConnectionList (e.g. parent KeywordConnectionsPanel state churn:
+// search input keystroke, modal open/close, deletingId flip) does NOT
+// cascade through every connection row. conn comes from React Query
+// data — stable until refetch. kwMap is useMemo'd in the parent. All
+// other props are primitives or stable callback refs.
+const ConnectionRow = React.memo(function ConnectionRow({
+  conn,
+  keywordId,
+  kwMap,
+  onRequestDelete,
+}: {
+  conn: KeywordConnection;
+  keywordId: string;
+  kwMap: Map<string, SummaryKeyword>;
+  onRequestDelete: (connectionId: string) => void;
+}) {
+  const otherId = conn.keyword_a_id === keywordId ? conn.keyword_b_id : conn.keyword_a_id;
+  const isLocal = kwMap.has(otherId);
+  const typeCfg = getConnectionType(conn.connection_type);
+  const isSource = conn.source_keyword_id === keywordId;
+  const isTarget = conn.source_keyword_id && conn.source_keyword_id !== keywordId;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="flex items-center gap-2 py-1.5 group"
+    >
+      {/* Icon: local vs cross-summary */}
+      {isLocal ? (
+        <Link2 size={12} className="text-violet-400 shrink-0" />
+      ) : (
+        <ExternalLink size={12} className="text-indigo-400 shrink-0" />
+      )}
+
+      {/* Direction arrow for directional connections */}
+      {isSource && <ArrowRight size={10} className="text-gray-400 shrink-0" />}
+      {isTarget && <ArrowRight size={10} className="text-gray-400 shrink-0 rotate-180" />}
+
+      {/* Keyword name */}
+      <span className="text-xs text-gray-600 truncate">{kwName(otherId, kwMap, conn)}</span>
+
+      {/* Connection type badge */}
+      {typeCfg && <ConnectionTypeBadge type={conn.connection_type} />}
+
+      {/* Legacy relationship text (for existing connections without type) */}
+      {!typeCfg && conn.relationship && (
+        <>
+          <ArrowRight size={10} className="text-gray-300 shrink-0" />
+          <span className="text-[10px] text-gray-400 italic truncate">{conn.relationship}</span>
+        </>
+      )}
+
+      {/* Relationship note (when type exists AND relationship text too) */}
+      {typeCfg && conn.relationship && (
+        <span className="text-[10px] text-gray-400 italic truncate" title={conn.relationship}>
+          {conn.relationship}
+        </span>
+      )}
+
+      <div className="flex-1" />
+      <button
+        onClick={() => onRequestDelete(conn.id)}
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Eliminar conexion"
+      >
+        <Trash2 size={12} className="text-red-400 hover:text-red-600" />
+      </button>
+    </motion.div>
+  );
+});
+
 // ── Component ─────────────────────────────────────────────
 
 export function ConnectionList({
@@ -68,70 +144,15 @@ export function ConnectionList({
   return (
     <>
       <AnimatePresence mode="popLayout">
-        {connections.map(conn => {
-          const otherId = conn.keyword_a_id === keywordId ? conn.keyword_b_id : conn.keyword_a_id;
-          const isLocal = kwMap.has(otherId);
-          const typeCfg = getConnectionType(conn.connection_type);
-
-          // Direction indicator for directional types
-          const isSource = conn.source_keyword_id === keywordId;
-          const isTarget = conn.source_keyword_id && conn.source_keyword_id !== keywordId;
-
-          return (
-            <motion.div
-              key={conn.id}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex items-center gap-2 py-1.5 group"
-            >
-              {/* Icon: local vs cross-summary */}
-              {isLocal ? (
-                <Link2 size={12} className="text-violet-400 shrink-0" />
-              ) : (
-                <ExternalLink size={12} className="text-indigo-400 shrink-0" />
-              )}
-
-              {/* Direction arrow for directional connections */}
-              {isSource && (
-                <ArrowRight size={10} className="text-gray-400 shrink-0" />
-              )}
-              {isTarget && (
-                <ArrowRight size={10} className="text-gray-400 shrink-0 rotate-180" />
-              )}
-
-              {/* Keyword name */}
-              <span className="text-xs text-gray-600 truncate">{kwName(otherId, kwMap, conn)}</span>
-
-              {/* Connection type badge */}
-              {typeCfg && <ConnectionTypeBadge type={conn.connection_type} />}
-
-              {/* Legacy relationship text (for existing connections without type) */}
-              {!typeCfg && conn.relationship && (
-                <>
-                  <ArrowRight size={10} className="text-gray-300 shrink-0" />
-                  <span className="text-[10px] text-gray-400 italic truncate">{conn.relationship}</span>
-                </>
-              )}
-
-              {/* Relationship note (when type exists AND relationship text too) */}
-              {typeCfg && conn.relationship && (
-                <span className="text-[10px] text-gray-400 italic truncate" title={conn.relationship}>
-                  {conn.relationship}
-                </span>
-              )}
-
-              <div className="flex-1" />
-              <button
-                onClick={() => onRequestDelete(conn.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Eliminar conexion"
-              >
-                <Trash2 size={12} className="text-red-400 hover:text-red-600" />
-              </button>
-            </motion.div>
-          );
-        })}
+        {connections.map(conn => (
+          <ConnectionRow
+            key={conn.id}
+            conn={conn}
+            keywordId={keywordId}
+            kwMap={kwMap}
+            onRequestDelete={onRequestDelete}
+          />
+        ))}
       </AnimatePresence>
 
       {connections.length === 0 && (
